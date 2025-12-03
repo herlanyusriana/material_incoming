@@ -14,7 +14,7 @@ class ArrivalController extends Controller
 {
     public function index()
     {
-        $arrivals = Arrival::with(['vendor', 'creator'])
+        $arrivals = Arrival::with(['vendor', 'creator', 'items.receives'])
             ->latest()
             ->paginate(10);
 
@@ -45,8 +45,9 @@ class ArrivalController extends Controller
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.part_id' => ['required', 'exists:parts,id'],
+            'items.*.size' => ['nullable', 'string', 'max:100', 'regex:/^\d{1,4}(\.\d{1,2})?\s*x\s*\d{1,4}(\.\d)?\s*x\s*[A-Z]$/i'],
             'items.*.qty_bundle' => ['required', 'integer', 'min:0'],
-            'items.*.qty_goods' => ['required', 'integer', 'min:0'],
+            'items.*.qty_goods' => ['required', 'integer', 'min:1'],
             'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
             'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
             'items.*.price' => ['required', 'numeric', 'min:0'],
@@ -71,16 +72,22 @@ class ArrivalController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
-            foreach ($validated['items'] as $item) {
+            foreach ($validated['items'] as $index => $item) {
+                // Skip items with qty_goods = 0
+                if ($item['qty_goods'] <= 0) {
+                    continue;
+                }
+
                 $part = Part::find($item['part_id']);
-                if ($part && $part->vendor_id !== $vendorId) {
+                if ($part && $part->vendor_id != $vendorId) {
                     throw ValidationException::withMessages([
-                        'items' => ['Selected part does not belong to this vendor.'],
+                        "items.{$index}.part_id" => "Part {$part->part_no} does not belong to the selected vendor.",
                     ]);
                 }
 
                 $arrival->items()->create([
                     'part_id' => $item['part_id'],
+                    'size' => $item['size'] ?? null,
                     'qty_bundle' => $item['qty_bundle'],
                     'qty_goods' => $item['qty_goods'],
                     'weight_nett' => $item['weight_nett'],
@@ -92,12 +99,12 @@ class ArrivalController extends Controller
             }
         });
 
-        return redirect()->route('arrivals.index')->with('status', 'Arrival created.');
+        return redirect()->route('arrivals.show', $arrival)->with('success', 'Arrival created successfully. Click "Receive" on each item to process incoming goods.');
     }
 
     public function show(Arrival $arrival)
     {
-        $arrival->load(['vendor', 'creator', 'items.part']);
+        $arrival->load(['vendor', 'creator', 'items.part', 'items.receives']);
 
         return view('arrivals.show', compact('arrival'));
     }

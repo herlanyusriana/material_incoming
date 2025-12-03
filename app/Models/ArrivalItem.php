@@ -12,6 +12,7 @@ class ArrivalItem extends Model
     protected $fillable = [
         'arrival_id',
         'part_id',
+        'size',
         'qty_bundle',
         'qty_goods',
         'weight_nett',
@@ -24,6 +25,11 @@ class ArrivalItem extends Model
     public function arrival()
     {
         return $this->belongsTo(Arrival::class);
+    }
+
+    public function receives()
+    {
+        return $this->hasMany(Receive::class);
     }
 
     public function part()

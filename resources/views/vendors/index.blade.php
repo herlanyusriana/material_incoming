@@ -12,10 +12,10 @@
             @endif
 
             <div class="grid lg:grid-cols-3 gap-6">
-                <div class="bg-white shadow-sm border rounded-xl p-6 space-y-4">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Add New Vendor</h3>
-                        <p class="text-sm text-gray-500">Only name, address, and bank account are required.</p>
+                <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+                    <div class="pb-3 border-b border-slate-200">
+                        <h3 class="text-lg font-bold text-slate-900">Add New Vendor</h3>
+                        <p class="text-sm text-slate-600 mt-1">Only name, address, and bank account are required.</p>
                     </div>
 
                     <form method="POST" action="{{ route('vendors.store') }}" class="space-y-4">
@@ -35,74 +35,74 @@
                             <textarea id="address" name="address" rows="3" placeholder="e.g., 123 Main St, Anytown, USA" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
                             <x-input-error :messages="$errors->get('address')" class="mt-1" />
                         </div>
-                        <div class="flex justify-end">
-                            <x-primary-button class="w-full justify-center">Add Vendor</x-primary-button>
+                        <div class="flex justify-end pt-2">
+                            <button type="submit" class="w-full px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">Add Vendor</button>
                         </div>
                     </form>
                 </div>
 
-                <div class="lg:col-span-2 bg-white shadow-sm border rounded-xl p-6 space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                <div class="lg:col-span-2 bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Vendor List</h3>
-                            <p class="text-sm text-gray-500">Search and filter vendors by status.</p>
+                            <h3 class="text-lg font-bold text-slate-900">Vendor List</h3>
+                            <p class="text-sm text-slate-600 mt-1">Search and filter vendors by status.</p>
                         </div>
-                        <div class="flex items-center gap-4 sm:gap-6 w-full sm:w-auto justify-start sm:justify-end">
-                            <form method="GET" class="flex flex-wrap items-center gap-3 sm:gap-5 w-full sm:w-auto justify-start sm:justify-end">
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <form method="GET" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                                 <div class="relative w-full sm:w-64">
-                                    <input type="text" name="q" value="{{ $search }}" placeholder="Search vendors..." class="pl-9 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                                    <span class="absolute left-3 top-2.5 text-gray-400">
+                                    <input type="text" name="q" value="{{ $search }}" placeholder="Search vendors..." class="w-full pl-9 pr-3 py-2 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+                                    <span class="absolute left-3 top-2.5 text-slate-400">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
                                     </span>
                                 </div>
-                                <select name="status" class="py-2 px-4 w-full sm:w-52" rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <select name="status" class="py-2 px-4 w-full sm:w-44 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
                                     <option value="">All Status</option>
                                     <option value="active" @selected($status === 'active')>Active</option>
                                     <option value="inactive" @selected($status === 'inactive')>Inactive</option>
                                 </select>
-                                <button class="px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-sm">Filter</button>
+                                <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Filter</button>
                             </form>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
                         <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="text-gray-500 text-xs uppercase">
-                                    <th class="px-3 py-2 text-left">Vendor Name</th>
-                                    <th class="px-3 py-2 text-left">Contact</th>
-                                    <th class="px-3 py-2 text-left">Email</th>
-                                    <th class="px-3 py-2 text-left">Phone</th>
-                                    <th class="px-3 py-2 text-left">Status</th>
-                                    <th class="px-3 py-2 text-right">Actions</th>
+                            <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
+                                <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                    <th class="px-4 py-3 text-left font-semibold">Vendor Name</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Contact</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Email</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Phone</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
+                            <tbody class="divide-y divide-slate-100 bg-white">
                                 @forelse ($vendors as $vendor)
-                                    <tr class="text-gray-800">
-                                        <td class="px-3 py-3 font-medium">{{ $vendor->vendor_name }}</td>
-                                        <td class="px-3 py-3">{{ $vendor->contact_person }}</td>
-                                        <td class="px-3 py-3 text-gray-700">{{ $vendor->email }}</td>
-                                        <td class="px-3 py-3 text-gray-700">{{ $vendor->phone }}</td>
-                                        <td class="px-3 py-3">
-                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $vendor->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' }}">
+                                    <tr class="hover:bg-slate-50 transition-colors">
+                                        <td class="px-4 py-4 font-semibold text-slate-900">{{ $vendor->vendor_name }}</td>
+                                        <td class="px-4 py-4 text-slate-700">{{ $vendor->contact_person }}</td>
+                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->email }}</td>
+                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->phone }}</td>
+                                        <td class="px-4 py-4">
+                                            <span class="px-3 py-1 inline-flex text-xs font-semibold rounded-full {{ $vendor->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
                                                 {{ ucfirst($vendor->status) }}
                                             </span>
                                         </td>
-                                        <td class="px-3 py-3 text-right">
-                                            <div class="flex justify-end gap-3 text-blue-600">
-                                                <a href="{{ route('vendors.edit', $vendor) }}" class="hover:text-blue-800">Edit</a>
+                                        <td class="px-4 py-4 text-right">
+                                            <div class="flex justify-end gap-3">
+                                                <a href="{{ route('vendors.edit', $vendor) }}" class="text-blue-600 hover:text-blue-700 font-medium">Edit</a>
                                                 <form method="POST" action="{{ route('vendors.destroy', $vendor) }}" onsubmit="return confirm('Archive this vendor?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button class="text-red-600 hover:text-red-800">Delete</button>
+                                                    <button class="text-red-600 hover:text-red-700 font-medium">Delete</button>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-3 py-6 text-center text-gray-500">No vendors found.</td>
+                                        <td colspan="6" class="px-4 py-12 text-center text-slate-500">No vendors found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

@@ -11,6 +11,7 @@ class PartController extends Controller
     public function index(Request $request)
     {
         $vendorId = $request->query('vendor_id');
+        $statusFilter = $request->query('status_filter');
         $search = $request->query('q');
 
         $parts = Part::with('vendor')
@@ -23,13 +24,14 @@ class PartController extends Controller
                         ->orWhere('part_name_gci', 'like', "%{$search}%");
                 });
             })
+            ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
         $vendors = Vendor::orderBy('vendor_name')->get();
 
-        return view('parts.index', compact('parts', 'vendors', 'vendorId', 'search'));
+        return view('parts.index', compact('parts', 'vendors', 'vendorId', 'search', 'statusFilter'));
     }
 
     public function create()

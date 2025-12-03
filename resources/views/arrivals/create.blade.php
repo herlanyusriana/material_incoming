@@ -11,7 +11,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('arrivals.store') }}" class="space-y-6">
+            <form method="POST" action="{{ route('arrivals.store') }}" class="space-y-6" id="arrival-form">
                 @csrf
                 <div class="bg-white border rounded-xl shadow-sm p-6 space-y-4">
                     <div class="flex items-center justify-between gap-4">
@@ -20,6 +20,17 @@
                             <p class="text-sm text-gray-500">Enter invoice, dates, and vendor.</p>
                         </div>
                         <a href="{{ route('arrivals.index') }}" class="text-blue-600 hover:text-blue-800 text-sm">Back to list</a>
+                    </div>
+
+                    <div class="space-y-1">
+                        <x-input-label for="vendor_id" value="Vendor" />
+                        <select name="vendor_id" id="vendor_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            <option value="">Pilih vendor terlebih dahulu</option>
+                            @foreach ($vendors as $vendor)
+                                <option value="{{ $vendor->id }}" @selected(old('vendor_id') == $vendor->id)>{{ $vendor->vendor_name }}</option>
+                            @endforeach
+                        </select>
+                        <x-input-error :messages="$errors->get('vendor_id')" class="mt-1" />
                     </div>
 
                     <div class="grid md:grid-cols-2 gap-4">
@@ -42,16 +53,6 @@
                             <x-input-label for="bill_of_lading" value="Bill of Lading" />
                             <x-text-input id="bill_of_lading" name="bill_of_lading" type="text" placeholder="BL-56789" class="mt-1 block w-full" value="{{ old('bill_of_lading') }}" />
                             <x-input-error :messages="$errors->get('bill_of_lading')" class="mt-1" />
-                        </div>
-                        <div class="space-y-1">
-                            <x-input-label for="vendor_id" value="Vendor" />
-                            <select name="vendor_id" id="vendor_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                                <option value="">Select vendor</option>
-                                @foreach ($vendors as $vendor)
-                                    <option value="{{ $vendor->id }}" @selected(old('vendor_id') == $vendor->id)>{{ $vendor->vendor_name }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('vendor_id')" class="mt-1" />
                         </div>
                         <div class="space-y-1">
                             <x-input-label for="trucking_company" value="Trucking Company" />
@@ -90,7 +91,7 @@
                     <div class="flex items-center justify-between gap-4">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900">Arrival Items</h3>
-                            <p class="text-sm text-gray-500">Select parts (filtered by vendor) and enter quantities. Totals auto-calc.</p>
+                            <p class="text-sm text-gray-500">All parts from selected vendor auto-loaded. Fill in quantities, weights & prices.</p>
                         </div>
                         <button type="button" id="add-line" class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">+ Add Line</button>
                     </div>
@@ -99,6 +100,7 @@
                         <table class="min-w-full text-sm" id="items-table">
                             <thead class="bg-gray-50">
                                 <tr>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">Size (L x W x T)</th>
                                     <th class="px-3 py-2 text-left font-semibold text-gray-600">Part Number</th>
                                     <th class="px-3 py-2 text-left font-semibold text-gray-600">Qty Bundle</th>
                                     <th class="px-3 py-2 text-left font-semibold text-gray-600">Qty Goods</th>
@@ -151,6 +153,9 @@
             const tr = document.createElement('tr');
             tr.className = 'transition-all duration-200 ease-out';
             tr.innerHTML = `
+                <td class="px-3 py-2">
+                    <input type="text" name="items[${rowIndex}][size]" class="w-36 rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="${existing?.size ?? ''}">
+                </td>
                 <td class="px-3 py-2">
                     <select name="items[${rowIndex}][part_id]" class="part-select block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" ${vendorId ? '' : 'disabled'} required>
                         ${vendorId ? buildPartOptions(vendorId, existing?.part_id) : '<option value=\"\">Select vendor first</option>'}
@@ -217,8 +222,58 @@
         async function refreshRowsForVendor(vendorId) {
             itemRows.innerHTML = '';
             rowIndex = 0;
-            await loadParts(vendorId);
-            addRow();
+            const parts = await loadParts(vendorId);
+            
+            // Auto-populate all parts from selected vendor
+            if (parts && parts.length > 0) {
+                parts.forEach(part => {
+                    addRowWithPart(part.id);
+                });
+            } else {
+                addRow();
+            }
+        }
+        
+        function addRowWithPart(partId) {
+            const vendorId = vendorSelect.value;
+            const tr = document.createElement('tr');
+            tr.className = 'transition-all duration-200 ease-out';
+            tr.innerHTML = `
+                <td class="px-3 py-2">
+                    <select name="items[${rowIndex}][part_id]" class="part-select block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                        ${vendorId ? buildPartOptions(vendorId, partId) : '<option value="">Select vendor first</option>'}
+                    </select>
+                </td>
+                <td class="px-3 py-2">
+                    <input type="text" name="items[${rowIndex}][size]" class="w-36 rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="">
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle w-24 rounded-md border-gray-300" value="0" min="0" required>
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" name="items[${rowIndex}][qty_goods]" class="qty-goods w-24 rounded-md border-gray-300" value="0" min="0" required>
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" step="0.01" name="items[${rowIndex}][weight_nett]" class="w-28 rounded-md border-gray-300" value="0" min="0" required>
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" step="0.01" name="items[${rowIndex}][weight_gross]" class="w-28 rounded-md border-gray-300" value="0" min="0" required>
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" step="0.01" name="items[${rowIndex}][price]" class="price w-28 rounded-md border-gray-300" value="0" min="0" required>
+                </td>
+                <td class="px-3 py-2">
+                    <input type="text" class="total w-28 rounded-md border-gray-200 bg-gray-50" value="0.00" readonly>
+                    <input type="hidden" name="items[${rowIndex}][notes]" value="">
+                </td>
+                <td class="px-3 py-2 text-right">
+                    <button type="button" class="remove-line text-red-600 hover:text-red-800">Remove</button>
+                </td>
+            `;
+
+            itemRows.appendChild(tr);
+            rowIndex++;
+            bindRow(tr, partId);
         }
 
         vendorSelect.addEventListener('change', () => {
@@ -237,6 +292,18 @@
             } else {
                 addRow();
             }
+        });
+
+        // Filter out items with qty_goods = 0 before submit
+        const form = document.getElementById('arrival-form');
+        form.addEventListener('submit', function(e) {
+            const rows = itemRows.querySelectorAll('tr');
+            rows.forEach(row => {
+                const qtyGoods = parseFloat(row.querySelector('.qty-goods')?.value) || 0;
+                if (qtyGoods === 0) {
+                    row.remove();
+                }
+            });
         });
     </script>
 </x-app-layout>
