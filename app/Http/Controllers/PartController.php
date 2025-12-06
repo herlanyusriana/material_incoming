@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Part;
 use App\Models\Vendor;
+use App\Exports\PartsExport;
+use App\Imports\PartsImport;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PartController extends Controller
 {
@@ -32,6 +35,25 @@ class PartController extends Controller
         $vendors = Vendor::orderBy('vendor_name')->get();
 
         return view('parts.index', compact('parts', 'vendors', 'vendorId', 'search', 'statusFilter'));
+    }
+
+    public function export()
+    {
+        return Excel::download(new PartsExport, 'parts_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:2048',
+        ]);
+
+        try {
+            Excel::import(new PartsImport, $request->file('file'));
+            return back()->with('status', 'Parts imported successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
     }
 
     public function create()

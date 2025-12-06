@@ -13,6 +13,12 @@
                     {{ session('status') }}
                 </div>
             @endif
+            
+            @if (session('error'))
+                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                    {{ session('error') }}
+                </div>
+            @endif
 
             <section class="bg-white border rounded-xl shadow-sm p-6 space-y-6">
                 <div>
@@ -82,12 +88,26 @@
                     <div>
                         <x-select name="status_filter" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" :value="$statusFilter" placeholder="Semua status" :preserve-old="false" />
                     </div>
-                    <div class="md:col-span-4 flex justify-end">
+                    <div class="md:col-span-4 flex justify-end gap-3">
                         <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" />
                             </svg>
                             Apply Filters
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('parts.export') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0-3-3m3 3 3-3m2 8H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
+                            </svg>
+                            Export
+                        </a>
+                        <button type="button" onclick="document.getElementById('import-part-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-6m0 0 3 3m-3-3-3 3m8-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                            Import
                         </button>
                     </div>
                 </form>
@@ -145,6 +165,44 @@
                     {{ $parts->links() }}
                 </div>
             </section>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="import-part-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                <h3 class="text-lg font-bold text-slate-900">Import Parts</h3>
+                <button type="button" onclick="document.getElementById('import-part-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form action="{{ route('parts.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Upload Excel File</label>
+                    <input type="file" name="file" accept=".xlsx,.xls" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="mt-2 text-xs text-slate-500">Accepted formats: .xlsx, .xls (Max: 2MB)</p>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p class="text-xs text-blue-800 font-medium mb-1">Required Columns (exact names):</p>
+                    <p class="text-xs text-blue-700">part_number, part_name_vendor, part_name_internal, vendor, description, status</p>
+                    <p class="text-xs text-blue-600 mt-1">Tip: Export existing data to get the correct format</p>
+                </div>
+                
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="document.getElementById('import-part-modal').classList.add('hidden')" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                        Upload & Import
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

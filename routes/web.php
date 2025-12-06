@@ -45,7 +45,11 @@ Route::get('/dashboard', function () {
 
 Route::middleware('auth')->group(function () {
     Route::resource('vendors', VendorController::class)->except(['show']);
+    Route::get('/vendors/export', [VendorController::class, 'export'])->name('vendors.export');
+    Route::post('/vendors/import', [VendorController::class, 'import'])->name('vendors.import');
     Route::resource('parts', PartController::class)->except(['show']);
+    Route::get('/parts/export', [PartController::class, 'export'])->name('parts.export');
+    Route::post('/parts/import', [PartController::class, 'import'])->name('parts.import');
     Route::resource('arrivals', ArrivalController::class)->only(['index', 'create', 'store', 'show']);
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
 

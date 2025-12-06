@@ -240,12 +240,12 @@
             tr.className = 'transition-all duration-200 ease-out';
             tr.innerHTML = `
                 <td class="px-3 py-2">
+                    <input type="text" name="items[${rowIndex}][size]" class="w-36 rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="">
+                </td>
+                <td class="px-3 py-2">
                     <select name="items[${rowIndex}][part_id]" class="part-select block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                         ${vendorId ? buildPartOptions(vendorId, partId) : '<option value="">Select vendor first</option>'}
                     </select>
-                </td>
-                <td class="px-3 py-2">
-                    <input type="text" name="items[${rowIndex}][size]" class="w-36 rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="">
                 </td>
                 <td class="px-3 py-2">
                     <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle w-24 rounded-md border-gray-300" value="0" min="0" required>

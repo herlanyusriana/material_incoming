@@ -56,7 +56,7 @@ class ArrivalController extends Controller
 
         $vendorId = $validated['vendor_id'];
 
-        DB::transaction(function () use ($validated, $vendorId) {
+        $arrival = DB::transaction(function () use ($validated, $vendorId) {
             $arrival = Arrival::create([
                 'invoice_no' => $validated['invoice_no'],
                 'invoice_date' => $validated['invoice_date'],
@@ -97,6 +97,8 @@ class ArrivalController extends Controller
                     'notes' => $item['notes'] ?? null,
                 ]);
             }
+
+            return $arrival;
         });
 
         return redirect()->route('arrivals.show', $arrival)->with('success', 'Arrival created successfully. Click "Receive" on each item to process incoming goods.');

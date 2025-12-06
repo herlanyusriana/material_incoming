@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Vendor;
+use App\Exports\VendorsExport;
+use App\Imports\VendorsImport;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class VendorController extends Controller
 {
@@ -26,6 +29,25 @@ class VendorController extends Controller
             ->withQueryString();
 
         return view('vendors.index', compact('vendors', 'search', 'status'));
+    }
+
+    public function export()
+    {
+        return Excel::download(new VendorsExport, 'vendors_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:2048',
+        ]);
+
+        try {
+            Excel::import(new VendorsImport, $request->file('file'));
+            return back()->with('status', 'Vendors imported successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
     }
 
     public function create()
