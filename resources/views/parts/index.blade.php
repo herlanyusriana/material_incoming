@@ -20,6 +20,12 @@
                 </div>
             @endif
 
+            @php
+                $vendorMap = $vendors->pluck('vendor_name', 'id');
+                $oldVendorName = $vendorMap[old('vendor_id')] ?? '';
+                $filterVendorName = $vendorMap[$vendorId ?? null] ?? '';
+            @endphp
+
             <section class="bg-white border rounded-xl shadow-sm p-6 space-y-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-1">Register New Part Number</h3>
@@ -30,7 +36,24 @@
                     @csrf
                     <div class="space-y-3">
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vendor Information</p>
-                        <x-select name="vendor_id" label="Vendor" :options="$vendors->pluck('vendor_name', 'id')" placeholder="Pilih vendor" required hint="Pastikan vendor sesuai dengan sumber part." />
+                        <div class="space-y-1">
+                            <label for="create-vendor-name" class="block text-sm font-medium text-gray-700">Vendor</label>
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    id="create-vendor-name"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    placeholder="Ketik nama vendor..."
+                                    autocomplete="off"
+                                    value="{{ $oldVendorName }}"
+                                    required
+                                />
+                                <div id="create-vendor-suggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                            </div>
+                            <input type="hidden" name="vendor_id" id="create-vendor-id" value="{{ old('vendor_id') }}">
+                            <x-input-error :messages="$errors->get('vendor_id')" class="mt-1" />
+                            <p class="mt-1 text-xs text-gray-500">Ketik satu kata, daftar vendor akan muncul.</p>
+                        </div>
                     </div>
 
                     <div class="space-y-3">
@@ -46,6 +69,9 @@
                         <div class="grid md:grid-cols-2 gap-4">
                             <x-input name="part_name_vendor" label="Vendor Part Name" placeholder="Nama dari vendor" required />
                             <x-input name="part_name_gci" label="GCI Part Name" placeholder="Nama internal" required />
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <x-input name="hs_code" label="HS Code" placeholder="e.g., 7225.99.10" hint="Harmonized System code for customs" />
                         </div>
                     </div>
 
@@ -78,12 +104,25 @@
                     <p class="text-sm text-gray-500">Gunakan filter untuk mempercepat pencarian part.</p>
                 </div>
 
-                <form method="GET" class="grid gap-4 md:grid-cols-4">
+                <form method="GET" id="parts-filter-form" class="grid gap-4 md:grid-cols-4">
                     <div class="md:col-span-2">
                         <x-input type="search" name="q" label="Search" placeholder="Cari part..." :value="$search" :preserve-old="false" />
                     </div>
-                    <div>
-                        <x-select name="vendor_id" label="Vendor" :options="$vendors->pluck('vendor_name', 'id')" :value="$vendorId" placeholder="Semua vendor" :preserve-old="false" />
+                    <div class="space-y-1">
+                        <label for="filter-vendor-name" class="block text-sm font-medium text-gray-700">Vendor</label>
+                        <div class="relative">
+                            <input
+                                type="text"
+                                id="filter-vendor-name"
+                                name="vendor_name_display"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                placeholder="Ketik nama vendor..."
+                                autocomplete="off"
+                                value="{{ $filterVendorName }}"
+                            />
+                            <div id="filter-vendor-suggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                        </div>
+                        <input type="hidden" name="vendor_id" id="filter-vendor-id" value="{{ $vendorId }}">
                     </div>
                     <div>
                         <x-select name="status_filter" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" :value="$statusFilter" placeholder="Semua status" :preserve-old="false" />
@@ -207,6 +246,108 @@
     </div>
 
     <script>
+        const vendorsData = @json($vendors->map(fn($v) => ['id' => $v->id, 'name' => $v->vendor_name])->values());
+
+        function attachTypeahead(inputId, hiddenId, boxId, options = {}) {
+            const { suggestionsOnFocus = false, onSelected = null, autoSubmitFormId = null } = options;
+            const input = document.getElementById(inputId);
+            const hidden = document.getElementById(hiddenId);
+            const box = document.getElementById(boxId);
+            if (!input || !hidden || !box) return;
+
+            function submitIfNeeded() {
+                if (autoSubmitFormId) {
+                    const form = document.getElementById(autoSubmitFormId);
+                    if (form) form.submit();
+                }
+            }
+
+            function renderSuggestions(query, force = false) {
+                const q = query.toLowerCase();
+                if (!q && !force) {
+                    box.classList.add('hidden');
+                    return;
+                }
+
+                const matches = vendorsData
+                    .filter(v => force ? true : v.name.toLowerCase().includes(q))
+                    .slice(0, 8);
+
+                if (!matches.length) {
+                    box.innerHTML = '<div class="px-4 py-2 text-gray-500 text-sm italic">Tidak ada vendor ditemukan</div>';
+                    box.classList.remove('hidden');
+                    return;
+                }
+
+                box.innerHTML = matches.map(v => {
+                    const idx = v.name.toLowerCase().indexOf(q);
+                    let highlighted = v.name;
+                    if (idx !== -1) {
+                        highlighted = v.name.substring(0, idx) +
+                            '<span class="font-semibold text-blue-600">' +
+                            v.name.substring(idx, idx + q.length) +
+                            '</span>' +
+                            v.name.substring(idx + q.length);
+                    }
+                    return `<div class="px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-0" data-id="${v.id}" data-name="${v.name}">${highlighted}</div>`;
+                }).join('');
+
+                box.classList.remove('hidden');
+            }
+
+            input.addEventListener('input', (e) => {
+                hidden.value = '';
+                renderSuggestions(e.target.value.trim());
+            });
+
+            box.addEventListener('click', (e) => {
+                const item = e.target.closest('[data-id]');
+                if (!item) return;
+                input.value = item.dataset.name;
+                hidden.value = item.dataset.id;
+                box.classList.add('hidden');
+                if (typeof onSelected === 'function') onSelected(item.dataset);
+                submitIfNeeded();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!box.contains(e.target) && !input.contains(e.target)) {
+                    box.classList.add('hidden');
+                }
+            });
+
+            input.addEventListener('focus', () => {
+                if (input.value.trim().length > 0) {
+                    renderSuggestions(input.value.trim());
+                } else if (suggestionsOnFocus) {
+                    renderSuggestions('', true);
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    box.classList.add('hidden');
+                }
+                if (e.key === 'Enter') {
+                    const first = box.querySelector('[data-id]');
+                    if (first) {
+                        e.preventDefault();
+                        input.value = first.dataset.name;
+                        hidden.value = first.dataset.id;
+                        box.classList.add('hidden');
+                        if (typeof onSelected === 'function') onSelected(first.dataset);
+                        submitIfNeeded();
+                    }
+                }
+            });
+        }
+
+        attachTypeahead('create-vendor-name', 'create-vendor-id', 'create-vendor-suggestions', { suggestionsOnFocus: true });
+        attachTypeahead('filter-vendor-name', 'filter-vendor-id', 'filter-vendor-suggestions', {
+            suggestionsOnFocus: true,
+            autoSubmitFormId: 'parts-filter-form'
+        });
+
         document.querySelectorAll('.js-loading-form').forEach((form) => {
             form.addEventListener('submit', () => {
                 const button = form.querySelector('button[type="submit"]');

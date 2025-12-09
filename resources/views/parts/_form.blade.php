@@ -21,6 +21,12 @@
         <x-input-error :messages="$errors->get('part_name_gci')" class="mt-2" />
     </div>
     <div>
+        <x-input-label for="hs_code" value="HS Code" />
+        <x-text-input id="hs_code" name="hs_code" type="text" class="mt-1 block w-full" value="{{ old('hs_code', $part->hs_code ?? '') }}" placeholder="e.g., 7225.99.10" />
+        <p class="mt-1 text-xs text-gray-500">Harmonized System code for customs</p>
+        <x-input-error :messages="$errors->get('hs_code')" class="mt-2" />
+    </div>
+    <div>
         <x-input-label for="vendor_id" value="Vendor" />
         <select name="vendor_id" id="vendor_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
             <option value="">Select vendor</option>

@@ -79,9 +79,9 @@
                                             </svg>
                                         </div>
                                         <h3 class="text-lg font-semibold text-slate-900 mb-2">No Pending Items</h3>
-                                        <p class="text-sm text-slate-600 mb-4">All arrival items have been fully received.</p>
-                                        <a href="{{ route('arrivals.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
-                                            Create New Arrival
+                                        <p class="text-sm text-slate-600 mb-4">All departure items have been fully received.</p>
+                                        <a href="{{ route('departures.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+                                            Create New Departure
                                         </a>
                                     </td>
                                 </tr>

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Arrivals
+        Departures
     </x-slot>
 
     <div class="py-6">
@@ -14,14 +14,14 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-6">
                 <div class="flex items-center justify-between pb-4 border-b border-slate-200">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">Arrival Records</h3>
-                        <p class="text-sm text-slate-600 mt-1">View details and process receives for each arrival.</p>
+                        <h3 class="text-lg font-bold text-slate-900">Departure Records</h3>
+                        <p class="text-sm text-slate-600 mt-1">View details and process receives for each departure.</p>
                     </div>
-                    <a href="{{ route('arrivals.create') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
+                    <a href="{{ route('departures.create') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        <span>New Arrival</span>
+                        <span>New Departure</span>
                     </a>
                 </div>
                 
@@ -29,7 +29,7 @@
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">Arrival No</th>
+                                <th class="px-4 py-3 text-left font-semibold">Departure No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Invoice</th>
                                 <th class="px-4 py-3 text-left font-semibold">Vendor</th>
                                 <th class="px-4 py-3 text-left font-semibold">Items</th>
@@ -40,7 +40,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($arrivals as $arrival)
+                            @forelse ($departures as $arrival)
                                 @php
                                     $totalItems = $arrival->items->count();
                                     $totalValue = $arrival->items->sum('total_price');
@@ -76,9 +76,14 @@
                                     </td>
                                     <td class="px-4 py-4 text-slate-700">{{ $arrival->created_at->format('d M Y') }}</td>
                                     <td class="px-4 py-4">
-                                        <div class="flex justify-center">
-                                            <a href="{{ route('arrivals.show', $arrival) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <div class="flex justify-center gap-2">
+                                        <a href="{{ route('departures.show', $arrival) }}" class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                                                 View Details
+                                            </a>
+                                            <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors" title="Print Invoice">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
+                                                </svg>
                                             </a>
                                         </div>
                                     </td>
@@ -86,8 +91,8 @@
                             @empty
                                 <tr>
                                     <td colspan="8" class="px-4 py-12 text-center">
-                                        <div class="text-slate-500 mb-2">No arrivals recorded yet.</div>
-                                        <a href="{{ route('arrivals.create') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Create your first arrival →</a>
+                                        <div class="text-slate-500 mb-2">No departures recorded yet.</div>
+                                        <a href="{{ route('departures.create') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Create your first departure →</a>
                                     </td>
                                 </tr>
                             @endforelse
@@ -95,7 +100,7 @@
                     </table>
                 </div>
 
-                <div class="mt-4">{{ $arrivals->links() }}</div>
+                <div class="mt-4">{{ $departures->links() }}</div>
             </div>
         </div>
     </div>

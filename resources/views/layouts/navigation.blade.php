@@ -21,8 +21,11 @@
                     <x-nav-link :href="route('parts.index')" :active="request()->routeIs('parts.*')">
                         Parts
                     </x-nav-link>
-                    <x-nav-link :href="route('arrivals.index')" :active="request()->routeIs('arrivals.*')">
-                        Arrivals
+                    <x-nav-link :href="route('truckings.index')" :active="request()->routeIs('truckings.*')">
+                        Trucking
+                    </x-nav-link>
+                    <x-nav-link :href="route('departures.index')" :active="request()->routeIs('departures.*')">
+                        Departures
                     </x-nav-link>
                 </div>
             </div>
@@ -85,8 +88,11 @@
             <x-responsive-nav-link :href="route('parts.index')" :active="request()->routeIs('parts.*')">
                 Parts
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('arrivals.index')" :active="request()->routeIs('arrivals.*')">
-                Arrivals
+            <x-responsive-nav-link :href="route('truckings.index')" :active="request()->routeIs('truckings.*')">
+                Trucking
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('departures.index')" :active="request()->routeIs('departures.*')">
+                Departures
             </x-responsive-nav-link>
         </div>
 

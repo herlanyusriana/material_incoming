@@ -15,12 +15,15 @@ class Arrival extends Model
         'invoice_no',
         'invoice_date',
         'vendor_id',
+        'trucking_company_id',
         'vessel',
         'trucking_company',
         'ETD',
         'bill_of_lading',
         'hs_code',
         'port_of_loading',
+        'country',
+        'container_numbers',
         'currency',
         'notes',
         'created_by',
@@ -61,6 +64,11 @@ class Arrival extends Model
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function trucking()
+    {
+        return $this->belongsTo(Trucking::class, 'trucking_company_id');
     }
 
     public function creator()

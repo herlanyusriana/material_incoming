@@ -61,7 +61,13 @@ class VendorController extends Controller
             'vendor_name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],
+            'signature' => ['nullable', 'image', 'max:2048'],
         ]);
+
+        if ($request->hasFile('signature')) {
+            $data['signature_path'] = $request->file('signature')->store('signatures', 'public');
+        }
+        unset($data['signature']);
 
         Vendor::create($data + ['status' => 'active']);
 
@@ -79,7 +85,17 @@ class VendorController extends Controller
             'vendor_name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],
+            'signature' => ['nullable', 'image', 'max:2048'],
         ]);
+
+        if ($request->hasFile('signature')) {
+            // Delete old signature if exists
+            if ($vendor->signature_path) {
+                \Storage::disk('public')->delete($vendor->signature_path);
+            }
+            $data['signature_path'] = $request->file('signature')->store('signatures', 'public');
+        }
+        unset($data['signature']);
 
         $vendor->update($data);
 

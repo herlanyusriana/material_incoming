@@ -19,6 +19,7 @@ class Vendor extends Model
         'email',
         'phone',
         'status',
+        'signature_path',
     ];
 
     public function parts()

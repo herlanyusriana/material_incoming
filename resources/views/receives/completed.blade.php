@@ -41,7 +41,7 @@
                             <h3 class="text-lg font-bold text-slate-900">QC Breakdown</h3>
                             <p class="text-sm text-slate-600">Distribution of inspection results.</p>
                         </div>
-                        <a href="{{ route('arrivals.index') }}" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">Go to Arrivals</a>
+                        <a href="{{ route('departures.index') }}" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">Go to Departures</a>
                     </div>
                     <div class="grid sm:grid-cols-3 gap-4">
                         @php
@@ -87,7 +87,7 @@
                         <p class="text-sm text-slate-600">Latest receipts with QC status.</p>
                     </div>
                     <div class="text-sm text-slate-500">
-                        Receive items from the Arrival detail page.
+                        Receive items from the Departure detail page.
                     </div>
                 </div>
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">

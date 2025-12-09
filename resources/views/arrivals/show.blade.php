@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Arrival {{ $arrival->arrival_no }}
+        Departure {{ $arrival->arrival_no }}
     </x-slot>
 
     <div class="py-6">
@@ -12,16 +12,22 @@
             @endif
 
             <!-- Back Button -->
-            <div>
-                <a href="{{ route('arrivals.index') }}" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors">
+            <div class="flex items-center justify-between">
+                <a href="{{ route('departures.index') }}" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                     </svg>
-                    <span>Back to Arrivals</span>
+                    <span>Back to Departures</span>
+                </a>
+                <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
+                    </svg>
+                    Print Invoice
                 </a>
             </div>
             
-            <!-- Arrival Information -->
+            <!-- Departure Information -->
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="pb-3 border-b border-slate-200">
                     <h3 class="text-lg font-bold text-slate-900">Shipment Information</h3>
@@ -80,7 +86,7 @@
             <!-- Items Table -->
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="pb-3 border-b border-slate-200">
-                    <h3 class="text-lg font-bold text-slate-900">Arrival Items</h3>
+                    <h3 class="text-lg font-bold text-slate-900">Departure Items</h3>
                     <p class="text-sm text-slate-600 mt-1">Parts and receiving details</p>
                 </div>
                 

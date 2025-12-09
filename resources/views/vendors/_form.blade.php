@@ -15,6 +15,18 @@
         <textarea id="address" name="address" rows="3" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm">{{ old('address', $vendor->address ?? '') }}</textarea>
         <x-input-error :messages="$errors->get('address')" class="mt-2" />
     </div>
+    <div class="md:col-span-3">
+        <x-input-label for="signature" value="Signature" />
+        <input type="file" id="signature" name="signature" accept="image/*" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" />
+        <p class="mt-1 text-xs text-gray-500">Upload signature image for invoices (JPG, PNG, max 2MB)</p>
+        @if(isset($vendor) && $vendor->signature_path)
+            <div class="mt-2">
+                <p class="text-xs text-gray-600 mb-1">Current signature:</p>
+                <img src="{{ Storage::url($vendor->signature_path) }}" alt="Signature" class="h-16 border rounded">
+            </div>
+        @endif
+        <x-input-error :messages="$errors->get('signature')" class="mt-2" />
+    </div>
 </div>
 
 <div class="mt-8 flex items-center justify-end gap-3">

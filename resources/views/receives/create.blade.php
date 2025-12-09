@@ -18,7 +18,7 @@
 
                 <!-- Information Section -->
                 <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Arrival Information</h4>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Departure Information</h4>
                     <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
                         <div class="flex items-center">
                             <span class="font-semibold text-slate-700 w-32">Supplier</span>
