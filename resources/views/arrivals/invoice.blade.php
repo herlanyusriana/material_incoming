@@ -281,41 +281,51 @@
             </td>
         </tr>
         
-        {{-- Title row --}}
-        <tr>
-            <td>&nbsp;</td>
-            <td colspan="4" style="text-align:left; font-weight:bold;">
-                {{ strtoupper($arrival->items->first()->part->part_name_vendor ?? 'HOT DIP GALVANIZED STEEL SHEETS') }}
-            </td>
-        </tr>
+        @php
+            $groupedItems = $arrival->items->groupBy(function($i) {
+                // Normalize to avoid terpisah karena spasi/case
+                return strtoupper(trim($i->part->part_name_vendor ?? ''));
+            });
+        @endphp
         
-        {{-- Item rows --}}
-        @foreach($arrival->items as $item)
-        <tr>
-            <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
-            <td style="padding: left 20px;">{{ $item->size ?? '' }}</td>
-            <td class="text-center">
-                <table style="width:100%; border:none;">
-                    <tr>
-                        <td style="border:none; padding:0; text-align:center; width:50%; white-space:nowrap;">
-                            {{ number_format($item->qty_goods, 0) }} {{ strtoupper($item->unit_bundle ?? 'Sheet') }}
-                        </td>
-                        <td style="border:none; padding:0; text-align:center; width:50%; white-space:nowrap;">
-                            {{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            <td class="text-right">
-                <table style="width:100%; border:none; margin:0; padding:0;">
-                    <tr>
-                        <td style="border:none; padding:0; text-align:right; width:50%; white-space:nowrap;">USD {{ number_format($item->price, 3) }} /{{ strtoupper($item->unit_bundle ?? 'SHEET') }}</td>
-                        <td style="border:none; padding:0; text-align:right; width:50%; white-space:nowrap;">USD {{ $item->qty_goods > 0 ? number_format($item->price / ($item->weight_nett / $item->qty_goods), 3) : '0.000' }} /{{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
-                    </tr>
-                </table>
-            </td>
-            <td class="text-right">USD {{ number_format($item->total_price, 2) }}</td>
-        </tr>
+        {{-- Grouped item rows by Part Name Vendor --}}
+        @foreach($groupedItems as $vendorName => $items)
+            {{-- Vendor header row --}}
+            <tr>
+                <td>&nbsp;</td>
+                <td colspan="4" style="text-align:left; font-weight:bold;">
+                    {{ $vendorName ?: 'HOT DIP GALVANIZED STEEL SHEETS' }}
+                </td>
+            </tr>
+            
+            {{-- Item rows --}}
+            @foreach($items as $item)
+            <tr>
+                <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
+                <td style="padding: left 20px;">{{ $item->size ?? '' }}</td>
+                <td class="text-center">
+                    <table style="width:100%; border:none;">
+                        <tr>
+                            <td style="border:none; padding:0; text-align:center; width:50%; white-space:nowrap;">
+                                {{ number_format($item->qty_goods, 0) }} {{ strtoupper($item->unit_bundle ?? 'Sheet') }}
+                            </td>
+                            <td style="border:none; padding:0; text-align:center; width:50%; white-space:nowrap;">
+                                {{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="text-right">
+                    <table style="width:100%; border:none; margin:0; padding:0;">
+                        <tr>
+                            <td style="border:none; padding:0; text-align:right; width:50%; white-space:nowrap;">USD {{ number_format($item->price, 3) }} /{{ strtoupper($item->unit_bundle ?? 'SHEET') }}</td>
+                            <td style="border:none; padding:0; text-align:right; width:50%; white-space:nowrap;">USD {{ $item->qty_goods > 0 ? number_format($item->price / ($item->weight_nett / $item->qty_goods), 3) : '0.000' }} /{{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="text-right">USD {{ number_format($item->total_price, 2) }}</td>
+            </tr>
+            @endforeach
         @endforeach
         
         {{-- Total row --}}

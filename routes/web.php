@@ -45,7 +45,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // Invoice route (public untuk generate PDF)
-Route::get('/departures/{arrival}/invoice', [ArrivalController::class, 'printInvoice'])->name('departures.invoice');
+Route::get('/departures/{departure}/invoice', [ArrivalController::class, 'printInvoice'])->name('departures.invoice');
 
 Route::middleware('auth')->group(function () {
     Route::resource('vendors', VendorController::class)->except(['show']);

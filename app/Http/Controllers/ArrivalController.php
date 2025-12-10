@@ -122,8 +122,10 @@ class ArrivalController extends Controller
         return view('arrivals.show', compact('arrival'));
     }
 
-    public function printInvoice(Arrival $arrival)
+    public function printInvoice(Arrival $departure)
     {
+        // Keep using $arrival internally for existing view/logic
+        $arrival = $departure;
         $arrival->load(['vendor', 'trucking', 'items.part']);
 
         $pdf = Pdf::loadView('arrivals.invoice', compact('arrival'))

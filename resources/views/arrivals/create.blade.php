@@ -480,10 +480,81 @@
             }
         });
 
-        // Filter out items with qty_goods = 0 before submit
+        function markInvalid(el) {
+            if (!el) return;
+            el.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+        }
+
+        function clearInvalid() {
+            document.querySelectorAll('.border-red-500').forEach(el => {
+                el.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+            });
+        }
+
+        const sizePattern = /^\d{1,4}(\.\d{1,2})?\s*x\s*\d{1,4}(\.\d)?\s*x\s*[A-Z]$/i;
+
         const form = document.getElementById('arrival-form');
         form.addEventListener('submit', function(e) {
-            const rows = itemRows.querySelectorAll('tr');
+            clearInvalid();
+
+            const errors = [];
+            if (!vendorIdInput.value) {
+                errors.push('Pilih vendor dari daftar.');
+                markInvalid(vendorInput);
+            }
+
+            const rows = Array.from(itemRows.querySelectorAll('tr'));
+            if (!rows.length) {
+                errors.push('Tambahkan minimal 1 item.');
+            }
+
+            rows.forEach(row => {
+                const sizeInput = row.querySelector('input[name*="[size]"]');
+                const qtyInput = row.querySelector('.qty-goods');
+                const priceInput = row.querySelector('.price');
+                const nettInput = row.querySelector('input[name*="[weight_nett]"]');
+                const grossInput = row.querySelector('input[name*="[weight_gross]"]');
+                const partSelect = row.querySelector('.part-select');
+
+                const sizeVal = sizeInput?.value.trim() || '';
+                const qtyVal = parseFloat(qtyInput?.value) || 0;
+                const priceVal = parseFloat(priceInput?.value) || 0;
+                const nettVal = parseFloat(nettInput?.value) || 0;
+                const grossVal = parseFloat(grossInput?.value) || 0;
+
+                if (sizeVal && !sizePattern.test(sizeVal)) {
+                    errors.push('Format size harus seperti 3.2x374.5xC (hanya huruf di ujung).');
+                    markInvalid(sizeInput);
+                }
+                if (!partSelect?.value) {
+                    errors.push('Pilih Part Number untuk setiap baris.');
+                    markInvalid(partSelect);
+                }
+                if (qtyVal <= 0) {
+                    errors.push('Qty Goods harus lebih dari 0.');
+                    markInvalid(qtyInput);
+                }
+                if (nettVal <= 0) {
+                    errors.push('Nett Weight harus lebih dari 0.');
+                    markInvalid(nettInput);
+                }
+                if (grossVal <= 0) {
+                    errors.push('Gross Weight harus lebih dari 0.');
+                    markInvalid(grossInput);
+                }
+                if (priceVal <= 0) {
+                    errors.push('Price harus lebih dari 0.');
+                    markInvalid(priceInput);
+                }
+            });
+
+            if (errors.length) {
+                e.preventDefault();
+                alert([...new Set(errors)].join('\n'));
+                return;
+            }
+
+            // Filter out items dengan qty_goods = 0 (seharusnya tidak ada setelah validasi)
             rows.forEach(row => {
                 const qtyGoods = parseFloat(row.querySelector('.qty-goods')?.value) || 0;
                 if (qtyGoods === 0) {
