@@ -61,6 +61,10 @@ class VendorController extends Controller
             'vendor_name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],
+            'contact_person' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'status' => ['required', 'in:active,inactive'],
             'signature' => ['nullable', 'image', 'max:2048'],
         ]);
 
@@ -69,7 +73,7 @@ class VendorController extends Controller
         }
         unset($data['signature']);
 
-        Vendor::create($data + ['status' => 'active']);
+        Vendor::create($data);
 
         return redirect()->route('vendors.index')->with('status', 'Vendor created.');
     }
@@ -85,6 +89,10 @@ class VendorController extends Controller
             'vendor_name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],
+            'contact_person' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'status' => ['required', 'in:active,inactive'],
             'signature' => ['nullable', 'image', 'max:2048'],
         ]);
 

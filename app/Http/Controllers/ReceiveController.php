@@ -7,28 +7,33 @@ use Illuminate\Support\Facades\DB;
 
 use App\Models\Receive;
 use App\Models\ArrivalItem;
+use App\Models\Arrival;
 
 class ReceiveController extends Controller
 {
     public function index()
     {
-        // Show pending items that need to be received
-        $pendingItems = ArrivalItem::with(['part', 'arrival.vendor', 'receives'])
-            ->whereHas('arrival')
-            ->where('qty_goods', '>', 0)
+        // Group pending by invoice/departure
+        $pendingArrivals = Arrival::with(['vendor', 'items.receives'])
             ->get()
-            ->map(function ($item) {
-                $totalReceived = $item->receives->sum('qty');
-                $remaining = $item->qty_goods - $totalReceived;
-                $item->total_received = $totalReceived;
-                $item->remaining_qty = $remaining;
-                return $item;
+            ->map(function ($arrival) {
+                $remaining = $arrival->items->sum(function ($item) {
+                    $received = $item->receives->sum('qty');
+                    return max(0, $item->qty_goods - $received);
+                });
+                $arrival->remaining_qty = $remaining;
+                $arrival->pending_items_count = $arrival->items->filter(function ($item) {
+                    $received = $item->receives->sum('qty');
+                    return ($item->qty_goods - $received) > 0;
+                })->count();
+                return $arrival;
             })
-            ->filter(function ($item) {
-                return $item->remaining_qty > 0;
-            });
+            ->filter(fn($arrival) => $arrival->remaining_qty > 0)
+            ->values();
 
-        return view('receives.index', compact('pendingItems'));
+        return view('receives.index', [
+            'pendingArrivals' => $pendingArrivals,
+        ]);
     }
 
     public function completed()
@@ -67,9 +72,44 @@ class ReceiveController extends Controller
 
     public function create(ArrivalItem $arrivalItem)
     {
-        $arrivalItem->load(['part.vendor', 'arrival.vendor']);
+        $arrivalItem->load(['part.vendor', 'arrival.vendor', 'receives']);
 
-        return view('receives.create', compact('arrivalItem'));
+        $totalReceived = $arrivalItem->receives->sum('qty');
+        $remainingQty = max(0, $arrivalItem->qty_goods - $totalReceived);
+        $totalPlanned = $arrivalItem->qty_goods;
+        $defaultWeight = $arrivalItem->qty_goods > 0
+            ? number_format($arrivalItem->weight_nett / $arrivalItem->qty_goods, 2, '.', '')
+            : null;
+
+        return view('receives.create', compact('arrivalItem', 'remainingQty', 'totalPlanned', 'totalReceived', 'defaultWeight'));
+    }
+
+    public function createByInvoice(Arrival $arrival)
+    {
+        $arrival->load(['vendor', 'items.part', 'items.receives']);
+
+        $pendingItems = $arrival->items
+            ->map(function ($item) {
+                $totalReceived = $item->receives->sum('qty');
+                $remaining = $item->qty_goods - $totalReceived;
+                $item->total_received = $totalReceived;
+                $item->remaining_qty = max(0, $remaining);
+                $item->default_weight = $item->qty_goods > 0
+                    ? number_format($item->weight_nett / $item->qty_goods, 2, '.', '')
+                    : null;
+                return $item;
+            })
+            ->filter(fn ($item) => $item->remaining_qty > 0)
+            ->values();
+
+        if ($pendingItems->isEmpty()) {
+            return redirect()->route('receives.index')->with('success', 'Semua item pada invoice ini sudah diterima.');
+        }
+
+        return view('receives.invoice', [
+            'arrival' => $arrival,
+            'pendingItems' => $pendingItems,
+        ]);
     }
 
     public function store(Request $request, ArrivalItem $arrivalItem)
@@ -79,7 +119,20 @@ class ReceiveController extends Controller
             'tags.*.tag' => 'required|string|max:255',
             'tags.*.qty' => 'required|integer|min:1',
             'tags.*.weight' => 'nullable|numeric',
+            'tags.*.qc_status' => 'required|in:pass,reject',
         ]);
+
+        $totalRequested = collect($validated['tags'])->sum('qty');
+        $totalReceived = $arrivalItem->receives()->sum('qty');
+        $remainingQty = $arrivalItem->qty_goods - $totalReceived;
+
+        if ($totalRequested > $remainingQty) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'tags' => 'Total qty for tags (' . $totalRequested . ') exceeds remaining qty (' . $remainingQty . ').',
+                ]);
+        }
 
         // Create a receive record for each tag with default values
         foreach ($validated['tags'] as $tagData) {
@@ -88,13 +141,71 @@ class ReceiveController extends Controller
                 'qty' => $tagData['qty'],
                 'weight' => $tagData['weight'] ?? null,
                 'ata_date' => now(),
-                'qc_status' => 'pass',
+                'qc_status' => $tagData['qc_status'] ?? 'pass',
                 'jo_po_number' => null,
                 'location_code' => null,
             ]);
         }
 
         return redirect()->route('receives.index')->with('success', 'Items received successfully with ' . count($validated['tags']) . ' tag(s).');
+    }
+
+    public function storeByInvoice(Request $request, Arrival $arrival)
+    {
+        $arrival->load('items.receives');
+
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.tags' => 'nullable|array',
+            'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
+            'items.*.tags.*.qty' => 'required_with:items.*.tags|integer|min:1',
+            'items.*.tags.*.weight' => 'nullable|numeric',
+            'items.*.tags.*.qc_status' => 'required_with:items.*.tags|in:pass,reject',
+        ]);
+
+        $itemsInput = collect($validated['items'])
+            ->filter(fn ($item) => !empty($item['tags']))
+            ->all();
+
+        if (empty($itemsInput)) {
+            return back()->withErrors(['items' => 'Tambah minimal satu tag pada salah satu item.'])->withInput();
+        }
+
+        foreach ($itemsInput as $itemId => $itemData) {
+            $arrivalItem = $arrival->items->firstWhere('id', $itemId);
+            if (!$arrivalItem) {
+                return back()->withErrors(['items' => 'Item tidak ditemukan pada invoice ini.'])->withInput();
+            }
+
+            $totalRequested = collect($itemData['tags'])->sum('qty');
+            $totalReceived = $arrivalItem->receives->sum('qty');
+            $remainingQty = $arrivalItem->qty_goods - $totalReceived;
+
+            if ($totalRequested > $remainingQty) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        "items.$itemId.tags" => "Total qty untuk item {$arrivalItem->part->part_no} ({$totalRequested}) melebihi sisa ({$remainingQty}).",
+                    ]);
+            }
+        }
+
+        foreach ($itemsInput as $itemId => $itemData) {
+            $arrivalItem = $arrival->items->firstWhere('id', $itemId);
+            foreach ($itemData['tags'] as $tagData) {
+                $arrivalItem->receives()->create([
+                    'tag' => $tagData['tag'],
+                    'qty' => $tagData['qty'],
+                    'weight' => $tagData['weight'] ?? null,
+                    'ata_date' => now(),
+                    'qc_status' => $tagData['qc_status'] ?? 'pass',
+                    'jo_po_number' => null,
+                    'location_code' => null,
+                ]);
+            }
+        }
+
+        return redirect()->route('receives.index')->with('success', 'Berhasil menerima item untuk invoice ' . $arrival->invoice_no . '.');
     }
 
     public function printLabel(Receive $receive)

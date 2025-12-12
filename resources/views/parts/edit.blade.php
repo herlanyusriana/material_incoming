@@ -7,13 +7,9 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white shadow sm:rounded-lg p-6">
-                <form method="POST" action="{{ route('parts.update', $part) }}">
-                    @method('PUT')
-                    @include('parts._form')
-                </form>
-            </div>
-        </div>
+        <form method="POST" action="{{ route('parts.update', $part) }}">
+            @method('PUT')
+            @include('parts._form')
+        </form>
     </div>
 </x-app-layout>

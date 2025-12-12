@@ -48,6 +48,7 @@ Route::get('/dashboard', function () {
 Route::get('/departures/{departure}/invoice', [ArrivalController::class, 'printInvoice'])->name('departures.invoice');
 
 Route::middleware('auth')->group(function () {
+    Route::view('/incoming-material', 'incoming-material.dashboard')->name('incoming-material.dashboard');
     Route::resource('vendors', VendorController::class)->except(['show']);
     Route::get('/vendors/export', [VendorController::class, 'export'])->name('vendors.export');
     Route::post('/vendors/import', [VendorController::class, 'import'])->name('vendors.import');
@@ -55,7 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/parts/export', [PartController::class, 'export'])->name('parts.export');
     Route::post('/parts/import', [PartController::class, 'import'])->name('parts.import');
     Route::resource('truckings', TruckingController::class)->except(['show']);
-    Route::resource('departures', ArrivalController::class)->only(['index', 'create', 'store', 'show']);
+    Route::resource('departures', ArrivalController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -65,6 +66,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/receives', [ReceiveController::class, 'index'])->name('receives.index');
     Route::get('/departure-items/{arrivalItem}/receive', [ReceiveController::class, 'create'])->name('receives.create');
     Route::post('/departure-items/{arrivalItem}/receive', [ReceiveController::class, 'store'])->name('receives.store');
+    Route::get('/receives/invoice/{arrival}', [ReceiveController::class, 'createByInvoice'])->name('receives.invoice.create');
+    Route::post('/receives/invoice/{arrival}', [ReceiveController::class, 'storeByInvoice'])->name('receives.invoice.store');
     Route::get('/receives/{receive}/label', [ReceiveController::class, 'printLabel'])->name('receives.label');
     Route::get('/receives/completed', [ReceiveController::class, 'completed'])->name('receives.completed');
 });

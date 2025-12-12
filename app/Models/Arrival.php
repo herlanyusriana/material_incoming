@@ -19,6 +19,7 @@ class Arrival extends Model
         'vessel',
         'trucking_company',
         'ETD',
+        'ETA',
         'bill_of_lading',
         'hs_code',
         'port_of_loading',
@@ -32,6 +33,7 @@ class Arrival extends Model
     protected $casts = [
         'invoice_date' => 'date',
         'ETD' => 'date',
+        'ETA' => 'date',
     ];
 
     protected static function booted(): void

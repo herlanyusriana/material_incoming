@@ -34,7 +34,7 @@
                         </div>
                         <div class="flex items-center">
                             <span class="font-semibold text-slate-700 w-32">ETA</span>
-                            <span class="text-slate-900">= -</span>
+                            <span class="text-slate-900">= {{ $arrivalItem->arrival->ETA ? $arrivalItem->arrival->ETA->format('d M Y') : '-' }}</span>
                         </div>
                     </div>
                 </div>
@@ -42,6 +42,14 @@
                 <!-- Table Section -->
                 <div>
                     <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Tag Details</h4>
+                    <div class="flex flex-wrap items-center gap-3 mb-3 text-sm text-slate-700">
+                        <span class="font-semibold">Total Qty Planned:</span>
+                        <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">{{ number_format($totalPlanned) }}</span>
+                        <span class="font-semibold">Remaining:</span>
+                        <span class="px-2 py-1 rounded-lg bg-green-50 text-green-800">{{ number_format($remainingQty) }}</span>
+                        <span class="font-semibold">Input Total:</span>
+                        <span class="px-2 py-1 rounded-lg bg-blue-50 text-blue-800" id="input-total">0</span>
+                    </div>
                     <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-sm">
                         <table class="min-w-full divide-y divide-slate-200">
                             <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
@@ -56,6 +64,7 @@
                                     </th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QTY</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Unit (KG)</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
                                     <th class="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
@@ -74,7 +83,13 @@
                                         <input type="number" name="tags[0][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="number" name="tags[0][weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                                        <input type="number" name="tags[0][weight]" step="0.01" placeholder="0.00" value="{{ $defaultWeight }}" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <select name="tags[0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                                            <option value="pass">Pass</option>
+                                            <option value="reject">Reject</option>
+                                        </select>
                                     </td>
                                     <td class="px-6 py-4 text-center"></td>
                                 </tr>
@@ -100,6 +115,38 @@
         const size = @json($arrivalItem->size ?? '-');
         const partNo = @json($arrivalItem->part->part_no);
         const partName = @json($arrivalItem->part->part_name_vendor);
+        const remainingQty = {{ (int) $remainingQty }};
+        const inputTotalEl = document.getElementById('input-total');
+        const receiveForm = document.getElementById('receive-form');
+        const defaultWeight = {{ $defaultWeight !== null ? $defaultWeight : 'null' }};
+
+        function updateTotals() {
+            const qtyInputs = tagRows.querySelectorAll('input[name$=\"[qty]\"]');
+            let total = 0;
+            qtyInputs.forEach(input => {
+                total += Number(input.value) || 0;
+            });
+            inputTotalEl.textContent = total;
+
+            const alertId = 'qty-alert';
+            let alertEl = document.getElementById(alertId);
+            if (!alertEl) {
+                alertEl = document.createElement('div');
+                alertEl.id = alertId;
+                alertEl.className = 'mt-2 text-sm font-semibold text-red-600';
+                tagRows.parentElement.parentElement.appendChild(alertEl);
+            }
+
+            if (total > remainingQty) {
+                alertEl.textContent = `Total qty (${total}) exceeds remaining qty (${remainingQty}).`;
+                alertEl.classList.remove('hidden');
+            } else {
+                alertEl.textContent = '';
+                alertEl.classList.add('hidden');
+            }
+
+            return total;
+        }
 
         addTagBtn.addEventListener('click', function() {
             const newRow = document.createElement('tr');
@@ -117,7 +164,13 @@
                     <input type="number" name="tags[${tagIndex}][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                 </td>
                 <td class="px-6 py-4">
-                    <input type="number" name="tags[${tagIndex}][weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                    <input type="number" name="tags[${tagIndex}][weight]" step="0.01" placeholder="0.00" ${defaultWeight !== null ? `value=\"${defaultWeight}\"` : ''} class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                </td>
+                <td class="px-6 py-4">
+                    <select name="tags[${tagIndex}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                        <option value="pass">Pass</option>
+                        <option value="reject">Reject</option>
+                    </select>
                 </td>
                 <td class="px-6 py-4 text-center">
                     <button type="button" class="remove-tag px-3 py-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm font-medium rounded-lg transition-colors">Remove</button>
@@ -130,7 +183,26 @@
             // Bind remove event
             newRow.querySelector('.remove-tag').addEventListener('click', function() {
                 newRow.remove();
+                updateTotals();
             });
+
+            // Bind qty change
+            newRow.querySelector('input[name$="[qty]"]').addEventListener('input', updateTotals);
+
+            updateTotals();
+        });
+
+        // Bind initial qty input
+        tagRows.querySelector('input[name$="[qty]"]').addEventListener('input', updateTotals);
+        updateTotals();
+
+        receiveForm.addEventListener('submit', function(event) {
+            const total = updateTotals();
+            if (total > remainingQty) {
+                event.preventDefault();
+                const firstQty = tagRows.querySelector('input[name$="[qty]"]');
+                if (firstQty) firstQty.focus();
+            }
         });
     </script>
 </x-app-layout>

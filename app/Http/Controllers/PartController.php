@@ -72,8 +72,6 @@ class PartController extends Controller
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
             'vendor_id' => ['required', 'exists:vendors,id'],
-            'trucking_company' => ['nullable', 'string', 'max:255'],
-            'storage_reg' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],
         ]);
 
@@ -98,8 +96,6 @@ class PartController extends Controller
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
             'vendor_id' => ['required', 'exists:vendors,id'],
-            'trucking_company' => ['nullable', 'string', 'max:255'],
-            'storage_reg' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],
         ]);
 
@@ -120,7 +116,7 @@ class PartController extends Controller
         $parts = Part::where('vendor_id', $vendor->id)
             ->where('status', 'active')
             ->orderBy('part_no')
-            ->get(['id', 'part_no', 'part_name_vendor']);
+            ->get(['id', 'part_no', 'register_no', 'part_name_vendor', 'part_name_gci']);
 
         return response()->json($parts);
     }

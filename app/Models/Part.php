@@ -16,8 +16,6 @@ class Part extends Model
         'part_name_gci',
         'hs_code',
         'vendor_id',
-        'trucking_company',
-        'storage_reg',
         'status',
     ];
 

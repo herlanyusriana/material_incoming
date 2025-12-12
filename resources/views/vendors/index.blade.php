@@ -41,6 +41,31 @@
                             <textarea id="address" name="address" rows="3" placeholder="e.g., 123 Main St, Anytown, USA" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
                             <x-input-error :messages="$errors->get('address')" class="mt-1" />
                         </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <x-input-label for="contact_person" value="Contact Person" />
+                                <x-text-input id="contact_person" name="contact_person" type="text" placeholder="e.g., Jane Doe" class="mt-1 block w-full" />
+                                <x-input-error :messages="$errors->get('contact_person')" class="mt-1" />
+                            </div>
+                            <div class="space-y-1">
+                                <x-input-label for="email" value="Email" />
+                                <x-text-input id="email" name="email" type="email" placeholder="e.g., vendor@email.com" class="mt-1 block w-full" />
+                                <x-input-error :messages="$errors->get('email')" class="mt-1" />
+                            </div>
+                            <div class="space-y-1">
+                                <x-input-label for="phone" value="Phone" />
+                                <x-text-input id="phone" name="phone" type="text" placeholder="e.g., +62 812 3456 7890" class="mt-1 block w-full" />
+                                <x-input-error :messages="$errors->get('phone')" class="mt-1" />
+                            </div>
+                            <div class="space-y-1">
+                                <x-input-label for="status" value="Status" />
+                                <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                    <option value="active" selected>Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                                <x-input-error :messages="$errors->get('status')" class="mt-1" />
+                            </div>
+                        </div>
                         <div class="flex justify-end pt-2">
                             <button type="submit" class="w-full px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">Add Vendor</button>
                         </div>

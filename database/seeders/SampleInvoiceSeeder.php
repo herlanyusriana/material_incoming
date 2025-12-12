@@ -53,8 +53,6 @@ class SampleInvoiceSeeder extends Seeder
                 'part_name_vendor' => 'STEEL COIL 0,25x100xC',
                 'part_name_gci' => 'Steel Coil',
                 'hs_code' => '7208.90.00',
-                'trucking_company' => $trucking->company_name,
-                'storage_reg' => 'SR-COIL-01',
                 'status' => 'active',
             ]
         );
@@ -66,8 +64,6 @@ class SampleInvoiceSeeder extends Seeder
                 'part_name_vendor' => 'STEEL SHEET 0,25x100x417',
                 'part_name_gci' => 'Steel Sheet',
                 'hs_code' => '7208.90.00',
-                'trucking_company' => $trucking->company_name,
-                'storage_reg' => 'SR-SHEET-01',
                 'status' => 'active',
             ]
         );

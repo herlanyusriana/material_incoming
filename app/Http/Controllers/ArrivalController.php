@@ -40,15 +40,16 @@ class ArrivalController extends Controller
             'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
             'vessel' => ['nullable', 'string', 'max:255'],
             'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
-            'ETD' => ['nullable', 'date'],
-            'bill_of_lading' => ['nullable', 'string', 'max:255'],
+            'etd' => ['nullable', 'date'],
+            'eta' => ['nullable', 'date'],
+            'bl_no' => ['nullable', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:255'],
             'port_of_loading' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:100'],
             'container_numbers' => ['nullable', 'string'],
             'currency' => ['required', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
+            'items.*.material_group' => ['nullable', 'string', 'max:255'],
             'items.*.part_id' => ['required', 'exists:parts,id'],
             'items.*.size' => ['nullable', 'string', 'max:100', 'regex:/^\d{1,4}(\.\d{1,2})?\s*x\s*\d{1,4}(\.\d)?\s*x\s*[A-Z]$/i'],
             'items.*.qty_bundle' => ['nullable', 'integer', 'min:0'],
@@ -70,11 +71,12 @@ class ArrivalController extends Controller
                 'vendor_id' => $vendorId,
                 'vessel' => $validated['vessel'] ?? null,
                 'trucking_company_id' => $validated['trucking_company_id'] ?? null,
-                'ETD' => $validated['ETD'] ?? null,
-                'bill_of_lading' => $validated['bill_of_lading'] ?? null,
+                'ETD' => $validated['etd'] ?? null,
+                'ETA' => $validated['eta'] ?? null,
+                'bill_of_lading' => $validated['bl_no'] ?? null,
                 'hs_code' => $validated['hs_code'] ?? null,
                 'port_of_loading' => $validated['port_of_loading'] ?? null,
-                'country' => $validated['country'] ?? 'SOUTH KOREA',
+                'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
                 'container_numbers' => $validated['container_numbers'] ?? null,
                 'currency' => $validated['currency'] ?? 'USD',
                 'notes' => $validated['notes'] ?? null,
@@ -96,6 +98,7 @@ class ArrivalController extends Controller
 
                 $arrival->items()->create([
                     'part_id' => $item['part_id'],
+                    'material_group' => $item['material_group'] ?? null,
                     'size' => $item['size'] ?? null,
                     'qty_bundle' => $item['qty_bundle'] ?? 0,
                     'unit_bundle' => $item['unit_bundle'] ?? null,
@@ -115,11 +118,50 @@ class ArrivalController extends Controller
         return redirect()->route('departures.show', $arrival)->with('success', 'Departure created successfully. Click \"Receive\" on each item to process incoming goods.');
     }
 
-    public function show(Arrival $arrival)
+    public function show(Arrival $departure)
     {
+        // Keep using $arrival internally for existing views/logic
+        $arrival = $departure;
         $arrival->load(['vendor', 'creator', 'items.part.vendor', 'items.receives']);
 
         return view('arrivals.show', compact('arrival'));
+    }
+
+    public function destroy(Arrival $departure)
+    {
+        $arrival = $departure;
+
+        DB::transaction(function () use ($arrival) {
+            foreach ($arrival->items as $item) {
+                $item->receives()->delete();
+            }
+            $arrival->items()->delete();
+            $arrival->delete();
+        });
+
+        return redirect()->route('departures.index')->with('success', 'Departure berhasil dihapus.');
+    }
+
+    public function edit(Arrival $departure)
+    {
+        return view('arrivals.edit', ['arrival' => $departure]);
+    }
+
+    public function update(Request $request, Arrival $departure)
+    {
+        $data = $request->validate([
+            'invoice_date' => ['required', 'date'],
+            'etd' => ['nullable', 'date'],
+            'eta' => ['nullable', 'date'],
+        ]);
+
+        $departure->update([
+            'invoice_date' => $data['invoice_date'],
+            'ETD' => $data['etd'] ?? null,
+            'ETA' => $data['eta'] ?? null,
+        ]);
+
+        return redirect()->route('departures.index')->with('status', 'Departure dates updated.');
     }
 
     public function printInvoice(Arrival $departure)

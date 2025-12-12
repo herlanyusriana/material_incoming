@@ -26,74 +26,104 @@
                 $filterVendorName = $vendorMap[$vendorId ?? null] ?? '';
             @endphp
 
-            <section class="bg-white border rounded-xl shadow-sm p-6 space-y-6">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-1">Register New Part Number</h3>
-                    <p class="text-sm text-gray-500">Lengkapi informasi vendor dan detail part sebelum menyimpan.</p>
+            <section id="register-part-section" class="max-w-5xl mx-auto p-8 bg-transparent rounded-2xl border border-transparent">
+                <div class="mb-6">
+                    <h3 class="text-2xl font-semibold text-gray-900">Register New Part Number</h3>
+                    <p class="text-sm text-gray-600">Lengkapi informasi vendor, identitas part, dan status operasional.</p>
                 </div>
 
                 <form method="POST" action="{{ route('parts.store') }}" class="space-y-6 js-loading-form">
                     @csrf
-                    <div class="space-y-3">
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vendor Information</p>
-                        <div class="space-y-1">
-                            <label for="create-vendor-name" class="block text-sm font-medium text-gray-700">Vendor</label>
-                            <div class="relative">
-                                <input
-                                    type="text"
-                                    id="create-vendor-name"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder="Ketik nama vendor..."
-                                    autocomplete="off"
-                                    value="{{ $oldVendorName }}"
-                                    required
-                                />
-                                <div id="create-vendor-suggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
+                        <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Vendor Information</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="create-vendor-name" class="text-sm font-medium text-gray-700">Vendor</label>
+                                <div class="relative mt-1">
+                                    <input
+                                        type="text"
+                                        id="create-vendor-name"
+                                        class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                        placeholder="Ketik nama vendor..."
+                                        autocomplete="off"
+                                        value="{{ $oldVendorName }}"
+                                        required
+                                    >
+                                    <div id="create-vendor-suggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                                </div>
+                                <input type="hidden" name="vendor_id" id="create-vendor-id" value="{{ old('vendor_id') }}">
+                                @error('vendor_id') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                                <p class="text-xs text-gray-500 mt-1">Ketik satu kata, daftar vendor akan muncul.</p>
                             </div>
-                            <input type="hidden" name="vendor_id" id="create-vendor-id" value="{{ old('vendor_id') }}">
-                            <x-input-error :messages="$errors->get('vendor_id')" class="mt-1" />
-                            <p class="mt-1 text-xs text-gray-500">Ketik satu kata, daftar vendor akan muncul.</p>
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Part Identification</p>
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <x-input name="part_no" label="Part Number" placeholder="PN-001" required hint="Gunakan kode internal singkat." />
-                            <x-input name="register_no" label="Register Number" placeholder="REG-01" required />
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
+                        <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Part Identification</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="part_number" class="text-sm font-medium text-gray-700">Part Number<span class="text-red-500">*</span></label>
+                                <input type="text" id="part_number" name="part_number" value="{{ old('part_number', old('part_no')) }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm mt-1" placeholder="PN-001" required>
+                                <p class="text-xs text-gray-500 mt-1">Gunakan kode internal singkat.</p>
+                                @error('part_number') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                                @error('part_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="register_number" class="text-sm font-medium text-gray-700">Size<span class="text-red-500">*</span></label>
+                                <input type="text" id="register_number" name="register_number" value="{{ old('register_number', old('register_no')) }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm mt-1" placeholder="1.00 x 200.0 x C" required>
+                                @error('register_number') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                                @error('register_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Naming Details</p>
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <x-input name="part_name_vendor" label="Vendor Part Name" placeholder="Nama dari vendor" required />
-                            <x-input name="part_name_gci" label="GCI Part Name" placeholder="Nama internal" required />
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
+                        <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Naming Details</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="vendor_part_name" class="text-sm font-medium text-gray-700">Vendor Part Name<span class="text-red-500">*</span></label>
+                                <input type="text" id="vendor_part_name" name="vendor_part_name" value="{{ old('vendor_part_name', old('part_name_vendor')) }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm mt-1" placeholder="Nama dari vendor" required>
+                                @error('vendor_part_name') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                                @error('part_name_vendor') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="gci_part_name" class="text-sm font-medium text-gray-700">GCI Part Name<span class="text-red-500">*</span></label>
+                                <input type="text" id="gci_part_name" name="gci_part_name" value="{{ old('gci_part_name', old('part_name_gci')) }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm mt-1" placeholder="Nama internal" required>
+                                @error('gci_part_name') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                                @error('part_name_gci') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
                         </div>
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <x-input name="hs_code" label="HS Code" placeholder="e.g., 7225.99.10" hint="Harmonized System code for customs" />
+                        <div class="mt-4">
+                            <label for="hs_code" class="text-sm font-medium text-gray-700">HS Code</label>
+                            <input type="text" id="hs_code" name="hs_code" value="{{ old('hs_code') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm mt-1" placeholder="e.g., 7225.99.10">
+                            <p class="text-xs text-gray-500 mt-1">Harmonized System code for customs.</p>
+                            @error('hs_code') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Logistics (Optional)</p>
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <x-input name="trucking_company" label="Trucking Company" placeholder="Opsional" hint="Isi jika ada vendor logistik tetap." />
-                            <x-input name="storage_reg" label="Storage Reg" placeholder="Opsional" />
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
+                        <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Operational Status</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="status" class="text-sm font-medium text-gray-700">Status</label>
+                                <select id="status" name="status" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm mt-1">
+                                    <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Active</option>
+                                    <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                </select>
+                                @error('status') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Operational Status</p>
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <x-select name="status" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" placeholder="Pilih status" value="active" />
-                        </div>
-                    </div>
+                    <input type="hidden" name="part_no" id="hidden-part-no" value="{{ old('part_no', old('part_number')) }}">
+                    <input type="hidden" name="register_no" id="hidden-register-no" value="{{ old('register_no', old('register_number')) }}">
+                    <input type="hidden" name="part_name_vendor" id="hidden-part-name-vendor" value="{{ old('part_name_vendor', old('vendor_part_name')) }}">
+                    <input type="hidden" name="part_name_gci" id="hidden-part-name-gci" value="{{ old('part_name_gci', old('gci_part_name')) }}">
 
                     <div class="flex justify-end">
-                        <x-button.primary icon="plus">
+                        <button type="submit" class="inline-flex items-center px-5 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-blue-700 transition-colors">
                             Register Part Number
-                        </x-button.primary>
+                        </button>
                     </div>
                 </form>
             </section>
@@ -151,41 +181,89 @@
                     </div>
                 </form>
 
+                @php
+                    $groupedParts = $parts->getCollection()->groupBy(function ($part) {
+                        return $part->part_name_vendor ?: 'Unspecified Vendor Part';
+                    });
+                @endphp
+
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Part Number</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Vendor Part Name</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">GCI Part Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Vendor</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Part Number</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Size</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">HS Code</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($parts as $part)
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-4 py-4 text-sm font-semibold text-slate-900">{{ $part->part_no }}</td>
-                                    <td class="px-4 py-4 text-sm text-slate-700">{{ $part->part_name_vendor }}</td>
-                                    <td class="px-4 py-4 text-sm text-slate-700">{{ $part->part_name_gci }}</td>
-                                    <td class="px-4 py-4 text-sm text-slate-600">{{ $part->vendor->vendor_name }}</td>
-                                    <td class="px-4 py-4">
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $part->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
-                                            {{ ucfirst($part->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-4 text-right text-sm">
-                                        <div class="inline-flex items-center gap-3">
-                                            <a href="{{ route('parts.edit', $part) }}" class="text-blue-600 hover:text-blue-700 font-medium">Edit</a>
-                                            <form method="POST" action="{{ route('parts.destroy', $part) }}" onsubmit="return confirm('Delete this part?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
-                                            </form>
+                            @forelse ($groupedParts as $vendorPartName => $group)
+                                @php
+                                    $statusCounts = $group->groupBy('status')->map(fn($items) => $items->count());
+                                    $primaryVendor = $group->first();
+                                @endphp
+                                <tr class="bg-slate-50/70">
+                                    <td colspan="6" class="px-4 py-3">
+                                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                            <div>
+                                                <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Vendor Part Name</p>
+                                                <p class="text-base font-semibold text-slate-900">{{ $vendorPartName }}</p>
+                                                <p class="text-xs text-slate-500">
+                                                    Vendor: {{ optional($group->first()->vendor)->vendor_name ?? 'Unassigned Vendor' }} &bull;
+                                                    {{ $group->count() }} GCI {{ $group->count() === 1 ? 'name' : 'names' }}
+                                                </p>
+                                            </div>
+                                            <div class="flex flex-wrap gap-2 text-xs text-slate-500">
+                                                @foreach ($statusCounts as $status => $count)
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
+                                                        {{ ucfirst($status) }}: {{ $count }}
+                                                    </span>
+                                                @endforeach
+                                                @if($primaryVendor?->vendor_id)
+                                                    <button type="button"
+                                                        data-fill-create-form
+                                                        data-vendor-id="{{ $primaryVendor->vendor_id }}"
+                                                        data-vendor-name="{{ e(optional($primaryVendor->vendor)->vendor_name) }}"
+                                                        data-vendor-part="{{ e($vendorPartName) }}"
+                                                        class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 font-semibold text-blue-700 hover:bg-blue-200 transition">
+                                                        + Tambah GCI Name
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
+                                @foreach ($group as $part)
+                                    <tr class="hover:bg-slate-50 transition-colors">
+                                        <td class="px-4 py-4 text-sm text-slate-800">
+                                            <div class="ml-6 pl-4 border-l-2 border-slate-100">
+                                                <p class="font-semibold text-slate-900">{{ $part->part_name_gci }}</p>
+                                                <p class="text-xs text-slate-500">Updated: {{ $part->updated_at?->format('d M Y') ?? '-' }}</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-4 text-sm text-slate-700">{{ $part->part_no }}</td>
+                                        <td class="px-4 py-4 text-sm text-slate-700">{{ $part->register_no }}</td>
+                                        <td class="px-4 py-4 text-sm text-slate-600">{{ $part->hs_code ?? '-' }}</td>
+                                        <td class="px-4 py-4">
+                                            <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $part->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
+                                                {{ ucfirst($part->status) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-4 text-right text-sm">
+                                            <div class="inline-flex items-center gap-3">
+                                                <a href="{{ route('parts.edit', $part) }}" class="text-blue-600 hover:text-blue-700 font-medium">Edit</a>
+                                                <form method="POST" action="{{ route('parts.destroy', $part) }}" onsubmit="return confirm('Delete this part?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="6">
@@ -342,6 +420,22 @@
             });
         }
 
+        const formFieldSync = [
+            ['part_number', 'hidden-part-no'],
+            ['register_number', 'hidden-register-no'],
+            ['vendor_part_name', 'hidden-part-name-vendor'],
+            ['gci_part_name', 'hidden-part-name-gci'],
+        ];
+
+        formFieldSync.forEach(([sourceId, targetId]) => {
+            const source = document.getElementById(sourceId);
+            const target = document.getElementById(targetId);
+            if (!source || !target) return;
+            const syncValue = () => target.value = source.value;
+            source.addEventListener('input', syncValue);
+            syncValue();
+        });
+
         attachTypeahead('create-vendor-name', 'create-vendor-id', 'create-vendor-suggestions', { suggestionsOnFocus: true });
         attachTypeahead('filter-vendor-name', 'filter-vendor-id', 'filter-vendor-suggestions', {
             suggestionsOnFocus: true,
@@ -358,6 +452,29 @@
                 if (textSpan) {
                     textSpan.textContent = 'Processing...';
                 }
+            });
+        });
+
+        document.querySelectorAll('[data-fill-create-form]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const vendorNameInput = document.getElementById('create-vendor-name');
+                const vendorHiddenInput = document.getElementById('create-vendor-id');
+                const vendorPartInput = document.getElementById('vendor_part_name');
+                const gciInput = document.getElementById('gci_part_name');
+                const registerSection = document.getElementById('register-part-section');
+
+                if (vendorNameInput) vendorNameInput.value = button.dataset.vendorName || '';
+                if (vendorHiddenInput) vendorHiddenInput.value = button.dataset.vendorId || '';
+                if (vendorPartInput) {
+                    vendorPartInput.value = button.dataset.vendorPart || '';
+                    vendorPartInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
+                if (registerSection) {
+                    registerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                if (gciInput) gciInput.focus();
             });
         });
     </script>

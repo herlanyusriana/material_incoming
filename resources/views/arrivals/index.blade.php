@@ -77,14 +77,26 @@
                                     <td class="px-4 py-4 text-slate-700">{{ $arrival->created_at->format('d M Y') }}</td>
                                     <td class="px-4 py-4">
                                         <div class="flex justify-center gap-2">
-                                        <a href="{{ route('departures.show', $arrival) }}" class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                            <a href="{{ route('departures.show', $arrival) }}" class="inline-flex items-center justify-center h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors min-w-[110px] shadow-sm">
                                                 View Details
                                             </a>
-                                            <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors" title="Print Invoice">
+                                            <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center justify-center h-10 px-4 text-white text-sm font-semibold rounded-lg transition-all min-w-[110px] shadow-lg shadow-orange-500/30" style="background-image: linear-gradient(120deg, #fb923c, #f97316, #ef4444);">
+                                                Edit Dates
+                                            </a>
+                                            <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center justify-center w-10 h-10 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors" title="Print Invoice">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
                                                 </svg>
                                             </a>
+                                            <form action="{{ route('departures.destroy', $arrival) }}" method="POST" onsubmit="return confirm('Yakin hapus departure ini?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex items-center justify-center w-10 h-10 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors" aria-label="Delete departure">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12m-9 4v5m6-5v5M9 7l.867-2.6A1 1 0 0 1 10.81 3.5h2.38a1 1 0 0 1 .943.9L15 7m-9 0h12v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7Z" />
+                                                    </svg>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

@@ -10,6 +10,29 @@
         <x-text-input id="bank_account" name="bank_account" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('bank_account', $vendor->bank_account ?? '') }}" />
         <x-input-error :messages="$errors->get('bank_account')" class="mt-2" />
     </div>
+    <div>
+        <x-input-label for="contact_person" value="Contact Person" />
+        <x-text-input id="contact_person" name="contact_person" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('contact_person', $vendor->contact_person ?? '') }}" />
+        <x-input-error :messages="$errors->get('contact_person')" class="mt-2" />
+    </div>
+    <div>
+        <x-input-label for="email" value="Email" />
+        <x-text-input id="email" name="email" type="email" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('email', $vendor->email ?? '') }}" />
+        <x-input-error :messages="$errors->get('email')" class="mt-2" />
+    </div>
+    <div>
+        <x-input-label for="phone" value="Phone" />
+        <x-text-input id="phone" name="phone" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('phone', $vendor->phone ?? '') }}" />
+        <x-input-error :messages="$errors->get('phone')" class="mt-2" />
+    </div>
+    <div>
+        <x-input-label for="status" value="Status" />
+        <select id="status" name="status" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm">
+            <option value="active" {{ old('status', $vendor->status ?? 'active') == 'active' ? 'selected' : '' }}>Active</option>
+            <option value="inactive" {{ old('status', $vendor->status ?? '') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+        </select>
+        <x-input-error :messages="$errors->get('status')" class="mt-2" />
+    </div>
     <div class="md:col-span-3">
         <x-input-label for="address" value="Address" />
         <textarea id="address" name="address" rows="3" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm">{{ old('address', $vendor->address ?? '') }}</textarea>

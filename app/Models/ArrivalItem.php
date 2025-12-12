@@ -12,6 +12,7 @@ class ArrivalItem extends Model
     protected $fillable = [
         'arrival_id',
         'part_id',
+        'material_group',
         'size',
         'qty_bundle',
         'unit_bundle',
