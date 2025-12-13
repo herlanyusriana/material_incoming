@@ -57,13 +57,15 @@
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Ukuran</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Part Number</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                        TAG
+                                        Tag
                                         <button type="button" id="add-tag-btn" class="ml-3 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
                                             + Add TAG
                                         </button>
                                     </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QTY</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Unit (KG)</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty / Bundle</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Satuan</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total Qty</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Satuan Unit</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
                                     <th class="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
                                 </tr>
@@ -83,7 +85,34 @@
                                         <input type="number" name="tags[0][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="number" name="tags[0][weight]" step="0.01" placeholder="0.00" value="{{ $defaultWeight }}" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                                        <select name="tags[0][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                                            @php
+                                                $defaultBundleUnit = $arrivalItem->unit_bundle ?? 'Coil';
+                                            @endphp
+                                            <option value="Coil" @selected($defaultBundleUnit === 'Coil')>Coil</option>
+                                            <option value="Pallets" @selected($defaultBundleUnit === 'Pallets')>Pallets</option>
+                                            <option value="Box" @selected($defaultBundleUnit === 'Box')>Box</option>
+                                            <option value="Pcs" @selected($defaultBundleUnit === 'Pcs')>Pcs</option>
+                                        </select>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <input
+                                            type="number"
+                                            name="tags[0][weight]"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2"
+                                        />
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @php
+                                            $defaultQtyUnit = $arrivalItem->unit_weight ?? 'KGM';
+                                        @endphp
+                                        <select name="tags[0][qty_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                                            <option value="KGM" @selected($defaultQtyUnit === 'KGM')>KGM</option>
+                                            <option value="PCS" @selected($defaultQtyUnit === 'PCS')>PCS</option>
+                                            <option value="SHEET" @selected($defaultQtyUnit === 'SHEET')>SHEET</option>
+                                        </select>
                                     </td>
                                     <td class="px-6 py-4">
                                         <select name="tags[0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
@@ -119,6 +148,8 @@
         const inputTotalEl = document.getElementById('input-total');
         const receiveForm = document.getElementById('receive-form');
         const defaultWeight = {{ $defaultWeight !== null ? $defaultWeight : 'null' }};
+        const defaultBundleUnit = @json($arrivalItem->unit_bundle ?? 'Coil');
+        const defaultQtyUnit = @json($arrivalItem->unit_weight ?? 'KGM');
 
         function updateTotals() {
             const qtyInputs = tagRows.querySelectorAll('input[name$=\"[qty]\"]');
@@ -164,7 +195,22 @@
                     <input type="number" name="tags[${tagIndex}][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                 </td>
                 <td class="px-6 py-4">
-                    <input type="number" name="tags[${tagIndex}][weight]" step="0.01" placeholder="0.00" ${defaultWeight !== null ? `value=\"${defaultWeight}\"` : ''} class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                    <select name="tags[${tagIndex}][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                        <option value="Coil" ${defaultBundleUnit === 'Coil' ? 'selected' : ''}>Coil</option>
+                        <option value="Pallets" ${defaultBundleUnit === 'Pallets' ? 'selected' : ''}>Pallets</option>
+                        <option value="Box" ${defaultBundleUnit === 'Box' ? 'selected' : ''}>Box</option>
+                        <option value="Pcs" ${defaultBundleUnit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                    </select>
+                </td>
+                <td class="px-6 py-4">
+                    <input type="number" name="tags[${tagIndex}][weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                </td>
+                <td class="px-6 py-4">
+                    <select name="tags[${tagIndex}][qty_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                        <option value="KGM" ${defaultQtyUnit === 'KGM' ? 'selected' : ''}>KGM</option>
+                        <option value="PCS" ${defaultQtyUnit === 'PCS' ? 'selected' : ''}>PCS</option>
+                        <option value="SHEET" ${defaultQtyUnit === 'SHEET' ? 'selected' : ''}>SHEET</option>
+                    </select>
                 </td>
                 <td class="px-6 py-4">
                     <select name="tags[${tagIndex}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>

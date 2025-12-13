@@ -10,9 +10,11 @@ class Receive extends Model
         'arrival_item_id',
         'tag',
         'qty',
+        'bundle_unit',
         'ata_date',
         'qc_status',
         'weight',
+        'qty_unit',
         'jo_po_number',
         'location_code',
     ];

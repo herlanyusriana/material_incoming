@@ -118,7 +118,9 @@ class ReceiveController extends Controller
             'tags' => 'required|array|min:1',
             'tags.*.tag' => 'required|string|max:255',
             'tags.*.qty' => 'required|integer|min:1',
+            'tags.*.bundle_unit' => 'required|string|max:20',
             'tags.*.weight' => 'nullable|numeric',
+            'tags.*.qty_unit' => 'required|string|max:20',
             'tags.*.qc_status' => 'required|in:pass,reject',
         ]);
 
@@ -139,7 +141,9 @@ class ReceiveController extends Controller
             $arrivalItem->receives()->create([
                 'tag' => $tagData['tag'],
                 'qty' => $tagData['qty'],
+                'bundle_unit' => $tagData['bundle_unit'] ?? null,
                 'weight' => $tagData['weight'] ?? null,
+                'qty_unit' => $tagData['qty_unit'] ?? null,
                 'ata_date' => now(),
                 'qc_status' => $tagData['qc_status'] ?? 'pass',
                 'jo_po_number' => null,
@@ -159,7 +163,9 @@ class ReceiveController extends Controller
             'items.*.tags' => 'nullable|array',
             'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
             'items.*.tags.*.qty' => 'required_with:items.*.tags|integer|min:1',
+            'items.*.tags.*.bundle_unit' => 'required_with:items.*.tags|string|max:20',
             'items.*.tags.*.weight' => 'nullable|numeric',
+            'items.*.tags.*.qty_unit' => 'required_with:items.*.tags|string|max:20',
             'items.*.tags.*.qc_status' => 'required_with:items.*.tags|in:pass,reject',
         ]);
 
@@ -196,7 +202,9 @@ class ReceiveController extends Controller
                 $arrivalItem->receives()->create([
                     'tag' => $tagData['tag'],
                     'qty' => $tagData['qty'],
+                    'bundle_unit' => $tagData['bundle_unit'] ?? null,
                     'weight' => $tagData['weight'] ?? null,
+                    'qty_unit' => $tagData['qty_unit'] ?? null,
                     'ata_date' => now(),
                     'qc_status' => $tagData['qc_status'] ?? 'pass',
                     'jo_po_number' => null,

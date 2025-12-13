@@ -51,7 +51,10 @@
             </div>
             <div class="field">
                 <span>Weight</span>
-                <div>{{ number_format($receive->weight ?? 0, 2) }} kg</div>
+                <div>
+                    {{ number_format($receive->weight ?? 0, 2) }}
+                    {{ $receive->qty_unit ?? 'kg' }}
+                </div>
             </div>
             <div class="field">
                 <span>PO Number</span>

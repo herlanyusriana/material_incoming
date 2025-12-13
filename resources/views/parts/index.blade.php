@@ -58,6 +58,40 @@
                         </div>
                     </div>
 
+                    @php
+                        $rawSizeInline = old('register_no', old('register_number'));
+                        $thicknessInline = old('thickness');
+                        $widthInline = old('width');
+                        $lengthInline = old('length');
+                        $sizeTypeInline = old('size_type');
+
+                        if (!$thicknessInline && !$widthInline && !$sizeTypeInline && $rawSizeInline) {
+                            $segmentsInline = preg_split('/[xX]/', $rawSizeInline);
+                            $segmentsInline = array_map('trim', $segmentsInline);
+
+                            if (count($segmentsInline) >= 1) {
+                                $thicknessInline = $segmentsInline[0];
+                            }
+                            if (count($segmentsInline) >= 2) {
+                                $widthInline = $segmentsInline[1];
+                            }
+                            if (count($segmentsInline) >= 3) {
+                                $lastSegmentInline = strtoupper($segmentsInline[2]);
+                                if ($lastSegmentInline === 'C') {
+                                    $sizeTypeInline = 'coil';
+                                    $lengthInline = '';
+                                } else {
+                                    $sizeTypeInline = 'sheet';
+                                    $lengthInline = $segmentsInline[2];
+                                }
+                            }
+                        }
+
+                        if (!$sizeTypeInline) {
+                            $sizeTypeInline = 'sheet';
+                        }
+                    @endphp
+
                     <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
                         <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Part Identification</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -69,8 +103,59 @@
                                 @error('part_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label for="register_number" class="text-sm font-medium text-gray-700">Size<span class="text-red-500">*</span></label>
-                                <input type="text" id="register_number" name="register_number" value="{{ old('register_number', old('register_no')) }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm mt-1" placeholder="1.00 x 200.0 x C" required>
+                                <label class="text-sm font-medium text-gray-700">Size<span class="text-red-500">*</span></label>
+                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-1">
+                                    <div>
+                                        <input
+                                            type="text"
+                                            id="inline_size_thickness"
+                                            name="thickness"
+                                            value="{{ $thicknessInline }}"
+                                            class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            placeholder="Thickness"
+                                        >
+                                    </div>
+                                    <div>
+                                        <input
+                                            type="text"
+                                            id="inline_size_width"
+                                            name="width"
+                                            value="{{ $widthInline }}"
+                                            class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            placeholder="Width"
+                                        >
+                                    </div>
+                                    <div>
+                                        <input
+                                            type="text"
+                                            id="inline_size_length"
+                                            name="length"
+                                            value="{{ $lengthInline }}"
+                                            class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            placeholder="Length"
+                                        >
+                                    </div>
+                                    <div>
+                                        <select
+                                            id="inline_size_type"
+                                            name="size_type"
+                                            class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                        >
+                                            <option value="sheet" {{ $sizeTypeInline === 'sheet' ? 'selected' : '' }}>Sheet</option>
+                                            <option value="coil" {{ $sizeTypeInline === 'coil' ? 'selected' : '' }}>Coil</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Preview: <span id="inline-size-preview">{{ $rawSizeInline ?: '-' }}</span>.
+                                    Kalo Coil, panjang otomatis jadi "C".
+                                </p>
+                                <input
+                                    type="hidden"
+                                    id="register_number"
+                                    name="register_number"
+                                    value="{{ $rawSizeInline }}"
+                                >
                                 @error('register_number') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                                 @error('register_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -116,7 +201,7 @@
                     </div>
 
                     <input type="hidden" name="part_no" id="hidden-part-no" value="{{ old('part_no', old('part_number')) }}">
-                    <input type="hidden" name="register_no" id="hidden-register-no" value="{{ old('register_no', old('register_number')) }}">
+                    <input type="hidden" name="register_no" id="hidden-register-no" value="{{ old('register_no', $rawSizeInline) }}">
                     <input type="hidden" name="part_name_vendor" id="hidden-part-name-vendor" value="{{ old('part_name_vendor', old('vendor_part_name')) }}">
                     <input type="hidden" name="part_name_gci" id="hidden-part-name-gci" value="{{ old('part_name_gci', old('gci_part_name')) }}">
 
@@ -422,7 +507,6 @@
 
         const formFieldSync = [
             ['part_number', 'hidden-part-no'],
-            ['register_number', 'hidden-register-no'],
             ['vendor_part_name', 'hidden-part-name-vendor'],
             ['gci_part_name', 'hidden-part-name-gci'],
         ];
@@ -435,6 +519,58 @@
             source.addEventListener('input', syncValue);
             syncValue();
         });
+
+        (function () {
+            const thicknessInput = document.getElementById('inline_size_thickness');
+            const widthInput = document.getElementById('inline_size_width');
+            const lengthInput = document.getElementById('inline_size_length');
+            const typeSelect = document.getElementById('inline_size_type');
+            const previewEl = document.getElementById('inline-size-preview');
+            const visibleRegisterInput = document.getElementById('register_number');
+            const hiddenRegisterInput = document.getElementById('hidden-register-no');
+
+            if (!thicknessInput || !widthInput || !lengthInput || !typeSelect || !previewEl || !visibleRegisterInput || !hiddenRegisterInput) {
+                return;
+            }
+
+            function updateInlineSize() {
+                const type = typeSelect.value || 'sheet';
+                const thickness = thicknessInput.value.trim();
+                const width = widthInput.value.trim();
+                let length = lengthInput.value.trim();
+
+                if (type === 'coil') {
+                    length = 'C';
+                    lengthInput.value = '';
+                    lengthInput.disabled = true;
+                    lengthInput.placeholder = 'C';
+                } else {
+                    lengthInput.disabled = false;
+                    if (lengthInput.placeholder === 'C') {
+                        lengthInput.placeholder = 'Length';
+                    }
+                }
+
+                const parts = [];
+                if (thickness) parts.push(thickness);
+                if (width) parts.push(width);
+                if (length) parts.push(length);
+
+                const sizeString = parts.join(' x ');
+                previewEl.textContent = sizeString || '-';
+                visibleRegisterInput.value = sizeString;
+                hiddenRegisterInput.value = sizeString;
+            }
+
+            ['input', 'change'].forEach(eventName => {
+                thicknessInput.addEventListener(eventName, updateInlineSize);
+                widthInput.addEventListener(eventName, updateInlineSize);
+                lengthInput.addEventListener(eventName, updateInlineSize);
+                typeSelect.addEventListener(eventName, updateInlineSize);
+            });
+
+            updateInlineSize();
+        })();
 
         attachTypeahead('create-vendor-name', 'create-vendor-id', 'create-vendor-suggestions', { suggestionsOnFocus: true });
         attachTypeahead('filter-vendor-name', 'filter-vendor-id', 'filter-vendor-suggestions', {
