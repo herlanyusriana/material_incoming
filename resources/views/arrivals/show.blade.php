@@ -19,12 +19,22 @@
                     </svg>
                     <span>Back to Departures</span>
                 </a>
-                <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
-                    </svg>
-                    Print Invoice
-                </a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('receives.invoice.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
+                        Receive Invoice
+                    </a>
+                    @if ($arrival->inspection)
+                        <a href="{{ route('departures.inspection-report', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                            Print Inspection
+                        </a>
+                    @endif
+                    <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
+                        </svg>
+                        Print Invoice
+                    </a>
+                </div>
             </div>
             
             <!-- Departure Information -->
@@ -83,6 +93,83 @@
                 @endif
             </div>
 
+            <!-- Inspection Summary (read-only) -->
+            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+                <div class="pb-3 border-b border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-900">Container Inspection</h3>
+                    <p class="text-sm text-slate-600 mt-1">Diinput dari aplikasi Android (read-only di web).</p>
+                </div>
+
+                @if ($arrival->inspection)
+                    @php
+                        $statusColor = $arrival->inspection->status === 'damage'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-green-100 text-green-700';
+                        $photos = [
+                            'Left' => $arrival->inspection->photo_left,
+                            'Right' => $arrival->inspection->photo_right,
+                            'Front' => $arrival->inspection->photo_front,
+                            'Back' => $arrival->inspection->photo_back,
+                        ];
+                        $issuesMap = [
+                            'Left' => $arrival->inspection->issues_left ?? [],
+                            'Right' => $arrival->inspection->issues_right ?? [],
+                            'Front' => $arrival->inspection->issues_front ?? [],
+                            'Back' => $arrival->inspection->issues_back ?? [],
+                        ];
+                    @endphp
+
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $statusColor }}">
+                            {{ strtoupper($arrival->inspection->status) }}
+                        </span>
+                        <div class="text-sm text-slate-600">
+                            Updated: {{ $arrival->inspection->updated_at?->format('Y-m-d H:i') ?? '-' }}
+                        </div>
+                    </div>
+
+                    @if ($arrival->inspection->notes)
+                        <div class="text-sm text-slate-800">
+                            <span class="font-semibold text-slate-700">Notes:</span> {{ $arrival->inspection->notes }}
+                        </div>
+                    @endif
+
+                    <div class="space-y-3">
+                        @foreach ($issuesMap as $side => $issues)
+                            @if (!empty($issues))
+                                <div class="text-sm">
+                                    <div class="font-semibold text-slate-700">{{ $side }}</div>
+                                    <div class="flex flex-wrap gap-2 mt-1">
+                                        @foreach ($issues as $issue)
+                                            <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+                                                {{ $issue }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        @foreach ($photos as $label => $path)
+                            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                                <div class="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-700">{{ $label }}</div>
+                                @if ($path)
+                                    <img src="{{ Storage::url($path) }}" alt="{{ $label }}" class="w-full h-40 object-cover">
+                                @else
+                                    <div class="h-40 flex items-center justify-center text-sm text-slate-400">No photo</div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-sm text-slate-600">
+                        Belum ada data inspeksi untuk invoice ini.
+                    </div>
+                @endif
+            </div>
+
             <!-- Items Table -->
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="pb-3 border-b border-slate-200">
@@ -108,6 +195,10 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @foreach ($arrival->items as $item)
+                                @php
+                                    $receivedQty = $item->receives->sum('qty');
+                                    $remainingQty = max(0, ($item->qty_goods ?? 0) - $receivedQty);
+                                @endphp
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-4 py-4 text-slate-800">
                                         <div class="font-semibold">{{ $item->part->part_no }}</div>
@@ -121,14 +212,20 @@
                                     <td class="px-4 py-4 text-slate-700">{{ number_format($item->price, 2) }}</td>
                                     <td class="px-4 py-4 text-slate-800 font-semibold">{{ number_format($item->total_price, 2) }}</td>
                                     <td class="px-4 py-4">
-                                        <div class="text-slate-800 font-semibold">{{ number_format($item->receives->sum('qty')) }}</div>
+                                        <div class="text-slate-800 font-semibold">{{ number_format($receivedQty) }}</div>
                                         <div class="text-xs text-slate-500">{{ $item->receives->count() }} receive{{ $item->receives->count() != 1 ? 's' : '' }}</div>
                                     </td>
                                     <td class="px-4 py-4">
                                         <div class="flex justify-center">
-                                            <a href="{{ route('receives.create', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                                Receive
-                                            </a>
+                                            @if ($remainingQty > 0)
+                                                <a href="{{ route('receives.create', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                                    Receive
+                                                </a>
+                                            @else
+                                                <span class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg">
+                                                    Complete
+                                                </span>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

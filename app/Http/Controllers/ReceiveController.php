@@ -38,9 +38,24 @@ class ReceiveController extends Controller
 
     public function completed()
     {
-        // Show completed receives (old index functionality)
-        $receives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
-            ->latest()
+        // Show completed receives grouped by invoice/departure
+        $arrivals = Arrival::query()
+            ->select([
+                'arrivals.id',
+                'arrivals.arrival_no',
+                'arrivals.invoice_no',
+                'arrivals.invoice_date',
+                'arrivals.vendor_id',
+                DB::raw('COUNT(receives.id) as receives_count'),
+                DB::raw('SUM(receives.qty) as total_qty'),
+                DB::raw("SUM(CASE WHEN receives.qc_status = 'pass' THEN 1 ELSE 0 END) as pass_count"),
+                DB::raw("SUM(CASE WHEN receives.qc_status IN ('reject','fail') THEN 1 ELSE 0 END) as fail_count"),
+            ])
+            ->join('arrival_items', 'arrival_items.arrival_id', '=', 'arrivals.id')
+            ->join('receives', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->with('vendor')
+            ->groupBy('arrivals.id', 'arrivals.arrival_no', 'arrivals.invoice_no', 'arrivals.invoice_date', 'arrivals.vendor_id')
+            ->orderByDesc('arrivals.created_at')
             ->paginate(10);
 
         $statusCounts = Receive::select('qc_status', DB::raw('count(*) as total'))
@@ -67,7 +82,19 @@ class ReceiveController extends Controller
             'today' => Receive::whereDate('created_at', now())->count(),
         ];
 
-        return view('receives.completed', compact('receives', 'statusCounts', 'topVendors', 'summary'));
+        return view('receives.completed', compact('arrivals', 'statusCounts', 'topVendors', 'summary'));
+    }
+
+    public function completedInvoice(Arrival $arrival)
+    {
+        $arrival->load('vendor');
+
+        $receives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+            ->whereHas('arrivalItem', fn ($q) => $q->where('arrival_id', $arrival->id))
+            ->latest()
+            ->paginate(25);
+
+        return view('receives.completed_invoice', compact('arrival', 'receives'));
     }
 
     public function create(ArrivalItem $arrivalItem)

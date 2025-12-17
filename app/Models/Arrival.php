@@ -82,4 +82,9 @@ class Arrival extends Model
     {
         return $this->hasMany(ArrivalItem::class);
     }
+
+    public function inspection()
+    {
+        return $this->hasOne(ArrivalInspection::class);
+    }
 }

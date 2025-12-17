@@ -46,6 +46,7 @@ Route::get('/dashboard', function () {
 
 // Invoice route (public untuk generate PDF)
 Route::get('/departures/{departure}/invoice', [ArrivalController::class, 'printInvoice'])->name('departures.invoice');
+Route::get('/departures/{departure}/inspection-report', [ArrivalController::class, 'printInspectionReport'])->name('departures.inspection-report');
 
 Route::middleware('auth')->group(function () {
     Route::view('/incoming-material', 'incoming-material.dashboard')->name('incoming-material.dashboard');
@@ -70,6 +71,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/receives/invoice/{arrival}', [ReceiveController::class, 'storeByInvoice'])->name('receives.invoice.store');
     Route::get('/receives/{receive}/label', [ReceiveController::class, 'printLabel'])->name('receives.label');
     Route::get('/receives/completed', [ReceiveController::class, 'completed'])->name('receives.completed');
+    Route::get('/receives/completed/{arrival}', [ReceiveController::class, 'completedInvoice'])->name('receives.completed.invoice');
 });
 
 require __DIR__.'/auth.php';

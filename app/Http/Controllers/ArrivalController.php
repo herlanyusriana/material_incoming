@@ -9,6 +9,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class ArrivalController extends Controller
@@ -122,7 +123,7 @@ class ArrivalController extends Controller
     {
         // Keep using $arrival internally for existing views/logic
         $arrival = $departure;
-        $arrival->load(['vendor', 'creator', 'items.part.vendor', 'items.receives']);
+        $arrival->load(['vendor', 'creator', 'inspection', 'items.part.vendor', 'items.receives']);
 
         return view('arrivals.show', compact('arrival'));
     }
@@ -180,6 +181,48 @@ class ArrivalController extends Controller
         // Clean filename - remove / and \ characters
         $filename = 'Commercial-Invoice-' . str_replace(['/', '\\'], '-', $arrival->invoice_no) . '.pdf';
         
+        return $pdf->stream($filename);
+    }
+
+    public function printInspectionReport(Arrival $departure)
+    {
+        $arrival = $departure;
+        $arrival->load(['vendor', 'inspection.inspector']);
+
+        if (!$arrival->inspection) {
+            abort(404);
+        }
+
+        $inspection = $arrival->inspection;
+
+        $toDataUri = function (?string $publicPath): ?string {
+            if (!$publicPath) {
+                return null;
+            }
+            if (!Storage::disk('public')->exists($publicPath)) {
+                return null;
+            }
+            $bytes = Storage::disk('public')->get($publicPath);
+            $mime = Storage::disk('public')->mimeType($publicPath) ?: 'image/jpeg';
+            return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+        };
+
+        $photos = [
+            'left' => $toDataUri($inspection->photo_left),
+            'right' => $toDataUri($inspection->photo_right),
+            'front' => $toDataUri($inspection->photo_front),
+            'back' => $toDataUri($inspection->photo_back),
+        ];
+
+        $pdf = Pdf::loadView('arrivals.inspection_report', compact('arrival', 'inspection', 'photos'))
+            ->setPaper('a4', 'landscape')
+            ->setOption('margin-top', 10)
+            ->setOption('margin-bottom', 10)
+            ->setOption('margin-left', 10)
+            ->setOption('margin-right', 10);
+
+        $filename = 'Inspection-' . str_replace(['/', '\\'], '-', $arrival->invoice_no) . '.pdf';
+
         return $pdf->stream($filename);
     }
 }

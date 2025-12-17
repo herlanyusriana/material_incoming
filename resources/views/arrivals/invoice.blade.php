@@ -297,7 +297,7 @@
         <tr>
             <td style="vertical-align:top;">
                 NO: 1-{{ $arrival->items->count() }}<br>
-                MADE IN {{ $madeInText }}
+                
             </td>
             <td colspan="4" style="text-align:right">
                 <strong>BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}</strong>
@@ -519,7 +519,7 @@
         <tr>
             <td style="vertical-align:top;">
                 NO: 1-{{ $arrival->items->count() }}<br>
-                MADE IN {{ $madeInText }}
+                
             </td>
             <td colspan="4" style="text-align:right">
                 <strong>BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}</strong>

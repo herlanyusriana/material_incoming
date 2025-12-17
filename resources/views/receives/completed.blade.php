@@ -94,45 +94,33 @@
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Tag</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Part</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Vendor</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Qty</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Location</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">QC</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">ATA</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Invoice</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Arrival</th>
+                                <th class="px-4 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider">Tags</th>
+                                <th class="px-4 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider">Qty</th>
+                                <th class="px-4 py-3 text-center font-semibold text-slate-600 text-xs uppercase tracking-wider">QC</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Invoice Date</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($receives as $receive)
+                            @forelse ($arrivals as $arrival)
                                 <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-4 py-4 font-semibold text-slate-900">{{ $receive->tag }}</td>
-                                    <td class="px-4 py-4 text-slate-800">
-                                        {{ $receive->arrivalItem->part->part_no }}
-                                        <div class="text-xs text-slate-500">{{ $receive->arrivalItem->part->part_name_vendor }}</div>
-                                    </td>
-                                    <td class="px-4 py-4 text-slate-700">
-                                        {{ $receive->arrivalItem->arrival->vendor->vendor_name ?? '-' }}
-                                        <div class="text-xs text-slate-500">{{ $receive->arrivalItem->arrival->arrival_no }}</div>
-                                    </td>
-                                    <td class="px-4 py-4 text-slate-800 font-semibold">{{ number_format($receive->qty) }}</td>
-                                    <td class="px-4 py-4 text-slate-700 font-mono text-xs">{{ $receive->location_code ?? '-' }}</td>
                                     <td class="px-4 py-4">
-                                        @php
-                                            $statusColor = match ($receive->qc_status) {
-                                                'pass' => 'bg-green-100 text-green-700',
-                                                'fail' => 'bg-red-100 text-red-700',
-                                                default => 'bg-amber-100 text-amber-700',
-                                            };
-                                        @endphp
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $statusColor }}">
-                                            {{ ucfirst($receive->qc_status) }}
-                                        </span>
+                                        <div class="font-semibold text-slate-900">{{ $arrival->vendor->vendor_name ?? '-' }}</div>
                                     </td>
-                                    <td class="px-4 py-4 text-slate-700">{{ $receive->ata_date?->format('Y-m-d H:i') }}</td>
+                                    <td class="px-4 py-4 text-slate-800 font-semibold">{{ $arrival->invoice_no }}</td>
+                                    <td class="px-4 py-4 text-slate-700 font-mono text-xs">{{ $arrival->arrival_no }}</td>
+                                    <td class="px-4 py-4 text-right text-slate-800 font-semibold">{{ number_format($arrival->receives_count ?? 0) }}</td>
+                                    <td class="px-4 py-4 text-right text-slate-800 font-semibold">{{ number_format($arrival->total_qty ?? 0) }}</td>
+                                    <td class="px-4 py-4 text-center">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Pass {{ $arrival->pass_count ?? 0 }}</span>
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 ml-2">Fail {{ $arrival->fail_count ?? 0 }}</span>
+                                    </td>
+                                    <td class="px-4 py-4 text-slate-700">{{ $arrival->invoice_date ? \Carbon\Carbon::parse($arrival->invoice_date)->format('Y-m-d') : '-' }}</td>
                                     <td class="px-4 py-4 text-sm">
-                                        <a href="{{ route('receives.label', $receive) }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium">Print label</a>
+                                        <a href="{{ route('receives.completed.invoice', $arrival->id) }}" class="text-blue-600 hover:text-blue-700 font-medium">Detail</a>
                                     </td>
                                 </tr>
                             @empty
@@ -145,7 +133,7 @@
                 </div>
 
                 <div class="mt-4">
-                    {{ $receives->links() }}
+                    {{ $arrivals->links() }}
                 </div>
             </div>
         </div>
