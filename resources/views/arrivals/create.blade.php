@@ -119,6 +119,13 @@
                             <p class="text-xs text-gray-500">Enter one container number per line.</p>
                             @error('container_numbers') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
+
+                        <div class="space-y-1">
+                            <label for="seal_code" class="text-sm font-medium text-gray-700">Seal Code</label>
+                            <input type="text" id="seal_code" name="seal_code" value="{{ old('seal_code') }}" placeholder="Contoh: HUPH019101" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <p class="text-xs text-gray-500">Kode segel (optional).</p>
+                            @error('seal_code') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
                     </div>
                 </div>
 

@@ -81,6 +81,14 @@
                         <span class="text-slate-900">{{ $arrival->port_of_loading }}</span>
                     </div>
                     <div class="flex items-start gap-2">
+                        <span class="font-semibold text-slate-700 min-w-[100px]">Container:</span>
+                        <span class="text-slate-900 whitespace-pre-line">{{ $arrival->container_numbers ?: '-' }}</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="font-semibold text-slate-700 min-w-[100px]">Seal Code:</span>
+                        <span class="text-slate-900">{{ $arrival->seal_code ?: '-' }}</span>
+                    </div>
+                    <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Currency:</span>
                         <span class="text-slate-900">{{ $arrival->currency }}</span>
                     </div>

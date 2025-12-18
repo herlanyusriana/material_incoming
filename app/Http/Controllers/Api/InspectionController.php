@@ -38,6 +38,7 @@ class InspectionController extends Controller
     {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['ok', 'damage'])],
+            'seal_code' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
             'issues_left' => ['nullable', 'array'],
             'issues_left.*' => ['string', 'max:50'],
@@ -51,7 +52,13 @@ class InspectionController extends Controller
             'photo_right' => ['nullable', 'image', 'max:10240'],
             'photo_front' => ['nullable', 'image', 'max:10240'],
             'photo_back' => ['nullable', 'image', 'max:10240'],
+            'photo_inside' => ['nullable', 'image', 'max:10240'],
         ]);
+
+        if (array_key_exists('seal_code', $validated)) {
+            $arrival->seal_code = $validated['seal_code'] !== null ? trim($validated['seal_code']) : null;
+            $arrival->save();
+        }
 
         $inspection = ArrivalInspection::firstOrNew(['arrival_id' => $arrival->id]);
         $inspection->fill([
@@ -65,7 +72,7 @@ class InspectionController extends Controller
         ]);
 
         $dir = "inspections/{$arrival->id}";
-        foreach (['left', 'right', 'front', 'back'] as $side) {
+        foreach (['left', 'right', 'front', 'back', 'inside'] as $side) {
             $key = "photo_{$side}";
             if (!$request->hasFile($key)) {
                 continue;
@@ -95,6 +102,7 @@ class InspectionController extends Controller
                 'name' => $arrival->vendor?->vendor_name,
             ],
             'container_numbers' => $arrival->container_numbers,
+            'seal_code' => $arrival->seal_code,
             'ETD' => optional($arrival->ETD)->format('Y-m-d'),
             'ETA' => optional($arrival->ETA)->format('Y-m-d'),
         ];
@@ -115,6 +123,7 @@ class InspectionController extends Controller
             'photo_right_url' => $inspection->photo_right ? url(Storage::url($inspection->photo_right)) : null,
             'photo_front_url' => $inspection->photo_front ? url(Storage::url($inspection->photo_front)) : null,
             'photo_back_url' => $inspection->photo_back ? url(Storage::url($inspection->photo_back)) : null,
+            'photo_inside_url' => $inspection->photo_inside ? url(Storage::url($inspection->photo_inside)) : null,
             'created_at' => optional($inspection->created_at)->toISOString(),
             'updated_at' => optional($inspection->updated_at)->toISOString(),
         ];

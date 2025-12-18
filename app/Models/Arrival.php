@@ -25,6 +25,7 @@ class Arrival extends Model
         'port_of_loading',
         'country',
         'container_numbers',
+        'seal_code',
         'currency',
         'notes',
         'created_by',

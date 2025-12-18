@@ -47,6 +47,7 @@ class ArrivalController extends Controller
             'hs_code' => ['nullable', 'string', 'max:255'],
             'port_of_loading' => ['nullable', 'string', 'max:255'],
             'container_numbers' => ['nullable', 'string'],
+            'seal_code' => ['nullable', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
@@ -79,6 +80,7 @@ class ArrivalController extends Controller
                 'port_of_loading' => $validated['port_of_loading'] ?? null,
                 'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
                 'container_numbers' => $validated['container_numbers'] ?? null,
+                'seal_code' => $validated['seal_code'] ?? null,
                 'currency' => $validated['currency'] ?? 'USD',
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
@@ -212,14 +214,15 @@ class ArrivalController extends Controller
             'right' => $toDataUri($inspection->photo_right),
             'front' => $toDataUri($inspection->photo_front),
             'back' => $toDataUri($inspection->photo_back),
+            'inside' => $toDataUri($inspection->photo_inside),
         ];
 
         $pdf = Pdf::loadView('arrivals.inspection_report', compact('arrival', 'inspection', 'photos'))
             ->setPaper('a4', 'landscape')
-            ->setOption('margin-top', 10)
-            ->setOption('margin-bottom', 10)
-            ->setOption('margin-left', 10)
-            ->setOption('margin-right', 10);
+            ->setOption('margin-top', 7)
+            ->setOption('margin-bottom', 7)
+            ->setOption('margin-left', 7)
+            ->setOption('margin-right', 7);
 
         $filename = 'Inspection-' . str_replace(['/', '\\'], '-', $arrival->invoice_no) . '.pdf';
 

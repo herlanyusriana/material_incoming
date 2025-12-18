@@ -389,6 +389,18 @@
     @endif
 </div>
 
+{{-- Seal Section --}}
+<div class="container-box">
+    <strong>SEAL CODE :</strong><br>
+    {{ $arrival->seal_code ? strtoupper(trim($arrival->seal_code)) : '-' }}
+</div>
+
+{{-- Seal Section --}}
+<div class="container-box">
+    <strong>SEAL CODE :</strong><br>
+    {{ $arrival->seal_code ? strtoupper(trim($arrival->seal_code)) : '-' }}
+</div>
+
 {{-- Signature Section --}}
 <div class="footer-section">
     <table class="signature-table">

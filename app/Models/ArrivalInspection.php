@@ -18,6 +18,7 @@ class ArrivalInspection extends Model
         'photo_right',
         'photo_front',
         'photo_back',
+        'photo_inside',
         'issues_left',
         'issues_right',
         'issues_front',
