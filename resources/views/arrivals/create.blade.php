@@ -141,19 +141,19 @@
 
                 <!-- Material & Part Lines -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-                    <div class="flex items-center justify-between gap-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h3 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Material & Part Lines</h3>
                             <p class="text-sm text-gray-600">Kelompokkan part internal berdasarkan jenis material (contoh: SPHC / PO STEEL IN COIL).</p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <button type="button" id="refresh-parts" class="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-md border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                            <button type="button" id="refresh-parts" class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-md border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition sm:w-auto" disabled>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 9.75a7.5 7.5 0 0 1 13.208-3.464M19.5 14.25a7.5 7.5 0 0 1-13.208 3.464M4.5 4.5v5.25H9.75M19.5 19.5v-5.25H14.25" />
                                 </svg>
                                 <span data-label>Sync Part Catalog</span>
                             </button>
-                            <button type="button" id="add-material-group" class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-all duration-200 shadow-sm">+ Material Group</button>
+                            <button type="button" id="add-material-group" class="inline-flex w-full items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-all duration-200 shadow-sm sm:w-auto">+ Material Group</button>
                         </div>
                     </div>
 
@@ -419,26 +419,26 @@
             const vendorId = vendorIdInput.value;
             const rowsContainer = groupEl.querySelector('.group-rows');
             const row = document.createElement('div');
-            row.className = 'line-row grid grid-cols-2 md:grid-cols-12 gap-3 items-start border border-gray-200 rounded-lg p-4 md:bg-transparent md:border-b md:rounded-none md:p-0 md:pb-3';
+            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start border border-gray-200 rounded-lg p-4 lg:bg-transparent lg:border-0 lg:border-b lg:rounded-none lg:p-0 lg:pb-3';
             const guessedBundle = existing?.unit_bundle ?? null;
             const guessedWeight = existing?.unit_weight ?? null;
             row.innerHTML = `
-        <div class="md:col-span-3 col-span-2">
-            <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Part Number</label>
+        <div class="col-span-1 sm:col-span-1 lg:col-span-2">
+            <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Size</label>
+            <input type="text" name="items[${rowIndex}][size]" class="input-size w-full rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="${existing?.size ?? ''}">
+        </div>
+        <div class="col-span-1 sm:col-span-1 lg:col-span-3">
+            <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Part Number</label>
             <select name="items[${rowIndex}][part_id]" class="part-select block w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500" ${vendorId ? '' : 'disabled'} required>
                 ${buildPartOptions(vendorId, existing?.part_id)}
             </select>
         </div>
-        <div class="md:col-span-2 col-span-2">
-            <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Size</label>
-            <input type="text" name="items[${rowIndex}][size]" class="input-size w-full rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="${existing?.size ?? ''}">
-        </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Bundle</label>
+                <div class="col-span-1 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Bundle</label>
                     <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle w-full rounded-md border-gray-300 text-sm" value="${existing?.qty_bundle ?? 0}" min="0" placeholder="0">
                 </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Bundle</label>
+                <div class="col-span-1 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Bundle</label>
                     <select name="items[${rowIndex}][unit_bundle]" class="input-unit-bundle w-full rounded-md border-gray-300 text-sm">
                         <option value="Coil" ${guessedBundle === 'Coil' ? 'selected' : ''}>Coil</option>
                         <option value="Sheet" ${guessedBundle === 'Sheet' ? 'selected' : ''}>Sheet</option>
@@ -449,16 +449,16 @@
                         <option value="Box" ${guessedBundle === 'Box' ? 'selected' : ''}>Box</option>
                     </select>
                 </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Goods</label>
+                <div class="col-span-1 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Goods</label>
                     <input type="number" name="items[${rowIndex}][qty_goods]" class="qty-goods w-full rounded-md border-gray-300 text-sm" value="${existing?.qty_goods ?? 0}" min="0" required>
                 </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Nett Wt</label>
+                <div class="col-span-1 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Nett Wt</label>
                     <input type="number" step="0.01" name="items[${rowIndex}][weight_nett]" class="weight-nett w-full rounded-md border-gray-300 text-sm" value="${existing?.weight_nett ?? 0}" min="0" required>
                 </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Wt</label>
+                <div class="col-span-1 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Wt</label>
                     <select name="items[${rowIndex}][unit_weight]" class="input-unit-weight w-full rounded-md border-gray-300 text-sm">
                         <option value="KGM" ${(guessedWeight === 'KGM' || !guessedWeight) ? 'selected' : ''}>KGM</option>
                         <option value="KG" ${guessedWeight === 'KG' ? 'selected' : ''}>KG</option>
@@ -466,21 +466,21 @@
                         <option value="Ton" ${guessedWeight === 'Ton' ? 'selected' : ''}>Ton</option>
                     </select>
                 </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Gross Wt</label>
+                <div class="col-span-1 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Gross Wt</label>
                     <input type="number" step="0.01" name="items[${rowIndex}][weight_gross]" class="weight-gross w-full rounded-md border-gray-300 text-sm" value="${existing?.weight_gross ?? 0}" min="0" required>
                 </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Price</label>
+                <div class="col-span-1 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Price</label>
                     <input type="number" step="0.01" name="items[${rowIndex}][price]" class="price w-full rounded-md border-gray-300 text-sm" value="${existing?.price ?? 0}" min="0" required>
                 </div>
-                <div class="md:col-span-1">
-                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Total</label>
+                <div class="col-span-1 sm:col-span-2 lg:col-span-1">
+                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Total</label>
                     <input type="text" class="total w-full rounded-md border-gray-200 bg-gray-50 text-sm" value="0.00" readonly>
                     <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${groupEl.querySelector('.material-title')?.value?.trim() || ''}">
                     <input type="hidden" name="items[${rowIndex}][notes]" value="${existing?.notes ?? ''}">
                 </div>
-                <div class="md:col-span-1 flex items-center justify-end md:justify-center">
+                <div class="col-span-1 sm:col-span-2 lg:col-span-1 flex items-center justify-start lg:justify-center">
                     <button type="button" class="remove-line text-red-600 hover:text-red-800 text-xs whitespace-nowrap">Remove</button>
                 </div>
             `;
@@ -522,30 +522,30 @@
             const groupEl = document.createElement('div');
             groupEl.className = 'material-group border border-gray-200 rounded-lg shadow-sm';
             groupEl.innerHTML = `
-                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-gray-100 bg-gray-50 p-4 rounded-t-lg">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-gray-100 bg-gray-50 p-4 rounded-t-lg">
                     <div class="w-full">
                         <label class="text-sm font-semibold text-gray-700">Jenis Material / Part Name Vendor</label>
                         <input type="text" class="material-title mt-1 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="SPHC / PO STEEL IN COIL" value="${title}">
                         <p class="text-xs text-gray-500 mt-1">Nama material vendor yang akan menjadi judul tebal di invoice.</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button type="button" class="add-part-line inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md shadow-sm hover:bg-blue-700">+ Part Line</button>
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                        <button type="button" class="add-part-line inline-flex w-full items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md shadow-sm hover:bg-blue-700 sm:w-auto">+ Part Line</button>
                         <button type="button" class="remove-group text-xs text-red-600 hover:text-red-700">Remove Group</button>
                     </div>
                 </div>
                 <div class="space-y-4">
-                    <div class="hidden md:grid md:grid-cols-12 text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2">
-                        <div class="md:col-span-3">Part Number</div>
-                        <div class="md:col-span-2">Size</div>
-                        <div class="md:col-span-1">Qty Bundle</div>
-                        <div class="md:col-span-1">Unit Bundle</div>
-                        <div class="md:col-span-1">Qty Goods</div>
-                        <div class="md:col-span-1">Nett Wt</div>
-                        <div class="md:col-span-1">Unit Wt</div>
-                        <div class="md:col-span-1">Gross Wt</div>
-                        <div class="md:col-span-1">Price</div>
-                        <div class="md:col-span-1">Total</div>
-                        <div class="md:col-span-1 text-right">Action</div>
+                    <div class="hidden lg:grid lg:grid-cols-12 text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2">
+                        <div class="lg:col-span-2">Size</div>
+                        <div class="lg:col-span-3">Part Number</div>
+                        <div class="lg:col-span-1">Qty Bundle</div>
+                        <div class="lg:col-span-1">Unit Bundle</div>
+                        <div class="lg:col-span-1">Qty Goods</div>
+                        <div class="lg:col-span-1">Nett Wt</div>
+                        <div class="lg:col-span-1">Unit Wt</div>
+                        <div class="lg:col-span-1">Gross Wt</div>
+                        <div class="lg:col-span-1">Price</div>
+                        <div class="lg:col-span-1">Total</div>
+                        <div class="lg:col-span-1 text-right">Action</div>
                     </div>
                     <div class="group-rows space-y-3"></div>
                 </div>

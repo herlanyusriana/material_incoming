@@ -52,7 +52,7 @@ class ArrivalController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.material_group' => ['nullable', 'string', 'max:255'],
             'items.*.part_id' => ['required', 'exists:parts,id'],
-            'items.*.size' => ['nullable', 'string', 'max:100', 'regex:/^\d{1,4}(\.\d{1,2})?\s*x\s*\d{1,4}(\.\d)?\s*x\s*[A-Z]$/i'],
+            'items.*.size' => ['nullable', 'string', 'max:100'],
             'items.*.qty_bundle' => ['nullable', 'integer', 'min:0'],
             'items.*.unit_bundle' => ['nullable', 'string', 'max:20'],
             'items.*.qty_goods' => ['required', 'integer', 'min:1'],
