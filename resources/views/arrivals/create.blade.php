@@ -430,26 +430,26 @@
             const vendorId = vendorIdInput.value;
             const rowsContainer = groupEl.querySelector('.group-rows');
             const row = document.createElement('div');
-            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-3 items-start border border-gray-200 rounded-lg p-4 lg:bg-transparent lg:border-0 lg:border-b lg:rounded-none lg:p-0 lg:pb-3';
+            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-3 items-start border border-gray-200 rounded-lg p-4 md:min-w-[1100px] md:bg-transparent md:border-0 md:border-b md:rounded-none md:p-0 md:pb-3';
             const guessedBundle = existing?.unit_bundle ?? null;
             const guessedWeight = existing?.unit_weight ?? null;
             row.innerHTML = `
         <div class="col-span-1 sm:col-span-1 lg:col-span-1">
-            <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Size</label>
+	            <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Size</label>
             <input type="text" name="items[${rowIndex}][size]" class="input-size w-full rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="${existing?.size ?? ''}">
         </div>
         <div class="col-span-1 sm:col-span-1 lg:col-span-1">
-            <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Part Number</label>
+	            <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Part Number</label>
             <select name="items[${rowIndex}][part_id]" class="part-select block w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500" ${vendorId ? '' : 'disabled'} required>
                 ${buildPartOptions(vendorId, existing?.part_id)}
             </select>
         </div>
                 <div class="col-span-1 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Bundle</label>
+	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Bundle</label>
                     <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle w-full rounded-md border-gray-300 text-sm" value="${existing?.qty_bundle ?? 0}" min="0" placeholder="0">
                 </div>
                 <div class="col-span-1 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Bundle</label>
+	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Bundle</label>
                     <select name="items[${rowIndex}][unit_bundle]" class="input-unit-bundle w-full rounded-md border-gray-300 text-sm">
                         <option value="Coil" ${guessedBundle === 'Coil' ? 'selected' : ''}>Coil</option>
                         <option value="Sheet" ${guessedBundle === 'Sheet' ? 'selected' : ''}>Sheet</option>
@@ -461,15 +461,15 @@
                     </select>
                 </div>
                 <div class="col-span-1 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Goods</label>
+	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Goods</label>
                     <input type="number" name="items[${rowIndex}][qty_goods]" class="qty-goods w-full rounded-md border-gray-300 text-sm" value="${existing?.qty_goods ?? 0}" min="0" required>
                 </div>
                 <div class="col-span-1 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Nett Wt</label>
+	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Nett Wt</label>
                     <input type="number" step="0.01" name="items[${rowIndex}][weight_nett]" class="weight-nett w-full rounded-md border-gray-300 text-sm" value="${existing?.weight_nett ?? 0}" min="0" required>
                 </div>
                 <div class="col-span-1 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Wt</label>
+	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Wt</label>
                     <select name="items[${rowIndex}][unit_weight]" class="input-unit-weight w-full rounded-md border-gray-300 text-sm">
                         <option value="KGM" ${(guessedWeight === 'KGM' || !guessedWeight) ? 'selected' : ''}>KGM</option>
                         <option value="KG" ${guessedWeight === 'KG' ? 'selected' : ''}>KG</option>
@@ -478,14 +478,14 @@
                     </select>
                 </div>
                 <div class="col-span-1 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Gross Wt</label>
+	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Gross Wt</label>
                     <input type="number" step="0.01" name="items[${rowIndex}][weight_gross]" class="weight-gross w-full rounded-md border-gray-300 text-sm" value="${existing?.weight_gross ?? 0}" min="0" required>
                 </div>
                 <div class="col-span-1 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Price</label>
+	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Price</label>
                     <input type="number" step="0.01" name="items[${rowIndex}][price]" class="price w-full rounded-md border-gray-300 text-sm" value="${existing?.price ?? 0}" min="0" required>
                 </div>
-                <div class="col-span-1 sm:col-span-2 lg:col-span-full pt-1">
+                <div class="col-span-1 sm:col-span-2 md:col-span-full pt-1">
                     <div class="border-t border-dashed border-gray-200 pt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div class="w-full sm:max-w-[240px]">
                             <div class="text-[11px] font-semibold text-gray-500 tracking-wide uppercase">Total Amount</div>
@@ -555,8 +555,8 @@
                         <button type="button" class="remove-group text-xs text-red-600 hover:text-red-700">Remove Group</button>
                     </div>
                 </div>
-                <div class="space-y-4 lg:overflow-x-auto lg:-mx-4 lg:px-4">
-                    <div class="hidden lg:grid lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2 whitespace-nowrap">
+                <div class="space-y-4 md:overflow-x-auto md:-mx-4 md:px-4">
+                    <div class="hidden md:grid md:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2 whitespace-nowrap md:min-w-[1100px]">
                         <div>Size</div>
                         <div>Part Number</div>
                         <div>Qty Bundle</div>
