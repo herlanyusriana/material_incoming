@@ -371,7 +371,11 @@
         function updateTotal(row) {
             const qty = parseFloat(row.querySelector('.qty-goods')?.value || 0);
             const price = parseFloat(row.querySelector('.price')?.value || 0);
-            row.querySelector('.total').value = (qty * price).toFixed(2);
+            const total = (qty * price).toFixed(2);
+            const totalInput = row.querySelector('.total');
+            if (totalInput) totalInput.value = total;
+            const totalAmount = row.querySelector('.total-amount');
+            if (totalAmount) totalAmount.value = total;
         }
 
         function normalizeDecimalInput(input) {
@@ -426,7 +430,7 @@
             const vendorId = vendorIdInput.value;
             const rowsContainer = groupEl.querySelector('.group-rows');
             const row = document.createElement('div');
-            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 lg:min-w-[1100px] lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_0.9fr] gap-3 items-start border border-gray-200 rounded-lg p-4 lg:bg-transparent lg:border-0 lg:border-b lg:rounded-none lg:p-0 lg:pb-3';
+            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-3 items-start border border-gray-200 rounded-lg p-4 lg:bg-transparent lg:border-0 lg:border-b lg:rounded-none lg:p-0 lg:pb-3';
             const guessedBundle = existing?.unit_bundle ?? null;
             const guessedWeight = existing?.unit_weight ?? null;
             row.innerHTML = `
@@ -481,14 +485,25 @@
                     <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Price</label>
                     <input type="number" step="0.01" name="items[${rowIndex}][price]" class="price w-full rounded-md border-gray-300 text-sm" value="${existing?.price ?? 0}" min="0" required>
                 </div>
-                <div class="col-span-1 sm:col-span-2 lg:col-span-1">
-                    <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Total</label>
-                    <input type="text" class="total w-full rounded-md border-gray-200 bg-gray-50 text-sm" value="0.00" readonly>
-                    <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${groupEl.querySelector('.material-title')?.value?.trim() || ''}">
-                    <input type="hidden" name="items[${rowIndex}][notes]" value="${existing?.notes ?? ''}">
-                </div>
-                <div class="col-span-1 sm:col-span-2 lg:col-span-1 flex items-center justify-start lg:justify-center">
-                    <button type="button" class="remove-line text-red-600 hover:text-red-800 text-xs whitespace-nowrap">Remove</button>
+                <div class="col-span-1 sm:col-span-2 lg:col-span-full pt-1">
+                    <div class="border-t border-dashed border-gray-200 pt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="w-full sm:max-w-[240px]">
+                            <div class="text-[11px] font-semibold text-gray-500 tracking-wide uppercase">Total Amount</div>
+                            <div class="mt-2 relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+                                <input type="text" class="total-amount w-full rounded-md border-gray-200 bg-gray-50 text-sm pl-8" value="0.00" readonly>
+                                <input type="hidden" class="total" value="0.00">
+                                <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${groupEl.querySelector('.material-title')?.value?.trim() || ''}">
+                                <input type="hidden" name="items[${rowIndex}][notes]" value="${existing?.notes ?? ''}">
+                            </div>
+                        </div>
+                        <button type="button" class="remove-line inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-800 text-sm font-semibold whitespace-nowrap">
+                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-200">
+                                <span class="leading-none">−</span>
+                            </span>
+                            Remove Line
+                        </button>
+                    </div>
                 </div>
             `;
             rowsContainer.appendChild(row);
@@ -541,20 +556,18 @@
                     </div>
                 </div>
                 <div class="space-y-4 lg:overflow-x-auto lg:-mx-4 lg:px-4">
-                    <div class="hidden lg:grid lg:min-w-[1100px] lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_0.9fr] text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2 whitespace-nowrap">
+                    <div class="hidden lg:grid lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2 whitespace-nowrap">
                         <div>Size</div>
                         <div>Part Number</div>
                         <div>Qty Bundle</div>
-                        <div>Unit Bundle</div>
+                        <div>Unit</div>
                         <div>Qty Goods</div>
                         <div>Nett Wt</div>
                         <div>Unit Wt</div>
                         <div>Gross Wt</div>
                         <div>Price</div>
-                        <div>Total</div>
-                        <div class="text-right">Action</div>
                     </div>
-                    <div class="group-rows space-y-3 lg:min-w-[1100px]"></div>
+                    <div class="group-rows space-y-3"></div>
                 </div>
             `;
 
