@@ -426,15 +426,15 @@
             const vendorId = vendorIdInput.value;
             const rowsContainer = groupEl.querySelector('.group-rows');
             const row = document.createElement('div');
-            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start border border-gray-200 rounded-lg p-4 lg:bg-transparent lg:border-0 lg:border-b lg:rounded-none lg:p-0 lg:pb-3';
+            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_0.9fr] gap-3 items-start border border-gray-200 rounded-lg p-4 lg:bg-transparent lg:border-0 lg:border-b lg:rounded-none lg:p-0 lg:pb-3';
             const guessedBundle = existing?.unit_bundle ?? null;
             const guessedWeight = existing?.unit_weight ?? null;
             row.innerHTML = `
-        <div class="col-span-1 sm:col-span-1 lg:col-span-2">
+        <div class="col-span-1 sm:col-span-1 lg:col-span-1">
             <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Size</label>
             <input type="text" name="items[${rowIndex}][size]" class="input-size w-full rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="${existing?.size ?? ''}">
         </div>
-        <div class="col-span-1 sm:col-span-1 lg:col-span-3">
+        <div class="col-span-1 sm:col-span-1 lg:col-span-1">
             <label class="lg:hidden text-xs font-semibold text-gray-500 mb-1 block">Part Number</label>
             <select name="items[${rowIndex}][part_id]" class="part-select block w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500" ${vendorId ? '' : 'disabled'} required>
                 ${buildPartOptions(vendorId, existing?.part_id)}
@@ -541,18 +541,18 @@
                     </div>
                 </div>
                 <div class="space-y-4">
-                    <div class="hidden lg:grid lg:grid-cols-12 text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2">
-                        <div class="lg:col-span-2">Size</div>
-                        <div class="lg:col-span-3">Part Number</div>
-                        <div class="lg:col-span-1">Qty Bundle</div>
-                        <div class="lg:col-span-1">Unit Bundle</div>
-                        <div class="lg:col-span-1">Qty Goods</div>
-                        <div class="lg:col-span-1">Nett Wt</div>
-                        <div class="lg:col-span-1">Unit Wt</div>
-                        <div class="lg:col-span-1">Gross Wt</div>
-                        <div class="lg:col-span-1">Price</div>
-                        <div class="lg:col-span-1">Total</div>
-                        <div class="lg:col-span-1 text-right">Action</div>
+                    <div class="hidden lg:grid lg:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_0.9fr] text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2">
+                        <div>Size</div>
+                        <div>Part Number</div>
+                        <div>Qty Bundle</div>
+                        <div>Unit Bundle</div>
+                        <div>Qty Goods</div>
+                        <div>Nett Wt</div>
+                        <div>Unit Wt</div>
+                        <div>Gross Wt</div>
+                        <div>Price</div>
+                        <div>Total</div>
+                        <div class="text-right">Action</div>
                     </div>
                     <div class="group-rows space-y-3"></div>
                 </div>
