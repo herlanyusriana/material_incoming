@@ -33,7 +33,7 @@
                         </div>
                         <div class="space-y-1">
                             <x-input-label for="country_code" value="Country Code (ISO-2)" />
-                            <x-text-input id="country_code" name="country_code" type="text" placeholder="e.g., ID" class="mt-1 block w-full uppercase" required maxlength="2" value="{{ old('country_code') }}" />
+                            <x-text-input id="country_code" name="country_code" type="text" placeholder="e.g., ID" class="mt-1 block w-full uppercase" required maxlength="2" pattern="[A-Za-z]{2}" title="Country code harus 2 huruf (contoh: ID)" value="{{ old('country_code') }}" />
                             <x-input-error :messages="$errors->get('country_code')" class="mt-1" />
                         </div>
                         <div class="space-y-1">
@@ -84,7 +84,7 @@
                             <p class="text-sm text-slate-600 mt-1">Search and filter vendors by status.</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <form method="GET" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+	                            <form method="GET" id="vendor-filter-form" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                                 <div class="relative w-full sm:w-64">
                                     <input type="text" name="q" value="{{ $search }}" placeholder="Search vendors..." class="w-full pl-9 pr-3 py-2 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
                                     <span class="absolute left-3 top-2.5 text-slate-400">
@@ -115,47 +115,59 @@
 
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
                         <table class="min-w-full text-sm">
-                            <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
-                                <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                    <th class="px-4 py-3 text-left font-semibold">Vendor Name</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Contact</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Email</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Phone</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Status</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                @forelse ($vendors as $vendor)
-                                    <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="px-4 py-4 font-semibold text-slate-900">{{ $vendor->vendor_name }}</td>
-                                        <td class="px-4 py-4 text-slate-700">{{ $vendor->contact_person }}</td>
-                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->email }}</td>
-                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->phone }}</td>
+	                            <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
+	                                <tr class="text-slate-600 text-xs uppercase tracking-wider">
+	                                    <th class="px-4 py-3 text-left font-semibold">Vendor Name</th>
+	                                    <th class="px-4 py-3 text-left font-semibold">Country</th>
+	                                    <th class="px-4 py-3 text-left font-semibold">Contact</th>
+	                                    <th class="px-4 py-3 text-left font-semibold">Email</th>
+	                                    <th class="px-4 py-3 text-left font-semibold">Phone</th>
+	                                    <th class="px-4 py-3 text-left font-semibold">Status</th>
+	                                    <th class="px-4 py-3 text-right font-semibold">Actions</th>
+	                                </tr>
+	                            </thead>
+	                            <tbody class="divide-y divide-slate-100 bg-white">
+	                                @forelse ($vendors as $vendor)
+	                                    <tr class="hover:bg-slate-50 transition-colors">
+	                                        <td class="px-4 py-4 font-semibold text-slate-900">
+	                                            <div class="flex items-center gap-2">
+	                                                <span>{{ $vendor->vendor_name }}</span>
+	                                                @if (!$vendor->is_complete)
+	                                                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 border border-amber-200"
+	                                                        title="Data vendor belum lengkap: {{ implode(', ', $vendor->missing_fields) }}">
+	                                                        Incomplete
+	                                                    </span>
+	                                                @endif
+	                                            </div>
+	                                        </td>
+	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->country_code ?? '-' }}</td>
+	                                        <td class="px-4 py-4 text-slate-700">{{ $vendor->contact_person }}</td>
+	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->email }}</td>
+	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->phone }}</td>
                                         <td class="px-4 py-4">
                                             <span class="px-3 py-1 inline-flex text-xs font-semibold rounded-full {{ $vendor->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
                                                 {{ ucfirst($vendor->status) }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-4 text-right">
-                                            <div class="flex justify-end gap-3">
-                                                <a href="{{ route('vendors.edit', $vendor) }}" class="text-blue-600 hover:text-blue-700 font-medium">Edit</a>
-                                                <form method="POST" action="{{ route('vendors.destroy', $vendor) }}" onsubmit="return confirm('Archive this vendor?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button class="text-red-600 hover:text-red-700 font-medium">Delete</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="px-4 py-12 text-center text-slate-500">No vendors found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+	                                        <td class="px-4 py-4 text-right">
+	                                            <div class="flex justify-end gap-3">
+	                                                <a href="{{ route('vendors.edit', $vendor) }}" class="text-blue-600 hover:text-blue-700 font-medium">Edit</a>
+	                                                <form method="POST" action="{{ route('vendors.destroy', $vendor) }}" onsubmit="return confirm('Archive this vendor?')">
+	                                                    @csrf
+	                                                    @method('DELETE')
+	                                                    <button class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+	                                                </form>
+	                                            </div>
+	                                        </td>
+	                                    </tr>
+	                                @empty
+	                                    <tr>
+	                                        <td colspan="7" class="px-4 py-12 text-center text-slate-500">No vendors found.</td>
+	                                    </tr>
+	                                @endforelse
+	                            </tbody>
+	                        </table>
+	                    </div>
 
                     <div class="mt-4">{{ $vendors->links() }}</div>
                 </div>
@@ -200,4 +212,27 @@
             </form>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const form = document.getElementById('vendor-filter-form');
+            if (!form) return;
+
+            const searchInput = form.querySelector('input[name="q"]');
+            const statusSelect = form.querySelector('select[name="status"]');
+
+            let t = null;
+            function submitDebounced() {
+                window.clearTimeout(t);
+                t = window.setTimeout(() => form.requestSubmit(), 350);
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', submitDebounced);
+            }
+            if (statusSelect) {
+                statusSelect.addEventListener('change', () => form.requestSubmit());
+            }
+        })();
+    </script>
 </x-app-layout>

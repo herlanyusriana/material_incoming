@@ -11,6 +11,11 @@ class Vendor extends Model
     use HasFactory;
     use SoftDeletes;
 
+    protected $appends = [
+        'is_complete',
+        'missing_fields',
+    ];
+
     protected $fillable = [
         'vendor_name',
         'country_code',
@@ -31,5 +36,32 @@ class Vendor extends Model
     public function arrivals()
     {
         return $this->hasMany(Arrival::class);
+    }
+
+    public function getMissingFieldsAttribute(): array
+    {
+        $requiredFields = [
+            'country_code',
+            'address',
+            'bank_account',
+            'contact_person',
+            'email',
+            'phone',
+        ];
+
+        $missing = [];
+        foreach ($requiredFields as $field) {
+            $value = $this->{$field};
+            if ($value === null || trim((string) $value) === '') {
+                $missing[] = $field;
+            }
+        }
+
+        return $missing;
+    }
+
+    public function getIsCompleteAttribute(): bool
+    {
+        return count($this->missing_fields) === 0;
     }
 }

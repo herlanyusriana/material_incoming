@@ -12,20 +12,34 @@ class VendorController extends Controller
 {
     public function index(Request $request)
     {
-        $search = $request->query('q');
+        $search = trim((string) $request->query('q', ''));
         $status = $request->query('status');
 
         $vendors = Vendor::query()
             ->when($search, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('vendor_name', 'like', "%{$search}%")
+                    ->orWhere('country_code', 'like', "%{$search}%")
+                    ->orWhere('contact_person', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%");
                 });
             })
             ->when($status, fn ($query) => $query->where('status', $status))
-            ->latest()
-            ->paginate(10)
+            ->select([
+                'id',
+                'vendor_name',
+                'country_code',
+                'contact_person',
+                'email',
+                'phone',
+                'status',
+                'address',
+                'bank_account',
+            ])
+            ->orderBy('vendor_name')
+            ->paginate(15)
             ->withQueryString();
 
         return view('vendors.index', compact('vendors', 'search', 'status'));
