@@ -6,6 +6,7 @@ use App\Models\Vendor;
 use App\Exports\VendorsExport;
 use App\Imports\VendorsImport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class VendorController extends Controller
@@ -57,10 +58,12 @@ class VendorController extends Controller
         ]);
 
         try {
-            Excel::import(new VendorsImport, $request->file('file'));
+            DB::transaction(function () use ($request) {
+                Excel::import(new VendorsImport, $request->file('file'));
+            });
             return back()->with('status', 'Vendors imported successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
         }
     }
 
