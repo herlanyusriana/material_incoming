@@ -59,6 +59,7 @@ class VendorController extends Controller
     {
         $data = $request->validate([
             'vendor_name' => ['required', 'string', 'max:255'],
+            'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],
             'contact_person' => ['nullable', 'string', 'max:255'],
@@ -67,6 +68,8 @@ class VendorController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'signature' => ['nullable', 'image', 'max:2048'],
         ]);
+
+        $data['country_code'] = strtoupper($data['country_code']);
 
         if ($request->hasFile('signature')) {
             $data['signature_path'] = $request->file('signature')->store('signatures', 'public');
@@ -87,6 +90,7 @@ class VendorController extends Controller
     {
         $data = $request->validate([
             'vendor_name' => ['required', 'string', 'max:255'],
+            'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],
             'contact_person' => ['nullable', 'string', 'max:255'],
@@ -95,6 +99,8 @@ class VendorController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'signature' => ['nullable', 'image', 'max:2048'],
         ]);
+
+        $data['country_code'] = strtoupper($data['country_code']);
 
         if ($request->hasFile('signature')) {
             // Delete old signature if exists

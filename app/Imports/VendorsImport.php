@@ -13,6 +13,7 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation
     {
         return new Vendor([
             'vendor_name' => $row['vendor_name'],
+            'country_code' => isset($row['country_code']) ? strtoupper(trim((string) $row['country_code'])) : null,
             'contact_person' => $row['contact_person'] ?? null,
             'email' => $row['email'] ?? null,
             'phone' => $row['phone'] ?? null,
@@ -26,6 +27,7 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation
     {
         return [
             'vendor_name' => 'required|string|max:255',
+            'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ];
     }
 }

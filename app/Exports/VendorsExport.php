@@ -21,6 +21,7 @@ class VendorsExport implements FromCollection, WithHeadings, WithMapping, WithSt
     {
         return [
             'vendor_name',
+            'country_code',
             'contact_person',
             'email',
             'phone',
@@ -34,6 +35,7 @@ class VendorsExport implements FromCollection, WithHeadings, WithMapping, WithSt
     {
         return [
             $vendor->vendor_name,
+            $vendor->country_code,
             $vendor->contact_person,
             $vendor->email,
             $vendor->phone,
@@ -54,12 +56,13 @@ class VendorsExport implements FromCollection, WithHeadings, WithMapping, WithSt
     {
         return [
             'A' => 30,
-            'B' => 25,
-            'C' => 30,
-            'D' => 20,
-            'E' => 40,
-            'F' => 25,
-            'G' => 12,
+            'B' => 12,
+            'C' => 25,
+            'D' => 30,
+            'E' => 20,
+            'F' => 40,
+            'G' => 25,
+            'H' => 12,
         ];
     }
 }
