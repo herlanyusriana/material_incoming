@@ -489,9 +489,9 @@
                     <div class="border-t border-dashed border-gray-200 pt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div class="w-full sm:max-w-[240px]">
                             <div class="text-[11px] font-semibold text-gray-500 tracking-wide uppercase">Total Amount</div>
-                            <div class="mt-2 relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
-                                <input type="text" class="total-amount w-full rounded-md border-gray-200 bg-gray-50 text-sm pl-8" value="0.00" readonly>
+	                            <div class="mt-2 relative">
+	                                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm leading-none text-gray-500">$</span>
+	                                <input type="text" class="total-amount w-full rounded-md border-gray-200 bg-gray-50 text-sm pl-10" value="0.00" readonly>
                                 <input type="hidden" class="total" value="0.00">
                                 <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${groupEl.querySelector('.material-title')?.value?.trim() || ''}">
                                 <input type="hidden" name="items[${rowIndex}][notes]" value="${existing?.notes ?? ''}">
