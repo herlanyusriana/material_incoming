@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('status'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('status') }}
@@ -17,8 +17,8 @@
                 </div>
             @endif
 
-            <div class="grid lg:grid-cols-12 gap-6">
-                <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4 lg:col-span-4">
+            <div class="grid lg:grid-cols-3 gap-6">
+                <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                     <div class="pb-3 border-b border-slate-200">
                         <h3 class="text-lg font-bold text-slate-900">Add New Vendor</h3>
                         <p class="text-sm text-slate-600 mt-1">Vendor name and country code are required.</p>
@@ -77,13 +77,13 @@
                     </form>
                 </div>
 
-                <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4 lg:col-span-8">
+                <div class="lg:col-span-2 bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
                         <div>
                             <h3 class="text-lg font-bold text-slate-900">Vendor List</h3>
                             <p class="text-sm text-slate-600 mt-1">Search and filter vendors by status.</p>
                         </div>
-                        <div class="flex flex-wrap items-center justify-end gap-2">
+                        <div class="flex items-center gap-2">
 	                            <form method="GET" id="vendor-filter-form" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                                 <div class="relative w-full sm:w-64">
                                     <input type="text" name="q" value="{{ $search }}" placeholder="Search vendors..." class="w-full pl-9 pr-3 py-2 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
@@ -129,9 +129,9 @@
 	                            <tbody class="divide-y divide-slate-100 bg-white">
 	                                @forelse ($vendors as $vendor)
 	                                    <tr class="hover:bg-slate-50 transition-colors">
-	                                        <td class="px-4 py-4 font-semibold text-slate-900 break-words">
-	                                            <div class="flex items-center gap-2 min-w-0">
-	                                                <span class="min-w-0 break-words">{{ $vendor->vendor_name }}</span>
+	                                        <td class="px-4 py-4 font-semibold text-slate-900">
+	                                            <div class="flex items-center gap-2">
+	                                                <span>{{ $vendor->vendor_name }}</span>
 	                                                @if (!$vendor->is_complete)
 	                                                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 border border-amber-200"
 	                                                        title="Data vendor belum lengkap: {{ implode(', ', $vendor->missing_fields) }}">
@@ -141,8 +141,8 @@
 	                                            </div>
 	                                        </td>
 	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->country_code ?? '-' }}</td>
-	                                        <td class="px-4 py-4 text-slate-700 break-words">{{ $vendor->contact_person }}</td>
-	                                        <td class="px-4 py-4 text-slate-600 break-all">{{ $vendor->email }}</td>
+	                                        <td class="px-4 py-4 text-slate-700">{{ $vendor->contact_person }}</td>
+	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->email }}</td>
 	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->phone }}</td>
                                         <td class="px-4 py-4">
                                             <span class="px-3 py-1 inline-flex text-xs font-semibold rounded-full {{ $vendor->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
