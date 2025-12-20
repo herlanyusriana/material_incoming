@@ -23,6 +23,7 @@
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Tag</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Part</th>
                                 <th class="px-4 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider">Qty</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Bundle</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">QC</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">ATA</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Actions</th>
@@ -36,7 +37,10 @@
                                         {{ $receive->arrivalItem->part->part_no }}
                                         <div class="text-xs text-slate-500">{{ $receive->arrivalItem->part->part_name_vendor }}</div>
                                     </td>
-                                    <td class="px-4 py-4 text-right text-slate-800 font-semibold">{{ number_format($receive->qty) }}</td>
+                                    <td class="px-4 py-4 text-right text-slate-800 font-semibold">{{ number_format($receive->qty) }} {{ strtoupper($receive->qty_unit ?? '') }}</td>
+                                    <td class="px-4 py-4 text-slate-700">
+                                        {{ number_format($receive->bundle_qty ?? 1) }} {{ strtoupper($receive->bundle_unit ?? '-') }}
+                                    </td>
                                     <td class="px-4 py-4">
                                         @php
                                             $statusColor = match ($receive->qc_status) {
@@ -56,7 +60,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-12 text-center text-slate-500">No receive records.</td>
+                                    <td colspan="7" class="px-4 py-12 text-center text-slate-500">No receive records.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -70,4 +74,3 @@
         </div>
     </div>
 </x-app-layout>
-

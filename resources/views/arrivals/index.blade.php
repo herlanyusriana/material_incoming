@@ -29,12 +29,10 @@
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">Departure No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Invoice</th>
                                 <th class="px-4 py-3 text-left font-semibold">Vendor</th>
                                 <th class="px-4 py-3 text-left font-semibold">Items</th>
                                 <th class="px-4 py-3 text-left font-semibold">Total Value</th>
-                                <th class="px-4 py-3 text-left font-semibold">Received</th>
                                 <th class="px-4 py-3 text-left font-semibold">Date</th>
                                 <th class="px-4 py-3 text-center font-semibold">Actions</th>
                             </tr>
@@ -45,14 +43,8 @@
                                     $totalItems = $arrival->items->count();
                                     $totalValue = $arrival->items->sum('total_price');
                                     $totalQtyExpected = $arrival->items->sum('qty_goods');
-                                    $totalQtyReceived = $arrival->items->sum(fn($item) => $item->receives->sum('qty'));
-                                    $receiveProgress = $totalQtyExpected > 0 ? round(($totalQtyReceived / $totalQtyExpected) * 100) : 0;
                                 @endphp
                                 <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-4 py-4">
-                                        <div class="font-semibold text-slate-900">{{ $arrival->arrival_no }}</div>
-                                        <div class="text-xs text-slate-500">{{ $arrival->creator->name ?? 'System' }}</div>
-                                    </td>
                                     <td class="px-4 py-4 text-slate-700">
                                         <div class="font-medium">{{ $arrival->invoice_no }}</div>
                                         <div class="text-xs text-slate-500">{{ $arrival->invoice_date?->format('d M Y') }}</div>
@@ -64,15 +56,6 @@
                                     </td>
                                     <td class="px-4 py-4">
                                         <div class="font-semibold text-slate-900">{{ $arrival->currency }} {{ number_format($totalValue, 2) }}</div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="flex items-center gap-2">
-                                            <div class="flex-1 bg-slate-200 rounded-full h-2 max-w-[80px]">
-                                                <div class="bg-blue-600 h-2 rounded-full" style="width: {{ $receiveProgress }}%"></div>
-                                            </div>
-                                            <span class="text-xs font-semibold text-slate-700 min-w-[35px]">{{ $receiveProgress }}%</span>
-                                        </div>
-                                        <div class="text-xs text-slate-500 mt-1">{{ number_format($totalQtyReceived) }} / {{ number_format($totalQtyExpected) }}</div>
                                     </td>
                                     <td class="px-4 py-4 text-slate-700">{{ $arrival->created_at->format('d M Y') }}</td>
                                     <td class="px-4 py-4">
@@ -102,7 +85,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-12 text-center">
+                                    <td colspan="6" class="px-4 py-12 text-center">
                                         <div class="text-slate-500 mb-2">No departures recorded yet.</div>
                                         <a href="{{ route('departures.create') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Create your first departure →</a>
                                     </td>

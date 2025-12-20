@@ -19,12 +19,13 @@
     <!-- Section 2 — Part Identification -->
     @php
         $rawSize = old('register_no', $part->register_no ?? '');
-        $thicknessValue = old('thickness');
-        $widthValue = old('width');
-        $lengthValue = old('length');
-        $sizeType = old('size_type');
+	        $thicknessValue = old('thickness');
+	        $widthValue = old('width');
+	        $lengthValue = old('length');
+	        $sizeType = old('size_type');
+	        $isCoil = old('is_coil');
 
-        if (!$thicknessValue && !$widthValue && !$sizeType && $rawSize) {
+	        if (!$thicknessValue && !$widthValue && !$sizeType && $rawSize) {
             $segments = preg_split('/[xX]/', $rawSize);
             $segments = array_map('trim', $segments);
 
@@ -35,21 +36,27 @@
                 $widthValue = $segments[1];
             }
             if (count($segments) >= 3) {
-                $lastSegment = strtoupper($segments[2]);
-                if ($lastSegment === 'C') {
-                    $sizeType = 'coil';
-                    $lengthValue = '';
-                } else {
-                    $sizeType = 'sheet';
-                    $lengthValue = $segments[2];
-                }
-            }
-        }
+	                $lastSegment = strtoupper($segments[2]);
+	                if ($lastSegment === 'C') {
+	                    $sizeType = 'coil';
+	                    $lengthValue = '';
+	                } else {
+	                    $sizeType = 'sheet';
+	                    $lengthValue = $segments[2];
+	                }
+	            }
+	        }
 
-        if (!$sizeType) {
-            $sizeType = 'sheet';
-        }
-    @endphp
+	        if (!$sizeType) {
+	            $sizeType = 'sheet';
+	        }
+
+	        if ($isCoil === null) {
+	            $isCoil = $sizeType === 'coil';
+	        } else {
+	            $isCoil = (bool) $isCoil;
+	        }
+	    @endphp
 
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
         <h2 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Part Identification</h2>
@@ -62,7 +69,7 @@
             </div>
             <div class="space-y-2">
                 <label class="text-sm font-medium text-gray-700">Size*</label>
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+	                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <div>
                         <input
                             type="text"
@@ -93,21 +100,24 @@
                             value="{{ $lengthValue }}"
                         >
                     </div>
-                    <div>
-                        <select
-                            id="size_type"
-                            name="size_type"
-                            class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        >
-                            <option value="sheet" {{ $sizeType === 'sheet' ? 'selected' : '' }}>Sheet</option>
-                            <option value="coil" {{ $sizeType === 'coil' ? 'selected' : '' }}>Coil</option>
-                        </select>
-                    </div>
-                </div>
-                <p class="text-xs text-gray-500">
-                    Format otomatis: <span id="size-preview-form">{{ $rawSize ?: '-' }}</span>
-                    <br>Kalo Coil, panjang otomatis jadi "C".
-                </p>
+	                    <div>
+	                        <label class="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+	                            <input
+	                                type="checkbox"
+	                                id="size_is_coil"
+	                                name="is_coil"
+	                                value="1"
+	                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500"
+	                                @checked($isCoil)
+	                            >
+	                            <span>Coil (C)</span>
+	                        </label>
+	                    </div>
+	                </div>
+	                <p class="text-xs text-gray-500">
+	                    Format otomatis: <span id="size-preview-form">{{ $rawSize ?: '-' }}</span>
+	                    <br>Kalau dicentang, ukuran akan jadi <span class="font-semibold">C</span> di bagian panjang.
+	                </p>
                 <input
                     type="hidden"
                     id="register_no"
@@ -161,36 +171,36 @@
     </div>
 </div>
 
-<script>
-    (function () {
-        const thicknessInput = document.getElementById('size_thickness');
-        const widthInput = document.getElementById('size_width');
-        const lengthInput = document.getElementById('size_length');
-        const typeSelect = document.getElementById('size_type');
-        const previewEl = document.getElementById('size-preview-form');
-        const registerNoInput = document.getElementById('register_no');
+	    <script>
+	    (function () {
+	        const thicknessInput = document.getElementById('size_thickness');
+	        const widthInput = document.getElementById('size_width');
+	        const lengthInput = document.getElementById('size_length');
+	        const coilCheckbox = document.getElementById('size_is_coil');
+	        const previewEl = document.getElementById('size-preview-form');
+	        const registerNoInput = document.getElementById('register_no');
 
-        if (!thicknessInput || !widthInput || !lengthInput || !typeSelect || !previewEl || !registerNoInput) {
-            return;
-        }
+	        if (!thicknessInput || !widthInput || !lengthInput || !coilCheckbox || !previewEl || !registerNoInput) {
+	            return;
+	        }
 
-        function updateSizeFields() {
-            const type = typeSelect.value || 'sheet';
-            const thickness = thicknessInput.value.trim();
-            const width = widthInput.value.trim();
-            let length = lengthInput.value.trim();
+	        function updateSizeFields() {
+	            const isCoil = coilCheckbox.checked;
+	            const thickness = thicknessInput.value.trim();
+	            const width = widthInput.value.trim();
+	            let length = lengthInput.value.trim();
 
-            if (type === 'coil') {
-                length = 'C';
-                lengthInput.value = '';
-                lengthInput.disabled = true;
-                lengthInput.placeholder = 'C';
-            } else {
-                lengthInput.disabled = false;
-                if (lengthInput.placeholder === 'C') {
-                    lengthInput.placeholder = 'Length';
-                }
-            }
+	            if (isCoil) {
+	                length = 'C';
+	                lengthInput.value = '';
+	                lengthInput.disabled = true;
+	                lengthInput.placeholder = 'C';
+	            } else {
+	                lengthInput.disabled = false;
+	                if (lengthInput.placeholder === 'C') {
+	                    lengthInput.placeholder = 'Length';
+	                }
+	            }
 
             const parts = [];
             if (thickness) parts.push(thickness);
@@ -202,12 +212,12 @@
             registerNoInput.value = sizeString;
         }
 
-        ['input', 'change'].forEach(eventName => {
-            thicknessInput.addEventListener(eventName, updateSizeFields);
-            widthInput.addEventListener(eventName, updateSizeFields);
-            lengthInput.addEventListener(eventName, updateSizeFields);
-            typeSelect.addEventListener(eventName, updateSizeFields);
-        });
+	        ['input', 'change'].forEach(eventName => {
+	            thicknessInput.addEventListener(eventName, updateSizeFields);
+	            widthInput.addEventListener(eventName, updateSizeFields);
+	            lengthInput.addEventListener(eventName, updateSizeFields);
+	            coilCheckbox.addEventListener(eventName, updateSizeFields);
+	        });
 
         // Initialize state on load
         updateSizeFields();

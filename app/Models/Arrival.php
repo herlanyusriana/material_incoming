@@ -84,6 +84,11 @@ class Arrival extends Model
         return $this->hasMany(ArrivalItem::class);
     }
 
+    public function containers()
+    {
+        return $this->hasMany(ArrivalContainer::class);
+    }
+
     public function inspection()
     {
         return $this->hasOne(ArrivalInspection::class);

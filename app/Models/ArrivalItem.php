@@ -17,6 +17,7 @@ class ArrivalItem extends Model
         'qty_bundle',
         'unit_bundle',
         'qty_goods',
+        'unit_goods',
         'weight_nett',
         'unit_weight',
         'weight_gross',

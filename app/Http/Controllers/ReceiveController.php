@@ -145,9 +145,13 @@ class ReceiveController extends Controller
             'tags' => 'required|array|min:1',
             'tags.*.tag' => 'required|string|max:255',
             'tags.*.qty' => 'required|integer|min:1',
+            'tags.*.bundle_qty' => 'nullable|integer|min:1',
             'tags.*.bundle_unit' => 'required|string|max:20',
+            // Backward compatible: old form used `weight`
             'tags.*.weight' => 'nullable|numeric',
-            'tags.*.qty_unit' => 'required|string|max:20',
+            'tags.*.net_weight' => 'nullable|numeric',
+            'tags.*.gross_weight' => 'nullable|numeric',
+            'tags.*.qty_unit' => 'required|in:KGM,PCS,SHEET',
             'tags.*.qc_status' => 'required|in:pass,reject',
         ]);
 
@@ -164,13 +168,30 @@ class ReceiveController extends Controller
         }
 
         // Create a receive record for each tag with default values
+        $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
         foreach ($validated['tags'] as $tagData) {
+            if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'tags' => "Unit qty tidak sesuai. Item ini menggunakan unit {$goodsUnit}.",
+                    ]);
+            }
+
+            $netWeight = $tagData['net_weight'] ?? $tagData['weight'] ?? null;
+            if ($netWeight === null && $goodsUnit === 'KGM') {
+                $netWeight = $tagData['qty'];
+            }
             $arrivalItem->receives()->create([
                 'tag' => $tagData['tag'],
                 'qty' => $tagData['qty'],
                 'bundle_unit' => $tagData['bundle_unit'] ?? null,
-                'weight' => $tagData['weight'] ?? null,
-                'qty_unit' => $tagData['qty_unit'] ?? null,
+                'bundle_qty' => $tagData['bundle_qty'] ?? 1,
+                // Keep `weight` for existing reporting, mirror from net_weight
+                'weight' => $netWeight,
+                'net_weight' => $netWeight,
+                'gross_weight' => $tagData['gross_weight'] ?? null,
+                'qty_unit' => $goodsUnit,
                 'ata_date' => now(),
                 'qc_status' => $tagData['qc_status'] ?? 'pass',
                 'jo_po_number' => null,
@@ -190,9 +211,13 @@ class ReceiveController extends Controller
             'items.*.tags' => 'nullable|array',
             'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
             'items.*.tags.*.qty' => 'required_with:items.*.tags|integer|min:1',
+            'items.*.tags.*.bundle_qty' => 'nullable|integer|min:1',
             'items.*.tags.*.bundle_unit' => 'required_with:items.*.tags|string|max:20',
+            // Backward compatible: old form used `weight`
             'items.*.tags.*.weight' => 'nullable|numeric',
-            'items.*.tags.*.qty_unit' => 'required_with:items.*.tags|string|max:20',
+            'items.*.tags.*.net_weight' => 'nullable|numeric',
+            'items.*.tags.*.gross_weight' => 'nullable|numeric',
+            'items.*.tags.*.qty_unit' => 'required_with:items.*.tags|in:KGM,PCS,SHEET',
             'items.*.tags.*.qc_status' => 'required_with:items.*.tags|in:pass,reject',
         ]);
 
@@ -225,13 +250,31 @@ class ReceiveController extends Controller
 
         foreach ($itemsInput as $itemId => $itemData) {
             $arrivalItem = $arrival->items->firstWhere('id', $itemId);
+            $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
+
             foreach ($itemData['tags'] as $tagData) {
+                if (strtoupper($tagData['qty_unit'] ?? '') !== $goodsUnit) {
+                    return back()
+                        ->withInput()
+                        ->withErrors([
+                            "items.$itemId.tags" => "Unit qty tidak sesuai. Item ini menggunakan unit {$goodsUnit}.",
+                        ]);
+                }
+
+                $netWeight = $tagData['net_weight'] ?? $tagData['weight'] ?? null;
+                if ($netWeight === null && $goodsUnit === 'KGM') {
+                    $netWeight = $tagData['qty'];
+                }
                 $arrivalItem->receives()->create([
                     'tag' => $tagData['tag'],
                     'qty' => $tagData['qty'],
                     'bundle_unit' => $tagData['bundle_unit'] ?? null,
-                    'weight' => $tagData['weight'] ?? null,
-                    'qty_unit' => $tagData['qty_unit'] ?? null,
+                    'bundle_qty' => $tagData['bundle_qty'] ?? 1,
+                    // Keep `weight` for existing reporting, mirror from net_weight
+                    'weight' => $netWeight,
+                    'net_weight' => $netWeight,
+                    'gross_weight' => $tagData['gross_weight'] ?? null,
+                    'qty_unit' => $goodsUnit,
                     'ata_date' => now(),
                     'qc_status' => $tagData['qc_status'] ?? 'pass',
                     'jo_po_number' => null,

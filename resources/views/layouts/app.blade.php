@@ -13,9 +13,27 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <style>[x-cloak]{display:none !important;}</style>
     </head>
     <body class="font-sans antialiased bg-slate-50">
-        <div class="min-h-screen flex">
+        <div
+            class="min-h-screen flex"
+            x-data="{
+                sidebarCollapsed: false,
+                init() {
+                    try {
+                        this.sidebarCollapsed = JSON.parse(localStorage.getItem('sidebarCollapsed') ?? 'false');
+                    } catch (e) {
+                        this.sidebarCollapsed = false;
+                    }
+                },
+                toggleSidebar() {
+                    this.sidebarCollapsed = !this.sidebarCollapsed;
+                    localStorage.setItem('sidebarCollapsed', JSON.stringify(this.sidebarCollapsed));
+                },
+            }"
+            x-init="init()"
+        >
             @auth
                 @include('layouts.sidebar')
             @endauth
@@ -25,6 +43,22 @@
                     <div class="max-w-7xl mx-auto px-8 py-4">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-4">
+                                @auth
+                                    <button
+                                        type="button"
+                                        class="hidden md:inline-flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
+                                        @click="toggleSidebar()"
+                                        :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                                        :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                                    >
+                                        <svg x-show="!sidebarCollapsed" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                                        </svg>
+                                        <svg x-show="sidebarCollapsed" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
+                                        </svg>
+                                    </button>
+                                @endauth
                                 <h1 class="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                                     @isset($header)
                                         {{ $header }}

@@ -39,7 +39,11 @@
             </div>
             <div class="field">
                 <span>Qty</span>
-                <div>{{ number_format($receive->qty) }}</div>
+                <div>{{ number_format($receive->qty) }} {{ strtoupper($receive->qty_unit ?? '') }}</div>
+            </div>
+            <div class="field">
+                <span>Bundle</span>
+                <div>{{ number_format($receive->bundle_qty ?? 1) }} {{ strtoupper($receive->bundle_unit ?? '-') }}</div>
             </div>
             <div class="field">
                 <span>QC Status</span>
@@ -52,8 +56,7 @@
             <div class="field">
                 <span>Weight</span>
                 <div>
-                    {{ number_format($receive->weight ?? 0, 2) }}
-                    {{ $receive->qty_unit ?? 'kg' }}
+                    {{ number_format($receive->net_weight ?? $receive->weight ?? 0, 2) }} KGM
                 </div>
             </div>
             <div class="field">

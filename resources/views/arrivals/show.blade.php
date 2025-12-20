@@ -43,6 +43,27 @@
                     <h3 class="text-lg font-bold text-slate-900">Shipment Information</h3>
                     <p class="text-sm text-slate-600 mt-1">Vendor {{ $arrival->vendor->vendor_name ?? '-' }} • Invoice {{ $arrival->invoice_no }}</p>
                 </div>
+                @php
+                    $truckingName = $arrival->trucking?->company_name ?: ($arrival->trucking_company ?: null);
+
+                    $containerNumbers = $arrival->containers->pluck('container_no')->filter()->values();
+                    if ($containerNumbers->isEmpty() && $arrival->container_numbers) {
+                        $lines = collect(preg_split('/\r\n|\r|\n/', (string) $arrival->container_numbers) ?: [])
+                            ->map(fn ($line) => trim((string) $line))
+                            ->filter()
+                            ->values();
+                        $containerNumbers = $lines;
+                    }
+                    $containerSummary = $containerNumbers->map(fn ($no) => strtoupper((string) $no))->implode(', ');
+
+                    $hsCodeDisplay = $arrival->hs_code
+                        ?: $arrival->items
+                            ->pluck('part.hs_code')
+                            ->filter()
+                            ->unique()
+                            ->values()
+                            ->implode(', ');
+                @endphp
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Invoice:</span>
@@ -58,36 +79,55 @@
                     </div>
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Vessel:</span>
-                        <span class="text-slate-900">{{ $arrival->vessel }}</span>
+                        <span class="text-slate-900">{{ $arrival->vessel ?: '-' }}</span>
                     </div>
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Trucking:</span>
-                        <span class="text-slate-900">{{ $arrival->trucking_company }}</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ $truckingName ? 'Trucking:' : 'No. Container:' }}</span>
+                        <span class="text-slate-900">{{ $truckingName ?: ($containerSummary ?: '-') }}</span>
                     </div>
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">ETD:</span>
-                        <span class="text-slate-900">{{ $arrival->ETD }}</span>
+                        <span class="text-slate-900">{{ $arrival->ETD ?: '-' }}</span>
                     </div>
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
-                        <span class="text-slate-900">{{ $arrival->bill_of_lading }}</span>
+                        <span class="text-slate-900">{{ $arrival->bill_of_lading ?: '-' }}</span>
                     </div>
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">HS Code:</span>
-                        <span class="text-slate-900">{{ $arrival->hs_code }}</span>
+                        <span class="text-slate-900">{{ $hsCodeDisplay ?: '-' }}</span>
                     </div>
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Port of Loading:</span>
-                        <span class="text-slate-900">{{ $arrival->port_of_loading }}</span>
+                        <span class="text-slate-900">{{ $arrival->port_of_loading ?: '-' }}</span>
                     </div>
-                    <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Container:</span>
-                        <span class="text-slate-900 whitespace-pre-line">{{ $arrival->container_numbers ?: '-' }}</span>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Seal Code:</span>
-                        <span class="text-slate-900">{{ $arrival->seal_code ?: '-' }}</span>
-                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Container:</span>
+	                        <span class="text-slate-900">
+	                            @if ($arrival->containers->count())
+	                                <div class="space-y-1">
+	                                    @foreach ($arrival->containers as $idx => $c)
+	                                        <div class="text-sm">
+	                                            {{ $idx + 1 }}. {{ strtoupper($c->container_no) }}
+	                                            @if ($c->seal_code)
+	                                                <span class="text-slate-500">— SEAL {{ strtoupper($c->seal_code) }}</span>
+	                                            @endif
+	                                        </div>
+	                                    @endforeach
+	                                </div>
+	                            @elseif ($arrival->container_numbers)
+	                                <span class="whitespace-pre-line">{{ $arrival->container_numbers }}</span>
+	                            @else
+	                                -
+	                            @endif
+	                        </span>
+	                    </div>
+	                    @if (! $arrival->containers->count())
+	                        <div class="flex items-start gap-2">
+	                            <span class="font-semibold text-slate-700 min-w-[100px]">Seal Code:</span>
+	                            <span class="text-slate-900">{{ $arrival->seal_code ?: '-' }}</span>
+	                        </div>
+	                    @endif
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Currency:</span>
                         <span class="text-slate-900">{{ $arrival->currency }}</span>
@@ -215,9 +255,9 @@
                                     <td class="px-4 py-4 text-slate-700 font-mono text-xs">{{ $item->size ?? '-' }}</td>
                                     <td class="px-4 py-4 text-slate-700">{{ $item->qty_bundle }}</td>
                                     <td class="px-4 py-4 text-slate-700">{{ $item->qty_goods }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->weight_nett, 2) }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->weight_gross, 2) }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->price, 2) }}</td>
+                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->weight_nett, 0) }}</td>
+                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->weight_gross, 0) }}</td>
+                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->price, 3) }}</td>
                                     <td class="px-4 py-4 text-slate-800 font-semibold">{{ number_format($item->total_price, 2) }}</td>
                                     <td class="px-4 py-4">
                                         <div class="text-slate-800 font-semibold">{{ number_format($receivedQty) }}</div>

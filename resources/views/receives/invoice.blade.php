@@ -78,13 +78,13 @@
                                             Tag
                                             <button type="button" class="ml-2 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm add-tag-btn" data-item="{{ $item->id }}">+ Add TAG</button>
                                         </th>
-                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty / Bundle</th>
-                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Satuan</th>
-                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total Qty</th>
-                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Satuan Unit</th>
-                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
-                                    </tr>
-                                </thead>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Gross Weight (KGM)</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
+	                                    </tr>
+	                                </thead>
                                 <tbody
                                     class="divide-y divide-slate-100 bg-white tag-rows"
                                     data-item="{{ $item->id }}"
@@ -93,46 +93,58 @@
                                     data-size="{{ $item->size ?? '-' }}"
                                     data-part-no="{{ $item->part->part_no }}"
                                     data-part-name="{{ $item->part->part_name_vendor }}"
+                                    data-goods-unit="{{ strtoupper($item->unit_goods ?? 'KGM') }}"
                                 >
                                     <tr class="tag-row hover:bg-slate-50 transition-colors">
-                                        <td class="px-4 py-4 align-top">
-                                            <input type="text" name="items[{{ $item->id }}][tags][0][tag]" placeholder="TAG-001" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                                        <td class="px-3 py-2 align-top">
+                                            <input type="text" name="items[{{ $item->id }}][tags][0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
                                         </td>
-                                        <td class="px-4 py-4 align-top">
-                                            <input type="number" name="items[{{ $item->id }}][tags][0][qty]" min="1" placeholder="0" class="qty-input w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required data-item="{{ $item->id }}">
-                                        </td>
-                                        <td class="px-4 py-4 align-top">
+                                        <td class="px-3 py-2 align-top">
                                             @php
                                                 $defaultBundleUnit = $item->unit_bundle ?? 'Coil';
                                             @endphp
-                                            <select name="items[{{ $item->id }}][tags][0][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                                                <option value="Coil" @selected($defaultBundleUnit === 'Coil')>Coil</option>
-                                                <option value="Pallets" @selected($defaultBundleUnit === 'Pallets')>Pallets</option>
-                                                <option value="Box" @selected($defaultBundleUnit === 'Box')>Box</option>
-                                                <option value="Pcs" @selected($defaultBundleUnit === 'Pcs')>Pcs</option>
-                                            </select>
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" name="items[{{ $item->id }}][tags][0][bundle_qty]" min="1" value="1" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                <select name="items[{{ $item->id }}][tags][0][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                    <option value="Coil" @selected($defaultBundleUnit === 'Coil')>Coil</option>
+                                                    <option value="Bundle" @selected($defaultBundleUnit === 'Bundle')>Bundle</option>
+                                                    <option value="Pallets" @selected($defaultBundleUnit === 'Pallets')>Pallets</option>
+                                                    <option value="Box" @selected($defaultBundleUnit === 'Box')>Box</option>
+                                                    <option value="Pcs" @selected($defaultBundleUnit === 'Pcs')>Pcs</option>
+                                                </select>
+                                            </div>
                                         </td>
-                                        <td class="px-4 py-4 align-top">
-                                            <input
-                                                type="number"
-                                                name="items[{{ $item->id }}][tags][0][weight]"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2"
-                                            >
+                                        <td class="px-3 py-2 align-top">
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" name="items[{{ $item->id }}][tags][0][qty]" min="1" placeholder="0" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
+                                                <select name="items[{{ $item->id }}][tags][0][qty_unit]" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                    @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
+                                                    <option value="KGM" @selected($defaultGoodsUnit === 'KGM')>KGM</option>
+                                                    <option value="SHEET" @selected($defaultGoodsUnit === 'SHEET')>SHEET</option>
+                                                    <option value="PCS" @selected($defaultGoodsUnit === 'PCS')>PCS</option>
+                                                </select>
+                                            </div>
                                         </td>
-                                        <td class="px-4 py-4 align-top">
-                                            @php
-                                                $defaultQtyUnit = $item->unit_weight ?? 'KGM';
-                                            @endphp
-                                            <select name="items[{{ $item->id }}][tags][0][qty_unit]" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                                                <option value="KGM" @selected($defaultQtyUnit === 'KGM')>KGM</option>
-                                                <option value="PCS" @selected($defaultQtyUnit === 'PCS')>PCS</option>
-                                                <option value="SHEET" @selected($defaultQtyUnit === 'SHEET')>SHEET</option>
-                                            </select>
-                                        </td>
-                                        <td class="px-4 py-4 align-top">
-                                            <select name="items[{{ $item->id }}][tags][0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+	                                        <td class="px-3 py-2 align-top">
+	                                            <input
+	                                                type="number"
+	                                                name="items[{{ $item->id }}][tags][0][net_weight]"
+	                                                step="0.01"
+	                                                placeholder="0.00"
+	                                                class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5"
+	                                            >
+	                                        </td>
+	                                        <td class="px-3 py-2 align-top">
+	                                            <input
+	                                                type="number"
+	                                                name="items[{{ $item->id }}][tags][0][gross_weight]"
+	                                                step="0.01"
+	                                                placeholder="0.00"
+	                                                class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5"
+	                                            >
+	                                        </td>
+                                        <td class="px-3 py-2 align-top">
+                                            <select name="items[{{ $item->id }}][tags][0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
                                                 <option value="pass">Pass</option>
                                                 <option value="reject">Reject</option>
                                             </select>
@@ -208,34 +220,41 @@
             }
         }
 
-        function createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight) {
-            return `
-                <td class="px-4 py-4 align-top">
-                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                </td>
-                <td class="px-4 py-4 align-top">
-                    <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="1" class="qty-input w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required data-item="${itemId}">
-                </td>
-                <td class="px-4 py-4 align-top">
-                    <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                        <option value="Coil">Coil</option>
-                        <option value="Pallets">Pallets</option>
-                        <option value="Box">Box</option>
-                        <option value="Pcs">Pcs</option>
-                    </select>
-                </td>
-                <td class="px-4 py-4 align-top">
-                    <input type="number" name="items[${itemId}][tags][${idx}][weight]" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2">
-                </td>
-                <td class="px-4 py-4 align-top">
-                    <select name="items[${itemId}][tags][${idx}][qty_unit]" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                        <option value="KGM">KGM</option>
-                        <option value="PCS">PCS</option>
-                        <option value="SHEET">SHEET</option>
-                    </select>
-                </td>
-                <td class="px-4 py-4 align-top">
-                    <select name="items[${itemId}][tags][${idx}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+	        function createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit) {
+	            return `
+	                <td class="px-3 py-2 align-top">
+	                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                </td>
+	                <td class="px-3 py-2 align-top">
+                        <div class="flex items-center gap-2">
+	                        <input type="number" name="items[${itemId}][tags][${idx}][bundle_qty]" min="1" value="1" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                        <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                            <option value="Coil">Coil</option>
+	                            <option value="Bundle">Bundle</option>
+	                            <option value="Pallets">Pallets</option>
+	                            <option value="Box">Box</option>
+	                            <option value="Pcs">Pcs</option>
+	                        </select>
+                        </div>
+	                </td>
+	                <td class="px-3 py-2 align-top">
+                        <div class="flex items-center gap-2">
+	                        <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="1" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="${itemId}">
+                            <select name="items[${itemId}][tags][${idx}][qty_unit]" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                <option value="KGM" ${goodsUnit === 'KGM' ? 'selected' : ''}>KGM</option>
+                                <option value="SHEET" ${goodsUnit === 'SHEET' ? 'selected' : ''}>SHEET</option>
+                                <option value="PCS" ${goodsUnit === 'PCS' ? 'selected' : ''}>PCS</option>
+                            </select>
+                        </div>
+	                </td>
+	                <td class="px-3 py-2 align-top">
+	                    <input type="number" name="items[${itemId}][tags][${idx}][net_weight]" step="0.01" placeholder="0.00" value="${defaultWeight || ''}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                </td>
+	                <td class="px-3 py-2 align-top">
+	                    <input type="number" name="items[${itemId}][tags][${idx}][gross_weight]" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                </td>
+                <td class="px-3 py-2 align-top">
+                    <select name="items[${itemId}][tags][${idx}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
                         <option value="pass">Pass</option>
                         <option value="reject">Reject</option>
                     </select>
@@ -252,10 +271,11 @@
                 const sizeText = tbody.dataset.size || '';
                 const partNo = tbody.dataset.partNo || '';
                 const partName = tbody.dataset.partName || '';
+                const goodsUnit = tbody.dataset.goodsUnit || 'KGM';
 
                 const row = document.createElement('tr');
                 row.className = 'tag-row hover:bg-slate-50 transition-colors';
-                row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight);
+                row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit);
                 tbody.appendChild(row);
                 tagIndexes[itemId] = idx + 1;
                 bindRowEvents(row, itemId);
@@ -263,16 +283,17 @@
             });
         });
 
-        document.querySelectorAll('.tag-rows').forEach(tbody => {
-            const itemId = tbody.dataset.item;
-            const bundleCount = Number(tbody.dataset.bundles || '0');
-            const firstWeightInput = tbody.querySelector('input[name$="[weight]"]');
-            tbody.dataset.defaultWeight = firstWeightInput ? firstWeightInput.value || '' : '';
+	        document.querySelectorAll('.tag-rows').forEach(tbody => {
+	            const itemId = tbody.dataset.item;
+	            const bundleCount = Number(tbody.dataset.bundles || '0');
+	            const firstNetWeightInput = tbody.querySelector('input[name$="[net_weight]"], input[name$="[weight]"]');
+	            tbody.dataset.defaultWeight = firstNetWeightInput ? firstNetWeightInput.value || '' : '';
 
             const sizeText = tbody.dataset.size || '';
             const partNo = tbody.dataset.partNo || '';
             const partName = tbody.dataset.partName || '';
             const defaultWeight = tbody.dataset.defaultWeight;
+            const goodsUnit = tbody.dataset.goodsUnit || 'KGM';
 
             tbody.innerHTML = '';
 
@@ -281,7 +302,7 @@
             for (let idx = 0; idx < rowsToCreate; idx++) {
                 const row = document.createElement('tr');
                 row.className = 'tag-row hover:bg-slate-50 transition-colors';
-                row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight);
+                row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit);
                 tbody.appendChild(row);
                 bindRowEvents(row, itemId);
             }

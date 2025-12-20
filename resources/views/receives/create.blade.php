@@ -62,10 +62,10 @@
                                             + Add TAG
                                         </button>
                                     </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty / Bundle</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Satuan</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total Qty</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Satuan Unit</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Gross Weight (KGM)</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
                                     <th class="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
                                 </tr>
@@ -79,40 +79,47 @@
                                         <div class="text-xs text-slate-600 mt-0.5">{{ $arrivalItem->part->part_name_vendor }}</div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="text" name="tags[0][tag]" placeholder="TAG-001" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                        <input type="text" name="tags[0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="number" name="tags[0][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                        @php
+                                            $defaultBundleUnit = $arrivalItem->unit_bundle ?? 'Coil';
+                                        @endphp
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" name="tags[0][bundle_qty]" min="1" value="1" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                            <select name="tags[0][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                                                <option value="Coil" @selected($defaultBundleUnit === 'Coil')>Coil</option>
+                                                <option value="Bundle" @selected($defaultBundleUnit === 'Bundle')>Bundle</option>
+                                                <option value="Pallets" @selected($defaultBundleUnit === 'Pallets')>Pallets</option>
+                                                <option value="Box" @selected($defaultBundleUnit === 'Box')>Box</option>
+                                                <option value="Pcs" @selected($defaultBundleUnit === 'Pcs')>Pcs</option>
+                                            </select>
+                                        </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <select name="tags[0][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                                            @php
-                                                $defaultBundleUnit = $arrivalItem->unit_bundle ?? 'Coil';
-                                            @endphp
-                                            <option value="Coil" @selected($defaultBundleUnit === 'Coil')>Coil</option>
-                                            <option value="Pallets" @selected($defaultBundleUnit === 'Pallets')>Pallets</option>
-                                            <option value="Box" @selected($defaultBundleUnit === 'Box')>Box</option>
-                                            <option value="Pcs" @selected($defaultBundleUnit === 'Pcs')>Pcs</option>
-                                        </select>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" name="tags[0][qty]" min="1" placeholder="0" class="w-36 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                            <input type="hidden" name="tags[0][qty_unit]" value="{{ strtoupper($arrivalItem->unit_goods ?? 'KGM') }}" />
+                                            <div class="text-sm py-2 text-slate-700 font-semibold">{{ strtoupper($arrivalItem->unit_goods ?? 'KGM') }}</div>
+                                        </div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <input
                                             type="number"
-                                            name="tags[0][weight]"
+                                            name="tags[0][net_weight]"
                                             step="0.01"
                                             placeholder="0.00"
                                             class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2"
                                         />
                                     </td>
                                     <td class="px-6 py-4">
-                                        @php
-                                            $defaultQtyUnit = $arrivalItem->unit_weight ?? 'KGM';
-                                        @endphp
-                                        <select name="tags[0][qty_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                                            <option value="KGM" @selected($defaultQtyUnit === 'KGM')>KGM</option>
-                                            <option value="PCS" @selected($defaultQtyUnit === 'PCS')>PCS</option>
-                                            <option value="SHEET" @selected($defaultQtyUnit === 'SHEET')>SHEET</option>
-                                        </select>
+                                        <input
+                                            type="number"
+                                            name="tags[0][gross_weight]"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2"
+                                        />
                                     </td>
                                     <td class="px-6 py-4">
                                         <select name="tags[0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
@@ -149,7 +156,7 @@
         const receiveForm = document.getElementById('receive-form');
         const defaultWeight = {{ $defaultWeight !== null ? $defaultWeight : 'null' }};
         const defaultBundleUnit = @json($arrivalItem->unit_bundle ?? 'Coil');
-        const defaultQtyUnit = @json($arrivalItem->unit_weight ?? 'KGM');
+        const goodsUnit = @json(strtoupper($arrivalItem->unit_goods ?? 'KGM'));
 
         function updateTotals() {
             const qtyInputs = tagRows.querySelectorAll('input[name$=\"[qty]\"]');
@@ -192,25 +199,29 @@
                     <input type="text" name="tags[${tagIndex}][tag]" placeholder="TAG-00${tagIndex + 1}" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                 </td>
                 <td class="px-6 py-4">
-                    <input type="number" name="tags[${tagIndex}][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="tags[${tagIndex}][bundle_qty]" min="1" value="1" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                        <select name="tags[${tagIndex}][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                            <option value="Coil" ${defaultBundleUnit === 'Coil' ? 'selected' : ''}>Coil</option>
+                            <option value="Bundle" ${defaultBundleUnit === 'Bundle' ? 'selected' : ''}>Bundle</option>
+                            <option value="Pallets" ${defaultBundleUnit === 'Pallets' ? 'selected' : ''}>Pallets</option>
+                            <option value="Box" ${defaultBundleUnit === 'Box' ? 'selected' : ''}>Box</option>
+                            <option value="Pcs" ${defaultBundleUnit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                        </select>
+                    </div>
                 </td>
                 <td class="px-6 py-4">
-                    <select name="tags[${tagIndex}][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                        <option value="Coil" ${defaultBundleUnit === 'Coil' ? 'selected' : ''}>Coil</option>
-                        <option value="Pallets" ${defaultBundleUnit === 'Pallets' ? 'selected' : ''}>Pallets</option>
-                        <option value="Box" ${defaultBundleUnit === 'Box' ? 'selected' : ''}>Box</option>
-                        <option value="Pcs" ${defaultBundleUnit === 'Pcs' ? 'selected' : ''}>Pcs</option>
-                    </select>
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="tags[${tagIndex}][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                        <input type="hidden" name="tags[${tagIndex}][qty_unit]" value="${goodsUnit}" />
+                        <div class="text-sm py-2 text-slate-700 font-semibold">${goodsUnit}</div>
+                    </div>
                 </td>
                 <td class="px-6 py-4">
-                    <input type="number" name="tags[${tagIndex}][weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                    <input type="number" name="tags[${tagIndex}][net_weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
                 </td>
                 <td class="px-6 py-4">
-                    <select name="tags[${tagIndex}][qty_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                        <option value="KGM" ${defaultQtyUnit === 'KGM' ? 'selected' : ''}>KGM</option>
-                        <option value="PCS" ${defaultQtyUnit === 'PCS' ? 'selected' : ''}>PCS</option>
-                        <option value="SHEET" ${defaultQtyUnit === 'SHEET' ? 'selected' : ''}>SHEET</option>
-                    </select>
+                    <input type="number" name="tags[${tagIndex}][gross_weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
                 </td>
                 <td class="px-6 py-4">
                     <select name="tags[${tagIndex}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>

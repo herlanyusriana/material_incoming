@@ -6,31 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        if (Schema::hasColumn('arrival_items', 'unit_bundle')) {
+        if (Schema::hasColumn('arrival_items', 'unit_goods')) {
             return;
         }
 
         Schema::table('arrival_items', function (Blueprint $table) {
-            $table->string('unit_bundle', 20)->default('Pallet')->after('qty_bundle')->comment('Unit for bundle quantity');
+            $table->string('unit_goods', 20)->nullable()->after('qty_goods');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        if (! Schema::hasColumn('arrival_items', 'unit_bundle')) {
+        if (!Schema::hasColumn('arrival_items', 'unit_goods')) {
             return;
         }
 
         Schema::table('arrival_items', function (Blueprint $table) {
-            $table->dropColumn('unit_bundle');
+            $table->dropColumn('unit_goods');
         });
     }
 };
+

@@ -47,20 +47,29 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        @php
-            $firstContainer = '-';
-            if (!empty($arrival->container_numbers)) {
-                $lines = preg_split('/\r\n|\r|\n/', $arrival->container_numbers);
-                foreach ($lines as $line) {
-                    $line = trim($line);
-                    if ($line !== '') {
-                        $firstContainer = strtoupper($line);
-                        break;
+	    <div class="container">
+	        @php
+	            $firstContainer = '-';
+                $firstSeal = '-';
+
+                if ($arrival->containers && $arrival->containers->count()) {
+                    $first = $arrival->containers->first();
+                    $firstContainer = strtoupper(trim($first->container_no ?? '-'));
+                    $firstSeal = !empty($first->seal_code) ? strtoupper(trim($first->seal_code)) : '-';
+                } elseif (!empty($arrival->container_numbers)) {
+                    $lines = preg_split('/\r\n|\r|\n/', $arrival->container_numbers);
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if ($line !== '') {
+                            $firstContainer = strtoupper($line);
+                            break;
+                        }
                     }
+                    $firstSeal = $arrival->seal_code ? strtoupper(trim($arrival->seal_code)) : '-';
+                } else {
+                    $firstSeal = $arrival->seal_code ? strtoupper(trim($arrival->seal_code)) : '-';
                 }
-            }
-        @endphp
+	        @endphp
 
         <table class="layout">
             <tr>
@@ -116,13 +125,13 @@
                     </div>
                 </td>
                 <td>
-                    <div class="card h80">
-                        <div class="label">No. Seal</div>
-                        <div style="padding-top: 22mm; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
-                            {{ $arrival->seal_code ? strtoupper(trim($arrival->seal_code)) : '-' }}
-                        </div>
-                    </div>
-                </td>
+	                    <div class="card h80">
+	                        <div class="label">No. Seal</div>
+	                        <div style="padding-top: 22mm; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
+	                            {{ $firstSeal }}
+	                        </div>
+	                    </div>
+	                </td>
                 <td>
                     <div class="card h80">
                         <div class="label">Keterangan</div>

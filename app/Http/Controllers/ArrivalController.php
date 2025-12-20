@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Arrival;
+use App\Models\ArrivalContainer;
 use App\Models\Part;
 use App\Models\Vendor;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\Snappy\Facades\SnappyPdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +16,20 @@ use Illuminate\Validation\ValidationException;
 
 class ArrivalController extends Controller
 {
+    private function normalizeDecimalInput(mixed $value): mixed
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return $value;
+        }
+
+        return str_replace(',', '.', $trimmed);
+    }
+
     public function index()
     {
         $departures = Arrival::with(['vendor', 'creator', 'items.receives'])
@@ -34,6 +50,21 @@ class ArrivalController extends Controller
 
     public function store(Request $request)
     {
+        $items = $request->input('items');
+        if (is_array($items)) {
+            $items = array_map(function ($item) {
+                if (!is_array($item)) {
+                    return $item;
+                }
+                $item['weight_nett'] = $this->normalizeDecimalInput($item['weight_nett'] ?? null);
+                $item['weight_gross'] = $this->normalizeDecimalInput($item['weight_gross'] ?? null);
+                $item['total_amount'] = $this->normalizeDecimalInput($item['total_amount'] ?? null);
+                $item['price'] = $this->normalizeDecimalInput($item['price'] ?? null);
+                return $item;
+            }, $items);
+            $request->merge(['items' => $items]);
+        }
+
         $validated = $request->validate([
             'invoice_no' => ['required', 'string', 'max:255'],
             'invoice_date' => ['required', 'date'],
@@ -48,6 +79,9 @@ class ArrivalController extends Controller
             'port_of_loading' => ['nullable', 'string', 'max:255'],
             'container_numbers' => ['nullable', 'string'],
             'seal_code' => ['nullable', 'string', 'max:100'],
+            'containers' => ['nullable', 'array'],
+            'containers.*.container_no' => ['required_with:containers', 'string', 'max:50', 'distinct'],
+            'containers.*.seal_code' => ['required_with:containers.*.container_no', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
@@ -57,16 +91,53 @@ class ArrivalController extends Controller
             'items.*.qty_bundle' => ['nullable', 'integer', 'min:0'],
             'items.*.unit_bundle' => ['nullable', 'string', 'max:20'],
             'items.*.qty_goods' => ['required', 'integer', 'min:1'],
+            'items.*.unit_goods' => ['nullable', 'string', 'max:20'],
             'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
             'items.*.unit_weight' => ['nullable', 'string', 'max:20'],
             'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
-            'items.*.price' => ['required', 'numeric', 'min:0'],
+            'items.*.total_amount' => ['required', 'numeric', 'min:0'],
+            'items.*.price' => ['nullable', 'numeric', 'min:0'],
             'items.*.notes' => ['nullable', 'string'],
         ]);
 
         $vendorId = $validated['vendor_id'];
 
         $arrival = DB::transaction(function () use ($validated, $vendorId) {
+            $normalizedContainers = collect($validated['containers'] ?? [])
+                ->map(function ($row) {
+                    $containerNo = strtoupper(trim((string) ($row['container_no'] ?? '')));
+                    $sealCode = strtoupper(trim((string) ($row['seal_code'] ?? '')));
+                    return [
+                        'container_no' => $containerNo,
+                        'seal_code' => $sealCode !== '' ? $sealCode : null,
+                    ];
+                })
+                ->filter(fn ($row) => $row['container_no'] !== '')
+                ->values();
+
+            if ($normalizedContainers->isEmpty() && !empty($validated['container_numbers'])) {
+                $defaultSeal = isset($validated['seal_code']) ? strtoupper(trim((string) $validated['seal_code'])) : null;
+                $lines = preg_split('/\r\n|\r|\n/', (string) $validated['container_numbers']) ?: [];
+                $normalizedContainers = collect($lines)
+                    ->map(function ($line) use ($defaultSeal) {
+                        $raw = trim((string) $line);
+                        if ($raw === '') return null;
+                        $parts = preg_split('/\s+/', $raw) ?: [];
+                        $containerNo = strtoupper(trim((string) ($parts[0] ?? '')));
+                        $sealCode = strtoupper(trim((string) ($parts[1] ?? $defaultSeal ?? '')));
+                        return [
+                            'container_no' => $containerNo,
+                            'seal_code' => $sealCode !== '' ? $sealCode : null,
+                        ];
+                    })
+                    ->filter()
+                    ->values();
+            }
+
+            $containerNumbersLegacy = $normalizedContainers->isNotEmpty()
+                ? $normalizedContainers->pluck('container_no')->implode("\n")
+                : ($validated['container_numbers'] ?? null);
+
             $arrival = Arrival::create([
                 'invoice_no' => $validated['invoice_no'],
                 'invoice_date' => $validated['invoice_date'],
@@ -79,12 +150,16 @@ class ArrivalController extends Controller
                 'hs_code' => $validated['hs_code'] ?? null,
                 'port_of_loading' => $validated['port_of_loading'] ?? null,
                 'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
-                'container_numbers' => $validated['container_numbers'] ?? null,
+                'container_numbers' => $containerNumbersLegacy,
                 'seal_code' => $validated['seal_code'] ?? null,
                 'currency' => $validated['currency'] ?? 'USD',
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
             ]);
+
+            if ($normalizedContainers->isNotEmpty()) {
+                $arrival->containers()->createMany($normalizedContainers->all());
+            }
 
             foreach ($validated['items'] as $index => $item) {
                 // Skip items with qty_goods = 0
@@ -106,11 +181,12 @@ class ArrivalController extends Controller
                     'qty_bundle' => $item['qty_bundle'] ?? 0,
                     'unit_bundle' => $item['unit_bundle'] ?? null,
                     'qty_goods' => $item['qty_goods'],
+                    'unit_goods' => $item['unit_goods'] ?? null,
                     'weight_nett' => $item['weight_nett'],
                     'unit_weight' => $item['unit_weight'] ?? null,
                     'weight_gross' => $item['weight_gross'],
-                    'price' => $item['price'],
-                    'total_price' => $item['price'] * $item['qty_goods'],
+                    'price' => $item['qty_goods'] > 0 ? round(((float) $item['total_amount']) / (int) $item['qty_goods'], 2) : 0,
+                    'total_price' => round((float) $item['total_amount'], 2),
                     'notes' => $item['notes'] ?? null,
                 ]);
             }
@@ -125,7 +201,7 @@ class ArrivalController extends Controller
     {
         // Keep using $arrival internally for existing views/logic
         $arrival = $departure;
-        $arrival->load(['vendor', 'creator', 'inspection', 'items.part.vendor', 'items.receives']);
+        $arrival->load(['vendor', 'creator', 'trucking', 'inspection', 'containers', 'items.part.vendor', 'items.receives']);
 
         return view('arrivals.show', compact('arrival'));
     }
@@ -171,25 +247,33 @@ class ArrivalController extends Controller
     {
         // Keep using $arrival internally for existing view/logic
         $arrival = $departure;
-        $arrival->load(['vendor', 'trucking', 'items.part']);
-
-        $pdf = Pdf::loadView('arrivals.invoice', compact('arrival'))
-            ->setPaper('a3', 'portrait')
-            ->setOption('margin-top', 10)
-            ->setOption('margin-bottom', 10)
-            ->setOption('margin-left', 15)
-            ->setOption('margin-right', 15);
+        $arrival->load(['vendor', 'trucking', 'containers', 'items.part']);
 
         // Clean filename - remove / and \ characters
         $filename = 'Commercial-Invoice-' . str_replace(['/', '\\'], '-', $arrival->invoice_no) . '.pdf';
-        
-        return $pdf->stream($filename);
+
+        $pdf = SnappyPdf::loadView('arrivals.invoice', compact('arrival'))
+            ->setPaper('A4', 'portrait')
+            ->setOptions([
+                'margin-top' => 8,
+                'margin-bottom' => 8,
+                'margin-left' => 8,
+                'margin-right' => 8,
+                'enable-local-file-access' => true,
+                'print-media-type' => true,
+                'encoding' => 'UTF-8',
+                'zoom' => 1.1,
+            ]);
+
+        return $pdf->inline($filename)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 
     public function printInspectionReport(Arrival $departure)
     {
         $arrival = $departure;
-        $arrival->load(['vendor', 'inspection.inspector']);
+        $arrival->load(['vendor', 'containers', 'inspection.inspector']);
 
         if (!$arrival->inspection) {
             abort(404);

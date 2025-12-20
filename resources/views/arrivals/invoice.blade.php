@@ -27,7 +27,7 @@
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 8px;
-            text-decoration: underline;
+            text-decoration: none;
         }
         
         table {
@@ -78,16 +78,72 @@
         .items-table {
             margin-top: 8px;
         }
-        
-        .items-table td,
-        .items-table th {
+
+        .packing-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .packing-items-table td,
+        .packing-items-table th {
+            padding: 3px 8px;
+            font-size: 8.5px;
+            vertical-align: middle;
+        }
+
+        .packing-items-table th:first-child,
+        .packing-items-table td:first-child {
+            padding-left: 0;
+            text-align: left;
+        }
+
+        .packing-items-table th:nth-child(2) {
+            padding-left: 0;
+            text-align: left;
+        }
+
+        .packing-items-table td:nth-child(2) {
+            padding-left: 0;
+        }
+
+        .packing-items-table td:first-child,
+        .packing-items-table td:nth-child(2) {
+            vertical-align: top;
+        }
+
+        .packing-items-table th {
+            border-bottom: 1px solid #000;
+        }
+
+        .packing-bundle {
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .packing-desc {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .packing-desc td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+            line-height: 1.2;
+            font-size: inherit;
+        }
+
+        .items-table:not(.packing-items-table) td,
+        .items-table:not(.packing-items-table) th {
             border: none;
             padding: 5px 6px;
             vertical-align: top;
             font-size: 9px;
         }
         
-        .items-table th {
+        .items-table:not(.packing-items-table) th {
             background: none;
             font-weight: bold;
             text-align: center;
@@ -173,12 +229,19 @@
     $hasBundleData = $arrival->items->contains(function ($item) {
         return ($item->qty_bundle ?? 0) > 0;
     });
+    $marksNoEnd = (int) $arrival->items->sum(fn($i) => (int) ($i->qty_bundle ?? 0));
+    if ($marksNoEnd <= 0) {
+        $marksNoEnd = $arrival->items->count();
+    }
     $bundleTotalDisplay = $hasBundleData
         ? $arrival->items->sum(fn($i) => (float)($i->qty_bundle ?? 0))
         : 0;
     $bundleUnitDisplay = optional($arrival->items->first(function ($item) {
         return ($item->qty_bundle ?? 0) > 0 && $item->unit_bundle;
     }))->unit_bundle ?? 'BUNDLE';
+    $goodsUnitDisplay = strtoupper(optional($arrival->items->first(function ($item) {
+        return !empty($item->unit_goods);
+    }))->unit_goods ?? 'PCS');
     $weightUnitDisplay = strtoupper(optional($arrival->items->first())->unit_weight ?? 'KGM');
 @endphp
 
@@ -287,8 +350,8 @@
         <tr>
             <th style="width:120px; text-align:left; padding-left:6px;">12.MARKS & NO. OF<br>PKGS</th>
             <th style="width:160px; text-align:left; padding-left:10px;">13.DESCRIPTION<br>OF GOODS</th>
-            <th style="width:90px; text-align:right; padding-right:6px;">14.QUANTITY</th>
-            <th style="width:100px; text-align:right; padding-right:6px;">15.UNIT PRICE</th>
+            <th style="width:90px; text-align:center;">14.QUANTITY</th>
+            <th style="width:100px; text-align:center;">15.UNIT PRICE</th>
             <th style="width:90px; text-align:right; padding-right:6px;">16.AMOUNT</th>
         </tr>
     </thead>
@@ -296,7 +359,7 @@
         {{-- Marks & Made In row --}}
         <tr>
             <td style="vertical-align:top;">
-                NO: 1-{{ $arrival->items->count() }}<br>
+                NO: 1-{{ $marksNoEnd }}<br>
                 
             </td>
             <td colspan="4" style="text-align:right">
@@ -319,7 +382,7 @@
             {{-- Vendor header row --}}
             <tr>
                 <td>&nbsp;</td>
-                <td colspan="4" style="text-align:left; font-weight:bold;">
+                <td colspan="4" style="text-align:left; font-weight:bold; padding-left:10px;">
                     {{ $items->first()->material_group ?: ($items->first()->part->part_name_vendor ?? 'HOT DIP GALVANIZED STEEL SHEETS') }}
                 </td>
             </tr>
@@ -336,17 +399,38 @@
                         ? number_format($item->price / ($item->weight_nett / $item->qty_goods), 3)
                         : '0.000';
                 @endphp
-                <td class="text-right">
-                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
+                <td class="text-center">
+                    @php
+                        $qtyUnitLabel = strtoupper($item->unit_goods ?? $item->unit_bundle ?? 'PCS');
+                        $showWeightOnly = in_array($qtyUnitLabel, ['KGM', 'KG'], true);
+                        $hasWeight = (float) ($item->weight_nett ?? 0) > 0;
+                    @endphp
+
+                    @if($showWeightOnly)
+                        {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
+                    @elseif($hasWeight)
+                        <table style="width:100%; border:none; margin:0; padding:0;">
+                            <tr>
+                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">
+                                    {{ number_format($item->qty_goods, 0) }} {{ $qtyUnitLabel }}
+                                </td>
+                                <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">
+                                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
+                                </td>
+                            </tr>
+                        </table>
+                    @else
+                        {{ number_format($item->qty_goods, 0) }} {{ $qtyUnitLabel }}
+                    @endif
                 </td>
-                <td class="text-right">
+                <td class="text-center">
                     <table style="width:100%; border:none; margin:0; padding:0;">
                         <tr>
-                            @if($unitWeightLabel !== 'KGM')
-                                <td style="border:none; padding:0; text-align:right; width:50%; white-space:nowrap;">USD {{ number_format($item->price, 3) }} /{{ $unitBundleLabel }}</td>
-                                <td style="border:none; padding:0; text-align:right; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
+                            @if(!in_array($unitBundleLabel, ['KGM', 'KG'], true) && (float) ($item->weight_nett ?? 0) > 0)
+                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ number_format($item->price, 3) }} /{{ $unitBundleLabel }}</td>
+                                <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
                             @else
-                                <td style="border:none; padding:0; text-align:right; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
+                                <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ number_format($item->price, 3) }} /{{ $unitBundleLabel }}</td>
                             @endif
                         </tr>
                     </table>
@@ -360,45 +444,51 @@
         <tr style="border-top:2px solid #000;">
             <td class="text-bold">TOTAL :</td>
             <td>&nbsp;</td>
-            <td class="text-right text-bold">{{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}</td>
+            <td class="text-center text-bold">
+                @if(in_array($goodsUnitDisplay, ['KGM', 'KG'], true))
+                    {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+                @else
+                    <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                        <tr>
+                            <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">
+                                {{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}
+                            </td>
+                            <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">
+                                {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+                            </td>
+                        </tr>
+                    </table>
+                @endif
+            </td>
             <td>&nbsp;</td>
             <td class="text-right text-bold">USD {{ number_format($arrival->items->sum('total_price'), 2) }}</td>
         </tr>
     </tbody>
 </table>
 
-{{-- HS Code Section --}}
-<div class="container-box">
-    <strong>HS CODE :</strong><br>
-    @foreach($hsCodes as $hs)
-        {{ $hs }}<br>
-    @endforeach
-</div>
-
-{{-- Container Section --}}
-<div class="container-box">
-    <strong>NO CONTAINER :</strong><br>
-    @if($arrival->container_numbers)
+	{{-- Container + Seal Section --}}
+	<div class="container-box">
+	    <strong>CONTAINERS &amp; SEAL :</strong><br>
+	    @if($arrival->containers->count())
+        @foreach($arrival->containers as $container)
+            {{ $loop->iteration }}. {{ strtoupper(trim($container->container_no)) }}
+            @if($container->seal_code)
+                / {{ strtoupper(trim($container->seal_code)) }}
+            @endif
+            <br>
+        @endforeach
+    @elseif($arrival->container_numbers)
         @foreach(explode("\n", $arrival->container_numbers) as $container)
             @if(trim($container))
                 {{ $loop->iteration }}. {{ strtoupper(trim($container)) }}<br>
             @endif
         @endforeach
+        @if($arrival->seal_code)
+            <strong>SEAL CODE :</strong> {{ strtoupper(trim($arrival->seal_code)) }}<br>
+        @endif
     @else
         -
     @endif
-</div>
-
-{{-- Seal Section --}}
-<div class="container-box">
-    <strong>SEAL CODE :</strong><br>
-    {{ $arrival->seal_code ? strtoupper(trim($arrival->seal_code)) : '-' }}
-</div>
-
-{{-- Seal Section --}}
-<div class="container-box">
-    <strong>SEAL CODE :</strong><br>
-    {{ $arrival->seal_code ? strtoupper(trim($arrival->seal_code)) : '-' }}
 </div>
 
 {{-- Signature Section --}}
@@ -515,104 +605,109 @@
     </tr>
 </table>
 
-{{-- Packing List Items Table --}}
-<table class="items-table">
-    <thead>
-        <tr>
-            <th style="width:130px;">10.MARKS & NO. OF<br>PKGS</th>
-            <th style="width:220px; text-align:left; padding-left:10px;">11.DESCRIPTION<br>OF GOODS</th>
-            <th style="width:130px; text-align:right; padding-right:6px;">12.QUANTITY</th>
-            <th style="width:85px; text-align:right; padding-right:6px;">13.NET WEIGHT</th>
-            <th style="width:85px; text-align:right; padding-right:6px;">14.GROSS WEIGHT</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{-- Marks & Made In row --}}
-        <tr>
-            <td style="vertical-align:top;">
-                NO: 1-{{ $arrival->items->count() }}<br>
-                
-            </td>
-            <td colspan="4" style="text-align:right">
-                <strong>BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}</strong>
-            </td>
-        </tr>
-        
-        @foreach($groupedItems as $vendorName => $items)
-            {{-- Vendor header row --}}
-            <tr>
-                <td>&nbsp;</td>
-                <td colspan="4" style="text-align:left; font-weight:bold;">
-                    {{ $vendorName ?: 'HOT DIP GALVANIZED STEEL SHEETS' }}
-                </td>
-            </tr>
-            
-            {{-- Item rows --}}
-            @foreach($items as $item)
-            <tr>
-                <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
-                <td style="padding-left:10px;">
-                    <div>{{ $item->size ?? '' }}</div>
-                    <div style="text-align:right;">
-                        @if(($item->qty_bundle ?? 0) > 0)
-                            {{ number_format($item->qty_bundle, 0) }} {{ strtoupper($item->unit_bundle ?? 'BUNDLE') }}
-                        @else
-                            -
-                        @endif
-                    </div>
-                </td>
-                <td class="text-right">
-                    {{ number_format($item->qty_goods, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}
-                </td>
-                <td class="text-right">{{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
-                <td class="text-right">{{ number_format($item->weight_gross, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
-            </tr>
-            @endforeach
-        @endforeach
-        
-        {{-- Total row --}}
-        <tr style="border-top:2px solid #000;">
-            <td class="text-bold">TOTAL :</td>
-            <td class="text-right text-bold">
-                @if($hasBundleData && $bundleTotalDisplay > 0)
-                    {{ number_format($bundleTotalDisplay, 0) }} {{ strtoupper($bundleUnitDisplay) }}
-                @else
-                    -
-                @endif
-            </td>
-            <td class="text-right text-bold">{{ number_format($totalQtyGoods, 0) }} {{ $weightUnitDisplay }}</td>
-            <td class="text-right text-bold">{{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}</td>
-            <td class="text-right text-bold">{{ number_format($totalGross, 0) }} {{ $weightUnitDisplay }}</td>
-        </tr>
-    </tbody>
-</table>
+		{{-- Packing List Items Table --}}
+		<table class="items-table packing-items-table">
+		    <colgroup>
+		        <col style="width:22%;">
+		        <col style="width:40%;">
+		        <col style="width:18%;">
+		        <col style="width:10%;">
+		        <col style="width:10%;">
+		    </colgroup>
+		    <thead>
+		        <tr>
+		            <th>10.MARKS & NO. OF<br>PKGS</th>
+		            <th>11.DESCRIPTION<br>OF GOODS</th>
+		            <th>12.QUANTITY</th>
+		            <th>13.NET WEIGHT</th>
+		            <th>14.GROSS WEIGHT</th>
+		        </tr>
+		    </thead>
+		    <tbody>
+		        {{-- Marks & Made In row --}}
+		        <tr>
+		            <td style="vertical-align:top;">
+		                NO: 1-{{ $marksNoEnd }}<br>
+		                
+		            </td>
+		            <td colspan="4">&nbsp;</td>
+		        </tr>
+	        
+			        @foreach($groupedItems as $vendorName => $items)
+			            {{-- Vendor header row --}}
+			            <tr>
+			                <td>&nbsp;</td>
+			                <td style="text-align:left; font-weight:bold;">
+			                    {{ $vendorName ?: 'HOT DIP GALVANIZED STEEL SHEETS' }}
+			                </td>
+			                <td>&nbsp;</td>
+			                <td>&nbsp;</td>
+			                <td>&nbsp;</td>
+			            </tr>
+		            
+		            {{-- Item rows --}}
+			            @foreach($items as $item)
+				            <tr>
+				                <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
+				                <td>
+				                    <table class="packing-desc">
+				                        <colgroup>
+				                            <col style="width:64%;">
+				                            <col style="width:36%;">
+				                        </colgroup>
+				                        <tr>
+				                            <td style="padding-right:8px; white-space:nowrap;">{{ $item->size ?? '' }}</td>
+				                            <td class="packing-bundle text-center" style="white-space:nowrap;">
+				                                @if(($item->qty_bundle ?? 0) > 0)
+				                                    {{ number_format($item->qty_bundle, 0) }} {{ strtoupper($item->unit_bundle ?? 'PALLET') }}
+				                                @else
+			                                    -
+			                                @endif
+			                            </td>
+			                        </tr>
+			                    </table>
+			                </td>
+			                <td class="text-center packing-bundle" style="white-space:nowrap;">
+			                    {{ number_format($item->qty_goods, 0) }} {{ strtoupper($item->unit_goods ?? $item->unit_bundle ?? 'PCS') }}
+			                </td>
+			                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
+			                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_gross, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
+			            </tr>
+		            @endforeach
+		        @endforeach
+	        
+			        {{-- Total row --}}
+				        <tr style="border-top:2px solid #000;">
+				            <td class="text-bold">TOTAL :</td>
+				            <td>
+				                <table class="packing-desc">
+				                    <colgroup>
+				                        <col style="width:64%;">
+				                        <col style="width:36%;">
+			                    </colgroup>
+			                    <tr>
+			                        <td>&nbsp;</td>
+			                        <td class="packing-bundle text-center text-bold" style="white-space:nowrap;">
+			                            @if($hasBundleData && $bundleTotalDisplay > 0)
+			                                {{ number_format($bundleTotalDisplay, 0) }} {{ strtoupper($bundleUnitDisplay) }}
+			                            @else
+			                                -
+			                            @endif
+			                        </td>
+			                    </tr>
+			                </table>
+			            </td>
+			            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">{{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}</td>
+			            <td class="text-center text-bold" style="white-space:nowrap;">{{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}</td>
+			            <td class="text-center text-bold" style="white-space:nowrap;">{{ number_format($totalGross, 0) }} {{ $weightUnitDisplay }}</td>
+			        </tr>
+		    </tbody>
+		</table>
 
-{{-- HS Code Section --}}
-<div class="container-box">
-    <strong>HS CODE :</strong><br>
-    @foreach($hsCodes as $hs)
-        {{ $hs }}<br>
-    @endforeach
-</div>
-
-{{-- Container Section --}}
-<div class="container-box">
-    <strong>NO CONTAINER :</strong><br>
-    @if($arrival->container_numbers)
-        @foreach(explode("\n", $arrival->container_numbers) as $container)
-            @if(trim($container))
-                {{ $loop->iteration }}. {{ strtoupper(trim($container)) }}<br>
-            @endif
-        @endforeach
-    @else
-        -
-    @endif
-</div>
-
-{{-- Signature Section --}}
-<div class="footer-section">
-    <table class="signature-table">
-        <tr>
+	{{-- Signature Section --}}
+	<div class="footer-section">
+	    <table class="signature-table">
+	        <tr>
             <td style="width:100%; text-align:right;">
                 <div style="display:inline-block; text-align:center; padding:10px 30px;">
                     <div class="original-box">ORIGINAL</div>

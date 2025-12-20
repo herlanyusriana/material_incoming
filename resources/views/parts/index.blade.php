@@ -135,21 +135,24 @@
                                             placeholder="Length"
                                         >
                                     </div>
-                                    <div>
-                                        <select
-                                            id="inline_size_type"
-                                            name="size_type"
-                                            class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                        >
-                                            <option value="sheet" {{ $sizeTypeInline === 'sheet' ? 'selected' : '' }}>Sheet</option>
-                                            <option value="coil" {{ $sizeTypeInline === 'coil' ? 'selected' : '' }}>Coil</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">
-                                    Preview: <span id="inline-size-preview">{{ $rawSizeInline ?: '-' }}</span>.
-                                    Kalo Coil, panjang otomatis jadi "C".
-                                </p>
+	                                    <div>
+	                                        <label class="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+	                                            <input
+	                                                id="inline_size_is_coil"
+	                                                type="checkbox"
+	                                                name="inline_is_coil"
+	                                                value="1"
+	                                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500"
+	                                                @checked($sizeTypeInline === 'coil')
+	                                            >
+	                                            <span>Coil (C)</span>
+	                                        </label>
+	                                    </div>
+	                                </div>
+	                                <p class="text-xs text-gray-500 mt-1">
+	                                    Preview: <span id="inline-size-preview">{{ $rawSizeInline ?: '-' }}</span>.
+	                                    Kalau dicentang, panjang jadi "C".
+	                                </p>
                                 <input
                                     type="hidden"
                                     id="register_number"
@@ -520,36 +523,36 @@
             syncValue();
         });
 
-        (function () {
-            const thicknessInput = document.getElementById('inline_size_thickness');
-            const widthInput = document.getElementById('inline_size_width');
-            const lengthInput = document.getElementById('inline_size_length');
-            const typeSelect = document.getElementById('inline_size_type');
-            const previewEl = document.getElementById('inline-size-preview');
-            const visibleRegisterInput = document.getElementById('register_number');
-            const hiddenRegisterInput = document.getElementById('hidden-register-no');
+	        (function () {
+	            const thicknessInput = document.getElementById('inline_size_thickness');
+	            const widthInput = document.getElementById('inline_size_width');
+	            const lengthInput = document.getElementById('inline_size_length');
+	            const coilCheckbox = document.getElementById('inline_size_is_coil');
+	            const previewEl = document.getElementById('inline-size-preview');
+	            const visibleRegisterInput = document.getElementById('register_number');
+	            const hiddenRegisterInput = document.getElementById('hidden-register-no');
 
-            if (!thicknessInput || !widthInput || !lengthInput || !typeSelect || !previewEl || !visibleRegisterInput || !hiddenRegisterInput) {
-                return;
-            }
+	            if (!thicknessInput || !widthInput || !lengthInput || !coilCheckbox || !previewEl || !visibleRegisterInput || !hiddenRegisterInput) {
+	                return;
+	            }
 
-            function updateInlineSize() {
-                const type = typeSelect.value || 'sheet';
-                const thickness = thicknessInput.value.trim();
-                const width = widthInput.value.trim();
-                let length = lengthInput.value.trim();
+	            function updateInlineSize() {
+	                const isCoil = coilCheckbox.checked;
+	                const thickness = thicknessInput.value.trim();
+	                const width = widthInput.value.trim();
+	                let length = lengthInput.value.trim();
 
-                if (type === 'coil') {
-                    length = 'C';
-                    lengthInput.value = '';
-                    lengthInput.disabled = true;
-                    lengthInput.placeholder = 'C';
-                } else {
-                    lengthInput.disabled = false;
-                    if (lengthInput.placeholder === 'C') {
-                        lengthInput.placeholder = 'Length';
-                    }
-                }
+	                if (isCoil) {
+	                    length = 'C';
+	                    lengthInput.value = '';
+	                    lengthInput.disabled = true;
+	                    lengthInput.placeholder = 'C';
+	                } else {
+	                    lengthInput.disabled = false;
+	                    if (lengthInput.placeholder === 'C') {
+	                        lengthInput.placeholder = 'Length';
+	                    }
+	                }
 
                 const parts = [];
                 if (thickness) parts.push(thickness);
@@ -562,12 +565,12 @@
                 hiddenRegisterInput.value = sizeString;
             }
 
-            ['input', 'change'].forEach(eventName => {
-                thicknessInput.addEventListener(eventName, updateInlineSize);
-                widthInput.addEventListener(eventName, updateInlineSize);
-                lengthInput.addEventListener(eventName, updateInlineSize);
-                typeSelect.addEventListener(eventName, updateInlineSize);
-            });
+	            ['input', 'change'].forEach(eventName => {
+	                thicknessInput.addEventListener(eventName, updateInlineSize);
+	                widthInput.addEventListener(eventName, updateInlineSize);
+	                lengthInput.addEventListener(eventName, updateInlineSize);
+	                coilCheckbox.addEventListener(eventName, updateInlineSize);
+	            });
 
             updateInlineSize();
         })();

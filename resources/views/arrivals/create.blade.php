@@ -99,35 +99,39 @@
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-1 uppercase">Transport</h2>
                     <p class="text-xs text-gray-500 mb-4">Detail trucking dan container.</p>
-                    <div class="space-y-4">
-                        <div class="space-y-1">
-                            <label for="trucking_company_id" class="text-sm font-medium text-gray-700">Trucking Company</label>
-                            <select id="trucking_company_id" name="trucking_company_id" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                <option value="">Pilih trucking company</option>
-                                @foreach($truckings as $trucking)
-                                    <option value="{{ $trucking->id }}" {{ old('trucking_company_id') == $trucking->id ? 'selected' : '' }}>
-                                        {{ $trucking->company_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('trucking_company_id') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
+	                    <div class="space-y-4">
+	                        <div class="space-y-1">
+	                            <label for="trucking_company_id" class="text-sm font-medium text-gray-700">Trucking Company</label>
+	                            <select id="trucking_company_id" name="trucking_company_id" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                                <option value="">Pilih trucking company</option>
+	                                @foreach($truckings as $trucking)
+	                                    <option value="{{ $trucking->id }}" {{ old('trucking_company_id') == $trucking->id ? 'selected' : '' }}>
+	                                        {{ $trucking->company_name }}
+	                                    </option>
+	                                @endforeach
+	                            </select>
+	                            @error('trucking_company_id') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
 
-                        <div class="space-y-1">
-                            <label for="container_numbers" class="text-sm font-medium text-gray-700">Container Numbers</label>
-                            <textarea id="container_numbers" name="container_numbers" rows="3" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Satu per baris, contoh:&#10;SKLU1809368 HUPH019101&#10;SKLU1939660 HHPH019102">{{ old('container_numbers') }}</textarea>
-                            <p class="text-xs text-gray-500">Enter one container number per line.</p>
-                            @error('container_numbers') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
+	                        <div class="space-y-2">
+	                            <div class="flex items-center justify-between gap-3">
+	                                <div>
+	                                    <label class="text-sm font-medium text-gray-700">Containers & Seal Code</label>
+	                                    <p class="text-xs text-gray-500">1 container = 1 seal code. 1 invoice bisa punya banyak container.</p>
+	                                </div>
+	                                <button type="button" id="add-container-row" class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition shadow-sm">
+	                                    + Add Container
+	                                </button>
+	                            </div>
 
-                        <div class="space-y-1">
-                            <label for="seal_code" class="text-sm font-medium text-gray-700">Seal Code</label>
-                            <input type="text" id="seal_code" name="seal_code" value="{{ old('seal_code') }}" placeholder="Contoh: HUPH019101" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <p class="text-xs text-gray-500">Kode segel (optional).</p>
-                            @error('seal_code') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                </div>
+	                            <div id="container-rows" class="space-y-3"></div>
+
+	                            @error('containers') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                            @error('containers.*.container_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                            @error('containers.*.seal_code') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                    </div>
+	                </div>
 
                 <!-- Section 4: Documents & Notes -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -193,15 +197,90 @@
         const groupsContainer = document.getElementById('material-groups');
         const addGroupBtn = document.getElementById('add-material-group');
         const refreshPartsBtn = document.getElementById('refresh-parts');
+        const addContainerRowBtn = document.getElementById('add-container-row');
+        const containerRowsEl = document.getElementById('container-rows');
         const existingItems = @json(old('items', []));
         const refreshBtnLabel = refreshPartsBtn?.querySelector('[data-label]');
         const refreshBtnDefaultText = refreshBtnLabel?.textContent || 'Sync Part Catalog';
+
+        const existingContainers = @json(old('containers', []));
+        const legacyContainerNumbers = @json(old('container_numbers'));
+        const legacySealCode = @json(old('seal_code'));
 
         const draftData = !hasOldInput ? loadDraftData() : null;
         const draftGroups = draftData?.groups?.length ? draftData.groups : [];
 
         let groupIndex = 0;
         let rowIndex = 0;
+        let containerIndex = 0;
+
+        function parseLegacyContainers(containerNumbers, sealCode) {
+            const rows = [];
+            const defaultSeal = String(sealCode ?? '').trim();
+            const lines = String(containerNumbers ?? '').split(/\r\n|\r|\n/);
+            for (const line of lines) {
+                const raw = String(line ?? '').trim();
+                if (!raw) continue;
+                const parts = raw.split(/\s+/);
+                const containerNo = (parts[0] ?? '').trim();
+                const seal = (parts[1] ?? defaultSeal).trim();
+                if (!containerNo) continue;
+                rows.push({ container_no: containerNo, seal_code: seal });
+            }
+            return rows;
+        }
+
+        function addContainerRow(existing = null) {
+            if (!containerRowsEl) return;
+            const idx = containerIndex++;
+            const containerNo = escapeHtml(existing?.container_no ?? '');
+            const seal = escapeHtml(existing?.seal_code ?? '');
+
+            const row = document.createElement('div');
+            row.className = 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
+            row.innerHTML = `
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500">Container No</label>
+                        <input type="text" name="containers[${idx}][container_no]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="e.g. SKLU1809368" value="${containerNo}" required>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500">Seal Code</label>
+                        <input type="text" name="containers[${idx}][seal_code]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="e.g. HUPH019101" value="${seal}" required>
+                    </div>
+                </div>
+                <div class="mt-3 flex justify-end">
+                    <button type="button" class="remove-container inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 text-xs font-semibold whitespace-nowrap">
+                        Hapus Container
+                    </button>
+                </div>
+            `;
+
+            row.querySelector('.remove-container')?.addEventListener('click', () => {
+                row.remove();
+                if (containerRowsEl.children.length === 0) {
+                    addContainerRow();
+                }
+            });
+
+            containerRowsEl.appendChild(row);
+        }
+
+        function initContainerRows() {
+            if (!containerRowsEl) return;
+            containerRowsEl.innerHTML = '';
+            containerIndex = 0;
+
+            const rows = Array.isArray(existingContainers) && existingContainers.length
+                ? existingContainers
+                : parseLegacyContainers(legacyContainerNumbers, legacySealCode);
+
+            if (rows.length) {
+                rows.forEach(r => addContainerRow(r));
+            } else {
+                addContainerRow();
+            }
+        }
 
         function updateRefreshButtonState() {
             if (!refreshPartsBtn) return;
@@ -233,19 +312,20 @@
             return data;
         }
 
-        function collectGroupDefinitions() {
-            return Array.from(document.querySelectorAll('.material-group')).map(groupEl => {
-                const title = groupEl.querySelector('.material-title')?.value || '';
-                const rows = Array.from(groupEl.querySelectorAll('.line-row')).map(row => ({
-                    part_id: row.querySelector('.part-select')?.value || '',
-                    size: row.querySelector('.input-size')?.value || '',
+	        function collectGroupDefinitions() {
+	            return Array.from(document.querySelectorAll('.material-group')).map(groupEl => {
+	                const title = getGroupTitle(groupEl);
+	                const rows = Array.from(groupEl.querySelectorAll('.line-row')).map(row => ({
+	                    part_id: row.querySelector('.part-select')?.value || '',
+	                    size: row.querySelector('.input-size')?.value || '',
                     qty_bundle: row.querySelector('.qty-bundle')?.value || '',
                     unit_bundle: row.querySelector('.input-unit-bundle')?.value || '',
                     qty_goods: row.querySelector('.qty-goods')?.value || '',
+                    unit_goods: row.querySelector('.input-unit-goods')?.value || '',
                     weight_nett: row.querySelector('.weight-nett')?.value || '',
                     unit_weight: row.querySelector('.input-unit-weight')?.value || '',
                     weight_gross: row.querySelector('.weight-gross')?.value || '',
-                    price: row.querySelector('.price')?.value || '',
+                    total_amount: row.querySelector('.total-input')?.value || '',
                     notes: row.querySelector('input[name*="[notes]"]')?.value || '',
                     material_group: title,
                 }));
@@ -290,14 +370,15 @@
 
         vendorInput.addEventListener('input', function () {
             const query = this.value.toLowerCase().trim();
-            if (query.length === 0) {
-                suggestionsBox.classList.add('hidden');
-                vendorIdInput.value = '';
-                resetGroups([]);
-                updateRefreshButtonState();
-                requestSaveDraft();
-                return;
-            }
+	            if (query.length === 0) {
+	                suggestionsBox.classList.add('hidden');
+	                vendorIdInput.value = '';
+	                resetGroups([]);
+	                rebuildMaterialTitleSelects(null);
+	                updateRefreshButtonState();
+	                requestSaveDraft();
+	                return;
+	            }
             const matches = vendorsData.filter(v => v.name.toLowerCase().includes(query));
             if (matches.length > 0) {
                 suggestionsBox.innerHTML = matches.map(v => {
@@ -341,11 +422,34 @@
             }
         });
 
-        vendorInput.addEventListener('focus', function () {
-            if (this.value.trim().length > 0) {
-                this.dispatchEvent(new Event('input'));
-            }
-        });
+	        vendorInput.addEventListener('focus', function () {
+	            if (this.value.trim().length > 0) {
+	                this.dispatchEvent(new Event('input'));
+	            }
+	        });
+
+	        vendorInput.addEventListener('blur', async function () {
+	            if (vendorIdInput.value) return;
+	            const typed = this.value.toLowerCase().trim();
+	            if (!typed) return;
+	            const exactMatches = vendorsData.filter(v => v.name.toLowerCase().trim() === typed);
+	            if (exactMatches.length !== 1) return;
+	            const match = exactMatches[0];
+	            vendorIdInput.value = match.id;
+	            updateRefreshButtonState();
+	            await loadParts(match.id, true);
+	            resetGroups([]);
+	            requestSaveDraft();
+	        });
+
+	        function escapeHtml(value) {
+	            return String(value ?? '')
+	                .replace(/&/g, '&amp;')
+	                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
 
         function buildPartOptions(vendorId, partId = null) {
             if (!vendorId || !partsCache[vendorId]) {
@@ -353,30 +457,126 @@
             }
             const options = partsCache[vendorId]
                 .map(p => {
-                    const displayName = p.part_name_gci || p.part_no;
+                    const displayName = p.part_name_gci || p.part_name_vendor || p.part_no;
                     const detail = p.part_no ? `(${p.part_no})` : '';
-                    return `<option value="${p.id}" ${String(p.id) === String(partId) ? 'selected' : ''}>${displayName} ${detail}</option>`;
+                    return `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(partId) ? 'selected' : ''}>${escapeHtml(displayName)} ${escapeHtml(detail)}</option>`;
                 })
                 .join('');
             return `<option value="">Select Part Number</option>${options}`;
         }
 
-        function rebuildPartSelects(vendorId) {
-            document.querySelectorAll('.part-select').forEach(select => {
-                const currentValue = select.value;
-                select.innerHTML = buildPartOptions(vendorId, currentValue);
-            });
-        }
+	        function getUniqueMaterialTitles(vendorId) {
+	            if (!vendorId || !partsCache[vendorId]) return [];
+	            return Array.from(new Set(
+	                partsCache[vendorId]
+	                    .map(p => (p.part_name_vendor || '').trim())
+	                    .filter(Boolean)
+	            )).sort((a, b) => a.localeCompare(b));
+	        }
+
+	        function buildMaterialTitleOptionsHtml(vendorId) {
+	            if (!vendorId || !partsCache[vendorId]) {
+	                return '<option value="">Pilih vendor dulu</option>';
+	            }
+	            const titles = getUniqueMaterialTitles(vendorId);
+	            const options = titles.map(title => `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`).join('');
+	            return [
+	                '<option value="">Pilih Jenis Material / Part Name Vendor</option>',
+	                options,
+	                '<option value="__custom__">Lainnya (ketik manual)...</option>',
+	            ].join('');
+	        }
+
+	        function getGroupTitle(groupEl) {
+	            const select = groupEl.querySelector('.material-title-select');
+	            const custom = groupEl.querySelector('.material-title-custom');
+	            if (!select) return '';
+	            if (select.value === '__custom__') return (custom?.value || '').trim();
+	            return (select.value || '').trim();
+	        }
+
+	        function setGroupTitle(groupEl, title) {
+	            const vendorId = vendorIdInput.value;
+	            const select = groupEl.querySelector('.material-title-select');
+	            const custom = groupEl.querySelector('.material-title-custom');
+	            if (!select) return;
+
+	            const normalized = (title || '').trim();
+	            const titles = getUniqueMaterialTitles(vendorId);
+	            select.innerHTML = buildMaterialTitleOptionsHtml(vendorId);
+	            select.disabled = !vendorId;
+
+	            if (!normalized) {
+	                select.value = '';
+	                if (custom) {
+	                    custom.value = '';
+	                    custom.classList.add('hidden');
+	                }
+	                return;
+	            }
+
+	            if (titles.includes(normalized)) {
+	                select.value = normalized;
+	                if (custom) {
+	                    custom.value = '';
+	                    custom.classList.add('hidden');
+	                }
+	                return;
+	            }
+
+	            select.value = '__custom__';
+	            if (custom) {
+	                custom.value = normalized;
+	                custom.classList.remove('hidden');
+	            }
+	        }
+
+	        function rebuildMaterialTitleSelects(vendorId) {
+	            document.querySelectorAll('.material-group').forEach(groupEl => {
+	                const select = groupEl.querySelector('.material-title-select');
+	                const custom = groupEl.querySelector('.material-title-custom');
+	                if (!select) return;
+	                const current = getGroupTitle(groupEl);
+	                setGroupTitle(groupEl, current);
+	                if (custom && select.value !== '__custom__') custom.classList.add('hidden');
+	                if (custom && select.value === '__custom__') custom.classList.remove('hidden');
+	                syncGroupTitle(groupEl);
+	            });
+	        }
+
+	        function rebuildPartSelects(vendorId) {
+	            document.querySelectorAll('.part-select').forEach(select => {
+	                const currentValue = select.value;
+	                select.innerHTML = buildPartOptions(vendorId, currentValue);
+	            });
+	            rebuildMaterialTitleSelects(vendorId);
+	        }
 
         function updateTotal(row) {
-            const qty = parseFloat(row.querySelector('.qty-goods')?.value || 0);
-            const price = parseFloat(row.querySelector('.price')?.value || 0);
-            const total = (qty * price).toFixed(2);
-            const totalInput = row.querySelector('.total');
-            if (totalInput) totalInput.value = total;
-            const totalAmount = row.querySelector('.total-amount');
-            if (totalAmount) totalAmount.value = total;
-        }
+            const qtyEl = row.querySelector('.qty-goods');
+            const totalEl = row.querySelector('.total-input');
+            const qtyRaw = (qtyEl?.value ?? '').trim();
+            const totalRaw = (totalEl?.value ?? '').trim();
+
+            if (!qtyRaw || !totalRaw) {
+                const hiddenPrice = row.querySelector('.price');
+                if (hiddenPrice) hiddenPrice.value = '';
+                const priceDisplay = row.querySelector('.price-display');
+                if (priceDisplay) priceDisplay.value = '';
+                return;
+            }
+
+	            const qty = parseFloat(qtyRaw || '0');
+	            const total = parseFloat(totalRaw || '0');
+	            const price = qty > 0 ? (total / qty) : 0;
+	            const priceText = price.toFixed(3);
+
+	            const hiddenPrice = row.querySelector('.price');
+	            if (hiddenPrice) hiddenPrice.value = priceText;
+
+	            const priceDisplay = row.querySelector('.price-display');
+	            if (priceDisplay) priceDisplay.value = priceText;
+	        }
 
         function normalizeDecimalInput(input) {
             if (!input) return;
@@ -392,6 +592,14 @@
             return 'Pallet';
         }
 
+        function guessUnitGoods(partData) {
+            const name = (partData?.part_name_vendor || '').toLowerCase();
+            const sizeText = String(partData?.size || partData?.register_no || '').toLowerCase();
+            if (name.includes('coil') || sizeText.includes(' x c') || sizeText.endsWith('c')) return 'Coil';
+            if (name.includes('sheet')) return 'Sheet';
+            return 'Pcs';
+        }
+
         function guessUnitWeight() {
             return 'KGM';
         }
@@ -405,115 +613,145 @@
             const partData = findPart(vendorId, partId);
             if (!partData) return;
             const sizeInput = row.querySelector('.input-size');
-            if (sizeInput && !sizeInput.value) sizeInput.value = partData.size || partData.register_no || '';
+            if (sizeInput) sizeInput.value = partData.size || partData.register_no || '';
             const unitBundleSelect = row.querySelector('.input-unit-bundle');
             if (unitBundleSelect && !unitBundleSelect.value) unitBundleSelect.value = guessUnitBundle(partData);
+            const unitGoodsSelect = row.querySelector('.input-unit-goods');
+            if (unitGoodsSelect && !unitGoodsSelect.value) unitGoodsSelect.value = guessUnitGoods(partData);
             const unitWeightSelect = row.querySelector('.input-unit-weight');
             if (unitWeightSelect && !unitWeightSelect.value) unitWeightSelect.value = guessUnitWeight(partData);
 
-            const groupEl = row.closest('.material-group');
-            if (groupEl) {
-                const titleInput = groupEl.querySelector('.material-title');
-                if (titleInput && !titleInput.value.trim() && partData.part_name_vendor) {
-                    titleInput.value = partData.part_name_vendor;
-                    syncGroupTitle(groupEl);
-                }
-            }
-        }
+	            const groupEl = row.closest('.material-group');
+	            if (groupEl) {
+	                if (!getGroupTitle(groupEl) && partData.part_name_vendor) {
+	                    setGroupTitle(groupEl, partData.part_name_vendor);
+	                    syncGroupTitle(groupEl);
+	                }
+	            }
+	        }
 
-        function syncGroupTitle(groupEl) {
-            const title = groupEl.querySelector('.material-title')?.value?.trim() || '';
-            groupEl.querySelectorAll('.material-group-field').forEach(field => field.value = title);
-        }
+	        function syncGroupTitle(groupEl) {
+	            const title = getGroupTitle(groupEl);
+	            groupEl.querySelectorAll('.material-group-field').forEach(field => field.value = title);
+	        }
 
         function addRowToGroup(groupEl, existing = null) {
             const vendorId = vendorIdInput.value;
             const rowsContainer = groupEl.querySelector('.group-rows');
             const row = document.createElement('div');
-            row.className = 'line-row grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-3 items-start border border-gray-200 rounded-lg p-4 md:min-w-[1100px] md:bg-transparent md:border-0 md:border-b md:rounded-none md:p-0 md:pb-3';
+            row.className = 'line-row rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
             const guessedBundle = existing?.unit_bundle ?? null;
             const guessedWeight = existing?.unit_weight ?? null;
+            const guessedUnitGoods = existing?.unit_goods ?? null;
+            const initialMaterialGroup = escapeHtml(getGroupTitle(groupEl));
+            const existingQty = Number(existing?.qty_goods ?? 0);
+            const existingTotal = existing?.total_amount ?? (existing ? ((Number(existing?.price ?? 0) * existingQty) || 0) : '');
             row.innerHTML = `
-        <div class="col-span-1 sm:col-span-1 lg:col-span-1">
-	            <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Size</label>
-            <input type="text" name="items[${rowIndex}][size]" class="input-size w-full rounded-md border-gray-300 text-sm" placeholder="1.00 x 200.0 x C" value="${existing?.size ?? ''}">
-        </div>
-        <div class="col-span-1 sm:col-span-1 lg:col-span-1">
-	            <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Part Number</label>
-            <select name="items[${rowIndex}][part_id]" class="part-select block w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500" ${vendorId ? '' : 'disabled'} required>
-                ${buildPartOptions(vendorId, existing?.part_id)}
-            </select>
-        </div>
-                <div class="col-span-1 lg:col-span-1">
-	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Bundle</label>
-                    <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle w-full rounded-md border-gray-300 text-sm" value="${existing?.qty_bundle ?? 0}" min="0" placeholder="0">
-                </div>
-                <div class="col-span-1 lg:col-span-1">
-	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Bundle</label>
-                    <select name="items[${rowIndex}][unit_bundle]" class="input-unit-bundle w-full rounded-md border-gray-300 text-sm">
-                        <option value="Coil" ${guessedBundle === 'Coil' ? 'selected' : ''}>Coil</option>
-                        <option value="Sheet" ${guessedBundle === 'Sheet' ? 'selected' : ''}>Sheet</option>
-                        <option value="Pallet" ${(guessedBundle === 'Pallet' || !guessedBundle) ? 'selected' : ''}>Pallet</option>
-                        <option value="Bundle" ${guessedBundle === 'Bundle' ? 'selected' : ''}>Bundle</option>
-                        <option value="Pcs" ${guessedBundle === 'Pcs' ? 'selected' : ''}>Pcs</option>
-                        <option value="Set" ${guessedBundle === 'Set' ? 'selected' : ''}>Set</option>
-                        <option value="Box" ${guessedBundle === 'Box' ? 'selected' : ''}>Box</option>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="lg:col-span-2">
+                <label class="text-xs font-semibold text-slate-500">Part</label>
+                <select name="items[${rowIndex}][part_id]" class="part-select mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500" ${vendorId ? '' : 'disabled'} required>
+                    ${buildPartOptions(vendorId, existing?.part_id)}
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Size</label>
+                <input type="text" name="items[${rowIndex}][size]" class="input-size mt-1 w-full rounded-lg border-slate-200 bg-slate-50 text-sm" placeholder="Auto dari master part" value="${escapeHtml(existing?.size ?? '')}" readonly>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Qty Bundle</label>
+                <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle mt-1 w-full rounded-lg border-slate-300 text-sm" value="${existing?.qty_bundle ?? ''}" min="0" placeholder="0">
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Unit Bundle</label>
+                <select name="items[${rowIndex}][unit_bundle]" class="input-unit-bundle mt-1 w-full rounded-lg border-slate-300 text-sm">
+                    <option value="Coil" ${guessedBundle === 'Coil' ? 'selected' : ''}>Coil</option>
+                    <option value="Sheet" ${guessedBundle === 'Sheet' ? 'selected' : ''}>Sheet</option>
+                    <option value="Pallet" ${(guessedBundle === 'Pallet' || !guessedBundle) ? 'selected' : ''}>Pallet</option>
+                    <option value="Bundle" ${guessedBundle === 'Bundle' ? 'selected' : ''}>Bundle</option>
+                    <option value="Pcs" ${guessedBundle === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                    <option value="Set" ${guessedBundle === 'Set' ? 'selected' : ''}>Set</option>
+                    <option value="Box" ${guessedBundle === 'Box' ? 'selected' : ''}>Box</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Qty Goods</label>
+                <div class="mt-1 flex gap-2">
+                    <input type="number" name="items[${rowIndex}][qty_goods]" class="qty-goods w-full rounded-lg border-slate-300 text-sm" value="${existing?.qty_goods ?? ''}" min="0" placeholder="Contoh: 10" required>
+                    <select name="items[${rowIndex}][unit_goods]" class="input-unit-goods w-[110px] rounded-lg border-slate-300 text-sm">
+                        <option value="">Unit</option>
+                        <option value="Sheet" ${guessedUnitGoods === 'Sheet' ? 'selected' : ''}>Sheet</option>
+                        <option value="Coil" ${guessedUnitGoods === 'Coil' ? 'selected' : ''}>Coil</option>
+                        <option value="Pcs" ${guessedUnitGoods === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                        <option value="Set" ${guessedUnitGoods === 'Set' ? 'selected' : ''}>Set</option>
+                        <option value="Box" ${guessedUnitGoods === 'Box' ? 'selected' : ''}>Box</option>
+                        <option value="Bundle" ${guessedUnitGoods === 'Bundle' ? 'selected' : ''}>Bundle</option>
+                        <option value="Pallet" ${guessedUnitGoods === 'Pallet' ? 'selected' : ''}>Pallet</option>
                     </select>
                 </div>
-                <div class="col-span-1 lg:col-span-1">
-	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Qty Goods</label>
-                    <input type="number" name="items[${rowIndex}][qty_goods]" class="qty-goods w-full rounded-md border-gray-300 text-sm" value="${existing?.qty_goods ?? 0}" min="0" required>
-                </div>
-                <div class="col-span-1 lg:col-span-1">
-	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Nett Wt</label>
-                    <input type="number" step="0.01" name="items[${rowIndex}][weight_nett]" class="weight-nett w-full rounded-md border-gray-300 text-sm" value="${existing?.weight_nett ?? 0}" min="0" required>
-                </div>
-                <div class="col-span-1 lg:col-span-1">
-	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Unit Wt</label>
-                    <select name="items[${rowIndex}][unit_weight]" class="input-unit-weight w-full rounded-md border-gray-300 text-sm">
-                        <option value="KGM" ${(guessedWeight === 'KGM' || !guessedWeight) ? 'selected' : ''}>KGM</option>
-                        <option value="KG" ${guessedWeight === 'KG' ? 'selected' : ''}>KG</option>
-                        <option value="Sheet" ${guessedWeight === 'Sheet' ? 'selected' : ''}>Sheet</option>
-                        <option value="Ton" ${guessedWeight === 'Ton' ? 'selected' : ''}>Ton</option>
-                    </select>
-                </div>
-                <div class="col-span-1 lg:col-span-1">
-	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Gross Wt</label>
-                    <input type="number" step="0.01" name="items[${rowIndex}][weight_gross]" class="weight-gross w-full rounded-md border-gray-300 text-sm" value="${existing?.weight_gross ?? 0}" min="0" required>
-                </div>
-                <div class="col-span-1 lg:col-span-1">
-	                    <label class="md:hidden text-xs font-semibold text-gray-500 mb-1 block">Price</label>
-                    <input type="number" step="0.01" name="items[${rowIndex}][price]" class="price w-full rounded-md border-gray-300 text-sm" value="${existing?.price ?? 0}" min="0" required>
-                </div>
-                <div class="col-span-1 sm:col-span-2 md:col-span-full pt-1">
-                    <div class="border-t border-dashed border-gray-200 pt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="w-full sm:max-w-[240px]">
-                            <div class="text-[11px] font-semibold text-gray-500 tracking-wide uppercase">Total Amount</div>
-	                            <div class="mt-2 relative">
-	                                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm leading-none text-gray-500">$</span>
-	                                <input type="text" class="total-amount w-full rounded-md border-gray-200 bg-gray-50 text-sm pl-10" value="0.00" readonly>
-                                <input type="hidden" class="total" value="0.00">
-                                <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${groupEl.querySelector('.material-title')?.value?.trim() || ''}">
-                                <input type="hidden" name="items[${rowIndex}][notes]" value="${existing?.notes ?? ''}">
-                            </div>
-                        </div>
-                        <button type="button" class="remove-line inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-800 text-sm font-semibold whitespace-nowrap">
-                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-200">
-                                <span class="leading-none">−</span>
-                            </span>
-                            Remove Line
-                        </button>
-                    </div>
-                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Nett Wt</label>
+                <input type="text" inputmode="decimal" name="items[${rowIndex}][weight_nett]" class="weight-nett mt-1 w-full rounded-lg border-slate-300 text-sm" value="${existing?.weight_nett ?? ''}" placeholder="0.00" required>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Unit Wt</label>
+                <select name="items[${rowIndex}][unit_weight]" class="input-unit-weight mt-1 w-full rounded-lg border-slate-300 text-sm">
+                    <option value="KGM" ${(guessedWeight === 'KGM' || !guessedWeight) ? 'selected' : ''}>KGM</option>
+                    <option value="KG" ${guessedWeight === 'KG' ? 'selected' : ''}>KG</option>
+                    <option value="Sheet" ${guessedWeight === 'Sheet' ? 'selected' : ''}>Sheet</option>
+                    <option value="Ton" ${guessedWeight === 'Ton' ? 'selected' : ''}>Ton</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Gross Wt</label>
+                <input type="text" inputmode="decimal" name="items[${rowIndex}][weight_gross]" class="weight-gross mt-1 w-full rounded-lg border-slate-300 text-sm" value="${existing?.weight_gross ?? ''}" placeholder="0.00" required>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Total Amount (input)</label>
+                <input type="text" inputmode="decimal" name="items[${rowIndex}][total_amount]" class="total-input mt-1 w-full rounded-lg border-blue-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500" value="${existingTotal}" placeholder="0.00" required>
+                <input type="hidden" name="items[${rowIndex}][price]" class="price" value="${existing?.price ?? ''}">
+                <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Qty</div>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-slate-500">Price (auto)</label>
+                <input type="text" class="price-display mt-1 w-full rounded-lg border-slate-200 bg-slate-50 text-sm" value="" placeholder="0.000" readonly>
+            </div>
+        </div>
+
+        <div class="mt-4 border-t border-dashed border-slate-200 pt-4 flex items-center justify-between gap-3">
+            <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${initialMaterialGroup}">
+            <input type="hidden" name="items[${rowIndex}][notes]" value="${escapeHtml(existing?.notes ?? '')}">
+
+            <button type="button" class="remove-line inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 text-sm font-semibold whitespace-nowrap">
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-200 bg-white">
+                    <span class="leading-none">−</span>
+                </span>
+                Hapus Baris
+            </button>
+        </div>
             `;
             rowsContainer.appendChild(row);
             rowIndex++;
 
             const qtyField = row.querySelector('.qty-goods');
-            const priceField = row.querySelector('.price');
-            [qtyField, priceField].forEach(field => {
+            const totalField = row.querySelector('.total-input');
+            const nettField = row.querySelector('.weight-nett');
+            const grossField = row.querySelector('.weight-gross');
+
+            [qtyField, totalField, nettField, grossField].forEach(field => {
                 normalizeDecimalInput(field);
-                field.addEventListener('input', () => updateTotal(row));
+                if (field === qtyField || field === totalField) {
+                    field.addEventListener('input', () => updateTotal(row));
+                }
             });
             updateTotal(row);
 
@@ -530,7 +768,21 @@
                 requestSaveDraft();
             });
 
+            const totalFieldForEnter = row.querySelector('.total-input');
+            if (totalFieldForEnter) {
+                totalFieldForEnter.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const newRow = addRowToGroup(groupEl);
+                    requestSaveDraft();
+                    setTimeout(() => {
+                        newRow?.querySelector('.part-select')?.focus();
+                    }, 0);
+                });
+            }
+
             requestSaveDraft();
+            return row;
         }
 
         function ensureAtLeastOneRow(groupEl) {
@@ -540,36 +792,28 @@
             }
         }
 
-        function createGroup({ title = '', rows = [] } = {}) {
-            const groupEl = document.createElement('div');
-            groupEl.className = 'material-group border border-gray-200 rounded-lg shadow-sm';
-            groupEl.innerHTML = `
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-gray-100 bg-gray-50 p-4 rounded-t-lg">
-                    <div class="w-full">
-                        <label class="text-sm font-semibold text-gray-700">Jenis Material / Part Name Vendor</label>
-                        <input type="text" class="material-title mt-1 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="SPHC / PO STEEL IN COIL" value="${title}">
-                        <p class="text-xs text-gray-500 mt-1">Nama material vendor yang akan menjadi judul tebal di invoice.</p>
-                    </div>
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                        <button type="button" class="add-part-line inline-flex w-full items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md shadow-sm hover:bg-blue-700 sm:w-auto">+ Part Line</button>
-                        <button type="button" class="remove-group text-xs text-red-600 hover:text-red-700">Remove Group</button>
-                    </div>
-                </div>
-                <div class="space-y-4 md:overflow-x-auto md:-mx-4 md:px-4">
-                    <div class="hidden md:grid md:grid-cols-[2fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] text-xs font-semibold text-gray-500 bg-gray-50 rounded-md px-3 py-2 whitespace-nowrap md:min-w-[1100px]">
-                        <div>Size</div>
-                        <div>Part Number</div>
-                        <div>Qty Bundle</div>
-                        <div>Unit</div>
-                        <div>Qty Goods</div>
-                        <div>Nett Wt</div>
-                        <div>Unit Wt</div>
-                        <div>Gross Wt</div>
-                        <div>Price</div>
-                    </div>
-                    <div class="group-rows space-y-3"></div>
-                </div>
-            `;
+	        function createGroup({ title = '', rows = [] } = {}) {
+	            const groupEl = document.createElement('div');
+	            groupEl.className = 'material-group border border-gray-200 rounded-lg shadow-sm';
+		            groupEl.innerHTML = `
+		                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-gray-100 bg-gray-50 p-4 rounded-t-lg">
+		                    <div class="w-full">
+		                        <label class="text-sm font-semibold text-gray-700">Jenis Material / Part Name Vendor</label>
+	                        <select class="material-title-select mt-1 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            <option value="">Pilih vendor dulu</option>
+	                        </select>
+	                        <input type="text" class="material-title-custom mt-2 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm hidden" placeholder="Ketik jenis material (manual)" value="">
+	                        <p class="text-xs text-gray-500 mt-1">Dropdown ngambil dari <span class="font-semibold">Part Name Vendor</span> (sesuai vendor). Kalau tidak ada, pilih <span class="font-semibold">Lainnya</span> lalu ketik manual.</p>
+	                    </div>
+	                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+	                        <button type="button" class="add-part-line inline-flex w-full items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md shadow-sm hover:bg-blue-700 sm:w-auto">+ Part Line</button>
+		                        <button type="button" class="remove-group text-xs text-red-600 hover:text-red-700">Remove Group</button>
+		                    </div>
+		                </div>
+		                <div class="p-4 bg-white rounded-b-lg">
+		                    <div class="group-rows space-y-4"></div>
+		                </div>
+	            `;
 
             const addLineBtn = groupEl.querySelector('.add-part-line');
             addLineBtn.addEventListener('click', () => {
@@ -587,13 +831,30 @@
                 requestSaveDraft();
             });
 
-            groupsContainer.appendChild(groupEl);
+	            groupsContainer.appendChild(groupEl);
 
-            const titleInput = groupEl.querySelector('.material-title');
-            titleInput.addEventListener('input', () => {
-                syncGroupTitle(groupEl);
-                requestSaveDraft();
-            });
+	            const titleSelect = groupEl.querySelector('.material-title-select');
+	            const titleCustom = groupEl.querySelector('.material-title-custom');
+
+	            if (titleSelect) {
+	                titleSelect.addEventListener('change', () => {
+	                    if (titleSelect.value === '__custom__') {
+	                        titleCustom?.classList.remove('hidden');
+	                        titleCustom?.focus();
+	                    } else {
+	                        titleCustom?.classList.add('hidden');
+	                    }
+	                    syncGroupTitle(groupEl);
+	                    requestSaveDraft();
+	                });
+	            }
+
+	            if (titleCustom) {
+	                titleCustom.addEventListener('input', () => {
+	                    syncGroupTitle(groupEl);
+	                    requestSaveDraft();
+	                });
+	            }
 
             if (rows.length) {
                 rows.forEach(row => addRowToGroup(groupEl, row));
@@ -601,9 +862,10 @@
                 addRowToGroup(groupEl);
             }
 
-            syncGroupTitle(groupEl);
-            if (!isRestoringDraft) requestSaveDraft();
-        }
+	            setGroupTitle(groupEl, title);
+	            syncGroupTitle(groupEl);
+	            if (!isRestoringDraft) requestSaveDraft();
+	        }
 
         function resetGroups(groupDefinitions = []) {
             groupsContainer.innerHTML = '';
@@ -617,15 +879,16 @@
             if (!isRestoringDraft) requestSaveDraft();
         }
 
-        async function loadParts(vendorId, force = false) {
-            if (!vendorId) return [];
-            if (!force && partsCache[vendorId]) return partsCache[vendorId];
-            const response = await fetch(`${partApiBase}/${vendorId}/parts`);
-            if (!response.ok) return [];
-            const data = await response.json();
-            partsCache[vendorId] = data;
-            return data;
-        }
+	        async function loadParts(vendorId, force = false) {
+	            if (!vendorId) return [];
+	            if (!force && partsCache[vendorId]) return partsCache[vendorId];
+	            const response = await fetch(`${partApiBase}/${vendorId}/parts`);
+	            if (!response.ok) return [];
+	            const data = await response.json();
+	            partsCache[vendorId] = data;
+	            rebuildMaterialTitleSelects(vendorId);
+	            return data;
+	        }
 
         addGroupBtn.addEventListener('click', () => {
             createGroup();
@@ -633,6 +896,11 @@
         });
 
         document.addEventListener('DOMContentLoaded', async () => {
+            initContainerRows();
+            if (addContainerRowBtn) {
+                addContainerRowBtn.addEventListener('click', () => addContainerRow());
+            }
+
             if (draftData?.fields && !hasOldInput) {
                 isRestoringDraft = true;
                 applyDraftFields(draftData.fields);

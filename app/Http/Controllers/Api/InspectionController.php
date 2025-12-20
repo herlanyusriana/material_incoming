@@ -14,7 +14,7 @@ class InspectionController extends Controller
     public function pending(Request $request)
     {
         $arrivals = Arrival::query()
-            ->with(['vendor'])
+            ->with(['vendor', 'containers'])
             ->whereDoesntHave('inspection')
             ->latest()
             ->limit(100)
@@ -26,7 +26,7 @@ class InspectionController extends Controller
 
     public function show(Arrival $arrival)
     {
-        $arrival->load(['vendor', 'inspection']);
+        $arrival->load(['vendor', 'containers', 'inspection']);
 
         return response()->json([
             'arrival' => $this->arrivalPayload($arrival),
@@ -85,7 +85,7 @@ class InspectionController extends Controller
         $inspection->save();
 
         return response()->json([
-            'arrival' => $this->arrivalPayload($arrival->load('vendor')),
+            'arrival' => $this->arrivalPayload($arrival->load(['vendor', 'containers'])),
             'inspection' => $this->inspectionPayload($inspection),
         ]);
     }
@@ -101,6 +101,12 @@ class InspectionController extends Controller
                 'id' => $arrival->vendor?->id,
                 'name' => $arrival->vendor?->vendor_name,
             ],
+            'containers' => $arrival->containers
+                ? $arrival->containers->map(fn ($c) => [
+                    'container_no' => $c->container_no,
+                    'seal_code' => $c->seal_code,
+                ])->values()
+                : [],
             'container_numbers' => $arrival->container_numbers,
             'seal_code' => $arrival->seal_code,
             'ETD' => optional($arrival->ETD)->format('Y-m-d'),
