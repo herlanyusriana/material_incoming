@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Completed Receives — {{ $arrival->invoice_no }}
+        Receive Summary — {{ $arrival->invoice_no }}
     </x-slot>
 
     <div class="py-6">
@@ -9,10 +9,24 @@
                 <div>
                     <div class="text-sm text-slate-600">{{ $arrival->vendor->vendor_name ?? '-' }} • {{ $arrival->arrival_no }}</div>
                     <h3 class="text-lg font-bold text-slate-900">Receive Records</h3>
+                    @if (!empty($hasPending))
+                        <div class="text-sm text-amber-700 mt-1">
+                            Masih ada pending: {{ number_format($pendingItemsCount ?? 0) }} item.
+                        </div>
+                    @else
+                        <div class="text-sm text-emerald-700 mt-1">Semua item sudah complete receive.</div>
+                    @endif
                 </div>
-                <a href="{{ route('receives.completed') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
-                    Back
-                </a>
+                <div class="flex items-center gap-2">
+                    @if (!empty($hasPending))
+                        <a href="{{ route('receives.invoice.create', $arrival) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            Lanjut Receive
+                        </a>
+                    @endif
+                    <a href="{{ route('receives.completed') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+                        Back
+                    </a>
+                </div>
             </div>
 
             <div class="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">

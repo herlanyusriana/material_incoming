@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 
 use App\Models\Receive;
@@ -11,6 +12,99 @@ use App\Models\Arrival;
 
 class ReceiveController extends Controller
 {
+    private function hasPendingReceives(Arrival $arrival): bool
+    {
+        $arrival->loadMissing('items.receives');
+
+        foreach ($arrival->items as $item) {
+            $received = $item->receives->sum('qty');
+            if (($item->qty_goods - $received) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function ensureTagsUniqueForArrivalItem(ArrivalItem $arrivalItem, array $tags): void
+    {
+        $incomingTags = collect($tags)
+            ->pluck('tag')
+            ->filter(fn ($tag) => is_string($tag) && trim($tag) !== '')
+            ->map(fn ($tag) => strtoupper(trim($tag)))
+            ->values();
+
+        if ($incomingTags->isEmpty()) {
+            return;
+        }
+
+        $duplicatesInRequest = $incomingTags
+            ->countBy()
+            ->filter(fn ($count) => $count > 1)
+            ->keys()
+            ->values();
+
+        if ($duplicatesInRequest->isNotEmpty()) {
+            throw new HttpResponseException(back()->withInput()->withErrors([
+                'tags' => 'Ada TAG duplikat di input: ' . $duplicatesInRequest->implode(', '),
+            ]));
+        }
+
+        $existingTags = $arrivalItem->receives()
+            ->whereIn('tag', $incomingTags->all())
+            ->pluck('tag')
+            ->map(fn ($tag) => strtoupper(trim((string) $tag)))
+            ->unique()
+            ->values();
+
+        if ($existingTags->isNotEmpty()) {
+            throw new HttpResponseException(back()->withInput()->withErrors([
+                'tags' => 'TAG sudah pernah diinput untuk item ini: ' . $existingTags->implode(', '),
+            ]));
+        }
+    }
+
+    private function ensureTagsUniqueForArrival(Arrival $arrival, array $itemsInput): void
+    {
+        $incomingTags = collect($itemsInput)
+            ->flatMap(function ($itemData) {
+                return collect($itemData['tags'] ?? [])->pluck('tag');
+            })
+            ->filter(fn ($tag) => is_string($tag) && trim($tag) !== '')
+            ->map(fn ($tag) => strtoupper(trim($tag)))
+            ->values();
+
+        if ($incomingTags->isEmpty()) {
+            return;
+        }
+
+        $duplicatesInRequest = $incomingTags
+            ->countBy()
+            ->filter(fn ($count) => $count > 1)
+            ->keys()
+            ->values();
+
+        if ($duplicatesInRequest->isNotEmpty()) {
+            throw new HttpResponseException(back()->withInput()->withErrors([
+                'items' => 'Ada TAG duplikat di input: ' . $duplicatesInRequest->implode(', '),
+            ]));
+        }
+
+        $existingTags = Receive::query()
+            ->whereIn('tag', $incomingTags->all())
+            ->whereHas('arrivalItem', fn ($q) => $q->where('arrival_id', $arrival->id))
+            ->pluck('tag')
+            ->map(fn ($tag) => strtoupper(trim((string) $tag)))
+            ->unique()
+            ->values();
+
+        if ($existingTags->isNotEmpty()) {
+            throw new HttpResponseException(back()->withInput()->withErrors([
+                'items' => 'TAG sudah pernah diinput untuk invoice ini: ' . $existingTags->implode(', '),
+            ]));
+        }
+    }
+
     public function index()
     {
         // Group pending by invoice/departure
@@ -87,14 +181,24 @@ class ReceiveController extends Controller
 
     public function completedInvoice(Arrival $arrival)
     {
-        $arrival->load('vendor');
+        $arrival->load(['vendor', 'items.receives']);
 
         $receives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
             ->whereHas('arrivalItem', fn ($q) => $q->where('arrival_id', $arrival->id))
             ->latest()
             ->paginate(25);
 
-        return view('receives.completed_invoice', compact('arrival', 'receives'));
+        $remainingQtyTotal = $arrival->items->sum(function ($item) {
+            $received = $item->receives->sum('qty');
+            return max(0, $item->qty_goods - $received);
+        });
+        $pendingItemsCount = $arrival->items->filter(function ($item) {
+            $received = $item->receives->sum('qty');
+            return ($item->qty_goods - $received) > 0;
+        })->count();
+        $hasPending = $pendingItemsCount > 0;
+
+        return view('receives.completed_invoice', compact('arrival', 'receives', 'remainingQtyTotal', 'pendingItemsCount', 'hasPending'));
     }
 
     public function create(ArrivalItem $arrivalItem)
@@ -130,7 +234,7 @@ class ReceiveController extends Controller
             ->values();
 
         if ($pendingItems->isEmpty()) {
-            return redirect()->route('receives.index')->with('success', 'Semua item pada invoice ini sudah diterima.');
+            return redirect()->route('receives.completed.invoice', $arrival)->with('success', 'Semua item pada invoice ini sudah diterima.');
         }
 
         return view('receives.invoice', [
@@ -154,6 +258,8 @@ class ReceiveController extends Controller
             'tags.*.qty_unit' => 'required|in:KGM,PCS,SHEET',
             'tags.*.qc_status' => 'required|in:pass,reject',
         ]);
+
+        $this->ensureTagsUniqueForArrivalItem($arrivalItem, $validated['tags']);
 
         $totalRequested = collect($validated['tags'])->sum('qty');
         $totalReceived = $arrivalItem->receives()->sum('qty');
@@ -199,7 +305,15 @@ class ReceiveController extends Controller
             ]);
         }
 
-        return redirect()->route('receives.index')->with('success', 'Items received successfully with ' . count($validated['tags']) . ' tag(s).');
+        $arrival = $arrivalItem->arrival()->with('items.receives')->first();
+        if ($arrival) {
+            $message = !$this->hasPendingReceives($arrival)
+                ? 'Invoice sudah complete receive.'
+                : 'TAG tersimpan. Silakan cek summary (masih ada pending).';
+            return redirect()->route('receives.completed.invoice', $arrival)->with('success', $message);
+        }
+
+        return redirect()->route('receives.index')->with('success', 'TAG tersimpan.');
     }
 
     public function storeByInvoice(Request $request, Arrival $arrival)
@@ -228,6 +342,8 @@ class ReceiveController extends Controller
         if (empty($itemsInput)) {
             return back()->withErrors(['items' => 'Tambah minimal satu tag pada salah satu item.'])->withInput();
         }
+
+        $this->ensureTagsUniqueForArrival($arrival, $itemsInput);
 
         foreach ($itemsInput as $itemId => $itemData) {
             $arrivalItem = $arrival->items->firstWhere('id', $itemId);
@@ -283,7 +399,12 @@ class ReceiveController extends Controller
             }
         }
 
-        return redirect()->route('receives.index')->with('success', 'Berhasil menerima item untuk invoice ' . $arrival->invoice_no . '.');
+        $arrival->load('items.receives');
+        $message = !$this->hasPendingReceives($arrival)
+            ? 'Invoice sudah complete receive.'
+            : 'TAG tersimpan. Silakan cek summary (masih ada pending).';
+
+        return redirect()->route('receives.completed.invoice', $arrival)->with('success', $message);
     }
 
     public function printLabel(Receive $receive)

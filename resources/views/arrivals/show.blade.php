@@ -10,6 +10,11 @@
                     {{ session('success') }}
                 </div>
             @endif
+            @if (session('error'))
+                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                    {{ session('error') }}
+                </div>
+            @endif
 
             <!-- Back Button -->
             <div class="flex items-center justify-between">
@@ -20,9 +25,17 @@
                     <span>Back to Departures</span>
                 </a>
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('receives.invoice.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
-                        Receive Invoice
+                    <a href="{{ route('receives.completed.invoice', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 {{ ($isReceiveComplete ?? false) ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800' : 'bg-slate-100 hover:bg-slate-200 text-slate-800' }} font-medium rounded-lg transition-colors">
+                        Receive Summary
                     </a>
+                    @if (!($isReceiveComplete ?? false))
+                        <a href="{{ route('receives.invoice.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
+                            Receive Invoice
+                        </a>
+                        <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
+                            Edit Departure
+                        </a>
+                    @endif
                     @if ($arrival->inspection)
                         <a href="{{ route('departures.inspection-report', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm">
                             Print Inspection

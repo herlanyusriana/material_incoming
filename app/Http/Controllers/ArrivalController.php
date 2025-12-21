@@ -30,6 +30,20 @@ class ArrivalController extends Controller
         return str_replace(',', '.', $trimmed);
     }
 
+    private function hasPendingReceives(Arrival $arrival): bool
+    {
+        $arrival->loadMissing('items.receives');
+
+        foreach ($arrival->items as $item) {
+            $received = $item->receives->sum('qty');
+            if (($item->qty_goods - $received) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function index()
     {
         $departures = Arrival::with(['vendor', 'creator', 'items.receives'])
@@ -203,7 +217,9 @@ class ArrivalController extends Controller
         $arrival = $departure;
         $arrival->load(['vendor', 'creator', 'trucking', 'inspection', 'containers', 'items.part.vendor', 'items.receives']);
 
-        return view('arrivals.show', compact('arrival'));
+        $isReceiveComplete = !$this->hasPendingReceives($arrival);
+
+        return view('arrivals.show', compact('arrival', 'isReceiveComplete'));
     }
 
     public function destroy(Arrival $departure)
@@ -223,24 +239,52 @@ class ArrivalController extends Controller
 
     public function edit(Arrival $departure)
     {
+        if (!$this->hasPendingReceives($departure)) {
+            return redirect()
+                ->route('departures.show', $departure)
+                ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
+        }
+
         return view('arrivals.edit', ['arrival' => $departure]);
     }
 
     public function update(Request $request, Arrival $departure)
     {
+        if (!$this->hasPendingReceives($departure)) {
+            return redirect()
+                ->route('departures.show', $departure)
+                ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
+        }
+
         $data = $request->validate([
+            'invoice_no' => ['required', 'string', 'max:255'],
             'invoice_date' => ['required', 'date'],
             'etd' => ['nullable', 'date'],
             'eta' => ['nullable', 'date'],
+            'vessel' => ['nullable', 'string', 'max:255'],
+            'bl_no' => ['nullable', 'string', 'max:255'],
+            'hs_code' => ['nullable', 'string', 'max:255'],
+            'port_of_loading' => ['nullable', 'string', 'max:255'],
+            'seal_code' => ['nullable', 'string', 'max:100'],
+            'currency' => ['required', 'string', 'max:10'],
+            'notes' => ['nullable', 'string'],
         ]);
 
         $departure->update([
+            'invoice_no' => $data['invoice_no'],
             'invoice_date' => $data['invoice_date'],
             'ETD' => $data['etd'] ?? null,
             'ETA' => $data['eta'] ?? null,
+            'vessel' => $data['vessel'] ?? null,
+            'bill_of_lading' => $data['bl_no'] ?? null,
+            'hs_code' => $data['hs_code'] ?? null,
+            'port_of_loading' => $data['port_of_loading'] ?? null,
+            'seal_code' => $data['seal_code'] ?? null,
+            'currency' => $data['currency'] ?? 'USD',
+            'notes' => $data['notes'] ?? null,
         ]);
 
-        return redirect()->route('departures.index')->with('status', 'Departure dates updated.');
+        return redirect()->route('departures.show', $departure)->with('success', 'Departure berhasil di-update.');
     }
 
     public function printInvoice(Arrival $departure)
