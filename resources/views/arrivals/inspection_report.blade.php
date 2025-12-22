@@ -139,7 +139,7 @@
                             <table class="kvs">
                                 <tr><td class="k">No Invoice</td><td class="v">: {{ $arrival->invoice_no }}</td></tr>
                                 <tr><td class="k">No Container</td><td class="v">: {{ $firstContainer }}</td></tr>
-                                <tr><td class="k">Arrival</td><td class="v">: {{ $arrival->arrival_no }}</td></tr>
+                                <tr><td class="k">Invoice</td><td class="v">: {{ $arrival->invoice_no ?? '-' }}</td></tr>
                                 <tr><td class="k">Vendor</td><td class="v">: {{ $arrival->vendor->vendor_name ?? '-' }}</td></tr>
                                 <tr><td class="k">Tanggal</td><td class="v">: {{ $inspection->updated_at?->format('Y-m-d') ?? '-' }}</td></tr>
                                 <tr><td class="k">Status</td><td class="v">: {{ strtoupper($inspection->status) }}</td></tr>

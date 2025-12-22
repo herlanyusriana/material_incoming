@@ -20,11 +20,12 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     public function headings(): array
     {
         return [
-            'part_number',
-            'part_name_vendor',
-            'part_name_internal',
             'vendor',
-            'description',
+            'part_no',
+            'size',
+            'part_name_vendor',
+            'part_name_gci',
+            'hs_code',
             'status',
         ];
     }
@@ -32,11 +33,12 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     public function map($part): array
     {
         return [
+            $part->vendor->vendor_name ?? '',
             $part->part_no,
+            $part->register_no,
             $part->part_name_vendor,
             $part->part_name_gci,
-            $part->vendor->vendor_name ?? '',
-            $part->description,
+            $part->hs_code,
             $part->status ?? 'active',
         ];
     }
@@ -51,12 +53,13 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     public function columnWidths(): array
     {
         return [
-            'A' => 20,
-            'B' => 30,
-            'C' => 30,
-            'D' => 25,
-            'E' => 40,
-            'F' => 12,
+            'A' => 25,
+            'B' => 18,
+            'C' => 18,
+            'D' => 30,
+            'E' => 30,
+            'F' => 14,
+            'G' => 12,
         ];
     }
 }

@@ -18,7 +18,7 @@
 
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-900">Departure {{ $arrival->arrival_no }}</h2>
+                    <h2 class="text-lg font-semibold text-slate-900">Departure {{ $arrival->invoice_no ?? 'Edit' }}</h2>
                     <p class="text-sm text-slate-500">Edit informasi utama departure. Items & receive records tidak diubah dari halaman ini.</p>
                 </div>
 

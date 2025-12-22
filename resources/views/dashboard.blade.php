@@ -161,17 +161,13 @@
                             <div class="flex items-start justify-between gap-4">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-3 mb-2">
-                                        <h4 class="text-lg font-bold text-slate-900">{{ $arrival->arrival_no }}</h4>
+                                        <h4 class="text-lg font-bold text-slate-900">{{ $arrival->invoice_no ?: 'Departure' }}</h4>
                                         <span class="text-xs text-slate-500">by {{ $arrival->creator->name ?? 'System' }}</span>
                                     </div>
                                     <div class="grid md:grid-cols-2 gap-2 text-sm">
                                         <div>
                                             <span class="text-slate-600">Vendor:</span>
                                             <span class="font-semibold text-slate-900">{{ $arrival->vendor->vendor_name }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-slate-600">Invoice:</span>
-                                            <span class="font-medium text-slate-900">{{ $arrival->invoice_no }}</span>
                                         </div>
                                         <div>
                                             <span class="text-slate-600">Items:</span>

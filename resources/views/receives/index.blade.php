@@ -40,7 +40,7 @@
                                     </td>
                                     <td class="px-4 py-4 text-sm text-slate-700">
                                         {{ $arrival->invoice_no }}
-                                        <div class="text-xs text-slate-500">{{ $arrival->arrival_no }}</div>
+                                        <div class="text-xs text-slate-500">{{ $arrival->invoice_no ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-4 text-sm text-slate-700">
                                         {{ $arrival->ETD ? $arrival->ETD->format('d M Y') : '-' }}

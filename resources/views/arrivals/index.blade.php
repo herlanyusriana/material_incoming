@@ -64,7 +64,7 @@
                                                 View Details
                                             </a>
                                             <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center justify-center h-10 px-4 text-white text-sm font-semibold rounded-lg transition-all min-w-[110px] shadow-lg shadow-orange-500/30" style="background-image: linear-gradient(120deg, #fb923c, #f97316, #ef4444);">
-                                                Edit Dates
+                                                Edit
                                             </a>
                                             <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center justify-center w-10 h-10 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors" title="Print Invoice">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

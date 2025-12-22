@@ -10,31 +10,88 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 
 class PartsImport implements ToModel, WithHeadingRow, WithValidation
 {
+    private function firstNonEmpty(array $row, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $row)) {
+                continue;
+            }
+
+            $value = is_string($row[$key]) ? trim($row[$key]) : $row[$key];
+            if ($value === null) {
+                continue;
+            }
+
+            if (is_string($value) && $value === '') {
+                continue;
+            }
+
+            return (string) $value;
+        }
+
+        return null;
+    }
+
     public function model(array $row)
     {
-        // Find vendor by name
-        $vendor = Vendor::where('vendor_name', $row['vendor'])->first();
-        
+        $vendorId = $this->firstNonEmpty($row, ['vendor_id']);
+        $vendorName = $this->firstNonEmpty($row, ['vendor', 'vendor_name']);
+
+        $vendor = null;
+        if ($vendorId !== null && is_numeric($vendorId)) {
+            $vendor = Vendor::find((int) $vendorId);
+        }
+
+        if (!$vendor && $vendorName) {
+            $normalized = mb_strtolower(trim($vendorName));
+            $vendor = Vendor::whereRaw('LOWER(vendor_name) = ?', [$normalized])->first();
+        }
+
         if (!$vendor) {
             return null;
         }
 
+        $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
+        $registerNo = $this->firstNonEmpty($row, ['register_no', 'register_number', 'size']);
+        $partNameVendor = $this->firstNonEmpty($row, ['part_name_vendor', 'vendor_part_name']);
+        $partNameGci = $this->firstNonEmpty($row, ['part_name_gci', 'part_name_internal', 'gci_part_name']);
+        $hsCode = $this->firstNonEmpty($row, ['hs_code']);
+
+        $statusRaw = $this->firstNonEmpty($row, ['status']);
+        $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : 'active';
+        if (!in_array($status, ['active', 'inactive'], true)) {
+            $status = 'active';
+        }
+
+        if (!$partNameVendor) {
+            $partNameVendor = $partNo;
+        }
+
+        if (!$partNameGci) {
+            $partNameGci = $partNameVendor ?: $partNo;
+        }
+
         return new Part([
-            'part_no' => $row['part_number'],
-            'part_name_vendor' => $row['part_name_vendor'] ?? $row['part_number'],
-            'part_name_gci' => $row['part_name_internal'] ?? $row['part_name_vendor'] ?? $row['part_number'],
-            'register_no' => $row['part_number'],
+            'part_no' => $partNo,
+            'register_no' => $registerNo ?: $partNo,
+            'part_name_vendor' => $partNameVendor,
+            'part_name_gci' => $partNameGci,
+            'hs_code' => $hsCode,
             'vendor_id' => $vendor->id,
-            'description' => $row['description'] ?? null,
-            'status' => strtolower($row['status'] ?? 'active'),
+            'status' => $status,
         ]);
     }
 
     public function rules(): array
     {
         return [
-            'part_number' => 'required|string|max:255',
-            'vendor' => 'required|string',
+            'vendor' => 'required_without:vendor_id|string|max:255',
+            'vendor_id' => 'nullable|integer',
+            'part_no' => 'required_without:part_number|string|max:255',
+            'part_number' => 'required_without:part_no|string|max:255',
+            'register_no' => 'nullable|string|max:255',
+            'register_number' => 'nullable|string|max:255',
+            'size' => 'nullable|string|max:255',
         ];
     }
 }

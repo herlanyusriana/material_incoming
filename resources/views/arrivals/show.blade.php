@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Departure {{ $arrival->arrival_no }}
+        Departure {{ $arrival->invoice_no ?? 'Detail' }}
     </x-slot>
 
     <div class="py-6">

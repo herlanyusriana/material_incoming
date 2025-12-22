@@ -26,7 +26,7 @@
         <div class="header">
             <div>
                 <div class="title">Receive Tag {{ $receive->tag }}</div>
-                <div class="meta">Departure {{ $receive->arrivalItem->arrival->arrival_no }} · {{ $receive->arrivalItem->arrival->vendor->vendor_name ?? 'Vendor' }}</div>
+                <div class="meta">Invoice {{ $receive->arrivalItem->arrival->invoice_no ?? '-' }} · {{ $receive->arrivalItem->arrival->vendor->vendor_name ?? 'Vendor' }}</div>
             </div>
             <div class="meta">Printed {{ now()->format('Y-m-d H:i') }}</div>
         </div>

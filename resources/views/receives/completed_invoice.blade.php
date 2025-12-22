@@ -7,7 +7,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-sm text-slate-600">{{ $arrival->vendor->vendor_name ?? '-' }} • {{ $arrival->arrival_no }}</div>
+                    <div class="text-sm text-slate-600">{{ $arrival->vendor->vendor_name ?? '-' }} • {{ $arrival->invoice_no ?? '-' }}</div>
                     <h3 class="text-lg font-bold text-slate-900">Receive Records</h3>
                     @if (!empty($hasPending))
                         <div class="text-sm text-amber-700 mt-1">

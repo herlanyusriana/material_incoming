@@ -117,6 +117,7 @@
 	                <p class="text-xs text-gray-500">
 	                    Format otomatis: <span id="size-preview-form">{{ $rawSize ?: '-' }}</span>
 	                    <br>Kalau dicentang, ukuran akan jadi <span class="font-semibold">C</span> di bagian panjang.
+                        <br>Tersimpan ke field: <span class="font-semibold">register_no</span>.
 	                </p>
                 <input
                     type="hidden"

@@ -422,7 +422,7 @@
             </div>
             <div class="invoice-title">
                 <h1>INVOICE</h1>
-                <div class="invoice-number">{{ $arrival->arrival_no }}</div>
+                <div class="invoice-number">{{ $arrival->invoice_no ?? '-' }}</div>
             </div>
             <div class="clear"></div>
         </div>

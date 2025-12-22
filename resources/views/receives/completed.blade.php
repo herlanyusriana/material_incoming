@@ -111,7 +111,7 @@
                                         <div class="font-semibold text-slate-900">{{ $arrival->vendor->vendor_name ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-4 text-slate-800 font-semibold">{{ $arrival->invoice_no }}</td>
-                                    <td class="px-4 py-4 text-slate-700 font-mono text-xs">{{ $arrival->arrival_no }}</td>
+                                    <td class="px-4 py-4 text-slate-700 font-mono text-xs">{{ $arrival->invoice_no ?? '-' }}</td>
                                     <td class="px-4 py-4 text-right text-slate-800 font-semibold">{{ number_format($arrival->receives_count ?? 0) }}</td>
                                     <td class="px-4 py-4 text-right text-slate-800 font-semibold">{{ number_format($arrival->total_qty ?? 0) }}</td>
                                     <td class="px-4 py-4 text-center">

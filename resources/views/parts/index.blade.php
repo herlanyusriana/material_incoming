@@ -394,9 +394,11 @@
                 </div>
                 
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p class="text-xs text-blue-800 font-medium mb-1">Required Columns (exact names):</p>
-                    <p class="text-xs text-blue-700">part_number, part_name_vendor, part_name_internal, vendor, description, status</p>
-                    <p class="text-xs text-blue-600 mt-1">Tip: Export existing data to get the correct format</p>
+                    <p class="text-xs text-blue-800 font-medium mb-1">Kolom wajib (nama harus sama):</p>
+                    <p class="text-xs text-blue-700">vendor, part_no, size</p>
+                    <p class="text-xs text-blue-800 font-medium mt-2 mb-1">Kolom opsional:</p>
+                    <p class="text-xs text-blue-700">part_name_vendor, part_name_gci, hs_code, status</p>
+                    <p class="text-xs text-blue-600 mt-1">Tip: Klik Export untuk dapat template yang sesuai.</p>
                 </div>
                 
                 <div class="flex gap-3 pt-2">
