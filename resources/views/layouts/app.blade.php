@@ -11,10 +11,18 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-        <style>[x-cloak]{display:none !important;}</style>
-    </head>
+	        <!-- Scripts -->
+	        @vite(['resources/css/app.css', 'resources/js/app.js'])
+	        <style>[x-cloak]{display:none !important;}</style>
+	        <style>
+	            input[type="text"],
+	            input[type="search"],
+	            textarea,
+	            select {
+	                text-transform: uppercase;
+	            }
+	        </style>
+	    </head>
     <body class="font-sans antialiased bg-slate-50">
         <div
             class="min-h-screen flex"
@@ -93,6 +101,72 @@
                     </div>
                 </main>
             </div>
-        </div>
-    </body>
-</html>
+	        </div>
+	        <script>
+	            (function () {
+	                const NON_TEXT_INPUT_TYPES = new Set([
+	                    'number',
+	                    'date',
+	                    'datetime-local',
+	                    'time',
+	                    'month',
+	                    'week',
+	                    'color',
+	                    'range',
+	                    'file',
+	                    'hidden',
+	                    'checkbox',
+	                    'radio',
+	                ]);
+
+	                const PRESERVE_CASE_TYPES = new Set(['password', 'email', 'url']);
+
+	                function shouldUppercase(el) {
+	                    if (!el || !(el instanceof HTMLElement)) return false;
+	                    if (el.matches('[data-no-uppercase], .no-uppercase')) return false;
+	                    if (el.hasAttribute('readonly') || el.hasAttribute('disabled')) return false;
+
+	                    const tag = el.tagName;
+	                    if (tag === 'INPUT') {
+	                        const type = (el.getAttribute('type') || 'text').toLowerCase();
+	                        if (NON_TEXT_INPUT_TYPES.has(type)) return false;
+	                        if (PRESERVE_CASE_TYPES.has(type)) return false;
+	                        return true;
+	                    }
+
+	                    if (tag === 'TEXTAREA') return true;
+	                    return false;
+	                }
+
+	                function applyUppercase(el) {
+	                    const value = String(el.value ?? '');
+	                    const upper = value.toUpperCase();
+	                    if (value !== upper) el.value = upper;
+	                }
+
+	                document.addEventListener(
+	                    'blur',
+	                    (event) => {
+	                        const el = event.target;
+	                        if (!shouldUppercase(el)) return;
+	                        applyUppercase(el);
+	                    },
+	                    true
+	                );
+
+	                document.addEventListener(
+	                    'submit',
+	                    (event) => {
+	                        const form = event.target;
+	                        if (!(form instanceof HTMLFormElement)) return;
+	                        form.querySelectorAll('input, textarea').forEach((el) => {
+	                            if (!shouldUppercase(el)) return;
+	                            applyUppercase(el);
+	                        });
+	                    },
+	                    true
+	                );
+	            })();
+	        </script>
+	    </body>
+	</html>

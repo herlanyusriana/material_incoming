@@ -12,6 +12,7 @@ use Barryvdh\Snappy\Facades\SnappyPdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -46,6 +47,13 @@ class ArrivalController extends Controller
             ->values();
 
         return $codes->isEmpty() ? null : $codes->implode("\n");
+    }
+
+    private function filterArrivalColumns(array $data): array
+    {
+        return collect($data)
+            ->filter(fn ($value, $key) => Schema::hasColumn('arrivals', (string) $key))
+            ->all();
     }
 
     private function hasPendingReceives(Arrival $arrival): bool
@@ -135,6 +143,7 @@ class ArrivalController extends Controller
         ]);
 
         $vendorId = $validated['vendor_id'];
+        $validated['invoice_no'] = strtoupper(trim((string) ($validated['invoice_no'] ?? '')));
 
         $arrival = DB::transaction(function () use ($validated, $vendorId) {
             $normalizedContainers = collect($validated['containers'] ?? [])
@@ -177,28 +186,30 @@ class ArrivalController extends Controller
 	                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
 	                : null;
 
-	            $arrival = Arrival::create([
-	                'invoice_no' => $validated['invoice_no'],
-	                'invoice_date' => $validated['invoice_date'],
-	                'vendor_id' => $vendorId,
-	                'vessel' => $validated['vessel'] ?? null,
-	                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
-	                'ETD' => $validated['etd'] ?? null,
-	                'ETA' => $validated['eta'] ?? null,
-	                'bill_of_lading' => $validated['bl_no'] ?? null,
-	                'price_term' => $validated['price_term'] ?? null,
-	                'hs_code' => $hsCodePrimary,
-	                'hs_codes' => $normalizedHsCodes,
-	                'port_of_loading' => $validated['port_of_loading'] ?? null,
-	                'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
-	                'container_numbers' => $containerNumbersLegacy,
-	                'seal_code' => $validated['seal_code'] ?? null,
-	                'currency' => $validated['currency'] ?? 'USD',
+            $arrivalData = [
+                'invoice_no' => $validated['invoice_no'],
+                'invoice_date' => $validated['invoice_date'],
+                'vendor_id' => $vendorId,
+                'vessel' => $validated['vessel'] ?? null,
+                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
+                'ETD' => $validated['etd'] ?? null,
+                'ETA' => $validated['eta'] ?? null,
+                'bill_of_lading' => $validated['bl_no'] ?? null,
+                'price_term' => $validated['price_term'] ?? null,
+                'hs_code' => $hsCodePrimary,
+                'hs_codes' => $normalizedHsCodes,
+                'port_of_loading' => $validated['port_of_loading'] ?? null,
+                'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
+                'container_numbers' => $containerNumbersLegacy,
+                'seal_code' => $validated['seal_code'] ?? null,
+                'currency' => $validated['currency'] ?? 'USD',
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
-            ]);
+            ];
 
-            if ($normalizedContainers->isNotEmpty()) {
+            $arrival = Arrival::create($this->filterArrivalColumns($arrivalData));
+
+            if ($normalizedContainers->isNotEmpty() && Schema::hasTable('arrival_containers')) {
                 $arrival->containers()->createMany($normalizedContainers->all());
             }
 
@@ -301,12 +312,14 @@ class ArrivalController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
+        $data['invoice_no'] = strtoupper(trim((string) ($data['invoice_no'] ?? '')));
+
         $normalizedHsCodes = $this->normalizeHsCodes($data['hs_codes'] ?? $data['hs_code'] ?? null);
         $hsCodePrimary = $normalizedHsCodes
             ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
             : null;
 
-        $departure->update([
+        $departureData = [
             'invoice_no' => $data['invoice_no'],
             'invoice_date' => $data['invoice_date'],
             'ETD' => $data['etd'] ?? null,
@@ -320,7 +333,9 @@ class ArrivalController extends Controller
             'seal_code' => $data['seal_code'] ?? null,
             'currency' => $data['currency'] ?? 'USD',
             'notes' => $data['notes'] ?? null,
-        ]);
+        ];
+
+        $departure->update($this->filterArrivalColumns($departureData));
 
         return redirect()->route('departures.show', $departure)->with('success', 'Departure berhasil di-update.');
     }

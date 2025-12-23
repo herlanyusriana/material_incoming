@@ -252,12 +252,24 @@
     
     <div class="container-section">
         NO CONTAINER :<br>
-        @if($arrival->container_numbers)
-            @foreach(explode("\n", $arrival->container_numbers) as $container)
-                @if(trim($container))
-                    {{ $loop->iteration }}. {{ strtoupper(trim($container)) }}<br>
-                @endif
+        @php
+            $containerLines = collect(preg_split('/\r\n|\r|\n/', (string) ($arrival->container_numbers ?? '')) ?: [])
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->values();
+            if ($containerLines->isEmpty() && ($arrival->containers ?? null)) {
+                $containerLines = collect($arrival->containers)
+                    ->map(fn ($c) => trim((string) ($c->container_no ?? '')))
+                    ->filter()
+                    ->values();
+            }
+        @endphp
+        @if($containerLines->count())
+            @foreach($containerLines as $line)
+                {{ $loop->iteration }}. {{ strtoupper($line) }}<br>
             @endforeach
+        @else
+            -<br>
         @endif
     </div>
     
@@ -385,14 +397,24 @@
     
     <div class="container-section">
         <strong>NO CONTAINER :</strong><br>
-        @if($arrival->container_numbers)
-            @foreach(explode("\n", $arrival->container_numbers) as $container)
-                @if(trim($container))
-                    {{ $loop->iteration }}. {{ trim($container) }}<br>
-                @endif
+        @php
+            $containerLines = collect(preg_split('/\r\n|\r|\n/', (string) ($arrival->container_numbers ?? '')) ?: [])
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->values();
+            if ($containerLines->isEmpty() && ($arrival->containers ?? null)) {
+                $containerLines = collect($arrival->containers)
+                    ->map(fn ($c) => trim((string) ($c->container_no ?? '')))
+                    ->filter()
+                    ->values();
+            }
+        @endphp
+        @if($containerLines->count())
+            @foreach($containerLines as $line)
+                {{ $loop->iteration }}. {{ strtoupper($line) }}<br>
             @endforeach
         @else
-            -
+            -<br>
         @endif
     </div>
     

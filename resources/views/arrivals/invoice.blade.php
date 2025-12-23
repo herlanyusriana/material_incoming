@@ -467,30 +467,59 @@
     </tbody>
 </table>
 
-	{{-- Container + Seal Section --}}
-	<div class="container-box">
-	    <strong>CONTAINERS &amp; SEAL :</strong><br>
-	    @if($arrival->containers->count())
-        @foreach($arrival->containers as $container)
-            {{ $loop->iteration }}. {{ strtoupper(trim($container->container_no)) }}
-            @if($container->seal_code)
-                / {{ strtoupper(trim($container->seal_code)) }}
-            @endif
-            <br>
-        @endforeach
-    @elseif($arrival->container_numbers)
-        @foreach(explode("\n", $arrival->container_numbers) as $container)
-            @if(trim($container))
-                {{ $loop->iteration }}. {{ strtoupper(trim($container)) }}<br>
-            @endif
-        @endforeach
-        @if($arrival->seal_code)
-            <strong>SEAL CODE :</strong> {{ strtoupper(trim($arrival->seal_code)) }}<br>
-        @endif
-    @else
-        -
-    @endif
-</div>
+		{{-- Container + Seal Section --}}
+		@php
+		    $containerDetails = collect();
+		    if ($arrival->containers?->count()) {
+		        $containerDetails = $arrival->containers
+		            ->map(function ($c) {
+		                $containerNo = strtoupper(trim((string) ($c->container_no ?? '')));
+		                $sealCode = strtoupper(trim((string) ($c->seal_code ?? '')));
+		                return [
+		                    'container_no' => $containerNo,
+		                    'seal_code' => $sealCode !== '' ? $sealCode : null,
+		                ];
+		            })
+		            ->filter(fn ($row) => $row['container_no'] !== '')
+		            ->values();
+		    }
+
+		    $legacyLines = collect(preg_split('/\r\n|\r|\n/', (string) ($arrival->container_numbers ?? '')) ?: [])
+		        ->map(fn ($line) => trim((string) $line))
+		        ->filter()
+		        ->values();
+
+		    if ($legacyLines->count()) {
+		        $legacyDetails = $legacyLines->map(function ($line) use ($arrival) {
+		            $parts = preg_split('/\s+/', (string) $line) ?: [];
+		            $containerNo = strtoupper(trim((string) ($parts[0] ?? '')));
+		            $sealCode = strtoupper(trim((string) ($parts[1] ?? $arrival->seal_code ?? '')));
+		            return [
+		                'container_no' => $containerNo,
+		                'seal_code' => $sealCode !== '' ? $sealCode : null,
+		            ];
+		        })->filter(fn ($row) => $row['container_no'] !== '');
+
+		        $containerDetails = $containerDetails
+		            ->merge($legacyDetails)
+		            ->unique('container_no')
+		            ->values();
+		    }
+		@endphp
+		<div class="container-box">
+		    <strong>CONTAINERS &amp; SEAL :</strong><br>
+		    @if($containerDetails->count())
+		        @foreach($containerDetails as $container)
+		            {{ $loop->iteration }}. {{ $container['container_no'] }}
+		            @if(!empty($container['seal_code']))
+		                / {{ $container['seal_code'] }}
+		            @endif
+		            <br>
+		        @endforeach
+		    @else
+		        -
+		    @endif
+		</div>
 
 {{-- Signature Section --}}
 <div class="footer-section">

@@ -664,8 +664,6 @@
 	            if (partNameInput) partNameInput.value = partData.part_name_gci || partData.part_name_vendor || '';
 	            const unitBundleSelect = row.querySelector('.input-unit-bundle');
 	            if (unitBundleSelect && !unitBundleSelect.value) unitBundleSelect.value = guessUnitBundle(partData);
-	            const packageCode = row.querySelector('.display-unit-code-package');
-	            if (packageCode && unitBundleSelect) packageCode.value = unitBundleSelect.value || '';
 	            const unitGoodsSelect = row.querySelector('.input-unit-goods');
 	            if (unitGoodsSelect && !unitGoodsSelect.value) unitGoodsSelect.value = guessUnitGoods(partData);
 	            const unitWeightSelect = row.querySelector('.input-unit-weight');
@@ -772,15 +770,10 @@
                         <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1" value="${existing?.qty_bundle ?? ''}" min="0" placeholder="0">
                     </div>
 
-                    <div class="sm:flex sm:items-center sm:gap-4">
-                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Unit Code Package</label>
-                        <input type="text" class="display-unit-code-package mt-1 w-full rounded-lg border-slate-200 bg-white text-sm sm:mt-0 sm:flex-1" value="${escapeHtml(existing?.unit_bundle ?? guessedBundle ?? '')}" readonly>
-                    </div>
-
-                    <div class="sm:flex sm:items-center sm:gap-4">
-                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Net Weight (KGM)</label>
-                        <div class="mt-1 flex w-full items-center gap-2 sm:mt-0 sm:flex-1">
-                            <input type="hidden" name="items[${rowIndex}][unit_weight]" value="KGM">
+	                    <div class="sm:flex sm:items-center sm:gap-4">
+	                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Net Weight (KGM)</label>
+	                        <div class="mt-1 flex w-full items-center gap-2 sm:mt-0 sm:flex-1">
+	                            <input type="hidden" name="items[${rowIndex}][unit_weight]" value="KGM">
                             <input type="text" inputmode="decimal" name="items[${rowIndex}][weight_nett]" class="weight-nett w-full rounded-lg border-slate-300 bg-white text-sm" value="${existing?.weight_nett ?? ''}" placeholder="0.00" required>
                             <span class="text-xs font-semibold text-slate-500 w-[56px] text-right">KGM</span>
                         </div>
@@ -800,13 +793,16 @@
                             <input type="text" inputmode="decimal" name="items[${rowIndex}][total_amount]" class="total-input w-full rounded-lg border-blue-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500" value="${existingTotal}" placeholder="0.00" required>
                             <input type="hidden" name="items[${rowIndex}][price]" class="price" value="${existing?.price ?? ''}">
                             <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Qty</div>
-                        </div>
-                    </div>
+	                        </div>
+	                    </div>
 
-                    <input type="hidden" class="price-display" value="">
-                </div>
-            </section>
-        </div>
+	                    <div class="sm:flex sm:items-center sm:gap-4">
+	                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Price (auto)</label>
+	                        <input type="text" class="price-display mt-1 w-full rounded-lg border-slate-200 bg-slate-100 text-sm sm:mt-0 sm:flex-1" value="" placeholder="0.000" readonly>
+	                    </div>
+	                </div>
+	            </section>
+	        </div>
 
         <div class="mt-4 border-t border-dashed border-slate-200 pt-4 flex items-center justify-between gap-3">
             <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${initialMaterialGroup}">
@@ -823,20 +819,10 @@
 	            rowsContainer.appendChild(row);
 	            rowIndex++;
 
-	            const unitBundleSelect = row.querySelector('.input-unit-bundle');
-	            const packageCode = row.querySelector('.display-unit-code-package');
-	            if (unitBundleSelect && packageCode) {
-	                packageCode.value = unitBundleSelect.value || '';
-	                unitBundleSelect.addEventListener('change', () => {
-	                    packageCode.value = unitBundleSelect.value || '';
-	                    requestSaveDraft();
-	                });
-	            }
-
-	            const qtyField = row.querySelector('.qty-goods');
-	            const totalField = row.querySelector('.total-input');
-	            const nettField = row.querySelector('.weight-nett');
-	            const grossField = row.querySelector('.weight-gross');
+		            const qtyField = row.querySelector('.qty-goods');
+		            const totalField = row.querySelector('.total-input');
+		            const nettField = row.querySelector('.weight-nett');
+		            const grossField = row.querySelector('.weight-gross');
 
             [qtyField, totalField, nettField, grossField].forEach(field => {
                 normalizeDecimalInput(field);

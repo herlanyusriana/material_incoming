@@ -133,6 +133,11 @@
                                     <div class="mt-1 text-[11px] text-slate-500">Unit price akan dihitung otomatis = Total / Qty Goods</div>
                                 </div>
                             </div>
+
+                            <div class="sm:flex sm:items-center sm:gap-4">
+                                <label class="text-xs font-semibold text-slate-500 sm:w-44">Price (auto)</label>
+                                <input type="text" class="mt-1 w-full rounded-lg border-slate-200 bg-slate-100 text-sm sm:mt-0 sm:flex-1" value="{{ number_format((float) old('price', $item->price), 3) }}" readonly>
+                            </div>
                         </div>
                     </div>
 
@@ -154,4 +159,3 @@
         </div>
     </div>
 </x-app-layout>
-

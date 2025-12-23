@@ -137,10 +137,14 @@
 	                        <span class="font-semibold text-slate-700 min-w-[100px]">ETD:</span>
 	                        <span class="text-slate-900">{{ $arrival->ETD ?: '-' }}</span>
 	                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
-                        <span class="text-slate-900">{{ $arrival->bill_of_lading ?: '-' }}</span>
-                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
+	                        <span class="text-slate-900">{{ $arrival->bill_of_lading ?: '-' }}</span>
+	                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Price Term:</span>
+	                        <span class="text-slate-900">{{ $arrival->price_term ?: '-' }}</span>
+	                    </div>
 	                    <div class="flex items-start gap-2">
 	                        <span class="font-semibold text-slate-700 min-w-[100px]">HS Code:</span>
 	                        <span class="text-slate-900">
