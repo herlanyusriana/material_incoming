@@ -293,11 +293,11 @@
         <tbody>
             <tr>
                 <td class="center">PKGS<br><br>NO: &nbsp; 31<br><br>MADE IN VIETNAM</td>
-                <td>
-                    <strong>GOODS</strong><br>
-                    <strong>{{ $arrival->bill_of_lading ?? '-' }}</strong><br>
-                    <strong>CIF JAKARTA</strong><br>
-                    <br>
+	                <td>
+	                    <strong>GOODS</strong><br>
+	                    <strong>{{ $arrival->bill_of_lading ?? '-' }}</strong><br>
+	                    <strong>{{ strtoupper($arrival->price_term ?? 'CIF JAKARTA') }}</strong><br>
+	                    <br>
                     @php
                         $totalSheets = 0;
                         $totalKgs = 0;
@@ -467,14 +467,18 @@
                 <span class="info-label">Vessel:</span>
                 <span class="info-value">{{ $arrival->vessel ?? '-' }}</span>
             </div>
-            <div class="info-row">
-                <span class="info-label">B/L Number:</span>
-                <span class="info-value">{{ $arrival->bill_of_lading ?? '-' }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Port of Loading:</span>
-                <span class="info-value">{{ $arrival->port_of_loading ?? '-' }}</span>
-            </div>
+	            <div class="info-row">
+	                <span class="info-label">B/L Number:</span>
+	                <span class="info-value">{{ $arrival->bill_of_lading ?? '-' }}</span>
+	            </div>
+	            <div class="info-row">
+	                <span class="info-label">Price Term:</span>
+	                <span class="info-value">{{ $arrival->price_term ?? '-' }}</span>
+	            </div>
+	            <div class="info-row">
+	                <span class="info-label">Port of Loading:</span>
+	                <span class="info-value">{{ $arrival->port_of_loading ?? '-' }}</span>
+	            </div>
             <div class="info-row">
                 <span class="info-label">Currency:</span>
                 <span class="info-value">{{ $arrival->currency }}</span>

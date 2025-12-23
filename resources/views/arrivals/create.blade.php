@@ -70,30 +70,37 @@
                 <!-- Section 2: Shipment Schedule -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-1 uppercase">Shipment Schedule</h2>
-                    <p class="text-xs text-gray-500 mb-4">Isi jadwal keberangkatan, kedatangan, serta detail kapal dan pelabuhan.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label for="etd" class="text-sm font-medium text-gray-700">Estimated Time of Departure (ETD)</label>
-                            <input type="date" id="etd" name="etd" value="{{ old('etd') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            @error('etd') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="space-y-1">
-                            <label for="eta" class="text-sm font-medium text-gray-700">Estimated Time of Arrival (ETA)</label>
-                            <input type="date" id="eta" name="eta" value="{{ old('eta') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            @error('eta') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="space-y-1">
-                            <label for="vessel" class="text-sm font-medium text-gray-700">Vessel</label>
-                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel') }}" placeholder="Nama kapal (opsional)" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            @error('vessel') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="space-y-1">
-                            <label for="port_of_loading" class="text-sm font-medium text-gray-700">Port of Loading</label>
-                            <input type="text" id="port_of_loading" name="port_of_loading" value="{{ old('port_of_loading') }}" placeholder="e.g., HOCHIMINH, VIET NAM" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            @error('port_of_loading') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                </div>
+	                    <p class="text-xs text-gray-500 mb-4">Isi jadwal keberangkatan, kedatangan, serta detail kapal dan pelabuhan.</p>
+	                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+	                        <div class="space-y-1">
+	                            <label for="etd" class="text-sm font-medium text-gray-700">Estimated Time of Departure (ETD)</label>
+	                            <input type="date" id="etd" name="etd" value="{{ old('etd') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            @error('etd') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                        <div class="space-y-1">
+	                            <label for="eta" class="text-sm font-medium text-gray-700">Estimated Time of Arrival (ETA)</label>
+	                            <input type="date" id="eta" name="eta" value="{{ old('eta') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            @error('eta') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                        <div class="space-y-1">
+	                            <label for="vessel" class="text-sm font-medium text-gray-700">Vessel</label>
+	                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel') }}" placeholder="Nama kapal (opsional)" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            @error('vessel') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                        <div class="space-y-1">
+	                            <label for="port_of_loading" class="text-sm font-medium text-gray-700">Port of Loading</label>
+	                            <input type="text" id="port_of_loading" name="port_of_loading" value="{{ old('port_of_loading') }}" placeholder="e.g., HOCHIMINH, VIET NAM" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            @error('port_of_loading') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                        <div class="md:col-span-2 space-y-1">
+	                            <label for="hs_codes" class="text-sm font-medium text-gray-700">HS Code (bisa lebih dari 1)</label>
+	                            <textarea id="hs_codes" name="hs_codes" rows="2" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Pisahkan dengan enter atau koma (contoh: 7208.90.00, 7210.70.00)">{{ old('hs_codes', old('hs_code')) }}</textarea>
+	                            <p class="text-xs text-gray-500">Opsional. Kalau kosong, sistem bisa ambil dari HS Code per part.</p>
+	                            @error('hs_codes') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                            @error('hs_code') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                    </div>
+	                </div>
 
                 <!-- Section 3: Transport -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -133,22 +140,27 @@
 	                    </div>
 	                </div>
 
-                <!-- Section 4: Documents & Notes -->
-                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Documents & Notes</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label for="bl_no" class="text-sm font-medium text-gray-700">Bill of Lading</label>
-                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no') }}" placeholder="BL-56789" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="md:col-span-2 space-y-1">
-                            <label for="notes" class="text-sm font-medium text-gray-700">Notes</label>
-                            <textarea id="notes" name="notes" rows="3" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Catatan atau instruksi khusus">{{ old('notes') }}</textarea>
-                            @error('notes') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                </div>
+	                <!-- Section 4: Documents & Notes -->
+	                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+	                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Documents & Notes</h2>
+	                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+	                        <div class="space-y-1">
+	                            <label for="bl_no" class="text-sm font-medium text-gray-700">Bill of Lading</label>
+	                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no') }}" placeholder="BL-56789" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                        <div class="space-y-1">
+	                            <label for="price_term" class="text-sm font-medium text-gray-700">Price Term</label>
+	                            <input type="text" id="price_term" name="price_term" value="{{ old('price_term') }}" placeholder="FOB / CIF / EXW" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                        <div class="md:col-span-2 space-y-1">
+	                            <label for="notes" class="text-sm font-medium text-gray-700">Notes</label>
+	                            <textarea id="notes" name="notes" rows="3" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Catatan atau instruksi khusus">{{ old('notes') }}</textarea>
+	                            @error('notes') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                    </div>
+	                </div>
 
                 <!-- Material & Part Lines -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
@@ -230,11 +242,11 @@
             return rows;
         }
 
-        function addContainerRow(existing = null) {
-            if (!containerRowsEl) return;
-            const idx = containerIndex++;
-            const containerNo = escapeHtml(existing?.container_no ?? '');
-            const seal = escapeHtml(existing?.seal_code ?? '');
+	        function addContainerRow(existing = null) {
+	            if (!containerRowsEl) return;
+	            const idx = containerIndex++;
+	            const containerNo = escapeHtml(existing?.container_no ?? '');
+	            const seal = escapeHtml(existing?.seal_code ?? '');
 
             const row = document.createElement('div');
             row.className = 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
@@ -256,31 +268,62 @@
                 </div>
             `;
 
-            row.querySelector('.remove-container')?.addEventListener('click', () => {
-                row.remove();
-                if (containerRowsEl.children.length === 0) {
-                    addContainerRow();
-                }
-            });
+	            row.querySelector('.remove-container')?.addEventListener('click', () => {
+	                row.remove();
+	                if (containerRowsEl.children.length === 0) {
+	                    addContainerRow();
+	                }
+	                requestSaveDraft();
+	            });
 
-            containerRowsEl.appendChild(row);
-        }
+	            row.querySelectorAll('input').forEach((input) => {
+	                input.addEventListener('input', () => requestSaveDraft());
+	            });
 
-        function initContainerRows() {
-            if (!containerRowsEl) return;
-            containerRowsEl.innerHTML = '';
-            containerIndex = 0;
+	            containerRowsEl.appendChild(row);
+	        }
+
+	        function initContainerRows() {
+	            if (!containerRowsEl) return;
+	            containerRowsEl.innerHTML = '';
+	            containerIndex = 0;
 
             const rows = Array.isArray(existingContainers) && existingContainers.length
                 ? existingContainers
                 : parseLegacyContainers(legacyContainerNumbers, legacySealCode);
 
-            if (rows.length) {
-                rows.forEach(r => addContainerRow(r));
-            } else {
-                addContainerRow();
-            }
-        }
+	            if (rows.length) {
+	                rows.forEach(r => addContainerRow(r));
+	            } else {
+	                addContainerRow();
+	            }
+	        }
+
+	        function applyDraftContainers(fields) {
+	            if (hasOldInput || !fields || !containerRowsEl) return;
+	            const indices = Object.keys(fields)
+	                .map((key) => {
+	                    const match = key.match(/^containers\[(\d+)\]\[(container_no|seal_code)\]$/);
+	                    return match ? Number(match[1]) : null;
+	                })
+	                .filter((value) => Number.isInteger(value));
+
+	            const uniqueIndices = Array.from(new Set(indices)).sort((a, b) => a - b);
+	            if (!uniqueIndices.length) return;
+
+	            containerRowsEl.innerHTML = '';
+	            containerIndex = 0;
+	            uniqueIndices.forEach((idx) => {
+	                addContainerRow({
+	                    container_no: fields[`containers[${idx}][container_no]`] ?? '',
+	                    seal_code: fields[`containers[${idx}][seal_code]`] ?? '',
+	                });
+	            });
+
+	            if (containerRowsEl.children.length === 0) {
+	                addContainerRow();
+	            }
+	        }
 
         function updateRefreshButtonState() {
             if (!refreshPartsBtn) return;
@@ -352,13 +395,14 @@
             draftSaveTimeout = setTimeout(saveDraft, 400);
         }
 
-        function applyDraftFields(fields) {
-            if (hasOldInput || !fields) return;
-            Object.entries(fields).forEach(([name, value]) => {
-                const elements = document.getElementsByName(name);
-                if (!elements.length) return;
-                Array.from(elements).forEach(el => {
-                    if (el.name.startsWith('items[') || el.name === '_token') return;
+	        function applyDraftFields(fields) {
+	            if (hasOldInput || !fields) return;
+	            applyDraftContainers(fields);
+	            Object.entries(fields).forEach(([name, value]) => {
+	                const elements = document.getElementsByName(name);
+	                if (!elements.length) return;
+	                Array.from(elements).forEach(el => {
+	                    if (el.name.startsWith('items[') || el.name === '_token') return;
                     if (el.type === 'checkbox' || el.type === 'radio') {
                         el.checked = el.value === value;
                     } else {
@@ -609,17 +653,23 @@
             return list.find(p => String(p.id) === String(partId));
         }
 
-        function applyPartDefaults(row, vendorId, partId) {
-            const partData = findPart(vendorId, partId);
-            if (!partData) return;
-            const sizeInput = row.querySelector('.input-size');
-            if (sizeInput) sizeInput.value = partData.size || partData.register_no || '';
-            const unitBundleSelect = row.querySelector('.input-unit-bundle');
-            if (unitBundleSelect && !unitBundleSelect.value) unitBundleSelect.value = guessUnitBundle(partData);
-            const unitGoodsSelect = row.querySelector('.input-unit-goods');
-            if (unitGoodsSelect && !unitGoodsSelect.value) unitGoodsSelect.value = guessUnitGoods(partData);
-            const unitWeightSelect = row.querySelector('.input-unit-weight');
-            if (unitWeightSelect && !unitWeightSelect.value) unitWeightSelect.value = guessUnitWeight(partData);
+	        function applyPartDefaults(row, vendorId, partId) {
+	            const partData = findPart(vendorId, partId);
+	            if (!partData) return;
+	            const sizeInput = row.querySelector('.input-size');
+	            if (sizeInput) sizeInput.value = partData.size || partData.register_no || '';
+	            const partNoInput = row.querySelector('.input-part-no-gci');
+	            if (partNoInput) partNoInput.value = partData.part_no || '';
+	            const partNameInput = row.querySelector('.input-part-name-gci');
+	            if (partNameInput) partNameInput.value = partData.part_name_gci || partData.part_name_vendor || '';
+	            const unitBundleSelect = row.querySelector('.input-unit-bundle');
+	            if (unitBundleSelect && !unitBundleSelect.value) unitBundleSelect.value = guessUnitBundle(partData);
+	            const packageCode = row.querySelector('.display-unit-code-package');
+	            if (packageCode && unitBundleSelect) packageCode.value = unitBundleSelect.value || '';
+	            const unitGoodsSelect = row.querySelector('.input-unit-goods');
+	            if (unitGoodsSelect && !unitGoodsSelect.value) unitGoodsSelect.value = guessUnitGoods(partData);
+	            const unitWeightSelect = row.querySelector('.input-unit-weight');
+	            if (unitWeightSelect && !unitWeightSelect.value) unitWeightSelect.value = guessUnitWeight(partData);
 
 	            const groupEl = row.closest('.material-group');
 	            if (groupEl) {
@@ -635,96 +685,127 @@
 	            groupEl.querySelectorAll('.material-group-field').forEach(field => field.value = title);
 	        }
 
-        function addRowToGroup(groupEl, existing = null) {
-            const vendorId = vendorIdInput.value;
-            const rowsContainer = groupEl.querySelector('.group-rows');
-            const row = document.createElement('div');
-            row.className = 'line-row rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
+	        function addRowToGroup(groupEl, existing = null) {
+	            const vendorId = vendorIdInput.value;
+	            const rowsContainer = groupEl.querySelector('.group-rows');
+	            const row = document.createElement('div');
+	            row.className = 'line-row rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
             const guessedBundle = existing?.unit_bundle ?? null;
             const guessedWeight = existing?.unit_weight ?? null;
             const guessedUnitGoods = existing?.unit_goods ?? null;
             const initialMaterialGroup = escapeHtml(getGroupTitle(groupEl));
             const existingQty = Number(existing?.qty_goods ?? 0);
             const existingTotal = existing?.total_amount ?? (existing ? ((Number(existing?.price ?? 0) * existingQty) || 0) : '');
-            row.innerHTML = `
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="lg:col-span-2">
-                <label class="text-xs font-semibold text-slate-500">Part</label>
-                <select name="items[${rowIndex}][part_id]" class="part-select mt-1 block w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500" ${vendorId ? '' : 'disabled'} required>
-                    ${buildPartOptions(vendorId, existing?.part_id)}
-                </select>
-            </div>
-
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Size</label>
-                <input type="text" name="items[${rowIndex}][size]" class="input-size mt-1 w-full rounded-lg border-slate-200 bg-slate-50 text-sm" placeholder="Auto dari master part" value="${escapeHtml(existing?.size ?? '')}" readonly>
-            </div>
-
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Qty Bundle</label>
-                <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle mt-1 w-full rounded-lg border-slate-300 text-sm" value="${existing?.qty_bundle ?? ''}" min="0" placeholder="0">
-            </div>
-
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Unit Bundle</label>
-                <select name="items[${rowIndex}][unit_bundle]" class="input-unit-bundle mt-1 w-full rounded-lg border-slate-300 text-sm">
-                    <option value="Coil" ${guessedBundle === 'Coil' ? 'selected' : ''}>Coil</option>
-                    <option value="Sheet" ${guessedBundle === 'Sheet' ? 'selected' : ''}>Sheet</option>
-                    <option value="Pallet" ${(guessedBundle === 'Pallet' || !guessedBundle) ? 'selected' : ''}>Pallet</option>
-                    <option value="Bundle" ${guessedBundle === 'Bundle' ? 'selected' : ''}>Bundle</option>
-                    <option value="Pcs" ${guessedBundle === 'Pcs' ? 'selected' : ''}>Pcs</option>
-                    <option value="Set" ${guessedBundle === 'Set' ? 'selected' : ''}>Set</option>
-                    <option value="Box" ${guessedBundle === 'Box' ? 'selected' : ''}>Box</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Qty Goods</label>
-                <div class="mt-1 flex gap-2">
-                    <input type="number" name="items[${rowIndex}][qty_goods]" class="qty-goods w-full rounded-lg border-slate-300 text-sm" value="${existing?.qty_goods ?? ''}" min="0" placeholder="Contoh: 10" required>
-                    <select name="items[${rowIndex}][unit_goods]" class="input-unit-goods w-[110px] rounded-lg border-slate-300 text-sm">
-                        <option value="">Unit</option>
-                        <option value="Sheet" ${guessedUnitGoods === 'Sheet' ? 'selected' : ''}>Sheet</option>
-                        <option value="Coil" ${guessedUnitGoods === 'Coil' ? 'selected' : ''}>Coil</option>
-                        <option value="Pcs" ${guessedUnitGoods === 'Pcs' ? 'selected' : ''}>Pcs</option>
-                        <option value="Set" ${guessedUnitGoods === 'Set' ? 'selected' : ''}>Set</option>
-                        <option value="Box" ${guessedUnitGoods === 'Box' ? 'selected' : ''}>Box</option>
-                        <option value="Bundle" ${guessedUnitGoods === 'Bundle' ? 'selected' : ''}>Bundle</option>
-                        <option value="Pallet" ${guessedUnitGoods === 'Pallet' ? 'selected' : ''}>Pallet</option>
-                    </select>
+	            row.innerHTML = `
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <section class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <h4 class="text-xs font-semibold tracking-wide text-slate-600 uppercase">Detail Part</h4>
                 </div>
-            </div>
 
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Nett Wt</label>
-                <input type="text" inputmode="decimal" name="items[${rowIndex}][weight_nett]" class="weight-nett mt-1 w-full rounded-lg border-slate-300 text-sm" value="${existing?.weight_nett ?? ''}" placeholder="0.00" required>
-            </div>
+                <div class="space-y-3">
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Part</label>
+                        <select name="items[${rowIndex}][part_id]" class="part-select mt-1 block w-full rounded-lg border-slate-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500 sm:mt-0 sm:flex-1" ${vendorId ? '' : 'disabled'} required>
+                            ${buildPartOptions(vendorId, existing?.part_id)}
+                        </select>
+                    </div>
 
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Unit Wt</label>
-                <select name="items[${rowIndex}][unit_weight]" class="input-unit-weight mt-1 w-full rounded-lg border-slate-300 text-sm">
-                    <option value="KGM" ${(guessedWeight === 'KGM' || !guessedWeight) ? 'selected' : ''}>KGM</option>
-                    <option value="KG" ${guessedWeight === 'KG' ? 'selected' : ''}>KG</option>
-                    <option value="Sheet" ${guessedWeight === 'Sheet' ? 'selected' : ''}>Sheet</option>
-                    <option value="Ton" ${guessedWeight === 'Ton' ? 'selected' : ''}>Ton</option>
-                </select>
-            </div>
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Size</label>
+                        <input type="text" name="items[${rowIndex}][size]" class="input-size mt-1 w-full rounded-lg border-slate-200 bg-white text-sm sm:mt-0 sm:flex-1" placeholder="Auto dari master part" value="${escapeHtml(existing?.size ?? '')}" readonly>
+                    </div>
 
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Gross Wt</label>
-                <input type="text" inputmode="decimal" name="items[${rowIndex}][weight_gross]" class="weight-gross mt-1 w-full rounded-lg border-slate-300 text-sm" value="${existing?.weight_gross ?? ''}" placeholder="0.00" required>
-            </div>
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Part No GCI</label>
+                        <input type="text" class="input-part-no-gci mt-1 w-full rounded-lg border-slate-200 bg-white text-sm sm:mt-0 sm:flex-1" placeholder="Auto dari master part" value="" readonly>
+                    </div>
 
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Total Amount (input)</label>
-                <input type="text" inputmode="decimal" name="items[${rowIndex}][total_amount]" class="total-input mt-1 w-full rounded-lg border-blue-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500" value="${existingTotal}" placeholder="0.00" required>
-                <input type="hidden" name="items[${rowIndex}][price]" class="price" value="${existing?.price ?? ''}">
-                <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Qty</div>
-            </div>
-            <div>
-                <label class="text-xs font-semibold text-slate-500">Price (auto)</label>
-                <input type="text" class="price-display mt-1 w-full rounded-lg border-slate-200 bg-slate-50 text-sm" value="" placeholder="0.000" readonly>
-            </div>
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Part Name GCI</label>
+                        <input type="text" class="input-part-name-gci mt-1 w-full rounded-lg border-slate-200 bg-white text-sm sm:mt-0 sm:flex-1" placeholder="Auto dari master part" value="" readonly>
+                    </div>
+
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Qty Goods</label>
+                        <input type="number" name="items[${rowIndex}][qty_goods]" class="qty-goods mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1" value="${existing?.qty_goods ?? ''}" min="0" placeholder="Contoh: 10" required>
+                    </div>
+
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Unit Code / Satuan Unit</label>
+                        <select name="items[${rowIndex}][unit_goods]" class="input-unit-goods mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
+                            <option value="">Pilih satuan</option>
+                            <option value="KGM" ${guessedUnitGoods === 'KGM' ? 'selected' : ''}>KGM</option>
+                            <option value="Sheet" ${guessedUnitGoods === 'Sheet' ? 'selected' : ''}>Sheet</option>
+                            <option value="Coil" ${guessedUnitGoods === 'Coil' ? 'selected' : ''}>Coil</option>
+                            <option value="Pcs" ${guessedUnitGoods === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="Set" ${guessedUnitGoods === 'Set' ? 'selected' : ''}>Set</option>
+                            <option value="Box" ${guessedUnitGoods === 'Box' ? 'selected' : ''}>Box</option>
+                            <option value="Bundle" ${guessedUnitGoods === 'Bundle' ? 'selected' : ''}>Bundle</option>
+                            <option value="Pallet" ${guessedUnitGoods === 'Pallet' ? 'selected' : ''}>Pallet</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <h4 class="text-xs font-semibold tracking-wide text-slate-600 uppercase">Detail Packaging</h4>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Jenis Package</label>
+                        <select name="items[${rowIndex}][unit_bundle]" class="input-unit-bundle mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
+                            <option value="Coil" ${guessedBundle === 'Coil' ? 'selected' : ''}>Coil</option>
+                            <option value="Sheet" ${guessedBundle === 'Sheet' ? 'selected' : ''}>Sheet</option>
+                            <option value="Pallet" ${(guessedBundle === 'Pallet' || !guessedBundle) ? 'selected' : ''}>Pallet</option>
+                            <option value="Bundle" ${guessedBundle === 'Bundle' ? 'selected' : ''}>Bundle</option>
+                            <option value="Pcs" ${guessedBundle === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="Set" ${guessedBundle === 'Set' ? 'selected' : ''}>Set</option>
+                            <option value="Box" ${guessedBundle === 'Box' ? 'selected' : ''}>Box</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Qty Package</label>
+                        <input type="number" name="items[${rowIndex}][qty_bundle]" class="qty-bundle mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1" value="${existing?.qty_bundle ?? ''}" min="0" placeholder="0">
+                    </div>
+
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Unit Code Package</label>
+                        <input type="text" class="display-unit-code-package mt-1 w-full rounded-lg border-slate-200 bg-white text-sm sm:mt-0 sm:flex-1" value="${escapeHtml(existing?.unit_bundle ?? guessedBundle ?? '')}" readonly>
+                    </div>
+
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Net Weight (KGM)</label>
+                        <div class="mt-1 flex w-full items-center gap-2 sm:mt-0 sm:flex-1">
+                            <input type="hidden" name="items[${rowIndex}][unit_weight]" value="KGM">
+                            <input type="text" inputmode="decimal" name="items[${rowIndex}][weight_nett]" class="weight-nett w-full rounded-lg border-slate-300 bg-white text-sm" value="${existing?.weight_nett ?? ''}" placeholder="0.00" required>
+                            <span class="text-xs font-semibold text-slate-500 w-[56px] text-right">KGM</span>
+                        </div>
+                    </div>
+
+                    <div class="sm:flex sm:items-center sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Gross Weight (KGM)</label>
+                        <div class="mt-1 flex w-full items-center gap-2 sm:mt-0 sm:flex-1">
+                            <input type="text" inputmode="decimal" name="items[${rowIndex}][weight_gross]" class="weight-gross w-full rounded-lg border-slate-300 bg-white text-sm" value="${existing?.weight_gross ?? ''}" placeholder="0.00" required>
+                            <span class="text-xs font-semibold text-slate-500 w-[56px] text-right">KGM</span>
+                        </div>
+                    </div>
+
+                    <div class="sm:flex sm:items-start sm:gap-4">
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44 sm:pt-2">Total Price</label>
+                        <div class="mt-1 w-full sm:mt-0 sm:flex-1">
+                            <input type="text" inputmode="decimal" name="items[${rowIndex}][total_amount]" class="total-input w-full rounded-lg border-blue-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500" value="${existingTotal}" placeholder="0.00" required>
+                            <input type="hidden" name="items[${rowIndex}][price]" class="price" value="${existing?.price ?? ''}">
+                            <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Qty</div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" class="price-display" value="">
+                </div>
+            </section>
         </div>
 
         <div class="mt-4 border-t border-dashed border-slate-200 pt-4 flex items-center justify-between gap-3">
@@ -739,13 +820,23 @@
             </button>
         </div>
             `;
-            rowsContainer.appendChild(row);
-            rowIndex++;
+	            rowsContainer.appendChild(row);
+	            rowIndex++;
 
-            const qtyField = row.querySelector('.qty-goods');
-            const totalField = row.querySelector('.total-input');
-            const nettField = row.querySelector('.weight-nett');
-            const grossField = row.querySelector('.weight-gross');
+	            const unitBundleSelect = row.querySelector('.input-unit-bundle');
+	            const packageCode = row.querySelector('.display-unit-code-package');
+	            if (unitBundleSelect && packageCode) {
+	                packageCode.value = unitBundleSelect.value || '';
+	                unitBundleSelect.addEventListener('change', () => {
+	                    packageCode.value = unitBundleSelect.value || '';
+	                    requestSaveDraft();
+	                });
+	            }
+
+	            const qtyField = row.querySelector('.qty-goods');
+	            const totalField = row.querySelector('.total-input');
+	            const nettField = row.querySelector('.weight-nett');
+	            const grossField = row.querySelector('.weight-gross');
 
             [qtyField, totalField, nettField, grossField].forEach(field => {
                 normalizeDecimalInput(field);
@@ -895,11 +986,14 @@
             requestSaveDraft();
         });
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            initContainerRows();
-            if (addContainerRowBtn) {
-                addContainerRowBtn.addEventListener('click', () => addContainerRow());
-            }
+	        document.addEventListener('DOMContentLoaded', async () => {
+	            initContainerRows();
+	            if (addContainerRowBtn) {
+	                addContainerRowBtn.addEventListener('click', () => {
+	                    addContainerRow();
+	                    requestSaveDraft();
+	                });
+	            }
 
             if (draftData?.fields && !hasOldInput) {
                 isRestoringDraft = true;

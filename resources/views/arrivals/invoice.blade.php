@@ -357,15 +357,17 @@
     </thead>
     <tbody>
         {{-- Marks & Made In row --}}
-        <tr>
-            <td style="vertical-align:top;">
-                NO: 1-{{ $marksNoEnd }}<br>
-                
-            </td>
-            <td colspan="4" style="text-align:right">
-                <strong>BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}</strong>
-            </td>
-        </tr>
+	        <tr>
+	            <td style="vertical-align:top;">
+	                NO: 1-{{ $marksNoEnd }}<br>
+	                
+	            </td>
+	            <td colspan="4" style="text-align:right">
+	                <strong>BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}</strong>
+	                <br>
+	                <strong>PRICE TERM : {{ strtoupper($arrival->price_term ?? '-') }}</strong>
+	            </td>
+	        </tr>
         
         @php
             $groupedItems = $arrival->items->groupBy(function($i) {

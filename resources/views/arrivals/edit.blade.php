@@ -47,21 +47,29 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label for="vessel" class="text-sm font-medium text-slate-700">Vessel</label>
-                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel', $arrival->vessel) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                        </div>
-                        <div class="space-y-1">
-                            <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
-                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no', $arrival->bill_of_lading) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                        </div>
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+	                        <div class="space-y-1">
+	                            <label for="vessel" class="text-sm font-medium text-slate-700">Vessel</label>
+	                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel', $arrival->vessel) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                        </div>
+	                        <div class="space-y-1">
+	                            <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
+	                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no', $arrival->bill_of_lading) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+                            <div class="space-y-1">
+                                <label for="price_term" class="text-sm font-medium text-slate-700">Price Term</label>
+                                <input type="text" id="price_term" name="price_term" value="{{ old('price_term', $arrival->price_term) }}" placeholder="FOB / CIF / EXW" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+	                    </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
-                            <label for="hs_code" class="text-sm font-medium text-slate-700">HS Code</label>
-                            <input type="text" id="hs_code" name="hs_code" value="{{ old('hs_code', $arrival->hs_code) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <label for="hs_codes" class="text-sm font-medium text-slate-700">HS Code (bisa lebih dari 1)</label>
+                            <textarea id="hs_codes" name="hs_codes" rows="2" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Pisahkan dengan enter atau koma (contoh: 7208.90.00, 7210.70.00)">{{ old('hs_codes', $arrival->hs_codes ?: $arrival->hs_code) }}</textarea>
+                            @error('hs_codes') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                            @error('hs_code') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
                             <label for="currency" class="text-sm font-medium text-slate-700">Currency</label>

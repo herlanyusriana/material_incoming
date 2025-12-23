@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Arrival;
 use App\Models\ArrivalContainer;
+use App\Models\ArrivalItem;
 use App\Models\Part;
 use App\Models\Vendor;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -28,6 +29,23 @@ class ArrivalController extends Controller
         }
 
         return str_replace(',', '.', $trimmed);
+    }
+
+    private function normalizeHsCodes(?string $raw): ?string
+    {
+        $value = trim((string) $raw);
+        if ($value === '') {
+            return null;
+        }
+
+        $parts = preg_split('/[\r\n,;]+/', $value) ?: [];
+        $codes = collect($parts)
+            ->map(fn ($code) => trim((string) $code))
+            ->filter()
+            ->unique()
+            ->values();
+
+        return $codes->isEmpty() ? null : $codes->implode("\n");
     }
 
     private function hasPendingReceives(Arrival $arrival): bool
@@ -79,21 +97,23 @@ class ArrivalController extends Controller
             $request->merge(['items' => $items]);
         }
 
-        $validated = $request->validate([
-            'invoice_no' => ['required', 'string', 'max:255'],
-            'invoice_date' => ['required', 'date'],
-            'vendor_id' => ['required', 'exists:vendors,id'],
-            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
-            'vessel' => ['nullable', 'string', 'max:255'],
-            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
-            'etd' => ['nullable', 'date'],
-            'eta' => ['nullable', 'date'],
-            'bl_no' => ['nullable', 'string', 'max:255'],
-            'hs_code' => ['nullable', 'string', 'max:255'],
-            'port_of_loading' => ['nullable', 'string', 'max:255'],
-            'container_numbers' => ['nullable', 'string'],
-            'seal_code' => ['nullable', 'string', 'max:100'],
-            'containers' => ['nullable', 'array'],
+	        $validated = $request->validate([
+	            'invoice_no' => ['required', 'string', 'max:255'],
+	            'invoice_date' => ['required', 'date'],
+	            'vendor_id' => ['required', 'exists:vendors,id'],
+	            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
+	            'vessel' => ['nullable', 'string', 'max:255'],
+	            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
+	            'etd' => ['nullable', 'date'],
+	            'eta' => ['nullable', 'date'],
+	            'bl_no' => ['nullable', 'string', 'max:255'],
+	            'price_term' => ['nullable', 'string', 'max:50'],
+	            'hs_code' => ['nullable', 'string', 'max:255'],
+	            'hs_codes' => ['nullable', 'string', 'max:2000'],
+	            'port_of_loading' => ['nullable', 'string', 'max:255'],
+	            'container_numbers' => ['nullable', 'string'],
+	            'seal_code' => ['nullable', 'string', 'max:100'],
+	            'containers' => ['nullable', 'array'],
             'containers.*.container_no' => ['required_with:containers', 'string', 'max:50', 'distinct'],
             'containers.*.seal_code' => ['required_with:containers.*.container_no', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
@@ -152,21 +172,28 @@ class ArrivalController extends Controller
                 ? $normalizedContainers->pluck('container_no')->implode("\n")
                 : ($validated['container_numbers'] ?? null);
 
-            $arrival = Arrival::create([
-                'invoice_no' => $validated['invoice_no'],
-                'invoice_date' => $validated['invoice_date'],
-                'vendor_id' => $vendorId,
-                'vessel' => $validated['vessel'] ?? null,
-                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
-                'ETD' => $validated['etd'] ?? null,
-                'ETA' => $validated['eta'] ?? null,
-                'bill_of_lading' => $validated['bl_no'] ?? null,
-                'hs_code' => $validated['hs_code'] ?? null,
-                'port_of_loading' => $validated['port_of_loading'] ?? null,
-                'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
-                'container_numbers' => $containerNumbersLegacy,
-                'seal_code' => $validated['seal_code'] ?? null,
-                'currency' => $validated['currency'] ?? 'USD',
+	            $normalizedHsCodes = $this->normalizeHsCodes($validated['hs_codes'] ?? $validated['hs_code'] ?? null);
+	            $hsCodePrimary = $normalizedHsCodes
+	                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+	                : null;
+
+	            $arrival = Arrival::create([
+	                'invoice_no' => $validated['invoice_no'],
+	                'invoice_date' => $validated['invoice_date'],
+	                'vendor_id' => $vendorId,
+	                'vessel' => $validated['vessel'] ?? null,
+	                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
+	                'ETD' => $validated['etd'] ?? null,
+	                'ETA' => $validated['eta'] ?? null,
+	                'bill_of_lading' => $validated['bl_no'] ?? null,
+	                'price_term' => $validated['price_term'] ?? null,
+	                'hs_code' => $hsCodePrimary,
+	                'hs_codes' => $normalizedHsCodes,
+	                'port_of_loading' => $validated['port_of_loading'] ?? null,
+	                'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
+	                'container_numbers' => $containerNumbersLegacy,
+	                'seal_code' => $validated['seal_code'] ?? null,
+	                'currency' => $validated['currency'] ?? 'USD',
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
             ]);
@@ -263,12 +290,19 @@ class ArrivalController extends Controller
             'eta' => ['nullable', 'date'],
             'vessel' => ['nullable', 'string', 'max:255'],
             'bl_no' => ['nullable', 'string', 'max:255'],
+            'price_term' => ['nullable', 'string', 'max:50'],
             'hs_code' => ['nullable', 'string', 'max:255'],
+            'hs_codes' => ['nullable', 'string', 'max:2000'],
             'port_of_loading' => ['nullable', 'string', 'max:255'],
             'seal_code' => ['nullable', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $normalizedHsCodes = $this->normalizeHsCodes($data['hs_codes'] ?? $data['hs_code'] ?? null);
+        $hsCodePrimary = $normalizedHsCodes
+            ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+            : null;
 
         $departure->update([
             'invoice_no' => $data['invoice_no'],
@@ -277,7 +311,9 @@ class ArrivalController extends Controller
             'ETA' => $data['eta'] ?? null,
             'vessel' => $data['vessel'] ?? null,
             'bill_of_lading' => $data['bl_no'] ?? null,
-            'hs_code' => $data['hs_code'] ?? null,
+            'price_term' => $data['price_term'] ?? null,
+            'hs_code' => $hsCodePrimary,
+            'hs_codes' => $normalizedHsCodes,
             'port_of_loading' => $data['port_of_loading'] ?? null,
             'seal_code' => $data['seal_code'] ?? null,
             'currency' => $data['currency'] ?? 'USD',
@@ -312,6 +348,82 @@ class ArrivalController extends Controller
         return $pdf->inline($filename)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
+    }
+
+    public function editItem(ArrivalItem $arrivalItem)
+    {
+        $arrivalItem->load(['arrival', 'part', 'receives']);
+
+        if (!$this->hasPendingReceives($arrivalItem->arrival)) {
+            return redirect()
+                ->route('departures.show', $arrivalItem->arrival)
+                ->with('error', 'Departure sudah complete receive, item tidak bisa di-edit.');
+        }
+
+        if ($arrivalItem->receives()->exists()) {
+            return redirect()
+                ->route('departures.show', $arrivalItem->arrival)
+                ->with('error', 'Item sudah punya receive, tidak bisa di-edit.');
+        }
+
+        return view('arrival-items.edit', ['item' => $arrivalItem, 'arrival' => $arrivalItem->arrival]);
+    }
+
+    public function updateItem(Request $request, ArrivalItem $arrivalItem)
+    {
+        $arrivalItem->load(['arrival', 'receives']);
+
+        if (!$this->hasPendingReceives($arrivalItem->arrival)) {
+            return redirect()
+                ->route('departures.show', $arrivalItem->arrival)
+                ->with('error', 'Departure sudah complete receive, item tidak bisa di-edit.');
+        }
+
+        if ($arrivalItem->receives()->exists()) {
+            return redirect()
+                ->route('departures.show', $arrivalItem->arrival)
+                ->with('error', 'Item sudah punya receive, tidak bisa di-edit.');
+        }
+
+        $data = $request->validate([
+            'material_group' => ['nullable', 'string', 'max:255'],
+            'size' => ['nullable', 'string', 'max:100'],
+            'unit_bundle' => ['nullable', 'string', 'max:20'],
+            'qty_bundle' => ['nullable', 'integer', 'min:0'],
+            'qty_goods' => ['required', 'integer', 'min:1'],
+            'unit_goods' => ['nullable', 'string', 'max:20'],
+            'weight_nett' => ['required', 'numeric', 'min:0'],
+            'weight_gross' => ['required', 'numeric', 'min:0'],
+            'total_amount' => ['required', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $normalizedNett = $this->normalizeDecimalInput($data['weight_nett']);
+        $normalizedGross = $this->normalizeDecimalInput($data['weight_gross']);
+        $normalizedTotal = $this->normalizeDecimalInput($data['total_amount']);
+
+        $qtyGoods = (int) $data['qty_goods'];
+        $totalPrice = round((float) $normalizedTotal, 2);
+        $price = $qtyGoods > 0 ? round($totalPrice / $qtyGoods, 2) : 0;
+
+        $arrivalItem->update([
+            'material_group' => $data['material_group'] ?? null,
+            'size' => $data['size'] ?? null,
+            'unit_bundle' => $data['unit_bundle'] ?? null,
+            'qty_bundle' => (int) ($data['qty_bundle'] ?? 0),
+            'qty_goods' => $qtyGoods,
+            'unit_goods' => $data['unit_goods'] ?? null,
+            'weight_nett' => $normalizedNett,
+            'unit_weight' => 'KGM',
+            'weight_gross' => $normalizedGross,
+            'total_price' => $totalPrice,
+            'price' => $price,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('departures.show', $arrivalItem->arrival)
+            ->with('success', 'Item berhasil di-update.');
     }
 
     public function printInspectionReport(Arrival $departure)

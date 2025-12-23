@@ -56,28 +56,59 @@
                     <h3 class="text-lg font-bold text-slate-900">Shipment Information</h3>
                     <p class="text-sm text-slate-600 mt-1">Vendor {{ $arrival->vendor->vendor_name ?? '-' }} • Invoice {{ $arrival->invoice_no }}</p>
                 </div>
-                @php
-                    $truckingName = $arrival->trucking?->company_name ?: ($arrival->trucking_company ?: null);
+	                @php
+	                    $truckingName = $arrival->trucking?->company_name ?: ($arrival->trucking_company ?: null);
 
-                    $containerNumbers = $arrival->containers->pluck('container_no')->filter()->values();
-                    if ($containerNumbers->isEmpty() && $arrival->container_numbers) {
-                        $lines = collect(preg_split('/\r\n|\r|\n/', (string) $arrival->container_numbers) ?: [])
-                            ->map(fn ($line) => trim((string) $line))
-                            ->filter()
-                            ->values();
-                        $containerNumbers = $lines;
-                    }
-                    $containerSummary = $containerNumbers->map(fn ($no) => strtoupper((string) $no))->implode(', ');
+	                    $containerDetails = collect();
+	                    if ($arrival->containers->count()) {
+	                        $containerDetails = $arrival->containers
+	                            ->map(function ($c) {
+	                                $containerNo = strtoupper(trim((string) ($c->container_no ?? '')));
+	                                $sealCode = strtoupper(trim((string) ($c->seal_code ?? '')));
+	                                return [
+	                                    'container_no' => $containerNo,
+	                                    'seal_code' => $sealCode !== '' ? $sealCode : null,
+	                                ];
+	                            })
+	                            ->filter(fn ($row) => $row['container_no'] !== '')
+	                            ->values();
+	                    } elseif ($arrival->container_numbers) {
+	                        $lines = collect(preg_split('/\r\n|\r|\n/', (string) $arrival->container_numbers) ?: [])
+	                            ->map(fn ($line) => trim((string) $line))
+	                            ->filter()
+	                            ->values();
+	                        $containerDetails = $lines
+	                            ->map(function ($line) use ($arrival) {
+	                                $parts = preg_split('/\s+/', (string) $line) ?: [];
+	                                $containerNo = strtoupper(trim((string) ($parts[0] ?? '')));
+	                                $sealCode = strtoupper(trim((string) ($parts[1] ?? $arrival->seal_code ?? '')));
+	                                return [
+	                                    'container_no' => $containerNo,
+	                                    'seal_code' => $sealCode !== '' ? $sealCode : null,
+	                                ];
+	                            })
+	                            ->filter(fn ($row) => $row['container_no'] !== '')
+	                            ->values();
+	                    }
+	                    $containerSummary = $containerDetails->pluck('container_no')->filter()->implode(', ');
 
-                    $hsCodeDisplay = $arrival->hs_code
-                        ?: $arrival->items
-                            ->pluck('part.hs_code')
-                            ->filter()
-                            ->unique()
-                            ->values()
-                            ->implode(', ');
-                @endphp
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+	                    $hsCodesRaw = $arrival->hs_codes ?: $arrival->hs_code;
+	                    $hsCodes = collect();
+	                    if ($hsCodesRaw) {
+	                        $hsCodes = collect(preg_split('/\r\n|\r|\n|,|;/', (string) $hsCodesRaw) ?: [])
+	                            ->map(fn ($v) => trim((string) $v))
+	                            ->filter()
+	                            ->unique()
+	                            ->values();
+	                    } else {
+	                        $hsCodes = $arrival->items
+	                            ->pluck('part.hs_code')
+	                            ->filter()
+	                            ->unique()
+	                            ->values();
+	                    }
+	                @endphp
+	                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Invoice:</span>
                         <span class="text-slate-900">{{ $arrival->invoice_no }} ({{ $arrival->invoice_date->format('Y-m-d') }})</span>
@@ -94,58 +125,66 @@
                         <span class="font-semibold text-slate-700 min-w-[100px]">Vessel:</span>
                         <span class="text-slate-900">{{ $arrival->vessel ?: '-' }}</span>
                     </div>
-                    <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ $truckingName ? 'Trucking:' : 'No. Container:' }}</span>
-                        <span class="text-slate-900">{{ $truckingName ?: ($containerSummary ?: '-') }}</span>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">ETD:</span>
-                        <span class="text-slate-900">{{ $arrival->ETD ?: '-' }}</span>
-                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Trucking:</span>
+	                        <span class="text-slate-900">{{ $truckingName ?: '-' }}</span>
+	                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">No. Container:</span>
+	                        <span class="text-slate-900">{{ $containerSummary ?: '-' }}</span>
+	                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">ETD:</span>
+	                        <span class="text-slate-900">{{ $arrival->ETD ?: '-' }}</span>
+	                    </div>
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
                         <span class="text-slate-900">{{ $arrival->bill_of_lading ?: '-' }}</span>
                     </div>
-                    <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">HS Code:</span>
-                        <span class="text-slate-900">{{ $hsCodeDisplay ?: '-' }}</span>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Port of Loading:</span>
-                        <span class="text-slate-900">{{ $arrival->port_of_loading ?: '-' }}</span>
-                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Container:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">HS Code:</span>
 	                        <span class="text-slate-900">
-	                            @if ($arrival->containers->count())
-	                                <div class="space-y-1">
-	                                    @foreach ($arrival->containers as $idx => $c)
-	                                        <div class="text-sm">
-	                                            {{ $idx + 1 }}. {{ strtoupper($c->container_no) }}
-	                                            @if ($c->seal_code)
-	                                                <span class="text-slate-500">— SEAL {{ strtoupper($c->seal_code) }}</span>
-	                                            @endif
-	                                        </div>
+	                            @if ($hsCodes->count())
+	                                <div class="flex flex-wrap gap-1">
+	                                    @foreach ($hsCodes as $code)
+	                                        <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
+	                                            {{ $code }}
+	                                        </span>
 	                                    @endforeach
 	                                </div>
-	                            @elseif ($arrival->container_numbers)
-	                                <span class="whitespace-pre-line">{{ $arrival->container_numbers }}</span>
 	                            @else
 	                                -
 	                            @endif
 	                        </span>
 	                    </div>
-	                    @if (! $arrival->containers->count())
-	                        <div class="flex items-start gap-2">
-	                            <span class="font-semibold text-slate-700 min-w-[100px]">Seal Code:</span>
-	                            <span class="text-slate-900">{{ $arrival->seal_code ?: '-' }}</span>
-	                        </div>
-	                    @endif
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Currency:</span>
-                        <span class="text-slate-900">{{ $arrival->currency }}</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">Port of Loading:</span>
+                        <span class="text-slate-900">{{ $arrival->port_of_loading ?: '-' }}</span>
                     </div>
-                </div>
+	                    <div class="flex items-start gap-2 sm:col-span-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Containers & Seal:</span>
+	                        <span class="text-slate-900">
+	                            @if ($containerDetails->count())
+	                                <div class="space-y-1">
+	                                    @foreach ($containerDetails as $idx => $row)
+	                                        <div class="text-sm">
+	                                            {{ $idx + 1 }}. {{ $row['container_no'] }}
+	                                            @if (!empty($row['seal_code']))
+	                                                <span class="text-slate-500">— SEAL {{ $row['seal_code'] }}</span>
+	                                            @endif
+	                                        </div>
+	                                    @endforeach
+	                                </div>
+	                            @else
+	                                -
+	                            @endif
+	                        </span>
+	                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Currency:</span>
+	                        <span class="text-slate-900">{{ $arrival->currency }}</span>
+	                    </div>
+	                </div>
                 @if ($arrival->notes)
                     <div class="flex items-start gap-2 pt-2 border-t border-slate-200 text-sm">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Notes:</span>
@@ -239,62 +278,83 @@
                 </div>
                 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="min-w-full text-sm divide-y divide-slate-200">
+                    <table class="min-w-max w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">Part</th>
-                                <th class="px-4 py-3 text-left font-semibold">Size</th>
-                                <th class="px-4 py-3 text-left font-semibold">Qty Bundle</th>
-                                <th class="px-4 py-3 text-left font-semibold">Qty Goods</th>
-                                <th class="px-4 py-3 text-left font-semibold">Nett (kg)</th>
-                                <th class="px-4 py-3 text-left font-semibold">Gross (kg)</th>
-                                <th class="px-4 py-3 text-left font-semibold">Price</th>
-                                <th class="px-4 py-3 text-left font-semibold">Total</th>
-                                <th class="px-4 py-3 text-left font-semibold">Received</th>
-                                <th class="px-4 py-3 text-center font-semibold">Actions</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part Name (GCI)</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Size</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Qty Bundle</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Qty Goods</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Nett (kg)</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Gross (kg)</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Price</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Total</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Received</th>
+                                <th class="px-4 py-3 text-center font-semibold whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                            @foreach ($arrival->items as $item)
-                                @php
-                                    $receivedQty = $item->receives->sum('qty');
-                                    $remainingQty = max(0, ($item->qty_goods ?? 0) - $receivedQty);
-                                @endphp
+	                            @php
+	                                $totalQtyBundle = (float) $arrival->items->sum(fn ($i) => (float) ($i->qty_bundle ?? 0));
+	                                $totalQtyGoods = (float) $arrival->items->sum(fn ($i) => (float) ($i->qty_goods ?? 0));
+	                                $totalNett = (float) $arrival->items->sum(fn ($i) => (float) ($i->weight_nett ?? 0));
+	                                $totalGross = (float) $arrival->items->sum(fn ($i) => (float) ($i->weight_gross ?? 0));
+	                                $totalPrice = (float) $arrival->items->sum(fn ($i) => (float) ($i->total_price ?? 0));
+	                                $totalReceived = (float) $arrival->items->sum(fn ($i) => (float) $i->receives->sum('qty'));
+	                            @endphp
+	                            @foreach ($arrival->items as $item)
+	                                @php
+	                                    $receivedQty = $item->receives->sum('qty');
+	                                    $remainingQty = max(0, ($item->qty_goods ?? 0) - $receivedQty);
+	                                @endphp
                                 <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-4 py-4 text-slate-800">
-                                        <div class="font-semibold">{{ $item->part->part_no }}</div>
-                                        <div class="text-xs text-slate-500">{{ $item->part->part_name_vendor }}</div>
+                                    <td class="px-4 py-4 text-slate-800 whitespace-nowrap">
+                                        <div class="font-semibold">{{ $item->part->part_name_gci ?: ($item->part->part_name_vendor ?? '-') }}</div>
                                     </td>
-                                    <td class="px-4 py-4 text-slate-700 font-mono text-xs">{{ $item->size ?? '-' }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ $item->qty_bundle }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ $item->qty_goods }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->weight_nett, 0) }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->weight_gross, 0) }}</td>
-                                    <td class="px-4 py-4 text-slate-700">{{ number_format($item->price, 3) }}</td>
-                                    <td class="px-4 py-4 text-slate-800 font-semibold">{{ number_format($item->total_price, 2) }}</td>
+                                    <td class="px-4 py-4 text-slate-700 font-mono text-xs whitespace-nowrap">{{ $item->size ?? '-' }}</td>
+                                    <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ $item->qty_bundle }}</td>
+                                    <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ $item->qty_goods }}</td>
+                                    <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ number_format($item->weight_nett, 0) }}</td>
+                                    <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ number_format($item->weight_gross, 0) }}</td>
+                                    <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ number_format($item->price, 3) }}</td>
+                                    <td class="px-4 py-4 text-slate-800 font-semibold whitespace-nowrap">{{ number_format($item->total_price, 2) }}</td>
                                     <td class="px-4 py-4">
                                         <div class="text-slate-800 font-semibold">{{ number_format($receivedQty) }}</div>
                                         <div class="text-xs text-slate-500">{{ $item->receives->count() }} receive{{ $item->receives->count() != 1 ? 's' : '' }}</div>
                                     </td>
-                                    <td class="px-4 py-4">
-                                        <div class="flex justify-center">
-                                            @if ($remainingQty > 0)
-                                                <a href="{{ route('receives.create', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                                    Receive
-                                                </a>
-                                            @else
-                                                <span class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg">
-                                                    Complete
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
+	                                    <td class="px-4 py-4">
+	                                        <div class="flex justify-center">
+	                                            @if ($item->receives->count() === 0)
+	                                                <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+	                                                    Edit Item
+	                                                </a>
+	                                            @else
+	                                                <span class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg">
+	                                                    Locked
+	                                                </span>
+	                                            @endif
+	                                        </div>
+	                                    </td>
+	                                </tr>
+	                            @endforeach
+	                        </tbody>
+                        <tfoot class="bg-slate-50 border-t border-slate-200">
+                            <tr class="text-slate-800 font-semibold">
+                                <td class="px-4 py-3 whitespace-nowrap">TOTAL</td>
+                                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">—</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ number_format($totalQtyBundle, 0) }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ number_format($totalQtyGoods, 0) }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ number_format($totalNett, 0) }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ number_format($totalGross, 0) }}</td>
+                                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">—</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ number_format($totalPrice, 2) }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ number_format($totalReceived, 0) }}</td>
+                                <td class="px-4 py-3 text-center text-slate-500 whitespace-nowrap">—</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
-            </div>
+	            </div>
         </div>
     </div>
 </x-app-layout>

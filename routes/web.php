@@ -72,6 +72,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/receives/{receive}/label', [ReceiveController::class, 'printLabel'])->name('receives.label');
     Route::get('/receives/completed', [ReceiveController::class, 'completed'])->name('receives.completed');
     Route::get('/receives/completed/{arrival}', [ReceiveController::class, 'completedInvoice'])->name('receives.completed.invoice');
+
+    Route::get('/departure-items/{arrivalItem}/edit', [ArrivalController::class, 'editItem'])->name('departure-items.edit');
+    Route::put('/departure-items/{arrivalItem}', [ArrivalController::class, 'updateItem'])->name('departure-items.update');
 });
 
 require __DIR__.'/auth.php';
