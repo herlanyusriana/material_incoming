@@ -73,21 +73,39 @@
 	                            ->filter(fn ($row) => $row['container_no'] !== '')
 	                            ->values();
 	                    } elseif ($arrival->container_numbers) {
-	                        $lines = collect(preg_split('/\r\n|\r|\n/', (string) $arrival->container_numbers) ?: [])
-	                            ->map(fn ($line) => trim((string) $line))
+	                        $containerPattern = '/^[A-Z]{4}\\d{7}$/';
+	                        $tokens = collect(preg_split('/[\\s,;]+/', (string) $arrival->container_numbers) ?: [])
+	                            ->map(fn ($t) => strtoupper(trim((string) $t)))
 	                            ->filter()
 	                            ->values();
-	                        $containerDetails = $lines
-	                            ->map(function ($line) use ($arrival) {
-	                                $parts = preg_split('/\s+/', (string) $line) ?: [];
-	                                $containerNo = strtoupper(trim((string) ($parts[0] ?? '')));
-	                                $sealCode = strtoupper(trim((string) ($parts[1] ?? $arrival->seal_code ?? '')));
-	                                return [
-	                                    'container_no' => $containerNo,
-	                                    'seal_code' => $sealCode !== '' ? $sealCode : null,
-	                                ];
-	                            })
-	                            ->filter(fn ($row) => $row['container_no'] !== '')
+
+	                        $defaultSeal = strtoupper(trim((string) ($arrival->seal_code ?? '')));
+	                        $rows = [];
+	                        $i = 0;
+	                        while ($i < $tokens->count()) {
+	                            $current = (string) $tokens[$i];
+	                            if (!preg_match($containerPattern, $current)) {
+	                                $i++;
+	                                continue;
+	                            }
+
+	                            $next = $tokens->get($i + 1);
+	                            $nextStr = $next !== null ? (string) $next : '';
+	                            $nextIsContainer = $nextStr !== '' && preg_match($containerPattern, $nextStr);
+
+	                            if ($nextIsContainer) {
+	                                $rows[] = ['container_no' => $current, 'seal_code' => null];
+	                                $i += 1;
+	                                continue;
+	                            }
+
+	                            $seal = $nextStr !== '' ? $nextStr : ($defaultSeal !== '' ? $defaultSeal : null);
+	                            $rows[] = ['container_no' => $current, 'seal_code' => $seal];
+	                            $i += ($nextStr !== '') ? 2 : 1;
+	                        }
+
+	                        $containerDetails = collect($rows)
+	                            ->unique('container_no')
 	                            ->values();
 	                    }
 	                    $containerSummary = $containerDetails->pluck('container_no')->filter()->implode(', ');

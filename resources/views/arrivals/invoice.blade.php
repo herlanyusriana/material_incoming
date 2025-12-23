@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4;
-            margin: 15mm 15mm 15mm 15mm;
+            margin: 12mm 12mm 12mm 12mm;
         }
         
         * {
@@ -17,9 +17,9 @@
         
         body {
             font-family: Arial, sans-serif;
-            font-size: 9px;
-            line-height: 1.3;
-            padding: 15px 20px;
+            font-size: 10px;
+            line-height: 1.35;
+            padding: 10px 14px;
         }
         
         .title {
@@ -39,7 +39,7 @@
             border: 1px solid #000;
             padding: 4px 6px;
             vertical-align: top;
-            font-size: 9px;
+            font-size: 10px;
         }
         
         .main-table .num {
@@ -68,7 +68,7 @@
         
         .section-label {
             font-weight: bold;
-            font-size: 8px;
+            font-size: 9px;
         }
         
         .company-name {
@@ -88,7 +88,7 @@
         .packing-items-table td,
         .packing-items-table th {
             padding: 3px 8px;
-            font-size: 8.5px;
+            font-size: 9px;
             vertical-align: middle;
         }
 
@@ -140,14 +140,14 @@
             border: none;
             padding: 5px 6px;
             vertical-align: top;
-            font-size: 9px;
+            font-size: 10px;
         }
         
         .items-table:not(.packing-items-table) th {
             background: none;
             font-weight: bold;
             text-align: center;
-            font-size: 8px;
+            font-size: 9px;
             border-bottom: 1px solid #000;
         }
         
@@ -158,7 +158,7 @@
         .container-box {
             padding: 6px 0;
             margin-top: 8px;
-            font-size: 9px;
+            font-size: 10px;
         }
         
         .footer-section {
@@ -284,19 +284,25 @@
         </td>
     </tr>
     
-    {{-- Row 3: Notify Party + LC Issuing Bank --}}
-    <tr>
-        <td class="col-left">
-            <span class="section-label">3.NOTIFY PARTY</span><br><br>
-            @if($arrival->trucking)
-                <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
-                {{ strtoupper($arrival->trucking->address) }}<br><br>
-                Tel: ( {{ substr($arrival->trucking->phone ?? '', 0, 2) }} - {{ substr($arrival->trucking->phone ?? '', 2, 2) }} ) {{ substr($arrival->trucking->phone ?? '', 4) }}
-                @if($arrival->trucking->fax) Fax: {{ $arrival->trucking->fax }}@endif
-            @else
-                -
-            @endif
-        </td>
+	    {{-- Row 3: Notify Party + LC Issuing Bank --}}
+	    <tr>
+	        <td class="col-left">
+	            <span class="section-label">3.NOTIFY PARTY</span><br><br>
+	            @if($arrival->trucking)
+	                @php
+	                    $notifyTel = trim((string) ($arrival->trucking->phone ?? ''));
+	                    $notifyFax = trim((string) ($arrival->trucking->fax ?? ''));
+	                @endphp
+	                <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
+	                {{ strtoupper($arrival->trucking->address) }}<br><br>
+	                TEL: {{ $notifyTel !== '' ? $notifyTel : '-' }}
+	                @if($notifyFax !== '')
+	                    &nbsp; FAX: {{ $notifyFax }}
+	                @endif
+	            @else
+	                -
+	            @endif
+	        </td>
         <td class="col-right">
             <span class="section-label">10.LC ISSUING BANK</span><br><br><br>
             &nbsp;
@@ -484,21 +490,39 @@
 		            ->values();
 		    }
 
-		    $legacyLines = collect(preg_split('/\r\n|\r|\n/', (string) ($arrival->container_numbers ?? '')) ?: [])
-		        ->map(fn ($line) => trim((string) $line))
+		    $containerPattern = '/^[A-Z]{4}\\d{7}$/';
+		    $tokens = collect(preg_split('/[\\s,;]+/', (string) ($arrival->container_numbers ?? '')) ?: [])
+		        ->map(fn ($t) => strtoupper(trim((string) $t)))
 		        ->filter()
 		        ->values();
 
-		    if ($legacyLines->count()) {
-		        $legacyDetails = $legacyLines->map(function ($line) use ($arrival) {
-		            $parts = preg_split('/\s+/', (string) $line) ?: [];
-		            $containerNo = strtoupper(trim((string) ($parts[0] ?? '')));
-		            $sealCode = strtoupper(trim((string) ($parts[1] ?? $arrival->seal_code ?? '')));
-		            return [
-		                'container_no' => $containerNo,
-		                'seal_code' => $sealCode !== '' ? $sealCode : null,
-		            ];
-		        })->filter(fn ($row) => $row['container_no'] !== '');
+		    if ($tokens->count()) {
+		        $defaultSeal = strtoupper(trim((string) ($arrival->seal_code ?? '')));
+		        $rows = [];
+		        $i = 0;
+		        while ($i < $tokens->count()) {
+		            $current = (string) $tokens[$i];
+		            if (!preg_match($containerPattern, $current)) {
+		                $i++;
+		                continue;
+		            }
+
+		            $next = $tokens->get($i + 1);
+		            $nextStr = $next !== null ? (string) $next : '';
+		            $nextIsContainer = $nextStr !== '' && preg_match($containerPattern, $nextStr);
+
+		            if ($nextIsContainer) {
+		                $rows[] = ['container_no' => $current, 'seal_code' => null];
+		                $i += 1;
+		                continue;
+		            }
+
+		            $seal = $nextStr !== '' ? $nextStr : ($defaultSeal !== '' ? $defaultSeal : null);
+		            $rows[] = ['container_no' => $current, 'seal_code' => $seal];
+		            $i += ($nextStr !== '') ? 2 : 1;
+		        }
+
+		        $legacyDetails = collect($rows)->filter(fn ($row) => $row['container_no'] !== '');
 
 		        $containerDetails = $containerDetails
 		            ->merge($legacyDetails)
@@ -584,20 +608,26 @@
         </td>
     </tr>
     
-    {{-- Row 3: Notify Party --}}
-    <tr>
-        <td class="col-left">
-            <span class="section-label">3.NOTIFY PARTY</span><br><br>
-            @if($arrival->trucking)
-                <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
-                {{ strtoupper($arrival->trucking->address) }}<br><br>
-                Tel: ( {{ substr($arrival->trucking->phone ?? '', 0, 2) }} - {{ substr($arrival->trucking->phone ?? '', 2, 2) }} ) {{ substr($arrival->trucking->phone ?? '', 4) }}
-                @if($arrival->trucking->fax) Fax: {{ $arrival->trucking->fax }}@endif
-            @else
-                -
-            @endif
-        </td>
-    </tr>
+	    {{-- Row 3: Notify Party --}}
+	    <tr>
+	        <td class="col-left">
+	            <span class="section-label">3.NOTIFY PARTY</span><br><br>
+	            @if($arrival->trucking)
+	                @php
+	                    $notifyTel = trim((string) ($arrival->trucking->phone ?? ''));
+	                    $notifyFax = trim((string) ($arrival->trucking->fax ?? ''));
+	                @endphp
+	                <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
+	                {{ strtoupper($arrival->trucking->address) }}<br><br>
+	                TEL: {{ $notifyTel !== '' ? $notifyTel : '-' }}
+	                @if($notifyFax !== '')
+	                    &nbsp; FAX: {{ $notifyFax }}
+	                @endif
+	            @else
+	                -
+	            @endif
+	        </td>
+	    </tr>
     
     {{-- Row 4: Port of Loading + Final Destination --}}
     <tr>

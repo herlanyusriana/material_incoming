@@ -349,18 +349,18 @@ class ArrivalController extends Controller
         // Clean filename - remove / and \ characters
         $filename = 'Commercial-Invoice-' . str_replace(['/', '\\'], '-', $arrival->invoice_no) . '.pdf';
 
-        $pdf = SnappyPdf::loadView('arrivals.invoice', compact('arrival'))
-            ->setPaper('A4', 'portrait')
-            ->setOptions([
-                'margin-top' => 8,
-                'margin-bottom' => 8,
-                'margin-left' => 8,
-                'margin-right' => 8,
-                'enable-local-file-access' => true,
-                'print-media-type' => true,
-                'encoding' => 'UTF-8',
-                'zoom' => 1.1,
-            ]);
+            $pdf = SnappyPdf::loadView('arrivals.invoice', compact('arrival'))
+                ->setPaper('A4', 'portrait')
+                ->setOptions([
+                    'margin-top' => 8,
+                    'margin-bottom' => 8,
+                    'margin-left' => 8,
+                    'margin-right' => 8,
+                    'enable-local-file-access' => true,
+                    'print-media-type' => true,
+                    'encoding' => 'UTF-8',
+                    'zoom' => 1.2,
+                ]);
 
         return $pdf->inline($filename)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')

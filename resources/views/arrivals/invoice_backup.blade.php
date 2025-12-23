@@ -253,20 +253,35 @@
     <div class="container-section">
         NO CONTAINER :<br>
         @php
-            $containerLines = collect(preg_split('/\r\n|\r|\n/', (string) ($arrival->container_numbers ?? '')) ?: [])
-                ->map(fn ($line) => trim((string) $line))
+            $containerPattern = '/^[A-Z]{4}\\d{7}$/';
+            $tokens = collect(preg_split('/[\\s,;]+/', (string) ($arrival->container_numbers ?? '')) ?: [])
+                ->map(fn ($t) => strtoupper(trim((string) $t)))
                 ->filter()
                 ->values();
+            $rows = [];
+            $i = 0;
+            while ($i < $tokens->count()) {
+                $current = (string) $tokens[$i];
+                if (!preg_match($containerPattern, $current)) { $i++; continue; }
+                $next = $tokens->get($i + 1);
+                $nextStr = $next !== null ? (string) $next : '';
+                $nextIsContainer = $nextStr !== '' && preg_match($containerPattern, $nextStr);
+                if ($nextIsContainer) { $rows[] = $current; $i += 1; continue; }
+                $rows[] = $current;
+                $i += ($nextStr !== '') ? 2 : 1;
+            }
+            $containerLines = collect($rows)->filter()->unique()->values();
             if ($containerLines->isEmpty() && ($arrival->containers ?? null)) {
                 $containerLines = collect($arrival->containers)
-                    ->map(fn ($c) => trim((string) ($c->container_no ?? '')))
+                    ->map(fn ($c) => strtoupper(trim((string) ($c->container_no ?? ''))))
                     ->filter()
+                    ->unique()
                     ->values();
             }
         @endphp
         @if($containerLines->count())
             @foreach($containerLines as $line)
-                {{ $loop->iteration }}. {{ strtoupper($line) }}<br>
+                {{ $loop->iteration }}. {{ $line }}<br>
             @endforeach
         @else
             -<br>
@@ -398,20 +413,35 @@
     <div class="container-section">
         <strong>NO CONTAINER :</strong><br>
         @php
-            $containerLines = collect(preg_split('/\r\n|\r|\n/', (string) ($arrival->container_numbers ?? '')) ?: [])
-                ->map(fn ($line) => trim((string) $line))
+            $containerPattern = '/^[A-Z]{4}\\d{7}$/';
+            $tokens = collect(preg_split('/[\\s,;]+/', (string) ($arrival->container_numbers ?? '')) ?: [])
+                ->map(fn ($t) => strtoupper(trim((string) $t)))
                 ->filter()
                 ->values();
+            $rows = [];
+            $i = 0;
+            while ($i < $tokens->count()) {
+                $current = (string) $tokens[$i];
+                if (!preg_match($containerPattern, $current)) { $i++; continue; }
+                $next = $tokens->get($i + 1);
+                $nextStr = $next !== null ? (string) $next : '';
+                $nextIsContainer = $nextStr !== '' && preg_match($containerPattern, $nextStr);
+                if ($nextIsContainer) { $rows[] = $current; $i += 1; continue; }
+                $rows[] = $current;
+                $i += ($nextStr !== '') ? 2 : 1;
+            }
+            $containerLines = collect($rows)->filter()->unique()->values();
             if ($containerLines->isEmpty() && ($arrival->containers ?? null)) {
                 $containerLines = collect($arrival->containers)
-                    ->map(fn ($c) => trim((string) ($c->container_no ?? '')))
+                    ->map(fn ($c) => strtoupper(trim((string) ($c->container_no ?? ''))))
                     ->filter()
+                    ->unique()
                     ->values();
             }
         @endphp
         @if($containerLines->count())
             @foreach($containerLines as $line)
-                {{ $loop->iteration }}. {{ strtoupper($line) }}<br>
+                {{ $loop->iteration }}. {{ $line }}<br>
             @endforeach
         @else
             -<br>
