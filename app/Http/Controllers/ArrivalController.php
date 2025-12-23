@@ -235,7 +235,9 @@ class ArrivalController extends Controller
             return $arrival;
         });
 
-        return redirect()->route('departures.show', $arrival)->with('success', 'Departure created successfully. Click \"Receive\" on each item to process incoming goods.');
+        return redirect()
+            ->route('departures.index')
+            ->with('success', 'Departure created successfully.');
     }
 
     public function show(Arrival $departure)
