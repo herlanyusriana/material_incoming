@@ -423,7 +423,7 @@
                     @endphp
 
                     @if($showWeightOnly)
-                        {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
+                        {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
                     @elseif($hasWeight)
                         <table style="width:100%; border:none; margin:0; padding:0;">
                             <tr>
@@ -462,7 +462,7 @@
             <td>&nbsp;</td>
             <td class="text-center text-bold">
                 @if(in_array($goodsUnitDisplay, ['KGM', 'KG'], true))
-                    {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+                    {{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}
                 @else
                     <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
                         <tr>
