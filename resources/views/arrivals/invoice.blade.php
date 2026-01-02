@@ -235,6 +235,40 @@
         $originalAngles = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
         $originalRotationInvoice = $originalAngles[random_int(0, count($originalAngles) - 1)];
         $originalRotationPacking = $originalAngles[random_int(0, count($originalAngles) - 1)];
+
+        if (!function_exists('format3_no_round')) {
+            function format3_no_round($value): string
+            {
+                $raw = is_string($value) ? trim($value) : (is_numeric($value) ? (string) $value : '0');
+                if ($raw === '' || $raw === null) {
+                    $raw = '0';
+                }
+
+                $raw = str_replace(',', '', $raw);
+
+                $negative = false;
+                if (str_starts_with($raw, '-')) {
+                    $negative = true;
+                    $raw = substr($raw, 1);
+                }
+
+                if (stripos($raw, 'e') !== false) {
+                    $raw = (string) sprintf('%.15F', (float) $raw);
+                    $raw = rtrim(rtrim($raw, '0'), '.');
+                }
+
+                $parts = explode('.', $raw, 2);
+                $int = preg_replace('/\\D+/', '', $parts[0] ?? '') ?: '0';
+                $frac = preg_replace('/\\D+/', '', $parts[1] ?? '');
+                $frac = substr(str_pad($frac, 3, '0'), 0, 3);
+
+                $rev = strrev($int);
+                $chunks = str_split($rev, 3);
+                $intFormatted = strrev(implode(',', $chunks));
+
+                return ($negative ? '-' : '') . $intFormatted . '.' . $frac;
+            }
+        }
     @endphp
 @php
     $totalBundles = $arrival->items->sum(fn($i) => (float)($i->qty_bundle ?? 0));
@@ -430,9 +464,10 @@
                 @php
                     $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
                     $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
-                    $pricePerWeight = $item->qty_goods > 0 && $item->weight_nett > 0
-                        ? number_format($item->price / ($item->weight_nett / $item->qty_goods), 3)
-                        : '0.000';
+                    $pricePerWeightRaw = $item->qty_goods > 0 && $item->weight_nett > 0
+                        ? ((float) $item->price * (float) $item->qty_goods) / (float) $item->weight_nett
+                        : 0;
+                    $pricePerWeight = format3_no_round($pricePerWeightRaw);
                 @endphp
                 <td class="text-center">
                     @php
@@ -461,15 +496,15 @@
                     <table style="width:100%; border:none; margin:0; padding:0;">
                         <tr>
                             @if(!in_array($goodsUnitLabel, ['KGM', 'KG'], true) && (float) ($item->weight_nett ?? 0) > 0)
-                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ number_format($item->price, 3) }} /{{ $goodsUnitLabel }}</td>
+                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ format3_no_round($item->price) }} /{{ $goodsUnitLabel }}</td>
                                 <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
                             @else
-                                <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ number_format($item->price, 3) }} /{{ $goodsUnitLabel }}</td>
+                                <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ format3_no_round($item->price) }} /{{ $goodsUnitLabel }}</td>
                             @endif
                         </tr>
                     </table>
                 </td>
-                <td class="text-right">USD {{ number_format($item->total_price, 2) }}</td>
+                <td class="text-right">USD {{ format3_no_round($item->total_price) }}</td>
             </tr>
             @endforeach
 
@@ -532,7 +567,7 @@
                     @endif
                 </td>
                 <td>&nbsp;</td>
-                <td class="text-right text-bold">USD {{ number_format($groupAmount, 2) }}</td>
+                <td class="text-right text-bold">USD {{ format3_no_round($groupAmount) }}</td>
             </tr>
         @endforeach
         
@@ -584,7 +619,7 @@
                 @endif
             </td>
             <td>&nbsp;</td>
-            <td class="text-right text-bold">USD {{ number_format($arrival->items->sum('total_price'), 2) }}</td>
+            <td class="text-right text-bold">USD {{ format3_no_round($arrival->items->sum('total_price')) }}</td>
         </tr>
     </tbody>
 </table>
