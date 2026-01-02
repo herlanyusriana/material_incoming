@@ -711,16 +711,13 @@
 
                 <div class="space-y-3">
                     <div class="sm:flex sm:items-center sm:gap-4">
-                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Part</label>
+                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Size</label>
                         <select name="items[${rowIndex}][part_id]" class="part-select mt-1 block w-full rounded-lg border-slate-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500 sm:mt-0 sm:flex-1" ${vendorId ? '' : 'disabled'} required>
                             ${buildPartOptions(vendorId, existing?.part_id)}
                         </select>
                     </div>
 
-                    <div class="sm:flex sm:items-center sm:gap-4">
-                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Size</label>
-                        <input type="text" name="items[${rowIndex}][size]" class="input-size mt-1 w-full rounded-lg border-slate-200 bg-white text-sm sm:mt-0 sm:flex-1" placeholder="Auto dari master part" value="${escapeHtml(existing?.size ?? '')}" readonly>
-                    </div>
+                    <input type="hidden" name="items[${rowIndex}][size]" class="input-size" value="${escapeHtml(existing?.size ?? '')}">
 
                     <div class="sm:flex sm:items-center sm:gap-4">
                         <label class="text-xs font-semibold text-slate-500 sm:w-44">Part No GCI</label>
