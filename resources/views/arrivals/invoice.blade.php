@@ -388,11 +388,7 @@
 	                NO: 1-{{ $marksNoEnd }}<br>
 	                
 	            </td>
-	            <td colspan="4" style="text-align:right">
-	                <strong>BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}</strong>
-	                <br>
-	                <strong>PRICE TERM : {{ strtoupper($arrival->price_term ?? '-') }}</strong>
-	            </td>
+	            <td colspan="4">&nbsp;</td>
 	        </tr>
         
         @php
@@ -496,6 +492,8 @@
 
 	{{-- Container + Seal Section --}}
 	<div class="container-box">
+        <strong>BILL OF LADING :</strong> {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}<br>
+        <strong>PRICE TERM :</strong> {{ strtoupper($arrival->price_term ?? '-') }}<br><br>
 	    <strong>CONTAINERS &amp; SEAL :</strong><br>
 	    @if($arrival->containers->count())
         @foreach($arrival->containers as $container)
