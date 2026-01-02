@@ -18,7 +18,7 @@
         body {
             font-family: Arial, sans-serif;
             font-size: 9px;
-            line-height: 1.3;
+            line-height: 1.4;
             padding: 15px 20px;
         }
         
@@ -37,7 +37,7 @@
         
         .main-table td {
             border: 1px solid #000;
-            padding: 4px 6px;
+            padding: 5px 7px;
             vertical-align: top;
             font-size: 9px;
         }
