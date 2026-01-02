@@ -804,20 +804,38 @@
 	            </section>
 	        </div>
 
-        <div class="mt-4 border-t border-dashed border-slate-200 pt-4 flex items-center justify-between gap-3">
-            <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${initialMaterialGroup}">
-            <input type="hidden" name="items[${rowIndex}][notes]" value="${escapeHtml(existing?.notes ?? '')}">
+        <div class="mt-4 border-t border-dashed border-slate-200 pt-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" class="add-line inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-blue-700 hover:bg-blue-50 text-sm font-semibold whitespace-nowrap">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 bg-white">
+                        <span class="leading-none">+</span>
+                    </span>
+                    Part Line
+                </button>
+                <button type="button" class="remove-line inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 text-sm font-semibold whitespace-nowrap">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-200 bg-white">
+                        <span class="leading-none">−</span>
+                    </span>
+                    Hapus Baris
+                </button>
+            </div>
 
-            <button type="button" class="remove-line inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 text-sm font-semibold whitespace-nowrap">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-200 bg-white">
-                    <span class="leading-none">−</span>
-                </span>
-                Hapus Baris
-            </button>
+            <div>
+                <input type="hidden" class="material-group-field" name="items[${rowIndex}][material_group]" value="${initialMaterialGroup}">
+                <input type="hidden" name="items[${rowIndex}][notes]" value="${escapeHtml(existing?.notes ?? '')}">
+            </div>
         </div>
             `;
 	            rowsContainer.appendChild(row);
 	            rowIndex++;
+
+            row.querySelector('.add-line').addEventListener('click', () => {
+                const newRow = addRowToGroup(groupEl);
+                requestSaveDraft();
+                setTimeout(() => {
+                    newRow?.querySelector('.part-select')?.focus();
+                }, 0);
+            });
 
 		            const qtyField = row.querySelector('.qty-goods');
 		            const totalField = row.querySelector('.total-input');

@@ -87,6 +87,16 @@ class SampleInvoiceSeeder extends Seeder
             ]
         );
 
+        $arrival->containers()->updateOrCreate(
+            ['container_no' => 'MSKU1234567'],
+            ['seal_code' => null]
+        );
+
+        $arrival->containers()->updateOrCreate(
+            ['container_no' => 'MSKU1234568'],
+            ['seal_code' => null]
+        );
+
         ArrivalItem::updateOrCreate(
             ['arrival_id' => $arrival->id, 'part_id' => $partCoil->id],
             [

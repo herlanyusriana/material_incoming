@@ -10,9 +10,9 @@
         <x-text-input id="country_code" name="country_code" type="text" class="mt-1 w-full uppercase rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" required maxlength="2" placeholder="ID" pattern="[A-Za-z]{2}" title="Country code harus 2 huruf (contoh: ID)" value="{{ old('country_code', $vendor->country_code ?? '') }}" />
         <x-input-error :messages="$errors->get('country_code')" class="mt-2" />
     </div>
-    <div>
+    <div class="md:col-span-3">
         <x-input-label for="bank_account" value="Bank Account" />
-        <x-text-input id="bank_account" name="bank_account" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('bank_account', $vendor->bank_account ?? '') }}" />
+        <textarea id="bank_account" name="bank_account" rows="4" maxlength="255" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm">{{ old('bank_account', $vendor->bank_account ?? '') }}</textarea>
         <x-input-error :messages="$errors->get('bank_account')" class="mt-2" />
     </div>
     <div>

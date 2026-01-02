@@ -7,6 +7,34 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Setup (Local)
+
+1) Install dependency: `composer install`
+2) Buat env: `cp .env.example .env`
+3) Set `.env` untuk MySQL: `DB_CONNECTION=mysql` + `DB_HOST/DB_PORT/DB_DATABASE/DB_USERNAME/DB_PASSWORD`
+4) Generate app key: `php artisan key:generate`
+5) Pastikan user punya akses ke database (jalankan di MySQL sebagai admin):
+
+```sql
+CREATE DATABASE IF NOT EXISTS incoming_material;
+GRANT ALL PRIVILEGES ON incoming_material.* TO 'herlan'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+6) Jalankan migrasi: `php artisan migrate`
+
+7) (Optional) Seed data:
+
+- Default seeder: `php artisan db:seed`
+- Sample invoice: `php artisan db:seed --class=Database\\\\Seeders\\\\SampleInvoiceSeeder`
+
+## PDF Invoice (wkhtmltopdf)
+
+Fitur print invoice pakai Laravel Snappy (wkhtmltopdf). Kalau `wkhtmltopdf` belum ter-install, sistem akan fallback ke DomPDF (hasil rendering bisa beda).
+
+- Install (Ubuntu/Pop!_OS): `sudo apt-get update && sudo apt-get install -y wkhtmltopdf`
+- Atau set path custom di `.env`: `WKHTML_PDF_BINARY=/path/to/wkhtmltopdf`
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

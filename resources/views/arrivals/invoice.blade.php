@@ -24,9 +24,9 @@
         
         .title {
             text-align: center;
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             text-decoration: none;
         }
         
@@ -178,10 +178,11 @@
         .original-box {
             border: 2px solid #cc0000;
             color: #cc0000;
-            padding: 4px 15px;
+            padding: 6px 18px;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 16px;
             display: inline-block;
+            transform-origin: center;
         }
         
         .sign-box {
@@ -193,7 +194,31 @@
         }
         
         .sign-space {
-            height: 50px;
+            height: 70px;
+        }
+
+        .signature-block {
+            display: inline-block;
+            padding: 10px 30px;
+            text-align: left;
+        }
+
+        .signature-layout {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .signature-layout td {
+            border: none;
+            padding: 0;
+            vertical-align: bottom;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 6px;
+            padding-top: 4px;
         }
         
         .sign-name {
@@ -218,6 +243,14 @@
             $portDisplay = trim($portDisplay . ($portDisplay ? ', ' : '') . $countryOrigin);
         }
         $madeInText = $portOrigin ?: ($countryOrigin ?: 'SOUTH KOREA');
+
+        $notesText = trim((string) ($arrival->notes ?? ''));
+        $bankAccountText = trim((string) ($arrival->vendor->bank_account ?? ''));
+        $signedByName = strtoupper(trim((string) ($arrival->vendor->contact_person ?? '')));
+
+        $originalAngles = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
+        $originalRotationInvoice = $originalAngles[random_int(0, count($originalAngles) - 1)];
+        $originalRotationPacking = $originalAngles[random_int(0, count($originalAngles) - 1)];
     @endphp
 @php
     $totalBundles = $arrival->items->sum(fn($i) => (float)($i->qty_bundle ?? 0));
@@ -243,6 +276,22 @@
         return !empty($item->unit_goods);
     }))->unit_goods ?? 'PCS');
     $weightUnitDisplay = strtoupper(optional($arrival->items->first())->unit_weight ?? 'KGM');
+
+    $weightOnlyGoodsUnits = ['KGM', 'KG'];
+    $qtyTotalsByUnit = $arrival->items
+        ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_goods ?? 'PCS'))))
+        ->map(fn ($items) => (float) $items->sum(fn ($i) => (float) ($i->qty_goods ?? 0)))
+        ->filter(fn ($v) => $v > 0);
+    $qtyTotalsNonWeight = $qtyTotalsByUnit->reject(fn ($v, $unit) => in_array($unit, $weightOnlyGoodsUnits, true));
+
+    $nettTotalsByUnit = $arrival->items
+        ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_weight ?? 'KGM'))))
+        ->map(fn ($items) => (float) $items->sum(fn ($i) => (float) ($i->weight_nett ?? 0)))
+        ->filter(fn ($v) => $v > 0);
+    $grossTotalsByUnit = $arrival->items
+        ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_weight ?? 'KGM'))))
+        ->map(fn ($items) => (float) $items->sum(fn ($i) => (float) ($i->weight_gross ?? 0)))
+        ->filter(fn ($v) => $v > 0);
 @endphp
 
 <div class="title">COMMERCIAL INVOICE</div>
@@ -253,7 +302,7 @@
         <td class="col-left">
             <span class="section-label">1.SHIPPER</span><br><br>
             <span class="company-name">{{ strtoupper($arrival->vendor->vendor_name) }}</span><br>
-            {{ strtoupper($arrival->vendor->address) }}<br>
+            <div style="white-space: pre-line;">{{ $arrival->vendor->address }}</div>
             TEL:{{ $arrival->vendor->phone ?? '' }}
         </td>
         <td class="col-right">
@@ -280,7 +329,11 @@
         </td>
         <td class="col-right">
             <span class="section-label">9.REMITTANCE</span><br><br>
-            &nbsp;
+            @if($notesText !== '')
+                <div style="white-space: pre-line;">{{ $notesText }}</div>
+            @else
+                &nbsp;
+            @endif
         </td>
     </tr>
     
@@ -294,7 +347,7 @@
 	                    $notifyFax = trim((string) ($arrival->trucking->fax ?? ''));
 	                @endphp
 	                <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
-	                {{ strtoupper($arrival->trucking->address) }}<br><br>
+	                <div style="white-space: pre-line;">{{ $arrival->trucking->address }}</div><br>
 	                TEL: {{ $notifyTel !== '' ? $notifyTel : '-' }}
 	                @if($notifyFax !== '')
 	                    &nbsp; FAX: {{ $notifyFax }}
@@ -327,7 +380,11 @@
         </td>
         <td class="col-right" rowspan="2">
             <span class="section-label">11.REMARK:</span><br><br>
-            {{ $arrival->vendor->bank_account ?? '' }}
+            @if($bankAccountText !== '')
+                <div style="white-space: pre-line;">{{ $bankAccountText }}</div>
+            @else
+                &nbsp;
+            @endif
         </td>
     </tr>
     
@@ -452,18 +509,47 @@
             <td class="text-bold">TOTAL :</td>
             <td>&nbsp;</td>
             <td class="text-center text-bold">
-                @if(in_array($goodsUnitDisplay, ['KGM', 'KG'], true))
-                    {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+                @if($qtyTotalsNonWeight->count() <= 1 && $nettTotalsByUnit->count() <= 1)
+                    @if($qtyTotalsNonWeight->count() === 1)
+                        @php
+                            $qtyUnit = (string) $qtyTotalsNonWeight->keys()->first();
+                            $qtyValue = (float) $qtyTotalsNonWeight->first();
+                            $nettUnit = (string) ($nettTotalsByUnit->keys()->first() ?? $weightUnitDisplay);
+                            $nettValue = (float) ($nettTotalsByUnit->first() ?? $totalNett);
+                        @endphp
+                        <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                            <tr>
+                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">
+                                    {{ number_format($qtyValue, 0) }} {{ $qtyUnit }}
+                                </td>
+                                <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">
+                                    {{ number_format($nettValue, 0) }} {{ $nettUnit }}
+                                </td>
+                            </tr>
+                        </table>
+                    @else
+                        @php
+                            $nettUnit = (string) ($nettTotalsByUnit->keys()->first() ?? $weightUnitDisplay);
+                            $nettValue = (float) ($nettTotalsByUnit->first() ?? $totalNett);
+                        @endphp
+                        {{ number_format($nettValue, 0) }} {{ $nettUnit }}
+                    @endif
                 @else
                     <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
-                        <tr>
-                            <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">
-                                {{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}
-                            </td>
-                            <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">
-                                {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
-                            </td>
-                        </tr>
+                        @foreach($qtyTotalsNonWeight as $unit => $qtyValue)
+                            <tr>
+                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                    {{ number_format($qtyValue, 0) }} {{ $unit }}
+                                </td>
+                            </tr>
+                        @endforeach
+                        @foreach($nettTotalsByUnit as $unit => $nettValue)
+                            <tr>
+                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                    {{ number_format($nettValue, 0) }} {{ $unit }}
+                                </td>
+                            </tr>
+                        @endforeach
                     </table>
                 @endif
             </td>
@@ -550,17 +636,28 @@
     <table class="signature-table">
         <tr>
             <td style="width:100%; text-align:right;">
-                <div style="display:inline-block; text-align:center; padding:10px 30px;">
-                    <div class="original-box">ORIGINAL</div>
-                    <div class="sign-space">
-                        @if($arrival->vendor->signature_path)
-                            <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
-                        @endif
-                    </div>
-                    <div style="border-top:1px solid #000; padding-top:5px; margin-top:10px;">
-                        <span class="section-label">SIGNED BY</span><br>
-                        <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
-                    </div>
+                <div class="signature-block">
+                    <div class="original-box" style="transform: rotate({{ $originalRotationInvoice }}deg);">ORIGINAL</div>
+                    <table class="signature-layout">
+                        <tr>
+                            <td style="width:45%;">
+                                <div class="section-label">SIGNED BY</div>
+                                @if($signedByName !== '')
+                                    <div class="text-bold">{{ $signedByName }}</div>
+                                @else
+                                    <div class="text-bold">&nbsp;</div>
+                                @endif
+                            </td>
+                            <td style="width:55%; text-align:right;">
+                                <div class="sign-space">
+                                    @if($arrival->vendor->signature_path)
+                                        <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:65px;">
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="signature-line"></div>
                 </div>
             </td>
         </tr>
@@ -577,7 +674,7 @@
         <td class="col-left">
             <span class="section-label">1.SHIPPER</span><br><br>
             <span class="company-name">{{ strtoupper($arrival->vendor->vendor_name) }}</span><br>
-            {{ strtoupper($arrival->vendor->address) }}<br>
+            <div style="white-space: pre-line;">{{ $arrival->vendor->address }}</div>
             TEL:{{ $arrival->vendor->phone ?? '' }}
         </td>
         <td class="col-right">
@@ -604,7 +701,11 @@
         </td>
         <td class="col-right" rowspan="4" style="vertical-align: top;">
             <span class="section-label">9.REMARK:</span><br><br>
-            {{ $arrival->vendor->bank_account ?? '' }}
+            @if($notesText !== '')
+                <div style="white-space: pre-line;">{{ $notesText }}</div>
+            @else
+                &nbsp;
+            @endif
         </td>
     </tr>
     
@@ -618,7 +719,7 @@
 	                    $notifyFax = trim((string) ($arrival->trucking->fax ?? ''));
 	                @endphp
 	                <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
-	                {{ strtoupper($arrival->trucking->address) }}<br><br>
+	                <div style="white-space: pre-line;">{{ $arrival->trucking->address }}</div><br>
 	                TEL: {{ $notifyTel !== '' ? $notifyTel : '-' }}
 	                @if($notifyFax !== '')
 	                    &nbsp; FAX: {{ $notifyFax }}
@@ -757,9 +858,51 @@
 			                    </tr>
 			                </table>
 			            </td>
-			            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">{{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}</td>
-			            <td class="text-center text-bold" style="white-space:nowrap;">{{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}</td>
-			            <td class="text-center text-bold" style="white-space:nowrap;">{{ number_format($totalGross, 0) }} {{ $weightUnitDisplay }}</td>
+			            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">
+			                @if($qtyTotalsByUnit->count() <= 1)
+			                    {{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}
+			                @else
+			                    <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+			                        @foreach($qtyTotalsByUnit as $unit => $qtyValue)
+			                            <tr>
+			                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+			                                    {{ number_format($qtyValue, 0) }} {{ $unit }}
+			                                </td>
+			                            </tr>
+			                        @endforeach
+			                    </table>
+			                @endif
+			            </td>
+			            <td class="text-center text-bold" style="white-space:nowrap;">
+			                @if($nettTotalsByUnit->count() <= 1)
+			                    {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+			                @else
+			                    <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+			                        @foreach($nettTotalsByUnit as $unit => $nettValue)
+			                            <tr>
+			                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+			                                    {{ number_format($nettValue, 0) }} {{ $unit }}
+			                                </td>
+			                            </tr>
+			                        @endforeach
+			                    </table>
+			                @endif
+			            </td>
+			            <td class="text-center text-bold" style="white-space:nowrap;">
+			                @if($grossTotalsByUnit->count() <= 1)
+			                    {{ number_format($totalGross, 0) }} {{ $weightUnitDisplay }}
+			                @else
+			                    <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+			                        @foreach($grossTotalsByUnit as $unit => $grossValue)
+			                            <tr>
+			                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+			                                    {{ number_format($grossValue, 0) }} {{ $unit }}
+			                                </td>
+			                            </tr>
+			                        @endforeach
+			                    </table>
+			                @endif
+			            </td>
 			        </tr>
 		    </tbody>
 		</table>
@@ -769,17 +912,28 @@
 	    <table class="signature-table">
 	        <tr>
             <td style="width:100%; text-align:right;">
-                <div style="display:inline-block; text-align:center; padding:10px 30px;">
-                    <div class="original-box">ORIGINAL</div>
-                    <div class="sign-space">
-                        @if($arrival->vendor->signature_path)
-                            <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
-                        @endif
-                    </div>
-                    <div style="border-top:1px solid #000; padding-top:5px; margin-top:10px;">
-                        <span class="section-label">SIGNED BY</span><br>
-                        <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
-                    </div>
+                <div class="signature-block">
+                    <div class="original-box" style="transform: rotate({{ $originalRotationPacking }}deg);">ORIGINAL</div>
+                    <table class="signature-layout">
+                        <tr>
+                            <td style="width:45%;">
+                                <div class="section-label">SIGNED BY</div>
+                                @if($signedByName !== '')
+                                    <div class="text-bold">{{ $signedByName }}</div>
+                                @else
+                                    <div class="text-bold">&nbsp;</div>
+                                @endif
+                            </td>
+                            <td style="width:55%; text-align:right;">
+                                <div class="sign-space">
+                                    @if($arrival->vendor->signature_path)
+                                        <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:65px;">
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="signature-line"></div>
                 </div>
             </td>
         </tr>

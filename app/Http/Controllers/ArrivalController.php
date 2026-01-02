@@ -349,6 +349,10 @@ class ArrivalController extends Controller
         // Clean filename - remove / and \ characters
         $filename = 'Commercial-Invoice-' . str_replace(['/', '\\'], '-', $arrival->invoice_no) . '.pdf';
 
+        $wkhtmltopdfBinary = (string) config('snappy.pdf.binary', '');
+        $canUseSnappy = $wkhtmltopdfBinary !== '' && is_file($wkhtmltopdfBinary) && is_executable($wkhtmltopdfBinary);
+
+        if ($canUseSnappy) {
             $pdf = SnappyPdf::loadView('arrivals.invoice', compact('arrival'))
                 ->setPaper('A4', 'portrait')
                 ->setOptions([
@@ -362,7 +366,15 @@ class ArrivalController extends Controller
                     'zoom' => 1.2,
                 ]);
 
-        return $pdf->inline($filename)
+            return $pdf->inline($filename)
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache');
+        }
+
+        $pdf = Pdf::loadView('arrivals.invoice', compact('arrival'))
+            ->setPaper('A4', 'portrait');
+
+        return $pdf->stream($filename)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
     }
