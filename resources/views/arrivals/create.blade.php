@@ -173,7 +173,6 @@
                                 </svg>
                                 <span data-label>Sync Part Catalog</span>
                             </button>
-                            <button type="button" id="add-material-group" class="inline-flex w-full items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-all duration-200 shadow-sm sm:w-auto">+ Material Group</button>
                         </div>
                     </div>
 
@@ -204,7 +203,6 @@
         const vendorIdInput = document.getElementById('vendor_id');
         const suggestionsBox = document.getElementById('vendor-suggestions');
         const groupsContainer = document.getElementById('material-groups');
-        const addGroupBtn = document.getElementById('add-material-group');
         const refreshPartsBtn = document.getElementById('refresh-parts');
         const containerRowsEl = document.getElementById('container-rows');
         const existingItems = @json(old('items', []));
@@ -845,6 +843,12 @@
                     </span>
                     Part Line
                 </button>
+                <button type="button" class="add-group inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-blue-700 hover:bg-blue-50 text-sm font-semibold whitespace-nowrap">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-blue-200 bg-white">
+                        <span class="leading-none">+</span>
+                    </span>
+                    Material Group
+                </button>
                 <button type="button" class="remove-line inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 text-sm font-semibold whitespace-nowrap">
                     <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-red-200 bg-white">
                         <span class="leading-none">−</span>
@@ -867,6 +871,14 @@
                 requestSaveDraft();
                 setTimeout(() => {
                     newRow?.querySelector('.part-select')?.focus();
+                }, 0);
+            });
+
+            row.querySelector('.add-group').addEventListener('click', () => {
+                const newGroup = createGroup();
+                requestSaveDraft();
+                setTimeout(() => {
+                    newGroup?.querySelector('.material-title-select')?.focus();
                 }, 0);
             });
 
@@ -986,6 +998,7 @@
 	            setGroupTitle(groupEl, title);
 	            syncGroupTitle(groupEl);
 	            if (!isRestoringDraft) requestSaveDraft();
+                return groupEl;
 	        }
 
         function resetGroups(groupDefinitions = []) {
@@ -1010,11 +1023,6 @@
 	            rebuildMaterialTitleSelects(vendorId);
 	            return data;
 	        }
-
-        addGroupBtn.addEventListener('click', () => {
-            createGroup();
-            requestSaveDraft();
-        });
 
 	        document.addEventListener('DOMContentLoaded', async () => {
 	            initContainerRows();
