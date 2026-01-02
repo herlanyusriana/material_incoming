@@ -218,6 +218,13 @@
             $portDisplay = trim($portDisplay . ($portDisplay ? ', ' : '') . $countryOrigin);
         }
         $madeInText = $portOrigin ?: ($countryOrigin ?: 'SOUTH KOREA');
+
+        $notesText = trim((string) ($arrival->notes ?? ''));
+        $bankAccountText = trim((string) ($arrival->vendor->bank_account ?? ''));
+
+        $originalAngles = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
+        $originalRotationInvoice = $originalAngles[random_int(0, count($originalAngles) - 1)];
+        $originalRotationPacking = $originalAngles[random_int(0, count($originalAngles) - 1)];
     @endphp
 @php
     $totalBundles = $arrival->items->sum(fn($i) => (float)($i->qty_bundle ?? 0));
@@ -280,7 +287,11 @@
         </td>
         <td class="col-right">
             <span class="section-label">9.REMITTANCE</span><br><br>
-            &nbsp;
+            @if($notesText !== '')
+                <div style="white-space: pre-line;">{{ $notesText }}</div>
+            @else
+                &nbsp;
+            @endif
         </td>
     </tr>
     
@@ -321,7 +332,11 @@
         </td>
         <td class="col-right" rowspan="2">
             <span class="section-label">11.REMARK:</span><br><br>
-            {{ $arrival->vendor->bank_account ?? '' }}
+            @if($bankAccountText !== '')
+                <div style="white-space: pre-line;">{{ $bankAccountText }}</div>
+            @else
+                &nbsp;
+            @endif
         </td>
     </tr>
     
@@ -498,16 +513,23 @@
         <tr>
             <td style="width:100%; text-align:right;">
                 <div style="display:inline-block; text-align:center; padding:10px 30px;">
-                    <div class="original-box">ORIGINAL</div>
-                    <div class="sign-space">
-                        @if($arrival->vendor->signature_path)
-                            <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
-                        @endif
-                    </div>
-                    <div style="border-top:1px solid #000; padding-top:5px; margin-top:10px;">
-                        <span class="section-label">SIGNED BY</span><br>
-                        <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
-                    </div>
+                    <div class="original-box" style="transform: rotate({{ $originalRotationInvoice }}deg);">ORIGINAL</div>
+                    <table style="width:100%; border:none; margin-top:8px;">
+                        <tr>
+                            <td style="border:none; padding:0; width:45%; vertical-align:bottom; text-align:left;">
+                                <span class="section-label">SIGNED BY</span><br>
+                                <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
+                            </td>
+                            <td style="border:none; padding:0; width:55%; vertical-align:bottom; text-align:right;">
+                                <div class="sign-space" style="height:auto;">
+                                    @if($arrival->vendor->signature_path)
+                                        <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="border-top:1px solid #000; margin-top:10px;"></div>
                 </div>
             </td>
         </tr>
@@ -551,7 +573,11 @@
         </td>
         <td class="col-right" rowspan="4" style="vertical-align: top;">
             <span class="section-label">9.REMARK:</span><br><br>
-            {{ $arrival->vendor->bank_account ?? '' }}
+            @if($notesText !== '')
+                <div style="white-space: pre-line;">{{ $notesText }}</div>
+            @else
+                &nbsp;
+            @endif
         </td>
     </tr>
     
@@ -711,16 +737,23 @@
 	        <tr>
             <td style="width:100%; text-align:right;">
                 <div style="display:inline-block; text-align:center; padding:10px 30px;">
-                    <div class="original-box">ORIGINAL</div>
-                    <div class="sign-space">
-                        @if($arrival->vendor->signature_path)
-                            <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
-                        @endif
-                    </div>
-                    <div style="border-top:1px solid #000; padding-top:5px; margin-top:10px;">
-                        <span class="section-label">SIGNED BY</span><br>
-                        <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
-                    </div>
+                    <div class="original-box" style="transform: rotate({{ $originalRotationPacking }}deg);">ORIGINAL</div>
+                    <table style="width:100%; border:none; margin-top:8px;">
+                        <tr>
+                            <td style="border:none; padding:0; width:45%; vertical-align:bottom; text-align:left;">
+                                <span class="section-label">SIGNED BY</span><br>
+                                <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
+                            </td>
+                            <td style="border:none; padding:0; width:55%; vertical-align:bottom; text-align:right;">
+                                <div class="sign-space" style="height:auto;">
+                                    @if($arrival->vendor->signature_path)
+                                        <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="border-top:1px solid #000; margin-top:10px;"></div>
                 </div>
             </td>
         </tr>
