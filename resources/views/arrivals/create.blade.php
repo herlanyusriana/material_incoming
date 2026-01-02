@@ -901,7 +901,6 @@
 	                        <p class="text-xs text-gray-500 mt-1">Dropdown ngambil dari <span class="font-semibold">Part Name Vendor</span> (sesuai vendor). Kalau tidak ada, pilih <span class="font-semibold">Lainnya</span> lalu ketik manual.</p>
 	                    </div>
 	                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-	                        <button type="button" class="add-part-line inline-flex w-full items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md shadow-sm hover:bg-blue-700 sm:w-auto">+ Part Line</button>
 		                        <button type="button" class="remove-group text-xs text-red-600 hover:text-red-700">Remove Group</button>
 		                    </div>
 		                </div>
@@ -909,12 +908,6 @@
 		                    <div class="group-rows space-y-4"></div>
 		                </div>
 	            `;
-
-            const addLineBtn = groupEl.querySelector('.add-part-line');
-            addLineBtn.addEventListener('click', () => {
-                addRowToGroup(groupEl);
-                requestSaveDraft();
-            });
 
             const removeGroupBtn = groupEl.querySelector('.remove-group');
             removeGroupBtn.addEventListener('click', () => {
