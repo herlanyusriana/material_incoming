@@ -501,12 +501,12 @@
             }
             const options = partsCache[vendorId]
                 .map(p => {
-                    const displayName = p.part_name_gci || p.part_name_vendor || p.part_no;
-                    const detail = p.part_no ? `(${p.part_no})` : '';
-                    return `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(partId) ? 'selected' : ''}>${escapeHtml(displayName)} ${escapeHtml(detail)}</option>`;
+                    const displaySize = (p.size || p.register_no || '').trim();
+                    const label = displaySize !== '' ? displaySize : (p.part_name_vendor || p.part_name_gci || p.part_no || '');
+                    return `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(partId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
                 })
                 .join('');
-            return `<option value="">Select Part Number</option>${options}`;
+            return `<option value="">Select Size</option>${options}`;
         }
 
 	        function getUniqueMaterialTitles(vendorId) {
