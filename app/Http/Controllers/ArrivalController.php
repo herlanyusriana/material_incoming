@@ -352,29 +352,27 @@ class ArrivalController extends Controller
         $wkhtmltopdfBinary = (string) config('snappy.pdf.binary', '');
         $canUseSnappy = $wkhtmltopdfBinary !== '' && is_file($wkhtmltopdfBinary) && is_executable($wkhtmltopdfBinary);
 
-        if ($canUseSnappy) {
-            $pdf = SnappyPdf::loadView('arrivals.invoice', compact('arrival'))
-                ->setPaper('A4', 'portrait')
-                ->setOptions([
-                    'margin-top' => 8,
-                    'margin-bottom' => 8,
-                    'margin-left' => 8,
-                    'margin-right' => 8,
-                    'enable-local-file-access' => true,
-                    'print-media-type' => true,
-                    'encoding' => 'UTF-8',
-                    'zoom' => 1.2,
-                ]);
-
-            return $pdf->inline($filename)
-                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                ->header('Pragma', 'no-cache');
+        if (!$canUseSnappy) {
+            throw new \RuntimeException(
+                "wkhtmltopdf binary not found/executable at `{$wkhtmltopdfBinary}`. " .
+                "Install wkhtmltopdf or set WKHTML_PDF_BINARY in .env to the correct path."
+            );
         }
 
-        $pdf = Pdf::loadView('arrivals.invoice', compact('arrival'))
-            ->setPaper('A4', 'portrait');
+        $pdf = SnappyPdf::loadView('arrivals.invoice', compact('arrival'))
+            ->setPaper('A4', 'portrait')
+            ->setOptions([
+                'margin-top' => 8,
+                'margin-bottom' => 8,
+                'margin-left' => 8,
+                'margin-right' => 8,
+                'enable-local-file-access' => true,
+                'print-media-type' => true,
+                'encoding' => 'UTF-8',
+                'zoom' => 1.2,
+            ]);
 
-        return $pdf->stream($filename)
+        return $pdf->inline($filename)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
     }
