@@ -260,6 +260,17 @@
         return !empty($item->unit_goods);
     }))->unit_goods ?? 'PCS');
     $weightUnitDisplay = strtoupper(optional($arrival->items->first())->unit_weight ?? 'KGM');
+
+    $weightOnlyGoodsUnits = ['KGM', 'KG'];
+    $qtyTotalsByUnit = $arrival->items
+        ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_goods ?? 'PCS'))))
+        ->map(fn ($items) => (float) $items->sum(fn ($i) => (float) ($i->qty_goods ?? 0)))
+        ->filter(fn ($v) => $v > 0);
+    $qtyTotalsNonWeight = $qtyTotalsByUnit->reject(fn ($v, $unit) => in_array($unit, $weightOnlyGoodsUnits, true));
+    $nettTotalsByUnit = $arrival->items
+        ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_weight ?? 'KGM'))))
+        ->map(fn ($items) => (float) $items->sum(fn ($i) => (float) ($i->weight_nett ?? 0)))
+        ->filter(fn ($v) => $v > 0);
 @endphp
 
 <div class="title">COMMERCIAL INVOICE</div>
@@ -461,25 +472,114 @@
                 <td class="text-right">USD {{ number_format($item->total_price, 2) }}</td>
             </tr>
             @endforeach
+
+            @php
+                $groupQtyTotalsByUnit = $items
+                    ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_goods ?? 'PCS'))))
+                    ->map(fn ($rows) => (float) $rows->sum(fn ($i) => (float) ($i->qty_goods ?? 0)))
+                    ->filter(fn ($v) => $v > 0);
+                $groupQtyTotalsNonWeight = $groupQtyTotalsByUnit->reject(fn ($v, $unit) => in_array($unit, $weightOnlyGoodsUnits, true));
+                $groupNettTotalsByUnit = $items
+                    ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_weight ?? 'KGM'))))
+                    ->map(fn ($rows) => (float) $rows->sum(fn ($i) => (float) ($i->weight_nett ?? 0)))
+                    ->filter(fn ($v) => $v > 0);
+                $groupAmount = (float) $items->sum(fn ($i) => (float) ($i->total_price ?? 0));
+            @endphp
+            <tr style="border-top:1px solid #000;">
+                <td class="text-bold">SUBTOTAL :</td>
+                <td>&nbsp;</td>
+                <td class="text-center text-bold">
+                    @if($groupQtyTotalsNonWeight->count() === 0)
+                        @php
+                            $unit = (string) ($groupNettTotalsByUnit->keys()->first() ?? $weightUnitDisplay);
+                            $value = (float) ($groupNettTotalsByUnit->first() ?? 0);
+                        @endphp
+                        {{ number_format($value, 0) }} {{ $unit }}
+                    @elseif($groupQtyTotalsNonWeight->count() === 1 && $groupNettTotalsByUnit->count() === 1)
+                        @php
+                            $qtyUnit = (string) $groupQtyTotalsNonWeight->keys()->first();
+                            $qtyValue = (float) $groupQtyTotalsNonWeight->first();
+                            $nettUnit = (string) $groupNettTotalsByUnit->keys()->first();
+                            $nettValue = (float) $groupNettTotalsByUnit->first();
+                        @endphp
+                        <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                            <tr>
+                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">
+                                    {{ number_format($qtyValue, 0) }} {{ $qtyUnit }}
+                                </td>
+                                <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">
+                                    {{ number_format($nettValue, 0) }} {{ $nettUnit }}
+                                </td>
+                            </tr>
+                        </table>
+                    @else
+                        <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                            @foreach($groupQtyTotalsNonWeight as $unit => $value)
+                                <tr>
+                                    <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                        {{ number_format($value, 0) }} {{ $unit }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                            @foreach($groupNettTotalsByUnit as $unit => $value)
+                                <tr>
+                                    <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                        {{ number_format($value, 0) }} {{ $unit }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </table>
+                    @endif
+                </td>
+                <td>&nbsp;</td>
+                <td class="text-right text-bold">USD {{ number_format($groupAmount, 2) }}</td>
+            </tr>
         @endforeach
         
         {{-- Total row --}}
         <tr style="border-top:2px solid #000;">
             <td class="text-bold">TOTAL :</td>
             <td>&nbsp;</td>
-	            <td class="text-center text-bold">
-	                @if(in_array($goodsUnitDisplay, ['KGM', 'KG'], true))
-	                    {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
-	                @else
+            <td class="text-center text-bold">
+                @if($qtyTotalsNonWeight->count() === 0)
+                    @php
+                        $unit = (string) ($nettTotalsByUnit->keys()->first() ?? $weightUnitDisplay);
+                        $value = (float) ($nettTotalsByUnit->first() ?? $totalNett);
+                    @endphp
+                    {{ number_format($value, 0) }} {{ $unit }}
+                @elseif($qtyTotalsNonWeight->count() === 1 && $nettTotalsByUnit->count() === 1)
+                    @php
+                        $qtyUnit = (string) $qtyTotalsNonWeight->keys()->first();
+                        $qtyValue = (float) $qtyTotalsNonWeight->first();
+                        $nettUnit = (string) $nettTotalsByUnit->keys()->first();
+                        $nettValue = (float) $nettTotalsByUnit->first();
+                    @endphp
                     <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
                         <tr>
                             <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">
-                                {{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}
+                                {{ number_format($qtyValue, 0) }} {{ $qtyUnit }}
                             </td>
                             <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">
-                                {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+                                {{ number_format($nettValue, 0) }} {{ $nettUnit }}
                             </td>
                         </tr>
+                    </table>
+                @else
+                    <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                        @foreach($qtyTotalsNonWeight as $unit => $value)
+                            <tr>
+                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                    {{ number_format($value, 0) }} {{ $unit }}
+                                </td>
+                            </tr>
+                        @endforeach
+                        @foreach($nettTotalsByUnit as $unit => $value)
+                            <tr>
+                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                    {{ number_format($value, 0) }} {{ $unit }}
+                                </td>
+                            </tr>
+                        @endforeach
                     </table>
                 @endif
             </td>
