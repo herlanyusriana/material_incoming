@@ -503,17 +503,25 @@
                 .replace(/'/g, '&#039;');
         }
 
-        function buildPartOptions(vendorId, partId = null) {
+        function buildPartOptions(vendorId, groupTitle = '', partId = null) {
             if (!vendorId || !partsCache[vendorId]) {
                 return '<option value="">Select vendor first</option>';
             }
-            const options = partsCache[vendorId]
+            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+            const sourceList = partsCache[vendorId] || [];
+            const filteredList = normalizedTitle
+                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
+                : sourceList;
+            const options = filteredList
                 .map(p => {
                     const displaySize = (p.size || p.register_no || '').trim();
                     const label = displaySize !== '' ? displaySize : (p.part_name_vendor || p.part_name_gci || p.part_no || '');
                     return `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(partId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
                 })
                 .join('');
+            if (!options) {
+                return `<option value="">No size for selected group</option>`;
+            }
             return `<option value="">Select Size</option>${options}`;
         }
 
@@ -689,7 +697,26 @@
 	        function syncGroupTitle(groupEl) {
 	            const title = getGroupTitle(groupEl);
 	            groupEl.querySelectorAll('.material-group-field').forEach(field => field.value = title);
+                refreshGroupPartOptions(groupEl);
 	        }
+
+        function refreshGroupPartOptions(groupEl) {
+            const vendorId = vendorIdInput.value;
+            const groupTitle = getGroupTitle(groupEl);
+            const rows = groupEl.querySelectorAll('.line-row');
+            rows.forEach((row) => {
+                const select = row.querySelector('.part-select');
+                if (!select) return;
+                const current = select.value;
+                select.innerHTML = buildPartOptions(vendorId, groupTitle, current);
+                const stillValid = Array.from(select.options).some((o) => String(o.value) === String(current));
+                if (!stillValid) {
+                    select.value = '';
+                    applyPartDefaults(row, vendorId, '');
+                }
+                select.disabled = !vendorId || select.options.length <= 1 || select.options[0].textContent === 'No size for selected group';
+            });
+        }
 
 	        function addRowToGroup(groupEl, existing = null) {
 	            const vendorId = vendorIdInput.value;
@@ -699,7 +726,8 @@
             const guessedBundle = existing?.unit_bundle ?? null;
             const guessedWeight = existing?.unit_weight ?? null;
             const guessedUnitGoods = existing?.unit_goods ?? null;
-            const initialMaterialGroup = escapeHtml(getGroupTitle(groupEl));
+            const groupTitle = getGroupTitle(groupEl);
+            const initialMaterialGroup = escapeHtml(groupTitle);
             const existingQty = Number(existing?.qty_goods ?? 0);
             const existingTotal = existing?.total_amount ?? (existing ? ((Number(existing?.price ?? 0) * existingQty) || 0) : '');
 	            row.innerHTML = `
@@ -713,7 +741,7 @@
                     <div class="sm:flex sm:items-center sm:gap-4">
                         <label class="text-xs font-semibold text-slate-500 sm:w-44">Size</label>
                         <select name="items[${rowIndex}][part_id]" class="part-select mt-1 block w-full rounded-lg border-slate-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500 sm:mt-0 sm:flex-1" ${vendorId ? '' : 'disabled'} required>
-                            ${buildPartOptions(vendorId, existing?.part_id)}
+                            ${buildPartOptions(vendorId, groupTitle, existing?.part_id)}
                         </select>
                     </div>
 
