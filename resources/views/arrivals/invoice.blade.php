@@ -518,7 +518,8 @@
                         <tr>
                             <td style="border:none; padding:0; width:45%; vertical-align:bottom; text-align:left;">
                                 <span class="section-label">SIGNED BY</span><br>
-                                <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
+                                @php $signedBy = strtoupper(trim((string) ($arrival->vendor->contact_person ?? ''))); @endphp
+                                <strong>{{ $signedBy !== '' ? $signedBy : ' ' }}</strong>
                             </td>
                             <td style="border:none; padding:0; width:55%; vertical-align:bottom; text-align:right;">
                                 <div class="sign-space" style="height:auto;">
@@ -742,7 +743,8 @@
                         <tr>
                             <td style="border:none; padding:0; width:45%; vertical-align:bottom; text-align:left;">
                                 <span class="section-label">SIGNED BY</span><br>
-                                <strong>{{ strtoupper($arrival->vendor->contact_person ?? 'GENERAL DIRECTOR') }}</strong>
+                                @php $signedBy = strtoupper(trim((string) ($arrival->vendor->contact_person ?? ''))); @endphp
+                                <strong>{{ $signedBy !== '' ? $signedBy : ' ' }}</strong>
                             </td>
                             <td style="border:none; padding:0; width:55%; vertical-align:bottom; text-align:right;">
                                 <div class="sign-space" style="height:auto;">
