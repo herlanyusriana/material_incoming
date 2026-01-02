@@ -285,6 +285,8 @@ class ArrivalController extends Controller
                 ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
         }
 
+        $departure->load('containers');
+
         return view('arrivals.edit', ['arrival' => $departure]);
     }
 
@@ -307,6 +309,7 @@ class ArrivalController extends Controller
             'hs_code' => ['nullable', 'string', 'max:255'],
             'hs_codes' => ['nullable', 'string', 'max:2000'],
             'port_of_loading' => ['nullable', 'string', 'max:255'],
+            'container_numbers' => ['nullable', 'string'],
             'seal_code' => ['nullable', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
@@ -330,12 +333,51 @@ class ArrivalController extends Controller
             'hs_code' => $hsCodePrimary,
             'hs_codes' => $normalizedHsCodes,
             'port_of_loading' => $data['port_of_loading'] ?? null,
+            'container_numbers' => $data['container_numbers'] ?? null,
             'seal_code' => $data['seal_code'] ?? null,
             'currency' => $data['currency'] ?? 'USD',
             'notes' => $data['notes'] ?? null,
         ];
 
-        $departure->update($this->filterArrivalColumns($departureData));
+        DB::transaction(function () use ($departure, $departureData, $data) {
+            $defaultSeal = strtoupper(trim((string) ($data['seal_code'] ?? '')));
+            $lines = preg_split('/\r\n|\r|\n/', (string) ($data['container_numbers'] ?? '')) ?: [];
+            $normalizedContainers = collect($lines)
+                ->map(function ($line) use ($defaultSeal) {
+                    $raw = trim((string) $line);
+                    if ($raw === '') {
+                        return null;
+                    }
+                    $parts = preg_split('/\s+/', $raw) ?: [];
+                    $containerNo = strtoupper(trim((string) ($parts[0] ?? '')));
+                    if ($containerNo === '') {
+                        return null;
+                    }
+                    $sealCode = strtoupper(trim((string) ($parts[1] ?? $defaultSeal)));
+                    return [
+                        'container_no' => $containerNo,
+                        'seal_code' => $sealCode !== '' ? $sealCode : null,
+                    ];
+                })
+                ->filter()
+                ->unique('container_no')
+                ->values();
+
+            $containerNumbersLegacy = $normalizedContainers->isNotEmpty()
+                ? $normalizedContainers->pluck('container_no')->implode("\n")
+                : trim((string) ($data['container_numbers'] ?? ''));
+
+            $departureData['container_numbers'] = $containerNumbersLegacy !== '' ? $containerNumbersLegacy : null;
+
+            $departure->update($this->filterArrivalColumns($departureData));
+
+            if (Schema::hasTable('arrival_containers')) {
+                $departure->containers()->delete();
+                if ($normalizedContainers->isNotEmpty()) {
+                    $departure->containers()->createMany($normalizedContainers->all());
+                }
+            }
+        });
 
         return redirect()->route('departures.show', $departure)->with('success', 'Departure berhasil di-update.');
     }

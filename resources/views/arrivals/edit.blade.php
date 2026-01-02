@@ -88,6 +88,30 @@
                         </div>
                     </div>
 
+                    @php
+                        $containerPrefill = old('container_numbers');
+                        if ($containerPrefill === null) {
+                            if ($arrival->relationLoaded('containers') && $arrival->containers->count()) {
+                                $containerPrefill = $arrival->containers
+                                    ->map(function ($c) {
+                                        $no = trim((string) ($c->container_no ?? ''));
+                                        $seal = trim((string) ($c->seal_code ?? ''));
+                                        return trim($no . ($seal !== '' ? (' ' . $seal) : ''));
+                                    })
+                                    ->filter()
+                                    ->implode("\n");
+                            } else {
+                                $containerPrefill = (string) ($arrival->container_numbers ?? '');
+                            }
+                        }
+                    @endphp
+                    <div class="space-y-1">
+                        <label for="container_numbers" class="text-sm font-medium text-slate-700">Container Numbers</label>
+                        <textarea id="container_numbers" name="container_numbers" rows="4" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="1 baris = 1 container\nFormat: CONTAINER_NO [SEAL_CODE]">{{ $containerPrefill }}</textarea>
+                        <p class="text-xs text-slate-500">Contoh: <span class="font-semibold">MSKU1234567 SEAL001</span> (seal optional). Kalau seal kosong, akan pakai <span class="font-semibold">Seal Code</span> di atas.</p>
+                        @error('container_numbers') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
                     <div class="space-y-1">
                         <label for="notes" class="text-sm font-medium text-slate-700">Notes</label>
                         <textarea id="notes" name="notes" rows="3" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">{{ old('notes', $arrival->notes) }}</textarea>
