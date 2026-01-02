@@ -22,6 +22,10 @@
                         <a href="{{ route('receives.invoice.create', $arrival) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                             Lanjut Receive
                         </a>
+                    @else
+                        <a href="{{ route('receives.completed.invoice.export', $arrival) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            Export Excel
+                        </a>
                     @endif
                     <a href="{{ route('receives.completed') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
                         Back

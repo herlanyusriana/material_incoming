@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Receive;
 use App\Models\ArrivalItem;
 use App\Models\Arrival;
+use App\Exports\CompletedInvoiceReceivesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReceiveController extends Controller
 {
@@ -199,6 +201,20 @@ class ReceiveController extends Controller
         $hasPending = $pendingItemsCount > 0;
 
         return view('receives.completed_invoice', compact('arrival', 'receives', 'remainingQtyTotal', 'pendingItemsCount', 'hasPending'));
+    }
+
+    public function exportCompletedInvoice(Arrival $arrival)
+    {
+        $arrival->load(['vendor', 'items.receives', 'items.part']);
+
+        if ($this->hasPendingReceives($arrival)) {
+            return back()->with('error', 'Invoice ini belum complete receive.');
+        }
+
+        $filenameSafe = preg_replace('/[^A-Za-z0-9_.-]+/', '-', (string) ($arrival->invoice_no ?? 'invoice'));
+        $filename = 'receives_' . $filenameSafe . '_' . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new CompletedInvoiceReceivesExport($arrival), $filename);
     }
 
     public function create(ArrivalItem $arrivalItem)
