@@ -126,9 +126,6 @@
 	                                    <label class="text-sm font-medium text-gray-700">Containers & Seal Code</label>
 	                                    <p class="text-xs text-gray-500">1 container = 1 seal code. 1 invoice bisa punya banyak container.</p>
 	                                </div>
-	                                <button type="button" id="add-container-row" class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition shadow-sm">
-	                                    + Add Container
-	                                </button>
 	                            </div>
 
 	                            <div id="container-rows" class="space-y-3"></div>
@@ -209,7 +206,6 @@
         const groupsContainer = document.getElementById('material-groups');
         const addGroupBtn = document.getElementById('add-material-group');
         const refreshPartsBtn = document.getElementById('refresh-parts');
-        const addContainerRowBtn = document.getElementById('add-container-row');
         const containerRowsEl = document.getElementById('container-rows');
         const existingItems = @json(old('items', []));
         const refreshBtnLabel = refreshPartsBtn?.querySelector('[data-label]');
@@ -261,12 +257,23 @@
                         <input type="text" name="containers[${idx}][seal_code]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="e.g. HUPH019101" value="${seal}" required>
                     </div>
                 </div>
-                <div class="mt-3 flex justify-end">
+                <div class="mt-3 flex flex-wrap justify-end gap-2">
+                    <button type="button" class="add-container inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-blue-700 hover:bg-blue-50 text-xs font-semibold whitespace-nowrap">
+                        Add Container
+                    </button>
                     <button type="button" class="remove-container inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 text-xs font-semibold whitespace-nowrap">
                         Hapus Container
                     </button>
                 </div>
             `;
+
+                row.querySelector('.add-container')?.addEventListener('click', () => {
+                    const newRow = addContainerRow();
+                    requestSaveDraft();
+                    setTimeout(() => {
+                        newRow?.querySelector('input[name*=\"[container_no]\"]')?.focus();
+                    }, 0);
+                });
 
 	            row.querySelector('.remove-container')?.addEventListener('click', () => {
 	                row.remove();
@@ -281,6 +288,7 @@
 	            });
 
 	            containerRowsEl.appendChild(row);
+                return row;
 	        }
 
 	        function initContainerRows() {
@@ -985,12 +993,6 @@
 
 	        document.addEventListener('DOMContentLoaded', async () => {
 	            initContainerRows();
-	            if (addContainerRowBtn) {
-	                addContainerRowBtn.addEventListener('click', () => {
-	                    addContainerRow();
-	                    requestSaveDraft();
-	                });
-	            }
 
             if (draftData?.fields && !hasOldInput) {
                 isRestoringDraft = true;
