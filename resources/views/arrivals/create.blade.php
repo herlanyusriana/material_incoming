@@ -887,12 +887,13 @@
 		            const nettField = row.querySelector('.weight-nett');
 		            const grossField = row.querySelector('.weight-gross');
 
-            [qtyField, totalField, nettField, grossField].forEach(field => {
-                normalizeDecimalInput(field);
-                if (field === qtyField || field === totalField) {
-                    field.addEventListener('input', () => updateTotal(row));
-                }
-            });
+	            [qtyField, totalField, nettField, grossField].forEach(field => {
+	                normalizeDecimalInput(field);
+	                if (field === qtyField || field === totalField) {
+	                    field.addEventListener('input', () => updateTotal(row));
+                        field.addEventListener('change', () => updateTotal(row));
+	                }
+	            });
             updateTotal(row);
 
             const partSelect = row.querySelector('.part-select');
