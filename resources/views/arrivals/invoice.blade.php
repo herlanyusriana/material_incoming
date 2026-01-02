@@ -148,7 +148,17 @@
             font-weight: bold;
             text-align: center;
             font-size: 8px;
-            border-bottom: 1px solid #000;
+            border-bottom: none;
+        }
+
+        .invoice-items-box {
+            border: 1px solid #000;
+            margin-top: 8px;
+            padding: 0 6px 6px 6px;
+        }
+
+        .invoice-items-box .items-table {
+            margin-top: 0;
         }
         
         .text-center { text-align: center; }
@@ -360,11 +370,12 @@
 </table>
 
 {{-- Items Table (Commercial Invoice) --}}
+<div class="invoice-items-box">
 <table class="items-table">
     <thead>
         <tr>
-            <th style="width:120px; text-align:left; padding-left:6px;">12.MARKS & NO. OF<br>PKGS</th>
-            <th style="width:160px; text-align:left; padding-left:10px;">13.DESCRIPTION<br>OF GOODS</th>
+            <th style="width:120px; text-align:left; padding-left:6px;">12.MARKS &amp; NO. OF PKGS</th>
+            <th style="width:160px; text-align:left; padding-left:10px;">13.DESCRIPTION OF GOODS</th>
             <th style="width:90px; text-align:center;">14.QUANTITY</th>
             <th style="width:100px; text-align:center;">15.UNIT PRICE</th>
             <th style="width:90px; text-align:right; padding-right:6px;">16.AMOUNT</th>
@@ -481,6 +492,7 @@
         </tr>
     </tbody>
 </table>
+</div>
 
 	{{-- Container + Seal Section --}}
 	<div class="container-box">
