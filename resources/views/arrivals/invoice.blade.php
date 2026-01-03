@@ -473,8 +473,8 @@
                 @php
                     $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
                     $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
-                    $pricePerWeightRaw = $item->qty_goods > 0 && $item->weight_nett > 0
-                        ? ((float) $item->price * (float) $item->qty_goods) / (float) $item->weight_nett
+                    $pricePerWeightRaw = (float) ($item->weight_nett ?? 0) > 0
+                        ? ((float) ($item->total_price ?? 0)) / (float) $item->weight_nett
                         : 0;
                     $pricePerWeight = format3_no_round($pricePerWeightRaw);
                 @endphp
