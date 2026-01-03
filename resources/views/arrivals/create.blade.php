@@ -636,6 +636,22 @@
 	            if (priceDisplay) priceDisplay.value = priceText;
 	        }
 
+        function installAutoPriceDelegation() {
+            if (!groupsContainer) return;
+
+            const handler = (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) return;
+                if (!target.classList.contains('qty-goods') && !target.classList.contains('total-input')) return;
+                const row = target.closest('.line-row');
+                if (!row) return;
+                updateTotal(row);
+            };
+
+            groupsContainer.addEventListener('input', handler);
+            groupsContainer.addEventListener('change', handler);
+        }
+
         function normalizeDecimalInput(input) {
             if (!input) return;
             input.addEventListener('input', () => {
@@ -1026,6 +1042,7 @@
 	        }
 
 	        document.addEventListener('DOMContentLoaded', async () => {
+                installAutoPriceDelegation();
 	            initContainerRows();
 
             if (draftData?.fields && !hasOldInput) {
