@@ -189,9 +189,10 @@
         .original-box {
             border: 2px solid #cc0000;
             color: #cc0000;
-            padding: 4px 15px;
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 24px;
+            padding: 6px 18px;
             font-weight: bold;
-            font-size: 12px;
             display: inline-block;
         }
         
