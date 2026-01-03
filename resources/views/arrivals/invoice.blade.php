@@ -359,7 +359,7 @@
             @if($arrival->trucking)
                 <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
                 {{ strtoupper($arrival->trucking->address) }}<br><br>
-                Tel: ( {{ substr($arrival->trucking->phone ?? '', 0, 2) }} - {{ substr($arrival->trucking->phone ?? '', 2, 2) }} ) {{ substr($arrival->trucking->phone ?? '', 4) }}
+                Tel: {{ $arrival->trucking->phone ?? '-' }}
                 @if($arrival->trucking->fax) Fax: {{ $arrival->trucking->fax }}@endif
             @else
                 -
@@ -744,7 +744,7 @@
             @if($arrival->trucking)
                 <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
                 {{ strtoupper($arrival->trucking->address) }}<br><br>
-                Tel: ( {{ substr($arrival->trucking->phone ?? '', 0, 2) }} - {{ substr($arrival->trucking->phone ?? '', 2, 2) }} ) {{ substr($arrival->trucking->phone ?? '', 4) }}
+                Tel: {{ $arrival->trucking->phone ?? '-' }}
                 @if($arrival->trucking->fax) Fax: {{ $arrival->trucking->fax }}@endif
             @else
                 -
