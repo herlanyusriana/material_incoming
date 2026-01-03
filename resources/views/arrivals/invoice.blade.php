@@ -789,6 +789,7 @@
 </table>
 
 		{{-- Packing List Items Table --}}
+        <div class="invoice-items-box">
 		<table class="items-table packing-items-table">
 		    <colgroup>
 		        <col style="width:22%;">
@@ -874,10 +875,111 @@
 			                        {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
                                 @endif
 			                </td>
-			                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
-			                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_gross, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
+				                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
+				                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_gross, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
 			            </tr>
 		            @endforeach
+
+                        @php
+                            $groupBundleTotal = (float) $items->sum(fn ($i) => (float) ($i->qty_bundle ?? 0));
+                            $groupHasBundle = $items->contains(fn ($i) => (float) ($i->qty_bundle ?? 0) > 0);
+                            $groupBundleUnit = strtoupper((string) (optional($items->first(fn ($i) => (float) ($i->qty_bundle ?? 0) > 0 && $i->unit_bundle))->unit_bundle ?? $bundleUnitDisplay ?? 'BUNDLE'));
+                            $groupQtyTotalsByUnit = $items
+                                ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_goods ?? 'PCS'))))
+                                ->map(fn ($rows) => (float) $rows->sum(fn ($i) => (float) ($i->qty_goods ?? 0)))
+                                ->filter(fn ($v) => $v > 0);
+                            $groupQtyTotalsNonWeight = $groupQtyTotalsByUnit->reject(fn ($v, $unit) => in_array($unit, $weightOnlyGoodsUnits, true));
+                            $groupNettTotalsByUnit = $items
+                                ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_weight ?? 'KGM'))))
+                                ->map(fn ($rows) => (float) $rows->sum(fn ($i) => (float) ($i->weight_nett ?? 0)))
+                                ->filter(fn ($v) => $v > 0);
+                            $groupGrossTotalsByUnit = $items
+                                ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_weight ?? 'KGM'))))
+                                ->map(fn ($rows) => (float) $rows->sum(fn ($i) => (float) ($i->weight_gross ?? 0)))
+                                ->filter(fn ($v) => $v > 0);
+                        @endphp
+                        <tr style="border-top:1px solid #000;">
+                            <td class="text-bold">SUBTOTAL :</td>
+                            <td>
+                                <table class="packing-desc">
+                                    <colgroup>
+                                        <col style="width:64%;">
+                                        <col style="width:36%;">
+                                    </colgroup>
+                                    <tr>
+                                        <td>&nbsp;</td>
+                                        <td class="packing-bundle text-center text-bold" style="white-space:nowrap;">
+                                            @if($groupHasBundle && $groupBundleTotal > 0)
+                                                {{ number_format($groupBundleTotal, 0) }} {{ $groupBundleUnit }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">
+                                @if($groupQtyTotalsNonWeight->isEmpty() && $groupNettTotalsByUnit->count() === 1)
+                                    @php
+                                        $unit = (string) $groupNettTotalsByUnit->keys()->first();
+                                        $value = (float) $groupNettTotalsByUnit->first();
+                                    @endphp
+                                    {{ number_format($value, 0) }} {{ $unit }}
+                                @elseif($groupQtyTotalsNonWeight->count() === 1 && $groupNettTotalsByUnit->count() === 1)
+                                    @php
+                                        $qtyUnit = (string) $groupQtyTotalsNonWeight->keys()->first();
+                                        $qtyValue = (float) $groupQtyTotalsNonWeight->first();
+                                        $nettUnit = (string) $groupNettTotalsByUnit->keys()->first();
+                                        $nettValue = (float) $groupNettTotalsByUnit->first();
+                                    @endphp
+                                    <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                                        <tr>
+                                            <td style="border:none; padding:0 10px 0 0; text-align:center; width:50%; white-space:nowrap;">
+                                                {{ number_format($qtyValue, 0) }} {{ $qtyUnit }}
+                                            </td>
+                                            <td style="border:none; padding:0 0 0 10px; text-align:center; width:50%; white-space:nowrap;">
+                                                {{ number_format($nettValue, 0) }} {{ $nettUnit }}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                @else
+                                    <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                                        @foreach($groupQtyTotalsNonWeight as $unit => $value)
+                                            <tr>
+                                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                                    {{ number_format($value, 0) }} {{ $unit }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                        @foreach($groupNettTotalsByUnit as $unit => $value)
+                                            <tr>
+                                                <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                                    {{ number_format($value, 0) }} {{ $unit }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </table>
+                                @endif
+                            </td>
+                            <td class="text-center text-bold" style="white-space:nowrap;">
+                                @if($groupNettTotalsByUnit->count() <= 1)
+                                    {{ number_format((float) $items->sum(fn ($i) => (float) ($i->weight_nett ?? 0)), 0) }} {{ strtoupper((string) ($items->first()->unit_weight ?? 'KGM')) }}
+                                @else
+                                    @foreach($groupNettTotalsByUnit as $unit => $value)
+                                        <div style="white-space:nowrap;">{{ number_format($value, 0) }} {{ $unit }}</div>
+                                    @endforeach
+                                @endif
+                            </td>
+                            <td class="text-center text-bold" style="white-space:nowrap;">
+                                @if($groupGrossTotalsByUnit->count() <= 1)
+                                    {{ number_format((float) $items->sum(fn ($i) => (float) ($i->weight_gross ?? 0)), 0) }} {{ strtoupper((string) ($items->first()->unit_weight ?? 'KGM')) }}
+                                @else
+                                    @foreach($groupGrossTotalsByUnit as $unit => $value)
+                                        <div style="white-space:nowrap;">{{ number_format($value, 0) }} {{ $unit }}</div>
+                                    @endforeach
+                                @endif
+                            </td>
+                        </tr>
 		        @endforeach
 	        
 			        {{-- Total row --}}
@@ -901,12 +1003,77 @@
 			                    </tr>
 			                </table>
 			            </td>
-			            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">{{ number_format($totalQtyGoods, 0) }} {{ $goodsUnitDisplay }}</td>
-			            <td class="text-center text-bold" style="white-space:nowrap;">{{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}</td>
-			            <td class="text-center text-bold" style="white-space:nowrap;">{{ number_format($totalGross, 0) }} {{ $weightUnitDisplay }}</td>
+			            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">
+                            @if($qtyTotalsNonWeight->isEmpty() && $nettTotalsByUnit->count() === 1)
+                                @php
+                                    $unit = (string) $nettTotalsByUnit->keys()->first();
+                                    $value = (float) $nettTotalsByUnit->first();
+                                @endphp
+                                {{ number_format($value, 0) }} {{ $unit }}
+                            @elseif($qtyTotalsNonWeight->count() === 1 && $nettTotalsByUnit->count() === 1)
+                                @php
+                                    $qtyUnit = (string) $qtyTotalsNonWeight->keys()->first();
+                                    $qtyValue = (float) $qtyTotalsNonWeight->first();
+                                    $nettUnit = (string) $nettTotalsByUnit->keys()->first();
+                                    $nettValue = (float) $nettTotalsByUnit->first();
+                                @endphp
+                                <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                                    <tr>
+                                        <td style="border:none; padding:0 10px 0 0; text-align:center; width:50%; white-space:nowrap;">
+                                            {{ number_format($qtyValue, 0) }} {{ $qtyUnit }}
+                                        </td>
+                                        <td style="border:none; padding:0 0 0 10px; text-align:center; width:50%; white-space:nowrap;">
+                                            {{ number_format($nettValue, 0) }} {{ $nettUnit }}
+                                        </td>
+                                    </tr>
+                                </table>
+                            @else
+                                <table style="width:100%; border:none; margin:0; padding:0; font-weight:bold;">
+                                    @foreach($qtyTotalsNonWeight as $unit => $value)
+                                        <tr>
+                                            <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                                {{ number_format($value, 0) }} {{ $unit }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    @foreach($nettTotalsByUnit as $unit => $value)
+                                        <tr>
+                                            <td style="border:none; padding:0; text-align:center; white-space:nowrap;">
+                                                {{ number_format($value, 0) }} {{ $unit }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </table>
+                            @endif
+                        </td>
+			            <td class="text-center text-bold" style="white-space:nowrap;">
+                            @if($nettTotalsByUnit->count() <= 1)
+                                {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+                            @else
+                                @foreach($nettTotalsByUnit as $unit => $value)
+                                    <div style="white-space:nowrap;">{{ number_format($value, 0) }} {{ $unit }}</div>
+                                @endforeach
+                            @endif
+                        </td>
+			            <td class="text-center text-bold" style="white-space:nowrap;">
+                            @php
+                                $grossTotalsByUnit = $arrival->items
+                                    ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_weight ?? 'KGM'))))
+                                    ->map(fn ($items) => (float) $items->sum(fn ($i) => (float) ($i->weight_gross ?? 0)))
+                                    ->filter(fn ($v) => $v > 0);
+                            @endphp
+                            @if($grossTotalsByUnit->count() <= 1)
+                                {{ number_format($totalGross, 0) }} {{ $weightUnitDisplay }}
+                            @else
+                                @foreach($grossTotalsByUnit as $unit => $value)
+                                    <div style="white-space:nowrap;">{{ number_format($value, 0) }} {{ $unit }}</div>
+                                @endforeach
+                            @endif
+                        </td>
 			        </tr>
 		    </tbody>
 		</table>
+        </div>
 
 	{{-- Signature Section --}}
 	<div class="footer-section">
