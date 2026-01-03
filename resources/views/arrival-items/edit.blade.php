@@ -136,7 +136,7 @@
 
                             <div class="sm:flex sm:items-center sm:gap-4">
                                 <label class="text-xs font-semibold text-slate-500 sm:w-44">Price (auto)</label>
-                                <input type="text" class="mt-1 w-full rounded-lg border-slate-200 bg-slate-100 text-sm sm:mt-0 sm:flex-1" value="{{ number_format((float) old('price', $item->price), 3) }}" readonly>
+                                <input type="text" id="price_display" class="mt-1 w-full rounded-lg border-slate-200 bg-slate-100 text-sm sm:mt-0 sm:flex-1" value="" readonly>
                             </div>
                         </div>
                     </div>
@@ -158,4 +158,49 @@
             </form>
         </div>
     </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const qtyEl = document.getElementById('qty_goods');
+        const totalEl = document.getElementById('total_amount');
+        const priceEl = document.getElementById('price_display');
+
+        const toCents = (value) => {
+            const raw = String(value ?? '').trim().replace(/,/g, '.');
+            if (!raw) return 0;
+            const parts = raw.split('.');
+            const whole = (parts[0] || '0').replace(/[^\d]/g, '') || '0';
+            const frac = ((parts[1] || '').replace(/[^\d]/g, '') + '00').slice(0, 2);
+            return (parseInt(whole, 10) * 100) + parseInt(frac, 10);
+        };
+
+        const formatMilli = (milli) => {
+            const neg = milli < 0;
+            milli = Math.abs(milli);
+            let s = String(milli);
+            if (s.length <= 3) s = s.padStart(4, '0');
+            let intPart = s.slice(0, -3).replace(/^0+/, '');
+            if (!intPart) intPart = '0';
+            const frac = s.slice(-3);
+            return (neg ? '-' : '') + intPart + '.' + frac;
+        };
+
+        const recalc = () => {
+            if (!qtyEl || !totalEl || !priceEl) return;
+            const qty = parseInt(String(qtyEl.value || '0').trim() || '0', 10);
+            const cents = toCents(totalEl.value);
+            const milli = qty > 0 ? Math.floor((cents * 10) / qty) : 0;
+            priceEl.value = formatMilli(milli);
+        };
+
+        [qtyEl, totalEl].forEach((el) => {
+            if (!el) return;
+            el.addEventListener('input', recalc);
+            el.addEventListener('change', recalc);
+        });
+
+        recalc();
+    });
+</script>
+
 </x-app-layout>

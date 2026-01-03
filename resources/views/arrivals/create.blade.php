@@ -603,11 +603,10 @@
 	        }
 
 	        function rebuildPartSelects(vendorId) {
-	            document.querySelectorAll('.part-select').forEach(select => {
-	                const currentValue = select.value;
-	                select.innerHTML = buildPartOptions(vendorId, currentValue);
-	            });
 	            rebuildMaterialTitleSelects(vendorId);
+	            document.querySelectorAll('.material-group').forEach(groupEl => {
+	                refreshGroupPartOptions(groupEl);
+	            });
 	        }
 
         function updateTotal(row) {
@@ -624,10 +623,29 @@
                 return;
             }
 
-	            const qty = parseFloat(qtyRaw || '0');
-	            const total = parseFloat(totalRaw || '0');
-	            const price = qty > 0 ? (total / qty) : 0;
-	            const priceText = price.toFixed(3);
+	            const qty = parseInt(qtyRaw || '0', 10);
+                const toCents = (value) => {
+                    const raw = String(value ?? '').trim().replace(/,/g, '.');
+                    if (!raw) return 0;
+                    const parts = raw.split('.');
+                    const whole = (parts[0] || '0').replace(/[^\d]/g, '') || '0';
+                    const frac = ((parts[1] || '').replace(/[^\d]/g, '') + '00').slice(0, 2);
+                    return (parseInt(whole, 10) * 100) + parseInt(frac, 10);
+                };
+                const formatMilli = (milli) => {
+                    const neg = milli < 0;
+                    milli = Math.abs(milli);
+                    let s = String(milli);
+                    if (s.length <= 3) s = s.padStart(4, '0');
+                    let intPart = s.slice(0, -3).replace(/^0+/, '');
+                    if (!intPart) intPart = '0';
+                    const frac = s.slice(-3);
+                    return (neg ? '-' : '') + intPart + '.' + frac;
+                };
+
+                const totalCents = toCents(totalRaw);
+                const priceMilli = qty > 0 ? Math.floor((totalCents * 10) / qty) : 0;
+                const priceText = formatMilli(priceMilli);
 
 	            const hiddenPrice = row.querySelector('.price');
 	            if (hiddenPrice) hiddenPrice.value = priceText;

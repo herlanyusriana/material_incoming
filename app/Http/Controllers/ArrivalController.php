@@ -18,6 +18,50 @@ use Illuminate\Validation\ValidationException;
 
 class ArrivalController extends Controller
 {
+    private function toCents(mixed $value): int
+    {
+        if (!is_string($value)) {
+            $value = (string) $value;
+        }
+
+        $raw = trim($value);
+        if ($raw === '') {
+            return 0;
+        }
+
+        $raw = str_replace(',', '.', $raw);
+
+        $negative = false;
+        if (str_starts_with($raw, '-')) {
+            $negative = true;
+            $raw = substr($raw, 1);
+        }
+
+        $parts = explode('.', $raw, 2);
+        $whole = preg_replace('/\\D+/', '', $parts[0] ?? '') ?: '0';
+        $frac = preg_replace('/\\D+/', '', $parts[1] ?? '');
+        $frac = substr(str_pad($frac, 2, '0'), 0, 2);
+
+        $cents = ((int) $whole) * 100 + (int) $frac;
+        return $negative ? -$cents : $cents;
+    }
+
+    private function formatMilli(int $milli): string
+    {
+        $negative = $milli < 0;
+        $milli = abs($milli);
+        $s = (string) $milli;
+        if (strlen($s) <= 3) {
+            $s = str_pad($s, 4, '0', STR_PAD_LEFT);
+        }
+        $int = substr($s, 0, -3);
+        $frac = substr($s, -3);
+        $intPart = ltrim($int, '0');
+        if ($intPart === '') {
+            $intPart = '0';
+        }
+        return ($negative ? '-' : '') . $intPart . '.' . $frac;
+    }
     private function normalizeDecimalInput(mixed $value): mixed
     {
         if (!is_string($value)) {
@@ -237,7 +281,15 @@ class ArrivalController extends Controller
                     'weight_nett' => $item['weight_nett'],
                     'unit_weight' => $item['unit_weight'] ?? null,
                     'weight_gross' => $item['weight_gross'],
-                    'price' => $item['qty_goods'] > 0 ? round(((float) $item['total_amount']) / (int) $item['qty_goods'], 2) : 0,
+                    'price' => (function () use ($item) {
+                        $qty = (int) ($item['qty_goods'] ?? 0);
+                        if ($qty <= 0) {
+                            return '0.000';
+                        }
+                        $totalCents = $this->toCents($item['total_amount'] ?? 0);
+                        $priceMilli = intdiv($totalCents * 10, $qty);
+                        return $this->formatMilli($priceMilli);
+                    })(),
                     'total_price' => round((float) $item['total_amount'], 2),
                     'notes' => $item['notes'] ?? null,
                 ]);
@@ -442,6 +494,12 @@ class ArrivalController extends Controller
     {
         $arrivalItem->load(['arrival', 'receives']);
 
+        $request->merge([
+            'weight_nett' => $this->normalizeDecimalInput($request->input('weight_nett')),
+            'weight_gross' => $this->normalizeDecimalInput($request->input('weight_gross')),
+            'total_amount' => $this->normalizeDecimalInput($request->input('total_amount')),
+        ]);
+
         if (!$this->hasPendingReceives($arrivalItem->arrival)) {
             return redirect()
                 ->route('departures.show', $arrivalItem->arrival)
@@ -473,7 +531,9 @@ class ArrivalController extends Controller
 
         $qtyGoods = (int) $data['qty_goods'];
         $totalPrice = round((float) $normalizedTotal, 2);
-        $price = $qtyGoods > 0 ? round($totalPrice / $qtyGoods, 2) : 0;
+        $totalCents = $this->toCents($normalizedTotal);
+        $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
+        $price = $this->formatMilli($priceMilli);
 
         $arrivalItem->update([
             'material_group' => $data['material_group'] ?? null,
