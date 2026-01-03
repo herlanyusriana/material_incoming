@@ -612,6 +612,8 @@
         function updateTotal(row) {
             const qtyEl = row.querySelector('.qty-goods');
             const totalEl = row.querySelector('.total-input');
+            const unitGoodsEl = row.querySelector('.input-unit-goods');
+            const nettEl = row.querySelector('.weight-nett');
             const qtyRaw = (qtyEl?.value ?? '').trim();
             const totalRaw = (totalEl?.value ?? '').trim();
 
@@ -629,10 +631,10 @@
                     if (!raw) return 0;
                     const parts = raw.split('.');
                     const whole = (parts[0] || '0').replace(/[^\d]/g, '') || '0';
-                    const frac = ((parts[1] || '').replace(/[^\d]/g, '') + '00').slice(0, 2);
-                    return (parseInt(whole, 10) * 100) + parseInt(frac, 10);
-                };
-                const formatMilli = (milli) => {
+                const frac = ((parts[1] || '').replace(/[^\d]/g, '') + '00').slice(0, 2);
+                return (parseInt(whole, 10) * 100) + parseInt(frac, 10);
+            };
+            const formatMilli = (milli) => {
                     const neg = milli < 0;
                     milli = Math.abs(milli);
                     let s = String(milli);
@@ -641,9 +643,23 @@
                     if (!intPart) intPart = '0';
                     const frac = s.slice(-3);
                     return (neg ? '-' : '') + intPart + '.' + frac;
-                };
+            };
 
                 const totalCents = toCents(totalRaw);
+                const unitGoods = String(unitGoodsEl?.value ?? '').trim().toUpperCase();
+                if (unitGoods === 'KGM' || unitGoods === 'KG') {
+                    const weightCenti = toCents(nettEl?.value);
+                    const priceMilli = weightCenti > 0 ? Math.floor((totalCents * 1000) / weightCenti) : 0;
+                    const priceText = formatMilli(priceMilli);
+
+                    const hiddenPrice = row.querySelector('.price');
+                    if (hiddenPrice) hiddenPrice.value = priceText;
+
+                    const priceDisplay = row.querySelector('.price-display');
+                    if (priceDisplay) priceDisplay.value = priceText;
+                    return;
+                }
+
                 const priceMilli = qty > 0 ? Math.floor((totalCents * 10) / qty) : 0;
                 const priceText = formatMilli(priceMilli);
 
@@ -659,8 +675,15 @@
 
             const handler = (event) => {
                 const target = event.target;
-                if (!(target instanceof HTMLInputElement)) return;
-                if (!target.classList.contains('qty-goods') && !target.classList.contains('total-input')) return;
+                if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
+                if (
+                    !target.classList.contains('qty-goods') &&
+                    !target.classList.contains('total-input') &&
+                    !target.classList.contains('weight-nett') &&
+                    !target.classList.contains('input-unit-goods')
+                ) {
+                    return;
+                }
                 const row = target.closest('.line-row');
                 if (!row) return;
                 updateTotal(row);

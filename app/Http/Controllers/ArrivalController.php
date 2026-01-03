@@ -283,10 +283,22 @@ class ArrivalController extends Controller
                     'weight_gross' => $item['weight_gross'],
                     'price' => (function () use ($item) {
                         $qty = (int) ($item['qty_goods'] ?? 0);
+                        $totalCents = $this->toCents($item['total_amount'] ?? 0);
+                        $goodsUnit = strtoupper(trim((string) ($item['unit_goods'] ?? '')));
+
+                        if (in_array($goodsUnit, ['KGM', 'KG'], true)) {
+                            $weightCenti = $this->toCents($item['weight_nett'] ?? 0);
+                            if ($weightCenti <= 0) {
+                                return '0.000';
+                            }
+                            $priceMilli = intdiv($totalCents * 1000, $weightCenti);
+                            return $this->formatMilli($priceMilli);
+                        }
+
                         if ($qty <= 0) {
                             return '0.000';
                         }
-                        $totalCents = $this->toCents($item['total_amount'] ?? 0);
+
                         $priceMilli = intdiv($totalCents * 10, $qty);
                         return $this->formatMilli($priceMilli);
                     })(),
@@ -532,7 +544,15 @@ class ArrivalController extends Controller
         $qtyGoods = (int) $data['qty_goods'];
         $totalPrice = round((float) $normalizedTotal, 2);
         $totalCents = $this->toCents($normalizedTotal);
-        $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
+
+        $goodsUnit = strtoupper(trim((string) ($data['unit_goods'] ?? '')));
+        if (in_array($goodsUnit, ['KGM', 'KG'], true)) {
+            $weightCenti = $this->toCents($normalizedNett);
+            $priceMilli = $weightCenti > 0 ? intdiv($totalCents * 1000, $weightCenti) : 0;
+        } else {
+            $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
+        }
+
         $price = $this->formatMilli($priceMilli);
 
         $arrivalItem->update([

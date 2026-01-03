@@ -113,7 +113,7 @@
                             <div class="sm:flex sm:items-center sm:gap-4">
                                 <label class="text-xs font-semibold text-slate-500 sm:w-44">Net Weight (KGM)</label>
                                 <div class="mt-1 flex w-full items-center gap-2 sm:mt-0 sm:flex-1">
-                                    <input type="text" inputmode="decimal" name="weight_nett" value="{{ old('weight_nett', $item->weight_nett) }}" class="w-full rounded-lg border-slate-300 bg-white text-sm" required>
+                                    <input type="text" inputmode="decimal" id="weight_nett" name="weight_nett" value="{{ old('weight_nett', $item->weight_nett) }}" class="w-full rounded-lg border-slate-300 bg-white text-sm" required>
                                     <span class="text-xs font-semibold text-slate-500 w-[56px] text-right">KGM</span>
                                 </div>
                             </div>
@@ -163,6 +163,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         const qtyEl = document.getElementById('qty_goods');
         const totalEl = document.getElementById('total_amount');
+        const unitEl = document.getElementById('unit_goods');
+        const nettEl = document.getElementById('weight_nett');
         const priceEl = document.getElementById('price_display');
 
         const toCents = (value) => {
@@ -189,11 +191,18 @@
             if (!qtyEl || !totalEl || !priceEl) return;
             const qty = parseInt(String(qtyEl.value || '0').trim() || '0', 10);
             const cents = toCents(totalEl.value);
+            const unit = String(unitEl?.value ?? '').trim().toUpperCase();
+            if (unit === 'KGM' || unit === 'KG') {
+                const weightCenti = toCents(nettEl?.value);
+                const milli = weightCenti > 0 ? Math.floor((cents * 1000) / weightCenti) : 0;
+                priceEl.value = formatMilli(milli);
+                return;
+            }
             const milli = qty > 0 ? Math.floor((cents * 10) / qty) : 0;
             priceEl.value = formatMilli(milli);
         };
 
-        [qtyEl, totalEl].forEach((el) => {
+        [qtyEl, totalEl, unitEl, nettEl].forEach((el) => {
             if (!el) return;
             el.addEventListener('input', recalc);
             el.addEventListener('change', recalc);
