@@ -630,7 +630,7 @@
 
 	{{-- Container + Seal Section --}}
 	<div class="container-box">
-        <strong>HS CODE(S) :</strong>
+        <strong>HS CODE :</strong>
         @if($hsCodesDisplay !== '')
             <div style="white-space: pre-line;">{{ $hsCodesDisplay }}</div>
         @else
