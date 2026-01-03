@@ -825,6 +825,7 @@
                             <option value="Sheet" ${guessedUnitGoods === 'Sheet' ? 'selected' : ''}>Sheet</option>
                             <option value="Coil" ${guessedUnitGoods === 'Coil' ? 'selected' : ''}>Coil</option>
                             <option value="Pcs" ${guessedUnitGoods === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="EA" ${guessedUnitGoods === 'EA' ? 'selected' : ''}>EA</option>
                             <option value="Set" ${guessedUnitGoods === 'Set' ? 'selected' : ''}>Set</option>
                             <option value="Box" ${guessedUnitGoods === 'Box' ? 'selected' : ''}>Box</option>
                             <option value="Bundle" ${guessedUnitGoods === 'Bundle' ? 'selected' : ''}>Bundle</option>

@@ -77,6 +77,7 @@
                                     <option value="Sheet" {{ $unitGoods === 'Sheet' ? 'selected' : '' }}>Sheet</option>
                                     <option value="Coil" {{ $unitGoods === 'Coil' ? 'selected' : '' }}>Coil</option>
                                     <option value="Pcs" {{ $unitGoods === 'Pcs' ? 'selected' : '' }}>Pcs</option>
+                                    <option value="EA" {{ $unitGoods === 'EA' ? 'selected' : '' }}>EA</option>
                                     <option value="Set" {{ $unitGoods === 'Set' ? 'selected' : '' }}>Set</option>
                                     <option value="Box" {{ $unitGoods === 'Box' ? 'selected' : '' }}>Box</option>
                                     <option value="Bundle" {{ $unitGoods === 'Bundle' ? 'selected' : '' }}>Bundle</option>
