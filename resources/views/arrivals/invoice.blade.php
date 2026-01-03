@@ -840,8 +840,29 @@
 			                        </tr>
 			                    </table>
 			                </td>
+                            @php
+                                $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
+                                $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
+                                $showWeightOnly = in_array($goodsUnitLabel, ['KGM', 'KG'], true);
+                                $hasWeight = (float) ($item->weight_nett ?? 0) > 0;
+                            @endphp
 			                <td class="text-center packing-bundle" style="white-space:nowrap;">
-			                    {{ number_format($item->qty_goods, 0) }} {{ strtoupper($item->unit_goods ?? 'PCS') }}
+                                @if($showWeightOnly)
+                                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
+                                @elseif($hasWeight)
+                                    <table style="width:100%; border:none; margin:0; padding:0;">
+                                        <tr>
+                                            <td style="border:none; padding:0 10px 0 0; text-align:center; width:50%; white-space:nowrap;">
+                                                {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
+                                            </td>
+                                            <td style="border:none; padding:0 0 0 10px; text-align:center; width:50%; white-space:nowrap;">
+                                                {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                @else
+			                        {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
+                                @endif
 			                </td>
 			                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
 			                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_gross, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
