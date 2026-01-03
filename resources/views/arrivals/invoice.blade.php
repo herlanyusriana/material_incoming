@@ -216,6 +216,11 @@
         .page-break {
             page-break-after: always;
         }
+
+        .page-box {
+            border: 1px solid #000;
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
@@ -309,6 +314,7 @@
         ->filter(fn ($v) => $v > 0);
 @endphp
 
+<div class="page-box">
 <div class="title">COMMERCIAL INVOICE</div>
 
 <table class="main-table">
@@ -692,8 +698,11 @@
     </table>
 </div>
 
+</div>
+
 <div class="page-break"></div>
 
+<div class="page-box">
 <div class="title">PACKING LIST</div>
 
 <table class="main-table">
@@ -1105,5 +1114,6 @@
     </table>
 </div>
 
+</div>
 </body>
 </html>
