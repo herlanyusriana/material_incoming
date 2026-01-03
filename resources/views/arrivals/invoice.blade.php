@@ -277,6 +277,8 @@
     $totalGross = $arrival->items->sum(fn($i) => (float)($i->weight_gross ?? 0));
     $totalAmount = $arrival->items->sum(fn($i) => (float)($i->total_price ?? 0));
     $hsCodes = $arrival->items->pluck('part.hs_code')->filter()->unique()->values();
+    $hsCodesDisplayRaw = trim((string) ($arrival->hs_codes ?? $arrival->hs_code ?? $hsCodes->implode("\n")));
+    $hsCodesDisplay = $hsCodesDisplayRaw !== '' ? strtoupper($hsCodesDisplayRaw) : '';
     $hasBundleData = $arrival->items->contains(function ($item) {
         return ($item->qty_bundle ?? 0) > 0;
     });
@@ -410,6 +412,21 @@
                     </td>
                 </tr>
             </table>
+        </td>
+    </tr>
+
+    {{-- HS Code(s) --}}
+    <tr>
+        <td class="col-left">
+            <span class="section-label">HS CODE(S)</span><br><br>
+            @if($hsCodesDisplay !== '')
+                <div style="white-space: pre-line;">&nbsp;&nbsp;{{ $hsCodesDisplay }}</div>
+            @else
+                &nbsp;
+            @endif
+        </td>
+        <td class="col-right">
+            &nbsp;
         </td>
     </tr>
 </table>
