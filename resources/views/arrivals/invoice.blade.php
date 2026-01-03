@@ -24,7 +24,8 @@
         
         .title {
             text-align: center;
-            font-size: 16px;
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 24px;
             font-weight: bold;
             margin-bottom: 8px;
             text-decoration: none;
