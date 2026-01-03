@@ -415,20 +415,6 @@
         </td>
     </tr>
 
-    {{-- HS Code(s) --}}
-    <tr>
-        <td class="col-left">
-            <span class="section-label">HS CODE(S)</span><br><br>
-            @if($hsCodesDisplay !== '')
-                <div style="white-space: pre-line;">&nbsp;&nbsp;{{ $hsCodesDisplay }}</div>
-            @else
-                &nbsp;
-            @endif
-        </td>
-        <td class="col-right">
-            &nbsp;
-        </td>
-    </tr>
 </table>
 
 {{-- Items Table (Commercial Invoice) --}}
@@ -644,6 +630,13 @@
 
 	{{-- Container + Seal Section --}}
 	<div class="container-box">
+        <strong>HS CODE(S) :</strong>
+        @if($hsCodesDisplay !== '')
+            <div style="white-space: pre-line;">{{ $hsCodesDisplay }}</div>
+        @else
+            -
+        @endif
+        <br>
         <strong>BILL OF LADING :</strong> {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}<br>
         <strong>PRICE TERM :</strong> {{ strtoupper($arrival->price_term ?? '-') }}<br><br>
 	    <strong>CONTAINERS &amp; SEAL :</strong><br>
