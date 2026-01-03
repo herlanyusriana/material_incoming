@@ -276,12 +276,17 @@
             }
         }
 
-        if (!function_exists('format3_round_up')) {
-            function format3_round_up($value): string
+        if (!function_exists('format3_round_half_up')) {
+            function format3_round_half_up($value): string
             {
                 $num = is_numeric($value) ? (float) $value : 0.0;
-                $milli = (int) ceil(($num * 1000) - 1e-9);
-                $result = $milli / 1000;
+                $negative = $num < 0;
+                $num = abs($num);
+
+                // Round half-up to 3 decimals: >=5 goes up, <5 stays.
+                $milli = (int) floor(($num * 1000) + 0.5 + 1e-9);
+                $result = ($negative ? -1 : 1) * ($milli / 1000);
+
                 return number_format($result, 3, '.', ',');
             }
         }
@@ -487,7 +492,7 @@
                     $pricePerWeightRaw = (float) ($item->weight_nett ?? 0) > 0
                         ? ((float) ($item->total_price ?? 0)) / (float) $item->weight_nett
                         : 0;
-                    $pricePerWeight = format3_round_up($pricePerWeightRaw);
+                    $pricePerWeight = format3_round_half_up($pricePerWeightRaw);
                 @endphp
                 <td class="text-center">
                     @php
