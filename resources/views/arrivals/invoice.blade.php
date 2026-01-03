@@ -274,6 +274,16 @@
                 return ($negative ? '-' : '') . $intFormatted . '.' . $frac;
             }
         }
+
+        if (!function_exists('format3_round_up')) {
+            function format3_round_up($value): string
+            {
+                $num = is_numeric($value) ? (float) $value : 0.0;
+                $milli = (int) ceil(($num * 1000) - 1e-9);
+                $result = $milli / 1000;
+                return number_format($result, 3, '.', ',');
+            }
+        }
     @endphp
 @php
     $totalBundles = $arrival->items->sum(fn($i) => (float)($i->qty_bundle ?? 0));
@@ -476,7 +486,7 @@
                     $pricePerWeightRaw = (float) ($item->weight_nett ?? 0) > 0
                         ? ((float) ($item->total_price ?? 0)) / (float) $item->weight_nett
                         : 0;
-                    $pricePerWeight = format3_no_round($pricePerWeightRaw);
+                    $pricePerWeight = format3_round_up($pricePerWeightRaw);
                 @endphp
                 <td class="text-center">
                     @php
