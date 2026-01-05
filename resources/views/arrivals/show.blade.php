@@ -36,7 +36,10 @@
                             Edit Departure
                         </a>
                     @endif
-                    @if ($arrival->inspection)
+                    @php
+                        $hasContainerInspection = ($arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
+                    @endphp
+                    @if ($arrival->inspection || $hasContainerInspection)
                         <a href="{{ route('departures.inspection-report', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm">
                             Print Inspection
                         </a>

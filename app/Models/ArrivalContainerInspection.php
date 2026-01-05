@@ -37,5 +37,9 @@ class ArrivalContainerInspection extends Model
     {
         return $this->belongsTo(ArrivalContainer::class, 'arrival_container_id');
     }
-}
 
+    public function inspector()
+    {
+        return $this->belongsTo(User::class, 'inspected_by');
+    }
+}
