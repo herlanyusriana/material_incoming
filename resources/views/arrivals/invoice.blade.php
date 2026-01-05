@@ -826,8 +826,8 @@
 		    </colgroup>
 		    <thead>
 		        <tr>
-		            <th>10.MARKS & NO. OF<br>PKGS</th>
-		            <th>11.DESCRIPTION<br>OF GOODS</th>
+		            <th style="white-space:nowrap;">10.MARKS &amp; NO. OF PKGS</th>
+		            <th style="white-space:nowrap;">11.DESCRIPTION OF GOODS</th>
 		            <th>12.QUANTITY</th>
 		            <th>13.NET WEIGHT</th>
 		            <th>14.GROSS WEIGHT</th>
