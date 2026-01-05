@@ -17,67 +17,7 @@
                 </div>
             @endif
 
-            <div class="grid lg:grid-cols-3 gap-6">
-                <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
-                    <div class="pb-3 border-b border-slate-200">
-                        <h3 class="text-lg font-bold text-slate-900">Add New Vendor</h3>
-                        <p class="text-sm text-slate-600 mt-1">Vendor name and country code are required.</p>
-                    </div>
-
-                    <form method="POST" action="{{ route('vendors.store') }}" class="space-y-4">
-                        @csrf
-                        <div class="space-y-1">
-                            <x-input-label for="vendor_name" value="Vendor Name" />
-                            <x-text-input id="vendor_name" name="vendor_name" type="text" placeholder="e.g., Global Logistics Inc." class="mt-1 block w-full" required value="{{ old('vendor_name') }}" />
-                            <x-input-error :messages="$errors->get('vendor_name')" class="mt-1" />
-                        </div>
-                        <div class="space-y-1">
-                            <x-input-label for="country_code" value="Country Code (ISO-2)" />
-                            <x-text-input id="country_code" name="country_code" type="text" placeholder="e.g., ID" class="mt-1 block w-full uppercase" required maxlength="2" pattern="[A-Za-z]{2}" title="Country code harus 2 huruf (contoh: ID)" value="{{ old('country_code') }}" />
-                            <x-input-error :messages="$errors->get('country_code')" class="mt-1" />
-                        </div>
-                        <div class="space-y-1">
-                            <x-input-label for="bank_account" value="Bank Account" />
-                            <x-text-input id="bank_account" name="bank_account" type="text" placeholder="e.g., 100123456789" class="mt-1 block w-full" value="{{ old('bank_account') }}" />
-                            <x-input-error :messages="$errors->get('bank_account')" class="mt-1" />
-                        </div>
-                        <div class="space-y-1">
-                            <x-input-label for="address" value="Address" />
-                            <textarea id="address" name="address" rows="3" placeholder="e.g., 123 Main St, Anytown, USA" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">{{ old('address') }}</textarea>
-                            <x-input-error :messages="$errors->get('address')" class="mt-1" />
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                                <x-input-label for="contact_person" value="Contact Person" />
-                                <x-text-input id="contact_person" name="contact_person" type="text" placeholder="e.g., Jane Doe" class="mt-1 block w-full" value="{{ old('contact_person') }}" />
-                                <x-input-error :messages="$errors->get('contact_person')" class="mt-1" />
-                            </div>
-                            <div class="space-y-1">
-                                <x-input-label for="email" value="Email" />
-                                <x-text-input id="email" name="email" type="email" placeholder="e.g., vendor@email.com" class="mt-1 block w-full" value="{{ old('email') }}" />
-                                <x-input-error :messages="$errors->get('email')" class="mt-1" />
-                            </div>
-                            <div class="space-y-1">
-                                <x-input-label for="phone" value="Phone" />
-                                <x-text-input id="phone" name="phone" type="text" placeholder="e.g., +62 812 3456 7890" class="mt-1 block w-full" value="{{ old('phone') }}" />
-                                <x-input-error :messages="$errors->get('phone')" class="mt-1" />
-                            </div>
-                            <div class="space-y-1">
-                                <x-input-label for="status" value="Status" />
-                                <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                                    <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
-                                    <option value="inactive" @selected(old('status') === 'inactive')>Inactive</option>
-                                </select>
-                                <x-input-error :messages="$errors->get('status')" class="mt-1" />
-                            </div>
-                        </div>
-                        <div class="flex justify-end pt-2">
-                            <button type="submit" class="w-full px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">Add Vendor</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="lg:col-span-2 bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
                         <div>
                             <h3 class="text-lg font-bold text-slate-900">Vendor List</h3>
@@ -171,7 +111,6 @@
 
                     <div class="mt-4">{{ $vendors->links() }}</div>
                 </div>
-            </div>
         </div>
     </div>
 
