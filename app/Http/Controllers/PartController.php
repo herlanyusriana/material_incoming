@@ -59,8 +59,9 @@ class PartController extends Controller
     public function create()
     {
         $vendors = Vendor::orderBy('vendor_name')->get();
+        $part = new Part();
 
-        return view('parts.create', compact('vendors'));
+        return view('parts.create', compact('vendors', 'part'));
     }
 
     public function store(Request $request)

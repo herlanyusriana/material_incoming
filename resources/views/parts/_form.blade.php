@@ -136,6 +136,13 @@
         <h2 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Naming Details</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
+                @if(!($part->exists ?? false))
+                    <label for="vendor_part_name_select" class="text-sm font-medium text-gray-700">Vendor Part (Existing)</label>
+                    <select id="vendor_part_name_select" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" disabled>
+                        <option value="">New vendor part...</option>
+                    </select>
+                    <p class="text-xs text-gray-500">Pilih vendor dulu untuk melihat daftar existing.</p>
+                @endif
                 <label for="part_name_vendor" class="text-sm font-medium text-gray-700">Vendor Part Name*</label>
                 <input type="text" id="part_name_vendor" name="part_name_vendor" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" value="{{ old('part_name_vendor', $part->part_name_vendor ?? '') }}" required>
                 <x-input-error :messages="$errors->get('part_name_vendor')" class="mt-1" />
@@ -174,6 +181,68 @@
 
 	    <script>
 	    (function () {
+            const vendorsPartsBase = @json(url('/vendors'));
+            const vendorSelect = document.getElementById('vendor_id');
+            const vendorPartSelect = document.getElementById('vendor_part_name_select');
+            const vendorPartInput = document.getElementById('part_name_vendor');
+            const gciNameInput = document.getElementById('part_name_gci');
+
+            async function loadVendorPartNames(vendorId) {
+                if (!vendorPartSelect) return;
+                vendorPartSelect.disabled = true;
+                vendorPartSelect.innerHTML = '<option value=\"\">Loading...</option>';
+
+                if (!vendorId) {
+                    vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>';
+                    vendorPartSelect.disabled = true;
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${vendorsPartsBase}/${vendorId}/parts`, { headers: { 'Accept': 'application/json' } });
+                    const parts = await res.json();
+                    const names = Array.from(new Set(
+                        (Array.isArray(parts) ? parts : [])
+                            .map(p => String(p.part_name_vendor || '').trim())
+                            .filter(Boolean)
+                    )).sort((a, b) => a.localeCompare(b));
+
+                    const current = String(vendorPartInput?.value || '').trim().toUpperCase();
+                    vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>' + names.map((n) => {
+                        const up = n.toUpperCase();
+                        const selected = current && up === current ? ' selected' : '';
+                        return `<option value=\"${escapeHtml(up)}\"${selected}>${escapeHtml(up)}</option>`;
+                    }).join('');
+                    vendorPartSelect.disabled = false;
+                } catch (e) {
+                    vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>';
+                    vendorPartSelect.disabled = false;
+                }
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            if (vendorSelect && vendorPartSelect) {
+                vendorSelect.addEventListener('change', () => loadVendorPartNames(vendorSelect.value));
+                vendorPartSelect.addEventListener('change', () => {
+                    const chosen = String(vendorPartSelect.value || '').trim();
+                    if (!chosen) return;
+                    if (vendorPartInput) {
+                        vendorPartInput.value = chosen;
+                        vendorPartInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    if (gciNameInput) gciNameInput.focus();
+                });
+                loadVendorPartNames(vendorSelect.value);
+            }
+
 	        const thicknessInput = document.getElementById('size_thickness');
 	        const widthInput = document.getElementById('size_width');
 	        const lengthInput = document.getElementById('size_length');
