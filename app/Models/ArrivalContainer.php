@@ -19,5 +19,9 @@ class ArrivalContainer extends Model
     {
         return $this->belongsTo(Arrival::class);
     }
-}
 
+    public function inspection()
+    {
+        return $this->hasOne(ArrivalContainerInspection::class, 'arrival_container_id');
+    }
+}

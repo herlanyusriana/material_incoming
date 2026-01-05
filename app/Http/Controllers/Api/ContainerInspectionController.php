@@ -4,52 +4,35 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Arrival;
-use App\Models\ArrivalInspection;
+use App\Models\ArrivalContainer;
+use App\Models\ArrivalContainerInspection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
-class InspectionController extends Controller
+class ContainerInspectionController extends Controller
 {
-    public function pending(Request $request)
+    public function listByArrival(Arrival $arrival)
     {
-        $limit = (int) ($request->query('limit', 100));
-        if ($limit <= 0) {
-            $limit = 100;
-        }
-        $limit = min($limit, 200);
-
-        $q = trim((string) $request->query('q', ''));
-
-        $arrivals = Arrival::query()
-            ->with(['vendor', 'containers.inspection'])
-            ->when($q !== '', function ($query) use ($q) {
-                $query->where(function ($inner) use ($q) {
-                    $inner->where('invoice_no', 'like', "%{$q}%")
-                        ->orWhere('arrival_no', 'like', "%{$q}%")
-                        ->orWhereHas('containers', fn ($c) => $c->where('container_no', 'like', "%{$q}%"));
-                });
-            })
-            ->whereHas('containers', fn ($c) => $c->whereDoesntHave('inspection'))
-            ->latest()
-            ->limit($limit)
-            ->get()
-            ->map(fn (Arrival $arrival) => $this->arrivalPayload($arrival));
-
-        return response()->json(['data' => $arrivals]);
-    }
-
-    public function show(Arrival $arrival)
-    {
-        $arrival->load(['vendor', 'containers', 'inspection']);
+        $arrival->load(['vendor', 'containers.inspection']);
 
         return response()->json([
             'arrival' => $this->arrivalPayload($arrival),
-            'inspection' => $arrival->inspection ? $this->inspectionPayload($arrival->inspection) : null,
         ]);
     }
 
-    public function upsert(Request $request, Arrival $arrival)
+    public function show(ArrivalContainer $container)
+    {
+        $container->load(['arrival.vendor', 'inspection']);
+
+        return response()->json([
+            'arrival' => $this->arrivalPayload($container->arrival->load(['containers.inspection'])),
+            'container' => $this->containerPayload($container),
+            'inspection' => $container->inspection ? $this->inspectionPayload($container->inspection) : null,
+        ]);
+    }
+
+    public function upsert(Request $request, ArrivalContainer $container)
     {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['ok', 'damage'])],
@@ -70,14 +53,19 @@ class InspectionController extends Controller
             'photo_inside' => ['nullable', 'image', 'max:10240'],
         ]);
 
-        if (array_key_exists('seal_code', $validated)) {
-            $arrival->seal_code = $validated['seal_code'] !== null ? trim($validated['seal_code']) : null;
-            $arrival->save();
+        $sealCode = array_key_exists('seal_code', $validated)
+            ? (is_string($validated['seal_code']) ? trim($validated['seal_code']) : null)
+            : null;
+
+        if ($sealCode !== null && $sealCode !== '') {
+            $container->seal_code = $sealCode;
+            $container->save();
         }
 
-        $inspection = ArrivalInspection::firstOrNew(['arrival_id' => $arrival->id]);
+        $inspection = ArrivalContainerInspection::firstOrNew(['arrival_container_id' => $container->id]);
         $inspection->fill([
             'status' => $validated['status'],
+            'seal_code' => $sealCode ?: null,
             'notes' => $validated['notes'] ?? null,
             'issues_left' => $validated['issues_left'] ?? [],
             'issues_right' => $validated['issues_right'] ?? [],
@@ -86,21 +74,24 @@ class InspectionController extends Controller
             'inspected_by' => $request->user()?->id,
         ]);
 
-        $dir = "inspections/{$arrival->id}";
+        $dir = "inspections/arrival-{$container->arrival_id}/container-{$container->id}";
         foreach (['left', 'right', 'front', 'back', 'inside'] as $side) {
             $key = "photo_{$side}";
             if (!$request->hasFile($key)) {
                 continue;
             }
             $file = $request->file($key);
-            $path = $file->storePubliclyAs($dir, "{$key}.".$file->getClientOriginalExtension(), 'public');
+            $path = $file->storePubliclyAs($dir, "{$key}." . $file->getClientOriginalExtension(), 'public');
             $inspection->setAttribute($key, $path);
         }
 
         $inspection->save();
 
+        $container->load(['arrival.vendor', 'inspection']);
+
         return response()->json([
-            'arrival' => $this->arrivalPayload($arrival->load(['vendor', 'containers'])),
+            'arrival' => $this->arrivalPayload($container->arrival->load(['containers.inspection'])),
+            'container' => $this->containerPayload($container),
             'inspection' => $this->inspectionPayload($inspection),
         ]);
     }
@@ -117,26 +108,29 @@ class InspectionController extends Controller
                 'name' => $arrival->vendor?->vendor_name,
             ],
             'containers' => $arrival->containers
-                ? $arrival->containers->map(fn ($c) => [
-                    'id' => $c->id,
-                    'container_no' => $c->container_no,
-                    'seal_code' => $c->seal_code,
-                    'inspected' => (bool) $c->inspection,
-                ])->values()
+                ? $arrival->containers->map(fn ($c) => $this->containerPayload($c))->values()
                 : [],
-            'container_numbers' => $arrival->container_numbers,
-            'seal_code' => $arrival->seal_code,
-            'ETD' => optional($arrival->ETD)->format('Y-m-d'),
-            'ETA' => optional($arrival->ETA)->format('Y-m-d'),
         ];
     }
 
-    private function inspectionPayload(ArrivalInspection $inspection): array
+    private function containerPayload(ArrivalContainer $container): array
+    {
+        return [
+            'id' => $container->id,
+            'arrival_id' => $container->arrival_id,
+            'container_no' => $container->container_no,
+            'seal_code' => $container->seal_code,
+            'inspected' => (bool) $container->inspection,
+        ];
+    }
+
+    private function inspectionPayload(ArrivalContainerInspection $inspection): array
     {
         return [
             'id' => $inspection->id,
-            'arrival_id' => $inspection->arrival_id,
+            'arrival_container_id' => $inspection->arrival_container_id,
             'status' => $inspection->status,
+            'seal_code' => $inspection->seal_code,
             'notes' => $inspection->notes,
             'issues_left' => $inspection->issues_left ?? [],
             'issues_right' => $inspection->issues_right ?? [],
@@ -152,3 +146,4 @@ class InspectionController extends Controller
         ];
     }
 }
+
