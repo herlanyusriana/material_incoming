@@ -35,6 +35,10 @@ Fitur print invoice pakai Laravel Snappy (wkhtmltopdf). Kalau `wkhtmltopdf` belu
 - Install (Ubuntu/Pop!_OS): `sudo apt-get update && sudo apt-get install -y wkhtmltopdf`
 - Atau set path custom di `.env`: `WKHTML_PDF_BINARY=/path/to/wkhtmltopdf`
 
+## ERD
+
+Lihat diagram ERD: `docs/ERD.md`.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
