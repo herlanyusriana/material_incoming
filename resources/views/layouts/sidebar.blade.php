@@ -49,8 +49,7 @@
             <div class="space-y-1">
                 <a
                     href="{{ route('dashboard') }}"
-                    class="{{ $navLinkBase }}"
-                    @class([ $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard') ])
+                    @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard') ])
                     @click="mobileSidebarOpen = false"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -65,8 +64,7 @@
                 <div class="space-y-1">
                     <a
                         href="{{ route('vendors.index') }}"
-                        class="{{ $navLinkBase }}"
-                        @class([ $navActive => request()->routeIs('vendors.*'), $navInactive => !request()->routeIs('vendors.*') ])
+                        @class([$navLinkBase, $navActive => request()->routeIs('vendors.*'), $navInactive => !request()->routeIs('vendors.*') ])
                         @click="mobileSidebarOpen = false"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -80,8 +78,7 @@
 
                     <a
                         href="{{ route('parts.index') }}"
-                        class="{{ $navLinkBase }}"
-                        @class([ $navActive => request()->routeIs('parts.*'), $navInactive => !request()->routeIs('parts.*') ])
+                        @class([$navLinkBase, $navActive => request()->routeIs('parts.*'), $navInactive => !request()->routeIs('parts.*') ])
                         @click="mobileSidebarOpen = false"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -94,8 +91,7 @@
 
                     <a
                         href="{{ route('truckings.index') }}"
-                        class="{{ $navLinkBase }}"
-                        @class([ $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*') ])
+                        @class([$navLinkBase, $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*') ])
                         @click="mobileSidebarOpen = false"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -114,8 +110,7 @@
                 <div class="space-y-1">
                     <a
                         href="{{ route('departures.create') }}"
-                        class="{{ $navLinkBase }}"
-                        @class([ $navActive => request()->routeIs('departures.create'), $navInactive => !request()->routeIs('departures.create') ])
+                        @class([$navLinkBase, $navActive => request()->routeIs('departures.create'), $navInactive => !request()->routeIs('departures.create') ])
                         @click="mobileSidebarOpen = false"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -126,8 +121,7 @@
 
                     <a
                         href="{{ route('departures.index') }}"
-                        class="{{ $navLinkBase }}"
-                        @class([
+                        @class([$navLinkBase,
                             $navActive => request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'),
                             $navInactive => !(request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit')),
                         ])
@@ -141,8 +135,7 @@
 
                     <a
                         href="{{ route('receives.index') }}"
-                        class="{{ $navLinkBase }}"
-                        @class([
+                        @class([$navLinkBase,
                             $navActive => request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'),
                             $navInactive => !(request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*')),
                         ])
@@ -156,8 +149,7 @@
 
                     <a
                         href="{{ route('receives.completed') }}"
-                        class="{{ $navLinkBase }}"
-                        @class([
+                        @class([$navLinkBase,
                             $navActive => request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'),
                             $navInactive => !(request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice')),
                         ])
@@ -231,9 +223,8 @@
             <a
                 href="{{ route('dashboard') }}"
                 title="Dashboard"
-                class="{{ $navLinkBase }}"
+                @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard') ])
                 :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
-                @class([ $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard') ])
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5V21h6v-6h6v6h6v-7.5L12 3 3 10.5" />
@@ -248,9 +239,8 @@
                 <a
                     href="{{ route('vendors.index') }}"
                     title="Vendors"
-                    class="{{ $navLinkBase }}"
+                    @class([$navLinkBase, $navActive => request()->routeIs('vendors.*'), $navInactive => !request()->routeIs('vendors.*') ])
                     :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
-                    @class([ $navActive => request()->routeIs('vendors.*'), $navInactive => !request()->routeIs('vendors.*') ])
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -264,9 +254,8 @@
                 <a
                     href="{{ route('parts.index') }}"
                     title="Parts"
-                    class="{{ $navLinkBase }}"
+                    @class([$navLinkBase, $navActive => request()->routeIs('parts.*'), $navInactive => !request()->routeIs('parts.*') ])
                     :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
-                    @class([ $navActive => request()->routeIs('parts.*'), $navInactive => !request()->routeIs('parts.*') ])
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
@@ -279,9 +268,8 @@
                 <a
                     href="{{ route('truckings.index') }}"
                     title="Truckings"
-                    class="{{ $navLinkBase }}"
+                    @class([$navLinkBase, $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*') ])
                     :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
-                    @class([ $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*') ])
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v10H3V7Z" />
@@ -300,9 +288,8 @@
             <details class="group" {{ $incomingModuleActive ? 'open' : '' }} x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
                 <summary class="list-none cursor-pointer" title="Incoming Material" :class="sidebarCollapsed ? 'flex justify-center' : ''">
                     <div
-                        class="{{ $navLinkBase }}"
+                        @class([$navLinkBase, $navActive => $incomingModuleActive, $navInactive => !$incomingModuleActive ])
                         :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
-                        @class([ $navActive => $incomingModuleActive, $navInactive => !$incomingModuleActive ])
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5V6a2 2 0 0 1 2-2h5l2 2h6a2 2 0 0 1 2 2v9.5a2 2 0 0 1-2 2h-6l-2 2H5a2 2 0 0 1-2-2V7.5Z" />
@@ -378,4 +365,3 @@
         <div class="mt-3 px-2 text-xs text-slate-400" x-show="!sidebarCollapsed" x-cloak>© {{ date('Y') }} Geum Cheon Indo</div>
     </div>
 </aside>
-
