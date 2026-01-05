@@ -222,7 +222,97 @@
                     <p class="text-sm text-slate-600 mt-1">Diinput dari aplikasi Android (read-only di web).</p>
                 </div>
 
-                @if ($arrival->inspection)
+                @php
+                    $containers = $arrival->containers ?? collect();
+                    $hasContainerInspection = $containers->contains(fn ($c) => (bool) $c->inspection);
+                @endphp
+
+                @if ($hasContainerInspection)
+                    <div class="space-y-4">
+                        @foreach ($containers as $container)
+                            @php
+                                $inspection = $container->inspection;
+                                $statusColor = $inspection?->status === 'damage'
+                                    ? 'bg-red-100 text-red-700'
+                                    : ($inspection ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700');
+                                $photos = [
+                                    'Left' => $inspection?->photo_left,
+                                    'Right' => $inspection?->photo_right,
+                                    'Front' => $inspection?->photo_front,
+                                    'Back' => $inspection?->photo_back,
+                                    'Inside' => $inspection?->photo_inside,
+                                ];
+                                $issuesMap = [
+                                    'Left' => $inspection?->issues_left ?? [],
+                                    'Right' => $inspection?->issues_right ?? [],
+                                    'Front' => $inspection?->issues_front ?? [],
+                                    'Back' => $inspection?->issues_back ?? [],
+                                ];
+                                $containerNo = strtoupper(trim((string) ($container->container_no ?? '')));
+                                $sealCode = strtoupper(trim((string) (($inspection?->seal_code) ?: ($container->seal_code ?? ''))));
+                            @endphp
+
+                            <div class="border border-slate-200 rounded-2xl p-4 space-y-3">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="text-sm font-semibold text-slate-900">
+                                        Container: {{ $containerNo ?: '-' }}
+                                        @if ($sealCode !== '')
+                                            <span class="text-slate-500">• Seal {{ $sealCode }}</span>
+                                        @endif
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $statusColor }}">
+                                            {{ $inspection ? strtoupper($inspection->status) : 'PENDING' }}
+                                        </span>
+                                        @if ($inspection)
+                                            <div class="text-xs text-slate-500">
+                                                Updated: {{ $inspection->updated_at?->format('Y-m-d H:i') ?? '-' }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                @if ($inspection?->notes)
+                                    <div class="text-sm text-slate-800">
+                                        <span class="font-semibold text-slate-700">Notes:</span> {{ $inspection->notes }}
+                                    </div>
+                                @endif
+
+                                @if ($inspection)
+                                    <div class="space-y-3">
+                                        @foreach ($issuesMap as $side => $issues)
+                                            @if (!empty($issues))
+                                                <div class="text-sm">
+                                                    <div class="font-semibold text-slate-700">{{ $side }}</div>
+                                                    <div class="flex flex-wrap gap-2 mt-1">
+                                                        @foreach ($issues as $issue)
+                                                            <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+                                                                {{ $issue }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+
+                                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                        @foreach ($photos as $label => $path)
+                                            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                                                <div class="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-700">{{ $label }}</div>
+                                                @if ($path)
+                                                    <img src="{{ Storage::url($path) }}" alt="{{ $label }}" class="w-full h-36 object-cover">
+                                                @else
+                                                    <div class="h-36 flex items-center justify-center text-sm text-slate-400">No photo</div>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @elseif ($arrival->inspection)
                     @php
                         $statusColor = $arrival->inspection->status === 'damage'
                             ? 'bg-red-100 text-red-700'
