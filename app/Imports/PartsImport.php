@@ -7,6 +7,7 @@ use App\Models\Vendor;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Illuminate\Validation\Rule;
 
 class PartsImport implements ToModel, WithHeadingRow, WithValidation
 {
@@ -30,6 +31,27 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation
         }
 
         return null;
+    }
+
+    public function prepareForValidation(array $data, int $index): array
+    {
+        foreach (['part_no', 'part_number', 'register_no', 'register_number', 'size', 'hs_code'] as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            $raw = trim((string) ($data[$key] ?? ''));
+            $data[$key] = $raw === '' ? null : strtoupper($raw);
+        }
+
+        foreach (['part_name_vendor', 'vendor_part_name', 'part_name_gci', 'part_name_internal', 'gci_part_name'] as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            $raw = trim((string) ($data[$key] ?? ''));
+            $data[$key] = $raw === '' ? null : strtoupper($raw);
+        }
+
+        return $data;
     }
 
     public function model(array $row)
@@ -87,8 +109,8 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation
         return [
             'vendor' => 'required_without:vendor_id|string|max:255',
             'vendor_id' => 'nullable|integer',
-            'part_no' => 'required_without:part_number|string|max:255',
-            'part_number' => 'required_without:part_no|string|max:255',
+            'part_no' => ['required_without:part_number', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
+            'part_number' => ['required_without:part_no', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
             'register_no' => 'nullable|string|max:255',
             'register_number' => 'nullable|string|max:255',
             'size' => 'nullable|string|max:255',

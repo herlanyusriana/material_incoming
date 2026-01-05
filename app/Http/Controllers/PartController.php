@@ -67,7 +67,7 @@ class PartController extends Controller
     {
         $data = $request->validate([
             'register_no' => ['required', 'string', 'max:255'],
-            'part_no' => ['required', 'string', 'max:255'],
+            'part_no' => ['required', 'string', 'max:255', 'unique:parts,part_no'],
             'part_name_vendor' => ['required', 'string', 'max:255'],
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
@@ -91,7 +91,7 @@ class PartController extends Controller
     {
         $data = $request->validate([
             'register_no' => ['required', 'string', 'max:255'],
-            'part_no' => ['required', 'string', 'max:255'],
+            'part_no' => ['required', 'string', 'max:255', 'unique:parts,part_no,' . $part->id],
             'part_name_vendor' => ['required', 'string', 'max:255'],
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
