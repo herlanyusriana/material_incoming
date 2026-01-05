@@ -51,6 +51,7 @@ class ContainerInspectionController extends Controller
             'photo_front' => ['nullable', 'image', 'max:10240'],
             'photo_back' => ['nullable', 'image', 'max:10240'],
             'photo_inside' => ['nullable', 'image', 'max:10240'],
+            'photo_seal' => ['nullable', 'image', 'max:10240'],
         ]);
 
         $sealCode = array_key_exists('seal_code', $validated)
@@ -75,7 +76,7 @@ class ContainerInspectionController extends Controller
         ]);
 
         $dir = "inspections/arrival-{$container->arrival_id}/container-{$container->id}";
-        foreach (['left', 'right', 'front', 'back', 'inside'] as $side) {
+        foreach (['left', 'right', 'front', 'back', 'inside', 'seal'] as $side) {
             $key = "photo_{$side}";
             if (!$request->hasFile($key)) {
                 continue;
@@ -141,9 +142,9 @@ class ContainerInspectionController extends Controller
             'photo_front_url' => $inspection->photo_front ? url(Storage::url($inspection->photo_front)) : null,
             'photo_back_url' => $inspection->photo_back ? url(Storage::url($inspection->photo_back)) : null,
             'photo_inside_url' => $inspection->photo_inside ? url(Storage::url($inspection->photo_inside)) : null,
+            'photo_seal_url' => $inspection->photo_seal ? url(Storage::url($inspection->photo_seal)) : null,
             'created_at' => optional($inspection->created_at)->toISOString(),
             'updated_at' => optional($inspection->updated_at)->toISOString(),
         ];
     }
 }
-

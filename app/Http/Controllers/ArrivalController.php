@@ -606,6 +606,7 @@ class ArrivalController extends Controller
                     'front' => $toDataUri($inspection?->photo_front),
                     'back' => $toDataUri($inspection?->photo_back),
                     'inside' => $toDataUri($inspection?->photo_inside),
+                    'seal' => $toDataUri($inspection?->photo_seal),
                 ];
             }
 

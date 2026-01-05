@@ -244,6 +244,7 @@
                                     'Front' => $inspection?->photo_front,
                                     'Back' => $inspection?->photo_back,
                                     'Inside' => $inspection?->photo_inside,
+                                    'Seal' => $inspection?->photo_seal,
                                 ];
                                 $issuesMap = [
                                     'Left' => $inspection?->issues_left ?? [],
@@ -299,7 +300,7 @@
                                         @endforeach
                                     </div>
 
-                                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
                                         @foreach ($photos as $label => $path)
                                             <div class="border border-slate-200 rounded-xl overflow-hidden">
                                                 <div class="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-700">{{ $label }}</div>

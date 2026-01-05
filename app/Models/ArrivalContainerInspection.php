@@ -23,6 +23,7 @@ class ArrivalContainerInspection extends Model
         'photo_front',
         'photo_back',
         'photo_inside',
+        'photo_seal',
         'inspected_by',
     ];
 

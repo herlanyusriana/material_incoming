@@ -114,6 +114,18 @@
                                     </div>
                                 </td>
                             </tr>
+                            <tr>
+                                <td colspan="2" style="padding-top: 2mm;">
+                                    <div class="card h36 photo-portrait">
+                                        <div class="label">Seal</div>
+                                        @if (!empty($photos['seal']))
+                                            <img class="photo" src="{{ $photos['seal'] }}" alt="Seal">
+                                        @else
+                                            <div class="empty">Foto Seal (PORTRAIT)</div>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
                         </table>
                     </td>
                 </tr>
@@ -191,4 +203,3 @@
     </div>
 </body>
 </html>
-
