@@ -277,6 +277,16 @@
             }
         }
 
+        if (!function_exists('format2')) {
+            function format2($value): string
+            {
+                if (is_string($value)) {
+                    $value = str_replace(',', '', $value);
+                }
+                return number_format((float) $value, 2, '.', ',');
+            }
+        }
+
         if (!function_exists('format3_round_half_up')) {
             function format3_round_half_up($value): string
             {
@@ -530,7 +540,7 @@
                         </tr>
                     </table>
                 </td>
-                <td class="text-right">USD {{ format3_no_round($item->total_price) }}</td>
+                <td class="text-right">USD {{ format2($item->total_price) }}</td>
             </tr>
             @endforeach
 
@@ -593,7 +603,7 @@
                     @endif
                 </td>
                 <td>&nbsp;</td>
-                <td class="text-right text-bold">USD {{ format3_no_round($groupAmount) }}</td>
+                <td class="text-right text-bold">USD {{ format2($groupAmount) }}</td>
             </tr>
         @endforeach
         
@@ -645,7 +655,7 @@
                 @endif
             </td>
             <td>&nbsp;</td>
-            <td class="text-right text-bold">USD {{ format3_no_round($arrival->items->sum('total_price')) }}</td>
+            <td class="text-right text-bold">USD {{ format2($arrival->items->sum('total_price')) }}</td>
         </tr>
     </tbody>
 </table>
