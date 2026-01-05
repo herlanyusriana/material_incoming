@@ -260,7 +260,28 @@
         <div>
             <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Master</div>
             <div class="space-y-1">
-                <details class="group" {{ $vendorsActive ? 'open' : '' }} x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                <a
+                    x-show="sidebarCollapsed"
+                    x-cloak
+                    href="{{ route('vendors.index') }}"
+                    title="Vendor List"
+                    @class([$navLinkBase, $navActive => $vendorsActive, $navInactive => !$vendorsActive ])
+                    :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                </a>
+
+                <details
+                    x-show="!sidebarCollapsed"
+                    x-cloak
+                    class="group"
+                    {{ $vendorsActive ? 'open' : '' }}
+                >
                     <summary class="list-none cursor-pointer" title="Vendors" :class="sidebarCollapsed ? 'flex justify-center' : ''">
                         <div
                             @class([$navLinkBase, $navActive => $vendorsActive, $navInactive => !$vendorsActive ])
@@ -278,7 +299,7 @@
                             </svg>
                         </div>
                     </summary>
-                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                    <div class="mt-2">
                         <div class="ml-4 border-l border-slate-200 pl-4 space-y-1">
                             <a href="{{ route('vendors.create') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
                                @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('vendors.create'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('vendors.create')])>
@@ -292,7 +313,27 @@
                     </div>
                 </details>
 
-                <details class="group" {{ $partsActive ? 'open' : '' }} x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                <a
+                    x-show="sidebarCollapsed"
+                    x-cloak
+                    href="{{ route('parts.index') }}"
+                    title="Existing Part List"
+                    @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive ])
+                    :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.29 7L12 12l8.71-5" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 22V12" />
+                    </svg>
+                </a>
+
+                <details
+                    x-show="!sidebarCollapsed"
+                    x-cloak
+                    class="group"
+                    {{ $partsActive ? 'open' : '' }}
+                >
                     <summary class="list-none cursor-pointer" title="Parts" :class="sidebarCollapsed ? 'flex justify-center' : ''">
                         <div
                             @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive ])
@@ -309,7 +350,7 @@
                             </svg>
                         </div>
                     </summary>
-                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                    <div class="mt-2">
                         <div class="ml-4 border-l border-slate-200 pl-4 space-y-1">
                             <a href="{{ route('parts.create') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
                                @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('parts.create'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('parts.create')])>
