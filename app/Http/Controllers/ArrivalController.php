@@ -620,11 +620,7 @@ class ArrivalController extends Controller
                 'photosByContainerId' => $photosByContainerId,
             ])
                 ->setPaper('a4', 'landscape')
-                ->setOption('orientation', 'Landscape')
-                ->setOption('margin-top', 7)
-                ->setOption('margin-bottom', 7)
-                ->setOption('margin-left', 7)
-                ->setOption('margin-right', 7);
+                ->setWarnings(false);
         } elseif ($arrival->inspection) {
             $inspection = $arrival->inspection;
             $photos = [
@@ -637,11 +633,7 @@ class ArrivalController extends Controller
 
             $pdf = Pdf::loadView('arrivals.inspection_report', compact('arrival', 'inspection', 'photos'))
                 ->setPaper('a4', 'landscape')
-                ->setOption('orientation', 'Landscape')
-                ->setOption('margin-top', 7)
-                ->setOption('margin-bottom', 7)
-                ->setOption('margin-left', 7)
-                ->setOption('margin-right', 7);
+                ->setWarnings(false);
         } else {
             abort(404);
         }
