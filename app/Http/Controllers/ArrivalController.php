@@ -592,20 +592,42 @@ class ArrivalController extends Controller
                 return null;
             }
 
-            $absolutePath = Storage::disk('public')->path($publicPath);
             $mime = Storage::disk('public')->mimeType($publicPath) ?: 'image/jpeg';
             $bytes = Storage::disk('public')->get($publicPath);
 
+            $absolutePath = null;
+            try {
+                $absolutePath = Storage::disk('public')->path($publicPath);
+            } catch (\Throwable) {
+                $absolutePath = null;
+            }
+
+            if (!$absolutePath) {
+                $guess = storage_path('app/public/' . ltrim($publicPath, '/'));
+                if (is_file($guess)) {
+                    $absolutePath = $guess;
+                }
+            }
+
             $class = 'is-landscape';
-            $size = @getimagesize($absolutePath);
-            if (is_array($size) && isset($size[0], $size[1])) {
-                $w = (int) $size[0];
-                $h = (int) $size[1];
-                $class = $h > $w ? 'is-portrait' : 'is-landscape';
+            if ($absolutePath) {
+                $size = @getimagesize($absolutePath);
+                if (is_array($size) && isset($size[0], $size[1])) {
+                    $w = (int) $size[0];
+                    $h = (int) $size[1];
+                    $class = $h > $w ? 'is-portrait' : 'is-landscape';
+                }
+            } else {
+                $size = @getimagesizefromstring($bytes);
+                if (is_array($size) && isset($size[0], $size[1])) {
+                    $w = (int) $size[0];
+                    $h = (int) $size[1];
+                    $class = $h > $w ? 'is-portrait' : 'is-landscape';
+                }
             }
 
             return [
-                'src' => 'data:' . $mime . ';base64,' . base64_encode($bytes),
+                'src' => $absolutePath && is_file($absolutePath) ? ('file://' . $absolutePath) : ('data:' . $mime . ';base64,' . base64_encode($bytes)),
                 'class' => $class,
             ];
         };
