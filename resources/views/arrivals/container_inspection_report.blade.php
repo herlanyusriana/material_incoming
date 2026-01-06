@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <title>Inspection Report</title>
     <style>
-        @page { size: A4 landscape; margin: 4mm; }
+        @page { size: A4 landscape; margin: 2mm; }
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 9.2px; color: #111; word-break: break-word; }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 9.2px; color: #111; word-break: break-word; }
         .container { width: 100%; }
         .page { width: 100%; border: 0.45mm solid #333; }
 
@@ -65,13 +65,14 @@
         .sig-name { position: absolute; left: 0; right: 0; bottom: 1.6mm; text-align: center; font-weight: bold; font-size: 8.5px; }
         .page-break { page-break-after: always; }
 
-        /* Heights tuned to fit 1 A4 landscape page */
-        .h-top { height: 63mm; }
-        .h-mid { height: 63mm; }
-        .h-bot { height: 58mm; }
-        .h-left-top { height: 70mm; }
-        .h-left-mid { height: 45mm; }
-        .h-left-bot { height: 69mm; }
+        /* Heights tuned to fill 1 A4 landscape page (reduce bottom whitespace) */
+        .h-top { height: 68mm; }
+        .h-mid { height: 68mm; }
+        .h-bot { height: 62mm; }
+        .h-bot-half { height: 31mm; }
+        .h-left-top { height: 76mm; }
+        .h-left-mid { height: 50mm; }
+        .h-left-bot { height: 72mm; }
     </style>
 </head>
 <body>
@@ -189,30 +190,22 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <table class="grid">
-                                            <tr>
-                                                <td style="width: 50%;">
-                                                    <div class="cell landscape h-bot">
-                                                        <div class="label-vert">Kiri</div>
-                                                        @if (!empty($photos['left']))
-                                                            <img class="photo" src="{{ $photos['left'] }}" alt="Kiri">
-                                                        @else
-                                                            <div class="empty"><div>Foto Kiri (LANDSCAPE)</div></div>
-                                                        @endif
-                                                    </div>
-                                                </td>
-                                                <td style="width: 50%;">
-                                                    <div class="cell landscape h-bot">
-                                                        <div class="label-vert">Kanan</div>
-                                                        @if (!empty($photos['right']))
-                                                            <img class="photo" src="{{ $photos['right'] }}" alt="Kanan">
-                                                        @else
-                                                            <div class="empty"><div>Foto Kanan (LANDSCAPE)</div></div>
-                                                        @endif
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </table>
+                                        <div class="cell landscape h-bot-half">
+                                            <div class="label-vert">Kiri</div>
+                                            @if (!empty($photos['left']))
+                                                <img class="photo" src="{{ $photos['left'] }}" alt="Kiri">
+                                            @else
+                                                <div class="empty"><div>Foto Kiri (LANDSCAPE)</div></div>
+                                            @endif
+                                        </div>
+                                        <div class="cell landscape h-bot-half" style="border-top: none;">
+                                            <div class="label-vert">Kanan</div>
+                                            @if (!empty($photos['right']))
+                                                <img class="photo" src="{{ $photos['right'] }}" alt="Kanan">
+                                            @else
+                                                <div class="empty"><div>Foto Kanan (LANDSCAPE)</div></div>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             </table>
