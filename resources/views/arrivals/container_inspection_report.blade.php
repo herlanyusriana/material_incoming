@@ -13,7 +13,11 @@
         .layout { width: 100%; table-layout: fixed; }
         .layout td { vertical-align: top; padding: 0; }
 
-        .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; }
+        /* Use separate border model for consistent gaps */
+        .gap-table { border-collapse: separate; border-spacing: 3mm 3mm; width: 100%; table-layout: fixed; }
+        .gap-table td { padding: 0; vertical-align: top; }
+
+        .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; background: #fff; }
         .slot-inner { width: 100%; height: 100%; table-layout: fixed; }
         .slot-cell { text-align: center; vertical-align: middle; padding: 0; }
 
@@ -26,20 +30,17 @@
             height: auto;
         }
 
-        .label-vert {
+        .label {
             position: absolute;
-            right: 1.8mm;
-            top: 50%;
-            transform: translateY(-50%) rotate(90deg);
-            transform-origin: center;
+            left: 2mm;
+            top: 2mm;
             font-weight: bold;
-            font-size: 10px;
-            letter-spacing: 0.2px;
+            font-size: 9.5px;
             color: #111;
             white-space: nowrap;
             background: #fff;
             border: 0.25mm solid #333;
-            padding: 0.8mm 1.8mm;
+            padding: 0.8mm 2mm;
             z-index: 2;
         }
 
@@ -62,13 +63,11 @@
         .page-break { page-break-after: always; }
 
         /* Fixed slot heights: keep it 1 page */
-        .h-left-top { height: 74mm; }
-        .h-left-mid { height: 44mm; }
-        .h-left-bot { height: 80mm; }
+        .h-left { height: 88mm; }    /* each portrait block on the left 2x2 */
+        .h-right-land { height: 58mm; } /* Kiri/Kanan landscape blocks */
+        .h-right-info { height: 90mm; } /* info block */
 
-        .h-right-front { height: 64mm; }
-        .h-right-back { height: 64mm; }
-        .h-right-side { height: 35mm; } /* KIRI/KANAN must be LANDSCAPE */
+        .info-title { font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 3mm; }
     </style>
 </head>
 <body>
@@ -83,153 +82,157 @@
             $p = $photos[$key] ?? null;
             return is_array($p) && !empty($p['src']) ? $p : null;
         };
+
+        $arrivalNo = $arrival->invoice_no ?? '-';
+        $dateText = $inspection?->updated_at
+            ? $inspection->updated_at->locale('id')->translatedFormat('d F Y')
+            : '-';
     @endphp
 
     <div class="page">
         <table class="layout">
             <tr>
-                <td style="width:46%;">
-                    <table class="layout">
+                <td style="width:60%;">
+                    <table class="gap-table">
                         <tr>
-                            <td class="slot h-left-top">
-                                <div class="label-vert">Dalam</div>
-                                <table class="slot-inner">
-                                    <tr>
-                                        <td class="slot-cell">
-                                            @if ($p = $photo('inside'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Dalam">
+                            <td>
+                                <div class="slot h-left">
+                                    <div class="label">Depan</div>
+                                    <table class="slot-inner">
+                                        <tr><td class="slot-cell">
+                                            @if ($p = $photo('front'))
+                                                <img class="img" src="{{ $p['src'] }}" alt="Depan">
                                             @else
-                                                <div class="empty">Foto Dalam (PORTRAIT)</div>
+                                                <div class="empty">Foto Depan</div>
                                             @endif
-                                        </td>
-                                    </tr>
-                                </table>
+                                        </td></tr>
+                                    </table>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="slot h-left">
+                                    <div class="label">Belakang</div>
+                                    <table class="slot-inner">
+                                        <tr><td class="slot-cell">
+                                            @if ($p = $photo('back'))
+                                                <img class="img" src="{{ $p['src'] }}" alt="Belakang">
+                                            @else
+                                                <div class="empty">Foto Belakang</div>
+                                            @endif
+                                        </td></tr>
+                                    </table>
+                                </div>
                             </td>
                         </tr>
                         <tr>
-                            <td class="slot h-left-mid">
-                                <div class="label-vert">No.Seal</div>
-                                <table class="slot-inner">
-                                    <tr>
-                                        <td class="slot-cell">
+                            <td>
+                                <div class="slot h-left">
+                                    <div class="label">Dalam</div>
+                                    <table class="slot-inner">
+                                        <tr><td class="slot-cell">
+                                            @if ($p = $photo('inside'))
+                                                <img class="img" src="{{ $p['src'] }}" alt="Dalam">
+                                            @else
+                                                <div class="empty">Foto Interior</div>
+                                            @endif
+                                        </td></tr>
+                                    </table>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="slot h-left">
+                                    <div class="label">No Seal</div>
+                                    <table class="slot-inner">
+                                        <tr><td class="slot-cell">
                                             @if ($p = $photo('seal'))
                                                 <img class="img" src="{{ $p['src'] }}" alt="No Seal">
                                             @else
                                                 <div class="seal-code">{{ $sealCode ?: '-' }}</div>
-                                                <div class="empty" style="margin-top:2mm;">Foto Seal (PORTRAIT)</div>
+                                                <div class="empty" style="margin-top:2mm;">Foto No Seal</div>
                                             @endif
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="slot h-left-bot">
-                                <div class="pad">
-                                    <table class="kvs">
-                                        <tr><td class="k">No Invoice</td><td class="v">: {{ $arrival->invoice_no }}</td></tr>
-                                        <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
-                                        <tr><td class="k">No Seal</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
-                                        <tr><td class="k">Tanggal</td><td class="v">: {{ $inspection?->updated_at?->format('Y-m-d') ?? '-' }}</td></tr>
-                                        <tr><td class="k">Keterangan</td><td class="v">: {{ $inspection?->notes ?: '-' }}</td></tr>
+                                        </td></tr>
                                     </table>
-
-                                    <div class="sig-divider">
-                                        <table class="sig-grid">
-                                            <tr>
-                                                <td>
-                                                    <div class="sig-box">
-                                                        <div class="sig-title">Diperiksa Oleh</div>
-                                                        <div class="sig-line"></div>
-                                                        <div class="sig-name">Nurwahid/Ida</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="sig-box">
-                                                        <div class="sig-title">Mengetahui</div>
-                                                        <div class="sig-line"></div>
-                                                        <div class="sig-name">Fadri/Dita</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="sig-box">
-                                                        <div class="sig-title">Driver / Sopir</div>
-                                                        <div class="sig-line"></div>
-                                                        <div class="sig-name">{{ $inspection?->driver_name ?: '-' }}</div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
                                 </div>
                             </td>
                         </tr>
                     </table>
                 </td>
-                <td style="width:54%;">
-                    <table class="layout">
+                <td style="width:40%;">
+                    <table class="gap-table">
                         <tr>
-                            <td class="slot h-right-front">
-                                <div class="label-vert">Depan</div>
-                                <table class="slot-inner">
-                                    <tr>
-                                        <td class="slot-cell">
-                                            @if ($p = $photo('front'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Depan">
-                                            @else
-                                                <div class="empty">Foto Depan (PORTRAIT)</div>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="slot h-right-back">
-                                <div class="label-vert">Belakang</div>
-                                <table class="slot-inner">
-                                    <tr>
-                                        <td class="slot-cell">
-                                            @if ($p = $photo('back'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Belakang">
-                                            @else
-                                                <div class="empty">Foto Belakang (PORTRAIT)</div>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="slot h-right-side">
-                                <div class="label-vert">Kiri</div>
-                                <table class="slot-inner">
-                                    <tr>
-                                        <td class="slot-cell">
+                            <td>
+                                <div class="slot h-right-land">
+                                    <div class="label">Kiri</div>
+                                    <table class="slot-inner">
+                                        <tr><td class="slot-cell">
                                             @if ($p = $photo('left'))
                                                 <img class="img" src="{{ $p['src'] }}" alt="Kiri">
                                             @else
                                                 <div class="empty">Foto Kiri (LANDSCAPE)</div>
                                             @endif
-                                        </td>
-                                    </tr>
-                                </table>
+                                        </td></tr>
+                                    </table>
+                                </div>
                             </td>
                         </tr>
                         <tr>
-                            <td class="slot h-right-side" style="border-top: none;">
-                                <div class="label-vert">Kanan</div>
-                                <table class="slot-inner">
-                                    <tr>
-                                        <td class="slot-cell">
+                            <td>
+                                <div class="slot h-right-land">
+                                    <div class="label">Kanan</div>
+                                    <table class="slot-inner">
+                                        <tr><td class="slot-cell">
                                             @if ($p = $photo('right'))
                                                 <img class="img" src="{{ $p['src'] }}" alt="Kanan">
                                             @else
                                                 <div class="empty">Foto Kanan (LANDSCAPE)</div>
                                             @endif
-                                        </td>
-                                    </tr>
-                                </table>
+                                        </td></tr>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="slot h-right-info">
+                                    <div class="pad">
+                                        <div class="info-title">Keterangan</div>
+                                        <table class="kvs">
+                                            <tr><td class="k">No Invoice</td><td class="v">: {{ $arrivalNo }}</td></tr>
+                                            <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
+                                            <tr><td class="k">No Seal</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
+                                            <tr><td class="k">Tanggal Tiba</td><td class="v">: {{ $dateText }}</td></tr>
+                                            <tr><td class="k">Catatan</td><td class="v">: {{ $inspection?->notes ?: '-' }}</td></tr>
+                                        </table>
+
+                                        <div class="sig-divider">
+                                            <table class="sig-grid">
+                                                <tr>
+                                                    <td>
+                                                        <div class="sig-box">
+                                                            <div class="sig-title">Diperiksa Oleh</div>
+                                                            <div class="sig-line"></div>
+                                                            <div class="sig-name">Nurwahid/Ida</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="sig-box">
+                                                            <div class="sig-title">Mengetahui</div>
+                                                            <div class="sig-line"></div>
+                                                            <div class="sig-name">Fadri/Dita</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="sig-box">
+                                                            <div class="sig-title">Driver</div>
+                                                            <div class="sig-line"></div>
+                                                            <div class="sig-name">{{ $inspection?->driver_name ?: '-' }}</div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     </table>
