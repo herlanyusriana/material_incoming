@@ -8,32 +8,22 @@
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 9px; color: #111; }
 
-        .page { width: 100%; border: 0.45mm solid #333; }
-
-        /* Stable Dompdf layout: table only */
         table { border-collapse: collapse; }
+        .page { width: 100%; border: 0.45mm solid #333; }
         .layout { width: 100%; table-layout: fixed; }
-        .layout > tbody > tr > td { vertical-align: top; }
+        .layout td { vertical-align: top; padding: 0; }
 
-        .slot { border: 0.35mm solid #333; position: relative; overflow: hidden; }
+        .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; }
         .slot-inner { width: 100%; height: 100%; table-layout: fixed; }
-        .slot-cell { width: 100%; height: 100%; text-align: center; vertical-align: middle; }
+        .slot-cell { text-align: center; vertical-align: middle; padding: 0; }
 
+        /* Dompdf-friendly "contain" behavior */
         .img {
-            display: block;
-            margin: 0 auto;
+            display: inline-block;
             max-width: 100%;
             max-height: 100%;
             width: auto;
             height: auto;
-            object-fit: contain;
-            object-position: center;
-        }
-
-        /* Option B fallback hook (disabled by default). Add class rotate-portrait to img to enable. */
-        .img.rotate-portrait {
-            transform: rotate(90deg);
-            transform-origin: center center;
         }
 
         .label-vert {
@@ -71,14 +61,14 @@
 
         .page-break { page-break-after: always; }
 
-        /* Fixed slot heights (1 page A4 landscape) */
-        .h-left-top { height: 78mm; }
-        .h-left-mid { height: 52mm; }
-        .h-left-bot { height: 66mm; }
+        /* Fixed slot heights: keep it 1 page */
+        .h-left-top { height: 74mm; }
+        .h-left-mid { height: 44mm; }
+        .h-left-bot { height: 80mm; }
 
-        .h-right-top { height: 66mm; }
-        .h-right-mid { height: 66mm; }
-        .h-right-bot-row { height: 32mm; } /* bottom area is 2 rows (2 photos + 1 photo) */
+        .h-right-front { height: 64mm; }
+        .h-right-back { height: 64mm; }
+        .h-right-side { height: 35mm; } /* KIRI/KANAN must be LANDSCAPE */
     </style>
 </head>
 <body>
@@ -88,7 +78,6 @@
         $containerNo = strtoupper(trim((string) ($container->container_no ?? '-')));
         $sealCode = strtoupper(trim((string) (($inspection?->seal_code) ?: ($container->seal_code ?? '-'))));
         $photos = $photosByContainerId[$container->id] ?? [];
-        $rotatePortrait = false;
 
         $photo = function (string $key) use ($photos): ?array {
             $p = $photos[$key] ?? null;
@@ -108,7 +97,7 @@
                                     <tr>
                                         <td class="slot-cell">
                                             @if ($p = $photo('inside'))
-                                                <img class="img {{ $p['class'] }}{{ $rotatePortrait && $p['class'] === 'is-portrait' ? ' rotate-portrait' : '' }}" src="{{ $p['src'] }}" alt="Dalam">
+                                                <img class="img" src="{{ $p['src'] }}" alt="Dalam">
                                             @else
                                                 <div class="empty">Foto Dalam (PORTRAIT)</div>
                                             @endif
@@ -124,7 +113,7 @@
                                     <tr>
                                         <td class="slot-cell">
                                             @if ($p = $photo('seal'))
-                                                <img class="img {{ $p['class'] }}{{ $rotatePortrait && $p['class'] === 'is-portrait' ? ' rotate-portrait' : '' }}" src="{{ $p['src'] }}" alt="No Seal">
+                                                <img class="img" src="{{ $p['src'] }}" alt="No Seal">
                                             @else
                                                 <div class="seal-code">{{ $sealCode ?: '-' }}</div>
                                                 <div class="empty" style="margin-top:2mm;">Foto Seal (PORTRAIT)</div>
@@ -180,13 +169,13 @@
                 <td style="width:54%;">
                     <table class="layout">
                         <tr>
-                            <td class="slot h-right-top">
+                            <td class="slot h-right-front">
                                 <div class="label-vert">Depan</div>
                                 <table class="slot-inner">
                                     <tr>
                                         <td class="slot-cell">
                                             @if ($p = $photo('front'))
-                                                <img class="img {{ $p['class'] }}{{ $rotatePortrait && $p['class'] === 'is-portrait' ? ' rotate-portrait' : '' }}" src="{{ $p['src'] }}" alt="Depan">
+                                                <img class="img" src="{{ $p['src'] }}" alt="Depan">
                                             @else
                                                 <div class="empty">Foto Depan (PORTRAIT)</div>
                                             @endif
@@ -196,13 +185,13 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="slot h-right-mid">
+                            <td class="slot h-right-back">
                                 <div class="label-vert">Belakang</div>
                                 <table class="slot-inner">
                                     <tr>
                                         <td class="slot-cell">
                                             @if ($p = $photo('back'))
-                                                <img class="img {{ $p['class'] }}{{ $rotatePortrait && $p['class'] === 'is-portrait' ? ' rotate-portrait' : '' }}" src="{{ $p['src'] }}" alt="Belakang">
+                                                <img class="img" src="{{ $p['src'] }}" alt="Belakang">
                                             @else
                                                 <div class="empty">Foto Belakang (PORTRAIT)</div>
                                             @endif
@@ -212,52 +201,32 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>
-                                <table class="layout">
+                            <td class="slot h-right-side">
+                                <div class="label-vert">Kiri</div>
+                                <table class="slot-inner">
                                     <tr>
-                                        <td class="slot h-right-bot-row" style="width:50%;">
-                                            <div class="label-vert">Kiri</div>
-                                            <table class="slot-inner">
-                                                <tr>
-                                                    <td class="slot-cell">
-                                                        @if ($p = $photo('left'))
-                                                            <img class="img {{ $p['class'] }}{{ $rotatePortrait && $p['class'] === 'is-portrait' ? ' rotate-portrait' : '' }}" src="{{ $p['src'] }}" alt="Kiri">
-                                                        @else
-                                                            <div class="empty">Foto Kiri (LANDSCAPE)</div>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                        <td class="slot h-right-bot-row" style="width:50%; border-left: none;">
-                                            <div class="label-vert">Kanan</div>
-                                            <table class="slot-inner">
-                                                <tr>
-                                                    <td class="slot-cell">
-                                                        @if ($p = $photo('right'))
-                                                            <img class="img {{ $p['class'] }}{{ $rotatePortrait && $p['class'] === 'is-portrait' ? ' rotate-portrait' : '' }}" src="{{ $p['src'] }}" alt="Kanan">
-                                                        @else
-                                                            <div class="empty">Foto Kanan (LANDSCAPE)</div>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-                                            </table>
+                                        <td class="slot-cell">
+                                            @if ($p = $photo('left'))
+                                                <img class="img" src="{{ $p['src'] }}" alt="Kiri">
+                                            @else
+                                                <div class="empty">Foto Kiri (LANDSCAPE)</div>
+                                            @endif
                                         </td>
                                     </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="slot h-right-side" style="border-top: none;">
+                                <div class="label-vert">Kanan</div>
+                                <table class="slot-inner">
                                     <tr>
-                                        <td class="slot h-right-bot-row" colspan="2" style="border-top:none;">
-                                            <div class="label-vert">Detail</div>
-                                            <table class="slot-inner">
-                                                <tr>
-                                                    <td class="slot-cell">
-                                                        @if ($p = $photo('damage'))
-                                                            <img class="img {{ $p['class'] }}{{ $rotatePortrait && $p['class'] === 'is-portrait' ? ' rotate-portrait' : '' }}" src="{{ $p['src'] }}" alt="Detail Kerusakan">
-                                                        @else
-                                                            <div class="empty">Foto Detail Kerusakan (OPTIONAL)</div>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-                                            </table>
+                                        <td class="slot-cell">
+                                            @if ($p = $photo('right'))
+                                                <img class="img" src="{{ $p['src'] }}" alt="Kanan">
+                                            @else
+                                                <div class="empty">Foto Kanan (LANDSCAPE)</div>
+                                            @endif
                                         </td>
                                     </tr>
                                 </table>
