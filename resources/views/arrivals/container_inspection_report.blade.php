@@ -90,7 +90,7 @@
         $photos = $photosByContainerId[$container->id] ?? [];
         $rotatePortrait = false;
 
-        $photo = function (string $key): ?array use ($photos) {
+        $photo = function (string $key) use ($photos): ?array {
             $p = $photos[$key] ?? null;
             return is_array($p) && !empty($p['src']) ? $p : null;
         };
