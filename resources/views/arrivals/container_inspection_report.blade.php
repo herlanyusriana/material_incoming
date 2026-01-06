@@ -17,15 +17,18 @@
 
         .label-vert {
             position: absolute;
-            right: -14mm;
+            right: 2mm;
             top: 50%;
             transform: translateY(-50%) rotate(90deg);
             transform-origin: center;
             font-weight: bold;
-            font-size: 12px;
-            letter-spacing: 0.5px;
+            font-size: 11px;
+            letter-spacing: 0.2px;
             color: #111;
             white-space: nowrap;
+            background: rgba(255,255,255,0.88);
+            border: 0.25mm solid #333;
+            padding: 0.8mm 1.8mm;
         }
 
         .photo {
@@ -39,7 +42,10 @@
         .portrait .photo { object-fit: contain; background: #fff; }
         .landscape .photo { object-fit: cover; }
 
-        .empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #777; font-size: 11px; text-align: center; }
+        /* wkhtmltopdf flexbox is flaky; use table layout for centering */
+        .empty { width: 100%; height: 100%; display: table; color: #777; font-size: 11px; text-align: center; }
+        .empty > div { display: table-cell; vertical-align: middle; padding: 6mm 4mm; }
+        .seal-code { font-weight: bold; font-size: 18px; letter-spacing: 0.6px; color: #111; }
         .notes-text { max-height: 14mm; overflow: hidden; }
         .badges { margin-top: 1mm; max-height: 12mm; overflow: hidden; }
         .badge-row { margin-top: 1mm; }
@@ -90,7 +96,7 @@
                                             @if (!empty($photos['inside']))
                                                 <img class="photo" src="{{ $photos['inside'] }}" alt="Dalam">
                                             @else
-                                                <div class="empty">Foto Dalam (PORTRAIT)</div>
+                                                <div class="empty"><div>Foto Dalam (PORTRAIT)</div></div>
                                             @endif
                                         </div>
                                     </td>
@@ -102,7 +108,12 @@
                                             @if (!empty($photos['seal']))
                                                 <img class="photo" src="{{ $photos['seal'] }}" alt="No.Seal">
                                             @else
-                                                <div class="empty">Foto Seal (PORTRAIT)</div>
+                                                <div class="empty">
+                                                    <div>
+                                                        <div class="seal-code">{{ $sealCode ?: '-' }}</div>
+                                                        <div style="margin-top: 2mm;">Foto Seal (PORTRAIT)</div>
+                                                    </div>
+                                                </div>
                                             @endif
                                         </div>
                                     </td>
@@ -159,7 +170,7 @@
                                             @if (!empty($photos['front']))
                                                 <img class="photo" src="{{ $photos['front'] }}" alt="Depan">
                                             @else
-                                                <div class="empty">Foto Depan (PORTRAIT)</div>
+                                                <div class="empty"><div>Foto Depan (PORTRAIT)</div></div>
                                             @endif
                                         </div>
                                     </td>
@@ -171,7 +182,7 @@
                                             @if (!empty($photos['back']))
                                                 <img class="photo" src="{{ $photos['back'] }}" alt="Belakang">
                                             @else
-                                                <div class="empty">Foto Belakang (PORTRAIT)</div>
+                                                <div class="empty"><div>Foto Belakang (PORTRAIT)</div></div>
                                             @endif
                                         </div>
                                     </td>
@@ -186,7 +197,7 @@
                                                         @if (!empty($photos['left']))
                                                             <img class="photo" src="{{ $photos['left'] }}" alt="Kiri">
                                                         @else
-                                                            <div class="empty">Foto Kiri (LANDSCAPE)</div>
+                                                            <div class="empty"><div>Foto Kiri (LANDSCAPE)</div></div>
                                                         @endif
                                                     </div>
                                                 </td>
@@ -196,7 +207,7 @@
                                                         @if (!empty($photos['right']))
                                                             <img class="photo" src="{{ $photos['right'] }}" alt="Kanan">
                                                         @else
-                                                            <div class="empty">Foto Kanan (LANDSCAPE)</div>
+                                                            <div class="empty"><div>Foto Kanan (LANDSCAPE)</div></div>
                                                         @endif
                                                     </div>
                                                 </td>

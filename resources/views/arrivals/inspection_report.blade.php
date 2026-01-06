@@ -25,7 +25,9 @@
         }
         .photo-portrait .photo { object-fit: contain; background: #fff; }
         .photo-landscape .photo { object-fit: cover; }
-        .empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #777; font-size: 11px; padding-top: 6mm; text-align: center; }
+        /* wkhtmltopdf flexbox is flaky; use table layout for centering */
+        .empty { width: 100%; height: 100%; display: table; color: #777; font-size: 11px; text-align: center; }
+        .empty > div { display: table-cell; vertical-align: middle; padding: 6mm 4mm; }
         .notes-body { padding-top: 2mm; line-height: 1.2; }
         .notes-text { max-height: 14mm; overflow: hidden; }
         .badges { margin-top: 1mm; max-height: 12mm; overflow: hidden; }
@@ -81,7 +83,7 @@
                         @if (!empty($photos['front']))
                             <img class="photo" src="{{ $photos['front'] }}" alt="Depan">
                         @else
-                            <div class="empty">Foto Depan (PORTRAIT)</div>
+                            <div class="empty"><div>Foto Depan (PORTRAIT)</div></div>
                         @endif
                     </div>
                 </td>
@@ -91,7 +93,7 @@
                         @if (!empty($photos['back']))
                             <img class="photo" src="{{ $photos['back'] }}" alt="Belakang">
                         @else
-                            <div class="empty">Foto Belakang (PORTRAIT)</div>
+                            <div class="empty"><div>Foto Belakang (PORTRAIT)</div></div>
                         @endif
                     </div>
                 </td>
@@ -101,7 +103,7 @@
                         @if (!empty($photos['left']))
                             <img class="photo" src="{{ $photos['left'] }}" alt="Kiri">
                         @else
-                            <div class="empty">Foto Kiri (LANDSCAPE)</div>
+                            <div class="empty"><div>Foto Kiri (LANDSCAPE)</div></div>
                         @endif
                     </div>
                     <div style="height:2mm;"></div>
@@ -110,7 +112,7 @@
                         @if (!empty($photos['right']))
                             <img class="photo" src="{{ $photos['right'] }}" alt="Kanan">
                         @else
-                            <div class="empty">Foto Kanan (LANDSCAPE)</div>
+                            <div class="empty"><div>Foto Kanan (LANDSCAPE)</div></div>
                         @endif
                     </div>
                 </td>
@@ -122,7 +124,7 @@
                         @if (!empty($photos['inside']))
                             <img class="photo" src="{{ $photos['inside'] }}" alt="Dalam">
                         @else
-                            <div class="empty">Foto Dalam (PORTRAIT)</div>
+                            <div class="empty"><div>Foto Dalam (PORTRAIT)</div></div>
                         @endif
                     </div>
                 </td>
