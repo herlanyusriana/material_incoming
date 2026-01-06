@@ -14,7 +14,8 @@
         .layout td { vertical-align: top; padding: 0; }
 
         /* Use separate border model for consistent gaps */
-        .gap-table { border-collapse: separate; border-spacing: 3mm 3mm; width: 100%; table-layout: fixed; }
+        /* Tight gaps so everything fits on 1 page */
+        .gap-table { border-collapse: separate; border-spacing: 2mm 2mm; width: 100%; table-layout: fixed; }
         .gap-table td { padding: 0; vertical-align: top; }
 
         .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; background: #fff; }
@@ -47,7 +48,7 @@
         .empty { color: #777; font-size: 11px; }
         .seal-code { font-weight: bold; font-size: 18px; letter-spacing: 0.6px; color: #111; }
 
-        .pad { padding: 2.2mm; }
+        .pad { padding: 1.8mm; }
         .kvs { width: 100%; table-layout: fixed; }
         .kvs td { padding: 0.6mm 0; vertical-align: top; }
         .k { width: 26mm; font-weight: bold; }
@@ -62,10 +63,10 @@
 
         .page-break { page-break-after: always; }
 
-        /* Fixed slot heights: keep it 1 page */
-        .h-left { height: 88mm; }    /* each portrait block on the left 2x2 */
-        .h-right-land { height: 58mm; } /* Kiri/Kanan landscape blocks */
-        .h-right-info { height: 90mm; } /* info block */
+        /* Fixed slot heights: fit 1 A4 landscape page */
+        .h-left { height: 84mm; }         /* left 2x2 blocks */
+        .h-right-land { height: 52mm; }   /* Kiri/Kanan landscape blocks */
+        .h-right-info { height: 92mm; }   /* info block */
 
         .info-title { font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 3mm; }
     </style>
