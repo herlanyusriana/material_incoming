@@ -14,6 +14,7 @@ class ArrivalContainerInspection extends Model
         'status',
         'seal_code',
         'notes',
+        'driver_name',
         'issues_left',
         'issues_right',
         'issues_front',

@@ -36,16 +36,21 @@
                         <input type="date" id="invoice_date" name="invoice_date" value="{{ old('invoice_date', optional($arrival->invoice_date)->format('Y-m-d')) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label for="etd" class="text-sm font-medium text-slate-700">ETD</label>
-                            <input type="date" id="etd" name="etd" value="{{ old('etd', optional($arrival->ETD)->format('Y-m-d')) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                        </div>
-                        <div class="space-y-1">
-                            <label for="eta" class="text-sm font-medium text-slate-700">ETA</label>
-                            <input type="date" id="eta" name="eta" value="{{ old('eta', optional($arrival->ETA)->format('Y-m-d')) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                        </div>
-                    </div>
+	                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+	                        <div class="space-y-1">
+	                            <label for="etd" class="text-sm font-medium text-slate-700">ETD</label>
+	                            <input type="date" id="etd" name="etd" value="{{ old('etd', optional($arrival->ETD)->format('Y-m-d')) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                        </div>
+	                        <div class="space-y-1">
+	                            <label for="eta" class="text-sm font-medium text-slate-700">ETA JKT</label>
+	                            <input type="date" id="eta" name="eta" value="{{ old('eta', optional($arrival->ETA)->format('Y-m-d')) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                        </div>
+	                        <div class="space-y-1">
+	                            <label for="eta_gci" class="text-sm font-medium text-slate-700">ETA GCI</label>
+	                            <input type="date" id="eta_gci" name="eta_gci" value="{{ old('eta_gci', optional($arrival->ETA_GCI)->format('Y-m-d')) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                            @error('eta_gci') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                        </div>
+	                    </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 	                        <div class="space-y-1">

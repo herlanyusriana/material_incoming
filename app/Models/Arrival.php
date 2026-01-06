@@ -20,6 +20,7 @@ class Arrival extends Model
         'trucking_company',
         'ETD',
         'ETA',
+        'ETA_GCI',
         'bill_of_lading',
         'price_term',
         'hs_code',
@@ -37,6 +38,7 @@ class Arrival extends Model
         'invoice_date' => 'date',
         'ETD' => 'date',
         'ETA' => 'date',
+        'ETA_GCI' => 'date',
     ];
 
     protected static function booted(): void

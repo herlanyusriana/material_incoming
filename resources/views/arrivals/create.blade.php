@@ -77,16 +77,22 @@
 	                            <input type="date" id="etd" name="etd" value="{{ old('etd') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
 	                            @error('etd') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
 	                        </div>
-	                        <div class="space-y-1">
-	                            <label for="eta" class="text-sm font-medium text-gray-700">Estimated Time of Arrival (ETA)</label>
-	                            <input type="date" id="eta" name="eta" value="{{ old('eta') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-	                            @error('eta') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-	                        </div>
-	                        <div class="space-y-1">
-	                            <label for="vessel" class="text-sm font-medium text-gray-700">Vessel</label>
-	                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel') }}" placeholder="Nama kapal (opsional)" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-	                            @error('vessel') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-	                        </div>
+		                        <div class="space-y-1">
+		                            <label for="eta" class="text-sm font-medium text-gray-700">Estimated Time of Arrival Jakarta (ETA JKT)</label>
+		                            <input type="date" id="eta" name="eta" value="{{ old('eta') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+		                            @error('eta') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+		                        </div>
+		                        <div class="space-y-1">
+		                            <label for="eta_gci" class="text-sm font-medium text-gray-700">ETA GCI</label>
+		                            <input type="date" id="eta_gci" name="eta_gci" value="{{ old('eta_gci') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+		                            <p class="text-xs text-gray-500">Estimasi tiba di GCI (opsional).</p>
+		                            @error('eta_gci') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+		                        </div>
+		                        <div class="space-y-1">
+		                            <label for="vessel" class="text-sm font-medium text-gray-700">Vessel</label>
+		                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel') }}" placeholder="Nama kapal (opsional)" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+		                            @error('vessel') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+		                        </div>
 	                        <div class="space-y-1">
 	                            <label for="port_of_loading" class="text-sm font-medium text-gray-700">Port of Loading</label>
 	                            <input type="text" id="port_of_loading" name="port_of_loading" value="{{ old('port_of_loading') }}" placeholder="e.g., HOCHIMINH, VIET NAM" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">

@@ -51,11 +51,13 @@
 	        @php
 	            $firstContainer = '-';
                 $firstSeal = '-';
+                $driverName = '-';
 
                 if ($arrival->containers && $arrival->containers->count()) {
                     $first = $arrival->containers->first();
                     $firstContainer = strtoupper(trim($first->container_no ?? '-'));
                     $firstSeal = !empty($first->seal_code) ? strtoupper(trim($first->seal_code)) : '-';
+                    $driverName = strtoupper(trim((string) ($first?->inspection?->driver_name ?? '-')));
                 } elseif (!empty($arrival->container_numbers)) {
                     $lines = preg_split('/\r\n|\r|\n/', $arrival->container_numbers);
                     foreach ($lines as $line) {
@@ -165,21 +167,21 @@
                                             <div class="sig-box">
                                                 <div class="sig-title">Diperiksa Oleh</div>
                                                 <div class="sig-line"></div>
-                                                <div class="sig-name">{{ $inspection->inspector->name ?? '-' }}</div>
+                                                <div class="sig-name">Nurwahid/Ida</div>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="sig-box">
                                                 <div class="sig-title">Mengetahui</div>
                                                 <div class="sig-line"></div>
-                                                <div class="sig-name">Exim Dept</div>
+                                                <div class="sig-name">Fadri/Dita</div>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="sig-box">
                                                 <div class="sig-title">Driver / Sopir</div>
                                                 <div class="sig-line"></div>
-                                                <div class="sig-name">-</div>
+                                                <div class="sig-name">{{ $driverName ?: '-' }}</div>
                                             </div>
                                         </td>
                                     </tr>

@@ -155,10 +155,11 @@ class ArrivalController extends Controller
 	            'vendor_id' => ['required', 'exists:vendors,id'],
 	            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
 	            'vessel' => ['nullable', 'string', 'max:255'],
-	            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
-	            'etd' => ['nullable', 'date'],
-	            'eta' => ['nullable', 'date'],
-	            'bl_no' => ['nullable', 'string', 'max:255'],
+		            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
+		            'etd' => ['nullable', 'date'],
+		            'eta' => ['nullable', 'date'],
+		            'eta_gci' => ['nullable', 'date'],
+		            'bl_no' => ['nullable', 'string', 'max:255'],
 	            'price_term' => ['nullable', 'string', 'max:50'],
 	            'hs_code' => ['nullable', 'string', 'max:255'],
 	            'hs_codes' => ['nullable', 'string', 'max:2000'],
@@ -230,18 +231,19 @@ class ArrivalController extends Controller
 	                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
 	                : null;
 
-            $arrivalData = [
-                'invoice_no' => $validated['invoice_no'],
-                'invoice_date' => $validated['invoice_date'],
-                'vendor_id' => $vendorId,
-                'vessel' => $validated['vessel'] ?? null,
-                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
-                'ETD' => $validated['etd'] ?? null,
-                'ETA' => $validated['eta'] ?? null,
-                'bill_of_lading' => $validated['bl_no'] ?? null,
-                'price_term' => $validated['price_term'] ?? null,
-                'hs_code' => $hsCodePrimary,
-                'hs_codes' => $normalizedHsCodes,
+	            $arrivalData = [
+	                'invoice_no' => $validated['invoice_no'],
+	                'invoice_date' => $validated['invoice_date'],
+	                'vendor_id' => $vendorId,
+	                'vessel' => $validated['vessel'] ?? null,
+	                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
+	                'ETD' => $validated['etd'] ?? null,
+	                'ETA' => $validated['eta'] ?? null,
+	                'ETA_GCI' => $validated['eta_gci'] ?? null,
+	                'bill_of_lading' => $validated['bl_no'] ?? null,
+	                'price_term' => $validated['price_term'] ?? null,
+	                'hs_code' => $hsCodePrimary,
+	                'hs_codes' => $normalizedHsCodes,
                 'port_of_loading' => $validated['port_of_loading'] ?? null,
                 'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
                 'container_numbers' => $containerNumbersLegacy,
@@ -362,13 +364,14 @@ class ArrivalController extends Controller
                 ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
         }
 
-        $data = $request->validate([
-            'invoice_no' => ['required', 'string', 'max:255'],
-            'invoice_date' => ['required', 'date'],
-            'etd' => ['nullable', 'date'],
-            'eta' => ['nullable', 'date'],
-            'vessel' => ['nullable', 'string', 'max:255'],
-            'bl_no' => ['nullable', 'string', 'max:255'],
+	        $data = $request->validate([
+	            'invoice_no' => ['required', 'string', 'max:255'],
+	            'invoice_date' => ['required', 'date'],
+	            'etd' => ['nullable', 'date'],
+	            'eta' => ['nullable', 'date'],
+	            'eta_gci' => ['nullable', 'date'],
+	            'vessel' => ['nullable', 'string', 'max:255'],
+	            'bl_no' => ['nullable', 'string', 'max:255'],
             'price_term' => ['nullable', 'string', 'max:50'],
             'hs_code' => ['nullable', 'string', 'max:255'],
             'hs_codes' => ['nullable', 'string', 'max:2000'],
@@ -386,15 +389,16 @@ class ArrivalController extends Controller
             ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
             : null;
 
-        $departureData = [
-            'invoice_no' => $data['invoice_no'],
-            'invoice_date' => $data['invoice_date'],
-            'ETD' => $data['etd'] ?? null,
-            'ETA' => $data['eta'] ?? null,
-            'vessel' => $data['vessel'] ?? null,
-            'bill_of_lading' => $data['bl_no'] ?? null,
-            'price_term' => $data['price_term'] ?? null,
-            'hs_code' => $hsCodePrimary,
+	        $departureData = [
+	            'invoice_no' => $data['invoice_no'],
+	            'invoice_date' => $data['invoice_date'],
+	            'ETD' => $data['etd'] ?? null,
+	            'ETA' => $data['eta'] ?? null,
+	            'ETA_GCI' => $data['eta_gci'] ?? null,
+	            'vessel' => $data['vessel'] ?? null,
+	            'bill_of_lading' => $data['bl_no'] ?? null,
+	            'price_term' => $data['price_term'] ?? null,
+	            'hs_code' => $hsCodePrimary,
             'hs_codes' => $normalizedHsCodes,
             'port_of_loading' => $data['port_of_loading'] ?? null,
             'container_numbers' => $data['container_numbers'] ?? null,

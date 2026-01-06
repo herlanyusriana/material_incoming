@@ -27,15 +27,17 @@
                 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
-                            <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">Invoice</th>
-                                <th class="px-4 py-3 text-left font-semibold">Vendor</th>
-                                <th class="px-4 py-3 text-left font-semibold">Items</th>
-                                <th class="px-4 py-3 text-left font-semibold">Total Value</th>
-                                <th class="px-4 py-3 text-left font-semibold">Date</th>
-                                <th class="px-4 py-3 text-center font-semibold">Actions</th>
-                            </tr>
+	                        <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
+	                            <tr class="text-slate-600 text-xs uppercase tracking-wider">
+	                                <th class="px-4 py-3 text-left font-semibold">Invoice</th>
+	                                <th class="px-4 py-3 text-left font-semibold">Vendor</th>
+	                                <th class="px-4 py-3 text-left font-semibold">ETD</th>
+	                                <th class="px-4 py-3 text-left font-semibold">ETA JKT</th>
+	                                <th class="px-4 py-3 text-left font-semibold">ETA GCI</th>
+	                                <th class="px-4 py-3 text-left font-semibold">Items</th>
+	                                <th class="px-4 py-3 text-left font-semibold">Total Value</th>
+	                                <th class="px-4 py-3 text-center font-semibold">Actions</th>
+	                            </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($departures as $arrival)
@@ -49,28 +51,36 @@
                                         <div class="font-medium">{{ $arrival->invoice_no }}</div>
                                         <div class="text-xs text-slate-500">{{ $arrival->invoice_date?->format('d M Y') }}</div>
                                     </td>
-                                    <td class="px-4 py-4 text-slate-700">{{ $arrival->vendor->vendor_name ?? '-' }}</td>
-                                    <td class="px-4 py-4 text-slate-700">
-                                        <div class="font-semibold">{{ $totalItems }} item{{ $totalItems != 1 ? 's' : '' }}</div>
-                                        <div class="text-xs text-slate-500">{{ number_format($totalQtyExpected) }} pcs total</div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="font-semibold text-slate-900">{{ $arrival->currency }} {{ number_format($totalValue, 2) }}</div>
-                                    </td>
-                                    <td class="px-4 py-4 text-slate-700">{{ $arrival->created_at->format('d M Y') }}</td>
-                                    <td class="px-4 py-4">
-                                        <div class="flex justify-center gap-2">
-                                            <a href="{{ route('departures.show', $arrival) }}" class="inline-flex items-center justify-center h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors min-w-[110px] shadow-sm">
-                                                View Details
-                                            </a>
-                                            <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center justify-center h-10 px-4 text-white text-sm font-semibold rounded-lg transition-all min-w-[110px] shadow-lg shadow-orange-500/30" style="background-image: linear-gradient(120deg, #fb923c, #f97316, #ef4444);">
-                                                Edit
-                                            </a>
-                                            <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center justify-center w-10 h-10 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors" title="Print Invoice">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
-                                                </svg>
-                                            </a>
+	                                    <td class="px-4 py-4 text-slate-700">{{ $arrival->vendor->vendor_name ?? '-' }}</td>
+	                                    <td class="px-4 py-4 text-slate-700 text-xs font-mono">{{ $arrival->ETD?->format('Y-m-d') ?? '-' }}</td>
+	                                    <td class="px-4 py-4 text-slate-700 text-xs font-mono">{{ $arrival->ETA?->format('Y-m-d') ?? '-' }}</td>
+	                                    <td class="px-4 py-4 text-slate-700 text-xs font-mono">{{ $arrival->ETA_GCI?->format('Y-m-d') ?? '-' }}</td>
+	                                    <td class="px-4 py-4 text-slate-700">
+	                                        <div class="font-semibold">{{ $totalItems }} item{{ $totalItems != 1 ? 's' : '' }}</div>
+	                                        <div class="text-xs text-slate-500">{{ number_format($totalQtyExpected) }} pcs total</div>
+	                                    </td>
+	                                    <td class="px-4 py-4">
+	                                        <div class="font-semibold text-slate-900">{{ $arrival->currency }} {{ number_format(round((float) $totalValue, 2, PHP_ROUND_HALF_UP), 2) }}</div>
+	                                    </td>
+	                                    <td class="px-4 py-4">
+	                                        <div class="flex justify-center gap-2">
+	                                            <a href="{{ route('departures.show', $arrival) }}" class="inline-flex items-center justify-center w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" title="View Details" aria-label="View details">
+	                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12Z" />
+	                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75A3.75 3.75 0 1 0 12 8.25a3.75 3.75 0 0 0 0 7.5Z" />
+	                                                </svg>
+	                                            </a>
+	                                            <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center justify-center w-10 h-10 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors" title="Edit" aria-label="Edit departure">
+	                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+	                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125 16.862 4.487" />
+	                                                </svg>
+	                                            </a>
+	                                            <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center justify-center w-10 h-10 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors" title="Print Invoice">
+	                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
+	                                                </svg>
+	                                            </a>
                                             <form action="{{ route('departures.destroy', $arrival) }}" method="POST" onsubmit="return confirm('Yakin hapus departure ini?');">
                                                 @csrf
                                                 @method('DELETE')
@@ -85,11 +95,11 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-12 text-center">
-                                        <div class="text-slate-500 mb-2">No departures recorded yet.</div>
-                                        <a href="{{ route('departures.create') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Create your first departure →</a>
-                                    </td>
-                                </tr>
+	                                    <td colspan="8" class="px-4 py-12 text-center">
+	                                        <div class="text-slate-500 mb-2">No departures recorded yet.</div>
+	                                        <a href="{{ route('departures.create') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Create your first departure →</a>
+	                                    </td>
+	                                </tr>
                             @endforelse
                         </tbody>
                     </table>

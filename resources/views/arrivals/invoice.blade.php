@@ -277,15 +277,24 @@
             }
         }
 
-        if (!function_exists('format2')) {
-            function format2($value): string
-            {
-                if (is_string($value)) {
-                    $value = str_replace(',', '', $value);
-                }
-                return number_format((float) $value, 2, '.', ',');
-            }
-        }
+	        if (!function_exists('format2')) {
+	            function format2($value): string
+	            {
+	                if (is_string($value)) {
+	                    $value = str_replace(',', '', $value);
+	                }
+	
+	                $num = is_numeric($value) ? (float) $value : 0.0;
+	                $negative = $num < 0;
+	                $num = abs($num);
+	
+	                // Round half-up to 2 decimals: >=5 goes up, <5 stays.
+	                $cents = (int) floor(($num * 100) + 0.5 + 1e-9);
+	                $result = ($negative ? -1 : 1) * ($cents / 100);
+	
+	                return number_format($result, 2, '.', ',');
+	            }
+	        }
 
         if (!function_exists('format3_round_half_up')) {
             function format3_round_half_up($value): string

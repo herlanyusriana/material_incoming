@@ -254,6 +254,7 @@
                                 ];
                                 $containerNo = strtoupper(trim((string) ($container->container_no ?? '')));
                                 $sealCode = strtoupper(trim((string) (($inspection?->seal_code) ?: ($container->seal_code ?? ''))));
+                                $driverName = trim((string) ($inspection?->driver_name ?? ''));
                             @endphp
 
                             <div class="border border-slate-200 rounded-2xl p-4 space-y-3">
@@ -262,6 +263,9 @@
                                         Container: {{ $containerNo ?: '-' }}
                                         @if ($sealCode !== '')
                                             <span class="text-slate-500">• Seal {{ $sealCode }}</span>
+                                        @endif
+                                        @if ($driverName !== '')
+                                            <span class="text-slate-500">• Driver {{ $driverName }}</span>
                                         @endif
                                     </div>
                                     <div class="flex items-center gap-3">

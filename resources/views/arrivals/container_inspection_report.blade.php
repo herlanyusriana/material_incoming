@@ -8,13 +8,26 @@
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; font-size: 9.2px; color: #111; word-break: break-word; }
         .container { width: 100%; }
-        .layout { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2mm 2mm; }
-        .layout td { vertical-align: top; }
-        .card { border: 0.35mm solid #333; padding: 1.8mm; position: relative; page-break-inside: avoid; overflow: hidden; }
-        .card.h82 { height: 82mm; }
-        .card.h36 { height: 36mm; }
-        .card.h80 { height: 80mm; }
-        .label { position: absolute; top: 2mm; left: 2mm; background: rgba(255,255,255,0.92); padding: 1mm 2mm; font-weight: bold; font-size: 9.5px; }
+        .page { width: 100%; border: 0.45mm solid #333; }
+
+        .grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .grid td { vertical-align: top; padding: 0; }
+        .cell { border: 0.35mm solid #333; position: relative; overflow: hidden; }
+        .pad { padding: 2.2mm; }
+
+        .label-vert {
+            position: absolute;
+            right: -14mm;
+            top: 50%;
+            transform: translateY(-50%) rotate(90deg);
+            transform-origin: center;
+            font-weight: bold;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            color: #111;
+            white-space: nowrap;
+        }
+
         .photo {
             width: 100%;
             height: 100%;
@@ -23,9 +36,10 @@
             image-orientation: from-image;
             background: #f2f2f2;
         }
-        .photo-portrait .photo { object-fit: contain; background: #fff; }
-        .photo-landscape .photo { object-fit: cover; }
-        .empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #777; font-size: 11px; padding-top: 6mm; text-align: center; }
+        .portrait .photo { object-fit: contain; background: #fff; }
+        .landscape .photo { object-fit: cover; }
+
+        .empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #777; font-size: 11px; text-align: center; }
         .notes-text { max-height: 14mm; overflow: hidden; }
         .badges { margin-top: 1mm; max-height: 12mm; overflow: hidden; }
         .badge-row { margin-top: 1mm; }
@@ -44,6 +58,14 @@
         .sig-line { position: absolute; left: 1.6mm; right: 1.6mm; bottom: 6.8mm; border-top: 0.25mm solid #333; }
         .sig-name { position: absolute; left: 0; right: 0; bottom: 1.6mm; text-align: center; font-weight: bold; font-size: 8.5px; }
         .page-break { page-break-after: always; }
+
+        /* Heights tuned to fit 1 A4 landscape page */
+        .h-top { height: 63mm; }
+        .h-mid { height: 63mm; }
+        .h-bot { height: 58mm; }
+        .h-left-top { height: 70mm; }
+        .h-left-mid { height: 45mm; }
+        .h-left-bot { height: 69mm; }
     </style>
 </head>
 <body>
@@ -56,145 +78,137 @@
                 $photos = $photosByContainerId[$container->id] ?? [];
             @endphp
 
-            <table class="layout">
-                <tr>
-                    <td style="width: 33%;">
-                        <div class="card h82 photo-portrait">
-                            <div class="label">Depan</div>
-                            @if (!empty($photos['front']))
-                                <img class="photo" src="{{ $photos['front'] }}" alt="Depan">
-                            @else
-                                <div class="empty">Foto Depan (PORTRAIT)</div>
-                            @endif
-                        </div>
-                    </td>
-                    <td style="width: 33%;">
-                        <div class="card h82 photo-portrait">
-                            <div class="label">Belakang</div>
-                            @if (!empty($photos['back']))
-                                <img class="photo" src="{{ $photos['back'] }}" alt="Belakang">
-                            @else
-                                <div class="empty">Foto Belakang (PORTRAIT)</div>
-                            @endif
-                        </div>
-                    </td>
-                    <td style="width: 34%;">
-                        <table class="layout" style="border-spacing: 0; width: 100%;">
-                            <tr>
-                                <td style="width: 50%; padding-right: 1mm;">
-                                    <div class="card h36 photo-landscape">
-                                        <div class="label">Kiri</div>
-                                        @if (!empty($photos['left']))
-                                            <img class="photo" src="{{ $photos['left'] }}" alt="Kiri">
-                                        @else
-                                            <div class="empty">Foto Kiri (LANDSCAPE)</div>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td style="width: 50%; padding-left: 1mm;">
-                                    <div class="card h36 photo-landscape">
-                                        <div class="label">Kanan</div>
-                                        @if (!empty($photos['right']))
-                                            <img class="photo" src="{{ $photos['right'] }}" alt="Kanan">
-                                        @else
-                                            <div class="empty">Foto Kanan (LANDSCAPE)</div>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" style="padding-top: 2mm;">
-                                    <div class="card h36 photo-portrait">
-                                        <div class="label">Dalam</div>
-                                        @if (!empty($photos['inside']))
-                                            <img class="photo" src="{{ $photos['inside'] }}" alt="Dalam">
-                                        @else
-                                            <div class="empty">Foto Dalam (PORTRAIT)</div>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" style="padding-top: 2mm;">
-                                    <div class="card h36 photo-portrait">
-                                        <div class="label">Seal</div>
-                                        @if (!empty($photos['seal']))
-                                            <img class="photo" src="{{ $photos['seal'] }}" alt="Seal">
-                                        @else
-                                            <div class="empty">Foto Seal (PORTRAIT)</div>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <div class="card h80">
-                            <div class="label">No. Seal</div>
-                            <div style="padding-top: 22mm; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
-                                {{ $sealCode ?: '-' }}
-                            </div>
-                        </div>
-                    </td>
-                    <td colspan="2">
-                        <div class="card h80">
-                            <div class="label">Keterangan</div>
-                            <div class="ket">
-                                <table class="kvs">
-                                    <tr><td class="k">No Invoice</td><td class="v">: {{ $arrival->invoice_no }}</td></tr>
-                                    <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
-                                    <tr><td class="k">Vendor</td><td class="v">: {{ $arrival->vendor->vendor_name ?? '-' }}</td></tr>
-                                    <tr><td class="k">Tanggal</td><td class="v">: {{ $inspection?->updated_at?->format('Y-m-d') ?? '-' }}</td></tr>
-                                    <tr><td class="k">Status</td><td class="v">: {{ $inspection ? strtoupper($inspection->status) : '-' }}</td></tr>
-                                </table>
-                                <div class="notes-text"><b>Catatan</b>: {{ $inspection?->notes ?: '-' }}</div>
-                                <div class="badges">
-                                    @foreach (['issues_left' => 'Left', 'issues_right' => 'Right', 'issues_front' => 'Front', 'issues_back' => 'Back'] as $field => $side)
-                                        @php $issues = $inspection?->{$field} ?? []; @endphp
-                                        @if (!empty($issues))
-                                            <div class="badge-row">
-                                                <b>{{ $side }}</b>:
-                                                @foreach ($issues as $issue)
-                                                    <span class="badge">{{ strtoupper($issue) }}</span>
-                                                @endforeach
+            <div class="page">
+                <table class="grid">
+                    <tr>
+                        <td style="width: 46%;">
+                            <table class="grid">
+                                <tr>
+                                    <td>
+                                        <div class="cell portrait h-left-top">
+                                            <div class="label-vert">Dalam</div>
+                                            @if (!empty($photos['inside']))
+                                                <img class="photo" src="{{ $photos['inside'] }}" alt="Dalam">
+                                            @else
+                                                <div class="empty">Foto Dalam (PORTRAIT)</div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="cell portrait h-left-mid">
+                                            <div class="label-vert">No.Seal</div>
+                                            @if (!empty($photos['seal']))
+                                                <img class="photo" src="{{ $photos['seal'] }}" alt="No.Seal">
+                                            @else
+                                                <div class="empty">Foto Seal (PORTRAIT)</div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="cell pad h-left-bot">
+                                            <table class="kvs">
+                                                <tr><td class="k">No Invoice</td><td class="v">: {{ $arrival->invoice_no }}</td></tr>
+                                                <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
+                                                <tr><td class="k">No Seal</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
+                                                <tr><td class="k">Tanggal</td><td class="v">: {{ $inspection?->updated_at?->format('Y-m-d') ?? '-' }}</td></tr>
+                                                <tr><td class="k">Keterangan</td><td class="v">: {{ $inspection?->notes ?: '-' }}</td></tr>
+                                            </table>
+
+                                            <div class="sig-divider">
+                                                <table class="sig-grid">
+                                                    <tr>
+                                                        <td>
+                                                            <div class="sig-box">
+                                                                <div class="sig-title">Diperiksa Oleh</div>
+                                                                <div class="sig-line"></div>
+                                                                <div class="sig-name">Nurwahid/Ida</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="sig-box">
+                                                                <div class="sig-title">Mengetahui</div>
+                                                                <div class="sig-line"></div>
+                                                                <div class="sig-name">Fadri/Dita</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="sig-box">
+                                                                <div class="sig-title">Driver / Sopir</div>
+                                                                <div class="sig-line"></div>
+                                                                <div class="sig-name">{{ $inspection?->driver_name ?: '-' }}</div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
                                             </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-                                <div class="sig-divider">
-                                    <table class="sig-grid">
-                                        <tr>
-                                            <td>
-                                                <div class="sig-box">
-                                                    <div class="sig-title">Diperiksa Oleh</div>
-                                                    <div class="sig-line"></div>
-                                                    <div class="sig-name">{{ $inspection?->inspector?->name ?? '-' }}</div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="sig-box">
-                                                    <div class="sig-title">Mengetahui</div>
-                                                    <div class="sig-line"></div>
-                                                    <div class="sig-name">Exim Dept</div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="sig-box">
-                                                    <div class="sig-title">Driver / Sopir</div>
-                                                    <div class="sig-line"></div>
-                                                    <div class="sig-name">-</div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="width: 54%;">
+                            <table class="grid">
+                                <tr>
+                                    <td>
+                                        <div class="cell portrait h-top">
+                                            <div class="label-vert">Depan</div>
+                                            @if (!empty($photos['front']))
+                                                <img class="photo" src="{{ $photos['front'] }}" alt="Depan">
+                                            @else
+                                                <div class="empty">Foto Depan (PORTRAIT)</div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="cell portrait h-mid">
+                                            <div class="label-vert">Belakang</div>
+                                            @if (!empty($photos['back']))
+                                                <img class="photo" src="{{ $photos['back'] }}" alt="Belakang">
+                                            @else
+                                                <div class="empty">Foto Belakang (PORTRAIT)</div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table class="grid">
+                                            <tr>
+                                                <td style="width: 50%;">
+                                                    <div class="cell landscape h-bot">
+                                                        <div class="label-vert">Kiri</div>
+                                                        @if (!empty($photos['left']))
+                                                            <img class="photo" src="{{ $photos['left'] }}" alt="Kiri">
+                                                        @else
+                                                            <div class="empty">Foto Kiri (LANDSCAPE)</div>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                                <td style="width: 50%;">
+                                                    <div class="cell landscape h-bot">
+                                                        <div class="label-vert">Kanan</div>
+                                                        @if (!empty($photos['right']))
+                                                            <img class="photo" src="{{ $photos['right'] }}" alt="Kanan">
+                                                        @else
+                                                            <div class="empty">Foto Kanan (LANDSCAPE)</div>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
             @if (!$loop->last)
                 <div class="page-break"></div>
