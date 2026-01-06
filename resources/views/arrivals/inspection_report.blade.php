@@ -54,6 +54,10 @@
 	            $firstContainer = '-';
                 $firstSeal = '-';
                 $driverName = '-';
+                $photo = function (string $key) use ($photos) {
+                    $p = $photos[$key] ?? null;
+                    return is_array($p) && !empty($p['src']) ? $p : null;
+                };
 
                 if ($arrival->containers && $arrival->containers->count()) {
                     $first = $arrival->containers->first();
@@ -80,8 +84,8 @@
                 <td style="width: 33%;">
                     <div class="card h82 photo-portrait">
                         <div class="label">Depan</div>
-                        @if (!empty($photos['front']))
-                            <img class="photo" src="{{ $photos['front'] }}" alt="Depan">
+                        @if ($p = $photo('front'))
+                            <img class="photo" src="{{ $p['src'] }}" alt="Depan">
                         @else
                             <div class="empty"><div>Foto Depan (PORTRAIT)</div></div>
                         @endif
@@ -90,8 +94,8 @@
                 <td style="width: 33%;">
                     <div class="card h82 photo-portrait">
                         <div class="label">Belakang</div>
-                        @if (!empty($photos['back']))
-                            <img class="photo" src="{{ $photos['back'] }}" alt="Belakang">
+                        @if ($p = $photo('back'))
+                            <img class="photo" src="{{ $p['src'] }}" alt="Belakang">
                         @else
                             <div class="empty"><div>Foto Belakang (PORTRAIT)</div></div>
                         @endif
@@ -100,8 +104,8 @@
                 <td style="width: 34%;">
                     <div class="card h36 photo-landscape">
                         <div class="label">Kiri</div>
-                        @if (!empty($photos['left']))
-                            <img class="photo" src="{{ $photos['left'] }}" alt="Kiri">
+                        @if ($p = $photo('left'))
+                            <img class="photo" src="{{ $p['src'] }}" alt="Kiri">
                         @else
                             <div class="empty"><div>Foto Kiri (LANDSCAPE)</div></div>
                         @endif
@@ -109,8 +113,8 @@
                     <div style="height:2mm;"></div>
                     <div class="card h36 photo-landscape">
                         <div class="label">Kanan</div>
-                        @if (!empty($photos['right']))
-                            <img class="photo" src="{{ $photos['right'] }}" alt="Kanan">
+                        @if ($p = $photo('right'))
+                            <img class="photo" src="{{ $p['src'] }}" alt="Kanan">
                         @else
                             <div class="empty"><div>Foto Kanan (LANDSCAPE)</div></div>
                         @endif
@@ -121,8 +125,8 @@
                 <td>
                     <div class="card h80 photo-portrait">
                         <div class="label">Dalam</div>
-                        @if (!empty($photos['inside']))
-                            <img class="photo" src="{{ $photos['inside'] }}" alt="Dalam">
+                        @if ($p = $photo('inside'))
+                            <img class="photo" src="{{ $p['src'] }}" alt="Dalam">
                         @else
                             <div class="empty"><div>Foto Dalam (PORTRAIT)</div></div>
                         @endif

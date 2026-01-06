@@ -584,7 +584,7 @@ class ArrivalController extends Controller
         $arrival = $departure;
         $arrival->load(['vendor', 'containers.inspection.inspector', 'inspection.inspector']);
 
-        $toDataUri = function (?string $publicPath, ?string $expectedOrientation = null): ?string {
+        $photoMeta = function (?string $publicPath): ?array {
             if (!$publicPath) {
                 return null;
             }
@@ -592,42 +592,22 @@ class ArrivalController extends Controller
                 return null;
             }
 
-            $bytes = Storage::disk('public')->get($publicPath);
+            $absolutePath = Storage::disk('public')->path($publicPath);
             $mime = Storage::disk('public')->mimeType($publicPath) ?: 'image/jpeg';
+            $bytes = Storage::disk('public')->get($publicPath);
 
-            if ($expectedOrientation && function_exists('imagecreatefromstring')) {
-                $size = @getimagesizefromstring($bytes);
-                if (is_array($size) && isset($size[0], $size[1])) {
-                    $w = (int) $size[0];
-                    $h = (int) $size[1];
-
-                    $shouldRotate = false;
-                    if ($expectedOrientation === 'portrait' && $w > $h) {
-                        $shouldRotate = true;
-                    }
-                    if ($expectedOrientation === 'landscape' && $h > $w) {
-                        $shouldRotate = true;
-                    }
-
-                    if ($shouldRotate) {
-                        $img = @imagecreatefromstring($bytes);
-                        if ($img !== false) {
-                            $rotated = @imagerotate($img, -90, 0);
-                            if ($rotated !== false) {
-                                ob_start();
-                                imagejpeg($rotated, null, 90);
-                                $out = ob_get_clean();
-                                imagedestroy($rotated);
-                                $bytes = $out !== false ? $out : $bytes;
-                                $mime = 'image/jpeg';
-                            }
-                            imagedestroy($img);
-                        }
-                    }
-                }
+            $class = 'is-landscape';
+            $size = @getimagesize($absolutePath);
+            if (is_array($size) && isset($size[0], $size[1])) {
+                $w = (int) $size[0];
+                $h = (int) $size[1];
+                $class = $h > $w ? 'is-portrait' : 'is-landscape';
             }
 
-            return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+            return [
+                'src' => 'data:' . $mime . ';base64,' . base64_encode($bytes),
+                'class' => $class,
+            ];
         };
 
         $containersWithInspection = $arrival->containers
@@ -639,12 +619,13 @@ class ArrivalController extends Controller
             foreach ($containersWithInspection as $container) {
                 $inspection = $container->inspection;
                 $photosByContainerId[$container->id] = [
-                    'left' => $toDataUri($inspection?->photo_left, 'landscape'),
-                    'right' => $toDataUri($inspection?->photo_right, 'landscape'),
-                    'front' => $toDataUri($inspection?->photo_front, 'portrait'),
-                    'back' => $toDataUri($inspection?->photo_back, 'portrait'),
-                    'inside' => $toDataUri($inspection?->photo_inside, 'portrait'),
-                    'seal' => $toDataUri($inspection?->photo_seal, 'portrait'),
+                    'left' => $photoMeta($inspection?->photo_left),
+                    'right' => $photoMeta($inspection?->photo_right),
+                    'front' => $photoMeta($inspection?->photo_front),
+                    'back' => $photoMeta($inspection?->photo_back),
+                    'inside' => $photoMeta($inspection?->photo_inside),
+                    'seal' => $photoMeta($inspection?->photo_seal),
+                    'damage' => $photoMeta($inspection?->photo_damage),
                 ];
             }
 
@@ -658,11 +639,11 @@ class ArrivalController extends Controller
         } elseif ($arrival->inspection) {
             $inspection = $arrival->inspection;
             $photos = [
-                'left' => $toDataUri($inspection->photo_left, 'landscape'),
-                'right' => $toDataUri($inspection->photo_right, 'landscape'),
-                'front' => $toDataUri($inspection->photo_front, 'portrait'),
-                'back' => $toDataUri($inspection->photo_back, 'portrait'),
-                'inside' => $toDataUri($inspection->photo_inside, 'portrait'),
+                'left' => $photoMeta($inspection->photo_left),
+                'right' => $photoMeta($inspection->photo_right),
+                'front' => $photoMeta($inspection->photo_front),
+                'back' => $photoMeta($inspection->photo_back),
+                'inside' => $photoMeta($inspection->photo_inside),
             ];
 
             $pdf = Pdf::loadView('arrivals.inspection_report', compact('arrival', 'inspection', 'photos'))
