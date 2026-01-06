@@ -15,7 +15,7 @@
 
         /* Use separate border model for consistent gaps */
         /* Tight gaps so everything fits on 1 page */
-        .gap-table { border-collapse: separate; border-spacing: 2mm 2mm; width: 100%; table-layout: fixed; }
+        .gap-table { border-collapse: separate; border-spacing: 1.2mm 1.2mm; width: 100%; table-layout: fixed; }
         .gap-table td { padding: 0; vertical-align: top; }
 
         .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; background: #fff; }
@@ -48,27 +48,27 @@
         .empty { color: #777; font-size: 11px; }
         .seal-code { font-weight: bold; font-size: 18px; letter-spacing: 0.6px; color: #111; }
 
-        .pad { padding: 1.8mm; }
+        .pad { padding: 1.6mm; }
         .kvs { width: 100%; table-layout: fixed; }
-        .kvs td { padding: 0.6mm 0; vertical-align: top; }
+        .kvs td { padding: 0.4mm 0; vertical-align: top; }
         .k { width: 26mm; font-weight: bold; }
         .v { padding-left: 1mm; }
 
-        .sig-divider { margin-top: 4mm; padding-top: 2mm; border-top: 0.25mm solid #333; }
+        .sig-divider { margin-top: 2.2mm; padding-top: 1.6mm; border-top: 0.25mm solid #333; }
         .sig-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2mm 0; }
-        .sig-box { border: 0.25mm solid #333; height: 18mm; position: relative; padding: 1.6mm; }
-        .sig-title { font-weight: bold; font-size: 8.5px; }
+        .sig-box { border: 0.25mm solid #333; height: 16mm; position: relative; padding: 1.4mm; }
+        .sig-title { font-weight: bold; font-size: 8px; }
         .sig-line { position: absolute; left: 1.6mm; right: 1.6mm; bottom: 6.8mm; border-top: 0.25mm solid #333; }
-        .sig-name { position: absolute; left: 0; right: 0; bottom: 1.6mm; text-align: center; font-weight: bold; font-size: 8.5px; }
+        .sig-name { position: absolute; left: 0; right: 0; bottom: 1.2mm; text-align: center; font-weight: bold; font-size: 8px; }
 
         .page-break { page-break-after: always; }
 
         /* Fixed slot heights: fit 1 A4 landscape page */
-        .h-left { height: 84mm; }         /* left 2x2 blocks */
-        .h-right-land { height: 52mm; }   /* Kiri/Kanan landscape blocks */
-        .h-right-info { height: 92mm; }   /* info block */
+        .h-left { height: 82mm; }         /* left 2x2 blocks */
+        .h-right-land { height: 50mm; }   /* Kiri/Kanan landscape blocks */
+        .h-right-info { height: 82mm; }   /* info block */
 
-        .info-title { font-weight: bold; font-size: 12px; text-align: center; margin-bottom: 3mm; }
+        .info-title { font-weight: bold; font-size: 11px; text-align: center; margin-bottom: 2mm; }
     </style>
 </head>
 <body>
