@@ -4,20 +4,21 @@
     <meta charset="UTF-8">
     <title>Inspection Report</title>
     <style>
-        @page { size: A4 landscape; margin: 4mm; }
+        @page { size: A4 landscape; margin: 3mm; }
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 9px; color: #111; }
 
         table { border-collapse: collapse; }
-        .page { width: 100%; border: 0.45mm solid #333; }
+        .page { width: 100%; border: 0.45mm solid #333; page-break-inside: avoid; }
         .layout { width: 100%; table-layout: fixed; }
         .layout td { vertical-align: top; padding: 0; }
 
         /* Use separate border model for consistent gaps */
-        .grid { border-collapse: separate; border-spacing: 2mm 2mm; width: 100%; table-layout: fixed; }
-        .grid td { padding: 0; vertical-align: top; }
+        .grid { border-collapse: separate; border-spacing: 1.2mm 1.2mm; width: 100%; table-layout: fixed; margin: 0; page-break-inside: avoid; }
+        .grid tr { page-break-inside: avoid; }
+        .grid td { padding: 0; vertical-align: top; page-break-inside: avoid; }
 
-        .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; background: #fff; }
+        .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; background: #fff; page-break-inside: avoid; }
         .slot-inner { width: 100%; height: 100%; table-layout: fixed; }
         .slot-cell { text-align: center; vertical-align: middle; padding: 0; }
 
@@ -48,7 +49,7 @@
         .empty { color: #777; font-size: 11px; }
         .seal-code { font-weight: bold; font-size: 18px; letter-spacing: 0.6px; color: #111; }
 
-        .pad { padding: 1.6mm; }
+        .pad { padding: 1.2mm; }
         .kvs { width: 100%; table-layout: fixed; }
         .kvs td { padding: 0.4mm 0; vertical-align: top; }
         .k { width: 26mm; font-weight: bold; }
@@ -56,7 +57,7 @@
 
         .sig-divider { margin-top: 2.2mm; padding-top: 1.6mm; border-top: 0.25mm solid #333; }
         .sig-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2mm 0; }
-        .sig-box { border: 0.25mm solid #333; height: 16mm; position: relative; padding: 1.4mm; }
+        .sig-box { border: 0.25mm solid #333; height: 15mm; position: relative; padding: 1.2mm; }
         .sig-title { font-weight: bold; font-size: 8px; }
         .sig-line { position: absolute; left: 1.6mm; right: 1.6mm; bottom: 6.8mm; border-top: 0.25mm solid #333; }
         .sig-name { position: absolute; left: 0; right: 0; bottom: 1.2mm; text-align: center; font-weight: bold; font-size: 8px; }
@@ -64,12 +65,12 @@
         .page-break { page-break-after: always; }
 
         /* Fixed slot heights: fit 1 A4 landscape page */
-        .h-top { height: 45mm; }      /* top photo row */
-        .h-mid { height: 55mm; }      /* middle row (Dalam/No.Seal) */
-        .h-kiri { height: 42mm; }     /* Kiri */
-        .h-kanan { height: 42mm; }    /* Kanan */
-        .h-ttd { height: 42mm; }      /* TTD */
-        .h-ket { height: 97mm; }      /* Keterangan (rowspan 2: mid+kiri) */
+        .h-top { height: 42mm; }      /* top photo row */
+        .h-mid { height: 52mm; }      /* middle row (Dalam/No.Seal) */
+        .h-kiri { height: 40mm; }     /* Kiri */
+        .h-kanan { height: 40mm; }    /* Kanan */
+        .h-ttd { height: 40mm; }      /* TTD */
+        .h-ket { height: 92mm; }      /* Keterangan (rowspan 2: mid+kiri) */
 
         .info-title { font-weight: bold; font-size: 11px; text-align: center; margin-bottom: 2mm; }
     </style>
