@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerPart;
 use App\Models\CustomerPlanningImport;
 use App\Models\CustomerPlanningRow;
+use App\Exports\CustomerPlanningTemplateExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -35,7 +36,10 @@ class CustomerPlanningImportController extends Controller
 
         $rows = null;
         $translatedByRowId = [];
+        $unmappedCustomerParts = collect();
+        $importCustomerId = null;
         if ($importId) {
+            $importCustomerId = CustomerPlanningImport::query()->whereKey($importId)->value('customer_id');
             $rows = CustomerPlanningRow::query()
                 ->with('part')
                 ->where('import_id', $importId)
@@ -72,11 +76,23 @@ class CustomerPlanningImportController extends Controller
                     'demand_qty' => (float) $t->demand_qty,
                 ];
             }
+
+            $unmappedCustomerParts = DB::table('customer_planning_rows')
+                ->where('import_id', $importId)
+                ->where('row_status', 'unknown_mapping')
+                ->select([
+                    'customer_part_no',
+                    DB::raw('COUNT(*) as rows_count'),
+                    DB::raw('SUM(qty) as total_qty'),
+                ])
+                ->groupBy('customer_part_no')
+                ->orderBy('customer_part_no')
+                ->get();
         }
 
         $customers = Customer::query()->orderBy('code')->get();
 
-        return view('planning.customer_planning_imports.index', compact('imports', 'rows', 'customers', 'importId', 'translatedByRowId'));
+        return view('planning.customer_planning_imports.index', compact('imports', 'rows', 'customers', 'importId', 'translatedByRowId', 'unmappedCustomerParts', 'importCustomerId'));
     }
 
     public function store(Request $request)
@@ -165,5 +181,11 @@ class CustomerPlanningImportController extends Controller
         });
 
         return back()->with('success', 'Customer planning imported.');
+    }
+
+    public function template()
+    {
+        $filename = 'customer_planning_template_' . date('Y-m-d_His') . '.xlsx';
+        return Excel::download(new CustomerPlanningTemplateExport(), $filename);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Arrival extends Model
 {
@@ -22,6 +23,8 @@ class Arrival extends Model
         'ETA',
         'ETA_GCI',
         'bill_of_lading',
+        'bill_of_lading_status',
+        'bill_of_lading_file',
         'price_term',
         'hs_code',
         'hs_codes',
@@ -40,6 +43,14 @@ class Arrival extends Model
         'ETA' => 'date',
         'ETA_GCI' => 'date',
     ];
+
+    public function getBillOfLadingFileUrlAttribute(): ?string
+    {
+        if (!$this->bill_of_lading_file) {
+            return null;
+        }
+        return Storage::disk('public')->url($this->bill_of_lading_file);
+    }
 
     protected static function booted(): void
     {

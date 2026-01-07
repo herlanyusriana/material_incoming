@@ -3,7 +3,7 @@
         Planning • Customer Part Mapping
     </x-slot>
 
-    <div class="py-6" x-data="planningCustomerParts()">
+    <div class="py-6" x-data="planningCustomerParts()" x-init="init()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
@@ -186,6 +186,16 @@
                     mode: 'create',
                     formAction: @js(route('planning.customer-parts.store')),
                     form: { id: null, customer_id: '', customer_part_no: '', customer_part_name: '', status: 'active' },
+                    init() {
+                        const prefillCustomerPartNo = @js(request('prefill_customer_part_no'));
+                        const prefillCustomerId = @js($customerId);
+
+                        if (!prefillCustomerPartNo) return;
+
+                        this.openCreate();
+                        if (prefillCustomerId) this.form.customer_id = String(prefillCustomerId);
+                        this.form.customer_part_no = prefillCustomerPartNo;
+                    },
                     openCreate() {
                         this.mode = 'create';
                         this.formAction = @js(route('planning.customer-parts.store'));

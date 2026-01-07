@@ -17,7 +17,10 @@
             @endif
 
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
-                <div class="text-sm text-slate-600">Upload customer planning Excel. Week format: YYYY-WW (ISO week).</div>
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="text-sm text-slate-600">Upload customer planning Excel. Week format: YYYY-WW (ISO week).</div>
+                    <a href="{{ route('planning.planning-imports.template') }}" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Download Template</a>
+                </div>
 
                 <form action="{{ route('planning.planning-imports.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3">
                     @csrf
@@ -85,6 +88,48 @@
             @if ($rows)
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                     <div class="text-sm font-semibold text-slate-900">Imported Rows (Import #{{ $importId }})</div>
+
+                    @if (($unmappedCustomerParts?->count() ?? 0) > 0)
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="text-sm font-semibold text-amber-900">Customer Part belum dimapping</div>
+                                <div class="text-xs text-amber-800">{{ $unmappedCustomerParts->count() }} item</div>
+                            </div>
+                            <div class="mt-3 overflow-x-auto border border-amber-200 rounded-xl bg-white">
+                                <table class="min-w-full text-sm divide-y divide-amber-200">
+                                    <thead class="bg-amber-50">
+                                        <tr class="text-amber-900 text-xs uppercase tracking-wider">
+                                            <th class="px-4 py-2 text-left font-semibold">Customer Part No</th>
+                                            <th class="px-4 py-2 text-right font-semibold">Rows</th>
+                                            <th class="px-4 py-2 text-right font-semibold">Total Qty</th>
+                                            <th class="px-4 py-2 text-right font-semibold">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-amber-100">
+                                        @foreach ($unmappedCustomerParts as $u)
+                                            <tr>
+                                                <td class="px-4 py-2 font-semibold">{{ $u->customer_part_no }}</td>
+                                                <td class="px-4 py-2 text-right font-mono text-xs">{{ (int) $u->rows_count }}</td>
+                                                <td class="px-4 py-2 text-right font-mono text-xs">{{ number_format((float) $u->total_qty, 3) }}</td>
+                                                <td class="px-4 py-2 text-right">
+                                                    <a
+                                                        class="text-indigo-600 hover:text-indigo-800 font-semibold"
+                                                        href="{{ route('planning.customer-parts.index', ['customer_id' => $importCustomerId, 'prefill_customer_part_no' => $u->customer_part_no]) }}"
+                                                    >
+                                                        Map Sekarang
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-2 text-xs text-amber-800">
+                                Klik “Map Sekarang” untuk buka Customer Part Mapping (customer + part no sudah terisi).
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
                         <table class="min-w-full text-sm divide-y divide-slate-200">
                             <thead class="bg-slate-50">

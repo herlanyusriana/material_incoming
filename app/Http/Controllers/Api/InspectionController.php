@@ -63,6 +63,10 @@ class InspectionController extends Controller
             'issues_front.*' => ['string', 'max:50'],
             'issues_back' => ['nullable', 'array'],
             'issues_back.*' => ['string', 'max:50'],
+            'issues_inside' => ['nullable', 'array'],
+            'issues_inside.*' => ['string', 'max:50'],
+            'issues_seal' => ['nullable', 'array'],
+            'issues_seal.*' => ['string', 'max:50'],
             'photo_left' => ['nullable', 'image', 'max:10240'],
             'photo_right' => ['nullable', 'image', 'max:10240'],
             'photo_front' => ['nullable', 'image', 'max:10240'],
@@ -83,6 +87,8 @@ class InspectionController extends Controller
             'issues_right' => $validated['issues_right'] ?? [],
             'issues_front' => $validated['issues_front'] ?? [],
             'issues_back' => $validated['issues_back'] ?? [],
+            'issues_inside' => $validated['issues_inside'] ?? [],
+            'issues_seal' => $validated['issues_seal'] ?? [],
             'inspected_by' => $request->user()?->id,
         ]);
 
@@ -142,6 +148,8 @@ class InspectionController extends Controller
             'issues_right' => $inspection->issues_right ?? [],
             'issues_front' => $inspection->issues_front ?? [],
             'issues_back' => $inspection->issues_back ?? [],
+            'issues_inside' => $inspection->issues_inside ?? [],
+            'issues_seal' => $inspection->issues_seal ?? [],
             'photo_left_url' => $inspection->photo_left ? url(Storage::url($inspection->photo_left)) : null,
             'photo_right_url' => $inspection->photo_right ? url(Storage::url($inspection->photo_right)) : null,
             'photo_front_url' => $inspection->photo_front ? url(Storage::url($inspection->photo_front)) : null,

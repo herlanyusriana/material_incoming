@@ -57,9 +57,9 @@
 
         .sig-divider { margin-top: 2.2mm; padding-top: 1.6mm; border-top: 0.25mm solid #333; }
         .sig-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2mm 0; }
-        .sig-box { border: 0.25mm solid #333; height: 15mm; position: relative; padding: 1.2mm; }
+        .sig-box { border: 0.25mm solid #333; height: 18mm; position: relative; padding: 1.2mm; }
         .sig-title { font-weight: bold; font-size: 8px; }
-        .sig-line { position: absolute; left: 1.6mm; right: 1.6mm; bottom: 6.8mm; border-top: 0.25mm solid #333; }
+        .sig-line { position: absolute; left: 1.6mm; right: 1.6mm; bottom: 7.8mm; border-top: 0.25mm solid #333; }
         .sig-name { position: absolute; left: 0; right: 0; bottom: 1.2mm; text-align: center; font-weight: bold; font-size: 8px; }
 
         .page-break { page-break-after: always; }
@@ -69,7 +69,7 @@
         .h-mid { height: 52mm; }      /* middle row (Dalam/No.Seal) */
         .h-kiri { height: 40mm; }     /* Kiri */
         .h-kanan { height: 40mm; }    /* Kanan */
-        .h-ttd { height: 40mm; }      /* TTD */
+        .h-ttd { height: 44mm; }      /* TTD */
         .h-ket { height: 92mm; }      /* Keterangan (rowspan 2: mid+kiri) */
 
         .info-title { font-weight: bold; font-size: 11px; text-align: center; margin-bottom: 2mm; }
@@ -92,6 +92,42 @@
         $dateText = $inspection?->updated_at
             ? $inspection->updated_at->locale('id')->translatedFormat('d F Y')
             : '-';
+
+        $issueLabel = function (string $raw): string {
+            $raw = trim($raw);
+            if ($raw === '') return '';
+            // Keep as-is but normalize spacing/case a bit for formal text.
+            return ucfirst(strtolower($raw));
+        };
+
+        $issuesBySide = [
+            'Depan' => $inspection?->issues_front ?? [],
+            'Belakang' => $inspection?->issues_back ?? [],
+            'Kiri' => $inspection?->issues_left ?? [],
+            'Kanan' => $inspection?->issues_right ?? [],
+            'Dalam' => $inspection?->issues_inside ?? [],
+            'No Seal' => $inspection?->issues_seal ?? [],
+        ];
+
+        $damageParts = [];
+        foreach ($issuesBySide as $sideLabel => $issues) {
+            $issues = collect($issues)
+                ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                ->map(fn ($v) => $issueLabel($v))
+                ->unique()
+                ->values();
+            if ($issues->isEmpty()) continue;
+            $damageParts[] = "{$sideLabel}: " . $issues->implode(', ');
+        }
+
+        $autoNotes = null;
+        if (!empty($damageParts)) {
+            $autoNotes = "Pada tanggal {$dateText}, telah dilakukan inspeksi container {$containerNo} dengan nomor seal {$sealCode}. "
+                . "Ditemukan kerusakan pada " . implode(' | ', $damageParts) . ".";
+        } else {
+            $autoNotes = "Pada tanggal {$dateText}, telah dilakukan inspeksi container {$containerNo} dengan nomor seal {$sealCode}. "
+                . "Kondisi container dalam keadaan baik.";
+        }
     @endphp
 
     <div class="page">
@@ -192,7 +228,15 @@
                                 <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
                                 <tr><td class="k">No Seal</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
                                 <tr><td class="k">Tanggal Tiba</td><td class="v">: {{ $dateText }}</td></tr>
-                                <tr><td class="k">Catatan</td><td class="v">: {{ $inspection?->notes ?: '-' }}</td></tr>
+                                <tr>
+                                    <td class="k">Catatan</td>
+                                    <td class="v">:
+                                        {{ $autoNotes }}
+                                        @if ($inspection?->notes)
+                                            <br><span style="color:#555;">{{ $inspection->notes }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
                             </table>
                         </div>
                     </div>

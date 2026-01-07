@@ -149,21 +149,23 @@ class ArrivalController extends Controller
             $request->merge(['items' => $items]);
         }
 
-	        $validated = $request->validate([
-	            'invoice_no' => ['required', 'string', 'max:255'],
-	            'invoice_date' => ['required', 'date'],
-	            'vendor_id' => ['required', 'exists:vendors,id'],
-	            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
-	            'vessel' => ['nullable', 'string', 'max:255'],
-		            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
-		            'etd' => ['nullable', 'date'],
-		            'eta' => ['nullable', 'date'],
-		            'eta_gci' => ['nullable', 'date'],
-		            'bl_no' => ['nullable', 'string', 'max:255'],
-	            'price_term' => ['nullable', 'string', 'max:50'],
-	            'hs_code' => ['nullable', 'string', 'max:255'],
-	            'hs_codes' => ['nullable', 'string', 'max:2000'],
-	            'port_of_loading' => ['nullable', 'string', 'max:255'],
+		        $validated = $request->validate([
+		            'invoice_no' => ['required', 'string', 'max:255'],
+		            'invoice_date' => ['required', 'date'],
+		            'vendor_id' => ['required', 'exists:vendors,id'],
+		            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
+		            'vessel' => ['nullable', 'string', 'max:255'],
+			            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
+			            'etd' => ['nullable', 'date'],
+			            'eta' => ['nullable', 'date'],
+			            'eta_gci' => ['nullable', 'date'],
+			            'bl_no' => ['nullable', 'string', 'max:255'],
+                    'bl_status' => ['nullable', 'in:surrender,draft'],
+                    'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+		            'price_term' => ['nullable', 'string', 'max:50'],
+		            'hs_code' => ['nullable', 'string', 'max:255'],
+		            'hs_codes' => ['nullable', 'string', 'max:2000'],
+		            'port_of_loading' => ['nullable', 'string', 'max:255'],
 	            'container_numbers' => ['nullable', 'string'],
 	            'seal_code' => ['nullable', 'string', 'max:100'],
 	            'containers' => ['nullable', 'array'],
@@ -187,10 +189,15 @@ class ArrivalController extends Controller
             'items.*.notes' => ['nullable', 'string'],
         ]);
 
-        $vendorId = $validated['vendor_id'];
-        $validated['invoice_no'] = strtoupper(trim((string) ($validated['invoice_no'] ?? '')));
+	        $vendorId = $validated['vendor_id'];
+	        $validated['invoice_no'] = strtoupper(trim((string) ($validated['invoice_no'] ?? '')));
 
-        $arrival = DB::transaction(function () use ($validated, $vendorId) {
+            $billOfLadingFilePath = null;
+            if ($request->hasFile('bl_file')) {
+                $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
+            }
+
+	        $arrival = DB::transaction(function () use ($validated, $vendorId, $billOfLadingFilePath) {
             $normalizedContainers = collect($validated['containers'] ?? [])
                 ->map(function ($row) {
                     $containerNo = strtoupper(trim((string) ($row['container_no'] ?? '')));
@@ -231,20 +238,22 @@ class ArrivalController extends Controller
 	                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
 	                : null;
 
-	            $arrivalData = [
-	                'invoice_no' => $validated['invoice_no'],
-	                'invoice_date' => $validated['invoice_date'],
-	                'vendor_id' => $vendorId,
-	                'vessel' => $validated['vessel'] ?? null,
-	                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
-	                'ETD' => $validated['etd'] ?? null,
-	                'ETA' => $validated['eta'] ?? null,
-	                'ETA_GCI' => $validated['eta_gci'] ?? null,
-	                'bill_of_lading' => $validated['bl_no'] ?? null,
-	                'price_term' => $validated['price_term'] ?? null,
-	                'hs_code' => $hsCodePrimary,
-	                'hs_codes' => $normalizedHsCodes,
-                'port_of_loading' => $validated['port_of_loading'] ?? null,
+		            $arrivalData = [
+		                'invoice_no' => $validated['invoice_no'],
+		                'invoice_date' => $validated['invoice_date'],
+		                'vendor_id' => $vendorId,
+		                'vessel' => $validated['vessel'] ?? null,
+		                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
+		                'ETD' => $validated['etd'] ?? null,
+		                'ETA' => $validated['eta'] ?? null,
+		                'ETA_GCI' => $validated['eta_gci'] ?? null,
+		                'bill_of_lading' => $validated['bl_no'] ?? null,
+                        'bill_of_lading_status' => $validated['bl_status'] ?? null,
+                        'bill_of_lading_file' => $billOfLadingFilePath,
+		                'price_term' => $validated['price_term'] ?? null,
+		                'hs_code' => $hsCodePrimary,
+		                'hs_codes' => $normalizedHsCodes,
+	                'port_of_loading' => $validated['port_of_loading'] ?? null,
                 'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
                 'container_numbers' => $containerNumbersLegacy,
                 'seal_code' => $validated['seal_code'] ?? null,
@@ -253,7 +262,7 @@ class ArrivalController extends Controller
                 'created_by' => Auth::id(),
             ];
 
-            $arrival = Arrival::create($this->filterArrivalColumns($arrivalData));
+	            $arrival = Arrival::create($this->filterArrivalColumns($arrivalData));
 
             if ($normalizedContainers->isNotEmpty() && Schema::hasTable('arrival_containers')) {
                 $arrival->containers()->createMany($normalizedContainers->all());
@@ -364,54 +373,67 @@ class ArrivalController extends Controller
                 ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
         }
 
-	        $data = $request->validate([
-	            'invoice_no' => ['required', 'string', 'max:255'],
-	            'invoice_date' => ['required', 'date'],
-	            'etd' => ['nullable', 'date'],
-	            'eta' => ['nullable', 'date'],
-	            'eta_gci' => ['nullable', 'date'],
-	            'vessel' => ['nullable', 'string', 'max:255'],
-	            'bl_no' => ['nullable', 'string', 'max:255'],
-            'price_term' => ['nullable', 'string', 'max:50'],
-            'hs_code' => ['nullable', 'string', 'max:255'],
-            'hs_codes' => ['nullable', 'string', 'max:2000'],
-            'port_of_loading' => ['nullable', 'string', 'max:255'],
+		        $data = $request->validate([
+		            'invoice_no' => ['required', 'string', 'max:255'],
+		            'invoice_date' => ['required', 'date'],
+		            'etd' => ['nullable', 'date'],
+		            'eta' => ['nullable', 'date'],
+		            'eta_gci' => ['nullable', 'date'],
+		            'vessel' => ['nullable', 'string', 'max:255'],
+		            'bl_no' => ['nullable', 'string', 'max:255'],
+                    'bl_status' => ['nullable', 'in:surrender,draft'],
+                    'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+	            'price_term' => ['nullable', 'string', 'max:50'],
+	            'hs_code' => ['nullable', 'string', 'max:255'],
+	            'hs_codes' => ['nullable', 'string', 'max:2000'],
+	            'port_of_loading' => ['nullable', 'string', 'max:255'],
             'container_numbers' => ['nullable', 'string'],
             'seal_code' => ['nullable', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $data['invoice_no'] = strtoupper(trim((string) ($data['invoice_no'] ?? '')));
+	        $data['invoice_no'] = strtoupper(trim((string) ($data['invoice_no'] ?? '')));
 
-        $normalizedHsCodes = $this->normalizeHsCodes($data['hs_codes'] ?? $data['hs_code'] ?? null);
-        $hsCodePrimary = $normalizedHsCodes
-            ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-            : null;
+            $billOfLadingFilePath = null;
+            if ($request->hasFile('bl_file')) {
+                $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
+            }
 
-	        $departureData = [
-	            'invoice_no' => $data['invoice_no'],
-	            'invoice_date' => $data['invoice_date'],
-	            'ETD' => $data['etd'] ?? null,
-	            'ETA' => $data['eta'] ?? null,
-	            'ETA_GCI' => $data['eta_gci'] ?? null,
-	            'vessel' => $data['vessel'] ?? null,
-	            'bill_of_lading' => $data['bl_no'] ?? null,
-	            'price_term' => $data['price_term'] ?? null,
-	            'hs_code' => $hsCodePrimary,
-            'hs_codes' => $normalizedHsCodes,
-            'port_of_loading' => $data['port_of_loading'] ?? null,
-            'container_numbers' => $data['container_numbers'] ?? null,
-            'seal_code' => $data['seal_code'] ?? null,
-            'currency' => $data['currency'] ?? 'USD',
-            'notes' => $data['notes'] ?? null,
-        ];
+	        $normalizedHsCodes = $this->normalizeHsCodes($data['hs_codes'] ?? $data['hs_code'] ?? null);
+	        $hsCodePrimary = $normalizedHsCodes
+	            ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+	            : null;
 
-        DB::transaction(function () use ($departure, $departureData, $data) {
-            $defaultSeal = strtoupper(trim((string) ($data['seal_code'] ?? '')));
-            $lines = preg_split('/\r\n|\r|\n/', (string) ($data['container_numbers'] ?? '')) ?: [];
-            $normalizedContainers = collect($lines)
-                ->map(function ($line) use ($defaultSeal) {
+		        $departureData = [
+		            'invoice_no' => $data['invoice_no'],
+		            'invoice_date' => $data['invoice_date'],
+		            'ETD' => $data['etd'] ?? null,
+		            'ETA' => $data['eta'] ?? null,
+		            'ETA_GCI' => $data['eta_gci'] ?? null,
+		            'vessel' => $data['vessel'] ?? null,
+		            'bill_of_lading' => $data['bl_no'] ?? null,
+                    'bill_of_lading_status' => $data['bl_status'] ?? null,
+		            'price_term' => $data['price_term'] ?? null,
+		            'hs_code' => $hsCodePrimary,
+	            'hs_codes' => $normalizedHsCodes,
+	            'port_of_loading' => $data['port_of_loading'] ?? null,
+	            'container_numbers' => $data['container_numbers'] ?? null,
+	            'seal_code' => $data['seal_code'] ?? null,
+	            'currency' => $data['currency'] ?? 'USD',
+	            'notes' => $data['notes'] ?? null,
+	        ];
+
+            $oldBillFile = $departure->bill_of_lading_file;
+            if ($billOfLadingFilePath !== null) {
+                $departureData['bill_of_lading_file'] = $billOfLadingFilePath;
+            }
+
+	        DB::transaction(function () use ($departure, $departureData, $data, $oldBillFile, $billOfLadingFilePath) {
+	            $defaultSeal = strtoupper(trim((string) ($data['seal_code'] ?? '')));
+	            $lines = preg_split('/\r\n|\r|\n/', (string) ($data['container_numbers'] ?? '')) ?: [];
+	            $normalizedContainers = collect($lines)
+	                ->map(function ($line) use ($defaultSeal) {
                     $raw = trim((string) $line);
                     if ($raw === '') {
                         return null;
@@ -437,12 +459,16 @@ class ArrivalController extends Controller
 
             $departureData['container_numbers'] = $containerNumbersLegacy !== '' ? $containerNumbersLegacy : null;
 
-            $departure->update($this->filterArrivalColumns($departureData));
+	            $departure->update($this->filterArrivalColumns($departureData));
 
-            if (Schema::hasTable('arrival_containers')) {
-                $departure->containers()->delete();
-                if ($normalizedContainers->isNotEmpty()) {
-                    $departure->containers()->createMany($normalizedContainers->all());
+                if ($billOfLadingFilePath !== null && $oldBillFile) {
+                    Storage::disk('public')->delete($oldBillFile);
+                }
+
+	            if (Schema::hasTable('arrival_containers')) {
+	                $departure->containers()->delete();
+	                if ($normalizedContainers->isNotEmpty()) {
+	                    $departure->containers()->createMany($normalizedContainers->all());
                 }
             }
         });
@@ -609,6 +635,54 @@ class ArrivalController extends Controller
                 }
             }
 
+            // Normalize EXIF orientation (many phone photos are stored rotated with EXIF metadata).
+            // Dompdf often ignores EXIF orientation, which can cause portrait photos to appear sideways.
+            $didNormalize = false;
+            if (function_exists('exif_read_data') && function_exists('imagecreatefromstring') && function_exists('imagerotate')) {
+                $orientation = null;
+                if ($absolutePath && is_file($absolutePath)) {
+                    $exif = @exif_read_data($absolutePath);
+                    if (is_array($exif) && isset($exif['Orientation'])) {
+                        $orientation = (int) $exif['Orientation'];
+                    }
+                } else {
+                    $tmp = @tempnam(sys_get_temp_dir(), 'exif_');
+                    if ($tmp) {
+                        @file_put_contents($tmp, $bytes);
+                        $exif = @exif_read_data($tmp);
+                        @unlink($tmp);
+                        if (is_array($exif) && isset($exif['Orientation'])) {
+                            $orientation = (int) $exif['Orientation'];
+                        }
+                    }
+                }
+
+                $angle = null;
+                if ($orientation === 3) {
+                    $angle = 180;
+                } elseif ($orientation === 6) {
+                    $angle = -90;
+                } elseif ($orientation === 8) {
+                    $angle = 90;
+                }
+
+                if ($angle !== null) {
+                    $img = @imagecreatefromstring($bytes);
+                    if ($img !== false) {
+                        $rotated = @imagerotate($img, $angle, 0);
+                        @imagedestroy($img);
+                        if ($rotated !== false) {
+                            ob_start();
+                            imagejpeg($rotated, null, 92);
+                            $bytes = (string) ob_get_clean();
+                            @imagedestroy($rotated);
+                            $mime = 'image/jpeg';
+                            $didNormalize = true;
+                        }
+                    }
+                }
+            }
+
             $class = 'is-landscape';
             if ($absolutePath) {
                 $size = @getimagesize($absolutePath);
@@ -627,7 +701,9 @@ class ArrivalController extends Controller
             }
 
             return [
-                'src' => $absolutePath && is_file($absolutePath) ? ('file://' . $absolutePath) : ('data:' . $mime . ';base64,' . base64_encode($bytes)),
+                'src' => (!$didNormalize && $absolutePath && is_file($absolutePath))
+                    ? ('file://' . $absolutePath)
+                    : ('data:' . $mime . ';base64,' . base64_encode($bytes)),
                 'class' => $class,
             ];
         };

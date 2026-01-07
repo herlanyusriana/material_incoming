@@ -158,10 +158,22 @@
 	                        <span class="font-semibold text-slate-700 min-w-[100px]">ETD:</span>
 	                        <span class="text-slate-900">{{ $arrival->ETD ?: '-' }}</span>
 	                    </div>
-	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
-	                        <span class="text-slate-900">{{ $arrival->bill_of_lading ?: '-' }}</span>
-	                    </div>
+		                    <div class="flex items-start gap-2">
+		                        <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
+		                        <span class="text-slate-900">
+                                    {{ $arrival->bill_of_lading ?: '-' }}
+                                    @if ($arrival->bill_of_lading_status)
+                                        <span class="ml-2 inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                            {{ strtoupper($arrival->bill_of_lading_status) }}
+                                        </span>
+                                    @endif
+                                    @if ($arrival->bill_of_lading_file_url)
+                                        <a class="ml-2 text-xs font-semibold text-blue-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}" target="_blank" rel="noopener">
+                                            View File
+                                        </a>
+                                    @endif
+                                </span>
+		                    </div>
 	                    <div class="flex items-start gap-2">
 	                        <span class="font-semibold text-slate-700 min-w-[100px]">Price Term:</span>
 	                        <span class="text-slate-900">{{ $arrival->price_term ?: '-' }}</span>

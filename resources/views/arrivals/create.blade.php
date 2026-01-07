@@ -24,8 +24,8 @@
                 <a href="{{ route('departures.index') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Back to list</a>
             </div>
 
-            <form method="POST" action="{{ route('departures.store') }}" class="space-y-6" id="arrival-form">
-                @csrf
+	            <form method="POST" action="{{ route('departures.store') }}" class="space-y-6" id="arrival-form" enctype="multipart/form-data">
+	                @csrf
 
                 <!-- Section 1: Vendor & Invoice -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -144,19 +144,34 @@
 	                </div>
 
 	                <!-- Section 4: Documents & Notes -->
-	                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-	                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Documents & Notes</h2>
-	                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-	                        <div class="space-y-1">
-	                            <label for="bl_no" class="text-sm font-medium text-gray-700">Bill of Lading</label>
-	                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no') }}" placeholder="BL-56789" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-	                            @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-	                        </div>
-	                        <div class="space-y-1">
-	                            <label for="price_term" class="text-sm font-medium text-gray-700">Price Term</label>
-	                            <input type="text" id="price_term" name="price_term" value="{{ old('price_term') }}" placeholder="FOB / CIF / EXW" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-	                            @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-	                        </div>
+		                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+		                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Documents & Notes</h2>
+		                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+		                        <div class="space-y-1">
+		                            <label for="bl_no" class="text-sm font-medium text-gray-700">Bill of Lading</label>
+		                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no') }}" placeholder="BL-56789" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+		                            @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+		                        </div>
+                                <div class="space-y-1">
+                                    <label for="bl_status" class="text-sm font-medium text-gray-700">Bill of Lading Status</label>
+                                    <select id="bl_status" name="bl_status" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="">-</option>
+                                        <option value="draft" {{ old('bl_status') === 'draft' ? 'selected' : '' }}>Draft</option>
+                                        <option value="surrender" {{ old('bl_status') === 'surrender' ? 'selected' : '' }}>Surrender</option>
+                                    </select>
+                                    @error('bl_status') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="space-y-1 md:col-span-2">
+                                    <label for="bl_file" class="text-sm font-medium text-gray-700">Upload Bill of Lading (PDF/JPG/PNG)</label>
+                                    <input type="file" id="bl_file" name="bl_file" accept="application/pdf,image/*" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+                                    <p class="text-xs text-gray-500">Maks 10MB.</p>
+                                    @error('bl_file') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+		                        <div class="space-y-1">
+		                            <label for="price_term" class="text-sm font-medium text-gray-700">Price Term</label>
+		                            <input type="text" id="price_term" name="price_term" value="{{ old('price_term') }}" placeholder="FOB / CIF / EXW" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+		                            @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+		                        </div>
 	                        <div class="md:col-span-2 space-y-1">
 	                            <label for="notes" class="text-sm font-medium text-gray-700">Notes</label>
 	                            <textarea id="notes" name="notes" rows="3" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Catatan atau instruksi khusus">{{ old('notes') }}</textarea>

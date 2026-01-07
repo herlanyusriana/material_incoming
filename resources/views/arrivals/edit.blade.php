@@ -22,9 +22,9 @@
                     <p class="text-sm text-slate-500">Edit informasi utama departure. Items & receive records tidak diubah dari halaman ini.</p>
                 </div>
 
-                <form method="POST" action="{{ route('departures.update', $arrival) }}" class="space-y-6">
-                    @csrf
-                    @method('PUT')
+	                <form method="POST" action="{{ route('departures.update', $arrival) }}" class="space-y-6" enctype="multipart/form-data">
+	                    @csrf
+	                    @method('PUT')
 
                     <div class="space-y-1">
                         <label for="invoice_no" class="text-sm font-medium text-slate-700">Invoice No.</label>
@@ -52,22 +52,46 @@
 	                        </div>
 	                    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-	                        <div class="space-y-1">
-	                            <label for="vessel" class="text-sm font-medium text-slate-700">Vessel</label>
-	                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel', $arrival->vessel) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-	                        </div>
-	                        <div class="space-y-1">
-	                            <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
-	                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no', $arrival->bill_of_lading) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-	                        </div>
+	                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+		                        <div class="space-y-1">
+		                            <label for="vessel" class="text-sm font-medium text-slate-700">Vessel</label>
+		                            <input type="text" id="vessel" name="vessel" value="{{ old('vessel', $arrival->vessel) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+		                        </div>
+		                        <div class="space-y-1">
+		                            <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
+		                            <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no', $arrival->bill_of_lading) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                                @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+		                        </div>
+	                            <div class="space-y-1">
+	                                <label for="price_term" class="text-sm font-medium text-slate-700">Price Term</label>
+	                                <input type="text" id="price_term" name="price_term" value="{{ old('price_term', $arrival->price_term) }}" placeholder="FOB / CIF / EXW" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+	                                @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+	                            </div>
+		                    </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="space-y-1">
-                                <label for="price_term" class="text-sm font-medium text-slate-700">Price Term</label>
-                                <input type="text" id="price_term" name="price_term" value="{{ old('price_term', $arrival->price_term) }}" placeholder="FOB / CIF / EXW" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                <label for="bl_status" class="text-sm font-medium text-slate-700">Bill of Lading Status</label>
+                                <select id="bl_status" name="bl_status" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    <option value="">-</option>
+                                    <option value="draft" {{ old('bl_status', $arrival->bill_of_lading_status) === 'draft' ? 'selected' : '' }}>Draft</option>
+                                    <option value="surrender" {{ old('bl_status', $arrival->bill_of_lading_status) === 'surrender' ? 'selected' : '' }}>Surrender</option>
+                                </select>
+                                @error('bl_status') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
-	                    </div>
+                            <div class="space-y-1 md:col-span-2">
+                                <label for="bl_file" class="text-sm font-medium text-slate-700">Upload Bill of Lading (PDF/JPG/PNG)</label>
+                                <input type="file" id="bl_file" name="bl_file" accept="application/pdf,image/*" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                                <div class="text-xs text-slate-500">
+                                    @if ($arrival->bill_of_lading_file_url)
+                                        File sekarang:
+                                        <a class="text-blue-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}" target="_blank" rel="noopener">Download / View</a>
+                                    @else
+                                        Belum ada file.
+                                    @endif
+                                </div>
+                                @error('bl_file') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">

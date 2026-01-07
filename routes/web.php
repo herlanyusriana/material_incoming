@@ -8,6 +8,7 @@ use App\Http\Controllers\ReceiveController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
+use App\Http\Controllers\Planning\BomController as PlanningBomController;
 use App\Http\Controllers\Planning\GciPartController as PlanningGciPartController;
 use App\Http\Controllers\Planning\CustomerPartController as PlanningCustomerPartController;
 use App\Http\Controllers\Planning\CustomerPlanningImportController as PlanningCustomerPlanningImportController;
@@ -99,6 +100,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'update'])->name('gci-parts.update');
         Route::delete('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'destroy'])->name('gci-parts.destroy');
 
+        Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
+        Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
+        Route::put('/boms/{bom}', [PlanningBomController::class, 'update'])->name('boms.update');
+        Route::delete('/boms/{bom}', [PlanningBomController::class, 'destroy'])->name('boms.destroy');
+        Route::post('/boms/{bom}/items', [PlanningBomController::class, 'storeItem'])->name('boms.items.store');
+        Route::delete('/bom-items/{bomItem}', [PlanningBomController::class, 'destroyItem'])->name('boms.items.destroy');
+
         Route::get('/customers', [PlanningCustomerController::class, 'index'])->name('customers.index');
         Route::post('/customers', [PlanningCustomerController::class, 'store'])->name('customers.store');
         Route::put('/customers/{customer}', [PlanningCustomerController::class, 'update'])->name('customers.update');
@@ -113,6 +121,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/planning-imports', [PlanningCustomerPlanningImportController::class, 'index'])->name('planning-imports.index');
         Route::post('/planning-imports', [PlanningCustomerPlanningImportController::class, 'store'])->name('planning-imports.store');
+        Route::get('/planning-imports/template', [PlanningCustomerPlanningImportController::class, 'template'])->name('planning-imports.template');
 
         Route::get('/customer-pos', [PlanningCustomerPoController::class, 'index'])->name('customer-pos.index');
         Route::post('/customer-pos', [PlanningCustomerPoController::class, 'store'])->name('customer-pos.store');

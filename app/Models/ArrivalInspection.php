@@ -23,6 +23,8 @@ class ArrivalInspection extends Model
         'issues_right',
         'issues_front',
         'issues_back',
+        'issues_inside',
+        'issues_seal',
     ];
 
     protected $casts = [
@@ -30,6 +32,8 @@ class ArrivalInspection extends Model
         'issues_right' => 'array',
         'issues_front' => 'array',
         'issues_back' => 'array',
+        'issues_inside' => 'array',
+        'issues_seal' => 'array',
     ];
 
     public function arrival()
