@@ -5,21 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Forecast extends Model
+class Bom extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'qty',
         'part_id',
-        'minggu',
-        'planning_qty',
-        'po_qty',
-        'source',
+        'status',
     ];
 
     public function part()
     {
         return $this->belongsTo(GciPart::class, 'part_id');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(BomItem::class);
     }
 }

@@ -5,18 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Forecast extends Model
+class CustomerPlanningRow extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'import_id',
+        'customer_part_no',
+        'minggu',
         'qty',
         'part_id',
-        'minggu',
-        'planning_qty',
-        'po_qty',
-        'source',
+        'row_status',
+        'error_message',
     ];
+
+    public function planningImport()
+    {
+        return $this->belongsTo(CustomerPlanningImport::class, 'import_id');
+    }
 
     public function part()
     {

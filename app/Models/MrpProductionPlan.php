@@ -5,18 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Forecast extends Model
+class MrpProductionPlan extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'qty',
+        'mrp_run_id',
         'part_id',
-        'minggu',
-        'planning_qty',
-        'po_qty',
-        'source',
+        'planned_qty',
     ];
+
+    public function run()
+    {
+        return $this->belongsTo(MrpRun::class, 'mrp_run_id');
+    }
 
     public function part()
     {

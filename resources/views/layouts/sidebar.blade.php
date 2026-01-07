@@ -133,38 +133,55 @@
                 <div>
                     <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Planning</div>
                     <div class="space-y-1">
-                        <a href="{{ route('planning.products.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+                        <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7h-9m9 0-3-3m3 3-3 3M4 17h9m-9 0 3 3m-3-3 3-3" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
                             </svg>
-                            <span class="ml-3 flex-1">Products</span>
+                            <span class="ml-3 flex-1">Part GCI</span>
+                        </a>
+                        <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
+                            </svg>
+                            <span class="ml-3 flex-1">Customers</span>
+                        </a>
+                        <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
+                            </svg>
+                            <span class="ml-3 flex-1">Customer Part Mapping</span>
+                        </a>
+                        <a href="{{ route('planning.planning-imports.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
+                            </svg>
+                            <span class="ml-3 flex-1">Customer Planning</span>
+                        </a>
+                        <a href="{{ route('planning.customer-pos.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2Z" />
+                            </svg>
+                            <span class="ml-3 flex-1">Customer PO</span>
                         </a>
                         <a href="{{ route('planning.forecasts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-5 5-4-4-3 3" />
                             </svg>
-                            <span class="ml-3 flex-1">Forecast</span>
-                        </a>
-                        <a href="{{ route('planning.customer-orders.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2Z" />
-                            </svg>
-                            <span class="ml-3 flex-1">Customer Orders</span>
+                            <span class="ml-3 flex-1">Forecast (Part GCI)</span>
                         </a>
                         <a href="{{ route('planning.mps.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
                             </svg>
-                            <span class="ml-3 flex-1">Rencana Produksi (MPS)</span>
+                            <span class="ml-3 flex-1">MPS</span>
                         </a>
-                        <div class="{{ $navLinkBase }} {{ $navDisabled }}" title="MRP (Coming soon)">
+                        <a href="{{ route('planning.mrp.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21V3m9 18V3M3 7.5h18M3 16.5h18" />
                             </svg>
-                            <span class="ml-3 flex-1">Kebutuhan Material (MRP)</span>
-                            <span class="text-[10px] font-semibold uppercase tracking-wider">Soon</span>
-                        </div>
+                            <span class="ml-3 flex-1">MRP</span>
+                        </a>
                     </div>
                 </div>
 
@@ -230,14 +247,17 @@
                 <div>
                     <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Inventory</div>
                     <div class="space-y-1">
-                        <div class="{{ $navLinkBase }} {{ $navDisabled }}" title="Inventory (Coming soon)">
+                    <a
+                        href="{{ route('inventory.index') }}"
+                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.*'), $navInactive => !request()->routeIs('inventory.*') ])
+                        @click="mobileSidebarOpen = false"
+                    >
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
                             </svg>
-                            <span class="ml-3 flex-1">Inventory (tabbed)</span>
-                            <span class="text-[10px] font-semibold uppercase tracking-wider">Soon</span>
-                        </div>
+                            <span class="ml-3 flex-1">Inventory</span>
+                        </a>
                     </div>
                 </div>
 	        </nav>
@@ -313,38 +333,55 @@
             <div>
                 <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Planning</div>
                 <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
-                    <a href="{{ route('planning.products.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+                    <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7h-9m9 0-3-3m3 3-3 3M4 17h9m-9 0 3 3m-3-3 3-3" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
                         </svg>
-                        <span class="ml-3 flex-1">Products</span>
+                        <span class="ml-3 flex-1">Part GCI</span>
+                    </a>
+                    <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
+                        </svg>
+                        <span class="ml-3 flex-1">Customers</span>
+                    </a>
+                    <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
+                        </svg>
+                        <span class="ml-3 flex-1">Customer Part Mapping</span>
+                    </a>
+                    <a href="{{ route('planning.planning-imports.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
+                        </svg>
+                        <span class="ml-3 flex-1">Customer Planning</span>
+                    </a>
+                    <a href="{{ route('planning.customer-pos.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2Z" />
+                        </svg>
+                        <span class="ml-3 flex-1">Customer PO</span>
                     </a>
                     <a href="{{ route('planning.forecasts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-5 5-4-4-3 3" />
                         </svg>
-                        <span class="ml-3 flex-1">Forecast</span>
-                    </a>
-                    <a href="{{ route('planning.customer-orders.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2Z" />
-                        </svg>
-                        <span class="ml-3 flex-1">Customer Orders</span>
+                        <span class="ml-3 flex-1">Forecast (Part GCI)</span>
                     </a>
                     <a href="{{ route('planning.mps.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
                         </svg>
-                        <span class="ml-3 flex-1">Rencana Produksi (MPS)</span>
+                        <span class="ml-3 flex-1">MPS</span>
                     </a>
-                    <div class="{{ $navLinkBase }} {{ $navDisabled }}" title="MRP (Coming soon)">
+                    <a href="{{ route('planning.mrp.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21V3m9 18V3M3 7.5h18M3 16.5h18" />
                         </svg>
-                        <span class="ml-3 flex-1">Kebutuhan Material (MRP)</span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wider">Soon</span>
-                    </div>
+                        <span class="ml-3 flex-1">MRP</span>
+                    </a>
                 </div>
             </div>
 
@@ -541,14 +578,16 @@
             <div>
                 <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Inventory</div>
                 <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
-                    <div class="{{ $navLinkBase }} {{ $navDisabled }}" title="Inventory (Coming soon)">
+                    <a
+                        href="{{ route('inventory.index') }}"
+                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.*'), $navInactive => !request()->routeIs('inventory.*') ])
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
                         </svg>
-                        <span class="ml-3 flex-1">Inventory (tabbed)</span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wider">Soon</span>
-                    </div>
+                        <span class="ml-3 flex-1">Inventory</span>
+                    </a>
                 </div>
             </div>
 	    </nav>

@@ -5,11 +5,16 @@ use App\Http\Controllers\VendorController;
 use App\Http\Controllers\PartController;
 use App\Http\Controllers\ArrivalController;
 use App\Http\Controllers\ReceiveController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\TruckingController;
-use App\Http\Controllers\Planning\ProductController as PlanningProductController;
+use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
+use App\Http\Controllers\Planning\GciPartController as PlanningGciPartController;
+use App\Http\Controllers\Planning\CustomerPartController as PlanningCustomerPartController;
+use App\Http\Controllers\Planning\CustomerPlanningImportController as PlanningCustomerPlanningImportController;
+use App\Http\Controllers\Planning\CustomerPoController as PlanningCustomerPoController;
 use App\Http\Controllers\Planning\ForecastController as PlanningForecastController;
-use App\Http\Controllers\Planning\CustomerOrderController as PlanningCustomerOrderController;
 use App\Http\Controllers\Planning\MpsController as PlanningMpsController;
+use App\Http\Controllers\Planning\MrpController as PlanningMrpController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -64,6 +69,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('departures', ArrivalController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
 
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+    Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+    Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
+    Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
+    Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -82,25 +94,41 @@ Route::middleware('auth')->group(function () {
     Route::put('/departure-items/{arrivalItem}', [ArrivalController::class, 'updateItem'])->name('departure-items.update');
 
     Route::prefix('planning')->name('planning.')->group(function () {
-        Route::get('/products', [PlanningProductController::class, 'index'])->name('products.index');
-        Route::post('/products', [PlanningProductController::class, 'store'])->name('products.store');
-        Route::put('/products/{product}', [PlanningProductController::class, 'update'])->name('products.update');
-        Route::delete('/products/{product}', [PlanningProductController::class, 'destroy'])->name('products.destroy');
+        Route::get('/gci-parts', [PlanningGciPartController::class, 'index'])->name('gci-parts.index');
+        Route::post('/gci-parts', [PlanningGciPartController::class, 'store'])->name('gci-parts.store');
+        Route::put('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'update'])->name('gci-parts.update');
+        Route::delete('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'destroy'])->name('gci-parts.destroy');
+
+        Route::get('/customers', [PlanningCustomerController::class, 'index'])->name('customers.index');
+        Route::post('/customers', [PlanningCustomerController::class, 'store'])->name('customers.store');
+        Route::put('/customers/{customer}', [PlanningCustomerController::class, 'update'])->name('customers.update');
+        Route::delete('/customers/{customer}', [PlanningCustomerController::class, 'destroy'])->name('customers.destroy');
+
+        Route::get('/customer-parts', [PlanningCustomerPartController::class, 'index'])->name('customer-parts.index');
+        Route::post('/customer-parts', [PlanningCustomerPartController::class, 'store'])->name('customer-parts.store');
+        Route::put('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'update'])->name('customer-parts.update');
+        Route::delete('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'destroy'])->name('customer-parts.destroy');
+        Route::post('/customer-parts/{customerPart}/components', [PlanningCustomerPartController::class, 'storeComponent'])->name('customer-parts.components.store');
+        Route::delete('/customer-part-components/{component}', [PlanningCustomerPartController::class, 'destroyComponent'])->name('customer-parts.components.destroy');
+
+        Route::get('/planning-imports', [PlanningCustomerPlanningImportController::class, 'index'])->name('planning-imports.index');
+        Route::post('/planning-imports', [PlanningCustomerPlanningImportController::class, 'store'])->name('planning-imports.store');
+
+        Route::get('/customer-pos', [PlanningCustomerPoController::class, 'index'])->name('customer-pos.index');
+        Route::post('/customer-pos', [PlanningCustomerPoController::class, 'store'])->name('customer-pos.store');
+        Route::put('/customer-pos/{customerPo}', [PlanningCustomerPoController::class, 'update'])->name('customer-pos.update');
+        Route::delete('/customer-pos/{customerPo}', [PlanningCustomerPoController::class, 'destroy'])->name('customer-pos.destroy');
 
         Route::get('/forecasts', [PlanningForecastController::class, 'index'])->name('forecasts.index');
-        Route::post('/forecasts', [PlanningForecastController::class, 'store'])->name('forecasts.store');
-        Route::put('/forecasts/{forecast}', [PlanningForecastController::class, 'update'])->name('forecasts.update');
-        Route::delete('/forecasts/{forecast}', [PlanningForecastController::class, 'destroy'])->name('forecasts.destroy');
-
-        Route::get('/customer-orders', [PlanningCustomerOrderController::class, 'index'])->name('customer-orders.index');
-        Route::post('/customer-orders', [PlanningCustomerOrderController::class, 'store'])->name('customer-orders.store');
-        Route::put('/customer-orders/{customerOrder}', [PlanningCustomerOrderController::class, 'update'])->name('customer-orders.update');
-        Route::delete('/customer-orders/{customerOrder}', [PlanningCustomerOrderController::class, 'destroy'])->name('customer-orders.destroy');
+        Route::post('/forecasts/generate', [PlanningForecastController::class, 'generate'])->name('forecasts.generate');
 
         Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
         Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
         Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
         Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
+
+        Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');
+        Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('mrp.generate');
     });
 });
 

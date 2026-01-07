@@ -5,18 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Forecast extends Model
+class CustomerPartComponent extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'qty',
+        'customer_part_id',
         'part_id',
-        'minggu',
-        'planning_qty',
-        'po_qty',
-        'source',
+        'usage_qty',
     ];
+
+    public function customerPart()
+    {
+        return $this->belongsTo(CustomerPart::class);
+    }
 
     public function part()
     {

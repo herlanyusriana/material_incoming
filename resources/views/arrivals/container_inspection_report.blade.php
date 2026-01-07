@@ -14,9 +14,8 @@
         .layout td { vertical-align: top; padding: 0; }
 
         /* Use separate border model for consistent gaps */
-        /* Tight gaps so everything fits on 1 page */
-        .gap-table { border-collapse: separate; border-spacing: 1.2mm 1.2mm; width: 100%; table-layout: fixed; }
-        .gap-table td { padding: 0; vertical-align: top; }
+        .grid { border-collapse: separate; border-spacing: 2mm 2mm; width: 100%; table-layout: fixed; }
+        .grid td { padding: 0; vertical-align: top; }
 
         .slot { border: 0.30mm solid #333; position: relative; overflow: hidden; background: #fff; }
         .slot-inner { width: 100%; height: 100%; table-layout: fixed; }
@@ -65,9 +64,12 @@
         .page-break { page-break-after: always; }
 
         /* Fixed slot heights: fit 1 A4 landscape page */
-        .h-left { height: 82mm; }         /* left 2x2 blocks */
-        .h-right-land { height: 50mm; }   /* Kiri/Kanan landscape blocks */
-        .h-right-info { height: 82mm; }   /* info block */
+        .h-top { height: 45mm; }      /* top photo row */
+        .h-mid { height: 55mm; }      /* middle row (Dalam/No.Seal) */
+        .h-kiri { height: 42mm; }     /* Kiri */
+        .h-kanan { height: 42mm; }    /* Kanan */
+        .h-ttd { height: 42mm; }      /* TTD */
+        .h-ket { height: 97mm; }      /* Keterangan (rowspan 2: mid+kiri) */
 
         .info-title { font-weight: bold; font-size: 11px; text-align: center; margin-bottom: 2mm; }
     </style>
@@ -92,132 +94,165 @@
     @endphp
 
     <div class="page">
-        <table class="layout">
-            <tr>
-                <td style="width:60%;">
-                    <table class="gap-table">
-                        <tr>
-                            <td>
-                                <div class="slot h-left">
-                                    <div class="label">Depan</div>
-                                    @if ($p = $photo('front'))
-                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
-                                    @else
-                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Depan</div></td></tr></table>
-                                    @endif
-                                </div>
-                            </td>
-                            <td>
-                                <div class="slot h-left">
-                                    <div class="label">Belakang</div>
-                                    @if ($p = $photo('back'))
-                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
-                                    @else
-                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Belakang</div></td></tr></table>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="slot h-left">
-                                    <div class="label">Dalam</div>
-                                    @if ($p = $photo('inside'))
-                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
-                                    @else
-                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Interior</div></td></tr></table>
-                                    @endif
-                                </div>
-                            </td>
-                            <td>
-                                <div class="slot h-left">
-                                    <div class="label">No Seal</div>
-                                    @if ($p = $photo('seal'))
-                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
-                                    @else
-                                        <table class="slot-inner">
-                                            <tr><td class="slot-cell">
-                                                <div class="seal-code">{{ $sealCode ?: '-' }}</div>
-                                                <div class="empty" style="margin-top:2mm;">Foto No Seal</div>
-                                            </td></tr>
-                                        </table>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-                <td style="width:40%;">
-                    <table class="gap-table">
-                        <tr>
-                            <td>
-                                <div class="slot h-right-land">
-                                    <div class="label">Kiri</div>
-                                    @if ($p = $photo('left'))
-                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
-                                    @else
-                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kiri (LANDSCAPE)</div></td></tr></table>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="slot h-right-land">
-                                    <div class="label">Kanan</div>
-                                    @if ($p = $photo('right'))
-                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
-                                    @else
-                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kanan (LANDSCAPE)</div></td></tr></table>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="slot h-right-info">
-                                    <div class="pad">
-                                        <div class="info-title">Keterangan</div>
-                                        <table class="kvs">
-                                            <tr><td class="k">No Invoice</td><td class="v">: {{ $arrivalNo }}</td></tr>
-                                            <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
-                                            <tr><td class="k">No Seal</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
-                                            <tr><td class="k">Tanggal Tiba</td><td class="v">: {{ $dateText }}</td></tr>
-                                            <tr><td class="k">Catatan</td><td class="v">: {{ $inspection?->notes ?: '-' }}</td></tr>
-                                        </table>
+        <table class="grid">
+            <colgroup>
+                <col style="width:20%">
+                <col style="width:20%">
+                <col style="width:20%">
+                <col style="width:20%">
+                <col style="width:20%">
+            </colgroup>
 
-                                        <div class="sig-divider">
-                                            <table class="sig-grid">
-                                                <tr>
-                                                    <td>
-                                                        <div class="sig-box">
-                                                            <div class="sig-title">Diperiksa Oleh</div>
-                                                            <div class="sig-line"></div>
-                                                            <div class="sig-name">Nurwahid/Ida</div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="sig-box">
-                                                            <div class="sig-title">Mengetahui</div>
-                                                            <div class="sig-line"></div>
-                                                            <div class="sig-name">Fadri/Dita</div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="sig-box">
-                                                            <div class="sig-title">Driver</div>
-                                                            <div class="sig-line"></div>
-                                                            <div class="sig-name">{{ $inspection?->driver_name ?: '-' }}</div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            </table>
+            <tr>
+                <td>
+                    <div class="slot h-top">
+                        <div class="label">Depan</div>
+                        @if ($p = $photo('front'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Depan</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+                <td>
+                    <div class="slot h-top">
+                        <div class="label">Belakang</div>
+                        @if ($p = $photo('back'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Belakang</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+                <td>
+                    <div class="slot h-top">
+                        <div class="label">Detail Kerusakan</div>
+                        @if ($p = $photo('damage1'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+                <td>
+                    <div class="slot h-top">
+                        <div class="label">Detail Kerusakan</div>
+                        @if ($p = $photo('damage2'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+                <td>
+                    <div class="slot h-top">
+                        <div class="label">Detail Kerusakan</div>
+                        @if ($p = $photo('damage3'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    <div class="slot h-mid">
+                        <div class="label">Dalam</div>
+                        @if ($p = $photo('inside'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Interior</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+                <td>
+                    <div class="slot h-mid">
+                        <div class="label">No.Seal</div>
+                        @if ($p = $photo('seal'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner">
+                                <tr><td class="slot-cell">
+                                    <div class="seal-code">{{ $sealCode ?: '-' }}</div>
+                                    <div class="empty" style="margin-top:2mm;">Foto No Seal</div>
+                                </td></tr>
+                            </table>
+                        @endif
+                    </div>
+                </td>
+                <td colspan="3" rowspan="2">
+                    <div class="slot h-ket">
+                        <div class="pad">
+                            <div class="info-title">Keterangan</div>
+                            <table class="kvs">
+                                <tr><td class="k">No Invoice</td><td class="v">: {{ $arrivalNo }}</td></tr>
+                                <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
+                                <tr><td class="k">No Seal</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
+                                <tr><td class="k">Tanggal Tiba</td><td class="v">: {{ $dateText }}</td></tr>
+                                <tr><td class="k">Catatan</td><td class="v">: {{ $inspection?->notes ?: '-' }}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="2">
+                    <div class="slot h-kiri">
+                        <div class="label">Kiri</div>
+                        @if ($p = $photo('left'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kiri</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="2">
+                    <div class="slot h-kanan">
+                        <div class="label">Kanan</div>
+                        @if ($p = $photo('right'))
+                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                        @else
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kanan</div></td></tr></table>
+                        @endif
+                    </div>
+                </td>
+                <td colspan="3">
+                    <div class="slot h-ttd">
+                        <div class="pad">
+                            <div class="info-title">TTD</div>
+                            <table class="sig-grid">
+                                <tr>
+                                    <td>
+                                        <div class="sig-box">
+                                            <div class="sig-title">Diperiksa Oleh</div>
+                                            <div class="sig-line"></div>
+                                            <div class="sig-name">Nurwahid/Ida</div>
                                         </div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
+                                    </td>
+                                    <td>
+                                        <div class="sig-box">
+                                            <div class="sig-title">Mengetahui</div>
+                                            <div class="sig-line"></div>
+                                            <div class="sig-name">Fadri/Dita</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="sig-box">
+                                            <div class="sig-title">Driver</div>
+                                            <div class="sig-line"></div>
+                                            <div class="sig-name">{{ $inspection?->driver_name ?: '-' }}</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </td>
             </tr>
         </table>

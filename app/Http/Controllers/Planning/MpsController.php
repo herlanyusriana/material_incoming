@@ -3,58 +3,61 @@
 namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
-use App\Models\CustomerOrder;
 use App\Models\Forecast;
 use App\Models\Mps;
-use App\Models\Product;
+use App\Models\GciPart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class MpsController extends Controller
 {
-    private function validatePeriod(string $field = 'period'): array
+    private function validateMinggu(string $field = 'minggu'): array
     {
-        return [$field => ['required', 'string', 'regex:/^\\d{4}-(0[1-9]|1[0-2])$/']];
+        return [$field => ['required', 'string', 'regex:/^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/']];
     }
 
     public function index(Request $request)
     {
-        $period = $request->query('period') ?: now()->format('Y-m');
+        $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
 
         $rows = Mps::query()
-            ->with('product')
-            ->where('period', $period)
-            ->orderBy(Product::select('code')->whereColumn('products.id', 'mps.product_id'))
+            ->with('part')
+            ->where('minggu', $minggu)
+            ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'mps.part_id'))
             ->get();
 
-        return view('planning.mps.index', compact('period', 'rows'));
+        return view('planning.mps.index', compact('minggu', 'rows'));
     }
 
     public function generate(Request $request)
     {
-        $validated = $request->validate($this->validatePeriod());
-        $period = $validated['period'];
+        $validated = $request->validate($this->validateMinggu());
+        $minggu = $validated['minggu'];
 
-        DB::transaction(function () use ($period) {
-            $products = Product::query()->where('status', 'active')->get(['id']);
-            foreach ($products as $product) {
+        DB::transaction(function () use ($minggu) {
+            $partIdsFromForecast = Forecast::query()
+                ->where('minggu', $minggu)
+                ->where('qty', '>', 0)
+                ->pluck('part_id');
+
+            $partIdsFromExistingMps = Mps::query()
+                ->where('minggu', $minggu)
+                ->pluck('part_id');
+
+            $parts = GciPart::query()
+                ->whereIn('id', $partIdsFromForecast->merge($partIdsFromExistingMps)->unique()->values())
+                ->where('status', 'active')
+                ->get(['id']);
+
+            foreach ($parts as $part) {
                 $forecastQty = (float) (Forecast::query()
-                    ->where('product_id', $product->id)
-                    ->where('period', $period)
+                    ->where('part_id', $part->id)
+                    ->where('minggu', $minggu)
                     ->value('qty') ?? 0);
 
-                $openOrderQty = (float) (CustomerOrder::query()
-                    ->where('product_id', $product->id)
-                    ->where('period', $period)
-                    ->where('status', 'open')
-                    ->sum('qty') ?? 0);
-
-                $computed = max($forecastQty, $openOrderQty);
-
                 $existing = Mps::query()
-                    ->where('product_id', $product->id)
-                    ->where('period', $period)
+                    ->where('part_id', $part->id)
+                    ->where('minggu', $minggu)
                     ->lockForUpdate()
                     ->first();
 
@@ -64,11 +67,11 @@ class MpsController extends Controller
 
                 if (!$existing) {
                     Mps::create([
-                        'product_id' => $product->id,
-                        'period' => $period,
+                        'part_id' => $part->id,
+                        'minggu' => $minggu,
                         'forecast_qty' => $forecastQty,
-                        'open_order_qty' => $openOrderQty,
-                        'planned_qty' => $computed,
+                        'open_order_qty' => 0,
+                        'planned_qty' => $forecastQty,
                         'status' => 'draft',
                     ]);
                     continue;
@@ -77,13 +80,13 @@ class MpsController extends Controller
                 $existingPlanned = (float) $existing->planned_qty;
                 $existing->update([
                     'forecast_qty' => $forecastQty,
-                    'open_order_qty' => $openOrderQty,
-                    'planned_qty' => max($existingPlanned, $computed),
+                    'open_order_qty' => 0,
+                    'planned_qty' => max($existingPlanned, $forecastQty),
                 ]);
             }
         });
 
-        return redirect()->route('planning.mps.index', ['period' => $period])->with('success', 'MPS generated (draft).');
+        return redirect()->route('planning.mps.index', ['minggu' => $minggu])->with('success', 'MPS generated (draft).');
     }
 
     public function update(Request $request, Mps $mps)
@@ -103,19 +106,30 @@ class MpsController extends Controller
 
     public function approve(Request $request)
     {
-        $validated = $request->validate($this->validatePeriod());
-        $period = $validated['period'];
+        $validated = $request->validate($this->validateMinggu());
+        $minggu = $validated['minggu'];
+
+        $mpsIds = collect($request->input('mps_ids', []))
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($mpsIds)) {
+            return back()->with('error', 'Select at least one MPS row to approve.');
+        }
 
         $updated = Mps::query()
-            ->where('period', $period)
+            ->where('minggu', $minggu)
             ->where('status', 'draft')
+            ->whereIn('id', $mpsIds)
             ->update([
                 'status' => 'approved',
                 'approved_by' => $request->user()->id,
                 'approved_at' => now(),
             ]);
 
-        return redirect()->route('planning.mps.index', ['period' => $period])->with('success', "Approved {$updated} rows.");
+        return redirect()->route('planning.mps.index', ['minggu' => $minggu])->with('success', "Approved {$updated} rows.");
     }
 }
-

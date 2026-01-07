@@ -3,70 +3,116 @@
 namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomerPo;
 use App\Models\Forecast;
-use App\Models\Product;
+use App\Models\GciPart;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class ForecastController extends Controller
 {
-    private function validatePeriod(string $field = 'period'): array
+    private function validateMinggu(string $field = 'minggu'): array
     {
-        return [$field => ['required', 'string', 'regex:/^\\d{4}-(0[1-9]|1[0-2])$/']];
+        return [$field => ['required', 'string', 'regex:/^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/']];
     }
 
     public function index(Request $request)
     {
-        $period = $request->query('period') ?: now()->format('Y-m');
-        $productId = $request->query('product_id');
+        $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
+        $partId = $request->query('part_id');
 
-        $products = Product::query()->orderBy('code')->get();
+        $parts = GciPart::query()->orderBy('part_no')->get();
 
         $forecasts = Forecast::query()
-            ->with('product')
-            ->where('period', $period)
-            ->when($productId, fn ($q) => $q->where('product_id', $productId))
-            ->orderBy(Product::select('code')->whereColumn('products.id', 'forecasts.product_id'))
+            ->with('part')
+            ->where('minggu', $minggu)
+            ->when($partId, fn ($q) => $q->where('part_id', $partId))
+            ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'forecasts.part_id'))
             ->paginate(25)
             ->withQueryString();
 
-        return view('planning.forecasts.index', compact('products', 'forecasts', 'period', 'productId'));
+        return view('planning.forecasts.index', compact('parts', 'forecasts', 'minggu', 'partId'));
     }
 
-    public function store(Request $request)
+    public function generate(Request $request)
     {
-        $validated = $request->validate(array_merge(
-            $this->validatePeriod(),
-            [
-                'product_id' => ['required', Rule::exists('products', 'id')],
-                'qty' => ['required', 'numeric', 'min:0'],
-            ],
-        ));
+        $validated = $request->validate($this->validateMinggu());
+        $minggu = $validated['minggu'];
 
-        Forecast::updateOrCreate(
-            ['product_id' => (int) $validated['product_id'], 'period' => $validated['period']],
-            ['qty' => $validated['qty']],
-        );
+        $planningRows = DB::table('customer_planning_rows as r')
+            ->join('customer_planning_imports as i', 'i.id', '=', 'r.import_id')
+            ->join('customer_parts as cp', function ($join) {
+                $join->on('cp.customer_id', '=', 'i.customer_id')
+                    ->on('cp.customer_part_no', '=', 'r.customer_part_no');
+            })
+            ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
+            ->where('r.row_status', 'accepted')
+            ->where('r.minggu', $minggu)
+            ->select('cpc.part_id', DB::raw('SUM(r.qty * cpc.usage_qty) as qty'))
+            ->groupBy('cpc.part_id')
+            ->get();
 
-        return back()->with('success', 'Forecast saved.');
-    }
+        $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn ($v) => (float) $v)->all();
 
-    public function update(Request $request, Forecast $forecast)
-    {
-        $validated = $request->validate([
-            'qty' => ['required', 'numeric', 'min:0'],
-        ]);
+        $poDirect = CustomerPo::query()
+            ->whereNotNull('part_id')
+            ->where('minggu', $minggu)
+            ->where('status', 'open')
+            ->select('part_id', DB::raw('SUM(qty) as qty'))
+            ->groupBy('part_id')
+            ->get();
 
-        $forecast->update(['qty' => $validated['qty']]);
+        $poFromCustomerPart = DB::table('customer_pos as po')
+            ->join('customer_parts as cp', function ($join) {
+                $join->on('cp.customer_id', '=', 'po.customer_id')
+                    ->on('cp.customer_part_no', '=', 'po.customer_part_no');
+            })
+            ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
+            ->whereNull('po.part_id')
+            ->whereNotNull('po.customer_part_no')
+            ->where('po.minggu', $minggu)
+            ->where('po.status', 'open')
+            ->select('cpc.part_id', DB::raw('SUM(po.qty * cpc.usage_qty) as qty'))
+            ->groupBy('cpc.part_id')
+            ->get();
 
-        return back()->with('success', 'Forecast updated.');
-    }
+        $poByPart = [];
+        foreach ($poDirect as $row) {
+            $poByPart[(int) $row->part_id] = ((float) $row->qty) + ($poByPart[(int) $row->part_id] ?? 0);
+        }
+        foreach ($poFromCustomerPart as $row) {
+            $poByPart[(int) $row->part_id] = ((float) $row->qty) + ($poByPart[(int) $row->part_id] ?? 0);
+        }
 
-    public function destroy(Forecast $forecast)
-    {
-        $forecast->delete();
+        $partIds = collect(array_keys($planningByPart))
+            ->merge(array_keys($poByPart))
+            ->unique()
+            ->values();
 
-        return back()->with('success', 'Forecast deleted.');
+        foreach ($partIds as $partId) {
+            $planningQty = (float) ($planningByPart[$partId] ?? 0);
+            $poQty = (float) ($poByPart[$partId] ?? 0);
+            $forecastQty = max($planningQty, $poQty);
+
+            $source = 'planning';
+            if ($planningQty <= 0 && $poQty > 0) {
+                $source = 'po';
+            } elseif ($planningQty > 0 && $poQty > 0) {
+                $source = 'mixed';
+            }
+
+            Forecast::updateOrCreate(
+                ['part_id' => $partId, 'minggu' => $minggu],
+                [
+                    'qty' => $forecastQty,
+                    'planning_qty' => $planningQty,
+                    'po_qty' => $poQty,
+                    'source' => $source,
+                ],
+            );
+        }
+
+        return redirect()->route('planning.forecasts.index', ['minggu' => $minggu])
+            ->with('success', 'Forecast generated.');
     }
 }
-

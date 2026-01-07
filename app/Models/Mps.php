@@ -12,23 +12,23 @@ class Mps extends Model
     protected $table = 'mps';
 
     protected $fillable = [
-        'product_id',
-        'period',
         'forecast_qty',
         'open_order_qty',
         'planned_qty',
         'status',
         'approved_by',
         'approved_at',
+        'part_id',
+        'minggu',
     ];
 
     protected $casts = [
         'approved_at' => 'datetime',
     ];
 
-    public function product()
+    public function part()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(GciPart::class, 'part_id');
     }
 
     public function approver()
@@ -36,4 +36,3 @@ class Mps extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 }
-

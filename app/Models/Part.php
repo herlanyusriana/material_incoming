@@ -74,4 +74,14 @@ class Part extends Model
     {
         return $this->hasMany(ArrivalItem::class);
     }
+
+    public function inventory()
+    {
+        return $this->hasOne(Inventory::class);
+    }
+
+    public function usedInBomItems()
+    {
+        return $this->hasMany(BomItem::class, 'component_part_id');
+    }
 }

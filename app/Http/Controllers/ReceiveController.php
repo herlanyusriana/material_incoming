@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Receive;
 use App\Models\ArrivalItem;
 use App\Models\Arrival;
+use App\Models\Inventory;
 use App\Exports\CompletedInvoiceReceivesExport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -289,37 +290,61 @@ class ReceiveController extends Controller
                 ]);
         }
 
-        // Create a receive record for each tag with default values
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
-        foreach ($validated['tags'] as $tagData) {
-            if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
-                return back()
-                    ->withInput()
-                    ->withErrors([
+        $partId = (int) $arrivalItem->part_id;
+        $receiveQtyForInventory = 0;
+
+        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, &$receiveQtyForInventory) {
+            foreach ($validated['tags'] as $tagData) {
+                if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
+                    throw new HttpResponseException(back()->withInput()->withErrors([
                         'tags' => "Unit qty tidak sesuai. Item ini menggunakan unit {$goodsUnit}.",
-                    ]);
+                    ]));
+                }
+
+                $netWeight = $tagData['net_weight'] ?? $tagData['weight'] ?? null;
+                if ($netWeight === null && $goodsUnit === 'KGM') {
+                    $netWeight = $tagData['qty'];
+                }
+
+                $arrivalItem->receives()->create([
+                    'tag' => $tagData['tag'],
+                    'qty' => $tagData['qty'],
+                    'bundle_unit' => $tagData['bundle_unit'] ?? null,
+                    'bundle_qty' => $tagData['bundle_qty'] ?? 1,
+                    // Keep `weight` for existing reporting, mirror from net_weight
+                    'weight' => $netWeight,
+                    'net_weight' => $netWeight,
+                    'gross_weight' => $tagData['gross_weight'] ?? null,
+                    'qty_unit' => $goodsUnit,
+                    'ata_date' => now(),
+                    'qc_status' => $tagData['qc_status'] ?? 'pass',
+                    'jo_po_number' => null,
+                    'location_code' => null,
+                ]);
+
+                if (($tagData['qc_status'] ?? 'pass') === 'pass') {
+                    $receiveQtyForInventory += (float) $tagData['qty'];
+                }
             }
 
-            $netWeight = $tagData['net_weight'] ?? $tagData['weight'] ?? null;
-            if ($netWeight === null && $goodsUnit === 'KGM') {
-                $netWeight = $tagData['qty'];
+            if ($receiveQtyForInventory > 0 && $partId) {
+                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+                if ($inventory) {
+                    $inventory->update([
+                        'on_hand' => (float) $inventory->on_hand + $receiveQtyForInventory,
+                        'as_of_date' => now()->toDateString(),
+                    ]);
+                } else {
+                    Inventory::create([
+                        'part_id' => $partId,
+                        'on_hand' => $receiveQtyForInventory,
+                        'on_order' => 0,
+                        'as_of_date' => now()->toDateString(),
+                    ]);
+                }
             }
-            $arrivalItem->receives()->create([
-                'tag' => $tagData['tag'],
-                'qty' => $tagData['qty'],
-                'bundle_unit' => $tagData['bundle_unit'] ?? null,
-                'bundle_qty' => $tagData['bundle_qty'] ?? 1,
-                // Keep `weight` for existing reporting, mirror from net_weight
-                'weight' => $netWeight,
-                'net_weight' => $netWeight,
-                'gross_weight' => $tagData['gross_weight'] ?? null,
-                'qty_unit' => $goodsUnit,
-                'ata_date' => now(),
-                'qc_status' => $tagData['qc_status'] ?? 'pass',
-                'jo_po_number' => null,
-                'location_code' => null,
-            ]);
-        }
+        });
 
         $arrival = $arrivalItem->arrival()->with('items.receives')->first();
         if ($arrival) {
@@ -380,40 +405,67 @@ class ReceiveController extends Controller
             }
         }
 
-        foreach ($itemsInput as $itemId => $itemData) {
-            $arrivalItem = $arrival->items->firstWhere('id', $itemId);
-            $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
+        $inventoryAdds = [];
 
-            foreach ($itemData['tags'] as $tagData) {
-                if (strtoupper($tagData['qty_unit'] ?? '') !== $goodsUnit) {
-                    return back()
-                        ->withInput()
-                        ->withErrors([
+        DB::transaction(function () use ($itemsInput, $arrival, &$inventoryAdds) {
+            foreach ($itemsInput as $itemId => $itemData) {
+                $arrivalItem = $arrival->items->firstWhere('id', $itemId);
+                $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
+
+                foreach ($itemData['tags'] as $tagData) {
+                    if (strtoupper($tagData['qty_unit'] ?? '') !== $goodsUnit) {
+                        throw new HttpResponseException(back()->withInput()->withErrors([
                             "items.$itemId.tags" => "Unit qty tidak sesuai. Item ini menggunakan unit {$goodsUnit}.",
-                        ]);
-                }
+                        ]));
+                    }
 
-                $netWeight = $tagData['net_weight'] ?? $tagData['weight'] ?? null;
-                if ($netWeight === null && $goodsUnit === 'KGM') {
-                    $netWeight = $tagData['qty'];
+                    $netWeight = $tagData['net_weight'] ?? $tagData['weight'] ?? null;
+                    if ($netWeight === null && $goodsUnit === 'KGM') {
+                        $netWeight = $tagData['qty'];
+                    }
+                    $arrivalItem->receives()->create([
+                        'tag' => $tagData['tag'],
+                        'qty' => $tagData['qty'],
+                        'bundle_unit' => $tagData['bundle_unit'] ?? null,
+                        'bundle_qty' => $tagData['bundle_qty'] ?? 1,
+                        // Keep `weight` for existing reporting, mirror from net_weight
+                        'weight' => $netWeight,
+                        'net_weight' => $netWeight,
+                        'gross_weight' => $tagData['gross_weight'] ?? null,
+                        'qty_unit' => $goodsUnit,
+                        'ata_date' => now(),
+                        'qc_status' => $tagData['qc_status'] ?? 'pass',
+                        'jo_po_number' => null,
+                        'location_code' => null,
+                    ]);
+
+                    if (($tagData['qc_status'] ?? 'pass') === 'pass') {
+                        $partId = (int) $arrivalItem->part_id;
+                        $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + (float) $tagData['qty'];
+                    }
                 }
-                $arrivalItem->receives()->create([
-                    'tag' => $tagData['tag'],
-                    'qty' => $tagData['qty'],
-                    'bundle_unit' => $tagData['bundle_unit'] ?? null,
-                    'bundle_qty' => $tagData['bundle_qty'] ?? 1,
-                    // Keep `weight` for existing reporting, mirror from net_weight
-                    'weight' => $netWeight,
-                    'net_weight' => $netWeight,
-                    'gross_weight' => $tagData['gross_weight'] ?? null,
-                    'qty_unit' => $goodsUnit,
-                    'ata_date' => now(),
-                    'qc_status' => $tagData['qc_status'] ?? 'pass',
-                    'jo_po_number' => null,
-                    'location_code' => null,
-                ]);
             }
-        }
+
+            foreach ($inventoryAdds as $partId => $qty) {
+                if ($qty <= 0 || !$partId) {
+                    continue;
+                }
+                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+                if ($inventory) {
+                    $inventory->update([
+                        'on_hand' => (float) $inventory->on_hand + $qty,
+                        'as_of_date' => now()->toDateString(),
+                    ]);
+                } else {
+                    Inventory::create([
+                        'part_id' => $partId,
+                        'on_hand' => $qty,
+                        'on_order' => 0,
+                        'as_of_date' => now()->toDateString(),
+                    ]);
+                }
+            }
+        });
 
         $arrival->load('items.receives');
         $message = !$this->hasPendingReceives($arrival)

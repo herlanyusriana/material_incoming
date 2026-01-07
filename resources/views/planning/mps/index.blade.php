@@ -20,8 +20,8 @@
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Period (YYYY-MM)</label>
-                            <input name="period" value="{{ $period }}" class="mt-1 rounded-xl border-slate-200" placeholder="2026-01">
+                            <label class="text-xs font-semibold text-slate-600">Minggu (YYYY-WW)</label>
+                            <input name="minggu" value="{{ $minggu }}" class="mt-1 rounded-xl border-slate-200" placeholder="2026-W01">
                         </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load</button>
                     </form>
@@ -29,24 +29,37 @@
                     <div class="flex items-center gap-2">
                         <form method="POST" action="{{ route('planning.mps.generate') }}">
                             @csrf
-                            <input type="hidden" name="period" value="{{ $period }}">
+                            <input type="hidden" name="minggu" value="{{ $minggu }}">
                             <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate</button>
                         </form>
-                        <form method="POST" action="{{ route('planning.mps.approve') }}" onsubmit="return confirm('Approve all draft MPS rows for this period?')">
-                            @csrf
-                            <input type="hidden" name="period" value="{{ $period }}">
-                            <button class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Approve</button>
-                        </form>
+                        <button
+                            type="submit"
+                            form="approve-form"
+                            class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                            onclick="return confirm('Approve selected MPS rows?')"
+                        >
+                            Approve Selected
+                        </button>
                     </div>
                 </div>
 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <form id="approve-form" method="POST" action="{{ route('planning.mps.approve') }}">
+                        @csrf
+                        <input type="hidden" name="minggu" value="{{ $minggu }}">
+                    </form>
+
                     <table class="min-w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">Product</th>
-                                <th class="px-4 py-3 text-right font-semibold">Forecast</th>
-                                <th class="px-4 py-3 text-right font-semibold">Open Orders</th>
+                                <th class="px-4 py-3 text-left font-semibold">
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="checkbox" class="rounded border-slate-300" x-model="selectAll" @change="toggleAll()">
+                                        <span>Select</span>
+                                    </label>
+                                </th>
+                                <th class="px-4 py-3 text-left font-semibold">Part GCI</th>
+                                <th class="px-4 py-3 text-right font-semibold">Forecast Qty</th>
                                 <th class="px-4 py-3 text-right font-semibold">Planned Qty</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Actions</th>
@@ -56,12 +69,25 @@
                             @forelse ($rows as $r)
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3">
-                                        <div class="font-semibold">{{ $r->product->code ?? '-' }}</div>
-                                        <div class="text-xs text-slate-500">{{ $r->product->name ?? '-' }}</div>
+                                        @if ($r->status !== 'approved')
+                                            <input
+                                                type="checkbox"
+                                                name="mps_ids[]"
+                                                value="{{ $r->id }}"
+                                                form="approve-form"
+                                                class="rounded border-slate-300"
+                                                x-model="selected"
+                                            >
+                                        @else
+                                            <span class="text-xs text-slate-300">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-semibold">{{ $r->part->part_no ?? '-' }}</div>
+                                        <div class="text-xs text-slate-500">{{ $r->part->part_name ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $r->forecast_qty, 3) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $r->open_order_qty, 3) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $r->planned_qty, 3) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ number_format((float) $r->planned_qty, 3) }}</td>
                                     <td class="px-4 py-3">
                                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $r->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
                                             {{ strtoupper($r->status) }}
@@ -89,7 +115,6 @@
             </div>
         </div>
 
-        <!-- Modal -->
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
             <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
@@ -102,8 +127,8 @@
                     <input type="hidden" name="_method" value="PUT">
 
                     <div class="text-sm text-slate-700">
-                        <div class="font-semibold" x-text="form.productLabel"></div>
-                        <div class="text-xs text-slate-500">Period: {{ $period }}</div>
+                        <div class="font-semibold" x-text="form.partLabel"></div>
+                        <div class="text-xs text-slate-500">Minggu: {{ $minggu }}</div>
                     </div>
 
                     <div>
@@ -124,12 +149,20 @@
                 return {
                     modalOpen: false,
                     formAction: '',
-                    form: { id: null, planned_qty: '0', productLabel: '' },
+                    form: { id: null, planned_qty: '0', partLabel: '' },
+                    selectAll: false,
+                    selected: [],
+                    toggleAll() {
+                        const checkboxes = document.querySelectorAll('input[name=\"mps_ids[]\"]');
+                        this.selected = this.selectAll
+                            ? Array.from(checkboxes).map((c) => c.value)
+                            : [];
+                    },
                     openEdit(r) {
                         this.formAction = @js(url('/planning/mps')) + '/' + r.id;
-                        const code = r.product?.code ?? '-';
-                        const name = r.product?.name ?? '-';
-                        this.form = { id: r.id, planned_qty: r.planned_qty, productLabel: `${code} — ${name}` };
+                        const code = r.part?.part_no ?? '-';
+                        const name = r.part?.part_name ?? '-';
+                        this.form = { id: r.id, planned_qty: r.planned_qty, partLabel: `${code} — ${name}` };
                         this.modalOpen = true;
                     },
                     close() { this.modalOpen = false; },
@@ -138,4 +171,3 @@
         </script>
     </div>
 </x-app-layout>
-
