@@ -22,13 +22,14 @@
         .slot-inner { width: 100%; height: 100%; table-layout: fixed; }
         .slot-cell { text-align: center; vertical-align: middle; padding: 0; }
 
-        /* Dompdf-friendly "contain" behavior */
-        .img {
-            display: inline-block;
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
+        /* Minimize whitespace: fill frame without stretching (crop is OK) */
+        .photo-bg {
+            width: 100%;
+            height: 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-color: #f2f2f2;
         }
 
         .label {
@@ -99,29 +100,21 @@
                             <td>
                                 <div class="slot h-left">
                                     <div class="label">Depan</div>
-                                    <table class="slot-inner">
-                                        <tr><td class="slot-cell">
-                                            @if ($p = $photo('front'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Depan">
-                                            @else
-                                                <div class="empty">Foto Depan</div>
-                                            @endif
-                                        </td></tr>
-                                    </table>
+                                    @if ($p = $photo('front'))
+                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                                    @else
+                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Depan</div></td></tr></table>
+                                    @endif
                                 </div>
                             </td>
                             <td>
                                 <div class="slot h-left">
                                     <div class="label">Belakang</div>
-                                    <table class="slot-inner">
-                                        <tr><td class="slot-cell">
-                                            @if ($p = $photo('back'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Belakang">
-                                            @else
-                                                <div class="empty">Foto Belakang</div>
-                                            @endif
-                                        </td></tr>
-                                    </table>
+                                    @if ($p = $photo('back'))
+                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                                    @else
+                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Belakang</div></td></tr></table>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -129,30 +122,26 @@
                             <td>
                                 <div class="slot h-left">
                                     <div class="label">Dalam</div>
-                                    <table class="slot-inner">
-                                        <tr><td class="slot-cell">
-                                            @if ($p = $photo('inside'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Dalam">
-                                            @else
-                                                <div class="empty">Foto Interior</div>
-                                            @endif
-                                        </td></tr>
-                                    </table>
+                                    @if ($p = $photo('inside'))
+                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                                    @else
+                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Interior</div></td></tr></table>
+                                    @endif
                                 </div>
                             </td>
                             <td>
                                 <div class="slot h-left">
                                     <div class="label">No Seal</div>
-                                    <table class="slot-inner">
-                                        <tr><td class="slot-cell">
-                                            @if ($p = $photo('seal'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="No Seal">
-                                            @else
+                                    @if ($p = $photo('seal'))
+                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                                    @else
+                                        <table class="slot-inner">
+                                            <tr><td class="slot-cell">
                                                 <div class="seal-code">{{ $sealCode ?: '-' }}</div>
                                                 <div class="empty" style="margin-top:2mm;">Foto No Seal</div>
-                                            @endif
-                                        </td></tr>
-                                    </table>
+                                            </td></tr>
+                                        </table>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -164,15 +153,11 @@
                             <td>
                                 <div class="slot h-right-land">
                                     <div class="label">Kiri</div>
-                                    <table class="slot-inner">
-                                        <tr><td class="slot-cell">
-                                            @if ($p = $photo('left'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Kiri">
-                                            @else
-                                                <div class="empty">Foto Kiri (LANDSCAPE)</div>
-                                            @endif
-                                        </td></tr>
-                                    </table>
+                                    @if ($p = $photo('left'))
+                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                                    @else
+                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kiri (LANDSCAPE)</div></td></tr></table>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -180,15 +165,11 @@
                             <td>
                                 <div class="slot h-right-land">
                                     <div class="label">Kanan</div>
-                                    <table class="slot-inner">
-                                        <tr><td class="slot-cell">
-                                            @if ($p = $photo('right'))
-                                                <img class="img" src="{{ $p['src'] }}" alt="Kanan">
-                                            @else
-                                                <div class="empty">Foto Kanan (LANDSCAPE)</div>
-                                            @endif
-                                        </td></tr>
-                                    </table>
+                                    @if ($p = $photo('right'))
+                                        <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                                    @else
+                                        <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kanan (LANDSCAPE)</div></td></tr></table>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
