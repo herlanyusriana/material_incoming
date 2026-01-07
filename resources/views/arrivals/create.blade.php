@@ -98,15 +98,13 @@
 	                            <input type="text" id="port_of_loading" name="port_of_loading" value="{{ old('port_of_loading') }}" placeholder="e.g., HOCHIMINH, VIET NAM" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
 	                            @error('port_of_loading') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
 	                        </div>
-	                        <div class="md:col-span-2 space-y-1">
-	                            <label for="hs_codes" class="text-sm font-medium text-gray-700">HS Code (bisa lebih dari 1)</label>
-	                            <textarea id="hs_codes" name="hs_codes" rows="2" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Pisahkan dengan enter atau koma (contoh: 7208.90.00, 7210.70.00)">{{ old('hs_codes', old('hs_code')) }}</textarea>
-	                            <p class="text-xs text-gray-500">Opsional. Kalau kosong, sistem bisa ambil dari HS Code per part.</p>
-	                            @error('hs_codes') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-	                            @error('hs_code') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-	                        </div>
-	                    </div>
-	                </div>
+                                <div class="md:col-span-2">
+                                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                                        HS Code akan otomatis ter-generate dari detail item (tidak perlu input manual).
+                                    </div>
+                                </div>
+		                    </div>
+		                </div>
 
                 <!-- Section 3: Transport -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -670,7 +668,7 @@
                 const unitGoods = String(unitGoodsEl?.value ?? '').trim().toUpperCase();
                 if (unitGoods === 'KGM' || unitGoods === 'KG') {
                     const weightCenti = toCents(nettEl?.value);
-                    const priceMilli = weightCenti > 0 ? Math.floor((totalCents * 1000) / weightCenti) : 0;
+                    const priceMilli = weightCenti > 0 ? Math.floor(((totalCents * 1000) + (weightCenti / 2)) / weightCenti) : 0;
                     const priceText = formatMilli(priceMilli);
 
                     const hiddenPrice = row.querySelector('.price');
@@ -690,6 +688,33 @@
 	            const priceDisplay = row.querySelector('.price-display');
 	            if (priceDisplay) priceDisplay.value = priceText;
 	        }
+
+        function validateWeights(row) {
+            const nettEl = row.querySelector('.weight-nett');
+            const grossEl = row.querySelector('.weight-gross');
+            const warningEl = row.querySelector('.weight-warning');
+            if (!nettEl || !grossEl) return true;
+
+            const parse = (el) => {
+                const raw = String(el?.value ?? '').trim().replace(/,/g, '.');
+                if (!raw) return null;
+                const n = Number.parseFloat(raw);
+                return Number.isFinite(n) ? n : null;
+            };
+
+            const nett = parse(nettEl);
+            const gross = parse(grossEl);
+            const invalid = nett !== null && gross !== null && nett > gross;
+
+            [nettEl, grossEl].forEach((el) => {
+                if (!el) return;
+                el.classList.toggle('border-red-400', invalid);
+                el.classList.toggle('focus:border-red-500', invalid);
+                el.classList.toggle('focus:ring-red-500', invalid);
+            });
+            if (warningEl) warningEl.classList.toggle('hidden', !invalid);
+            return !invalid;
+        }
 
         function installAutoPriceDelegation() {
             if (!groupsContainer) return;
@@ -896,6 +921,12 @@
                             <span class="text-xs font-semibold text-slate-500 w-[56px] text-right">KGM</span>
                         </div>
                     </div>
+                    <div class="sm:flex sm:items-start sm:gap-4">
+                        <div class="sm:w-44"></div>
+                        <p class="weight-warning mt-1 hidden text-xs font-semibold text-red-600 sm:flex-1">
+                            Net weight harus lebih kecil atau sama dengan gross weight.
+                        </p>
+                    </div>
 
                     <div class="sm:flex sm:items-start sm:gap-4">
                         <label class="text-xs font-semibold text-slate-500 sm:w-44 sm:pt-2">Total Price</label>
@@ -972,8 +1003,13 @@
 	                    field.addEventListener('input', () => updateTotal(row));
                         field.addEventListener('change', () => updateTotal(row));
 	                }
+                    if (field === nettField || field === grossField) {
+                        field.addEventListener('input', () => validateWeights(row));
+                        field.addEventListener('change', () => validateWeights(row));
+                    }
 	            });
             updateTotal(row);
+            validateWeights(row);
 
             const partSelect = row.querySelector('.part-select');
             partSelect.addEventListener('change', () => applyPartDefaults(row, vendorIdInput.value, partSelect.value));

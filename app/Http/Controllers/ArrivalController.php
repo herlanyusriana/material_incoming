@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ArrivalController extends Controller
@@ -93,6 +94,61 @@ class ArrivalController extends Controller
         return $codes->isEmpty() ? null : $codes->implode("\n");
     }
 
+    private function parseWidthFromSize(?string $size): ?float
+    {
+        $raw = trim((string) $size);
+        if ($raw === '') {
+            return null;
+        }
+
+        $raw = str_replace(',', '.', $raw);
+        $numbers = [];
+        if (!preg_match_all('/\d+(?:\.\d+)?/', $raw, $matches)) {
+            return null;
+        }
+
+        foreach (($matches[0] ?? []) as $n) {
+            $numbers[] = (float) $n;
+        }
+
+        // Expected patterns:
+        // - "0.25 x 640 x 1215" => take middle (width) => 640
+        // - "1.0 x 91 x C"      => take middle (width) => 91
+        if (count($numbers) >= 2) {
+            return $numbers[1];
+        }
+
+        return null;
+    }
+
+    private function inferHsCodesFromItems(iterable $items): ?string
+    {
+        $codes = collect($items)
+            ->map(function ($item) {
+                $unitGoods = strtoupper(trim((string) (data_get($item, 'unit_goods') ?? '')));
+                $materialGroup = strtoupper(trim((string) (data_get($item, 'material_group') ?? '')));
+
+                // PIN steel: size format is diameter x length, so do NOT use width parsing.
+                // Best-effort detection for now: unit EA and/or material group contains PIN.
+                if ($unitGoods === 'EA' || str_contains($materialGroup, 'PIN')) {
+                    return '72141019';
+                }
+
+                $width = $this->parseWidthFromSize((string) (data_get($item, 'size') ?? ''));
+                if ($width === null) {
+                    return null;
+                }
+
+                // Steel sheet/coil classification by width
+                return $width >= 600 ? '72269999' : '72259900';
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        return $codes->isEmpty() ? null : $codes->implode("\n");
+    }
+
     private function filterArrivalColumns(array $data): array
     {
         return collect($data)
@@ -149,8 +205,12 @@ class ArrivalController extends Controller
             $request->merge(['items' => $items]);
         }
 
+        $request->merge([
+            'invoice_no' => strtoupper(trim((string) $request->input('invoice_no', ''))),
+        ]);
+
 		        $validated = $request->validate([
-		            'invoice_no' => ['required', 'string', 'max:255'],
+		            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')],
 		            'invoice_date' => ['required', 'date'],
 		            'vendor_id' => ['required', 'exists:vendors,id'],
 		            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
@@ -163,11 +223,9 @@ class ArrivalController extends Controller
                     'bl_status' => ['nullable', 'in:surrender,draft'],
                     'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
 		            'price_term' => ['nullable', 'string', 'max:50'],
-		            'hs_code' => ['nullable', 'string', 'max:255'],
-		            'hs_codes' => ['nullable', 'string', 'max:2000'],
 		            'port_of_loading' => ['nullable', 'string', 'max:255'],
-	            'container_numbers' => ['nullable', 'string'],
-	            'seal_code' => ['nullable', 'string', 'max:100'],
+		            'container_numbers' => ['nullable', 'string'],
+		            'seal_code' => ['nullable', 'string', 'max:100'],
 	            'containers' => ['nullable', 'array'],
             'containers.*.container_no' => ['required_with:containers', 'string', 'max:50', 'distinct'],
             'containers.*.seal_code' => ['required_with:containers.*.container_no', 'string', 'max:100'],
@@ -181,13 +239,23 @@ class ArrivalController extends Controller
             'items.*.unit_bundle' => ['nullable', 'string', 'max:20'],
             'items.*.qty_goods' => ['required', 'integer', 'min:1'],
             'items.*.unit_goods' => ['nullable', 'string', 'max:20'],
-            'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
-            'items.*.unit_weight' => ['nullable', 'string', 'max:20'],
-            'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
-            'items.*.total_amount' => ['required', 'numeric', 'min:0'],
-            'items.*.price' => ['nullable', 'numeric', 'min:0'],
-            'items.*.notes' => ['nullable', 'string'],
-        ]);
+			            'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
+			            'items.*.unit_weight' => ['nullable', 'string', 'max:20'],
+			            'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
+			            'items.*.total_amount' => ['required', 'numeric', 'min:0'],
+			            'items.*.price' => ['nullable', 'numeric', 'min:0'],
+			            'items.*.notes' => ['nullable', 'string'],
+			        ]);
+
+            foreach (($validated['items'] ?? []) as $index => $item) {
+                $nett = (float) ($item['weight_nett'] ?? 0);
+                $gross = (float) ($item['weight_gross'] ?? 0);
+                if ($nett > $gross) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.weight_nett" => 'Net weight harus lebih kecil atau sama dengan gross weight.',
+                    ]);
+                }
+            }
 
 	        $vendorId = $validated['vendor_id'];
 	        $validated['invoice_no'] = strtoupper(trim((string) ($validated['invoice_no'] ?? '')));
@@ -233,10 +301,10 @@ class ArrivalController extends Controller
                 ? $normalizedContainers->pluck('container_no')->implode("\n")
                 : ($validated['container_numbers'] ?? null);
 
-	            $normalizedHsCodes = $this->normalizeHsCodes($validated['hs_codes'] ?? $validated['hs_code'] ?? null);
-	            $hsCodePrimary = $normalizedHsCodes
-	                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-	                : null;
+		            $normalizedHsCodes = $this->inferHsCodesFromItems($validated['items'] ?? []);
+		            $hsCodePrimary = $normalizedHsCodes
+		                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+		                : null;
 
 		            $arrivalData = [
 		                'invoice_no' => $validated['invoice_no'],
@@ -302,7 +370,7 @@ class ArrivalController extends Controller
                             if ($weightCenti <= 0) {
                                 return '0.000';
                             }
-                            $priceMilli = intdiv($totalCents * 1000, $weightCenti);
+                            $priceMilli = intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti);
                             return $this->formatMilli($priceMilli);
                         }
 
@@ -373,8 +441,12 @@ class ArrivalController extends Controller
                 ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
         }
 
+        $request->merge([
+            'invoice_no' => strtoupper(trim((string) $request->input('invoice_no', ''))),
+        ]);
+
 		        $data = $request->validate([
-		            'invoice_no' => ['required', 'string', 'max:255'],
+		            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')->ignore($departure->id)],
 		            'invoice_date' => ['required', 'date'],
 		            'etd' => ['nullable', 'date'],
 		            'eta' => ['nullable', 'date'],
@@ -384,11 +456,9 @@ class ArrivalController extends Controller
                     'bl_status' => ['nullable', 'in:surrender,draft'],
                     'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
 	            'price_term' => ['nullable', 'string', 'max:50'],
-	            'hs_code' => ['nullable', 'string', 'max:255'],
-	            'hs_codes' => ['nullable', 'string', 'max:2000'],
 	            'port_of_loading' => ['nullable', 'string', 'max:255'],
-            'container_numbers' => ['nullable', 'string'],
-            'seal_code' => ['nullable', 'string', 'max:100'],
+	            'container_numbers' => ['nullable', 'string'],
+	            'seal_code' => ['nullable', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
         ]);
@@ -400,7 +470,8 @@ class ArrivalController extends Controller
                 $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
             }
 
-	        $normalizedHsCodes = $this->normalizeHsCodes($data['hs_codes'] ?? $data['hs_code'] ?? null);
+            $departure->loadMissing('items');
+	        $normalizedHsCodes = $this->inferHsCodesFromItems($departure->items);
 	        $hsCodePrimary = $normalizedHsCodes
 	            ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
 	            : null;
@@ -554,31 +625,37 @@ class ArrivalController extends Controller
                 ->with('error', 'Item sudah punya receive, tidak bisa di-edit.');
         }
 
-        $data = $request->validate([
-            'material_group' => ['nullable', 'string', 'max:255'],
-            'size' => ['nullable', 'string', 'max:100'],
-            'unit_bundle' => ['nullable', 'string', 'max:20'],
-            'qty_bundle' => ['nullable', 'integer', 'min:0'],
-            'qty_goods' => ['required', 'integer', 'min:1'],
-            'unit_goods' => ['nullable', 'string', 'max:20'],
-            'weight_nett' => ['required', 'numeric', 'min:0'],
-            'weight_gross' => ['required', 'numeric', 'min:0'],
-            'total_amount' => ['required', 'numeric', 'min:0'],
-            'notes' => ['nullable', 'string'],
-        ]);
+	        $data = $request->validate([
+	            'material_group' => ['nullable', 'string', 'max:255'],
+	            'size' => ['nullable', 'string', 'max:100'],
+	            'unit_bundle' => ['nullable', 'string', 'max:20'],
+	            'qty_bundle' => ['nullable', 'integer', 'min:0'],
+	            'qty_goods' => ['required', 'integer', 'min:1'],
+	            'unit_goods' => ['nullable', 'string', 'max:20'],
+	            'weight_nett' => ['required', 'numeric', 'min:0'],
+	            'weight_gross' => ['required', 'numeric', 'min:0'],
+	            'total_amount' => ['required', 'numeric', 'min:0'],
+	            'notes' => ['nullable', 'string'],
+	        ]);
 
-        $normalizedNett = $this->normalizeDecimalInput($data['weight_nett']);
-        $normalizedGross = $this->normalizeDecimalInput($data['weight_gross']);
-        $normalizedTotal = $this->normalizeDecimalInput($data['total_amount']);
+	        $normalizedNett = $this->normalizeDecimalInput($data['weight_nett']);
+	        $normalizedGross = $this->normalizeDecimalInput($data['weight_gross']);
+	        $normalizedTotal = $this->normalizeDecimalInput($data['total_amount']);
 
-        $qtyGoods = (int) $data['qty_goods'];
-        $totalPrice = round((float) $normalizedTotal, 2);
-        $totalCents = $this->toCents($normalizedTotal);
+            if ((float) $normalizedNett > (float) $normalizedGross) {
+                throw ValidationException::withMessages([
+                    'weight_nett' => 'Net weight harus lebih kecil atau sama dengan gross weight.',
+                ]);
+            }
+
+	        $qtyGoods = (int) $data['qty_goods'];
+	        $totalPrice = round((float) $normalizedTotal, 2);
+	        $totalCents = $this->toCents($normalizedTotal);
 
         $goodsUnit = strtoupper(trim((string) ($data['unit_goods'] ?? '')));
         if (in_array($goodsUnit, ['KGM', 'KG'], true)) {
             $weightCenti = $this->toCents($normalizedNett);
-            $priceMilli = $weightCenti > 0 ? intdiv($totalCents * 1000, $weightCenti) : 0;
+            $priceMilli = $weightCenti > 0 ? intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti) : 0;
         } else {
             $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
         }
