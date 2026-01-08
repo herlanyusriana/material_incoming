@@ -883,19 +883,34 @@
 			                    </tr>
 			                </table>
 				            </td>
-				            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">
+					            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">
                                 @php
+                                    // Packing list already has dedicated NET/GROSS columns.
+                                    // So quantity total should only show non-weight qty units (EA/COIL/etc).
+                                    // If there are no non-weight qty units (all goods are KGM/KG), show the weight total here.
                                     $totalParts = [];
                                     foreach ($qtyTotalsNonWeight as $unit => $value) {
                                         $totalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
                                     }
-                                    foreach ($nettTotalsByUnit as $unit => $value) {
-                                        $totalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
+                                    if (empty($totalParts)) {
+                                        foreach ($nettTotalsByUnit as $unit => $value) {
+                                            $totalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
+                                        }
                                     }
-                                    $totalPartsText = collect($totalParts)->map(fn ($t) => e($t))->implode('&nbsp;&nbsp;');
                                 @endphp
-                                <span style="white-space:nowrap;">{!! $totalPartsText !!}</span>
-				            </td>
+                                <table style="width:100%; border:none; margin:0; padding:0; table-layout:fixed; font-weight:bold;">
+                                    <tr>
+                                        @foreach($totalParts as $part)
+                                            <td style="border:none; padding:0 4px; text-align:center; white-space:nowrap; font-size:10px;">
+                                                {{ $part }}
+                                            </td>
+                                        @endforeach
+                                        @if(count($totalParts) === 1)
+                                            <td style="border:none; padding:0;"></td>
+                                        @endif
+                                    </tr>
+                                </table>
+					            </td>
 			            <td class="text-center text-bold" style="white-space:nowrap;">
                             @if($nettTotalsByUnit->count() <= 1)
                                 {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
