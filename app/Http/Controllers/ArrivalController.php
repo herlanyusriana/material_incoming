@@ -367,11 +367,8 @@ class ArrivalController extends Controller
                         $totalCents = $this->toCents($item['total_amount'] ?? 0);
                         $goodsUnit = strtoupper(trim((string) ($item['unit_goods'] ?? '')));
 
-                        if (in_array($goodsUnit, ['KGM', 'KG', 'COIL'], true)) {
-                            $weightCenti = $this->toCents($item['weight_nett'] ?? 0);
-                            if ($weightCenti <= 0) {
-                                return '0.000';
-                            }
+                        $weightCenti = $this->toCents($item['weight_nett'] ?? 0);
+                        if ($weightCenti > 0) {
                             $priceMilli = intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti);
                             return $this->formatMilli($priceMilli);
                         }
@@ -657,9 +654,9 @@ class ArrivalController extends Controller
 	        $totalCents = $this->toCents($normalizedTotal);
 
         $goodsUnit = strtoupper(trim((string) ($data['unit_goods'] ?? '')));
-        if (in_array($goodsUnit, ['KGM', 'KG', 'COIL'], true)) {
-            $weightCenti = $this->toCents($normalizedNett);
-            $priceMilli = $weightCenti > 0 ? intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti) : 0;
+        $weightCenti = $this->toCents($normalizedNett);
+        if ($weightCenti > 0) {
+            $priceMilli = intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti);
         } else {
             $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
         }

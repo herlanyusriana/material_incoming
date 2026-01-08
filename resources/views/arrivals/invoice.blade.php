@@ -548,11 +548,8 @@
 	                <td class="text-center">
 	                    <table style="width:100%; border:none; margin:0; padding:0;">
 	                        <tr>
-	                            @if($goodsUnitLabel === 'COIL' && (float) ($item->weight_nett ?? 0) > 0)
+	                            @if((float) ($item->weight_nett ?? 0) > 0)
 	                                <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
-	                            @elseif(!in_array($goodsUnitLabel, ['KGM', 'KG'], true) && (float) ($item->weight_nett ?? 0) > 0)
-	                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ format3_no_round($item->price) }} /{{ $goodsUnitLabel }}</td>
-	                                <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
 	                            @else
 	                                <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ format3_no_round($item->price) }} /{{ $goodsUnitLabel }}</td>
 	                            @endif
