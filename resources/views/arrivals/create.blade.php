@@ -222,11 +222,12 @@
         const vendorIdInput = document.getElementById('vendor_id');
         const suggestionsBox = document.getElementById('vendor-suggestions');
         const groupsContainer = document.getElementById('material-groups');
-        const refreshPartsBtn = document.getElementById('refresh-parts');
-        const containerRowsEl = document.getElementById('container-rows');
-        const existingItems = @json(old('items', []));
-        const refreshBtnLabel = refreshPartsBtn?.querySelector('[data-label]');
-        const refreshBtnDefaultText = refreshBtnLabel?.textContent || 'Sync Part Catalog';
+	        const refreshPartsBtn = document.getElementById('refresh-parts');
+	        const containerRowsEl = document.getElementById('container-rows');
+	        const existingItems = @json(old('items', []));
+	        const refreshBtnLabel = refreshPartsBtn?.querySelector('[data-label]');
+	        const refreshBtnDefaultText = refreshBtnLabel?.textContent || 'Sync Part Catalog';
+	        let lastVendorQuery = String(vendorInput?.value ?? '').toLowerCase().trim();
 
         const existingContainers = @json(old('containers', []));
         const legacyContainerNumbers = @json(old('container_numbers'));
@@ -439,38 +440,49 @@
 
         vendorInput.addEventListener('input', function () {
             const query = this.value.toLowerCase().trim();
-	            if (query.length === 0) {
-	                suggestionsBox.classList.add('hidden');
-	                vendorIdInput.value = '';
-	                resetGroups([]);
-	                rebuildMaterialTitleSelects(null);
-	                updateRefreshButtonState();
-	                requestSaveDraft();
-	                return;
-	            }
-            const matches = vendorsData.filter(v => v.name.toLowerCase().includes(query));
-            if (matches.length > 0) {
-                suggestionsBox.innerHTML = matches.map(v => {
+
+            const renderSuggestions = (list, q) => {
+                suggestionsBox.innerHTML = list.map(v => {
                     const name = v.name;
                     const lowerName = name.toLowerCase();
-                    const index = lowerName.indexOf(query);
+                    const index = q ? lowerName.indexOf(q) : -1;
                     let highlighted = name;
-                    if (index !== -1) {
+                    if (index !== -1 && q) {
                         highlighted = name.substring(0, index)
                             + '<span class="font-semibold text-blue-600">'
-                            + name.substring(index, index + query.length)
+                            + name.substring(index, index + q.length)
                             + '</span>'
-                            + name.substring(index + query.length);
+                            + name.substring(index + q.length);
                     }
                     return `<div class="px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors" data-id="${v.id}" data-name="${name}">
                         ${highlighted}
                     </div>`;
                 }).join('');
+            };
+
+            if (query.length === 0) {
+                renderSuggestions(vendorsData, '');
+                suggestionsBox.classList.remove('hidden');
+                if (lastVendorQuery.length > 0) {
+                    vendorIdInput.value = '';
+                    resetGroups([]);
+                    rebuildMaterialTitleSelects(null);
+                    updateRefreshButtonState();
+                    requestSaveDraft();
+                }
+                lastVendorQuery = query;
+                return;
+            }
+
+            const matches = vendorsData.filter(v => v.name.toLowerCase().includes(query));
+            if (matches.length > 0) {
+                renderSuggestions(matches, query);
                 suggestionsBox.classList.remove('hidden');
             } else {
                 suggestionsBox.innerHTML = '<div class="px-4 py-2 text-gray-500 text-sm italic">No vendors found</div>';
                 suggestionsBox.classList.remove('hidden');
             }
+            lastVendorQuery = query;
         });
 
         suggestionsBox.addEventListener('click', async function (e) {
@@ -491,11 +503,9 @@
             }
         });
 
-	        vendorInput.addEventListener('focus', function () {
-	            if (this.value.trim().length > 0) {
-	                this.dispatchEvent(new Event('input'));
-	            }
-	        });
+		        vendorInput.addEventListener('focus', function () {
+		            this.dispatchEvent(new Event('input'));
+		        });
 
 	        vendorInput.addEventListener('blur', async function () {
 	            if (vendorIdInput.value) return;
@@ -520,13 +530,13 @@
                 .replace(/'/g, '&#039;');
         }
 
-        function buildPartOptions(vendorId, groupTitle = '', partId = null) {
-            if (!vendorId) {
-                return '<option value="">Select vendor first</option>';
-            }
-            if (!partsCache[vendorId]) {
-                return '<option value="">Loading parts...</option>';
-            }
+	        function buildPartOptions(vendorId, groupTitle = '', partId = null) {
+	            if (!vendorId) {
+	                return '<option value="">Select vendor first</option>';
+	            }
+	            if (!partsCache[vendorId]) {
+	                return '<option value="">Loading parts...</option>';
+	            }
             const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
             const sourceList = partsCache[vendorId] || [];
             const filteredList = normalizedTitle
@@ -542,8 +552,40 @@
             if (!options) {
                 return `<option value="">No size for selected group</option>`;
             }
-            return `<option value="">Select Size</option>${options}`;
-        }
+	            return `<option value="">Select Size</option>${options}`;
+	        }
+
+	        function getPartsForGroup(vendorId, groupTitle = '') {
+	            if (!vendorId || !partsCache[vendorId]) {
+	                return [];
+	            }
+	            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+	            const sourceList = partsCache[vendorId] || [];
+	            return normalizedTitle
+	                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
+	                : sourceList;
+	        }
+
+	        function buildSizeOptionsHtml(vendorId, groupTitle = '') {
+	            const list = getPartsForGroup(vendorId, groupTitle);
+	            if (!list.length) return '';
+	            return list
+	                .map((p) => {
+	                    const size = String(p.size || p.register_no || '').trim();
+	                    if (!size) return '';
+	                    const label = `${String(p.part_no || '').trim()} — ${String(p.part_name_gci || p.part_name_vendor || '').trim()}`.trim();
+	                    return `<option value="${escapeHtml(size)}" label="${escapeHtml(label)}"></option>`;
+	                })
+	                .filter(Boolean)
+	                .join('');
+	        }
+
+	        function findPartBySize(vendorId, groupTitle, sizeValue) {
+	            const normalizedSize = String(sizeValue || '').trim().toLowerCase();
+	            if (!normalizedSize) return null;
+	            const list = getPartsForGroup(vendorId, groupTitle);
+	            return list.find((p) => String(p.size || p.register_no || '').trim().toLowerCase() === normalizedSize) ?? null;
+	        }
 
 	        function getUniqueMaterialTitles(vendorId) {
 	            if (!vendorId || !partsCache[vendorId]) return [];
@@ -803,23 +845,31 @@
                 refreshGroupPartOptions(groupEl);
 	        }
 
-        function refreshGroupPartOptions(groupEl) {
-            const vendorId = vendorIdInput.value;
-            const groupTitle = getGroupTitle(groupEl);
-            const rows = groupEl.querySelectorAll('.line-row');
-            rows.forEach((row) => {
-                const select = row.querySelector('.part-select');
-                if (!select) return;
-                const current = select.value;
-                select.innerHTML = buildPartOptions(vendorId, groupTitle, current);
-                const stillValid = Array.from(select.options).some((o) => String(o.value) === String(current));
-                if (!stillValid) {
-                    select.value = '';
-                    applyPartDefaults(row, vendorId, '');
-                }
-                select.disabled = !vendorId || select.options.length <= 1 || select.options[0].textContent === 'No size for selected group';
-            });
-        }
+	        function refreshGroupPartOptions(groupEl) {
+	            const vendorId = vendorIdInput.value;
+	            const groupTitle = getGroupTitle(groupEl);
+	            const rows = groupEl.querySelectorAll('.line-row');
+	            rows.forEach((row) => {
+	                const select = row.querySelector('.part-select');
+	                const sizeInput = row.querySelector('.size-autocomplete');
+	                const datalist = row.querySelector('.size-datalist');
+	                if (!select) return;
+	                const current = select.value;
+	                select.innerHTML = buildPartOptions(vendorId, groupTitle, current);
+	                if (datalist) {
+	                    datalist.innerHTML = buildSizeOptionsHtml(vendorId, groupTitle);
+	                }
+	                const stillValid = Array.from(select.options).some((o) => String(o.value) === String(current));
+	                if (!stillValid) {
+	                    select.value = '';
+	                    applyPartDefaults(row, vendorId, '');
+	                }
+	                select.disabled = !vendorId || select.options.length <= 1 || select.options[0].textContent === 'No size for selected group';
+	                if (sizeInput) {
+	                    sizeInput.disabled = !vendorId;
+	                }
+	            });
+	        }
 
 	        function addRowToGroup(groupEl, existing = null) {
 	            const vendorId = vendorIdInput.value;
@@ -841,14 +891,16 @@
                 </div>
 
                 <div class="space-y-3">
-                    <div class="sm:flex sm:items-center sm:gap-4">
-                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Size</label>
-                        <select name="items[${rowIndex}][part_id]" class="part-select mt-1 block w-full rounded-lg border-slate-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500 sm:mt-0 sm:flex-1" ${vendorId ? '' : 'disabled'} required>
-                            ${buildPartOptions(vendorId, groupTitle, existing?.part_id)}
-                        </select>
-                    </div>
-
-                    <input type="hidden" name="items[${rowIndex}][size]" class="input-size" value="${escapeHtml(existing?.size ?? '')}">
+	                    <div class="sm:flex sm:items-center sm:gap-4">
+	                        <label class="text-xs font-semibold text-slate-500 sm:w-44">Size</label>
+	                        <div class="mt-1 block w-full sm:mt-0 sm:flex-1">
+	                            <input type="text" name="items[${rowIndex}][size]" class="input-size size-autocomplete w-full rounded-lg border-slate-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Ketik size / pilih dari suggestion" value="${escapeHtml(existing?.size ?? '')}" list="size-list-${rowIndex}" ${vendorId ? '' : 'disabled'}>
+	                            <datalist id="size-list-${rowIndex}" class="size-datalist">${buildSizeOptionsHtml(vendorId, groupTitle)}</datalist>
+	                            <select name="items[${rowIndex}][part_id]" class="part-select hidden" ${vendorId ? '' : 'disabled'} required>
+	                                ${buildPartOptions(vendorId, groupTitle, existing?.part_id)}
+	                            </select>
+	                        </div>
+	                    </div>
 
                     <div class="sm:flex sm:items-center sm:gap-4">
                         <label class="text-xs font-semibold text-slate-500 sm:w-44">Part No GCI</label>
@@ -969,13 +1021,13 @@
 	            rowsContainer.appendChild(row);
 	            rowIndex++;
 
-            row.querySelector('.add-line').addEventListener('click', () => {
-                const newRow = addRowToGroup(groupEl);
-                requestSaveDraft();
-                setTimeout(() => {
-                    newRow?.querySelector('.part-select')?.focus();
-                }, 0);
-            });
+	            row.querySelector('.add-line').addEventListener('click', () => {
+	                const newRow = addRowToGroup(groupEl);
+	                requestSaveDraft();
+	                setTimeout(() => {
+	                    newRow?.querySelector('.size-autocomplete')?.focus();
+	                }, 0);
+	            });
 
             row.querySelector('.add-group').addEventListener('click', () => {
                 const newGroup = createGroup();
@@ -1004,12 +1056,35 @@
             updateTotal(row);
             validateWeights(row);
 
-            const partSelect = row.querySelector('.part-select');
-            partSelect.addEventListener('change', () => applyPartDefaults(row, vendorIdInput.value, partSelect.value));
-            if (existing?.part_id) {
-                partSelect.value = existing.part_id;
-                applyPartDefaults(row, vendorIdInput.value, existing.part_id);
-            }
+	            const partSelect = row.querySelector('.part-select');
+	            const sizeAuto = row.querySelector('.size-autocomplete');
+
+	            const trySetPartFromSize = (clearIfNoMatch) => {
+	                const vid = vendorIdInput.value;
+	                const title = getGroupTitle(groupEl);
+	                const selected = findPartBySize(vid, title, sizeAuto?.value);
+	                if (selected) {
+	                    partSelect.value = String(selected.id);
+	                    applyPartDefaults(row, vid, selected.id);
+	                    return;
+	                }
+	                if (clearIfNoMatch) {
+	                    partSelect.value = '';
+	                    applyPartDefaults(row, vid, '');
+	                }
+	            };
+
+	            sizeAuto?.addEventListener('input', () => trySetPartFromSize(false));
+	            sizeAuto?.addEventListener('change', () => trySetPartFromSize(true));
+	            sizeAuto?.addEventListener('blur', () => trySetPartFromSize(true));
+
+	            partSelect.addEventListener('change', () => applyPartDefaults(row, vendorIdInput.value, partSelect.value));
+	            if (existing?.part_id) {
+	                partSelect.value = existing.part_id;
+	                applyPartDefaults(row, vendorIdInput.value, existing.part_id);
+	            } else if (existing?.size) {
+	                trySetPartFromSize(true);
+	            }
 
             row.querySelector('.remove-line').addEventListener('click', () => {
                 row.remove();
@@ -1017,18 +1092,18 @@
                 requestSaveDraft();
             });
 
-            const totalFieldForEnter = row.querySelector('.total-input');
-            if (totalFieldForEnter) {
-                totalFieldForEnter.addEventListener('keydown', (e) => {
-                    if (e.key !== 'Enter') return;
-                    e.preventDefault();
-                    const newRow = addRowToGroup(groupEl);
-                    requestSaveDraft();
-                    setTimeout(() => {
-                        newRow?.querySelector('.part-select')?.focus();
-                    }, 0);
-                });
-            }
+	            const totalFieldForEnter = row.querySelector('.total-input');
+	            if (totalFieldForEnter) {
+	                totalFieldForEnter.addEventListener('keydown', (e) => {
+	                    if (e.key !== 'Enter') return;
+	                    e.preventDefault();
+	                    const newRow = addRowToGroup(groupEl);
+	                    requestSaveDraft();
+	                    setTimeout(() => {
+	                        newRow?.querySelector('.size-autocomplete')?.focus();
+	                    }, 0);
+	                });
+	            }
 
             requestSaveDraft();
             return row;
