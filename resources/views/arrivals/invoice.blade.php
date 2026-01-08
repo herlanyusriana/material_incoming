@@ -157,6 +157,10 @@
                 white-space: nowrap;
             }
 
+            .invoice-qty-split td {
+                padding: 0 4px;
+            }
+
         .items-table:not(.packing-items-table) td,
         .items-table:not(.packing-items-table) th {
             border: none;
@@ -597,35 +601,52 @@
 
 	        @endforeach
 	        
-		        {{-- Total row --}}
-		        <tr style="border-top:2px solid #000;">
-		            <td class="text-bold">TOTAL :</td>
-		            <td>&nbsp;</td>
-		            <td class="text-center text-bold" style="white-space:nowrap;">
-	                    @php
-	                        $totalParts = [];
-	                        foreach ($qtyTotalsNonWeight as $unit => $value) {
-	                            $totalParts[] = [
-	                                'value' => number_format((float) $value, 0),
-	                                'unit' => strtoupper((string) $unit),
-	                            ];
-	                        }
-	                        foreach ($nettTotalsByUnit as $unit => $value) {
-	                            $totalParts[] = [
-	                                'value' => number_format((float) $value, 0),
-	                                'unit' => strtoupper((string) $unit),
-	                            ];
-	                        }
-	                    @endphp
-                        @foreach($totalParts as $part)
-                            <div style="white-space:nowrap; line-height:1.15;">
-                                {{ $part['value'] }} {{ $part['unit'] }}
-                            </div>
-                        @endforeach
-		            </td>
-		            <td>&nbsp;</td>
-		            <td class="text-right text-bold">USD {{ format2($arrival->items->sum('total_price')) }}</td>
-		        </tr>
+			        {{-- Total row --}}
+			        <tr style="border-top:2px solid #000;">
+			            <td class="text-bold">TOTAL :</td>
+			            <td>&nbsp;</td>
+			            <td class="text-center text-bold" style="white-space:nowrap;">
+                            @php
+                                $qtyParts = [];
+                                foreach ($qtyTotalsNonWeight as $unit => $value) {
+                                    $qtyParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
+                                }
+
+                                $weightParts = [];
+                                foreach ($nettTotalsByUnit as $unit => $value) {
+                                    $weightParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
+                                }
+                            @endphp
+                            <table class="packing-desc invoice-qty-split" style="width:100%;">
+                                <colgroup>
+                                    <col style="width:50%;">
+                                    <col style="width:50%;">
+                                </colgroup>
+                                <tr>
+                                    <td class="packing-total-parts">
+                                        @if(empty($qtyParts))
+                                            <span>-</span>
+                                        @else
+                                            @foreach($qtyParts as $part)
+                                                <span>{{ $part }}</span>
+                                            @endforeach
+                                        @endif
+                                    </td>
+                                    <td class="packing-total-parts">
+                                        @if(empty($weightParts))
+                                            <span>-</span>
+                                        @else
+                                            @foreach($weightParts as $part)
+                                                <span>{{ $part }}</span>
+                                            @endforeach
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
+			            </td>
+			            <td>&nbsp;</td>
+			            <td class="text-right text-bold">USD {{ format2($arrival->items->sum('total_price')) }}</td>
+			        </tr>
 	    </tbody>
 	</table>
 </div>
