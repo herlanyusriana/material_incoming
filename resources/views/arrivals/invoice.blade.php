@@ -560,16 +560,16 @@
 	                    @if($showWeightOnly)
 	                        {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
 	                    @elseif($hasWeight)
-                        <table style="width:100%; border:none; margin:0; padding:0;">
-                            <tr>
-                                <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">
-                                    {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
-                                </td>
-                                <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">
-                                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
-                                </td>
-                            </tr>
-                        </table>
+	                        <table style="width:100%; border:none; margin:0; padding:0;">
+	                            <tr>
+	                                <td style="border:none; padding:0 4px 0 0; text-align:center; width:50%; white-space:nowrap;">
+	                                    {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
+	                                </td>
+	                                <td style="border:none; padding:0 0 0 4px; text-align:center; width:50%; white-space:nowrap;">
+	                                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
+	                                </td>
+	                            </tr>
+	                        </table>
                     @else
                         {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
                     @endif
@@ -586,12 +586,12 @@
                                     <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
                                 @elseif($showWeightOnly && $hasWeight)
                                     <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
-                                @elseif(!$showWeightOnly && $hasWeight)
-                                    <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
-                                    <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
-                                @else
-                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
-                                @endif
+	                                @elseif(!$showWeightOnly && $hasWeight)
+	                                    <td style="border:none; padding:0 4px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
+	                                    <td style="border:none; padding:0 0 0 4px; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
+	                                @else
+	                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
+	                                @endif
 	                        </tr>
 	                    </table>
 	                </td>
