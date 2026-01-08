@@ -35,7 +35,7 @@
             <div class="field">
                 <span>Part</span>
                 <div>{{ $receive->arrivalItem->part->part_no }}</div>
-                <div class="meta">{{ $receive->arrivalItem->part->part_name_vendor }}</div>
+                <div class="meta">{{ $receive->arrivalItem->part->part_name_gci ?? $receive->arrivalItem->part->part_name_vendor }}</div>
             </div>
             <div class="field">
                 <span>Qty</span>

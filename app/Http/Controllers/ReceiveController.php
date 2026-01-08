@@ -270,6 +270,7 @@ class ReceiveController extends Controller
             'tags.*.qty' => 'required|integer|min:1',
             'tags.*.bundle_qty' => 'nullable|integer|min:1',
             'tags.*.bundle_unit' => 'required|string|max:20',
+            'tags.*.location_code' => 'nullable|string|max:50',
             // Backward compatible: old form used `weight`
             'tags.*.weight' => 'nullable|numeric',
             'tags.*.net_weight' => 'nullable|numeric',
@@ -310,6 +311,14 @@ class ReceiveController extends Controller
                     $netWeight = $tagData['qty'];
                 }
 
+                $locationCode = null;
+                if (array_key_exists('location_code', $tagData)) {
+                    $locationCode = strtoupper(trim((string) $tagData['location_code']));
+                    if ($locationCode === '') {
+                        $locationCode = null;
+                    }
+                }
+
                 $arrivalItem->receives()->create([
                     'tag' => $tagData['tag'],
                     'qty' => $tagData['qty'],
@@ -323,7 +332,7 @@ class ReceiveController extends Controller
                     'ata_date' => $receiveAt,
                     'qc_status' => $tagData['qc_status'] ?? 'pass',
                     'jo_po_number' => null,
-                    'location_code' => null,
+                    'location_code' => $locationCode,
                 ]);
 
                 if (($tagData['qc_status'] ?? 'pass') === 'pass') {
@@ -336,14 +345,15 @@ class ReceiveController extends Controller
                 if ($inventory) {
                     $inventory->update([
                         'on_hand' => (float) $inventory->on_hand + $receiveQtyForInventory,
-                        'as_of_date' => now()->toDateString(),
+                        'on_order' => max(0, (float) $inventory->on_order - $receiveQtyForInventory),
+                        'as_of_date' => $receiveAt->toDateString(),
                     ]);
                 } else {
                     Inventory::create([
                         'part_id' => $partId,
                         'on_hand' => $receiveQtyForInventory,
                         'on_order' => 0,
-                        'as_of_date' => now()->toDateString(),
+                        'as_of_date' => $receiveAt->toDateString(),
                     ]);
                 }
             }
@@ -372,6 +382,7 @@ class ReceiveController extends Controller
             'items.*.tags.*.qty' => 'required_with:items.*.tags|integer|min:1',
             'items.*.tags.*.bundle_qty' => 'nullable|integer|min:1',
             'items.*.tags.*.bundle_unit' => 'required_with:items.*.tags|string|max:20',
+            'items.*.tags.*.location_code' => 'nullable|string|max:50',
             // Backward compatible: old form used `weight`
             'items.*.tags.*.weight' => 'nullable|numeric',
             'items.*.tags.*.net_weight' => 'nullable|numeric',
@@ -428,6 +439,13 @@ class ReceiveController extends Controller
                     if ($netWeight === null && $goodsUnit === 'KGM') {
                         $netWeight = $tagData['qty'];
                     }
+                    $locationCode = null;
+                    if (array_key_exists('location_code', $tagData)) {
+                        $locationCode = strtoupper(trim((string) $tagData['location_code']));
+                        if ($locationCode === '') {
+                            $locationCode = null;
+                        }
+                    }
                     $arrivalItem->receives()->create([
                         'tag' => $tagData['tag'],
                         'qty' => $tagData['qty'],
@@ -441,7 +459,7 @@ class ReceiveController extends Controller
                         'ata_date' => $receiveAt,
                         'qc_status' => $tagData['qc_status'] ?? 'pass',
                         'jo_po_number' => null,
-                        'location_code' => null,
+                        'location_code' => $locationCode,
                     ]);
 
                     if (($tagData['qc_status'] ?? 'pass') === 'pass') {
@@ -459,14 +477,15 @@ class ReceiveController extends Controller
                 if ($inventory) {
                     $inventory->update([
                         'on_hand' => (float) $inventory->on_hand + $qty,
-                        'as_of_date' => now()->toDateString(),
+                        'on_order' => max(0, (float) $inventory->on_order - $qty),
+                        'as_of_date' => $receiveAt->toDateString(),
                     ]);
                 } else {
                     Inventory::create([
                         'part_id' => $partId,
                         'on_hand' => $qty,
                         'on_order' => 0,
-                        'as_of_date' => now()->toDateString(),
+                        'as_of_date' => $receiveAt->toDateString(),
                     ]);
                 }
             }

@@ -568,14 +568,17 @@ class ArrivalController extends Controller
         $pdf = SnappyPdf::loadView('arrivals.invoice', compact('arrival'))
             ->setPaper('A4', 'portrait')
             ->setOptions([
-                'margin-top' => 12,
-                'margin-bottom' => 12,
-                'margin-left' => 12,
-                'margin-right' => 12,
+                'margin-top' => 0,
+                'margin-bottom' => 0,
+                'margin-left' => 0,
+                'margin-right' => 0,
                 'enable-local-file-access' => true,
                 'print-media-type' => true,
                 'encoding' => 'UTF-8',
-                'zoom' => 1.0,
+                // Prevent wkhtmltopdf from shrinking the whole page due to minor overflows.
+                'disable-smart-shrinking' => true,
+                // Slight bump so the output fills A4 better without spilling to a new page.
+                'zoom' => 1.1,
             ]);
 
         return $pdf->inline($filename)

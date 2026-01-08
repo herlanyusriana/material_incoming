@@ -6,7 +6,8 @@
     <style>
         @page {
             size: A4;
-            margin: 15mm 15mm 15mm 15mm;
+            /* wkhtmltopdf margins are set from the controller; avoid double margins. */
+            margin: 0;
         }
         
         * {
@@ -19,7 +20,7 @@
             font-family: Arial, sans-serif;
             font-size: 9px;
             line-height: 1.4;
-            padding: 15px 20px;
+            padding: 0;
         }
         
         .title {
@@ -37,10 +38,10 @@
         }
         
         .main-table td {
-            border: 1px solid #000;
+            border: 2px solid #000;
             padding: 5px 7px;
             vertical-align: top;
-            font-size: 9px;
+            font-size: 8px;
         }
         
         .main-table .num {
@@ -88,33 +89,20 @@
 
         .packing-items-table td,
         .packing-items-table th {
-            padding: 3px 8px;
-            font-size: 8.5px;
-            vertical-align: middle;
-        }
-
-        .packing-items-table th:first-child,
-        .packing-items-table td:first-child {
-            padding-left: 0;
-            text-align: left;
-        }
-
-        .packing-items-table th:nth-child(2) {
-            padding-left: 0;
-            text-align: left;
-        }
-
-        .packing-items-table td:nth-child(2) {
-            padding-left: 0;
-        }
-
-        .packing-items-table td:first-child,
-        .packing-items-table td:nth-child(2) {
+            padding: 6px;
+            font-size: 8px;
             vertical-align: top;
         }
 
         .packing-items-table th {
-            border-bottom: 1px solid #000;
+            border-bottom: 2px solid #000;
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .packing-items-table th:first-child {
+            text-align: left;
         }
 
         .packing-bundle {
@@ -141,7 +129,7 @@
             }
 
             .packing-qty-split td + td {
-                border-left: 1px solid #000;
+                border-left: none;
             }
 
             .packing-total-parts {
@@ -187,7 +175,7 @@
         }
 
         .invoice-items-box {
-            border: 1px solid #000;
+            border: 2px solid #000;
             margin-top: 8px;
             padding: 0 6px 6px 6px;
         }
@@ -254,21 +242,198 @@
         }
 
         .page-box {
-            border: 1px solid #000;
+            border: 2px solid #000;
+            padding: 0;
+        }
+
+        /* Packing list should match commercial invoice font scale. */
+        .page-box.packing-list {
+            font-family: Arial, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.25;
+        }
+
+        .page-box.packing-list .section-label,
+        .page-box.packing-list .main-table td,
+        .page-box.packing-list .packing-items-table td,
+        .page-box.packing-list .packing-items-table th {
+            font-size: inherit;
+        }
+
+        /* Commercial invoice (layout from user, data from existing template). */
+        .commercial-invoice {
+            font-family: Arial, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.25;
+            margin: 0;
+            padding: 0;
+        }
+
+        .commercial-invoice .invoice-container {
+            width: 100%;
+            margin: 0;
+        }
+
+        .commercial-invoice .ci-header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 8px;
+            letter-spacing: 3px;
+            border-bottom: 2px solid #000;
+        }
+
+        .commercial-invoice .ci-content-wrapper {
+            border-left: 2px solid #000;
+            border-right: 2px solid #000;
+            border-bottom: 2px solid #000;
+        }
+
+        .commercial-invoice .ci-info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .commercial-invoice .ci-info-table td {
+            vertical-align: top;
+            padding: 8px;
+        }
+
+        .commercial-invoice .ci-info-row td {
+            border-bottom: 2px solid #000;
+        }
+
+        .commercial-invoice .ci-info-left {
+            width: 50%;
+            border-right: 2px solid #000;
+        }
+
+        .commercial-invoice .ci-info-right {
+            width: 50%;
+        }
+
+        .commercial-invoice .ci-section-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .commercial-invoice .ci-invoice-number {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .commercial-invoice .ci-products {
             padding: 10px;
+        }
+
+        .commercial-invoice .ci-products table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .commercial-invoice .ci-products th,
+        .commercial-invoice .ci-products td {
+            padding: 6px;
+            border: none;
+        }
+
+        .commercial-invoice .ci-products th {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .commercial-invoice .ci-products thead th {
+            border-bottom: 2px solid #000;
+        }
+
+        .commercial-invoice .ci-center {
+            text-align: center;
+        }
+
+        .commercial-invoice .ci-right {
+            text-align: right;
+        }
+
+        .commercial-invoice .ci-product-title {
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .commercial-invoice .ci-total-row td {
+            border-top: 2px solid #000;
+            font-weight: bold;
+        }
+
+        .commercial-invoice .ci-footer-cell {
+            padding-top: 20px;
+        }
+
+        .commercial-invoice .ci-footer-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .commercial-invoice .ci-original-stamp {
+            border: 3px solid #cc0000;
+            color: #cc0000;
+            padding: 8px 24px;
+            font-size: 30px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 20px 0;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        .commercial-invoice .ci-sign-block {
+            display: inline-block;
+            text-align: center;
+            max-width: 100%;
+        }
+
+        .commercial-invoice .ci-signature-wrap {
+            text-align: right;
+            min-height: 30px;
+            margin-top: 6px;
+        }
+
+        .commercial-invoice .ci-signature img {
+            max-height: 45px;
+            vertical-align: middle;
+        }
+
+        .commercial-invoice .ci-sign-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 12px;
+            min-height: 45px;
+        }
+
+        .commercial-invoice .ci-signedby {
+            font-size: 8px;
+            font-weight: bold;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .commercial-invoice .ci-sign-line {
+            border-top: 1px solid #000;
+            margin-top: 6px;
         }
     </style>
 </head>
 <body>
     @php
-        $portOrigin = strtoupper(trim($arrival->port_of_loading ?? ''));
-        $countryOrigin = strtoupper(trim($arrival->country ?? ''));
-        $countryInPort = $countryOrigin && stripos($portOrigin, $countryOrigin) !== false;
-        $portDisplay = $portOrigin ?: $countryOrigin;
-        if (!$countryInPort && $countryOrigin) {
-            $portDisplay = trim($portDisplay . ($portDisplay ? ', ' : '') . $countryOrigin);
+        // Display exactly what user inputs; no auto-combining/guessing.
+        $portDisplay = strtoupper(trim((string) ($arrival->port_of_loading ?? '')));
+        if ($portDisplay === '') {
+            $portDisplay = strtoupper(trim((string) ($arrival->country ?? '')));
         }
-        $madeInText = $portOrigin ?: ($countryOrigin ?: 'SOUTH KOREA');
+        $madeInText = $portDisplay !== '' ? $portDisplay : 'SOUTH KOREA';
 
         $notesText = trim((string) ($arrival->notes ?? ''));
         $bankAccountText = trim((string) ($arrival->vendor->bank_account ?? ''));
@@ -392,339 +557,318 @@
         ->filter(fn ($v) => $v > 0);
 @endphp
 
-<div class="page-box">
-<div class="title">COMMERCIAL INVOICE</div>
+@php
+    $groupedItems = $arrival->items->groupBy(function ($i) {
+        $group = $i->material_group ?? '';
+        if (trim($group) !== '') {
+            return strtoupper(trim($group));
+        }
+        return strtoupper(trim($i->part->part_name_vendor ?? ''));
+    });
+@endphp
 
-<table class="main-table">
-    {{-- Row 1: Shipper + Invoice No & Date --}}
-    <tr>
-        <td class="col-left">
-            <span class="section-label">1.SHIPPER</span><br><br>
-            <span class="company-name">{{ strtoupper($arrival->vendor->vendor_name) }}</span><br>
-            {{ strtoupper($arrival->vendor->address) }}<br>
-            TEL:{{ $arrival->vendor->phone ?? '' }}
-        </td>
-        <td class="col-right">
-            <span class="section-label">8.INVOICE NO. & DATE</span><br><br>
-            <table style="width:100%; border:none;">
-                <tr>
-                    <td style="border:none; padding:0; font-weight:bold; font-size:14px;">{{ $arrival->invoice_no }}</td>
-                    <td style="border:none; padding:0; text-align:right;">{{ $arrival->invoice_date ? $arrival->invoice_date->format('d.M.Y') : '' }}</td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-    
-    {{-- Row 2: Consignee + Remittance --}}
-    <tr>
-        <td class="col-left">
-            <span class="section-label">2.CONSIGNEE</span><br><br>
-            <span class="company-name">PT.GEUM CHEON INDO</span><br>
-            JL. RAYA SERANG KM.12 DESA SUKADAMAI RT 01/RW 05 CIKUPA -<br>
-            TANGERANG 15710, INDONESIA<br><br>
-            TEL:62-21-5940-0240 &nbsp; FAX:62-21-5940-1224<br>
-            CNEE'S TAX ID: 002.006.378.0.415.000<br>
-            EMAIL: MENTOSNICE@GMAIL.COM
-        </td>
-        <td class="col-right">
-            <span class="section-label">9.REMITTANCE</span><br><br>
-            @if($notesText !== '')
-                <div style="white-space: pre-line;">{{ $notesText }}</div>
-            @else
-                &nbsp;
-            @endif
-        </td>
-    </tr>
-    
-    {{-- Row 3: Notify Party + LC Issuing Bank --}}
-    <tr>
-        <td class="col-left">
-            <span class="section-label">3.NOTIFY PARTY</span><br><br>
-            @if($arrival->trucking)
-                <span class="company-name">{{ strtoupper($arrival->trucking->company_name) }}</span><br>
-                {{ strtoupper($arrival->trucking->address) }}<br><br>
-                Tel: {{ $arrival->trucking->phone ?? '-' }}
-                @if($arrival->trucking->fax) Fax: {{ $arrival->trucking->fax }}@endif
-            @else
-                -
-            @endif
-        </td>
-        <td class="col-right">
-            <span class="section-label">10.LC ISSUING BANK</span><br><br><br>
-            &nbsp;
-        </td>
-    </tr>
-    
-    {{-- Row 4: Port of Loading + Final Destination + Remark --}}
-    <tr>
-        <td class="col-left">
-            <table style="width:100%; border:none;">
-                <tr>
-                    <td style="border:none; padding:0; width:50%;">
-                        <span class="section-label">4.PORT OF LOADING</span><br><br>
-                        &nbsp;&nbsp;{{ $portDisplay }}
+<div class="commercial-invoice">
+    <div class="invoice-container">
+        <div class="ci-header">COMMERCIAL INVOICE</div>
+
+        <div class="ci-content-wrapper">
+            <table class="ci-info-table">
+                <tr class="ci-info-row">
+                    <td class="ci-info-left">
+                        <div class="ci-section-title">1. SHIPPER</div>
+                        <div>
+                            <strong>{{ strtoupper($arrival->vendor->vendor_name) }}</strong><br>
+                            {{ strtoupper($arrival->vendor->address) }}<br>
+                            TEL: {{ $arrival->vendor->phone ?? '' }}
+                        </div>
                     </td>
-                    <td style="border:none; padding:0; width:50%;">
-                        <span class="section-label">5.FINAL DESTINATION</span><br><br>
-                        &nbsp;&nbsp;JAKARTA, INDONESIA
+                    <td class="ci-info-right">
+                        <div class="ci-section-title">8. INVOICE NO. &amp; DATE</div>
+                        <table style="width:100%; border:none; margin-top:5px;">
+                            <tr>
+                                <td style="border:none; padding:0;">
+                                    <div class="ci-invoice-number">{{ $arrival->invoice_no }}</div>
+                                </td>
+                                <td style="border:none; padding:0; text-align:right; font-size:11px;">
+                                    {{ $arrival->invoice_date ? $arrival->invoice_date->format('d.M.Y') : '' }}
+                                </td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
-            </table>
-        </td>
-        <td class="col-right" rowspan="2">
-            <span class="section-label">11.REMARK:</span><br><br>
-            @if($bankAccountText !== '')
-                <div style="white-space: pre-line;">{{ $bankAccountText }}</div>
-            @else
-                &nbsp;
-            @endif
-        </td>
-    </tr>
-    
-    {{-- Row 5: Vessel + Sailing Date --}}
-    <tr>
-        <td class="col-left">
-            <table style="width:100%; border:none;">
-                <tr>
-                    <td style="border:none; padding:0; width:50%;">
-                        <span class="section-label">6.VESSEL</span><br><br>
-                        <strong>&nbsp;&nbsp;{{ strtoupper($arrival->vessel ?? '') }}</strong>
+
+                <tr class="ci-info-row">
+                    <td class="ci-info-left">
+                        <div class="ci-section-title">2. CONSIGNEE</div>
+                        <div>
+                            <strong>PT. GEUM CHEON INDO</strong><br>
+                            JL. RAYA SERANG KM.12 DESA SUKADAMAI RT 01/RW 05 CIKUPA -<br>
+                            TANGERANG 15710, INDONESIA<br><br>
+                            TEL:62-21-5940-0240 &nbsp; FAX:62-21-5940-1224<br>
+                            CNEE'S TAX ID: 002.006.378.0.415.000<br>
+                            EMAIL: MENTOSNICE@GMAIL.COM
+                        </div>
                     </td>
-                    <td style="border:none; padding:0; width:50%;">
-                        <span class="section-label">7.SAILING ON OR ABOUT</span><br><br>
-                        <strong>&nbsp;&nbsp;{{ $arrival->ETD ? $arrival->ETD->format('d-M-y') : '' }}</strong>
+                    <td class="ci-info-right">
+                        <div class="ci-section-title">9. REMITTANCE</div>
+                        @if($notesText !== '')
+                            <div style="white-space: pre-line; margin-top:10px;">{{ $notesText }}</div>
+                        @else
+                            <div style="margin-top:10px;">&nbsp;</div>
+                        @endif
+                    </td>
+                </tr>
+
+                <tr class="ci-info-row">
+                    <td class="ci-info-left">
+                        <div class="ci-section-title">3. NOTIFY PARTY</div>
+                        @if($arrival->trucking)
+                            <div>
+                                <strong>{{ strtoupper($arrival->trucking->company_name) }}</strong><br>
+                                {{ strtoupper($arrival->trucking->address) }}<br><br>
+                                Tel: {{ $arrival->trucking->phone ?? '-' }}
+                            </div>
+                        @else
+                            <div>-</div>
+                        @endif
+                    </td>
+                    <td class="ci-info-right">
+                        <div class="ci-section-title">10. I/C ISSUING BANK</div>
+                        <div style="margin-top:10px;">&nbsp;</div>
+                    </td>
+                </tr>
+
+                <tr class="ci-info-row">
+                    <td class="ci-info-left">
+                        <table style="width:100%; border:none;">
+                            <tr>
+                                <td style="border:none; padding:0; width:50%; vertical-align:top;">
+                                    <div class="ci-section-title">4. PORT OF LOADING</div>
+                                    <div style="margin-top:10px;">{{ $portDisplay }}</div>
+                                </td>
+                                <td style="border:none; padding:0; width:50%; vertical-align:top;">
+                                    <div class="ci-section-title">5. FINAL DESTINATION</div>
+                                    <div style="margin-top:10px;">JAKARTA, INDONESIA</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td class="ci-info-right" rowspan="2">
+                        <div class="ci-section-title">11. REMARK:</div>
+                        @if($bankAccountText !== '')
+                            <div style="white-space: pre-line; margin-top:10px;">{{ $bankAccountText }}</div>
+                        @else
+                            <div style="margin-top:10px;">&nbsp;</div>
+                        @endif
+                    </td>
+                </tr>
+
+                <tr class="ci-info-row">
+                    <td class="ci-info-left">
+                        <table style="width:100%; border:none;">
+                            <tr>
+                                <td style="border:none; padding:0; width:50%; vertical-align:top;">
+                                    <div class="ci-section-title">6. VESSEL</div>
+                                    <div style="margin-top:10px; font-weight:bold;">{{ strtoupper($arrival->vessel ?? '') }}</div>
+                                </td>
+                                <td style="border:none; padding:0; width:50%; vertical-align:top;">
+                                    <div class="ci-section-title">7. SAILING ON OR ABOUT</div>
+                                    <div style="margin-top:10px; font-weight:bold;">{{ $arrival->ETD ? $arrival->ETD->format('d-M-y') : '' }}</div>
+                                </td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
             </table>
-        </td>
-    </tr>
 
-</table>
-
-{{-- Items Table (Commercial Invoice) --}}
-<div class="invoice-items-box">
-<table class="items-table">
-    <thead>
-        <tr>
-            <th style="width:120px; text-align:left; padding-left:6px;">12.MARKS &amp; NO. OF PKGS</th>
-            <th style="width:160px; text-align:left; padding-left:10px;">13.DESCRIPTION OF GOODS</th>
-            <th style="width:90px; text-align:center;">14.QUANTITY</th>
-            <th style="width:100px; text-align:center;">15.UNIT PRICE</th>
-            <th style="width:90px; text-align:right; padding-right:6px;">16.AMOUNT</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{-- Marks & Made In row --}}
-	        <tr>
-	            <td style="vertical-align:top;">
-	                NO: 1-{{ $marksNoEnd }}<br>
-	                
-	            </td>
-	            <td colspan="4">&nbsp;</td>
-	        </tr>
-        
-        @php
-            $groupedItems = $arrival->items->groupBy(function($i) {
-                $group = $i->material_group ?? '';
-                if (trim($group) !== '') {
-                    return strtoupper(trim($group));
-                }
-                return strtoupper(trim($i->part->part_name_vendor ?? ''));
-            });
-        @endphp
-        
-        {{-- Grouped item rows by Part Name Vendor --}}
-        @foreach($groupedItems as $groupKey => $items)
-            {{-- Vendor header row --}}
-            <tr>
-                <td>&nbsp;</td>
-                <td colspan="4" style="text-align:left; font-weight:bold; padding-left:10px;">
-                    {{ $items->first()->material_group ?: ($items->first()->part->part_name_vendor ?? 'HOT DIP GALVANIZED STEEL SHEETS') }}
-                </td>
-            </tr>
-            
-            {{-- Item rows --}}
-            @foreach($items as $item)
-            <tr>
-                <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
-                <td style="padding-left:10px;">{{ $item->size ?? '' }}</td>
-	                @php
-	                    $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
-	                    $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
-                        $pricePerGoodsRaw = (float) ($item->qty_goods ?? 0) > 0
-                            ? ((float) ($item->total_price ?? 0)) / (float) $item->qty_goods
-                            : 0;
-                        $pricePerGoods = format3_round_half_up($pricePerGoodsRaw);
-	                    $pricePerWeightRaw = (float) ($item->weight_nett ?? 0) > 0
-	                        ? ((float) ($item->total_price ?? 0)) / (float) $item->weight_nett
-	                        : 0;
-	                    $pricePerWeight = format3_round_half_up($pricePerWeightRaw);
-	                @endphp
-                <td class="text-center">
-                    @php
-                        $showWeightOnly = in_array($goodsUnitLabel, ['KGM', 'KG'], true);
-                        $hasWeight = (float) ($item->weight_nett ?? 0) > 0;
-                    @endphp
-
-	                    @if($showWeightOnly)
-	                        {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
-	                    @elseif($hasWeight)
-	                        <table class="invoice-qty-compact" style="border:none;">
-	                            <tr>
-	                                <td style="border:none; text-align:center; white-space:nowrap;">
-	                                    {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
-	                                </td>
-	                                <td style="border:none; text-align:center; white-space:nowrap;">
-	                                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
-	                                </td>
-	                            </tr>
-	                        </table>
-                    @else
-                        {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
-                    @endif
-                </td>
-	                <td class="text-center">
-	                    <table style="width:100%; border:none; margin:0; padding:0;">
-	                        <tr>
-                                @php
-                                    $hasWeight = (float) ($item->weight_nett ?? 0) > 0;
-                                    $showWeightOnly = in_array($goodsUnitLabel, ['KGM', 'KG'], true);
-                                @endphp
-
-                                @if($goodsUnitLabel === 'COIL' && $hasWeight)
-                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
-                                @elseif($showWeightOnly && $hasWeight)
-                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
-	                                @elseif(!$showWeightOnly && $hasWeight)
-	                                    <td style="border:none; padding:0 4px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
-	                                    <td style="border:none; padding:0 0 0 4px; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
-	                                @else
-	                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
-	                                @endif
-	                        </tr>
-	                    </table>
-	                </td>
-                <td class="text-right">USD {{ format2($item->total_price) }}</td>
-            </tr>
-            @endforeach
-
-	        @endforeach
-	        
-			        {{-- Total row --}}
-			        <tr style="border-top:2px solid #000;">
-			            <td class="text-bold">TOTAL :</td>
-			            <td>&nbsp;</td>
-			            <td class="text-center text-bold" style="white-space:nowrap;">
-                            @php
-                                $qtyParts = [];
-                                foreach ($qtyTotalsNonWeight as $unit => $value) {
-                                    $qtyParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
-                                }
-
-                                $weightParts = [];
-                                foreach ($nettTotalsByUnit as $unit => $value) {
-                                    $weightParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
-                                }
-                            @endphp
-                            <table class="invoice-qty-compact" style="border:none;">
-                                <tr>
-                                    <td class="packing-total-parts">
-                                        @if(empty($qtyParts))
-                                            <span>-</span>
-                                        @else
-                                            @foreach($qtyParts as $part)
-                                                <span>{{ $part }}</span>
-                                            @endforeach
-                                        @endif
-                                    </td>
-                                    <td class="packing-total-parts">
-                                        @if(empty($weightParts))
-                                            <span>-</span>
-                                        @else
-                                            @foreach($weightParts as $part)
-                                                <span>{{ $part }}</span>
-                                            @endforeach
-                                        @endif
-                                    </td>
-                                </tr>
-                            </table>
-			            </td>
-			            <td>&nbsp;</td>
-			            <td class="text-right text-bold">USD {{ format2($arrival->items->sum('total_price')) }}</td>
-			        </tr>
-	    </tbody>
-	</table>
-</div>
-
-	{{-- Container + Seal Section --}}
-	<div class="container-box">
-        <strong>HS CODE :</strong>
-        @if($hsCodesDisplay !== '')
-            <div style="white-space: pre-line;">{{ $hsCodesDisplay }}</div>
-        @else
-            -
-        @endif
-        <br>
-        <strong>BILL OF LADING :</strong> {{ strtoupper($arrival->bill_of_lading ?? 'HASLS21251102449') }}<br>
-        <strong>PRICE TERM :</strong> {{ strtoupper($arrival->price_term ?? '-') }}<br><br>
-	    <strong>CONTAINERS &amp; SEAL :</strong><br>
-	    @if($arrival->containers->count())
-        @foreach($arrival->containers as $container)
-            {{ $loop->iteration }}. {{ strtoupper(trim($container->container_no)) }}
-            @if($container->seal_code)
-                / {{ strtoupper(trim($container->seal_code)) }}
-            @endif
-            <br>
-        @endforeach
-    @elseif($arrival->container_numbers)
-        @foreach(explode("\n", $arrival->container_numbers) as $container)
-            @if(trim($container))
-                {{ $loop->iteration }}. {{ strtoupper(trim($container)) }}<br>
-            @endif
-        @endforeach
-        @if($arrival->seal_code)
-            <strong>SEAL CODE :</strong> {{ strtoupper(trim($arrival->seal_code)) }}<br>
-        @endif
-    @else
-        -
-    @endif
-</div>
-
-{{-- Signature Section --}}
-<div class="footer-section">
-    <table class="signature-table">
-        <tr>
-            <td style="width:100%; text-align:right;">
-                <div style="display:inline-block; text-align:center; padding:10px 30px;">
-                    <div class="original-box" style="transform: rotate({{ $originalRotationInvoice }}deg);">ORIGINAL</div>
-                    <table style="width:100%; border:none; margin-top:8px;">
+            <div class="ci-products">
+                <table>
+                    <colgroup>
+                        <col style="width:22%;">
+                        <col style="width:26%;">
+                        <col style="width:13%;">
+                        <col style="width:13%;">
+                        <col style="width:14%;">
+                        <col style="width:12%;">
+                    </colgroup>
+                    <thead>
                         <tr>
-                            <td style="border:none; padding:0; width:45%; vertical-align:bottom; text-align:left;">
-                                <span class="section-label">SIGNED BY</span><br>
-                                @php $signedBy = strtoupper(trim((string) ($arrival->vendor->contact_person ?? ''))); @endphp
-                                <strong>{{ $signedBy !== '' ? $signedBy : ' ' }}</strong>
+                            <th style="width:22%; text-align:left;">12. MARKS &amp; NO. OF PKGS</th>
+                            <th class="ci-center" style="width:26%;">13. DESCRIPTION OF GOODS</th>
+                            <th class="ci-center" colspan="2" style="width:26%;">14. QUANTITY</th>
+                            <th class="ci-right" style="width:14%; white-space:nowrap;">15. UNIT PRICE</th>
+                            <th class="ci-right" style="width:12%; white-space:nowrap;">16. AMOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>NO: 1-{{ $marksNoEnd }}.</td>
+                            <td>&nbsp;</td>
+                            <td colspan="2">&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                        </tr>
+
+                        @foreach($groupedItems as $groupKey => $items)
+                            <tr>
+                                <td>&nbsp;</td>
+                                <td>
+                                    <div class="ci-product-title">
+                                        {{ $items->first()->material_group ?: ($items->first()->part->part_name_vendor ?? $groupKey) }}
+                                    </div>
+                                </td>
+                                <td colspan="2">&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            </tr>
+
+                            @foreach($items as $item)
+                                @php
+                                    $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
+                                    $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
+                                    $showWeightOnly = in_array($goodsUnitLabel, $weightOnlyGoodsUnits, true);
+                                    $hasWeight = (float) ($item->weight_nett ?? 0) > 0;
+
+                                    $pricePerGoodsRaw = (float) ($item->qty_goods ?? 0) > 0
+                                        ? ((float) ($item->total_price ?? 0)) / (float) $item->qty_goods
+                                        : 0;
+                                    $pricePerGoods = format3_round_half_up($pricePerGoodsRaw);
+
+                                    $pricePerWeightRaw = (float) ($item->weight_nett ?? 0) > 0
+                                        ? ((float) ($item->total_price ?? 0)) / (float) $item->weight_nett
+                                        : 0;
+                                    $pricePerWeight = format3_round_half_up($pricePerWeightRaw);
+
+                                    $qtyText = $showWeightOnly
+                                        ? '-'
+                                        : number_format((float) ($item->qty_goods ?? 0), 0) . ' ' . $goodsUnitLabel;
+                                    $nettText = $hasWeight
+                                        ? number_format((float) ($item->weight_nett ?? 0), 0) . ' ' . $unitWeightLabel
+                                        : '-';
+                                @endphp
+                                <tr>
+                                    <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
+                                    <td class="ci-center">{{ $item->size ?? '' }}</td>
+                                    <td class="ci-center" style="white-space:nowrap;">{{ $qtyText }}</td>
+                                    <td class="ci-center" style="white-space:nowrap;">{{ $nettText }}</td>
+                                    <td class="ci-right" style="white-space:nowrap;">
+                                        @if(($goodsUnitLabel === 'COIL' || $showWeightOnly) && $hasWeight)
+                                            USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}
+                                        @elseif(!$showWeightOnly && $hasWeight)
+                                            <div style="white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</div>
+                                            <div style="white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</div>
+                                        @else
+                                            USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}
+                                        @endif
+                                    </td>
+                                    <td class="ci-right" style="white-space:nowrap;">USD {{ format2($item->total_price) }}</td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+
+                        <tr class="ci-total-row">
+                            <td style="padding-left:0;">TOTAL :</td>
+                            <td>&nbsp;</td>
+                            <td class="ci-center" style="white-space:nowrap;">
+                                @if($qtyTotalsNonWeight->isEmpty())
+                                    -
+                                @else
+                                    @foreach($qtyTotalsNonWeight as $unit => $value)
+                                        <div style="white-space:nowrap;">{{ number_format((float) $value, 0) }} {{ strtoupper((string) $unit) }}</div>
+                                    @endforeach
+                                @endif
                             </td>
-                            <td style="border:none; padding:0; width:55%; vertical-align:bottom; text-align:right;">
-                                <div class="sign-space" style="height:auto;">
-                                    @if($arrival->vendor->signature_path)
-                                        <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
-                                    @endif
-                                </div>
+                            <td class="ci-center" style="white-space:nowrap;">
+                                @if($nettTotalsByUnit->isEmpty())
+                                    -
+                                @else
+                                    @foreach($nettTotalsByUnit as $unit => $value)
+                                        <div style="white-space:nowrap;">{{ number_format((float) $value, 0) }} {{ strtoupper((string) $unit) }}</div>
+                                    @endforeach
+                                @endif
+                            </td>
+                            <td class="ci-right">&nbsp;</td>
+                            <td class="ci-right" style="white-space:nowrap;">USD {{ format2($arrival->items->sum('total_price')) }}</td>
+                        </tr>
+
+                        <tr>
+                            <td colspan="6" class="ci-footer-cell">
+                                <table class="ci-footer-table" style="width:100%; border:none;">
+                                    <tr>
+                                        <td style="border:none; padding:0; width:70%;">
+                                            <div style="font-weight:bold;">HS CODE :</div>
+                                            @if($hsCodesDisplay !== '')
+                                                <div style="white-space: pre-line;">{{ $hsCodesDisplay }}</div>
+                                            @else
+                                                <div>-</div>
+                                            @endif
+
+                                            <div style="margin-top:14px; font-weight:bold;">BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? '-') }}</div>
+                                            <div style="font-weight:bold;">PRICE TERM : {{ strtoupper($arrival->price_term ?? '-') }}</div>
+
+                                            <div style="margin-top:14px; font-weight:bold;">CONTAINERS &amp; SEAL :</div>
+                                            @if($arrival->containers->count())
+                                                @foreach($arrival->containers as $container)
+                                                    <div style="white-space:nowrap;">
+                                                        {{ $loop->iteration }}. {{ strtoupper(trim($container->container_no)) }}
+                                                        @if($container->seal_code)
+                                                            / {{ strtoupper(trim($container->seal_code)) }}
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            @elseif($arrival->container_numbers)
+                                                @foreach(explode("\n", $arrival->container_numbers) as $container)
+                                                    @if(trim($container))
+                                                        <div style="white-space:nowrap;">{{ $loop->iteration }}. {{ strtoupper(trim($container)) }}</div>
+                                                    @endif
+                                                @endforeach
+                                                @if($arrival->seal_code)
+                                                    <div style="white-space:nowrap;"><strong>SEAL CODE :</strong> {{ strtoupper(trim($arrival->seal_code)) }}</div>
+                                                @endif
+                                            @else
+                                                <div>-</div>
+                                            @endif
+                                        </td>
+                                        <td style="border:none; padding:0; width:30%; text-align:right; vertical-align:top;">
+                                            <div style="margin-top:35px;">
+                                                <div class="ci-original-stamp" style="transform: rotate(-6deg);">ORIGINAL</div>
+                                            </div>
+
+                                            <div class="ci-sign-block" style="margin-top:10px;">
+                                                <div class="ci-sign-top-row">
+                                                    <div class="ci-signedby">
+                                                        <div>SIGNED BY</div>
+                                                        @php $signedBy = strtoupper(trim((string) ($arrival->vendor->contact_person ?? ''))); @endphp
+                                                        <div>{{ $signedBy !== '' ? $signedBy : ' ' }}</div>
+                                                    </div>
+
+                                                    <div class="ci-signature-wrap" style="margin-top:0; min-height:0;">
+                                                        @if($arrival->vendor->signature_path)
+                                                            <img class="ci-signature" src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" alt="Signature">
+                                                        @else
+                                                            <div style="height:20px; width:120px; display:inline-block;"></div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                <div class="ci-sign-line"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
-                    </table>
-                    <div style="border-top:1px solid #000; margin-top:10px;"></div>
-                </div>
-            </td>
-        </tr>
-    </table>
-</div>
+                    </tbody>
+                </table>
+            </div>
 
+        </div>
+    </div>
 </div>
 
 <div class="page-break"></div>
 
-<div class="page-box">
+<div class="page-box packing-list">
 <div class="title">PACKING LIST</div>
 
 <table class="main-table">
@@ -824,15 +968,15 @@
 		<table class="items-table packing-items-table">
 		    <colgroup>
 		        <col style="width:22%;">
-		        <col style="width:40%;">
-		        <col style="width:18%;">
-		        <col style="width:10%;">
-		        <col style="width:10%;">
+		        <col style="width:26%;">
+		        <col style="width:26%;">
+		        <col style="width:13%;">
+		        <col style="width:13%;">
 		    </colgroup>
 		    <thead>
 		        <tr>
-		            <th style="white-space:nowrap;">10.MARKS &amp; NO. OF PKGS</th>
-		            <th style="white-space:nowrap;">11.DESCRIPTION OF GOODS</th>
+		            <th>10.MARKS &amp; NO. OF PKGS</th>
+		            <th>11.DESCRIPTION OF GOODS</th>
 		            <th>12.QUANTITY</th>
 		            <th>13.NET WEIGHT</th>
 		            <th>14.GROSS WEIGHT</th>
@@ -864,7 +1008,7 @@
 			            @foreach($items as $item)
 				            <tr>
 				                <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
-				                <td style="white-space:nowrap;">{{ $item->size ?? '' }}</td>
+				                <td class="text-center" style="white-space:nowrap;">{{ $item->size ?? '' }}</td>
 	                            @php
                                     $packageText = (($item->qty_bundle ?? 0) > 0)
                                         ? number_format((float) ($item->qty_bundle ?? 0), 0) . ' ' . strtoupper($item->unit_bundle ?? 'BUNDLE')

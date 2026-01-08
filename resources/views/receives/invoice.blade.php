@@ -139,6 +139,7 @@
                                             Tag
                                             <button type="button" class="ml-2 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm add-tag-btn" data-item="{{ $item->id }}">+ Add TAG</button>
                                         </th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
 	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
 	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
 	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
@@ -160,6 +161,9 @@
                                         <td class="px-3 py-2 align-top">
                                             <input type="text" name="items[{{ $item->id }}][tags][0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
                                         </td>
+	                                        <td class="px-3 py-2 align-top">
+	                                            <input type="text" name="items[{{ $item->id }}][tags][0][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                                        </td>
                                         <td class="px-3 py-2 align-top">
                                             @php
                                                 $defaultBundleUnit = $item->unit_bundle ?? 'Coil';
@@ -285,6 +289,9 @@
 	            return `
 	                <td class="px-3 py-2 align-top">
 	                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                </td>
+	                <td class="px-3 py-2 align-top">
+	                    <input type="text" name="items[${itemId}][tags][${idx}][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
 	                </td>
 	                <td class="px-3 py-2 align-top">
                         <div class="flex items-center gap-2">

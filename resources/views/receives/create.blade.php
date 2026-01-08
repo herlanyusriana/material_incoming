@@ -123,6 +123,7 @@
                                             + Add TAG
                                         </button>
                                     </th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
@@ -137,10 +138,13 @@
                                     <td class="px-6 py-4 text-sm text-slate-700 font-mono">{{ $arrivalItem->size ?? '-' }}</td>
                                     <td class="px-6 py-4">
                                         <div class="font-semibold text-slate-900 text-sm">{{ $arrivalItem->part->part_no }}</div>
-                                        <div class="text-xs text-slate-600 mt-0.5">{{ $arrivalItem->part->part_name_vendor }}</div>
+                                        <div class="text-xs text-slate-600 mt-0.5">{{ $arrivalItem->part->part_name_gci ?? $arrivalItem->part->part_name_vendor }}</div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <input type="text" name="tags[0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <input type="text" name="tags[0][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
                                     </td>
                                     <td class="px-6 py-4">
                                         @php
@@ -211,7 +215,7 @@
         const addTagBtn = document.getElementById('add-tag-btn');
         const size = @json($arrivalItem->size ?? '-');
         const partNo = @json($arrivalItem->part->part_no);
-        const partName = @json($arrivalItem->part->part_name_vendor);
+        const partName = @json($arrivalItem->part->part_name_gci ?? $arrivalItem->part->part_name_vendor);
         const remainingQty = {{ (int) $remainingQty }};
         const inputTotalEl = document.getElementById('input-total');
         const receiveForm = document.getElementById('receive-form');
@@ -258,6 +262,9 @@
                 </td>
                 <td class="px-6 py-4">
                     <input type="text" name="tags[${tagIndex}][tag]" placeholder="TAG-00${tagIndex + 1}" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                </td>
+                <td class="px-6 py-4">
+                    <input type="text" name="tags[${tagIndex}][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
