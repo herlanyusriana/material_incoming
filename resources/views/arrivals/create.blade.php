@@ -666,7 +666,7 @@
 
                 const totalCents = toCents(totalRaw);
                 const unitGoods = String(unitGoodsEl?.value ?? '').trim().toUpperCase();
-                if (unitGoods === 'KGM' || unitGoods === 'KG') {
+                if (unitGoods === 'KGM' || unitGoods === 'KG' || unitGoods === 'COIL') {
                     const weightCenti = toCents(nettEl?.value);
                     const priceMilli = weightCenti > 0 ? Math.floor(((totalCents * 1000) + (weightCenti / 2)) / weightCenti) : 0;
                     const priceText = formatMilli(priceMilli);
@@ -924,7 +924,7 @@
                         <div class="mt-1 w-full sm:mt-0 sm:flex-1">
                             <input type="text" inputmode="decimal" name="items[${rowIndex}][total_amount]" class="total-input w-full rounded-lg border-blue-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500" value="${existingTotal}" placeholder="0.00" required>
                             <input type="hidden" name="items[${rowIndex}][price]" class="price" value="${existing?.price ?? ''}">
-                            <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Qty</div>
+                            <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Qty (khusus COIL pakai Net Weight KGM)</div>
 	                        </div>
 	                    </div>
 

@@ -184,7 +184,7 @@
             const qty = parseInt(String(qtyEl.value || '0').trim() || '0', 10);
             const cents = toCents(totalEl.value);
             const unit = String(unitEl?.value ?? '').trim().toUpperCase();
-            if (unit === 'KGM' || unit === 'KG') {
+            if (unit === 'KGM' || unit === 'KG' || unit === 'COIL') {
                 const weightCenti = toCents(nettEl?.value);
                 const milli = weightCenti > 0 ? Math.floor((cents * 1000) / weightCenti) : 0;
                 priceEl.value = formatMilli(milli);
