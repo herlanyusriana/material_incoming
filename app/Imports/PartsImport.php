@@ -5,13 +5,14 @@ namespace App\Imports;
 use App\Models\Part;
 use App\Models\Vendor;
 use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 
-class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure
+class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsEmptyRows
 {
     use SkipsFailures;
 
@@ -39,6 +40,21 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
 
     public function prepareForValidation(array $data, int $index): array
     {
+        $vendorResolved = $this->firstNonEmpty($data, [
+            'vendor',
+            'vendor_name',
+            'vendorname',
+            'supplier',
+            'supplier_name',
+            'suppliername',
+        ]);
+
+        if ($vendorResolved !== null) {
+            $vendorResolved = strtoupper(trim($vendorResolved));
+            $data['vendor'] = $vendorResolved;
+            $data['vendor_name'] = $vendorResolved;
+        }
+
         foreach (['part_no', 'part_number', 'register_no', 'register_number', 'size', 'hs_code'] as $key) {
             if (!array_key_exists($key, $data)) {
                 continue;
