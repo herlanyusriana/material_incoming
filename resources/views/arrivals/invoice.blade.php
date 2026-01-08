@@ -161,6 +161,15 @@
                 padding: 0 4px;
             }
 
+            .invoice-qty-compact {
+                width: auto;
+                margin: 0 auto;
+            }
+
+            .invoice-qty-compact td {
+                padding: 0 6px;
+            }
+
         .items-table:not(.packing-items-table) td,
         .items-table:not(.packing-items-table) th {
             border: none;
@@ -560,12 +569,12 @@
 	                    @if($showWeightOnly)
 	                        {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
 	                    @elseif($hasWeight)
-	                        <table style="width:100%; border:none; margin:0; padding:0;">
+	                        <table class="invoice-qty-compact" style="border:none;">
 	                            <tr>
-	                                <td style="border:none; padding:0 4px 0 0; text-align:center; width:50%; white-space:nowrap;">
+	                                <td style="border:none; text-align:center; white-space:nowrap;">
 	                                    {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
 	                                </td>
-	                                <td style="border:none; padding:0 0 0 4px; text-align:center; width:50%; white-space:nowrap;">
+	                                <td style="border:none; text-align:center; white-space:nowrap;">
 	                                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
 	                                </td>
 	                            </tr>
@@ -617,11 +626,7 @@
                                     $weightParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
                                 }
                             @endphp
-                            <table class="packing-desc invoice-qty-split" style="width:100%;">
-                                <colgroup>
-                                    <col style="width:50%;">
-                                    <col style="width:50%;">
-                                </colgroup>
+                            <table class="invoice-qty-compact" style="border:none;">
                                 <tr>
                                     <td class="packing-total-parts">
                                         @if(empty($qtyParts))
