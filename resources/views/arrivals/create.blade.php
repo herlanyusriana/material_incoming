@@ -824,9 +824,9 @@
 	            const rowsContainer = groupEl.querySelector('.group-rows');
 	            const row = document.createElement('div');
 	            row.className = 'line-row rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
-            const guessedBundle = existing?.unit_bundle ?? null;
+            const guessedBundle = existing?.unit_bundle ? String(existing.unit_bundle).trim().toUpperCase() : null;
             const guessedWeight = existing?.unit_weight ?? null;
-            const guessedUnitGoods = existing?.unit_goods ?? null;
+            const guessedUnitGoods = existing?.unit_goods ? String(existing.unit_goods).trim().toUpperCase() : null;
             const groupTitle = getGroupTitle(groupEl);
             const initialMaterialGroup = escapeHtml(groupTitle);
             const existingQty = Number(existing?.qty_goods ?? 0);
@@ -867,15 +867,10 @@
                         <label class="text-xs font-semibold text-slate-500 sm:w-44">Unit Code / Satuan Unit</label>
                         <select name="items[${rowIndex}][unit_goods]" class="input-unit-goods mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
                             <option value="">Pilih satuan</option>
-                            <option value="KGM" ${guessedUnitGoods === 'KGM' ? 'selected' : ''}>KGM</option>
-                            <option value="Sheet" ${guessedUnitGoods === 'Sheet' ? 'selected' : ''}>Sheet</option>
-                            <option value="Coil" ${guessedUnitGoods === 'Coil' ? 'selected' : ''}>Coil</option>
-                            <option value="Pcs" ${guessedUnitGoods === 'Pcs' ? 'selected' : ''}>Pcs</option>
-                            <option value="EA" ${guessedUnitGoods === 'EA' ? 'selected' : ''}>EA</option>
-                            <option value="Set" ${guessedUnitGoods === 'Set' ? 'selected' : ''}>Set</option>
-                            <option value="Box" ${guessedUnitGoods === 'Box' ? 'selected' : ''}>Box</option>
-                            <option value="Bundle" ${guessedUnitGoods === 'Bundle' ? 'selected' : ''}>Bundle</option>
-                            <option value="Pallet" ${guessedUnitGoods === 'Pallet' ? 'selected' : ''}>Pallet</option>
+                            <option value="PCS" ${guessedUnitGoods === 'PCS' ? 'selected' : ''}>PCS</option>
+                            <option value="COIL" ${guessedUnitGoods === 'COIL' ? 'selected' : ''}>COIL</option>
+                            <option value="SHEET" ${guessedUnitGoods === 'SHEET' ? 'selected' : ''}>SHEET</option>
+                            <option value="SET" ${guessedUnitGoods === 'SET' ? 'selected' : ''}>SET</option>
                         </select>
                     </div>
                 </div>
@@ -890,13 +885,9 @@
                     <div class="sm:flex sm:items-center sm:gap-4">
                         <label class="text-xs font-semibold text-slate-500 sm:w-44">Jenis Package</label>
                         <select name="items[${rowIndex}][unit_bundle]" class="input-unit-bundle mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
-                            <option value="Coil" ${guessedBundle === 'Coil' ? 'selected' : ''}>Coil</option>
-                            <option value="Sheet" ${guessedBundle === 'Sheet' ? 'selected' : ''}>Sheet</option>
-                            <option value="Pallet" ${(guessedBundle === 'Pallet' || !guessedBundle) ? 'selected' : ''}>Pallet</option>
-                            <option value="Bundle" ${guessedBundle === 'Bundle' ? 'selected' : ''}>Bundle</option>
-                            <option value="Pcs" ${guessedBundle === 'Pcs' ? 'selected' : ''}>Pcs</option>
-                            <option value="Set" ${guessedBundle === 'Set' ? 'selected' : ''}>Set</option>
-                            <option value="Box" ${guessedBundle === 'Box' ? 'selected' : ''}>Box</option>
+                            <option value="PALLET" ${(guessedBundle === 'PALLET' || !guessedBundle) ? 'selected' : ''}>PALLET</option>
+                            <option value="BUNDLE" ${guessedBundle === 'BUNDLE' ? 'selected' : ''}>BUNDLE</option>
+                            <option value="BOX" ${guessedBundle === 'BOX' ? 'selected' : ''}>BOX</option>
                         </select>
                     </div>
 

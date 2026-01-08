@@ -200,6 +200,8 @@ class ArrivalController extends Controller
                 $item['weight_gross'] = $this->normalizeDecimalInput($item['weight_gross'] ?? null);
                 $item['total_amount'] = $this->normalizeDecimalInput($item['total_amount'] ?? null);
                 $item['price'] = $this->normalizeDecimalInput($item['price'] ?? null);
+                $item['unit_goods'] = isset($item['unit_goods']) ? strtoupper(trim((string) $item['unit_goods'])) : null;
+                $item['unit_bundle'] = isset($item['unit_bundle']) ? strtoupper(trim((string) $item['unit_bundle'])) : null;
                 return $item;
             }, $items);
             $request->merge(['items' => $items]);
@@ -236,9 +238,9 @@ class ArrivalController extends Controller
             'items.*.part_id' => ['required', 'exists:parts,id'],
             'items.*.size' => ['nullable', 'string', 'max:100'],
             'items.*.qty_bundle' => ['nullable', 'integer', 'min:0'],
-            'items.*.unit_bundle' => ['nullable', 'string', 'max:20'],
+            'items.*.unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX'])],
             'items.*.qty_goods' => ['required', 'integer', 'min:1'],
-            'items.*.unit_goods' => ['nullable', 'string', 'max:20'],
+            'items.*.unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET'])],
 			            'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
 			            'items.*.unit_weight' => ['nullable', 'string', 'max:20'],
 			            'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
@@ -611,6 +613,8 @@ class ArrivalController extends Controller
             'weight_nett' => $this->normalizeDecimalInput($request->input('weight_nett')),
             'weight_gross' => $this->normalizeDecimalInput($request->input('weight_gross')),
             'total_amount' => $this->normalizeDecimalInput($request->input('total_amount')),
+            'unit_goods' => ($request->input('unit_goods') === null) ? null : strtoupper(trim((string) $request->input('unit_goods'))),
+            'unit_bundle' => ($request->input('unit_bundle') === null) ? null : strtoupper(trim((string) $request->input('unit_bundle'))),
         ]);
 
         if (!$this->hasPendingReceives($arrivalItem->arrival)) {
@@ -628,10 +632,10 @@ class ArrivalController extends Controller
 	        $data = $request->validate([
 	            'material_group' => ['nullable', 'string', 'max:255'],
 	            'size' => ['nullable', 'string', 'max:100'],
-	            'unit_bundle' => ['nullable', 'string', 'max:20'],
+	            'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX'])],
 	            'qty_bundle' => ['nullable', 'integer', 'min:0'],
 	            'qty_goods' => ['required', 'integer', 'min:1'],
-	            'unit_goods' => ['nullable', 'string', 'max:20'],
+	            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET'])],
 	            'weight_nett' => ['required', 'numeric', 'min:0'],
 	            'weight_gross' => ['required', 'numeric', 'min:0'],
 	            'total_amount' => ['required', 'numeric', 'min:0'],

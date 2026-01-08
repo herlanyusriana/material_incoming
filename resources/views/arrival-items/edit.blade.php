@@ -70,20 +70,15 @@
 
                             <div class="sm:flex sm:items-center sm:gap-4">
                                 <label for="unit_goods" class="text-xs font-semibold text-slate-500 sm:w-44">Unit Code</label>
-                                <select id="unit_goods" name="unit_goods" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
-                                    @php $unitGoods = old('unit_goods', $item->unit_goods); @endphp
-                                    <option value="">Pilih satuan</option>
-                                    <option value="KGM" {{ $unitGoods === 'KGM' ? 'selected' : '' }}>KGM</option>
-                                    <option value="Sheet" {{ $unitGoods === 'Sheet' ? 'selected' : '' }}>Sheet</option>
-                                    <option value="Coil" {{ $unitGoods === 'Coil' ? 'selected' : '' }}>Coil</option>
-                                    <option value="Pcs" {{ $unitGoods === 'Pcs' ? 'selected' : '' }}>Pcs</option>
-                                    <option value="EA" {{ $unitGoods === 'EA' ? 'selected' : '' }}>EA</option>
-                                    <option value="Set" {{ $unitGoods === 'Set' ? 'selected' : '' }}>Set</option>
-                                    <option value="Box" {{ $unitGoods === 'Box' ? 'selected' : '' }}>Box</option>
-                                    <option value="Bundle" {{ $unitGoods === 'Bundle' ? 'selected' : '' }}>Bundle</option>
-                                    <option value="Pallet" {{ $unitGoods === 'Pallet' ? 'selected' : '' }}>Pallet</option>
-                                </select>
-                            </div>
+	                                <select id="unit_goods" name="unit_goods" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
+	                                    @php $unitGoods = old('unit_goods', $item->unit_goods); @endphp
+	                                    <option value="">Pilih satuan</option>
+	                                    <option value="PCS" {{ strtoupper((string) $unitGoods) === 'PCS' ? 'selected' : '' }}>PCS</option>
+	                                    <option value="COIL" {{ strtoupper((string) $unitGoods) === 'COIL' ? 'selected' : '' }}>COIL</option>
+	                                    <option value="SHEET" {{ strtoupper((string) $unitGoods) === 'SHEET' ? 'selected' : '' }}>SHEET</option>
+	                                    <option value="SET" {{ strtoupper((string) $unitGoods) === 'SET' ? 'selected' : '' }}>SET</option>
+	                                </select>
+	                            </div>
                         </div>
                     </div>
 
@@ -93,18 +88,14 @@
                         <div class="space-y-3">
                             <div class="sm:flex sm:items-center sm:gap-4">
                                 <label for="unit_bundle" class="text-xs font-semibold text-slate-500 sm:w-44">Jenis Package</label>
-                                @php $unitBundle = old('unit_bundle', $item->unit_bundle); @endphp
-                                <select id="unit_bundle" name="unit_bundle" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
-                                    <option value="">Pilih</option>
-                                    <option value="Coil" {{ $unitBundle === 'Coil' ? 'selected' : '' }}>Coil</option>
-                                    <option value="Sheet" {{ $unitBundle === 'Sheet' ? 'selected' : '' }}>Sheet</option>
-                                    <option value="Pallet" {{ $unitBundle === 'Pallet' ? 'selected' : '' }}>Pallet</option>
-                                    <option value="Bundle" {{ $unitBundle === 'Bundle' ? 'selected' : '' }}>Bundle</option>
-                                    <option value="Pcs" {{ $unitBundle === 'Pcs' ? 'selected' : '' }}>Pcs</option>
-                                    <option value="Set" {{ $unitBundle === 'Set' ? 'selected' : '' }}>Set</option>
-                                    <option value="Box" {{ $unitBundle === 'Box' ? 'selected' : '' }}>Box</option>
-                                </select>
-                            </div>
+	                                @php $unitBundle = old('unit_bundle', $item->unit_bundle); @endphp
+	                                <select id="unit_bundle" name="unit_bundle" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
+	                                    <option value="">Pilih</option>
+	                                    <option value="BUNDLE" {{ strtoupper((string) $unitBundle) === 'BUNDLE' ? 'selected' : '' }}>BUNDLE</option>
+	                                    <option value="PALLET" {{ strtoupper((string) $unitBundle) === 'PALLET' ? 'selected' : '' }}>PALLET</option>
+	                                    <option value="BOX" {{ strtoupper((string) $unitBundle) === 'BOX' ? 'selected' : '' }}>BOX</option>
+	                                </select>
+	                            </div>
 
                             <div class="sm:flex sm:items-center sm:gap-4">
                                 <label for="qty_bundle" class="text-xs font-semibold text-slate-500 sm:w-44">Qty Package</label>
