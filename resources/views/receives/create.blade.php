@@ -13,7 +13,15 @@
                         <h3 class="text-xl font-bold text-slate-900">Receive Details</h3>
                         <p class="text-sm text-slate-600 mt-1">Enter receive information and tag details</p>
                     </div>
-                    <a href="{{ route('receives.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Back to List</a>
+                    <div class="flex items-center gap-2">
+                        @php
+                            $hasContainerInspection = ($arrivalItem->arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
+                        @endphp
+                        @if ($hasContainerInspection)
+                            <a href="{{ route('departures.inspection-report', $arrivalItem->arrival) }}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">Print Inspection</a>
+                        @endif
+                        <a href="{{ route('receives.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Back to List</a>
+                    </div>
                 </div>
 
                 <!-- Information Section -->
@@ -38,6 +46,59 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-white rounded-xl p-6 border border-slate-200">
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Receiving Date</h4>
+                    <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
+                        <div class="space-y-1">
+                            <label for="receive_date" class="text-sm font-medium text-slate-700">Tanggal Receive</label>
+                            <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                            @error('receive_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                </div>
+
+                @php
+                    $containers = $arrivalItem->arrival->containers ?? collect();
+                @endphp
+                @if ($containers->count())
+                    <div class="bg-white rounded-xl p-6 border border-slate-200">
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Container Inspection (per Container)</h4>
+                        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                        <th class="px-4 py-3 text-left font-semibold">Container No</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Seal Code</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    @foreach ($containers as $c)
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-xs">{{ strtoupper($c->container_no) }}</td>
+                                            <td class="px-4 py-3 font-mono text-xs">{{ strtoupper($c->seal_code ?? '-') }}</td>
+                                            <td class="px-4 py-3">
+                                                @if ($c->inspection)
+                                                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold border {{ $c->inspection->status === 'damage' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200' }}">
+                                                        {{ strtoupper($c->inspection->status) }}
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
+                                                        NOT INSPECTED
+                                                    </span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3 text-xs text-slate-500">
+                            Input inspection dilakukan dari aplikasi mobile (per container). Halaman receive hanya menampilkan status + print report.
+                        </div>
+                    </div>
+                @endif
 
                 <!-- Table Section -->
                 <div>

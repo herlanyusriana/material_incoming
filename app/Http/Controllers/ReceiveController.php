@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 use App\Models\Receive;
 use App\Models\ArrivalItem;
@@ -220,7 +221,7 @@ class ReceiveController extends Controller
 
     public function create(ArrivalItem $arrivalItem)
     {
-        $arrivalItem->load(['part.vendor', 'arrival.vendor', 'receives']);
+        $arrivalItem->load(['part.vendor', 'arrival.vendor', 'arrival.containers.inspection', 'receives']);
 
         $totalReceived = $arrivalItem->receives->sum('qty');
         $remainingQty = max(0, $arrivalItem->qty_goods - $totalReceived);
@@ -234,7 +235,7 @@ class ReceiveController extends Controller
 
     public function createByInvoice(Arrival $arrival)
     {
-        $arrival->load(['vendor', 'items.part', 'items.receives']);
+        $arrival->load(['vendor', 'containers.inspection', 'items.part', 'items.receives']);
 
         $pendingItems = $arrival->items
             ->map(function ($item) {
@@ -263,6 +264,7 @@ class ReceiveController extends Controller
     public function store(Request $request, ArrivalItem $arrivalItem)
     {
         $validated = $request->validate([
+            'receive_date' => ['required', 'date'],
             'tags' => 'required|array|min:1',
             'tags.*.tag' => 'required|string|max:255',
             'tags.*.qty' => 'required|integer|min:1',
@@ -293,8 +295,9 @@ class ReceiveController extends Controller
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
         $partId = (int) $arrivalItem->part_id;
         $receiveQtyForInventory = 0;
+        $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
 
-        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, &$receiveQtyForInventory) {
+        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $receiveAt, &$receiveQtyForInventory) {
             foreach ($validated['tags'] as $tagData) {
                 if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
                     throw new HttpResponseException(back()->withInput()->withErrors([
@@ -317,7 +320,7 @@ class ReceiveController extends Controller
                     'net_weight' => $netWeight,
                     'gross_weight' => $tagData['gross_weight'] ?? null,
                     'qty_unit' => $goodsUnit,
-                    'ata_date' => now(),
+                    'ata_date' => $receiveAt,
                     'qc_status' => $tagData['qc_status'] ?? 'pass',
                     'jo_po_number' => null,
                     'location_code' => null,
@@ -362,6 +365,7 @@ class ReceiveController extends Controller
         $arrival->load('items.receives');
 
         $validated = $request->validate([
+            'receive_date' => ['required', 'date'],
             'items' => 'required|array|min:1',
             'items.*.tags' => 'nullable|array',
             'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
@@ -406,8 +410,9 @@ class ReceiveController extends Controller
         }
 
         $inventoryAdds = [];
+        $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
 
-        DB::transaction(function () use ($itemsInput, $arrival, &$inventoryAdds) {
+        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, &$inventoryAdds) {
             foreach ($itemsInput as $itemId => $itemData) {
                 $arrivalItem = $arrival->items->firstWhere('id', $itemId);
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
@@ -433,7 +438,7 @@ class ReceiveController extends Controller
                         'net_weight' => $netWeight,
                         'gross_weight' => $tagData['gross_weight'] ?? null,
                         'qty_unit' => $goodsUnit,
-                        'ata_date' => now(),
+                        'ata_date' => $receiveAt,
                         'qc_status' => $tagData['qc_status'] ?? 'pass',
                         'jo_po_number' => null,
                         'location_code' => null,
