@@ -514,14 +514,18 @@
             <tr>
                 <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
                 <td style="padding-left:10px;">{{ $item->size ?? '' }}</td>
-                @php
-                    $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
-                    $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
-                    $pricePerWeightRaw = (float) ($item->weight_nett ?? 0) > 0
-                        ? ((float) ($item->total_price ?? 0)) / (float) $item->weight_nett
-                        : 0;
-                    $pricePerWeight = format3_round_half_up($pricePerWeightRaw);
-                @endphp
+	                @php
+	                    $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
+	                    $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
+                        $pricePerGoodsRaw = (float) ($item->qty_goods ?? 0) > 0
+                            ? ((float) ($item->total_price ?? 0)) / (float) $item->qty_goods
+                            : 0;
+                        $pricePerGoods = format3_round_half_up($pricePerGoodsRaw);
+	                    $pricePerWeightRaw = (float) ($item->weight_nett ?? 0) > 0
+	                        ? ((float) ($item->total_price ?? 0)) / (float) $item->weight_nett
+	                        : 0;
+	                    $pricePerWeight = format3_round_half_up($pricePerWeightRaw);
+	                @endphp
                 <td class="text-center">
                     @php
                         $showWeightOnly = in_array($goodsUnitLabel, ['KGM', 'KG'], true);
@@ -548,11 +552,21 @@
 	                <td class="text-center">
 	                    <table style="width:100%; border:none; margin:0; padding:0;">
 	                        <tr>
-	                            @if((float) ($item->weight_nett ?? 0) > 0)
-	                                <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
-	                            @else
-	                                <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ format3_no_round($item->price) }} /{{ $goodsUnitLabel }}</td>
-	                            @endif
+                                @php
+                                    $hasWeight = (float) ($item->weight_nett ?? 0) > 0;
+                                    $showWeightOnly = in_array($goodsUnitLabel, ['KGM', 'KG'], true);
+                                @endphp
+
+                                @if($goodsUnitLabel === 'COIL' && $hasWeight)
+                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
+                                @elseif($showWeightOnly && $hasWeight)
+                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
+                                @elseif(!$showWeightOnly && $hasWeight)
+                                    <td style="border:none; padding:0 12px 0 0; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
+                                    <td style="border:none; padding:0 0 0 12px; text-align:center; width:50%; white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</td>
+                                @else
+                                    <td style="border:none; padding:0; text-align:center; width:100%; white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</td>
+                                @endif
 	                        </tr>
 	                    </table>
 	                </td>
