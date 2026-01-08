@@ -602,6 +602,113 @@ class ArrivalController extends Controller
         return view('arrival-items.edit', ['item' => $arrivalItem, 'arrival' => $arrivalItem->arrival]);
     }
 
+    public function createItem(Arrival $departure)
+    {
+        $arrival = $departure;
+        $arrival->loadMissing(['vendor', 'items.receives']);
+
+        if (!$this->hasPendingReceives($arrival)) {
+            return redirect()
+                ->route('departures.show', $arrival)
+                ->with('error', 'Departure sudah complete receive, item tidak bisa ditambah.');
+        }
+
+        $parts = Part::query()
+            ->where('vendor_id', $arrival->vendor_id)
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get();
+
+        $item = new ArrivalItem();
+
+        return view('arrival-items.create', compact('arrival', 'parts', 'item'));
+    }
+
+    public function storeItem(Request $request, Arrival $departure)
+    {
+        $arrival = $departure;
+        $arrival->loadMissing(['vendor', 'items.receives']);
+
+        if (!$this->hasPendingReceives($arrival)) {
+            return redirect()
+                ->route('departures.show', $arrival)
+                ->with('error', 'Departure sudah complete receive, item tidak bisa ditambah.');
+        }
+
+        $request->merge([
+            'weight_nett' => $this->normalizeDecimalInput($request->input('weight_nett')),
+            'weight_gross' => $this->normalizeDecimalInput($request->input('weight_gross')),
+            'total_amount' => $this->normalizeDecimalInput($request->input('total_amount')),
+            'unit_goods' => ($request->input('unit_goods') === null) ? null : strtoupper(trim((string) $request->input('unit_goods'))),
+            'unit_bundle' => ($request->input('unit_bundle') === null) ? null : strtoupper(trim((string) $request->input('unit_bundle'))),
+        ]);
+
+        $data = $request->validate([
+            'material_group' => ['nullable', 'string', 'max:255'],
+            'part_id' => ['required', 'exists:parts,id'],
+            'size' => ['nullable', 'string', 'max:100'],
+            'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX'])],
+            'qty_bundle' => ['nullable', 'integer', 'min:0'],
+            'qty_goods' => ['required', 'integer', 'min:1'],
+            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET'])],
+            'weight_nett' => ['required', 'numeric', 'min:0'],
+            'weight_gross' => ['required', 'numeric', 'min:0'],
+            'total_amount' => ['required', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $part = Part::find($data['part_id']);
+        if ($part && (int) $part->vendor_id !== (int) $arrival->vendor_id) {
+            throw ValidationException::withMessages([
+                'part_id' => "Part {$part->part_no} does not belong to the selected vendor.",
+            ]);
+        }
+
+        $nett = (float) ($data['weight_nett'] ?? 0);
+        $gross = (float) ($data['weight_gross'] ?? 0);
+        if ($nett > $gross) {
+            throw ValidationException::withMessages([
+                'weight_nett' => 'Net weight harus lebih kecil atau sama dengan gross weight.',
+            ]);
+        }
+
+        $normalizedNett = $this->normalizeDecimalInput($data['weight_nett']);
+        $normalizedGross = $this->normalizeDecimalInput($data['weight_gross']);
+        $normalizedTotal = $this->normalizeDecimalInput($data['total_amount']);
+
+        $qtyGoods = (int) $data['qty_goods'];
+        $totalPrice = round((float) $normalizedTotal, 2);
+        $totalCents = $this->toCents($normalizedTotal);
+
+        $weightCenti = $this->toCents($normalizedNett);
+        if ($weightCenti > 0) {
+            $priceMilli = intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti);
+        } else {
+            $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
+        }
+        $price = $this->formatMilli($priceMilli);
+
+        $arrival->items()->create([
+            'part_id' => $data['part_id'],
+            'material_group' => $data['material_group'] ?? null,
+            'size' => $data['size'] ?? null,
+            'unit_bundle' => $data['unit_bundle'] ?? null,
+            'qty_bundle' => (int) ($data['qty_bundle'] ?? 0),
+            'qty_goods' => $qtyGoods,
+            'unit_goods' => $data['unit_goods'] ?? null,
+            'weight_nett' => $normalizedNett,
+            'unit_weight' => 'KGM',
+            'weight_gross' => $normalizedGross,
+            'price' => $price,
+            'total_price' => $totalPrice,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('departures.show', $arrival)
+            ->with('success', 'Item berhasil ditambahkan.');
+    }
+
     public function updateItem(Request $request, ArrivalItem $arrivalItem)
     {
         $arrivalItem->load(['arrival', 'receives']);

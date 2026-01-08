@@ -404,9 +404,19 @@
 
             <!-- Items Table -->
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
-                <div class="pb-3 border-b border-slate-200">
-                    <h3 class="text-lg font-bold text-slate-900">Departure Items</h3>
-                    <p class="text-sm text-slate-600 mt-1">Parts and receiving details</p>
+                <div class="pb-3 border-b border-slate-200 flex items-start justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Departure Items</h3>
+                        <p class="text-sm text-slate-600 mt-1">Parts and receiving details</p>
+                    </div>
+                    @if (!($isReceiveComplete ?? false))
+                        <a href="{{ route('departure-items.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Item
+                        </a>
+                    @endif
                 </div>
                 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
@@ -454,19 +464,19 @@
                                         <div class="text-slate-800 font-semibold">{{ number_format($receivedQty) }}</div>
                                         <div class="text-xs text-slate-500">{{ $item->receives->count() }} receive{{ $item->receives->count() != 1 ? 's' : '' }}</div>
                                     </td>
-	                                    <td class="px-4 py-4">
-	                                        <div class="flex justify-center">
-	                                            @if ($item->receives->count() === 0)
-	                                                <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-	                                                    Edit Item
-	                                                </a>
-	                                            @else
-	                                                <span class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg">
-	                                                    Locked
-	                                                </span>
-	                                            @endif
-	                                        </div>
-	                                    </td>
+		                                    <td class="px-4 py-4">
+		                                        <div class="flex justify-center">
+		                                            @if (!($isReceiveComplete ?? false) && $item->receives->count() === 0)
+		                                                <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+		                                                    Edit Item
+		                                                </a>
+		                                            @else
+		                                                <span class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg">
+		                                                    Locked
+		                                                </span>
+		                                            @endif
+		                                        </div>
+		                                    </td>
 	                                </tr>
 	                            @endforeach
 	                        </tbody>

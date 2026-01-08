@@ -105,6 +105,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/departure-items/{arrivalItem}/edit', [ArrivalController::class, 'editItem'])->name('departure-items.edit');
     Route::put('/departure-items/{arrivalItem}', [ArrivalController::class, 'updateItem'])->name('departure-items.update');
+    Route::get('/departures/{departure}/items/create', [ArrivalController::class, 'createItem'])->name('departure-items.create');
+    Route::post('/departures/{departure}/items', [ArrivalController::class, 'storeItem'])->name('departure-items.store');
 
     Route::prefix('planning')->name('planning.')->group(function () {
         Route::get('/gci-parts', [PlanningGciPartController::class, 'index'])->name('gci-parts.index');
