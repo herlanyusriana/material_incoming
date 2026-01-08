@@ -128,13 +128,26 @@
             table-layout: fixed;
         }
 
-        .packing-desc td {
-            border: none;
-            padding: 0;
-            vertical-align: middle;
-            line-height: 1.2;
-            font-size: inherit;
-        }
+	        .packing-desc td {
+	            border: none;
+	            padding: 0;
+	            vertical-align: middle;
+	            line-height: 1.2;
+	            font-size: inherit;
+	        }
+
+            .packing-total-parts {
+                font-weight: bold;
+                text-align: center;
+                white-space: normal;
+                line-height: 1.15;
+            }
+
+            .packing-total-parts span {
+                display: inline-block;
+                margin: 0 6px;
+                white-space: nowrap;
+            }
 
         .items-table:not(.packing-items-table) td,
         .items-table:not(.packing-items-table) th {
@@ -808,52 +821,34 @@
 			            @foreach($items as $item)
 				            <tr>
 				                <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
-				                <td>
-				                    <table class="packing-desc">
-				                        <colgroup>
-				                            <col style="width:64%;">
-				                            <col style="width:36%;">
-				                        </colgroup>
-				                        <tr>
-				                            <td style="padding-right:8px; white-space:nowrap;">{{ $item->size ?? '' }}</td>
-				                            <td class="packing-bundle text-center" style="white-space:nowrap;">
-				                                @if(($item->qty_bundle ?? 0) > 0)
-				                                    {{ number_format($item->qty_bundle, 0) }} {{ strtoupper($item->unit_bundle ?? 'PALLET') }}
-				                                @else
-			                                    -
-			                                @endif
-			                            </td>
-			                        </tr>
-			                    </table>
-			                </td>
-                            @php
-                                $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
-                                $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
-                                $showWeightOnly = in_array($goodsUnitLabel, ['KGM', 'KG'], true);
-                                $hasWeight = (float) ($item->weight_nett ?? 0) > 0;
-                            @endphp
-			                <td class="text-center packing-bundle" style="white-space:nowrap;">
-                                @if($showWeightOnly)
-                                    {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
-                                @elseif($hasWeight)
-                                    <table style="width:100%; border:none; margin:0; padding:0;">
+				                <td style="white-space:nowrap;">{{ $item->size ?? '' }}</td>
+	                            @php
+                                    $packageText = (($item->qty_bundle ?? 0) > 0)
+                                        ? number_format((float) ($item->qty_bundle ?? 0), 0) . ' ' . strtoupper($item->unit_bundle ?? 'BUNDLE')
+                                        : '-';
+	                                $goodsUnitLabel = strtoupper($item->unit_goods ?? 'PCS');
+	                                $unitWeightLabel = strtoupper($item->unit_weight ?? 'KGM');
+	                                $showWeightOnly = in_array($goodsUnitLabel, ['KGM', 'KG'], true);
+                                    $goodsText = $showWeightOnly
+                                        ? number_format((float) ($item->weight_nett ?? 0), 0) . ' ' . $unitWeightLabel
+                                        : number_format((float) ($item->qty_goods ?? 0), 0) . ' ' . $goodsUnitLabel;
+	                            @endphp
+				                <td class="text-center packing-bundle" style="white-space:nowrap;">
+                                    <table class="packing-desc">
+                                        <colgroup>
+                                            <col style="width:50%;">
+                                            <col style="width:50%;">
+                                        </colgroup>
                                         <tr>
-                                            <td style="border:none; padding:0 10px 0 0; text-align:center; width:50%; white-space:nowrap;">
-                                                {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
-                                            </td>
-                                            <td style="border:none; padding:0 0 0 10px; text-align:center; width:50%; white-space:nowrap;">
-                                                {{ number_format($item->weight_nett, 0) }} {{ $unitWeightLabel }}
-                                            </td>
+                                            <td class="text-center" style="white-space:nowrap;">{{ $packageText }}</td>
+                                            <td class="text-center" style="white-space:nowrap;">{{ $goodsText }}</td>
                                         </tr>
                                     </table>
-                                @else
-			                        {{ number_format($item->qty_goods, 0) }} {{ $goodsUnitLabel }}
-                                @endif
-			                </td>
-				                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
-				                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_gross, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
-			            </tr>
-	            @endforeach
+				                </td>
+					                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_nett, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
+					                <td class="text-center" style="white-space:nowrap;">{{ number_format($item->weight_gross, 0) }} {{ strtoupper($item->unit_weight ?? 'KGM') }}</td>
+				            </tr>
+		            @endforeach
 	
 	                        @php
 	                            $groupBundleTotal = (float) $items->sum(fn ($i) => (float) ($i->qty_bundle ?? 0));
@@ -875,59 +870,65 @@
 	                        @endphp
 			        @endforeach
 		        
-				        {{-- Total row --}}
-					        <tr style="border-top:2px solid #000;">
-				            <td class="text-bold">TOTAL :</td>
-				            <td>
-				                <table class="packing-desc">
-				                    <colgroup>
-				                        <col style="width:64%;">
-				                        <col style="width:36%;">
-			                    </colgroup>
-			                    <tr>
-			                        <td>&nbsp;</td>
-			                        <td class="packing-bundle text-center text-bold" style="white-space:nowrap;">
-			                            @if($hasBundleData && $bundleTotalDisplay > 0)
-			                                {{ number_format($bundleTotalDisplay, 0) }} {{ strtoupper($bundleUnitDisplay) }}
-			                            @else
-			                                -
-			                            @endif
-			                        </td>
-			                    </tr>
-			                </table>
-				            </td>
-					            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">
-                                @php
-                                    // Packing list already has dedicated NET/GROSS columns.
-                                    // So quantity total should only show non-weight qty units (EA/COIL/etc).
-                                    // If there are no non-weight qty units (all goods are KGM/KG), show the weight total here.
-                                    $totalParts = [];
-                                    foreach ($qtyTotalsNonWeight as $unit => $value) {
-                                        $totalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
-                                    }
-                                    if (empty($totalParts)) {
-                                        foreach ($nettTotalsByUnit as $unit => $value) {
-                                            $totalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
+					        {{-- Total row --}}
+						        <tr style="border-top:2px solid #000;">
+					            <td class="text-bold">TOTAL :</td>
+					            <td>&nbsp;</td>
+						            <td class="text-center text-bold packing-bundle" style="white-space:nowrap;">
+                                    @php
+                                        $bundleTotalsByUnit = $arrival->items
+                                            ->filter(fn ($i) => (float) ($i->qty_bundle ?? 0) > 0)
+                                            ->groupBy(fn ($i) => strtoupper(trim((string) ($i->unit_bundle ?? 'BUNDLE'))))
+                                            ->map(fn ($rows) => (float) $rows->sum(fn ($i) => (float) ($i->qty_bundle ?? 0)))
+                                            ->filter(fn ($v) => $v > 0);
+
+                                        $bundleTotalParts = [];
+                                        foreach ($bundleTotalsByUnit as $unit => $value) {
+                                            $bundleTotalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
                                         }
-                                    }
-                                @endphp
-                                <table style="width:100%; border:none; margin:0; padding:0; table-layout:fixed; font-weight:bold;">
-                                    <tr>
-                                        @foreach($totalParts as $part)
-                                            <td style="border:none; padding:0 4px; text-align:center; white-space:nowrap; font-size:10px;">
-                                                {{ $part }}
+                                        if (empty($bundleTotalParts)) {
+                                            $bundleTotalParts[] = '-';
+                                        }
+
+                                        // Packing list already has dedicated NET/GROSS columns.
+                                        // So quantity total should only show non-weight qty units (EA/COIL/etc).
+                                        // If there are no non-weight qty units (all goods are KGM/KG), show the weight total here.
+                                        $goodsTotalParts = [];
+                                        foreach ($qtyTotalsNonWeight as $unit => $value) {
+                                            $goodsTotalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
+                                        }
+                                        if (empty($goodsTotalParts)) {
+                                            foreach ($nettTotalsByUnit as $unit => $value) {
+                                                $goodsTotalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
+                                            }
+                                        }
+                                        if (empty($goodsTotalParts)) {
+                                            $goodsTotalParts[] = '-';
+                                        }
+                                    @endphp
+                                    <table class="packing-desc">
+                                        <colgroup>
+                                            <col style="width:50%;">
+                                            <col style="width:50%;">
+                                        </colgroup>
+                                        <tr>
+                                            <td class="packing-total-parts">
+                                                @foreach($bundleTotalParts as $part)
+                                                    <span>{{ $part }}</span>
+                                                @endforeach
                                             </td>
-                                        @endforeach
-                                        @if(count($totalParts) === 1)
-                                            <td style="border:none; padding:0;"></td>
-                                        @endif
-                                    </tr>
-                                </table>
-					            </td>
-			            <td class="text-center text-bold" style="white-space:nowrap;">
-                            @if($nettTotalsByUnit->count() <= 1)
-                                {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
-                            @else
+                                            <td class="packing-total-parts">
+                                                @foreach($goodsTotalParts as $part)
+                                                    <span>{{ $part }}</span>
+                                                @endforeach
+                                            </td>
+                                        </tr>
+                                    </table>
+						            </td>
+				            <td class="text-center text-bold" style="white-space:nowrap;">
+	                            @if($nettTotalsByUnit->count() <= 1)
+	                                {{ number_format($totalNett, 0) }} {{ $weightUnitDisplay }}
+	                            @else
                                 @foreach($nettTotalsByUnit as $unit => $value)
                                     <div style="white-space:nowrap;">{{ number_format($value, 0) }} {{ $unit }}</div>
                                 @endforeach
