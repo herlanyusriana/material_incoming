@@ -521,8 +521,11 @@
         }
 
         function buildPartOptions(vendorId, groupTitle = '', partId = null) {
-            if (!vendorId || !partsCache[vendorId]) {
+            if (!vendorId) {
                 return '<option value="">Select vendor first</option>';
+            }
+            if (!partsCache[vendorId]) {
+                return '<option value="">Loading parts...</option>';
             }
             const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
             const sourceList = partsCache[vendorId] || [];
@@ -551,13 +554,13 @@
 	            )).sort((a, b) => a.localeCompare(b));
 	        }
 
-	        function buildMaterialTitleOptionsHtml(vendorId) {
-	            if (!vendorId || !partsCache[vendorId]) {
-	                return '<option value="">Pilih vendor dulu</option>';
-	            }
-	            const titles = getUniqueMaterialTitles(vendorId);
-	            const options = titles.map(title => `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`).join('');
-	            return [
+        function buildMaterialTitleOptionsHtml(vendorId) {
+            if (!vendorId || !partsCache[vendorId]) {
+                return vendorId ? '<option value="">Loading...</option>' : '<option value="">Pilih vendor dulu</option>';
+            }
+            const titles = getUniqueMaterialTitles(vendorId);
+            const options = titles.map(title => `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`).join('');
+            return [
 	                '<option value="">Pilih Jenis Material / Part Name Vendor</option>',
 	                options,
 	                '<option value="__custom__">Lainnya (ketik manual)...</option>',
@@ -1119,53 +1122,55 @@
             if (!isRestoringDraft) requestSaveDraft();
         }
 
-	        async function loadParts(vendorId, force = false) {
-	            if (!vendorId) return [];
-	            if (!force && partsCache[vendorId]) return partsCache[vendorId];
-	            const response = await fetch(`${partApiBase}/${vendorId}/parts`);
-	            if (!response.ok) return [];
-	            const data = await response.json();
-	            partsCache[vendorId] = data;
-	            rebuildMaterialTitleSelects(vendorId);
-	            return data;
-	        }
+		        async function loadParts(vendorId, force = false) {
+		            if (!vendorId) return [];
+		            if (!force && partsCache[vendorId]) return partsCache[vendorId];
+		            const response = await fetch(`${partApiBase}/${vendorId}/parts`);
+		            if (!response.ok) return [];
+		            const data = await response.json();
+		            partsCache[vendorId] = data;
+		            rebuildMaterialTitleSelects(vendorId);
+		            return data;
+		        }
 
-	        document.addEventListener('DOMContentLoaded', async () => {
+		        document.addEventListener('DOMContentLoaded', async () => {
                 installAutoPriceDelegation();
-	            initContainerRows();
+		            initContainerRows();
 
-            if (draftData?.fields && !hasOldInput) {
-                isRestoringDraft = true;
-                applyDraftFields(draftData.fields);
-                isRestoringDraft = false;
-            }
+		            if (draftData?.fields && !hasOldInput) {
+		                isRestoringDraft = true;
+		                applyDraftFields(draftData.fields);
+		                isRestoringDraft = false;
+		            }
 
-            const vendorId = vendorIdInput.value;
-            if (vendorId) {
-                await loadParts(vendorId);
-            }
+		            if (existingItems.length) {
+		                const grouped = existingItems.reduce((acc, item) => {
+		                    const key = item.material_group || '';
+		                    if (!acc[key]) acc[key] = [];
+		                    acc[key].push(item);
+		                    return acc;
+		                }, {});
+		                const definitions = Object.entries(grouped).map(([title, rows]) => ({ title, rows }));
+		                isRestoringDraft = true;
+		                resetGroups(definitions);
+		                isRestoringDraft = false;
+		            } else if (draftGroups.length) {
+		                isRestoringDraft = true;
+		                resetGroups(draftGroups);
+		                isRestoringDraft = false;
+		            } else {
+		                resetGroups([]);
+		            }
 
-            if (existingItems.length) {
-                const grouped = existingItems.reduce((acc, item) => {
-                    const key = item.material_group || '';
-                    if (!acc[key]) acc[key] = [];
-                    acc[key].push(item);
-                    return acc;
-                }, {});
-                const definitions = Object.entries(grouped).map(([title, rows]) => ({ title, rows }));
-                isRestoringDraft = true;
-                resetGroups(definitions);
-                isRestoringDraft = false;
-            } else if (draftGroups.length) {
-                isRestoringDraft = true;
-                resetGroups(draftGroups);
-                isRestoringDraft = false;
-            } else {
-                resetGroups([]);
-            }
-            updateRefreshButtonState();
-            requestSaveDraft();
-        });
+		            const vendorId = vendorIdInput.value;
+		            if (vendorId) {
+		                loadParts(vendorId)
+		                    .then(() => rebuildPartSelects(vendorId))
+		                    .catch(() => {});
+		            }
+		            updateRefreshButtonState();
+		            requestSaveDraft();
+		        });
 
         const form = document.getElementById('arrival-form');
         form.addEventListener('submit', () => {
