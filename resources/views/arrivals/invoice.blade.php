@@ -136,6 +136,14 @@
 	            font-size: inherit;
 	        }
 
+            .packing-qty-split td {
+                padding: 0 4px;
+            }
+
+            .packing-qty-split td + td {
+                border-left: 1px solid #000;
+            }
+
             .packing-total-parts {
                 font-weight: bold;
                 text-align: center;
@@ -843,7 +851,7 @@
                                         : number_format((float) ($item->qty_goods ?? 0), 0) . ' ' . $goodsUnitLabel;
 	                            @endphp
 				                <td class="text-center packing-bundle" style="white-space:nowrap;">
-                                    <table class="packing-desc">
+                                    <table class="packing-desc packing-qty-split">
                                         <colgroup>
                                             <col style="width:50%;">
                                             <col style="width:50%;">
@@ -915,7 +923,7 @@
                                             $goodsTotalParts[] = '-';
                                         }
                                     @endphp
-                                    <table class="packing-desc">
+                                    <table class="packing-desc packing-qty-split">
                                         <colgroup>
                                             <col style="width:50%;">
                                             <col style="width:50%;">
