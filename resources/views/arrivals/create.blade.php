@@ -569,12 +569,18 @@
 	        function buildSizeOptionsHtml(vendorId, groupTitle = '') {
 	            const list = getPartsForGroup(vendorId, groupTitle);
 	            if (!list.length) return '';
+	            const getSizeCandidate = (p) => {
+	                const candidate = String(p.size || p.register_no || '').trim();
+	                const partNo = String(p.part_no || '').trim();
+	                if (!candidate) return '';
+	                if (partNo && candidate.toLowerCase() === partNo.toLowerCase()) return '';
+	                return candidate;
+	            };
 	            return list
 	                .map((p) => {
-	                    const size = String(p.size || p.register_no || '').trim();
+	                    const size = getSizeCandidate(p);
 	                    if (!size) return '';
-	                    const label = `${String(p.part_no || '').trim()} — ${String(p.part_name_gci || p.part_name_vendor || '').trim()}`.trim();
-	                    return `<option value="${escapeHtml(size)}" label="${escapeHtml(label)}"></option>`;
+	                    return `<option value="${escapeHtml(size)}"></option>`;
 	                })
 	                .filter(Boolean)
 	                .join('');
@@ -584,7 +590,13 @@
 	            const normalizedSize = String(sizeValue || '').trim().toLowerCase();
 	            if (!normalizedSize) return null;
 	            const list = getPartsForGroup(vendorId, groupTitle);
-	            return list.find((p) => String(p.size || p.register_no || '').trim().toLowerCase() === normalizedSize) ?? null;
+	            return list.find((p) => {
+	                const candidate = String(p.size || p.register_no || '').trim();
+	                const partNo = String(p.part_no || '').trim();
+	                if (!candidate) return false;
+	                if (partNo && candidate.toLowerCase() === partNo.toLowerCase()) return false;
+	                return candidate.toLowerCase() === normalizedSize;
+	            }) ?? null;
 	        }
 
 	        function getUniqueMaterialTitles(vendorId) {
