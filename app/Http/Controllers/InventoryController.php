@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Inventory;
 use App\Models\Part;
+use App\Models\Receive;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Exports\InventoryExport;
@@ -26,6 +27,24 @@ class InventoryController extends Controller
             ->withQueryString();
 
         return view('inventory.index', compact('inventories', 'parts', 'partId'));
+    }
+
+    public function receives(Request $request)
+    {
+        $partId = $request->query('part_id');
+        $qcStatus = $request->query('qc_status');
+
+        $parts = Part::query()->orderBy('part_no')->get();
+
+        $receives = Receive::query()
+            ->with(['arrivalItem.part', 'arrivalItem.arrival'])
+            ->when($partId, fn ($q) => $q->whereHas('arrivalItem', fn ($qq) => $qq->where('part_id', $partId)))
+            ->when($qcStatus, fn ($q) => $q->where('qc_status', $qcStatus))
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('inventory.receives', compact('receives', 'parts', 'partId', 'qcStatus'));
     }
 
     public function store(Request $request)

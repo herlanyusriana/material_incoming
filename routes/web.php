@@ -6,6 +6,7 @@ use App\Http\Controllers\PartController;
 use App\Http\Controllers\ArrivalController;
 use App\Http\Controllers\ReceiveController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
 use App\Http\Controllers\Planning\BomController as PlanningBomController;
@@ -71,11 +72,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
     Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
     Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+
+    Route::prefix('outgoing')->name('outgoing.')->group(function () {
+        Route::get('/daily-planning', [OutgoingController::class, 'dailyPlanning'])->name('daily-planning');
+        Route::get('/customer-po', [OutgoingController::class, 'customerPo'])->name('customer-po');
+        Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
+        Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
+        Route::get('/gci-inventory', [OutgoingController::class, 'gciInventory'])->name('gci-inventory');
+        Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
+        Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
+    });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

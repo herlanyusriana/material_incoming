@@ -1,5 +1,6 @@
 @php
     $incomingModuleActive = request()->routeIs('incoming-material.dashboard') || request()->routeIs('departures.*') || request()->routeIs('receives.*');
+    $outgoingModuleActive = request()->routeIs('outgoing.*');
     $vendorsActive = request()->routeIs('vendors.*');
     $partsActive = request()->routeIs('parts.*');
 
@@ -191,9 +192,9 @@
                     </div>
                 </div>
 
-	            <div>
-	                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Incoming</div>
-	                <div class="space-y-1">
+		            <div>
+		                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Incoming</div>
+		                <div class="space-y-1">
 	                    <a
 	                        href="{{ route('departures.create') }}"
                         @class([$navLinkBase, $navActive => request()->routeIs('departures.create'), $navInactive => !request()->routeIs('departures.create') ])
@@ -246,14 +247,58 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
                         <span class="ml-3">Completed Receives</span>
-	                    </a>
-	                </div>
-	            </div>
+		                    </a>
+		                </div>
+		            </div>
 
-                <div>
-                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Inventory</div>
-                    <div class="space-y-1">
-                    <a
+                    <div>
+                        <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Outgoing</div>
+                        <details class="group" {{ $outgoingModuleActive ? 'open' : '' }}>
+                            <summary class="list-none cursor-pointer">
+                                <div @class([$navLinkBase, $navActive => $outgoingModuleActive, $navInactive => !$outgoingModuleActive ])>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h14l4 4v10a2 2 0 0 1-2 2H3V7Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 11h10M7 15h10M7 19h6" />
+                                    </svg>
+                                    <span class="ml-3 flex-1">Outgoing</span>
+                                    <svg class="h-4 w-4 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </div>
+                            </summary>
+
+                            <div class="mt-2">
+                                <div class="ml-4 border-l border-slate-200 pl-4 space-y-1">
+                                    <a href="{{ route('outgoing.daily-planning') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                                       @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.daily-planning'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.daily-planning')])
+                                       @click="mobileSidebarOpen = false">Customers Daily Planning</a>
+                                    <a href="{{ route('outgoing.customer-po') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                                       @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.customer-po'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.customer-po')])
+                                       @click="mobileSidebarOpen = false">Customers PO</a>
+                                    <a href="{{ route('outgoing.product-mapping') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                                       @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.product-mapping'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.product-mapping')])
+                                       @click="mobileSidebarOpen = false">Customer Product Mapping</a>
+                                    <a href="{{ route('outgoing.delivery-requirements') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                                       @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.delivery-requirements'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.delivery-requirements')])
+                                       @click="mobileSidebarOpen = false">Delivery Requirements</a>
+                                    <a href="{{ route('outgoing.gci-inventory') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                                       @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.gci-inventory'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.gci-inventory')])
+                                       @click="mobileSidebarOpen = false">GCI Inventory</a>
+                                    <a href="{{ route('outgoing.stock-at-customers') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                                       @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.stock-at-customers'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.stock-at-customers')])
+                                       @click="mobileSidebarOpen = false">Stock at Customers</a>
+                                    <a href="{{ route('outgoing.delivery-plan') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                                       @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.delivery-plan'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.delivery-plan')])
+                                       @click="mobileSidebarOpen = false">Delivery Plan &amp; Arrangement</a>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+	                <div>
+	                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Inventory</div>
+	                    <div class="space-y-1">
+	                    <a
                         href="{{ route('inventory.index') }}"
                         @class([$navLinkBase, $navActive => request()->routeIs('inventory.*'), $navInactive => !request()->routeIs('inventory.*') ])
                         @click="mobileSidebarOpen = false"
@@ -263,6 +308,16 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
                             </svg>
                             <span class="ml-3 flex-1">Inventory</span>
+                        </a>
+                        <a
+                            href="{{ route('inventory.receives') }}"
+                            @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives') ])
+                            @click="mobileSidebarOpen = false"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+                            </svg>
+                            <span class="ml-3 flex-1">Inventory Receives</span>
                         </a>
                     </div>
                 </div>
@@ -587,21 +642,85 @@
 	            </details>
 	        </div>
 
-            <div>
-                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Inventory</div>
-                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
-                    <a
-                        href="{{ route('inventory.index') }}"
-                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.*'), $navInactive => !request()->routeIs('inventory.*') ])
+        <div>
+            <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Outgoing</div>
+
+            <details class="group" {{ $outgoingModuleActive ? 'open' : '' }} x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                <summary class="list-none cursor-pointer" title="Outgoing" :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                    <div
+                        @class([$navLinkBase, $navActive => $outgoingModuleActive, $navInactive => !$outgoingModuleActive ])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h14l4 4v10a2 2 0 0 1-2 2H3V7Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 11h10M7 15h10M7 19h6" />
                         </svg>
-                        <span class="ml-3 flex-1">Inventory</span>
-                    </a>
+                        <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Outgoing</span>
+                        <svg class="h-4 w-4 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                        </svg>
+                    </div>
+                </summary>
+
+                <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                    <div class="ml-4 border-l border-slate-200 pl-4 space-y-1">
+                        <a href="{{ route('outgoing.daily-planning') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                           @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.daily-planning'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.daily-planning')])>
+                            Customers Daily Planning
+                        </a>
+                        <a href="{{ route('outgoing.customer-po') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                           @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.customer-po'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.customer-po')])>
+                            Customers PO
+                        </a>
+                        <a href="{{ route('outgoing.product-mapping') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                           @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.product-mapping'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.product-mapping')])>
+                            Customer Product Mapping
+                        </a>
+                        <a href="{{ route('outgoing.delivery-requirements') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                           @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.delivery-requirements'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.delivery-requirements')])>
+                            Delivery Requirements
+                        </a>
+                        <a href="{{ route('outgoing.gci-inventory') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                           @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.gci-inventory'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.gci-inventory')])>
+                            GCI Inventory
+                        </a>
+                        <a href="{{ route('outgoing.stock-at-customers') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                           @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.stock-at-customers'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.stock-at-customers')])>
+                            Stock at Customers
+                        </a>
+                        <a href="{{ route('outgoing.delivery-plan') }}" class="flex items-center rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+                           @class(['bg-indigo-50 text-indigo-700' => request()->routeIs('outgoing.delivery-plan'), 'text-slate-600 hover:bg-indigo-50 hover:text-slate-900' => !request()->routeIs('outgoing.delivery-plan')])>
+                            Delivery Plan &amp; Arrangement
+                        </a>
+                    </div>
                 </div>
-            </div>
+            </details>
+        </div>
+
+	            <div>
+	                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Inventory</div>
+	                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
+	                    <a
+	                        href="{{ route('inventory.index') }}"
+	                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.*'), $navInactive => !request()->routeIs('inventory.*') ])
+	                    >
+	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
+	                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
+	                        </svg>
+	                        <span class="ml-3 flex-1">Inventory</span>
+	                    </a>
+	                        <a
+	                            href="{{ route('inventory.receives') }}"
+	                            @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives') ])
+	                        >
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+	                            </svg>
+	                            <span class="ml-3 flex-1">Inventory Receives</span>
+	                        </a>
+		                </div>
+		            </div>
 	    </nav>
 
     <div class="px-4 pb-5">

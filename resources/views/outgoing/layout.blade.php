@@ -1,0 +1,19 @@
+<x-app-layout>
+    <x-slot name="header">
+        Outgoing
+    </x-slot>
+
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="text-sm font-semibold text-slate-900">Flow Outgoing</div>
+                <div class="mt-1 text-sm text-slate-600">
+                    Customer Daily Planning → Customer PO → Customer Product Mapping → Delivery Requirements → GCI Inventory &amp; Stock at Customers → Delivery Plan &amp; Arrangement
+                </div>
+            </div>
+
+            @yield('content')
+        </div>
+    </div>
+</x-app-layout>
+
