@@ -589,26 +589,35 @@
 
 	        @endforeach
 	        
-	        {{-- Total row --}}
-	        <tr style="border-top:2px solid #000;">
-	            <td class="text-bold">TOTAL :</td>
-	            <td>&nbsp;</td>
-	            <td class="text-center text-bold">
-                    @php
-                        $totalParts = [];
-                        foreach ($qtyTotalsNonWeight as $unit => $value) {
-                            $totalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
-                        }
-                        foreach ($nettTotalsByUnit as $unit => $value) {
-                            $totalParts[] = number_format((float) $value, 0) . ' ' . strtoupper((string) $unit);
-                        }
-                        $totalPartsText = collect($totalParts)->map(fn ($t) => e($t))->implode('&nbsp;&nbsp;');
-                    @endphp
-                    <span style="white-space:nowrap;">{!! $totalPartsText !!}</span>
-	            </td>
-	            <td>&nbsp;</td>
-	            <td class="text-right text-bold">USD {{ format2($arrival->items->sum('total_price')) }}</td>
-	        </tr>
+		        {{-- Total row --}}
+		        <tr style="border-top:2px solid #000;">
+		            <td class="text-bold">TOTAL :</td>
+		            <td>&nbsp;</td>
+		            <td class="text-center text-bold" style="white-space:nowrap;">
+	                    @php
+	                        $totalParts = [];
+	                        foreach ($qtyTotalsNonWeight as $unit => $value) {
+	                            $totalParts[] = [
+	                                'value' => number_format((float) $value, 0),
+	                                'unit' => strtoupper((string) $unit),
+	                            ];
+	                        }
+	                        foreach ($nettTotalsByUnit as $unit => $value) {
+	                            $totalParts[] = [
+	                                'value' => number_format((float) $value, 0),
+	                                'unit' => strtoupper((string) $unit),
+	                            ];
+	                        }
+	                    @endphp
+                        @foreach($totalParts as $part)
+                            <div style="white-space:nowrap; line-height:1.15;">
+                                {{ $part['value'] }} {{ $part['unit'] }}
+                            </div>
+                        @endforeach
+		            </td>
+		            <td>&nbsp;</td>
+		            <td class="text-right text-bold">USD {{ format2($arrival->items->sum('total_price')) }}</td>
+		        </tr>
 	    </tbody>
 	</table>
 </div>
