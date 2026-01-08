@@ -8,6 +8,7 @@ use App\Exports\PartsExport;
 use App\Imports\PartsImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class PartController extends Controller
 {
@@ -49,9 +50,29 @@ class PartController extends Controller
         ]);
 
         try {
-            Excel::import(new PartsImport, $request->file('file'));
+            $import = new PartsImport();
+            Excel::import($import, $request->file('file'));
+
+            $failures = collect($import->failures());
+            if ($failures->isNotEmpty()) {
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+            }
+
             return back()->with('status', 'Parts imported successfully.');
         } catch (\Exception $e) {
+            if ($e instanceof ValidationException) {
+                $failures = collect($e->failures());
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+                return back()->with('error', "Import failed: {$preview}");
+            }
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }

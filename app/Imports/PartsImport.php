@@ -5,12 +5,16 @@ namespace App\Imports;
 use App\Models\Part;
 use App\Models\Vendor;
 use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Concerns\SkipsFailures;
 
-class PartsImport implements ToModel, WithHeadingRow, WithValidation
+class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure
 {
+    use SkipsFailures;
+
     private function firstNonEmpty(array $row, array $keys): ?string
     {
         foreach ($keys as $key) {
@@ -69,6 +73,13 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation
             $vendor = Vendor::whereRaw('LOWER(vendor_name) = ?', [$normalized])->first();
         }
 
+        if (!$vendor && $vendorName) {
+            $vendor = Vendor::create([
+                'vendor_name' => strtoupper(trim($vendorName)),
+                'status' => 'active',
+            ]);
+        }
+
         if (!$vendor) {
             return null;
         }
@@ -107,8 +118,9 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
-            'vendor' => 'required_without:vendor_id|string|max:255',
-            'vendor_id' => 'nullable|integer',
+            'vendor' => 'required_without_all:vendor_id,vendor_name|string|max:255',
+            'vendor_name' => 'required_without_all:vendor_id,vendor|string|max:255',
+            'vendor_id' => ['nullable', 'integer', Rule::exists('vendors', 'id')],
             'part_no' => ['required_without:part_number', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
             'part_number' => ['required_without:part_no', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
             'register_no' => 'nullable|string|max:255',
