@@ -420,13 +420,63 @@
             white-space: nowrap;
         }
 
-        .commercial-invoice .ci-sign-line {
-            border-top: 1px solid #000;
-            margin-top: 6px;
-        }
-    </style>
-</head>
-<body>
+	        .commercial-invoice .ci-sign-line {
+	            border-top: 1px solid #000;
+	            margin-top: 6px;
+	        }
+
+            /* Packing list signature uses the same look as commercial invoice */
+            .packing-list .ci-original-stamp {
+                border: 3px solid #cc0000;
+                color: #cc0000;
+                padding: 8px 24px;
+                font-size: 30px;
+                font-weight: bold;
+                display: inline-block;
+                margin: 20px 0;
+                box-sizing: border-box;
+                max-width: 100%;
+            }
+
+            .packing-list .ci-sign-block {
+                display: inline-block;
+                text-align: center;
+                max-width: 100%;
+            }
+
+            .packing-list .ci-signature-wrap {
+                text-align: right;
+                min-height: 30px;
+                margin-top: 6px;
+            }
+
+            .packing-list .ci-signature img {
+                max-height: 45px;
+                vertical-align: middle;
+            }
+
+            .packing-list .ci-sign-top-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                gap: 12px;
+                min-height: 45px;
+            }
+
+            .packing-list .ci-signedby {
+                font-size: 8px;
+                font-weight: bold;
+                text-align: left;
+                white-space: nowrap;
+            }
+
+            .packing-list .ci-sign-line {
+                border-top: 1px solid #000;
+                margin-top: 6px;
+            }
+	    </style>
+	</head>
+	<body>
     @php
         // Display exactly what user inputs; no auto-combining/guessing.
         $portDisplay = strtoupper(trim((string) ($arrival->port_of_loading ?? '')));
@@ -1141,36 +1191,40 @@
 		</table>
         </div>
 
-	{{-- Signature Section --}}
-	<div class="footer-section">
-	    <table class="signature-table">
-	        <tr>
-            <td style="width:100%; text-align:right;">
-                <div style="display:inline-block; text-align:center; padding:10px 30px;">
-                    <div class="original-box" style="transform: rotate({{ $originalRotationPacking }}deg);">ORIGINAL</div>
-                    <table style="width:100%; border:none; margin-top:8px;">
-                        <tr>
-                            <td style="border:none; padding:0; width:45%; vertical-align:bottom; text-align:left;">
-                                <span class="section-label">SIGNED BY</span><br>
-                                @php $signedBy = strtoupper(trim((string) ($arrival->vendor->contact_person ?? ''))); @endphp
-                                <strong>{{ $signedBy !== '' ? $signedBy : ' ' }}</strong>
-                            </td>
-                            <td style="border:none; padding:0; width:55%; vertical-align:bottom; text-align:right;">
-                                <div class="sign-space" style="height:auto;">
+		{{-- Signature Section (match Commercial Invoice) --}}
+		<div class="footer-section">
+            <table style="width:100%; border:none;">
+                <tr>
+                    <td style="border:none; padding:0; width:70%;">&nbsp;</td>
+                    <td style="border:none; padding:0; width:30%; text-align:right; vertical-align:top;">
+                        <div style="margin-top:35px;">
+                            <div class="ci-original-stamp" style="transform: rotate(-6deg);">ORIGINAL</div>
+                        </div>
+
+                        <div class="ci-sign-block" style="margin-top:10px;">
+                            <div class="ci-sign-top-row">
+                                <div class="ci-signedby">
+                                    <div>SIGNED BY</div>
+                                    @php $signedBy = strtoupper(trim((string) ($arrival->vendor->contact_person ?? ''))); @endphp
+                                    <div>{{ $signedBy !== '' ? $signedBy : ' ' }}</div>
+                                </div>
+
+                                <div class="ci-signature-wrap" style="margin-top:0; min-height:0;">
                                     @if($arrival->vendor->signature_path)
-                                        <img src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" style="max-height:45px;">
+                                        <img class="ci-signature" src="{{ public_path('storage/' . $arrival->vendor->signature_path) }}" alt="Signature">
+                                    @else
+                                        <div style="height:20px; width:120px; display:inline-block;"></div>
                                     @endif
                                 </div>
-                            </td>
-                        </tr>
-                    </table>
-                    <div style="border-top:1px solid #000; margin-top:10px;"></div>
-                </div>
-            </td>
-        </tr>
-    </table>
-</div>
+                            </div>
 
-</div>
-</body>
-</html>
+                            <div class="ci-sign-line"></div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+		</div>
+
+	</div>
+	</body>
+	</html>
