@@ -275,7 +275,7 @@ class ReceiveController extends Controller
             'tags.*.weight' => 'nullable|numeric',
             'tags.*.net_weight' => 'nullable|numeric',
             'tags.*.gross_weight' => 'nullable|numeric',
-            'tags.*.qty_unit' => 'required|in:KGM,PCS,SHEET',
+            'tags.*.qty_unit' => 'required|in:KGM,KG,PCS,COIL,SHEET,SET,EA',
             'tags.*.qc_status' => 'required|in:pass,reject',
         ]);
 
@@ -387,7 +387,7 @@ class ReceiveController extends Controller
             'items.*.tags.*.weight' => 'nullable|numeric',
             'items.*.tags.*.net_weight' => 'nullable|numeric',
             'items.*.tags.*.gross_weight' => 'nullable|numeric',
-            'items.*.tags.*.qty_unit' => 'required_with:items.*.tags|in:KGM,PCS,SHEET',
+            'items.*.tags.*.qty_unit' => 'required_with:items.*.tags|in:KGM,KG,PCS,COIL,SHEET,SET,EA',
             'items.*.tags.*.qc_status' => 'required_with:items.*.tags|in:pass,reject',
         ]);
 

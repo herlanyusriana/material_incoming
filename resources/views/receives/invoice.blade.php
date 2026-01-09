@@ -180,14 +180,11 @@
                                             </div>
                                         </td>
                                         <td class="px-3 py-2 align-top">
+                                            @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
                                             <div class="flex items-center gap-2">
-                                                <input type="number" name="items[{{ $item->id }}][tags][0][qty]" min="1" placeholder="0" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
-                                                <select name="items[{{ $item->id }}][tags][0][qty_unit]" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                                    @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
-                                                    <option value="KGM" @selected($defaultGoodsUnit === 'KGM')>KGM</option>
-                                                    <option value="SHEET" @selected($defaultGoodsUnit === 'SHEET')>SHEET</option>
-                                                    <option value="PCS" @selected($defaultGoodsUnit === 'PCS')>PCS</option>
-                                                </select>
+                                                <input type="number" name="items[{{ $item->id }}][tags][0][qty]" min="1" placeholder="Qty {{ $defaultGoodsUnit }}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
+                                                <input type="hidden" name="items[{{ $item->id }}][tags][0][qty_unit]" value="{{ $defaultGoodsUnit }}">
+                                                <span class="w-24 text-center text-xs font-semibold text-slate-700">{{ $defaultGoodsUnit }}</span>
                                             </div>
                                         </td>
 	                                        <td class="px-3 py-2 align-top">
@@ -305,16 +302,13 @@
 	                        </select>
                         </div>
 	                </td>
-	                <td class="px-3 py-2 align-top">
-                        <div class="flex items-center gap-2">
-	                        <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="1" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="${itemId}">
-                            <select name="items[${itemId}][tags][${idx}][qty_unit]" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                <option value="KGM" ${goodsUnit === 'KGM' ? 'selected' : ''}>KGM</option>
-                                <option value="SHEET" ${goodsUnit === 'SHEET' ? 'selected' : ''}>SHEET</option>
-                                <option value="PCS" ${goodsUnit === 'PCS' ? 'selected' : ''}>PCS</option>
-                            </select>
-                        </div>
-	                </td>
+		                <td class="px-3 py-2 align-top">
+	                        <div class="flex items-center gap-2">
+		                        <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="1" placeholder="Qty ${goodsUnit}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="${itemId}">
+	                            <input type="hidden" name="items[${itemId}][tags][${idx}][qty_unit]" value="${goodsUnit}">
+	                            <span class="w-24 text-center text-xs font-semibold text-slate-700">${goodsUnit}</span>
+	                        </div>
+		                </td>
 	                <td class="px-3 py-2 align-top">
 	                    <input type="number" name="items[${itemId}][tags][${idx}][net_weight]" step="0.01" placeholder="0.00" value="${defaultWeight || ''}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
 	                </td>
