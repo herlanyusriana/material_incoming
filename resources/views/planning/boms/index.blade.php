@@ -3,8 +3,8 @@
         Planning • BOM GCI
     </x-slot>
 
-    <div class="py-6" x-data="planningBoms()">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+	    <div class="py-6" x-data="planningBoms()">
+	        <div class="max-w-screen-2xl mx-auto px-2 sm:px-4 lg:px-6 space-y-6">
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
