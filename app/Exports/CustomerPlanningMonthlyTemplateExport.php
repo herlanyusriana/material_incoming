@@ -15,15 +15,16 @@ class CustomerPlanningMonthlyTemplateExport implements WithMultipleSheets
                     return [
                         'Part Number',
                         'Biz Type',
-                        "Jan'26 Prod",
-                        "Feb'26 Prod",
+                        '2025-12',
+                        '2026-01',
+                        '2026-02',
                     ];
                 }
 
                 public function array(): array
                 {
                     return [
-                        ['GN-B312PQGB.ASWGKRB', 'Regular', 148, 296],
+                        ['GN-B312PQGB.ASWGKRB', 'Regular', 0, 148, 296],
                     ];
                 }
 
@@ -41,6 +42,7 @@ class CustomerPlanningMonthlyTemplateExport implements WithMultipleSheets
                         'B' => 14,
                         'C' => 14,
                         'D' => 14,
+                        'E' => 14,
                     ];
                 }
             },
@@ -48,7 +50,7 @@ class CustomerPlanningMonthlyTemplateExport implements WithMultipleSheets
                 public function headings(): array
                 {
                     return [
-                        'month_header',
+                        'month_key',
                         'minggu',
                         'ratio',
                     ];
@@ -57,14 +59,14 @@ class CustomerPlanningMonthlyTemplateExport implements WithMultipleSheets
                 public function array(): array
                 {
                     return [
-                        ["Jan'26 Prod", '2026-W01', 0.25],
-                        ["Jan'26 Prod", '2026-W02', 0.25],
-                        ["Jan'26 Prod", '2026-W03', 0.25],
-                        ["Jan'26 Prod", '2026-W04', 0.25],
-                        ["Feb'26 Prod", '2026-W05', 0.25],
-                        ["Feb'26 Prod", '2026-W06', 0.25],
-                        ["Feb'26 Prod", '2026-W07', 0.25],
-                        ["Feb'26 Prod", '2026-W08', 0.25],
+                        ['2026-01', '2026-W01', 0.25],
+                        ['2026-01', '2026-W02', 0.25],
+                        ['2026-01', '2026-W03', 0.25],
+                        ['2026-01', '2026-W04', 0.25],
+                        ['2026-02', '2026-W05', 0.25],
+                        ['2026-02', '2026-W06', 0.25],
+                        ['2026-02', '2026-W07', 0.25],
+                        ['2026-02', '2026-W08', 0.25],
                     ];
                 }
 
@@ -87,4 +89,3 @@ class CustomerPlanningMonthlyTemplateExport implements WithMultipleSheets
         ];
     }
 }
-

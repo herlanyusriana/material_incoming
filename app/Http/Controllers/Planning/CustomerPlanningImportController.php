@@ -146,13 +146,65 @@ class CustomerPlanningImportController extends Controller
                 return back()->with('error', 'Monthly format but mapping sheet missing. Tambahkan sheet kedua dengan kolom: month_header, minggu, ratio.');
             }
 
-            $weekMap = $weekMapRows
-                ->groupBy('month_header')
-                ->map(function ($rows) {
-                    return $rows
-                        ->map(fn ($r) => ['minggu' => $r['minggu'], 'ratio' => (float) $r['ratio']])
+            try {
+                $weekMap = $weekMapRows
+                    ->groupBy('month_header')
+                    ->map(function ($rows, $monthKey) {
+                    $items = collect($rows)
+                        ->map(function ($r) {
+                            return [
+                                'minggu' => strtoupper(trim((string) ($r['minggu'] ?? ''))),
+                                'ratio' => isset($r['ratio']) && is_numeric($r['ratio']) && (float) $r['ratio'] > 0 ? (float) $r['ratio'] : null,
+                            ];
+                        })
+                        ->filter(fn ($r) => $r['minggu'] !== '')
+                        ->groupBy('minggu')
+                        ->map(function ($group, $minggu) {
+                            $ratios = collect($group)->pluck('ratio')->filter(fn ($v) => $v !== null);
+                            $ratioSum = $ratios->sum();
+                            $ratio = $ratioSum > 0 ? (float) $ratioSum : null;
+                            return ['minggu' => $minggu, 'ratio' => $ratio];
+                        })
                         ->values();
-                });
+
+                    // Validate minggu format early.
+                    $invalidWeeks = $items
+                        ->pluck('minggu')
+                        ->filter(fn ($w) => !$this->validateMinggu($w))
+                        ->values();
+                    if ($invalidWeeks->isNotEmpty()) {
+                        throw new \RuntimeException("Invalid minggu in WeekMap for {$monthKey}: " . $invalidWeeks->take(10)->implode(', '));
+                    }
+
+                    $specifiedSum = (float) $items->pluck('ratio')->filter(fn ($v) => $v !== null)->sum();
+                    if ($specifiedSum > 1.001) {
+                        throw new \RuntimeException("Invalid ratio for {$monthKey}. Total specified ratio exceeds 1.0 (now {$specifiedSum}).");
+                    }
+
+                    $unsetCount = (int) $items->filter(fn ($r) => $r['ratio'] === null)->count();
+                    if ($unsetCount === 0) {
+                        if (abs($specifiedSum - 1.0) > 0.001) {
+                            throw new \RuntimeException("Invalid ratio for {$monthKey}. Total ratio must be 1.0 (now {$specifiedSum}).");
+                        }
+                        return $items;
+                    }
+
+                    $remaining = 1.0 - $specifiedSum;
+                    if ($remaining <= 0) {
+                        throw new \RuntimeException("Invalid ratio for {$monthKey}. Remaining ratio is {$remaining} (check blank ratios).");
+                    }
+                    $even = $remaining / $unsetCount;
+
+                    return $items->map(function ($r) use ($even) {
+                        if ($r['ratio'] === null) {
+                            $r['ratio'] = $even;
+                        }
+                        return $r;
+                    })->values();
+                    });
+            } catch (\RuntimeException $e) {
+                return back()->with('error', $e->getMessage());
+            }
 
             $allMonthHeaders = $originalMonthly->flatMap(fn ($r) => array_keys($r['months'] ?? []))->unique()->values();
             $missingMonths = $allMonthHeaders->filter(fn ($m) => !$weekMap->has($m))->values();
@@ -160,12 +212,7 @@ class CustomerPlanningImportController extends Controller
                 return back()->with('error', 'Week mapping missing for month columns: ' . $missingMonths->take(10)->implode(', ') . ($missingMonths->count() > 10 ? ' ...' : ''));
             }
 
-            foreach ($weekMap as $monthHeader => $rows) {
-                $sum = $rows->sum('ratio');
-                if ($sum <= 0.0 || abs($sum - 1.0) > 0.001) {
-                    return back()->with('error', "Invalid ratio for {$monthHeader}. Total ratio must be 1.0 (now {$sum}).");
-                }
-            }
+            // weekMap builder already validates & normalizes ratios per month.
 
             $byKey = [];
             foreach ($originalMonthly as $row) {

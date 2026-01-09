@@ -16,8 +16,55 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
     /** @var array<int, array{customer_part_no:string, months:array<string, float>}> */
     public array $monthlyRows = [];
 
-    /** @var array<int, array{month_header:string, minggu:string, ratio:float}> */
+    /** @var array<int, array{month_header:string, minggu:string, ratio:float|null}> */
     public array $weekMapRows = [];
+
+    public static function normalizeMonthKey(string $header): string
+    {
+        $raw = trim($header);
+        if ($raw === '') {
+            return '';
+        }
+
+        // Remove common suffixes like "Prod" and collapse whitespace.
+        $raw = preg_replace('/\s+/', ' ', $raw) ?? $raw;
+        $rawNoSuffix = preg_replace('/\s*prod\s*$/i', '', $raw) ?? $raw;
+        $rawNoSuffix = trim($rawNoSuffix);
+
+        // Already in YYYY-MM.
+        if (preg_match('/^\d{4}-\d{2}$/', $rawNoSuffix)) {
+            return $rawNoSuffix;
+        }
+
+        $monthMap = [
+            'jan' => 1, 'january' => 1,
+            'feb' => 2, 'february' => 2,
+            'mar' => 3, 'march' => 3,
+            'apr' => 4, 'april' => 4,
+            'may' => 5,
+            'jun' => 6, 'june' => 6,
+            'jul' => 7, 'july' => 7,
+            'aug' => 8, 'august' => 8,
+            'sep' => 9, 'sept' => 9, 'september' => 9,
+            'oct' => 10, 'october' => 10,
+            'nov' => 11, 'november' => 11,
+            'dec' => 12, 'december' => 12,
+        ];
+
+        // Formats like Dec'25, Dec 25, Dec'2025, December'25, etc.
+        if (preg_match('/^(?<mon>[A-Za-z]{3,9})\s*\'?\s*(?<yy>\d{2}|\d{4})$/', $rawNoSuffix, $m)) {
+            $monKey = strtolower($m['mon']);
+            $month = $monthMap[$monKey] ?? ($monthMap[substr($monKey, 0, 3)] ?? null);
+            if ($month) {
+                $yearRaw = $m['yy'];
+                $year = strlen($yearRaw) === 2 ? (2000 + (int) $yearRaw) : (int) $yearRaw;
+                return sprintf('%04d-%02d', $year, $month);
+            }
+        }
+
+        // Formats like Dec'25 Prod (suffix already removed), but keep raw if not parseable.
+        return $raw;
+    }
 
     public function sheets(): array
     {
@@ -109,6 +156,11 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                             // Treat any header that contains "Prod" as month demand column.
                             if (stripos($clean, 'prod') !== false) {
                                 $monthColumns[$clean] = $idx;
+                                continue;
+                            }
+                            // Or explicit YYYY-MM.
+                            if (preg_match('/^\d{4}-\d{2}$/', $clean)) {
+                                $monthColumns[$clean] = $idx;
                             }
                         }
 
@@ -120,7 +172,8 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                             }
                             $months = [];
                             foreach ($monthColumns as $monthHeader => $colIdx) {
-                                $months[$monthHeader] = $this->parseQty($arr[$colIdx] ?? null);
+                                $monthKey = CustomerPlanningUploadImport::normalizeMonthKey($monthHeader);
+                                $months[$monthKey] = ($months[$monthKey] ?? 0) + $this->parseQty($arr[$colIdx] ?? null);
                             }
                             $this->parent->monthlyRows[] = [
                                 'customer_part_no' => $customerPartNo,
@@ -144,14 +197,19 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                         return null;
                     }
                     if (is_numeric($value)) {
-                        return (float) $value;
+                        $num = (float) $value;
+                        return $num > 0 ? $num : null;
                     }
                     $str = trim((string) $value);
                     if ($str === '' || $str === '-') {
                         return null;
                     }
                     $str = str_replace([',', ' '], ['', ''], $str);
-                    return is_numeric($str) ? (float) $str : null;
+                    if (!is_numeric($str)) {
+                        return null;
+                    }
+                    $num = (float) $str;
+                    return $num > 0 ? $num : null;
                 }
 
                 public function collection(Collection $rows): void
@@ -166,7 +224,10 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     }
 
                     $headers = $headerRow->map(fn ($v) => strtolower(trim((string) $v)))->all();
-                    $idxMonth = array_search('month_header', $headers, true);
+                    $idxMonth = array_search('month_key', $headers, true);
+                    if ($idxMonth === false) {
+                        $idxMonth = array_search('month_header', $headers, true);
+                    }
                     if ($idxMonth === false) {
                         $idxMonth = array_search('month', $headers, true);
                     }
@@ -180,13 +241,14 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     foreach ($rows as $row) {
                         $arr = $row->all();
                         $monthHeader = trim((string) ($arr[$idxMonth] ?? ''));
+                        $monthKey = CustomerPlanningUploadImport::normalizeMonthKey($monthHeader);
                         $minggu = strtoupper(trim((string) ($arr[$idxMinggu] ?? '')));
                         $ratio = $this->parseRatio($arr[$idxRatio] ?? null);
-                        if ($monthHeader === '' || $minggu === '' || $ratio === null) {
+                        if ($monthKey === '' || $minggu === '') {
                             continue;
                         }
                         $this->parent->weekMapRows[] = [
-                            'month_header' => $monthHeader,
+                            'month_header' => $monthKey,
                             'minggu' => $minggu,
                             'ratio' => $ratio,
                         ];
@@ -196,4 +258,3 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
         ];
     }
 }
-

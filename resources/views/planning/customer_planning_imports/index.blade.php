@@ -27,6 +27,9 @@
                         @endif
                     </div>
                 </div>
+                <div class="text-xs text-slate-500">
+                    Monthly tips: pakai header bulan format <span class="font-mono">YYYY-MM</span> (recommended). WeekMap ratio boleh kosong, nanti dibagi rata otomatis.
+                </div>
 
                 <form action="{{ route('planning.planning-imports.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3">
                     @csrf
