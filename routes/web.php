@@ -116,6 +116,7 @@ Route::middleware('auth')->group(function () {
 
 	        Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
 	        Route::get('/boms/export', [PlanningBomController::class, 'export'])->name('boms.export');
+	        Route::post('/boms/import', [PlanningBomController::class, 'import'])->name('boms.import');
 	        Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
 	        Route::put('/boms/{bom}', [PlanningBomController::class, 'update'])->name('boms.update');
 	        Route::delete('/boms/{bom}', [PlanningBomController::class, 'destroy'])->name('boms.destroy');

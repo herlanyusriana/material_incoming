@@ -25,6 +25,6 @@ class MrpPurchasePlan extends Model
 
     public function part()
     {
-        return $this->belongsTo(Part::class);
+        return $this->belongsTo(GciPart::class, 'part_id');
     }
 }

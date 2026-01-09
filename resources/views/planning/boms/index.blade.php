@@ -49,18 +49,25 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
-                    <div class="flex items-center gap-2">
-                        <a
-                            href="{{ route('planning.boms.export', request()->query()) }}"
-                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
-                        >
-                            Export
-                        </a>
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">
-                            + Add BOM
-                        </button>
-                    </div>
-                </div>
+	                    <div class="flex items-center gap-2">
+	                        <a
+	                            href="{{ route('planning.boms.export', request()->query()) }}"
+	                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
+	                        >
+	                            Export
+	                        </a>
+	                        <button
+	                            type="button"
+	                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
+	                            @click="openImport()"
+	                        >
+	                            Import
+	                        </button>
+	                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">
+	                            + Add BOM
+	                        </button>
+	                    </div>
+	                </div>
 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
                     <table class="min-w-[1600px] w-full text-sm divide-y divide-slate-200">
@@ -251,13 +258,13 @@
             </div>
         </div>
 
-        {{-- Create BOM modal --}}
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="closeCreate()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900">Add BOM</div>
-                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeCreate()">✕</button>
-                </div>
+	        {{-- Create BOM modal --}}
+	        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="closeCreate()">
+	            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+	                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+	                    <div class="text-sm font-semibold text-slate-900">Add BOM</div>
+	                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeCreate()">✕</button>
+	                </div>
 
                 <form action="{{ route('planning.boms.store') }}" method="POST" class="px-5 py-4 space-y-4">
                     @csrf
@@ -283,14 +290,43 @@
                         <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Create</button>
                     </div>
                 </form>
-            </div>
-        </div>
+	            </div>
+	        </div>
 
-        {{-- Line modal --}}
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
-            <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900" x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
+	        {{-- Import BOM modal --}}
+	        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importOpen" x-cloak @keydown.escape.window="closeImport()">
+	            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+	                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+	                    <div class="text-sm font-semibold text-slate-900">Import BOM (Excel)</div>
+	                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">✕</button>
+	                </div>
+
+	                <form action="{{ route('planning.boms.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+	                    @csrf
+
+	                    <div class="text-sm text-slate-700 space-y-1">
+	                        <div>Gunakan format kolom yang sama seperti hasil <span class="font-semibold">Export BOM</span>.</div>
+	                        <div class="text-xs text-slate-500">Kolom <span class="font-mono">FG Part No.</span> dan <span class="font-mono">RM Part No.</span> wajib sudah ada di master.</div>
+	                    </div>
+
+	                    <div>
+	                        <label class="text-sm font-semibold text-slate-700">File</label>
+	                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="mt-1 w-full rounded-xl border-slate-200" required>
+	                    </div>
+
+	                    <div class="flex justify-end gap-2 pt-2">
+	                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">Cancel</button>
+	                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold">Import</button>
+	                    </div>
+	                </form>
+	            </div>
+	        </div>
+
+	        {{-- Line modal --}}
+	        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
+	            <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-200">
+	                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+	                    <div class="text-sm font-semibold text-slate-900" x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeLineModal()">✕</button>
                 </div>
 
@@ -370,10 +406,10 @@
                             <label class="text-xs font-semibold text-slate-600">RM Part No.</label>
                             <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.component_part_id">
                                 <option value="" disabled>Select RM part</option>
-                                @foreach (($components ?? []) as $c)
-                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name_gci }}</option>
-                                @endforeach
-                            </select>
+	                                @foreach (($components ?? []) as $c)
+	                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
+	                                @endforeach
+	                            </select>
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Consumption</label>
@@ -396,13 +432,14 @@
             </div>
         </div>
 
-        <script>
-            function planningBoms() {
-                return {
-                    modalOpen: false,
-                    lineModalOpen: false,
-                    expanded: {},
-                    lineForm: {
+	        <script>
+	            function planningBoms() {
+	                return {
+	                    modalOpen: false,
+	                    importOpen: false,
+	                    lineModalOpen: false,
+	                    expanded: {},
+	                    lineForm: {
                         mode: 'create',
                         action: '',
                         bom_item_id: null,
@@ -421,12 +458,14 @@
                         component_part_id: '',
                         usage_qty: '1',
                         consumption_uom: '',
-                    },
-                    openCreate() { this.modalOpen = true; },
-                    closeCreate() { this.modalOpen = false; },
-                    toggle(id) { this.expanded[id] = !this.expanded[id]; },
-                    openLineModal(payload) {
-                        this.lineForm = {
+	                    },
+	                    openCreate() { this.modalOpen = true; },
+	                    closeCreate() { this.modalOpen = false; },
+	                    openImport() { this.importOpen = true; },
+	                    closeImport() { this.importOpen = false; },
+	                    toggle(id) { this.expanded[id] = !this.expanded[id]; },
+	                    openLineModal(payload) {
+	                        this.lineForm = {
                             mode: payload.mode,
                             action: payload.action,
                             bom_item_id: payload.bom_item_id,
@@ -454,4 +493,3 @@
         </script>
     </div>
 </x-app-layout>
-

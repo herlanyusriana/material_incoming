@@ -39,6 +39,6 @@ class BomItem extends Model
 
     public function componentPart()
     {
-        return $this->belongsTo(Part::class, 'component_part_id');
+        return $this->belongsTo(GciPart::class, 'component_part_id');
     }
 }

@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
 use App\Exports\BomExport;
+use App\Imports\BomImport;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\GciPart;
-use App\Models\Part;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class BomController extends Controller
 {
@@ -21,7 +22,7 @@ class BomController extends Controller
 
         $gciParts = GciPart::query()->orderBy('part_no')->get();
         $wipParts = $gciParts;
-        $components = Part::query()->orderBy('part_no')->get();
+        $components = $gciParts;
 
         $boms = Bom::query()
             ->with(['part', 'items.wipPart', 'items.componentPart'])
@@ -47,6 +48,42 @@ class BomController extends Controller
         $filename = 'boms_' . now()->format('Y-m-d_His') . '.xlsx';
 
         return Excel::download(new BomExport($gciPartId, $q), $filename);
+    }
+
+    public function import(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        try {
+            $import = new BomImport();
+            Excel::import($import, $validated['file']);
+
+            $failures = collect($import->failures());
+            if ($failures->isNotEmpty()) {
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+            }
+
+            return back()->with('success', 'BOM imported.');
+        } catch (\Exception $e) {
+            if ($e instanceof ValidationException) {
+                $failures = collect($e->failures());
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import failed: {$preview}");
+            }
+
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
     }
 
     public function store(Request $request)
@@ -83,7 +120,7 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'bom_item_id' => ['nullable', 'integer'],
-            'component_part_id' => ['required', Rule::exists('parts', 'id')],
+            'component_part_id' => ['required', Rule::exists('gci_parts', 'id')],
             'usage_qty' => ['required', 'numeric', 'min:0.0001'],
             'consumption_uom' => ['nullable', 'string', 'max:20'],
             'line_no' => ['nullable', 'integer', 'min:1'],

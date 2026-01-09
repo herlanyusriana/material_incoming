@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
-use App\Models\Inventory;
+use App\Models\GciInventory;
 use App\Models\MrpProductionPlan;
 use App\Models\MrpPurchasePlan;
 use App\Models\MrpRun;
@@ -78,7 +78,7 @@ class MrpController extends Controller
             }
 
             foreach ($requirements as $partId => $requiredQty) {
-                $inventory = Inventory::query()->where('part_id', $partId)->first();
+                $inventory = GciInventory::query()->where('gci_part_id', $partId)->first();
                 $onHand = (float) ($inventory->on_hand ?? 0);
                 $onOrder = (float) ($inventory->on_order ?? 0);
                 $netRequired = max(0, $requiredQty - $onHand - $onOrder);
