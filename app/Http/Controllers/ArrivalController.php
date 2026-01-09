@@ -102,18 +102,28 @@ class ArrivalController extends Controller
         }
 
         $raw = str_replace(',', '.', $raw);
-        $numbers = [];
         if (!preg_match_all('/\d+(?:\.\d+)?/', $raw, $matches)) {
             return null;
         }
 
-        foreach (($matches[0] ?? []) as $n) {
-            $numbers[] = (float) $n;
+        $numbers = collect($matches[0] ?? [])
+            ->map(fn ($n) => (float) $n)
+            ->values()
+            ->all();
+
+        // We infer "width" using heuristics because inputs vary:
+        // - Sheet: "0.25 x 640 x 1215" => width is typically the smaller of the 2 big numbers (640 vs 1215).
+        // - Coil:  "0.7 x 530 x C"     => width is the only big number (530).
+        // - Some users may swap order; we prefer choosing from "big" dimensions (>= 10).
+        $big = array_values(array_filter($numbers, fn ($n) => $n >= 10));
+        if (count($big) >= 2) {
+            return min($big);
+        }
+        if (count($big) === 1) {
+            return $big[0];
         }
 
-        // Expected patterns:
-        // - "0.25 x 640 x 1215" => take middle (width) => 640
-        // - "1.0 x 91 x C"      => take middle (width) => 91
+        // Fallback to "second number" for legacy patterns.
         if (count($numbers) >= 2) {
             return $numbers[1];
         }
@@ -240,7 +250,7 @@ class ArrivalController extends Controller
             'items.*.qty_bundle' => ['nullable', 'integer', 'min:0'],
             'items.*.unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX'])],
             'items.*.qty_goods' => ['required', 'integer', 'min:1'],
-            'items.*.unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET'])],
+            'items.*.unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET', 'EA'])],
 			            'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
 			            'items.*.unit_weight' => ['nullable', 'string', 'max:20'],
 			            'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
@@ -653,7 +663,7 @@ class ArrivalController extends Controller
             'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX'])],
             'qty_bundle' => ['nullable', 'integer', 'min:0'],
             'qty_goods' => ['required', 'integer', 'min:1'],
-            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET'])],
+            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET', 'EA'])],
             'weight_nett' => ['required', 'numeric', 'min:0'],
             'weight_gross' => ['required', 'numeric', 'min:0'],
             'total_amount' => ['required', 'numeric', 'min:0'],
@@ -707,6 +717,16 @@ class ArrivalController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
+        $arrival->loadMissing('items');
+        $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
+        $hsCodePrimary = $normalizedHsCodes
+            ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+            : null;
+        $arrival->update([
+            'hs_codes' => $normalizedHsCodes,
+            'hs_code' => $hsCodePrimary,
+        ]);
+
         return redirect()
             ->route('departures.show', $arrival)
             ->with('success', 'Item berhasil ditambahkan.');
@@ -736,18 +756,18 @@ class ArrivalController extends Controller
                 ->with('error', 'Item sudah punya receive, tidak bisa di-edit.');
         }
 
-	        $data = $request->validate([
-	            'material_group' => ['nullable', 'string', 'max:255'],
-	            'size' => ['nullable', 'string', 'max:100'],
-	            'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX'])],
-	            'qty_bundle' => ['nullable', 'integer', 'min:0'],
-	            'qty_goods' => ['required', 'integer', 'min:1'],
-	            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET'])],
-	            'weight_nett' => ['required', 'numeric', 'min:0'],
-	            'weight_gross' => ['required', 'numeric', 'min:0'],
-	            'total_amount' => ['required', 'numeric', 'min:0'],
-	            'notes' => ['nullable', 'string'],
-	        ]);
+		        $data = $request->validate([
+		            'material_group' => ['nullable', 'string', 'max:255'],
+		            'size' => ['nullable', 'string', 'max:100'],
+		            'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX'])],
+		            'qty_bundle' => ['nullable', 'integer', 'min:0'],
+		            'qty_goods' => ['required', 'integer', 'min:1'],
+		            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET', 'EA'])],
+		            'weight_nett' => ['required', 'numeric', 'min:0'],
+		            'weight_gross' => ['required', 'numeric', 'min:0'],
+		            'total_amount' => ['required', 'numeric', 'min:0'],
+		            'notes' => ['nullable', 'string'],
+		        ]);
 
 	        $normalizedNett = $this->normalizeDecimalInput($data['weight_nett']);
 	        $normalizedGross = $this->normalizeDecimalInput($data['weight_gross']);
@@ -773,10 +793,10 @@ class ArrivalController extends Controller
 
         $price = $this->formatMilli($priceMilli);
 
-        $arrivalItem->update([
-            'material_group' => $data['material_group'] ?? null,
-            'size' => $data['size'] ?? null,
-            'unit_bundle' => $data['unit_bundle'] ?? null,
+	        $arrivalItem->update([
+	            'material_group' => $data['material_group'] ?? null,
+	            'size' => $data['size'] ?? null,
+	            'unit_bundle' => $data['unit_bundle'] ?? null,
             'qty_bundle' => (int) ($data['qty_bundle'] ?? 0),
             'qty_goods' => $qtyGoods,
             'unit_goods' => $data['unit_goods'] ?? null,
@@ -785,13 +805,24 @@ class ArrivalController extends Controller
             'weight_gross' => $normalizedGross,
             'total_price' => $totalPrice,
             'price' => $price,
-            'notes' => $data['notes'] ?? null,
-        ]);
+	            'notes' => $data['notes'] ?? null,
+	        ]);
 
-        return redirect()
-            ->route('departures.show', $arrivalItem->arrival)
-            ->with('success', 'Item berhasil di-update.');
-    }
+            $arrival = $arrivalItem->arrival;
+            $arrival->loadMissing('items');
+            $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
+            $hsCodePrimary = $normalizedHsCodes
+                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+                : null;
+            $arrival->update([
+                'hs_codes' => $normalizedHsCodes,
+                'hs_code' => $hsCodePrimary,
+            ]);
+
+	        return redirect()
+	            ->route('departures.show', $arrivalItem->arrival)
+	            ->with('success', 'Item berhasil di-update.');
+	    }
 
     public function printInspectionReport(Arrival $departure)
     {
