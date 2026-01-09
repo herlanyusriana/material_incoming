@@ -114,12 +114,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'update'])->name('gci-parts.update');
         Route::delete('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'destroy'])->name('gci-parts.destroy');
 
-        Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
-        Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
-        Route::put('/boms/{bom}', [PlanningBomController::class, 'update'])->name('boms.update');
-        Route::delete('/boms/{bom}', [PlanningBomController::class, 'destroy'])->name('boms.destroy');
-        Route::post('/boms/{bom}/items', [PlanningBomController::class, 'storeItem'])->name('boms.items.store');
-        Route::delete('/bom-items/{bomItem}', [PlanningBomController::class, 'destroyItem'])->name('boms.items.destroy');
+	        Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
+	        Route::get('/boms/export', [PlanningBomController::class, 'export'])->name('boms.export');
+	        Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
+	        Route::put('/boms/{bom}', [PlanningBomController::class, 'update'])->name('boms.update');
+	        Route::delete('/boms/{bom}', [PlanningBomController::class, 'destroy'])->name('boms.destroy');
+	        Route::post('/boms/{bom}/items', [PlanningBomController::class, 'storeItem'])->name('boms.items.store');
+	        Route::delete('/bom-items/{bomItem}', [PlanningBomController::class, 'destroyItem'])->name('boms.items.destroy');
 
         Route::get('/customers', [PlanningCustomerController::class, 'index'])->name('customers.index');
         Route::post('/customers', [PlanningCustomerController::class, 'store'])->name('customers.store');
