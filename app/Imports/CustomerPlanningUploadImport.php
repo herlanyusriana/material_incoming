@@ -79,6 +79,11 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     return strtolower(trim($value));
                 }
 
+                private function rowValues(Collection $row): array
+                {
+                    return array_values($row->all());
+                }
+
                 private function parseQty(mixed $value): float
                 {
                     if ($value === null) {
@@ -106,7 +111,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                         return;
                     }
 
-                    $headers = $headerRow->map(fn ($v) => trim((string) $v))->all();
+                    $headers = array_map(fn ($v) => trim((string) $v), $this->rowValues($headerRow));
                     $headerIndex = [];
                     foreach ($headers as $idx => $h) {
                         $key = $this->normHeader($h);
@@ -121,7 +126,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     if ($isWeekly) {
                         $this->parent->format = 'weekly';
                         foreach ($rows as $row) {
-                            $arr = $row->all();
+                            $arr = $this->rowValues($row);
                             $customerPartNo = strtoupper(trim((string) ($arr[$headerIndex['customer_part_no']] ?? '')));
                             $minggu = strtoupper(trim((string) ($arr[$headerIndex['minggu']] ?? '')));
                             $qty = $this->parseQty($arr[$headerIndex['qty']] ?? null);
@@ -165,7 +170,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                         }
 
                         foreach ($rows as $row) {
-                            $arr = $row->all();
+                            $arr = $this->rowValues($row);
                             $customerPartNo = strtoupper(trim((string) ($arr[$partNumberIdx] ?? '')));
                             if ($customerPartNo === '') {
                                 continue;
@@ -189,6 +194,11 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
             1 => new class($this) implements ToCollection {
                 public function __construct(private readonly CustomerPlanningUploadImport $parent)
                 {
+                }
+
+                private function rowValues(Collection $row): array
+                {
+                    return array_values($row->all());
                 }
 
                 private function parseRatio(mixed $value): ?float
@@ -223,7 +233,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                         return;
                     }
 
-                    $headers = $headerRow->map(fn ($v) => strtolower(trim((string) $v)))->all();
+                    $headers = array_map(fn ($v) => strtolower(trim((string) $v)), $this->rowValues($headerRow));
                     $idxMonth = array_search('month_key', $headers, true);
                     if ($idxMonth === false) {
                         $idxMonth = array_search('month_header', $headers, true);
@@ -239,7 +249,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     }
 
                     foreach ($rows as $row) {
-                        $arr = $row->all();
+                        $arr = $this->rowValues($row);
                         $monthHeader = trim((string) ($arr[$idxMonth] ?? ''));
                         $monthKey = CustomerPlanningUploadImport::normalizeMonthKey($monthHeader);
                         $minggu = strtoupper(trim((string) ($arr[$idxMinggu] ?? '')));
