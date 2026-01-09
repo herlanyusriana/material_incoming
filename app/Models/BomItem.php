@@ -11,13 +11,30 @@ class BomItem extends Model
 
     protected $fillable = [
         'bom_id',
+        'line_no',
+        'process_name',
+        'machine_name',
+        'wip_part_id',
+        'wip_qty',
+        'wip_uom',
+        'wip_part_name',
+        'material_size',
+        'material_spec',
+        'material_name',
+        'special',
         'component_part_id',
         'usage_qty',
+        'consumption_uom',
     ];
 
     public function bom()
     {
         return $this->belongsTo(Bom::class);
+    }
+
+    public function wipPart()
+    {
+        return $this->belongsTo(GciPart::class, 'wip_part_id');
     }
 
     public function componentPart()

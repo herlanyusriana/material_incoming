@@ -15,6 +15,7 @@ class GciPart extends Model
     protected $fillable = [
         'part_no',
         'part_name',
+        'model',
         'status',
     ];
 
@@ -36,6 +37,13 @@ class GciPart extends Model
     }
 
     protected function partName(): Attribute
+    {
+        return Attribute::make(
+            set: fn ($value) => $value === null ? null : trim((string) $value),
+        );
+    }
+
+    protected function model(): Attribute
     {
         return Attribute::make(
             set: fn ($value) => $value === null ? null : trim((string) $value),

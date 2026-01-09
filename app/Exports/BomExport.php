@@ -21,7 +21,7 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
     public function array(): array
     {
         $boms = Bom::query()
-            ->with(['part', 'items.componentPart'])
+            ->with(['part', 'items.wipPart', 'items.componentPart'])
             ->when($this->gciPartId, fn ($query) => $query->where('part_id', $this->gciPartId))
             ->when($this->q !== '', function ($query) {
                 $query->whereHas('part', function ($sub) {
@@ -34,26 +34,51 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
 
         $rows = [];
         foreach ($boms as $bom) {
-            if ($bom->items->isEmpty()) {
-                $rows[] = [
-                    $bom->part?->part_no ?? '',
-                    $bom->part?->part_name ?? '',
-                    $bom->status ?? '',
-                    '',
-                    '',
-                    '',
-                ];
-                continue;
-            }
+	            if ($bom->items->isEmpty()) {
+	                $rows[] = [
+	                    '',
+	                    $bom->part?->part_name ?? '',
+	                    $bom->part?->model ?? '',
+	                    $bom->part?->part_no ?? '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                    '',
+	                ];
+	                continue;
+	            }
 
-            foreach ($bom->items as $item) {
+            $seq = 0;
+            foreach ($bom->items->sortBy(fn ($i) => $i->line_no ?? 0) as $item) {
+                $seq++;
+                $lineNo = $item->line_no !== null ? (string) $item->line_no : (string) $seq;
                 $rows[] = [
-                    $bom->part?->part_no ?? '',
+                    $lineNo,
                     $bom->part?->part_name ?? '',
-                    $bom->status ?? '',
+                    $bom->part?->model ?? '',
+                    $bom->part?->part_no ?? '',
+                    $item->process_name ?? '',
+                    $item->machine_name ?? '',
+                    $item->wipPart?->part_no ?? '',
+                    $item->wip_qty !== null ? (string) $item->wip_qty : '',
+                    $item->wip_uom ?? '',
+                    $item->wip_part_name ?: ($item->wipPart?->part_name ?? ''),
+                    $item->material_size ?? '',
+                    $item->material_spec ?? '',
+                    $item->material_name ?? '',
+                    $item->special ?? '',
                     $item->componentPart?->part_no ?? '',
-                    $item->componentPart?->part_name_gci ?? '',
                     (string) $item->usage_qty,
+                    $item->consumption_uom ?? '',
                 ];
             }
         }
@@ -64,12 +89,23 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
     public function headings(): array
     {
         return [
-            'parent_part_no',
-            'parent_part_name',
-            'status',
-            'component_part_no',
-            'component_part_name',
-            'usage_qty',
+            'No',
+            'FG Name',
+            'FG Model',
+            'FG Part No.',
+            'Process Name',
+            'Machine Name',
+            'WIP Part No.',
+            'Qty.',
+            'UOM',
+            'WIP Part Name',
+            'Material Size',
+            'Material Spec',
+            'Material Name',
+            'spesial',
+            'RM Part No.',
+            'Consumption',
+            'UOM',
         ];
     }
 
@@ -83,12 +119,23 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
     public function columnWidths(): array
     {
         return [
-            'A' => 18,
-            'B' => 30,
-            'C' => 10,
+            'A' => 6,
+            'B' => 26,
+            'C' => 18,
             'D' => 18,
-            'E' => 30,
-            'F' => 12,
+            'E' => 18,
+            'F' => 18,
+            'G' => 18,
+            'H' => 10,
+            'I' => 10,
+            'J' => 26,
+            'K' => 18,
+            'L' => 18,
+            'M' => 18,
+            'N' => 14,
+            'O' => 18,
+            'P' => 14,
+            'Q' => 10,
         ];
     }
 }

@@ -20,10 +20,11 @@ class BomController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $gciParts = GciPart::query()->orderBy('part_no')->get();
+        $wipParts = $gciParts;
         $components = Part::query()->orderBy('part_no')->get();
 
         $boms = Bom::query()
-            ->with(['part', 'items.componentPart'])
+            ->with(['part', 'items.wipPart', 'items.componentPart'])
             ->when($gciPartId, fn ($q) => $q->where('part_id', $gciPartId))
             ->when($q !== '', function ($query) use ($q) {
                 $query->whereHas('part', function ($sub) use ($q) {
@@ -35,7 +36,7 @@ class BomController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('planning.boms.index', compact('boms', 'gciParts', 'components', 'gciPartId', 'q'));
+        return view('planning.boms.index', compact('boms', 'gciParts', 'wipParts', 'components', 'gciPartId', 'q'));
     }
 
     public function export(Request $request)
@@ -81,16 +82,64 @@ class BomController extends Controller
     public function storeItem(Request $request, Bom $bom)
     {
         $validated = $request->validate([
+            'bom_item_id' => ['nullable', 'integer'],
             'component_part_id' => ['required', Rule::exists('parts', 'id')],
             'usage_qty' => ['required', 'numeric', 'min:0.0001'],
+            'consumption_uom' => ['nullable', 'string', 'max:20'],
+            'line_no' => ['nullable', 'integer', 'min:1'],
+            'process_name' => ['nullable', 'string', 'max:255'],
+            'machine_name' => ['nullable', 'string', 'max:255'],
+            'wip_part_id' => ['nullable', Rule::exists('gci_parts', 'id')],
+            'wip_qty' => ['nullable', 'numeric', 'min:0'],
+            'wip_uom' => ['nullable', 'string', 'max:20'],
+            'wip_part_name' => ['nullable', 'string', 'max:255'],
+            'material_size' => ['nullable', 'string', 'max:255'],
+            'material_spec' => ['nullable', 'string', 'max:255'],
+            'material_name' => ['nullable', 'string', 'max:255'],
+            'special' => ['nullable', 'string', 'max:255'],
         ]);
 
-        BomItem::updateOrCreate(
-            ['bom_id' => $bom->id, 'component_part_id' => (int) $validated['component_part_id']],
-            ['usage_qty' => $validated['usage_qty']],
-        );
+        $payload = [
+            'usage_qty' => $validated['usage_qty'],
+            'consumption_uom' => $validated['consumption_uom'] ?? null,
+            'line_no' => $validated['line_no'] ?? null,
+            'process_name' => $validated['process_name'] ?? null,
+            'machine_name' => $validated['machine_name'] ?? null,
+            'wip_part_id' => $validated['wip_part_id'] ?? null,
+            'wip_qty' => $validated['wip_qty'] ?? null,
+            'wip_uom' => $validated['wip_uom'] ?? null,
+            'wip_part_name' => $validated['wip_part_name'] ?? null,
+            'material_size' => $validated['material_size'] ?? null,
+            'material_spec' => $validated['material_spec'] ?? null,
+            'material_name' => $validated['material_name'] ?? null,
+            'special' => $validated['special'] ?? null,
+        ];
 
-        return back()->with('success', 'BOM item saved.');
+        $bomItemId = isset($validated['bom_item_id']) ? (int) $validated['bom_item_id'] : null;
+        if ($bomItemId) {
+            $item = BomItem::query()
+                ->where('bom_id', $bom->id)
+                ->where('id', $bomItemId)
+                ->firstOrFail();
+
+            $item->update(array_merge($payload, [
+                'component_part_id' => (int) $validated['component_part_id'],
+            ]));
+
+            return back()->with('success', 'BOM line updated.');
+        }
+
+        if ($payload['line_no'] === null) {
+            $next = (int) (BomItem::query()->where('bom_id', $bom->id)->max('line_no') ?? 0) + 1;
+            $payload['line_no'] = $next > 0 ? $next : 1;
+        }
+
+        BomItem::create(array_merge($payload, [
+            'bom_id' => $bom->id,
+            'component_part_id' => (int) $validated['component_part_id'],
+        ]));
+
+        return back()->with('success', 'BOM line added.');
     }
 
     public function destroyItem(BomItem $bomItem)

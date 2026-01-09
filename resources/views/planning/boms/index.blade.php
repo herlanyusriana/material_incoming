@@ -63,51 +63,58 @@
                 </div>
 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="min-w-full text-sm divide-y divide-slate-200">
+                    <table class="min-w-[1600px] w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part ID</th>
-                                <th class="px-4 py-3 text-left font-semibold">Part Name</th>
-                                <th class="px-4 py-3 text-right font-semibold whitespace-nowrap">Quantity</th>
-                                <th class="px-4 py-3 text-right font-semibold whitespace-nowrap">Actions</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">No</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Name</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Model</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Part No.</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Process Name</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Machine Name</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">WIP Part No.</th>
+                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Qty.</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">UOM</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">WIP Part Name</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Size</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Spec</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Name</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">spesial</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">RM Part No.</th>
+                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Consumption</th>
+                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">UOM</th>
+                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($boms as $bom)
                                 @php
                                     $bomId = (int) $bom->id;
+                                    $fgNo = $bom->part->part_no ?? '-';
+                                    $fgName = $bom->part->part_name ?? '-';
+                                    $fgModel = $bom->part->model ?? '';
+                                    $items = ($bom->items ?? collect())->sortBy(fn ($i) => $i->line_no ?? 0)->values();
                                 @endphp
 
-                                {{-- Parent row --}}
+                                {{-- Parent / header row --}}
                                 <tr class="hover:bg-slate-50">
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <button
-                                            type="button"
-                                            class="inline-flex items-center gap-2"
-                                            @click="toggle({{ $bomId }})"
-                                            aria-label="Toggle BOM"
-                                        >
+                                    <td class="px-3 py-3 text-slate-400">—</td>
+                                    <td class="px-3 py-3 font-semibold text-slate-900 whitespace-nowrap">{{ $fgName }}</td>
+                                    <td class="px-3 py-3 text-slate-700 whitespace-nowrap">{{ $fgModel }}</td>
+                                    <td class="px-3 py-3 whitespace-nowrap">
+                                        <button type="button" class="inline-flex items-center gap-2" @click="toggle({{ $bomId }})">
                                             <span class="inline-flex items-center justify-center w-6 h-6 rounded-md border border-slate-200 bg-white text-slate-700">
-                                                <template x-if="expanded[{{ $bomId }}]">
-                                                    <span>▾</span>
-                                                </template>
-                                                <template x-if="!expanded[{{ $bomId }}]">
-                                                    <span>▸</span>
-                                                </template>
+                                                <template x-if="expanded[{{ $bomId }}]"><span>▾</span></template>
+                                                <template x-if="!expanded[{{ $bomId }}]"><span>▸</span></template>
                                             </span>
-                                            <span class="font-mono text-xs font-semibold">{{ $bom->part->part_no ?? '-' }}</span>
-                                        </button>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="font-semibold text-slate-900">{{ $bom->part->part_name ?? '-' }}</div>
-                                        <div class="text-xs mt-0.5">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
+                                            <span class="font-mono text-xs font-semibold">{{ $fgNo }}</span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
                                                 {{ strtoupper($bom->status) }}
                                             </span>
-                                        </div>
+                                        </button>
                                     </td>
-                                    <td class="px-4 py-3 text-right text-slate-500">—</td>
-                                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                                    <td class="px-3 py-3" colspan="13">&nbsp;</td>
+                                    <td class="px-3 py-3 text-right whitespace-nowrap">
                                         <form action="{{ route('planning.boms.update', $bom) }}" method="POST" class="inline">
                                             @csrf
                                             @method('PUT')
@@ -126,39 +133,60 @@
                                     </td>
                                 </tr>
 
-                                {{-- Child rows --}}
-                                @forelse($bom->items as $item)
+                                {{-- Lines --}}
+                                @forelse($items as $idx => $item)
+                                    @php
+                                        $lineNo = $item->line_no ?? ($idx + 1);
+                                        $wipNo = $item->wipPart?->part_no ?? '';
+                                        $wipName = $item->wip_part_name ?: ($item->wipPart?->part_name ?? '');
+                                        $rmNo = $item->componentPart?->part_no ?? '';
+                                    @endphp
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <div class="pl-10 font-mono text-xs">
-                                                {{ $item->componentPart->part_no ?? '-' }}
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="pl-2 text-slate-700">
-                                                {{ $item->componentPart->part_name_gci ?? '-' }}
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3 text-right whitespace-nowrap text-slate-700">
-                                            Qty: {{ rtrim(rtrim(number_format((float) $item->usage_qty, 4, '.', ''), '0'), '.') }}
-                                        </td>
-                                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                                        <td class="px-3 py-2 text-slate-700 whitespace-nowrap">{{ $lineNo }}</td>
+                                        <td class="px-3 py-2 text-slate-300" colspan="2">&nbsp;</td>
+                                        <td class="px-3 py-2 text-slate-300">&nbsp;</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->process_name ?? '' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->machine_name ?? '' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-xs">{{ $wipNo }}</td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-xs">{{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->wip_uom ?? '' }}</td>
+                                        <td class="px-3 py-2">{{ $wipName }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_size ?? '' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_spec ?? '' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_name ?? '' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->special ?? '' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-xs">{{ $rmNo }}</td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-xs">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->consumption_uom ?? '' }}</td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap">
                                             <button
                                                 type="button"
                                                 class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
-                                                title="Edit quantity"
-                                                @click="openEditItem(@js([
-                                                    'bomPartNo' => $bom->part->part_no ?? '-',
-                                                    'bomPartName' => $bom->part->part_name ?? '-',
-                                                    'componentId' => $item->component_part_id,
-                                                    'componentLabel' => ($item->componentPart->part_no ?? '-') . ' — ' . ($item->componentPart->part_name_gci ?? '-'),
-                                                    'usageQty' => (string) $item->usage_qty,
-                                                    'storeUrl' => route('planning.boms.items.store', $bom),
+                                                title="Edit line"
+                                                @click="openLineModal(@js([
+                                                    'mode' => 'edit',
+                                                    'action' => route('planning.boms.items.store', $bom),
+                                                    'bom_item_id' => $item->id,
+                                                    'fg_label' => $fgNo . ' — ' . $fgName,
+                                                    'line_no' => $lineNo,
+                                                    'process_name' => $item->process_name,
+                                                    'machine_name' => $item->machine_name,
+                                                    'wip_part_id' => $item->wip_part_id,
+                                                    'wip_qty' => $item->wip_qty,
+                                                    'wip_uom' => $item->wip_uom,
+                                                    'wip_part_name' => $item->wip_part_name,
+                                                    'material_size' => $item->material_size,
+                                                    'material_spec' => $item->material_spec,
+                                                    'material_name' => $item->material_name,
+                                                    'special' => $item->special,
+                                                    'component_part_id' => $item->component_part_id,
+                                                    'usage_qty' => $item->usage_qty,
+                                                    'consumption_uom' => $item->consumption_uom,
                                                 ]))"
                                             >
                                                 ✎
                                             </button>
-                                            <form action="{{ route('planning.boms.items.destroy', $item) }}" method="POST" class="inline" onsubmit="return confirm('Delete BOM item?')">
+                                            <form action="{{ route('planning.boms.items.destroy', $item) }}" method="POST" class="inline" onsubmit="return confirm('Delete BOM line?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-red-50 text-red-600" title="Delete">
@@ -169,35 +197,44 @@
                                     </tr>
                                 @empty
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="4" class="px-4 py-4 text-center text-slate-500">No components</td>
+                                        <td colspan="18" class="px-3 py-4 text-center text-slate-500">No BOM lines</td>
                                     </tr>
                                 @endforelse
 
-                                {{-- Add component row --}}
-                                <tr class="bg-slate-50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                    <td colspan="4" class="px-4 py-3">
-                                        <form action="{{ route('planning.boms.items.store', $bom) }}" method="POST" class="flex flex-wrap items-end gap-2">
-                                            @csrf
-                                            <div class="min-w-[320px]">
-                                                <label class="text-xs font-semibold text-slate-600">Component (Incoming Part)</label>
-                                                <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
-                                                    <option value="" disabled selected>Select component</option>
-                                                    @foreach ($components as $c)
-                                                        <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name_gci }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="text-xs font-semibold text-slate-600">Consumption</label>
-                                                <input type="number" step="any" min="0" name="usage_qty" class="mt-1 rounded-xl border-slate-200" required>
-                                            </div>
-                                            <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Add / Update</button>
-                                        </form>
+                                {{-- Add line row --}}
+                                <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
+                                    <td colspan="18" class="px-3 py-3">
+                                        <button
+                                            type="button"
+                                            class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold"
+                                            @click="openLineModal(@js([
+                                                'mode' => 'create',
+                                                'action' => route('planning.boms.items.store', $bom),
+                                                'bom_item_id' => null,
+                                                'fg_label' => $fgNo . ' — ' . $fgName,
+                                                'line_no' => null,
+                                                'process_name' => null,
+                                                'machine_name' => null,
+                                                'wip_part_id' => null,
+                                                'wip_qty' => null,
+                                                'wip_uom' => null,
+                                                'wip_part_name' => null,
+                                                'material_size' => null,
+                                                'material_spec' => null,
+                                                'material_name' => null,
+                                                'special' => null,
+                                                'component_part_id' => null,
+                                                'usage_qty' => 1,
+                                                'consumption_uom' => null,
+                                            ]))"
+                                        >
+                                            + Add Line
+                                        </button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">No BOM</td>
+                                    <td colspan="18" class="px-4 py-8 text-center text-slate-500">No BOM</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -205,7 +242,7 @@
                 </div>
 
                 <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                    <span class="font-semibold">Tip:</span> Klik icon panah untuk expand/collapse BOM. Icon ✎ untuk edit qty komponen / toggle status BOM.
+                    <span class="font-semibold">Tip:</span> Expand dulu, lalu klik <span class="font-semibold">+ Add Line</span> untuk nambah BOM line. Edit/delete pakai icon di kanan.
                 </div>
 
                 <div class="mt-2">
@@ -215,17 +252,17 @@
         </div>
 
         {{-- Create BOM modal --}}
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="closeCreate()">
             <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <div class="text-sm font-semibold text-slate-900">Add BOM</div>
-                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">✕</button>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeCreate()">✕</button>
                 </div>
 
                 <form action="{{ route('planning.boms.store') }}" method="POST" class="px-5 py-4 space-y-4">
                     @csrf
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Part GCI</label>
+                        <label class="text-sm font-semibold text-slate-700">FG Part (Part GCI)</label>
                         <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
                             <option value="" disabled selected>Select part</option>
                             @foreach ($gciParts as $p)
@@ -242,37 +279,117 @@
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">Cancel</button>
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeCreate()">Cancel</button>
                         <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Create</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        {{-- Edit BOM item modal --}}
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="editItemOpen" x-cloak @keydown.escape.window="closeEditItem()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+        {{-- Line modal --}}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
+            <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900">Edit Component Qty</div>
-                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeEditItem()">✕</button>
+                    <div class="text-sm font-semibold text-slate-900" x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeLineModal()">✕</button>
                 </div>
 
-                <form :action="editForm.action" method="POST" class="px-5 py-4 space-y-4">
+                <form :action="lineForm.action" method="POST" class="px-5 py-4 space-y-4">
                     @csrf
-                    <input type="hidden" name="component_part_id" :value="editForm.component_id">
+                    <template x-if="lineForm.bom_item_id">
+                        <input type="hidden" name="bom_item_id" :value="lineForm.bom_item_id">
+                    </template>
 
                     <div class="text-sm text-slate-700">
-                        <div class="font-semibold" x-text="editForm.parentLabel"></div>
-                        <div class="text-xs text-slate-500 mt-1" x-text="editForm.componentLabel"></div>
+                        <div class="font-semibold" x-text="lineForm.fg_label"></div>
                     </div>
 
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Consumption</label>
-                        <input type="number" step="any" min="0" name="usage_qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="editForm.usage_qty">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">No</label>
+                            <input type="number" min="1" name="line_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.line_no">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Process Name</label>
+                            <input type="text" name="process_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.process_name">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Machine Name</label>
+                            <input type="text" name="machine_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.machine_name">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">WIP Part No.</label>
+                            <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_part_id">
+                                <option value="">-</option>
+                                @foreach(($wipParts ?? []) as $p)
+                                    <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Qty.</label>
+                            <input type="number" step="any" min="0" name="wip_qty" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_qty">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">UOM</label>
+                            <input type="text" name="wip_uom" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_uom" placeholder="PCS">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">WIP Part Name</label>
+                            <input type="text" name="wip_part_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_part_name" placeholder="Optional override">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">spesial</label>
+                            <input type="text" name="special" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.special">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Material Size</label>
+                            <input type="text" name="material_size" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.material_size">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Material Spec</label>
+                            <input type="text" name="material_spec" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.material_spec">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Material Name</label>
+                            <input type="text" name="material_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.material_name">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="md:col-span-2">
+                            <label class="text-xs font-semibold text-slate-600">RM Part No.</label>
+                            <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.component_part_id">
+                                <option value="" disabled>Select RM part</option>
+                                @foreach (($components ?? []) as $c)
+                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name_gci }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Consumption</label>
+                            <input type="number" step="any" min="0.0001" name="usage_qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.usage_qty">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">UOM (Consumption)</label>
+                            <input type="text" name="consumption_uom" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.consumption_uom" placeholder="KGM/PCS">
+                        </div>
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeEditItem()">Cancel</button>
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeLineModal()">Cancel</button>
                         <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
                     </div>
                 </form>
@@ -283,27 +400,55 @@
             function planningBoms() {
                 return {
                     modalOpen: false,
-                    editItemOpen: false,
+                    lineModalOpen: false,
                     expanded: {},
-                    editForm: {
+                    lineForm: {
+                        mode: 'create',
                         action: '',
-                        component_id: '',
-                        usage_qty: '',
-                        parentLabel: '',
-                        componentLabel: '',
+                        bom_item_id: null,
+                        fg_label: '',
+                        line_no: null,
+                        process_name: '',
+                        machine_name: '',
+                        wip_part_id: '',
+                        wip_qty: '',
+                        wip_uom: '',
+                        wip_part_name: '',
+                        material_size: '',
+                        material_spec: '',
+                        material_name: '',
+                        special: '',
+                        component_part_id: '',
+                        usage_qty: '1',
+                        consumption_uom: '',
                     },
                     openCreate() { this.modalOpen = true; },
-                    close() { this.modalOpen = false; },
+                    closeCreate() { this.modalOpen = false; },
                     toggle(id) { this.expanded[id] = !this.expanded[id]; },
-                    openEditItem(payload) {
-                        this.editForm.action = payload.storeUrl;
-                        this.editForm.component_id = payload.componentId;
-                        this.editForm.usage_qty = payload.usageQty ?? '0';
-                        this.editForm.parentLabel = `${payload.bomPartNo} — ${payload.bomPartName}`;
-                        this.editForm.componentLabel = payload.componentLabel;
-                        this.editItemOpen = true;
+                    openLineModal(payload) {
+                        this.lineForm = {
+                            mode: payload.mode,
+                            action: payload.action,
+                            bom_item_id: payload.bom_item_id,
+                            fg_label: payload.fg_label,
+                            line_no: payload.line_no,
+                            process_name: payload.process_name ?? '',
+                            machine_name: payload.machine_name ?? '',
+                            wip_part_id: payload.wip_part_id ?? '',
+                            wip_qty: payload.wip_qty ?? '',
+                            wip_uom: payload.wip_uom ?? '',
+                            wip_part_name: payload.wip_part_name ?? '',
+                            material_size: payload.material_size ?? '',
+                            material_spec: payload.material_spec ?? '',
+                            material_name: payload.material_name ?? '',
+                            special: payload.special ?? '',
+                            component_part_id: payload.component_part_id ?? '',
+                            usage_qty: payload.usage_qty ?? '1',
+                            consumption_uom: payload.consumption_uom ?? '',
+                        };
+                        this.lineModalOpen = true;
                     },
-                    closeEditItem() { this.editItemOpen = false; },
+                    closeLineModal() { this.lineModalOpen = false; },
                 }
             }
         </script>
