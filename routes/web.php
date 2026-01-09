@@ -145,10 +145,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/forecasts', [PlanningForecastController::class, 'index'])->name('forecasts.index');
         Route::post('/forecasts/generate', [PlanningForecastController::class, 'generate'])->name('forecasts.generate');
 
-        Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
-        Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
-        Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
-        Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
+	        Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
+	        Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
+	        Route::post('/mps/generate-range', [PlanningMpsController::class, 'generateRange'])->name('mps.generate-range');
+	        Route::post('/mps/upsert', [PlanningMpsController::class, 'upsert'])->name('mps.upsert');
+	        Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
+	        Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
 
         Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');
         Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('mrp.generate');

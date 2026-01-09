@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Forecast;
 use App\Models\Mps;
 use App\Models\GciPart;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,14 +20,112 @@ class MpsController extends Controller
     public function index(Request $request)
     {
         $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
+        $view = $request->query('view', 'calendar');
+        $q = trim((string) $request->query('q', ''));
+        $weeksCount = (int) $request->query('weeks', 4);
+        $weeksCount = max(1, min(12, $weeksCount));
 
-        $rows = Mps::query()
-            ->with('part')
+        $weeks = $this->makeWeeksRange($minggu, $weeksCount);
+
+        if ($view === 'list') {
+            $rows = Mps::query()
+                ->with('part')
+                ->where('minggu', $minggu)
+                ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'mps.part_id'))
+                ->get();
+
+            return view('planning.mps.index', compact('minggu', 'rows', 'view', 'weeks', 'weeksCount', 'q'));
+        }
+
+        $parts = GciPart::query()
+            ->where('status', 'active')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('part_no', 'like', '%' . $q . '%')
+                        ->orWhere('part_name', 'like', '%' . $q . '%');
+                });
+            })
+            ->orderBy('part_no')
+            ->with(['mps' => function ($query) use ($weeks) {
+                $query->whereIn('minggu', $weeks);
+            }])
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('planning.mps.index', compact('minggu', 'parts', 'view', 'weeks', 'weeksCount', 'q'));
+    }
+
+    private function makeWeeksRange(string $startMinggu, int $weeksCount): array
+    {
+        if (!preg_match('/^(\d{4})-W(\d{2})$/', $startMinggu, $m)) {
+            return [$startMinggu];
+        }
+
+        $year = (int) $m[1];
+        $week = (int) $m[2];
+        // Carbon version in this project doesn't support createFromIsoDate().
+        // Use setISODate() which is available in Carbon 2.
+        $date = Carbon::now()->startOfDay()->setISODate($year, $week, 1);
+
+        $weeks = [];
+        for ($i = 0; $i < $weeksCount; $i++) {
+            $weeks[] = $date->copy()->addWeeks($i)->format('o-\\WW');
+        }
+
+        return $weeks;
+    }
+
+    private function generateForWeek(string $minggu): void
+    {
+        $partIdsFromForecast = Forecast::query()
             ->where('minggu', $minggu)
-            ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'mps.part_id'))
-            ->get();
+            ->where('qty', '>', 0)
+            ->pluck('part_id');
 
-        return view('planning.mps.index', compact('minggu', 'rows'));
+        $partIdsFromExistingMps = Mps::query()
+            ->where('minggu', $minggu)
+            ->pluck('part_id');
+
+        $parts = GciPart::query()
+            ->whereIn('id', $partIdsFromForecast->merge($partIdsFromExistingMps)->unique()->values())
+            ->where('status', 'active')
+            ->get(['id']);
+
+        foreach ($parts as $part) {
+            $forecastQty = (float) (Forecast::query()
+                ->where('part_id', $part->id)
+                ->where('minggu', $minggu)
+                ->value('qty') ?? 0);
+
+            $existing = Mps::query()
+                ->where('part_id', $part->id)
+                ->where('minggu', $minggu)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing && $existing->status === 'approved') {
+                continue;
+            }
+
+            if (!$existing) {
+                Mps::create([
+                    'part_id' => $part->id,
+                    'minggu' => $minggu,
+                    'forecast_qty' => $forecastQty,
+                    'open_order_qty' => 0,
+                    'planned_qty' => $forecastQty,
+                    'status' => 'draft',
+                ]);
+                continue;
+            }
+
+            $existingPlanned = (float) $existing->planned_qty;
+            $existing->update([
+                'forecast_qty' => $forecastQty,
+                'open_order_qty' => 0,
+                'planned_qty' => max($existingPlanned, $forecastQty),
+            ]);
+        }
     }
 
     public function generate(Request $request)
@@ -35,58 +134,86 @@ class MpsController extends Controller
         $minggu = $validated['minggu'];
 
         DB::transaction(function () use ($minggu) {
-            $partIdsFromForecast = Forecast::query()
-                ->where('minggu', $minggu)
-                ->where('qty', '>', 0)
-                ->pluck('part_id');
+            $this->generateForWeek($minggu);
+        });
 
-            $partIdsFromExistingMps = Mps::query()
-                ->where('minggu', $minggu)
-                ->pluck('part_id');
+        return back()->with('success', 'MPS generated (draft).');
+    }
 
-            $parts = GciPart::query()
-                ->whereIn('id', $partIdsFromForecast->merge($partIdsFromExistingMps)->unique()->values())
-                ->where('status', 'active')
-                ->get(['id']);
+    public function generateRange(Request $request)
+    {
+        $validated = $request->validate($this->validateMinggu('minggu'));
+        $minggu = $validated['minggu'];
+        $weeksCount = (int) $request->input('weeks', 4);
+        $weeksCount = max(1, min(12, $weeksCount));
 
-            foreach ($parts as $part) {
+        $weeks = $this->makeWeeksRange($minggu, $weeksCount);
+
+        DB::transaction(function () use ($weeks) {
+            foreach ($weeks as $w) {
+                $this->generateForWeek($w);
+            }
+        });
+
+        return redirect()
+            ->route('planning.mps.index', ['minggu' => $minggu, 'view' => 'calendar', 'weeks' => $weeksCount])
+            ->with('success', "MPS generated for " . count($weeks) . " weeks (draft).");
+    }
+
+    public function upsert(Request $request)
+    {
+        $validated = $request->validate(array_merge(
+            $this->validateMinggu(),
+            [
+                'part_id' => ['required', 'exists:gci_parts,id'],
+                'planned_qty' => ['required', 'numeric', 'min:0'],
+            ]
+        ));
+
+        $partId = (int) $validated['part_id'];
+        $minggu = $validated['minggu'];
+        $plannedQty = (float) $validated['planned_qty'];
+
+        try {
+            DB::transaction(function () use ($partId, $minggu, $plannedQty) {
                 $forecastQty = (float) (Forecast::query()
-                    ->where('part_id', $part->id)
+                    ->where('part_id', $partId)
                     ->where('minggu', $minggu)
                     ->value('qty') ?? 0);
 
                 $existing = Mps::query()
-                    ->where('part_id', $part->id)
+                    ->where('part_id', $partId)
                     ->where('minggu', $minggu)
                     ->lockForUpdate()
                     ->first();
 
                 if ($existing && $existing->status === 'approved') {
-                    continue;
+                    throw new \RuntimeException('MPS already approved.');
                 }
 
                 if (!$existing) {
                     Mps::create([
-                        'part_id' => $part->id,
+                        'part_id' => $partId,
                         'minggu' => $minggu,
                         'forecast_qty' => $forecastQty,
                         'open_order_qty' => 0,
-                        'planned_qty' => $forecastQty,
+                        'planned_qty' => $plannedQty,
                         'status' => 'draft',
                     ]);
-                    continue;
+                    return;
                 }
 
-                $existingPlanned = (float) $existing->planned_qty;
                 $existing->update([
                     'forecast_qty' => $forecastQty,
                     'open_order_qty' => 0,
-                    'planned_qty' => max($existingPlanned, $forecastQty),
+                    'planned_qty' => $plannedQty,
                 ]);
-            }
-        });
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
-        return redirect()->route('planning.mps.index', ['minggu' => $minggu])->with('success', 'MPS generated (draft).');
+        return back()->with('success', 'MPS saved.');
     }
 
     public function update(Request $request, Mps $mps)
@@ -130,6 +257,6 @@ class MpsController extends Controller
                 'approved_at' => now(),
             ]);
 
-        return redirect()->route('planning.mps.index', ['minggu' => $minggu])->with('success', "Approved {$updated} rows.");
+        return back()->with('success', "Approved {$updated} rows.");
     }
 }
