@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
+use App\Exports\CustomerPartMappingExport;
+use App\Imports\CustomerPartMappingImport;
 use App\Models\Customer;
 use App\Models\CustomerPart;
 use App\Models\CustomerPartComponent;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class CustomerPartController extends Controller
 {
@@ -28,6 +32,48 @@ class CustomerPartController extends Controller
             ->withQueryString();
 
         return view('planning.customer_parts.index', compact('customers', 'parts', 'customerParts', 'customerId'));
+    }
+
+    public function export(Request $request)
+    {
+        $customerId = $request->query('customer_id');
+        $filename = 'customer_part_mapping_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new CustomerPartMappingExport($customerId), $filename);
+    }
+
+    public function import(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        try {
+            $import = new CustomerPartMappingImport();
+            Excel::import($import, $validated['file']);
+
+            $failures = collect($import->failures());
+            if ($failures->isNotEmpty()) {
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+            }
+
+            return back()->with('success', 'Customer part mapping imported.');
+        } catch (\Exception $e) {
+            if ($e instanceof ValidationException) {
+                $failures = collect($e->failures());
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+                return back()->with('error', "Import failed: {$preview}");
+            }
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
     }
 
     public function store(Request $request)

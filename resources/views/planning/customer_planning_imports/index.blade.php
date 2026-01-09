@@ -19,7 +19,12 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="text-sm text-slate-600">Upload customer planning Excel. Week format: YYYY-WW (ISO week).</div>
-                    <a href="{{ route('planning.planning-imports.template') }}" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Download Template</a>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('planning.planning-imports.template') }}" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Download Template</a>
+                        @if ($importId)
+                            <a href="{{ route('planning.planning-imports.export', $importId) }}" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold">Export Rows</a>
+                        @endif
+                    </div>
                 </div>
 
                 <form action="{{ route('planning.planning-imports.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3">
@@ -67,8 +72,9 @@
                                     <td class="px-4 py-3 text-right font-mono text-xs text-emerald-600">{{ $imp->accepted_rows }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs text-red-600">{{ $imp->rejected_rows }}</td>
                                     <td class="px-4 py-3">{{ strtoupper($imp->status) }}</td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a class="text-indigo-600 hover:text-indigo-800 font-semibold" href="{{ route('planning.planning-imports.index', ['import_id' => $imp->id]) }}">View Rows</a>
+                                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                                        <a class="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 font-semibold text-xs" href="{{ route('planning.planning-imports.export', $imp) }}">Export</a>
+                                        <a class="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs" href="{{ route('planning.planning-imports.index', ['import_id' => $imp->id]) }}">View Rows</a>
                                     </td>
                                 </tr>
                             @empty
@@ -179,9 +185,7 @@
                                                     default => 'bg-red-100 text-red-800',
                                                 };
                                             @endphp
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">
-                                                {{ strtoupper($row->row_status) }}
-                                            </span>
+
                                         </td>
                                         <td class="px-4 py-3 text-slate-500">{{ $row->error_message ?? '-' }}</td>
                                     </tr>

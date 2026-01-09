@@ -3,8 +3,8 @@
         Planning • Customer Part Mapping
     </x-slot>
 
-    <div class="py-6" x-data="planningCustomerParts()" x-init="init()">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+	    <div class="py-6" x-data="planningCustomerParts()" x-init="init()">
+	        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
@@ -26,9 +26,9 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
-                <div class="flex flex-wrap items-end justify-between gap-3">
-                    <form method="GET" class="flex flex-wrap items-end gap-3">
+	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+	                <div class="flex flex-wrap items-end justify-between gap-3">
+	                    <form method="GET" class="flex flex-wrap items-end gap-3">
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Customer</label>
                             <select name="customer_id" class="mt-1 rounded-xl border-slate-200">
@@ -38,13 +38,28 @@
                                 @endforeach
                             </select>
                         </div>
-                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
-                    </form>
+	                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+	                    </form>
 
-                    <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">
-                        Add Customer Part
-                    </button>
-                </div>
+	                    <div class="flex items-center gap-2">
+	                        <a
+	                            href="{{ route('planning.customer-parts.export', request()->query()) }}"
+	                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
+	                        >
+	                            Export
+	                        </a>
+	                        <button
+	                            type="button"
+	                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
+	                            @click="openImport()"
+	                        >
+	                            Import
+	                        </button>
+	                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">
+	                            Add Customer Part
+	                        </button>
+	                    </div>
+	                </div>
 
                 <div class="space-y-4">
                     @forelse ($customerParts as $cp)
@@ -176,16 +191,43 @@
                         <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
                     </div>
                 </form>
-            </div>
-        </div>
+	        </div>
+	    </div>
 
-        <script>
-            function planningCustomerParts() {
-                return {
-                    modalOpen: false,
-                    mode: 'create',
-                    formAction: @js(route('planning.customer-parts.store')),
-                    form: { id: null, customer_id: '', customer_part_no: '', customer_part_name: '', status: 'active' },
+	    {{-- Import modal --}}
+	    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importOpen" x-cloak @keydown.escape.window="closeImport()">
+	        <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+	            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+	                <div class="text-sm font-semibold text-slate-900">Import Customer Part Mapping</div>
+	                <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">✕</button>
+	            </div>
+
+	            <form action="{{ route('planning.customer-parts.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+	                @csrf
+	                <div class="text-sm text-slate-700 space-y-1">
+	                    <div>Gunakan format kolom yang sama seperti hasil <span class="font-semibold">Export</span>.</div>
+	                    <div class="text-xs text-slate-500">Customer wajib sudah ada. Part GCI akan dibuat otomatis jika belum ada.</div>
+	                </div>
+	                <div>
+	                    <label class="text-sm font-semibold text-slate-700">File</label>
+	                    <input type="file" name="file" accept=".xlsx,.xls,.csv" class="mt-1 w-full rounded-xl border-slate-200" required>
+	                </div>
+	                <div class="flex justify-end gap-2 pt-2">
+	                    <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">Cancel</button>
+	                    <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold">Import</button>
+	                </div>
+	            </form>
+	        </div>
+	    </div>
+
+	    <script>
+	        function planningCustomerParts() {
+	            return {
+	                modalOpen: false,
+	                importOpen: false,
+	                mode: 'create',
+	                formAction: @js(route('planning.customer-parts.store')),
+	                form: { id: null, customer_id: '', customer_part_no: '', customer_part_name: '', status: 'active' },
                     init() {
                         const prefillCustomerPartNo = @js(request('prefill_customer_part_no'));
                         const prefillCustomerId = @js($customerId);
@@ -196,15 +238,17 @@
                         if (prefillCustomerId) this.form.customer_id = String(prefillCustomerId);
                         this.form.customer_part_no = prefillCustomerPartNo;
                     },
-                    openCreate() {
-                        this.mode = 'create';
-                        this.formAction = @js(route('planning.customer-parts.store'));
-                        this.form = { id: null, customer_id: '', customer_part_no: '', customer_part_name: '', status: 'active' };
-                        this.modalOpen = true;
-                    },
-                    openEdit(cp) {
-                        this.mode = 'edit';
-                        this.formAction = @js(url('/planning/customer-parts')) + '/' + cp.id;
+	                openCreate() {
+	                    this.mode = 'create';
+	                    this.formAction = @js(route('planning.customer-parts.store'));
+	                    this.form = { id: null, customer_id: '', customer_part_no: '', customer_part_name: '', status: 'active' };
+	                    this.modalOpen = true;
+	                },
+	                openImport() { this.importOpen = true; },
+	                closeImport() { this.importOpen = false; },
+	                openEdit(cp) {
+	                    this.mode = 'edit';
+	                    this.formAction = @js(url('/planning/customer-parts')) + '/' + cp.id;
                         this.form = {
                             id: cp.id,
                             customer_id: cp.customer_id,
@@ -213,10 +257,10 @@
                             status: cp.status,
                         };
                         this.modalOpen = true;
-                    },
-                    close() { this.modalOpen = false; },
-                }
-            }
-        </script>
+	                },
+	                close() { this.modalOpen = false; },
+	            }
+	        }
+	    </script>
     </div>
 </x-app-layout>

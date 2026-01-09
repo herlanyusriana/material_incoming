@@ -9,6 +9,7 @@ use App\Models\CustomerPart;
 use App\Models\CustomerPlanningImport;
 use App\Models\CustomerPlanningRow;
 use App\Exports\CustomerPlanningTemplateExport;
+use App\Exports\CustomerPlanningImportRowsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -187,5 +188,13 @@ class CustomerPlanningImportController extends Controller
     {
         $filename = 'customer_planning_template_' . date('Y-m-d_His') . '.xlsx';
         return Excel::download(new CustomerPlanningTemplateExport(), $filename);
+    }
+
+    public function export(CustomerPlanningImport $import)
+    {
+        $filenameSafe = preg_replace('/[^A-Za-z0-9_.-]+/', '-', (string) ($import->file_name ?? ('import_' . $import->id)));
+        $filename = 'customer_planning_import_' . $import->id . '_' . $filenameSafe . '.xlsx';
+
+        return Excel::download(new CustomerPlanningImportRowsExport((int) $import->id), $filename);
     }
 }
