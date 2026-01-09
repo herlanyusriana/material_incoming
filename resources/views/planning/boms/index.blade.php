@@ -26,7 +26,7 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-8 space-y-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <form method="GET" class="flex flex-wrap items-center gap-2">
                         <div class="relative">
@@ -69,10 +69,10 @@
 	                    </div>
 	                </div>
 
-                <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="min-w-[1600px] w-full text-sm divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
-                            <tr class="text-slate-600 text-xs uppercase tracking-wider">
+	                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+	                    <table class="min-w-[1800px] w-full text-base divide-y divide-slate-200">
+	                        <thead class="bg-slate-50">
+	                            <tr class="text-slate-600 text-sm uppercase tracking-wider">
                                 <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">No</th>
                                 <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Name</th>
                                 <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Model</th>
@@ -156,16 +156,16 @@
                                         <td class="px-3 py-2 text-slate-300">&nbsp;</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->process_name ?? '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->machine_name ?? '' }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-xs">{{ $wipNo }}</td>
-                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-xs">{{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}</td>
+	                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-sm">{{ $wipNo }}</td>
+	                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-sm">{{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->wip_uom ?? '' }}</td>
                                         <td class="px-3 py-2">{{ $wipName }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_size ?? '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_spec ?? '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_name ?? '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->special ?? '' }}</td>
-	                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-xs">{{ $rmNo }}</td>
-	                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-xs">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
+	                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-sm">{{ $rmNo }}</td>
+	                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-sm">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
 	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->consumption_uom ?? '' }}</td>
 	                                        <td class="px-3 py-2 text-right whitespace-nowrap">
 	                                            <button
