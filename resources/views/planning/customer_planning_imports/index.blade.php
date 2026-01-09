@@ -20,7 +20,8 @@
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="text-sm text-slate-600">Upload customer planning Excel. Week format: YYYY-WW (ISO week).</div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('planning.planning-imports.template') }}" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Download Template</a>
+                        <a href="{{ route('planning.planning-imports.template') }}" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Template Weekly</a>
+                        <a href="{{ route('planning.planning-imports.template-monthly') }}" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold">Template Monthly</a>
                         @if ($importId)
                             <a href="{{ route('planning.planning-imports.export', $importId) }}" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold">Export Rows</a>
                         @endif

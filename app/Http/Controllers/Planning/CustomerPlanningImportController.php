@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
-use App\Imports\CustomerPlanningRowsImport;
+use App\Imports\CustomerPlanningUploadImport;
 use App\Models\Customer;
 use App\Models\CustomerPart;
 use App\Models\CustomerPlanningImport;
 use App\Models\CustomerPlanningRow;
 use App\Exports\CustomerPlanningTemplateExport;
 use App\Exports\CustomerPlanningImportRowsExport;
+use App\Exports\CustomerPlanningMonthlyTemplateExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -106,15 +107,90 @@ class CustomerPlanningImportController extends Controller
         $file = $request->file('file');
         $fileName = $file?->getClientOriginalName();
 
-        $importer = new CustomerPlanningRowsImport();
+        $importer = new CustomerPlanningUploadImport();
         Excel::import($importer, $file);
-        $rows = $importer->rows ?? collect();
+
+        if (!$importer->format) {
+            return back()->with('error', 'Format file tidak dikenali. Gunakan template weekly (customer_part_no, minggu, qty) atau template monthly (Part Number + kolom bulan).');
+        }
+
+        $normalizedRows = collect();
+        if ($importer->format === 'weekly') {
+            $normalizedRows = collect($importer->weeklyRows);
+        } else {
+            // Monthly: require week mapping sheet (option C).
+            $originalMonthly = collect($importer->monthlyRows);
+            if ($originalMonthly->isEmpty()) {
+                return back()->with('error', 'Tidak ada data monthly yang terbaca.');
+            }
+
+            // Disallow duplicates in the same upload.
+            $dupes = $originalMonthly
+                ->groupBy('customer_part_no')
+                ->filter(fn ($g) => $g->count() > 1)
+                ->keys()
+                ->values();
+            if ($dupes->isNotEmpty()) {
+                return back()->with('error', 'Duplicate Customer Part No di file: ' . $dupes->take(10)->implode(', ') . ($dupes->count() > 10 ? ' ...' : ''));
+            }
+
+            $weekMapRows = collect($importer->weekMapRows);
+            if ($weekMapRows->isEmpty()) {
+                return back()->with('error', 'Monthly format but mapping sheet missing. Tambahkan sheet kedua dengan kolom: month_header, minggu, ratio.');
+            }
+
+            $weekMap = $weekMapRows
+                ->groupBy('month_header')
+                ->map(function ($rows) {
+                    return $rows
+                        ->map(fn ($r) => ['minggu' => $r['minggu'], 'ratio' => (float) $r['ratio']])
+                        ->values();
+                });
+
+            $allMonthHeaders = $originalMonthly->flatMap(fn ($r) => array_keys($r['months'] ?? []))->unique()->values();
+            $missingMonths = $allMonthHeaders->filter(fn ($m) => !$weekMap->has($m))->values();
+            if ($missingMonths->isNotEmpty()) {
+                return back()->with('error', 'Week mapping missing for month columns: ' . $missingMonths->take(10)->implode(', ') . ($missingMonths->count() > 10 ? ' ...' : ''));
+            }
+
+            foreach ($weekMap as $monthHeader => $rows) {
+                $sum = $rows->sum('ratio');
+                if ($sum <= 0.0 || abs($sum - 1.0) > 0.001) {
+                    return back()->with('error', "Invalid ratio for {$monthHeader}. Total ratio must be 1.0 (now {$sum}).");
+                }
+            }
+
+            $byKey = [];
+            foreach ($originalMonthly as $row) {
+                $customerPartNo = $row['customer_part_no'];
+                foreach (($row['months'] ?? []) as $monthHeader => $qty) {
+                    $qty = (float) $qty;
+                    if ($qty <= 0) {
+                        continue;
+                    }
+                    foreach ($weekMap[$monthHeader] as $wm) {
+                        $minggu = $wm['minggu'];
+                        $alloc = $qty * (float) $wm['ratio'];
+                        $key = $customerPartNo . '|' . $minggu;
+                        $byKey[$key] = ($byKey[$key] ?? 0) + $alloc;
+                    }
+                }
+            }
+            $normalizedRows = collect($byKey)->map(function ($qty, $key) {
+                [$customerPartNo, $minggu] = explode('|', $key, 2);
+                return [
+                    'customer_part_no' => $customerPartNo,
+                    'minggu' => $minggu,
+                    'qty' => round((float) $qty, 3),
+                ];
+            })->values();
+        }
 
         $totalRows = 0;
         $accepted = 0;
         $rejected = 0;
 
-        DB::transaction(function () use ($validated, $fileName, $rows, &$totalRows, &$accepted, &$rejected, $request) {
+        DB::transaction(function () use ($validated, $fileName, $normalizedRows, &$totalRows, &$accepted, &$rejected, $request) {
             $import = CustomerPlanningImport::create([
                 'customer_id' => (int) $validated['customer_id'],
                 'file_name' => $fileName,
@@ -122,7 +198,7 @@ class CustomerPlanningImportController extends Controller
                 'status' => 'completed',
             ]);
 
-            foreach ($rows as $row) {
+            foreach ($normalizedRows as $row) {
                 $totalRows++;
                 $customerPartNo = strtoupper(trim((string) ($row['customer_part_no'] ?? $row['customer_part'] ?? '')));
                 $minggu = strtoupper(trim((string) ($row['minggu'] ?? $row['week'] ?? '')));
@@ -188,6 +264,12 @@ class CustomerPlanningImportController extends Controller
     {
         $filename = 'customer_planning_template_' . date('Y-m-d_His') . '.xlsx';
         return Excel::download(new CustomerPlanningTemplateExport(), $filename);
+    }
+
+    public function templateMonthly()
+    {
+        $filename = 'customer_planning_monthly_template_' . date('Y-m-d_His') . '.xlsx';
+        return Excel::download(new CustomerPlanningMonthlyTemplateExport(), $filename);
     }
 
     public function export(CustomerPlanningImport $import)

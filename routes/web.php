@@ -142,6 +142,7 @@ Route::middleware('auth')->group(function () {
 	        Route::get('/planning-imports', [PlanningCustomerPlanningImportController::class, 'index'])->name('planning-imports.index');
 	        Route::post('/planning-imports', [PlanningCustomerPlanningImportController::class, 'store'])->name('planning-imports.store');
 	        Route::get('/planning-imports/template', [PlanningCustomerPlanningImportController::class, 'template'])->name('planning-imports.template');
+	        Route::get('/planning-imports/template-monthly', [PlanningCustomerPlanningImportController::class, 'templateMonthly'])->name('planning-imports.template-monthly');
 	        Route::get('/planning-imports/{import}/export', [PlanningCustomerPlanningImportController::class, 'export'])->name('planning-imports.export');
 
         Route::get('/customer-pos', [PlanningCustomerPoController::class, 'index'])->name('customer-pos.index');
