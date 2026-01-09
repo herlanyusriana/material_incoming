@@ -241,10 +241,12 @@
             page-break-after: always;
         }
 
-        .page-box {
-            border: 2px solid #000;
-            padding: 0;
-        }
+	        .page-box {
+	            border: 2px solid #000;
+                /* Bottom border looks too bold in print/PDF; keep it thin. */
+                border-bottom: 1px solid #000;
+	            padding: 0;
+	        }
 
         /* Packing list should match commercial invoice font scale. */
         .page-box.packing-list {
