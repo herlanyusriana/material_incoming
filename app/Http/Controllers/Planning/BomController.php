@@ -7,6 +7,7 @@ use App\Exports\BomExport;
 use App\Imports\BomImport;
 use App\Models\Bom;
 use App\Models\BomItem;
+use App\Models\BomItemSubstitute;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,7 @@ class BomController extends Controller
         $components = $gciParts;
 
         $boms = Bom::query()
-            ->with(['part', 'items.wipPart', 'items.componentPart'])
+            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.substitutes.part'])
             ->when($gciPartId, fn ($q) => $q->where('part_id', $gciPartId))
             ->when($q !== '', function ($query) use ($q) {
                 $query->whereHas('part', function ($sub) use ($q) {
@@ -184,5 +185,38 @@ class BomController extends Controller
         $bomItem->delete();
 
         return back()->with('success', 'BOM item removed.');
+    }
+
+    public function storeSubstitute(Request $request, BomItem $bomItem)
+    {
+        $validated = $request->validate([
+            'substitute_part_id' => ['required', Rule::exists('gci_parts', 'id')],
+            'ratio' => ['nullable', 'numeric', 'min:0.0001'],
+            'priority' => ['nullable', 'integer', 'min:1'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        BomItemSubstitute::updateOrCreate(
+            [
+                'bom_item_id' => $bomItem->id,
+                'substitute_part_id' => (int) $validated['substitute_part_id'],
+            ],
+            [
+                'ratio' => $validated['ratio'] ?? 1,
+                'priority' => $validated['priority'] ?? 1,
+                'status' => $validated['status'] ?? 'active',
+                'notes' => $validated['notes'] ? trim((string) $validated['notes']) : null,
+            ],
+        );
+
+        return back()->with('success', 'Substitute saved.');
+    }
+
+    public function destroySubstitute(BomItemSubstitute $substitute)
+    {
+        $substitute->delete();
+
+        return back()->with('success', 'Substitute removed.');
     }
 }

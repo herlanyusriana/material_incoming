@@ -41,4 +41,9 @@ class BomItem extends Model
     {
         return $this->belongsTo(GciPart::class, 'component_part_id');
     }
+
+    public function substitutes()
+    {
+        return $this->hasMany(BomItemSubstitute::class);
+    }
 }

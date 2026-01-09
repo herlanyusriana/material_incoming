@@ -141,15 +141,17 @@
                                 </tr>
 
                                 {{-- Lines --}}
-                                @forelse($items as $idx => $item)
-                                    @php
-                                        $lineNo = $item->line_no ?? ($idx + 1);
-                                        $wipNo = $item->wipPart?->part_no ?? '';
-                                        $wipName = $item->wip_part_name ?: ($item->wipPart?->part_name ?? '');
-                                        $rmNo = $item->componentPart?->part_no ?? '';
-                                    @endphp
-                                    <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td class="px-3 py-2 text-slate-700 whitespace-nowrap">{{ $lineNo }}</td>
+	                                @forelse($items as $idx => $item)
+	                                    @php
+	                                        $lineNo = $item->line_no ?? ($idx + 1);
+	                                        $wipNo = $item->wipPart?->part_no ?? '';
+	                                        $wipName = $item->wip_part_name ?: ($item->wipPart?->part_name ?? '');
+	                                        $rmNo = $item->componentPart?->part_no ?? '';
+	                                        $substitutes = $item->substitutes ?? collect();
+	                                        $subCount = $substitutes->count();
+	                                    @endphp
+	                                    <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
+	                                        <td class="px-3 py-2 text-slate-700 whitespace-nowrap">{{ $lineNo }}</td>
                                         <td class="px-3 py-2 text-slate-300" colspan="2">&nbsp;</td>
                                         <td class="px-3 py-2 text-slate-300">&nbsp;</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->process_name ?? '' }}</td>
@@ -162,14 +164,49 @@
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_spec ?? '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_name ?? '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->special ?? '' }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-xs">{{ $rmNo }}</td>
-                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-xs">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->consumption_uom ?? '' }}</td>
-                                        <td class="px-3 py-2 text-right whitespace-nowrap">
-                                            <button
-                                                type="button"
-                                                class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
-                                                title="Edit line"
+	                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-xs">{{ $rmNo }}</td>
+	                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-xs">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
+	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->consumption_uom ?? '' }}</td>
+	                                        <td class="px-3 py-2 text-right whitespace-nowrap">
+	                                            <button
+	                                                type="button"
+	                                                class="relative inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-orange-50 text-orange-700"
+	                                                title="Manage substitutes"
+	                                                @click="openSubstitutePanel(@js([
+	                                                    'bom_item_id' => $item->id,
+	                                                    'action' => route('planning.bom-items.substitutes.store', $item),
+	                                                    'fg_label' => $fgNo . ' — ' . $fgName,
+	                                                    'line_no' => $lineNo,
+	                                                    'process_name' => $item->process_name,
+	                                                    'wip_part_no' => $wipNo,
+	                                                    'material_name' => $item->material_name,
+	                                                    'material_spec' => $item->material_spec,
+	                                                    'component_part_no' => $rmNo,
+	                                                    'consumption' => $item->usage_qty,
+	                                                    'consumption_uom' => $item->consumption_uom,
+	                                                    'substitutes' => $substitutes->sortBy(fn ($s) => (int) ($s->priority ?? 1))->map(fn ($s) => [
+	                                                        'id' => $s->id,
+	                                                        'part_no' => $s->part?->part_no,
+	                                                        'part_name' => $s->part?->part_name,
+	                                                        'ratio' => $s->ratio,
+	                                                        'priority' => $s->priority,
+	                                                        'status' => $s->status,
+	                                                        'notes' => $s->notes,
+	                                                        'delete_url' => route('planning.bom-item-substitutes.destroy', $s),
+	                                                    ])->values(),
+	                                                ]))"
+	                                            >
+	                                                ♻
+	                                                @if ($subCount > 0)
+	                                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-orange-600 text-white text-[10px] font-bold">
+	                                                        {{ $subCount }}
+	                                                    </span>
+	                                                @endif
+	                                            </button>
+	                                            <button
+	                                                type="button"
+	                                                class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
+	                                                title="Edit line"
                                                 @click="openLineModal(@js([
                                                     'mode' => 'edit',
                                                     'action' => route('planning.boms.items.store', $bom),
@@ -438,6 +475,21 @@
 	                    modalOpen: false,
 	                    importOpen: false,
 	                    lineModalOpen: false,
+	                    substituteOpen: false,
+	                    substituteForm: {
+	                        action: '',
+	                        bom_item_id: null,
+	                        fg_label: '',
+	                        line_no: '',
+	                        process_name: '',
+	                        wip_part_no: '',
+	                        material_name: '',
+	                        material_spec: '',
+	                        component_part_no: '',
+	                        consumption: '',
+	                        consumption_uom: '',
+	                        substitutes: [],
+	                    },
 	                    expanded: {},
 	                    lineForm: {
                         mode: 'create',
@@ -464,9 +516,27 @@
 	                    openImport() { this.importOpen = true; },
 	                    closeImport() { this.importOpen = false; },
 	                    toggle(id) { this.expanded[id] = !this.expanded[id]; },
+	                    openSubstitutePanel(payload) {
+	                        this.substituteForm = {
+	                            action: payload.action,
+	                            bom_item_id: payload.bom_item_id,
+	                            fg_label: payload.fg_label,
+	                            line_no: payload.line_no,
+	                            process_name: payload.process_name ?? '',
+	                            wip_part_no: payload.wip_part_no ?? '',
+	                            material_name: payload.material_name ?? '',
+	                            material_spec: payload.material_spec ?? '',
+	                            component_part_no: payload.component_part_no ?? '',
+	                            consumption: payload.consumption ?? '',
+	                            consumption_uom: payload.consumption_uom ?? '',
+	                            substitutes: payload.substitutes ?? [],
+	                        };
+	                        this.substituteOpen = true;
+	                    },
+	                    closeSubstitutePanel() { this.substituteOpen = false; },
 	                    openLineModal(payload) {
 	                        this.lineForm = {
-                            mode: payload.mode,
+	                            mode: payload.mode,
                             action: payload.action,
                             bom_item_id: payload.bom_item_id,
                             fg_label: payload.fg_label,
@@ -487,9 +557,132 @@
                         };
                         this.lineModalOpen = true;
                     },
-                    closeLineModal() { this.lineModalOpen = false; },
-                }
-            }
-        </script>
-    </div>
-</x-app-layout>
+	                    closeLineModal() { this.lineModalOpen = false; },
+	                }
+	            }
+	        </script>
+
+	        {{-- Substitute drawer --}}
+	        <div class="fixed inset-0 z-50" x-show="substituteOpen" x-cloak>
+	    <div class="absolute inset-0 bg-slate-900/40" @click="closeSubstitutePanel()"></div>
+	    <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl border-l border-slate-200 overflow-y-auto">
+	        <div class="sticky top-0 bg-gradient-to-r from-orange-600 to-orange-700 text-white px-5 py-4">
+	            <div class="flex items-center justify-between">
+	                <div>
+	                    <div class="text-sm font-semibold">Manage Substitutes</div>
+	                    <div class="text-xs text-orange-100" x-text="substituteForm.fg_label"></div>
+	                </div>
+	                <button type="button" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20" @click="closeSubstitutePanel()">✕</button>
+	            </div>
+	        </div>
+
+	        <div class="p-5 space-y-4">
+	            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+	                <div class="font-semibold text-slate-900">BOM Line</div>
+	                <div class="mt-2 space-y-1 text-slate-700">
+	                    <div><span class="text-slate-500">Line:</span> <span class="font-mono" x-text="substituteForm.line_no"></span></div>
+	                    <div><span class="text-slate-500">Process:</span> <span x-text="substituteForm.process_name"></span></div>
+	                    <div><span class="text-slate-500">WIP:</span> <span class="font-mono" x-text="substituteForm.wip_part_no"></span></div>
+	                    <div><span class="text-slate-500">RM:</span> <span class="font-mono font-semibold" x-text="substituteForm.component_part_no"></span></div>
+	                    <div><span class="text-slate-500">Material:</span> <span class="font-semibold" x-text="substituteForm.material_name"></span></div>
+	                    <div><span class="text-slate-500">Spec:</span> <span x-text="substituteForm.material_spec"></span></div>
+	                    <div><span class="text-slate-500">Consumption:</span> <span class="font-mono" x-text="substituteForm.consumption"></span> <span class="font-mono" x-text="substituteForm.consumption_uom"></span></div>
+	                </div>
+	            </div>
+
+	            <div class="rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
+	                Substitutes = alternatif RM untuk menggantikan RM utama saat MRP/PR (priority & ratio).
+	            </div>
+
+	            <div class="space-y-2">
+	                <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Existing Substitutes</div>
+	                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+	                    <table class="min-w-full text-xs divide-y divide-slate-200">
+	                        <thead class="bg-slate-50">
+	                            <tr class="text-slate-600 uppercase tracking-wider">
+	                                <th class="px-3 py-2 text-left font-semibold">Part</th>
+	                                <th class="px-3 py-2 text-right font-semibold">Ratio</th>
+	                                <th class="px-3 py-2 text-right font-semibold">Prio</th>
+	                                <th class="px-3 py-2 text-left font-semibold">Status</th>
+	                                <th class="px-3 py-2 text-right font-semibold">Act</th>
+	                            </tr>
+	                        </thead>
+	                        <tbody class="divide-y divide-slate-100">
+	                            <template x-if="(substituteForm.substitutes || []).length === 0">
+	                                <tr>
+	                                    <td colspan="5" class="px-3 py-4 text-center text-slate-500">No substitutes</td>
+	                                </tr>
+	                            </template>
+	                            <template x-for="s in (substituteForm.substitutes || [])" :key="s.id">
+	                                <tr>
+	                                    <td class="px-3 py-2">
+	                                        <div class="font-mono text-[11px] font-semibold" x-text="s.part_no || '-'"></div>
+	                                        <div class="text-slate-500 truncate" x-text="s.part_name || ''"></div>
+	                                        <div class="text-slate-400 truncate" x-text="s.notes || ''"></div>
+	                                    </td>
+	                                    <td class="px-3 py-2 text-right font-mono" x-text="s.ratio"></td>
+	                                    <td class="px-3 py-2 text-right font-mono" x-text="s.priority"></td>
+	                                    <td class="px-3 py-2">
+	                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
+	                                            :class="(s.status || 'active') === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'"
+	                                            x-text="(s.status || 'active').toUpperCase()"
+	                                        ></span>
+	                                    </td>
+	                                    <td class="px-3 py-2 text-right">
+	                                        <form :action="s.delete_url" method="POST" onsubmit="return confirm('Remove substitute?')">
+	                                            @csrf
+	                                            @method('DELETE')
+	                                            <button type="submit" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-slate-200 hover:bg-red-50 text-red-600" title="Delete">🗑</button>
+	                                        </form>
+	                                    </td>
+	                                </tr>
+	                            </template>
+	                        </tbody>
+	                    </table>
+	                </div>
+	            </div>
+
+	            <div class="space-y-2">
+	                <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Add / Update Substitute</div>
+	                <form :action="substituteForm.action" method="POST" class="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
+	                    @csrf
+	                    <div>
+	                        <label class="text-xs font-semibold text-slate-600">Substitute Part (GCI)</label>
+	                        <select name="substitute_part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
+	                            <option value="" disabled selected>Select part</option>
+	                            @foreach(($gciParts ?? []) as $p)
+	                                <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+	                            @endforeach
+	                        </select>
+	                    </div>
+	                    <div class="grid grid-cols-3 gap-2">
+	                        <div>
+	                            <label class="text-xs font-semibold text-slate-600">Ratio</label>
+	                            <input type="number" step="0.001" min="0.001" name="ratio" value="1" class="mt-1 w-full rounded-xl border-slate-200">
+	                        </div>
+	                        <div>
+	                            <label class="text-xs font-semibold text-slate-600">Priority</label>
+	                            <input type="number" min="1" name="priority" value="1" class="mt-1 w-full rounded-xl border-slate-200">
+	                        </div>
+	                        <div>
+	                            <label class="text-xs font-semibold text-slate-600">Status</label>
+	                            <select name="status" class="mt-1 w-full rounded-xl border-slate-200">
+	                                <option value="active" selected>Active</option>
+	                                <option value="inactive">Inactive</option>
+	                            </select>
+	                        </div>
+	                    </div>
+	                    <div>
+	                        <label class="text-xs font-semibold text-slate-600">Notes</label>
+	                        <input type="text" name="notes" maxlength="255" class="mt-1 w-full rounded-xl border-slate-200" placeholder="Optional (e.g. thicker / other supplier)">
+	                    </div>
+	                    <div class="flex justify-end">
+	                        <button type="submit" class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold">Save</button>
+	                    </div>
+	                </form>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	    </div>
+	</x-app-layout>
