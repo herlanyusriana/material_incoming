@@ -290,11 +290,11 @@
             border-bottom: 2px solid #000;
         }
 
-        .commercial-invoice .ci-content-wrapper {
-            border-left: 2px solid #000;
-            border-right: 2px solid #000;
-            border-bottom: 2px solid #000;
-        }
+	        .commercial-invoice .ci-content-wrapper {
+	            border-left: 2px solid #000;
+	            border-right: 2px solid #000;
+	            border-bottom: 0;
+	        }
 
         .commercial-invoice .ci-info-table {
             width: 100%;
