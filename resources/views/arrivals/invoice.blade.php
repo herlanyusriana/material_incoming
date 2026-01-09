@@ -243,8 +243,7 @@
 
 	        .page-box {
 	            border: 2px solid #000;
-                /* Bottom border looks too bold in print/PDF; keep it thin. */
-                border-bottom: 1px solid #000;
+                border-bottom: 0;
 	            padding: 0;
 	        }
 
