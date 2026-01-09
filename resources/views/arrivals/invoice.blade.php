@@ -247,6 +247,12 @@
 	            padding: 0;
 	        }
 
+            /* Commercial invoice wrapper might use a separate class name in older markup. */
+            .commercial-invoice,
+            .packing-list {
+                border-bottom: 0;
+            }
+
         /* Packing list should match commercial invoice font scale. */
         .page-box.packing-list {
             font-family: Arial, sans-serif;
