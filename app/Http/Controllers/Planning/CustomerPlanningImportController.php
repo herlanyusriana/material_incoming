@@ -124,15 +124,22 @@ class CustomerPlanningImportController extends Controller
                 return back()->with('error', 'Tidak ada data monthly yang terbaca.');
             }
 
-            // Disallow duplicates in the same upload.
-            $dupes = $originalMonthly
+            // Allow duplicates in the same upload, sum per customer_part_no per month column.
+            $originalMonthly = $originalMonthly
                 ->groupBy('customer_part_no')
-                ->filter(fn ($g) => $g->count() > 1)
-                ->keys()
+                ->map(function ($rows, $customerPartNo) {
+                    $months = [];
+                    foreach ($rows as $row) {
+                        foreach (($row['months'] ?? []) as $monthHeader => $qty) {
+                            $months[$monthHeader] = ($months[$monthHeader] ?? 0) + (float) $qty;
+                        }
+                    }
+                    return [
+                        'customer_part_no' => (string) $customerPartNo,
+                        'months' => $months,
+                    ];
+                })
                 ->values();
-            if ($dupes->isNotEmpty()) {
-                return back()->with('error', 'Duplicate Customer Part No di file: ' . $dupes->take(10)->implode(', ') . ($dupes->count() > 10 ? ' ...' : ''));
-            }
 
             $weekMapRows = collect($importer->weekMapRows);
             if ($weekMapRows->isEmpty()) {
