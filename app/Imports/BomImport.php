@@ -87,6 +87,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'fg_part_no',
             'wip_part_no',
             'rm_part_no',
+            'uom_wip',
+            'uom_rm',
+            // backward compat
             'uom',
             'uom_1',
             'uom_2',
@@ -140,10 +143,10 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $wipPartNameFromRow = $this->firstNonEmpty($row, ['wip_part_name']);
         $wipPart = $wipPartNo ? $this->ensureGciPart($wipPartNo, $wipPartNameFromRow) : null;
 
-        $wipQtyRaw = $this->firstNonEmpty($row, ['qty', 'qty_']);
+        $wipQtyRaw = $this->firstNonEmpty($row, ['qty_wip', 'qty', 'qty_']);
         $wipQty = $wipQtyRaw !== null && is_numeric($wipQtyRaw) ? (float) $wipQtyRaw : null;
 
-        $wipUom = $this->normalizeUpper($this->firstNonEmpty($row, ['uom']));
+        $wipUom = $this->normalizeUpper($this->firstNonEmpty($row, ['uom_wip', 'uom']));
         $wipPartName = $wipPartNameFromRow;
 
         $materialSize = $this->firstNonEmpty($row, ['material_size']);
@@ -154,7 +157,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $usageQtyRaw = $this->firstNonEmpty($row, ['consumption', 'usage_qty', 'usage']);
         $usageQty = $usageQtyRaw !== null && is_numeric($usageQtyRaw) ? (float) $usageQtyRaw : null;
 
-        $consumptionUom = $this->normalizeUpper($this->firstNonEmpty($row, ['uom_1', 'uom_2', 'consumption_uom']));
+        $consumptionUom = $this->normalizeUpper($this->firstNonEmpty($row, ['uom_rm', 'uom_1', 'uom_2', 'consumption_uom']));
 
         if ($lineNo === null) {
             $next = (int) (BomItem::query()->where('bom_id', $bom->id)->max('line_no') ?? 0) + 1;
@@ -203,6 +206,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'process_name' => ['nullable', 'string', 'max:255'],
             'machine_name' => ['nullable', 'string', 'max:255'],
             'wip_part_no' => ['nullable', 'string', 'max:255'],
+            'qty_wip' => ['nullable', 'numeric', 'min:0'],
+            'uom_wip' => ['nullable', 'string', 'max:20'],
+            // backward compat
             'qty' => ['nullable', 'numeric', 'min:0'],
             'uom' => ['nullable', 'string', 'max:20'],
             'wip_part_name' => ['nullable', 'string', 'max:255'],
@@ -213,6 +219,8 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'special' => ['nullable', 'string', 'max:255'],
             'rm_part_no' => ['nullable', 'string', 'max:255'],
             'consumption' => ['required_with:rm_part_no', 'nullable', 'numeric', 'min:0.0001'],
+            'uom_rm' => ['nullable', 'string', 'max:20'],
+            // backward compat
             'uom_1' => ['nullable', 'string', 'max:20'],
         ];
     }

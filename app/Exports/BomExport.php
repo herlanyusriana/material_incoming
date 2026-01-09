@@ -96,8 +96,8 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
             'Process Name',
             'Machine Name',
             'WIP Part No.',
-            'Qty.',
-            'UOM',
+            'QTY_WIP',
+            'UOM_WIP',
             'WIP Part Name',
             'Material Size',
             'Material Spec',
@@ -105,7 +105,7 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
             'spesial',
             'RM Part No.',
             'Consumption',
-            'UOM',
+            'UOM_RM',
         ];
     }
 
