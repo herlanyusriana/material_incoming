@@ -6,7 +6,6 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\GciPart;
 use Illuminate\Support\Arr;
-use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -17,6 +16,35 @@ use Maatwebsite\Excel\Concerns\SkipsFailures;
 class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsEmptyRows
 {
     use SkipsFailures;
+
+    private function ensureGciPart(string $partNo, ?string $partName = null, ?string $model = null): GciPart
+    {
+        $partNo = $this->normalizeUpper($partNo) ?? '';
+        $partName = $partName !== null ? trim($partName) : null;
+        $model = $model !== null ? trim($model) : null;
+
+        $existing = GciPart::query()->where('part_no', $partNo)->first();
+        if ($existing) {
+            $updates = [];
+            if ($partName !== null && $partName !== '' && ($existing->part_name === null || trim((string) $existing->part_name) === '')) {
+                $updates['part_name'] = $partName;
+            }
+            if ($model !== null && $model !== '' && ($existing->model === null || trim((string) $existing->model) === '')) {
+                $updates['model'] = $model;
+            }
+            if (!empty($updates)) {
+                $existing->update($updates);
+            }
+            return $existing;
+        }
+
+        return GciPart::create([
+            'part_no' => $partNo,
+            'part_name' => ($partName !== null && $partName !== '') ? $partName : $partNo,
+            'model' => ($model !== null && $model !== '') ? $model : null,
+            'status' => 'active',
+        ]);
+    }
 
     private function firstNonEmpty(array $row, array $keys): ?string
     {
@@ -82,28 +110,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             return null;
         }
 
-        $fg = GciPart::query()->where('part_no', $fgPartNo)->first();
-        if (!$fg) {
-            return null;
-        }
-
         $fgName = $this->firstNonEmpty($row, ['fg_name']);
         $fgModel = $this->firstNonEmpty($row, ['fg_model']);
-        if ($fgName !== null || $fgModel !== null) {
-            $updates = [];
-            if ($fgName !== null && trim($fgName) !== '') {
-                $updates['part_name'] = trim($fgName);
-            }
-            if ($fgModel !== null && trim($fgModel) !== '') {
-                $updates['model'] = trim($fgModel);
-            }
-            if (!empty($updates)) {
-                $fg->fill($updates);
-                if ($fg->isDirty()) {
-                    $fg->save();
-                }
-            }
-        }
+        $fg = $this->ensureGciPart($fgPartNo, $fgName, $fgModel);
 
         $bom = Bom::firstOrCreate(
             ['part_id' => $fg->id],
@@ -115,10 +124,8 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             return null;
         }
 
-        $component = GciPart::query()->where('part_no', $rmPartNo)->first();
-        if (!$component) {
-            return null;
-        }
+        $materialNameForRm = $this->firstNonEmpty($row, ['material_name']);
+        $component = $this->ensureGciPart($rmPartNo, $materialNameForRm);
 
         $lineNoRaw = $this->firstNonEmpty($row, ['no', 'line_no', 'line']);
         $lineNo = null;
@@ -130,16 +137,14 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $machineName = $this->firstNonEmpty($row, ['machine_name']);
 
         $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
-        $wipPart = null;
-        if ($wipPartNo) {
-            $wipPart = GciPart::query()->where('part_no', $wipPartNo)->first();
-        }
+        $wipPartNameFromRow = $this->firstNonEmpty($row, ['wip_part_name']);
+        $wipPart = $wipPartNo ? $this->ensureGciPart($wipPartNo, $wipPartNameFromRow) : null;
 
         $wipQtyRaw = $this->firstNonEmpty($row, ['qty', 'qty_']);
         $wipQty = $wipQtyRaw !== null && is_numeric($wipQtyRaw) ? (float) $wipQtyRaw : null;
 
         $wipUom = $this->normalizeUpper($this->firstNonEmpty($row, ['uom']));
-        $wipPartName = $this->firstNonEmpty($row, ['wip_part_name']);
+        $wipPartName = $wipPartNameFromRow;
 
         $materialSize = $this->firstNonEmpty($row, ['material_size']);
         $materialSpec = $this->firstNonEmpty($row, ['material_spec']);
@@ -194,10 +199,10 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'no' => ['nullable', 'integer', 'min:1'],
             'fg_name' => ['nullable', 'string', 'max:255'],
             'fg_model' => ['nullable', 'string', 'max:255'],
-            'fg_part_no' => ['required', 'string', 'max:255', Rule::exists('gci_parts', 'part_no')],
+            'fg_part_no' => ['required', 'string', 'max:255'],
             'process_name' => ['nullable', 'string', 'max:255'],
             'machine_name' => ['nullable', 'string', 'max:255'],
-            'wip_part_no' => ['nullable', 'string', 'max:255', Rule::exists('gci_parts', 'part_no')],
+            'wip_part_no' => ['nullable', 'string', 'max:255'],
             'qty' => ['nullable', 'numeric', 'min:0'],
             'uom' => ['nullable', 'string', 'max:20'],
             'wip_part_name' => ['nullable', 'string', 'max:255'],
@@ -206,7 +211,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'material_name' => ['nullable', 'string', 'max:255'],
             'spesial' => ['nullable', 'string', 'max:255'],
             'special' => ['nullable', 'string', 'max:255'],
-            'rm_part_no' => ['nullable', 'string', 'max:255', Rule::exists('gci_parts', 'part_no')],
+            'rm_part_no' => ['nullable', 'string', 'max:255'],
             'consumption' => ['required_with:rm_part_no', 'nullable', 'numeric', 'min:0.0001'],
             'uom_1' => ['nullable', 'string', 'max:20'],
         ];

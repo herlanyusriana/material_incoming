@@ -306,7 +306,7 @@
 
 	                    <div class="text-sm text-slate-700 space-y-1">
 	                        <div>Gunakan format kolom yang sama seperti hasil <span class="font-semibold">Export BOM</span>.</div>
-	                        <div class="text-xs text-slate-500">Kolom <span class="font-mono">FG Part No.</span> dan <span class="font-mono">RM Part No.</span> wajib sudah ada di master.</div>
+	                        <div class="text-xs text-slate-500">Jika <span class="font-mono">FG Part No.</span>/<span class="font-mono">WIP Part No.</span>/<span class="font-mono">RM Part No.</span> belum ada di master <span class="font-mono">GCI Parts</span>, akan dibuat otomatis saat import.</div>
 	                    </div>
 
 	                    <div>
