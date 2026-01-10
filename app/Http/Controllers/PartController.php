@@ -63,6 +63,13 @@ class PartController extends Controller
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
+            $createdVendors = $import->createdVendors();
+            if (!empty($createdVendors)) {
+                $preview = collect($createdVendors)->take(5)->implode(', ');
+                $more = count($createdVendors) > 5 ? ' (+' . (count($createdVendors) - 5) . ' more)' : '';
+                return back()->with('status', "Parts imported successfully. New vendors created: {$preview}{$more}");
+            }
+
             return back()->with('status', 'Parts imported successfully.');
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {

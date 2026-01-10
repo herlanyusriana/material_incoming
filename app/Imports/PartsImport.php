@@ -16,6 +16,14 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
 {
     use SkipsFailures;
 
+    /** @var array<int, string> */
+    private array $createdVendors = [];
+
+    public function createdVendors(): array
+    {
+        return array_values(array_unique($this->createdVendors));
+    }
+
     private function firstNonEmpty(array $row, array $keys): ?string
     {
         foreach ($keys as $key) {
@@ -110,6 +118,7 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
                 'vendor_type' => $vendorType ?? 'import',
                 'status' => 'active',
             ]);
+            $this->createdVendors[] = $vendor->vendor_name;
         }
 
         if (!$vendor) {
