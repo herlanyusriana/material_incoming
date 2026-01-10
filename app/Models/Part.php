@@ -16,6 +16,7 @@ class Part extends Model
         'part_name_vendor',
         'part_name_gci',
         'hs_code',
+        'quality_inspection',
         'vendor_id',
         'status',
     ];
@@ -59,6 +60,13 @@ class Part extends Model
     }
 
     protected function hsCode(): Attribute
+    {
+        return Attribute::make(
+            set: fn ($value) => self::upperOrNull($value),
+        );
+    }
+
+    protected function qualityInspection(): Attribute
     {
         return Attribute::make(
             set: fn ($value) => self::upperOrNull($value),

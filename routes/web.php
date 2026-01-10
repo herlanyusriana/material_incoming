@@ -130,9 +130,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/customers/{customer}', [PlanningCustomerController::class, 'update'])->name('customers.update');
         Route::delete('/customers/{customer}', [PlanningCustomerController::class, 'destroy'])->name('customers.destroy');
 
-	        Route::get('/customer-parts', [PlanningCustomerPartController::class, 'index'])->name('customer-parts.index');
-	        Route::get('/customer-parts/export', [PlanningCustomerPartController::class, 'export'])->name('customer-parts.export');
-	        Route::post('/customer-parts/import', [PlanningCustomerPartController::class, 'import'])->name('customer-parts.import');
+	    Route::get('/customer-parts', [PlanningCustomerPartController::class, 'index'])->name('customer-parts.index');
+	    Route::get('/customer-parts/export', [PlanningCustomerPartController::class, 'export'])->name('customer-parts.export');
+	    Route::post('/customer-parts/import', [PlanningCustomerPartController::class, 'import'])->name('customer-parts.import');
 	        Route::post('/customer-parts', [PlanningCustomerPartController::class, 'store'])->name('customer-parts.store');
 	        Route::put('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'update'])->name('customer-parts.update');
 	        Route::delete('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'destroy'])->name('customer-parts.destroy');
@@ -143,7 +143,10 @@ Route::middleware('auth')->group(function () {
 	        Route::post('/planning-imports', [PlanningCustomerPlanningImportController::class, 'store'])->name('planning-imports.store');
 	        Route::get('/planning-imports/template', [PlanningCustomerPlanningImportController::class, 'template'])->name('planning-imports.template');
 	        Route::get('/planning-imports/template-monthly', [PlanningCustomerPlanningImportController::class, 'templateMonthly'])->name('planning-imports.template-monthly');
-	        Route::get('/planning-imports/{import}/export', [PlanningCustomerPlanningImportController::class, 'export'])->name('planning-imports.export');
+	    Route::get('/planning-imports/{import}/export', [PlanningCustomerPlanningImportController::class, 'export'])->name('planning-imports.export');
+
+        Route::get('/gci-parts/export', [PlanningGciPartController::class, 'export'])->name('gci-parts.export');
+        Route::post('/gci-parts/import', [PlanningGciPartController::class, 'import'])->name('gci-parts.import');
 
         Route::get('/customer-pos', [PlanningCustomerPoController::class, 'index'])->name('customer-pos.index');
         Route::post('/customer-pos', [PlanningCustomerPoController::class, 'store'])->name('customer-pos.store');

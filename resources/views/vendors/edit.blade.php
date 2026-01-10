@@ -7,7 +7,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <div class="px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
                 <form method="POST" action="{{ route('vendors.update', $vendor) }}" enctype="multipart/form-data">
                     @method('PUT')

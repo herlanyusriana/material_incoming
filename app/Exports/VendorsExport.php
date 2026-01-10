@@ -17,6 +17,7 @@ class VendorsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
         return Vendor::query()
             ->select([
                 'vendor_name',
+                'vendor_type',
                 'country_code',
                 'contact_person',
                 'email',
@@ -32,6 +33,7 @@ class VendorsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
     {
         return [
             'vendor_name',
+            'vendor_type',
             'country_code',
             'contact_person',
             'email',
@@ -46,6 +48,7 @@ class VendorsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
     {
         return [
             $vendor->vendor_name,
+            $vendor->vendor_type ?? 'import',
             $vendor->country_code,
             $vendor->contact_person,
             $vendor->email,
@@ -68,12 +71,13 @@ class VendorsExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
         return [
             'A' => 30,
             'B' => 12,
-            'C' => 25,
-            'D' => 30,
-            'E' => 20,
-            'F' => 40,
-            'G' => 25,
-            'H' => 12,
+            'C' => 12,
+            'D' => 25,
+            'E' => 30,
+            'F' => 20,
+            'G' => 40,
+            'H' => 25,
+            'I' => 12,
         ];
     }
 }

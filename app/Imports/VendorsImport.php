@@ -20,6 +20,10 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation, WithBatc
         $this->loadExistingKeys();
 
         $vendorName = trim((string) ($row['vendor_name'] ?? ''));
+        $vendorType = strtolower(trim((string) ($row['vendor_type'] ?? 'import')));
+        if (!in_array($vendorType, ['import', 'local', 'tolling'], true)) {
+            $vendorType = 'import';
+        }
         $countryCode = strtoupper(trim((string) ($row['country_code'] ?? '')));
         $key = $this->makeKey($vendorName, $countryCode);
 
@@ -34,6 +38,7 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation, WithBatc
 
         return new Vendor([
             'vendor_name' => $vendorName,
+            'vendor_type' => $vendorType,
             'country_code' => $countryCode,
             'contact_person' => $row['contact_person'] ?? null,
             'email' => $row['email'] ?? null,
@@ -48,6 +53,7 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation, WithBatc
     {
         return [
             'vendor_name' => 'required|string|max:255',
+            'vendor_type' => 'nullable|in:import,local,tolling',
             'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'contact_person' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',

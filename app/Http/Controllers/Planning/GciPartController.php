@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
+use App\Exports\GciPartsExport;
+use App\Imports\GciPartsImport;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class GciPartController extends Controller
 {
@@ -22,16 +26,50 @@ class GciPartController extends Controller
         return view('planning.gci_parts.index', compact('parts', 'status'));
     }
 
+    public function export()
+    {
+        return Excel::download(new GciPartsExport(), 'gci_parts_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+        ]);
+
+        try {
+            $import = new GciPartsImport();
+            DB::transaction(function () use ($request, $import) {
+                Excel::import($import, $request->file('file'));
+            });
+
+            $failures = collect($import->failures());
+            if ($failures->isNotEmpty()) {
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+                return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+            }
+
+            return back()->with('success', 'Part GCI imported.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')],
             'part_name' => ['nullable', 'string', 'max:255'],
+            'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
+        $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 
         GciPart::create($validated);
 
@@ -43,11 +81,13 @@ class GciPartController extends Controller
         $validated = $request->validate([
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')->ignore($gciPart->id)],
             'part_name' => ['nullable', 'string', 'max:255'],
+            'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
+        $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 
         $gciPart->update($validated);
 

@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="py-6" x-data="planningGciParts()">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
@@ -30,9 +30,11 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
-                    <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">
-                        Add Part GCI
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('planning.gci-parts.export') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">Export</a>
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold" @click="openImport()">Import</button>
+                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">Add Part GCI</button>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
@@ -41,6 +43,7 @@
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                 <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part Name</th>
+                                <th class="px-4 py-3 text-left font-semibold">Model</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Actions</th>
                             </tr>
@@ -50,6 +53,7 @@
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3 font-semibold">{{ $p->part_no }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
                                     <td class="px-4 py-3">
                                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $p->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
                                             {{ strtoupper($p->status) }}
@@ -66,7 +70,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
+                                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -101,6 +105,10 @@
                         <input name="part_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.part_name">
                     </div>
                     <div>
+                        <label class="text-sm font-semibold text-slate-700">Model</label>
+                        <input name="model" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.model">
+                    </div>
+                    <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
                         <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.status">
                             <option value="active">Active</option>
@@ -120,24 +128,51 @@
             function planningGciParts() {
                 return {
                     modalOpen: false,
+                    importOpen: false,
                     mode: 'create',
                     formAction: @js(route('planning.gci-parts.store')),
-                    form: { id: null, part_no: '', part_name: '', status: 'active' },
+                    form: { id: null, part_no: '', part_name: '', model: '', status: 'active' },
                     openCreate() {
                         this.mode = 'create';
                         this.formAction = @js(route('planning.gci-parts.store'));
-                        this.form = { id: null, part_no: '', part_name: '', status: 'active' };
+                        this.form = { id: null, part_no: '', part_name: '', model: '', status: 'active' };
                         this.modalOpen = true;
                     },
                     openEdit(p) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/gci-parts')) + '/' + p.id;
-                        this.form = { id: p.id, part_no: p.part_no, part_name: p.part_name, status: p.status };
+                        this.form = { id: p.id, part_no: p.part_no, part_name: p.part_name, model: p.model, status: p.status };
                         this.modalOpen = true;
+                    },
+                    openImport() {
+                        this.importOpen = true;
                     },
                     close() { this.modalOpen = false; },
                 }
             }
         </script>
+
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importOpen" x-cloak @keydown.escape.window="importOpen=false">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                    <div class="text-sm font-semibold text-slate-900">Import Part GCI</div>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="importOpen=false">✕</button>
+                </div>
+                <form action="{{ route('planning.gci-parts.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+                    @csrf
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Excel File</label>
+                        <input type="file" name="file" accept=".xlsx,.xls" required class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <div class="mt-2 text-xs text-slate-500">
+                            Kolom: <span class="font-semibold">part_no</span>, part_name, model, status
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="importOpen=false">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </x-app-layout>

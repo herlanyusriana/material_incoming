@@ -7,7 +7,7 @@
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('status'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('status') }}
@@ -92,6 +92,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Part Number</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Size</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">HS Code</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -103,7 +104,7 @@
                                     $primaryVendor = $group->first();
                                 @endphp
                                 <tr class="bg-slate-50/70">
-                                    <td colspan="6" class="px-4 py-3">
+                                    <td colspan="7" class="px-4 py-3">
                                         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                             <div>
                                                 <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Vendor Part Name</p>
@@ -135,6 +136,7 @@
                                         <td class="px-4 py-4 text-sm text-slate-700">{{ $part->part_no }}</td>
                                         <td class="px-4 py-4 text-sm text-slate-700">{{ $part->register_no }}</td>
                                         <td class="px-4 py-4 text-sm text-slate-600">{{ $part->hs_code ?? '-' }}</td>
+                                        <td class="px-4 py-4 text-sm text-slate-700 font-semibold">{{ strtoupper((string) ($part->quality_inspection ?? '')) === 'YES' ? 'YES' : '-' }}</td>
                                         <td class="px-4 py-4">
                                             <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $part->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
                                                 {{ ucfirst($part->status) }}
@@ -154,7 +156,7 @@
                                 @endforeach
                             @empty
                                 <tr>
-                                    <td colspan="6">
+                                    <td colspan="7">
                                         <div class="py-12 text-center text-slate-500">
                                             <p class="text-lg font-semibold mb-2">No part numbers found</p>
                                             <p class="text-sm">Use the form above to register the first record.</p>
@@ -197,7 +199,7 @@
                     <p class="text-xs text-blue-800 font-medium mb-1">Kolom wajib (nama harus sama):</p>
                     <p class="text-xs text-blue-700">vendor, part_no, size</p>
                     <p class="text-xs text-blue-800 font-medium mt-2 mb-1">Kolom opsional:</p>
-                    <p class="text-xs text-blue-700">part_name_vendor, part_name_gci, hs_code, status</p>
+                    <p class="text-xs text-blue-700">part_name_vendor, part_name_gci, hs_code, quality_inspection, status</p>
                     <p class="text-xs text-blue-600 mt-1">Tip: Klik Export untuk dapat template yang sesuai.</p>
                 </div>
                 

@@ -63,6 +63,11 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             $data[$key] = $raw === '' ? null : strtoupper($raw);
         }
 
+        if (array_key_exists('quality_inspection', $data)) {
+            $raw = strtoupper(trim((string) ($data['quality_inspection'] ?? '')));
+            $data['quality_inspection'] = in_array($raw, ['YES', 'Y', '1', 'TRUE'], true) ? 'YES' : null;
+        }
+
         foreach (['part_name_vendor', 'vendor_part_name', 'part_name_gci', 'part_name_internal', 'gci_part_name'] as $key) {
             if (!array_key_exists($key, $data)) {
                 continue;
@@ -105,6 +110,14 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
         $partNameVendor = $this->firstNonEmpty($row, ['part_name_vendor', 'vendor_part_name']);
         $partNameGci = $this->firstNonEmpty($row, ['part_name_gci', 'part_name_internal', 'gci_part_name']);
         $hsCode = $this->firstNonEmpty($row, ['hs_code']);
+        $qualityInspectionRaw = $this->firstNonEmpty($row, ['quality_inspection', 'qc_inspection', 'quality']);
+        $qualityInspection = null;
+        if ($qualityInspectionRaw !== null) {
+            $flag = strtoupper(trim((string) $qualityInspectionRaw));
+            if (in_array($flag, ['YES', 'Y', '1', 'TRUE'], true)) {
+                $qualityInspection = 'YES';
+            }
+        }
 
         $statusRaw = $this->firstNonEmpty($row, ['status']);
         $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : 'active';
@@ -126,6 +139,7 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             'part_name_vendor' => $partNameVendor,
             'part_name_gci' => $partNameGci,
             'hs_code' => $hsCode,
+            'quality_inspection' => $qualityInspection,
             'vendor_id' => $vendor->id,
             'status' => $status,
         ]);
@@ -142,6 +156,7 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             'register_no' => 'nullable|string|max:255',
             'register_number' => 'nullable|string|max:255',
             'size' => 'nullable|string|max:255',
+            'quality_inspection' => 'nullable',
         ];
     }
 }

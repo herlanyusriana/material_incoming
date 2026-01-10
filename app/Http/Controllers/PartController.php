@@ -93,6 +93,7 @@ class PartController extends Controller
             'part_name_vendor' => ['required', 'string', 'max:255'],
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
+            'quality_inspection' => ['nullable', 'in:YES'],
             'vendor_id' => ['required', 'exists:vendors,id'],
             'status' => ['required', 'in:active,inactive'],
         ]);
@@ -117,6 +118,7 @@ class PartController extends Controller
             'part_name_vendor' => ['required', 'string', 'max:255'],
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
+            'quality_inspection' => ['nullable', 'in:YES'],
             'vendor_id' => ['required', 'exists:vendors,id'],
             'status' => ['required', 'in:active,inactive'],
         ]);

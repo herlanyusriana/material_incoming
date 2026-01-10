@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('status'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('status') }}
@@ -58,6 +58,7 @@
 	                            <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
 	                                <tr class="text-slate-600 text-xs uppercase tracking-wider">
 	                                    <th class="px-4 py-3 text-left font-semibold">Vendor Name</th>
+	                                    <th class="px-4 py-3 text-left font-semibold">Type</th>
 	                                    <th class="px-4 py-3 text-left font-semibold">Country</th>
 	                                    <th class="px-4 py-3 text-left font-semibold">Contact</th>
 	                                    <th class="px-4 py-3 text-left font-semibold">Email</th>
@@ -80,6 +81,7 @@
 	                                                @endif
 	                                            </div>
 	                                        </td>
+	                                        <td class="px-4 py-4 text-slate-700 font-semibold">{{ strtoupper($vendor->vendor_type ?? 'IMPORT') }}</td>
 	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->country_code ?? '-' }}</td>
 	                                        <td class="px-4 py-4 text-slate-700">{{ $vendor->contact_person }}</td>
 	                                        <td class="px-4 py-4 text-slate-600">{{ $vendor->email }}</td>
@@ -102,7 +104,7 @@
 	                                    </tr>
 	                                @empty
 	                                    <tr>
-	                                        <td colspan="7" class="px-4 py-12 text-center text-slate-500">No vendors found.</td>
+	                                        <td colspan="8" class="px-4 py-12 text-center text-slate-500">No vendors found.</td>
 	                                    </tr>
 	                                @endforelse
 	                            </tbody>
@@ -136,7 +138,7 @@
                 
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p class="text-xs text-blue-800 font-medium mb-1">Required Columns (exact names):</p>
-                    <p class="text-xs text-blue-700">vendor_name, country_code, contact_person, email, phone, address, bank_account, status</p>
+                    <p class="text-xs text-blue-700">vendor_name, vendor_type, country_code, contact_person, email, phone, address, bank_account, status</p>
                     <p class="text-xs text-blue-600 mt-1">Tip: Export existing data to get the correct format</p>
                 </div>
                 

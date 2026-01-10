@@ -6,6 +6,16 @@
         <x-input-error :messages="$errors->get('vendor_name')" class="mt-2" />
     </div>
     <div>
+        <x-input-label for="vendor_type" value="Vendor Type" />
+        <select id="vendor_type" name="vendor_type" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" required>
+            @php $vt = old('vendor_type', $vendor->vendor_type ?? 'import'); @endphp
+            <option value="import" @selected($vt === 'import')>Import</option>
+            <option value="local" @selected($vt === 'local')>Local</option>
+            <option value="tolling" @selected($vt === 'tolling')>Tolling</option>
+        </select>
+        <x-input-error :messages="$errors->get('vendor_type')" class="mt-2" />
+    </div>
+    <div>
         <x-input-label for="country_code" value="Country Code (ISO-2)" />
         <x-text-input id="country_code" name="country_code" type="text" class="mt-1 w-full uppercase rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" required maxlength="2" placeholder="ID" pattern="[A-Za-z]{2}" title="Country code harus 2 huruf (contoh: ID)" value="{{ old('country_code', $vendor->country_code ?? '') }}" />
         <x-input-error :messages="$errors->get('country_code')" class="mt-2" />

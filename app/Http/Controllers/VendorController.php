@@ -31,6 +31,7 @@ class VendorController extends Controller
             ->select([
                 'id',
                 'vendor_name',
+                'vendor_type',
                 'country_code',
                 'contact_person',
                 'email',
@@ -76,6 +77,7 @@ class VendorController extends Controller
     {
         $data = $request->validate([
             'vendor_name' => ['required', 'string', 'max:255'],
+            'vendor_type' => ['required', 'in:import,local,tolling'],
             'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],
@@ -107,6 +109,7 @@ class VendorController extends Controller
     {
         $data = $request->validate([
             'vendor_name' => ['required', 'string', 'max:255'],
+            'vendor_type' => ['required', 'in:import,local,tolling'],
             'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'address' => ['nullable', 'string'],
             'bank_account' => ['nullable', 'string', 'max:255'],

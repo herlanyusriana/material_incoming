@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Exports;
+
+use App\Models\GciPart;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+
+class GciPartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, WithColumnWidths
+{
+    public function query()
+    {
+        return GciPart::query()
+            ->select(['part_no', 'part_name', 'model', 'status'])
+            ->orderBy('part_no');
+    }
+
+    public function headings(): array
+    {
+        return ['part_no', 'part_name', 'model', 'status'];
+    }
+
+    public function map($part): array
+    {
+        return [
+            $part->part_no,
+            $part->part_name,
+            $part->model,
+            $part->status ?? 'active',
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [1 => ['font' => ['bold' => true]]];
+    }
+
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 22,
+            'B' => 40,
+            'C' => 18,
+            'D' => 12,
+        ];
+    }
+}
+

@@ -1,5 +1,5 @@
 @csrf
-<div class="max-w-6xl mx-auto p-0 space-y-8">
+<div class="w-full p-0 space-y-8">
     <!-- Section 1 — Vendor Information -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
         <h2 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Vendor Information</h2>
@@ -158,6 +158,16 @@
             <input type="text" id="hs_code" name="hs_code" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="e.g., 7225.99.10" value="{{ old('hs_code', $part->hs_code ?? '') }}">
             <p class="text-xs text-gray-500">Harmonized System code for customs.</p>
             <x-input-error :messages="$errors->get('hs_code')" class="mt-1" />
+        </div>
+        <div class="space-y-2">
+            <label for="quality_inspection" class="text-sm font-medium text-gray-700">Quality Inspection</label>
+            @php $qi = old('quality_inspection', $part->quality_inspection ?? ''); @endphp
+            <select id="quality_inspection" name="quality_inspection" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option value="" @selected($qi === '' || $qi === null)>-</option>
+                <option value="YES" @selected(strtoupper((string) $qi) === 'YES')>YES</option>
+            </select>
+            <p class="text-xs text-gray-500">Isi YES jika part butuh QC inspection.</p>
+            <x-input-error :messages="$errors->get('quality_inspection')" class="mt-1" />
         </div>
     </div>
 

@@ -18,6 +18,7 @@ class Vendor extends Model
 
     protected $fillable = [
         'vendor_name',
+        'vendor_type',
         'country_code',
         'address',
         'bank_account',
