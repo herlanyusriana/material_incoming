@@ -23,6 +23,7 @@ class BomItem extends Model
         'material_name',
         'special',
         'component_part_id',
+        'make_or_buy',
         'usage_qty',
         'consumption_uom',
     ];

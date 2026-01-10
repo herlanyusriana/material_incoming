@@ -122,6 +122,7 @@ class BomController extends Controller
         $validated = $request->validate([
             'bom_item_id' => ['nullable', 'integer'],
             'component_part_id' => ['required', Rule::exists('gci_parts', 'id')],
+            'make_or_buy' => ['nullable', Rule::in(['make', 'buy'])],
             'usage_qty' => ['required', 'numeric', 'min:0.0001'],
             'consumption_uom' => ['nullable', 'string', 'max:20'],
             'line_no' => ['nullable', 'integer', 'min:1'],
@@ -151,6 +152,7 @@ class BomController extends Controller
             'material_spec' => $validated['material_spec'] ?? null,
             'material_name' => $validated['material_name'] ?? null,
             'special' => $validated['special'] ?? null,
+            'make_or_buy' => $validated['make_or_buy'] ?? 'buy',
         ];
 
         $bomItemId = isset($validated['bom_item_id']) ? (int) $validated['bom_item_id'] : null;

@@ -86,13 +86,14 @@
                                 <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Size</th>
                                 <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Spec</th>
                                 <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Name</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">spesial</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">RM Part No.</th>
-                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Consumption</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">UOM</th>
-                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Actions</th>
-                            </tr>
-                        </thead>
+	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">spesial</th>
+	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">RM Part No.</th>
+	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Make/Buy</th>
+	                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Consumption</th>
+	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">UOM_RM</th>
+	                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Actions</th>
+	                            </tr>
+	                        </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($boms as $bom)
                                 @php
@@ -120,7 +121,7 @@
                                             </span>
                                         </button>
                                     </td>
-                                    <td class="px-3 py-3" colspan="13">&nbsp;</td>
+	                                    <td class="px-3 py-3" colspan="14">&nbsp;</td>
                                     <td class="px-3 py-3 text-right whitespace-nowrap">
                                         <form action="{{ route('planning.boms.update', $bom) }}" method="POST" class="inline">
                                             @csrf
@@ -162,9 +163,15 @@
                                         <td class="px-3 py-2">{{ $wipName }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_size ?? '' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_spec ?? '' }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_name ?? '' }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->special ?? '' }}</td>
+	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_name ?? '' }}</td>
+	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->special ?? '' }}</td>
 	                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-sm">{{ $rmNo }}</td>
+	                                        <td class="px-3 py-2 whitespace-nowrap">
+                                                @php $mob = strtolower((string) ($item->make_or_buy ?? 'buy')); @endphp
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $mob === 'make' ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800' }}">
+                                                    {{ strtoupper($mob) }}
+                                                </span>
+                                            </td>
 	                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-sm">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
 	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->consumption_uom ?? '' }}</td>
 	                                        <td class="px-3 py-2 text-right whitespace-nowrap">
@@ -221,12 +228,13 @@
                                                     'wip_part_name' => $item->wip_part_name,
                                                     'material_size' => $item->material_size,
                                                     'material_spec' => $item->material_spec,
-                                                    'material_name' => $item->material_name,
-                                                    'special' => $item->special,
-                                                    'component_part_id' => $item->component_part_id,
-                                                    'usage_qty' => $item->usage_qty,
-                                                    'consumption_uom' => $item->consumption_uom,
-                                                ]))"
+	                                                    'material_name' => $item->material_name,
+	                                                    'special' => $item->special,
+	                                                    'component_part_id' => $item->component_part_id,
+	                                                    'make_or_buy' => $item->make_or_buy,
+	                                                    'usage_qty' => $item->usage_qty,
+	                                                    'consumption_uom' => $item->consumption_uom,
+	                                                ]))"
                                             >
                                                 ✎
                                             </button>
@@ -240,14 +248,14 @@
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="18" class="px-3 py-4 text-center text-slate-500">No BOM lines</td>
-                                    </tr>
+	                                    <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
+	                                        <td colspan="19" class="px-3 py-4 text-center text-slate-500">No BOM lines</td>
+	                                    </tr>
                                 @endforelse
 
                                 {{-- Add line row --}}
-                                <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                    <td colspan="18" class="px-3 py-3">
+	                                <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
+	                                    <td colspan="19" class="px-3 py-3">
                                         <button
                                             type="button"
                                             class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold"
@@ -265,21 +273,22 @@
                                                 'wip_part_name' => null,
                                                 'material_size' => null,
                                                 'material_spec' => null,
-                                                'material_name' => null,
-                                                'special' => null,
-                                                'component_part_id' => null,
-                                                'usage_qty' => 1,
-                                                'consumption_uom' => null,
-                                            ]))"
+	                                                'material_name' => null,
+	                                                'special' => null,
+	                                                'component_part_id' => null,
+	                                                'make_or_buy' => 'buy',
+	                                                'usage_qty' => 1,
+	                                                'consumption_uom' => null,
+	                                            ]))"
                                         >
                                             + Add Line
                                         </button>
                                     </td>
                                 </tr>
                             @empty
-                                <tr>
-                                    <td colspan="18" class="px-4 py-8 text-center text-slate-500">No BOM</td>
-                                </tr>
+	                            <tr>
+	                                <td colspan="19" class="px-4 py-8 text-center text-slate-500">No BOM</td>
+	                            </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -438,21 +447,28 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div class="md:col-span-2">
-                            <label class="text-xs font-semibold text-slate-600">RM Part No.</label>
-                            <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.component_part_id">
-                                <option value="" disabled>Select RM part</option>
-	                                @foreach (($components ?? []) as $c)
-	                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
-	                                @endforeach
-	                            </select>
-                        </div>
+	                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+	                        <div class="md:col-span-2">
+	                            <label class="text-xs font-semibold text-slate-600">RM Part No.</label>
+	                            <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.component_part_id">
+	                                <option value="" disabled>Select RM part</option>
+		                                @foreach (($components ?? []) as $c)
+		                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
+		                                @endforeach
+		                            </select>
+	                        </div>
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Consumption</label>
-                            <input type="number" step="any" min="0.0001" name="usage_qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.usage_qty">
+                            <label class="text-xs font-semibold text-slate-600">Make / Buy</label>
+                            <select name="make_or_buy" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.make_or_buy">
+                                <option value="buy">BUY</option>
+                                <option value="make">MAKE</option>
+                            </select>
                         </div>
-                    </div>
+	                        <div>
+	                            <label class="text-xs font-semibold text-slate-600">Consumption</label>
+	                            <input type="number" step="any" min="0.0001" name="usage_qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.usage_qty">
+	                        </div>
+	                    </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
@@ -508,6 +524,7 @@
                         material_name: '',
                         special: '',
                         component_part_id: '',
+                        make_or_buy: 'buy',
                         usage_qty: '1',
                         consumption_uom: '',
 	                    },
@@ -537,26 +554,27 @@
 	                    openLineModal(payload) {
 	                        this.lineForm = {
 	                            mode: payload.mode,
-                            action: payload.action,
-                            bom_item_id: payload.bom_item_id,
-                            fg_label: payload.fg_label,
-                            line_no: payload.line_no,
-                            process_name: payload.process_name ?? '',
-                            machine_name: payload.machine_name ?? '',
-                            wip_part_id: payload.wip_part_id ?? '',
-                            wip_qty: payload.wip_qty ?? '',
-                            wip_uom: payload.wip_uom ?? '',
-                            wip_part_name: payload.wip_part_name ?? '',
-                            material_size: payload.material_size ?? '',
-                            material_spec: payload.material_spec ?? '',
-                            material_name: payload.material_name ?? '',
-                            special: payload.special ?? '',
-                            component_part_id: payload.component_part_id ?? '',
-                            usage_qty: payload.usage_qty ?? '1',
-                            consumption_uom: payload.consumption_uom ?? '',
-                        };
-                        this.lineModalOpen = true;
-                    },
+	                            action: payload.action,
+	                            bom_item_id: payload.bom_item_id,
+	                            fg_label: payload.fg_label,
+	                            line_no: payload.line_no,
+	                            process_name: payload.process_name ?? '',
+	                            machine_name: payload.machine_name ?? '',
+	                            wip_part_id: payload.wip_part_id ?? '',
+	                            wip_qty: payload.wip_qty ?? '',
+	                            wip_uom: payload.wip_uom ?? '',
+	                            wip_part_name: payload.wip_part_name ?? '',
+	                            material_size: payload.material_size ?? '',
+	                            material_spec: payload.material_spec ?? '',
+	                            material_name: payload.material_name ?? '',
+	                            special: payload.special ?? '',
+	                            component_part_id: payload.component_part_id ?? '',
+	                            make_or_buy: payload.make_or_buy ?? 'buy',
+	                            usage_qty: payload.usage_qty ?? '1',
+	                            consumption_uom: payload.consumption_uom ?? '',
+	                        };
+	                        this.lineModalOpen = true;
+	                    },
 	                    closeLineModal() { this.lineModalOpen = false; },
 	                }
 	            }

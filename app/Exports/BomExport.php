@@ -34,28 +34,29 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
 
         $rows = [];
         foreach ($boms as $bom) {
-	            if ($bom->items->isEmpty()) {
-	                $rows[] = [
-	                    '',
-	                    $bom->part?->part_name ?? '',
-	                    $bom->part?->model ?? '',
-	                    $bom->part?->part_no ?? '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                    '',
-	                ];
-	                continue;
-	            }
+		            if ($bom->items->isEmpty()) {
+		                $rows[] = [
+		                    '',
+		                    $bom->part?->part_name ?? '',
+		                    $bom->part?->model ?? '',
+		                    $bom->part?->part_no ?? '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+		                    '',
+                            '',
+		                    '',
+		                    '',
+		                ];
+		                continue;
+		            }
 
             $seq = 0;
             foreach ($bom->items->sortBy(fn ($i) => $i->line_no ?? 0) as $item) {
@@ -77,6 +78,7 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
                     $item->material_name ?? '',
                     $item->special ?? '',
                     $item->componentPart?->part_no ?? '',
+                    strtoupper((string) ($item->make_or_buy ?? 'buy')),
                     (string) $item->usage_qty,
                     $item->consumption_uom ?? '',
                 ];
@@ -104,6 +106,7 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
             'Material Name',
             'spesial',
             'RM Part No.',
+            'Make/Buy',
             'Consumption',
             'UOM_RM',
         ];
@@ -134,8 +137,9 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
             'M' => 18,
             'N' => 14,
             'O' => 18,
-            'P' => 14,
-            'Q' => 10,
+            'P' => 10,
+            'Q' => 14,
+            'R' => 10,
         ];
     }
 }

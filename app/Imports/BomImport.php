@@ -5,7 +5,6 @@ namespace App\Imports;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\GciPart;
-use Illuminate\Support\Arr;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -17,11 +16,32 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 {
     use SkipsFailures;
 
-    private function ensureGciPart(string $partNo, ?string $partName = null, ?string $model = null): GciPart
+    private function normalizeMakeOrBuy(?string $value): string
+    {
+        if ($value === null) {
+            return 'buy';
+        }
+
+        $raw = strtolower(trim($value));
+        if (in_array($raw, ['make', 'm'], true)) {
+            return 'make';
+        }
+        if (in_array($raw, ['buy', 'b', 'purchase'], true)) {
+            return 'buy';
+        }
+
+        return 'buy';
+    }
+
+    private function ensureGciPart(string $partNo, ?string $partName = null, ?string $model = null, string $classification = 'FG'): GciPart
     {
         $partNo = $this->normalizeUpper($partNo) ?? '';
         $partName = $partName !== null ? trim($partName) : null;
         $model = $model !== null ? trim($model) : null;
+        $classification = strtoupper(trim($classification)) ?: 'FG';
+        if (!in_array($classification, ['FG', 'RM'], true)) {
+            $classification = 'FG';
+        }
 
         $existing = GciPart::query()->where('part_no', $partNo)->first();
         if ($existing) {
@@ -40,6 +60,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
         return GciPart::create([
             'part_no' => $partNo,
+            'classification' => $classification,
             'part_name' => ($partName !== null && $partName !== '') ? $partName : $partNo,
             'model' => ($model !== null && $model !== '') ? $model : null,
             'status' => 'active',
@@ -115,7 +136,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
         $fgName = $this->firstNonEmpty($row, ['fg_name']);
         $fgModel = $this->firstNonEmpty($row, ['fg_model']);
-        $fg = $this->ensureGciPart($fgPartNo, $fgName, $fgModel);
+        $fg = $this->ensureGciPart($fgPartNo, $fgName, $fgModel, 'FG');
 
         $bom = Bom::firstOrCreate(
             ['part_id' => $fg->id],
@@ -128,7 +149,10 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         }
 
         $materialNameForRm = $this->firstNonEmpty($row, ['material_name']);
-        $component = $this->ensureGciPart($rmPartNo, $materialNameForRm);
+        $makeOrBuyRaw = $this->firstNonEmpty($row, ['make_or_buy', 'makebuy', 'make_buy']);
+        $makeOrBuy = $this->normalizeMakeOrBuy($makeOrBuyRaw);
+        $componentClassification = $makeOrBuy === 'make' ? 'FG' : 'RM';
+        $component = $this->ensureGciPart($rmPartNo, $materialNameForRm, null, $componentClassification);
 
         $lineNoRaw = $this->firstNonEmpty($row, ['no', 'line_no', 'line']);
         $lineNo = null;
@@ -141,7 +165,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
         $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
         $wipPartNameFromRow = $this->firstNonEmpty($row, ['wip_part_name']);
-        $wipPart = $wipPartNo ? $this->ensureGciPart($wipPartNo, $wipPartNameFromRow) : null;
+        $wipPart = $wipPartNo ? $this->ensureGciPart($wipPartNo, $wipPartNameFromRow, null, 'FG') : null;
 
         $wipQtyRaw = $this->firstNonEmpty($row, ['qty_wip', 'qty', 'qty_']);
         $wipQty = $wipQtyRaw !== null && is_numeric($wipQtyRaw) ? (float) $wipQtyRaw : null;
@@ -183,6 +207,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'material_name' => $materialName ? trim($materialName) : null,
             'special' => $special ? trim($special) : null,
             'component_part_id' => $component->id,
+            'make_or_buy' => $makeOrBuy,
             'usage_qty' => $usageQty ?? 1,
             'consumption_uom' => $consumptionUom,
         ];
@@ -220,6 +245,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'rm_part_no' => ['nullable', 'string', 'max:255'],
             'consumption' => ['required_with:rm_part_no', 'nullable', 'numeric', 'min:0.0001'],
             'uom_rm' => ['nullable', 'string', 'max:20'],
+            'make_or_buy' => ['nullable', 'in:make,buy,MAKE,BUY,M,B,Purchase,purchase'],
             // backward compat
             'uom_1' => ['nullable', 'string', 'max:20'],
         ];

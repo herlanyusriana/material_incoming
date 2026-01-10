@@ -64,6 +64,7 @@ class MrpController extends Controller
             }
 
             $requirements = [];
+            $componentMode = [];
             foreach ($approvedMps as $row) {
                 $bom = Bom::query()->with('items')->where('part_id', $row->part_id)->first();
                 if (!$bom) {
@@ -74,6 +75,13 @@ class MrpController extends Controller
                     $componentId = (int) $item->component_part_id;
                     $requirements[$componentId] = ($requirements[$componentId] ?? 0)
                         + ((float) $row->planned_qty * (float) $item->usage_qty);
+
+                    $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+                    if ($mob === 'make') {
+                        $componentMode[$componentId] = 'make';
+                    } elseif (!isset($componentMode[$componentId])) {
+                        $componentMode[$componentId] = 'buy';
+                    }
                 }
             }
 
@@ -82,6 +90,17 @@ class MrpController extends Controller
                 $onHand = (float) ($inventory->on_hand ?? 0);
                 $onOrder = (float) ($inventory->on_order ?? 0);
                 $netRequired = max(0, $requiredQty - $onHand - $onOrder);
+
+                if (($componentMode[$partId] ?? 'buy') === 'make') {
+                    if ($netRequired > 0) {
+                        MrpProductionPlan::create([
+                            'mrp_run_id' => $run->id,
+                            'part_id' => $partId,
+                            'planned_qty' => $netRequired,
+                        ]);
+                    }
+                    continue;
+                }
 
                 MrpPurchasePlan::create([
                     'mrp_run_id' => $run->id,
