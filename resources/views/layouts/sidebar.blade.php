@@ -158,31 +158,25 @@
 	                </div>
 	            </div>
 
-                <div>
-                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Planning</div>
-                    <div class="space-y-1">
-                        <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
-                            </svg>
-                            <span class="ml-3 flex-1">Part GCI</span>
-                        </a>
-                        <a href="{{ route('planning.boms.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-                            </svg>
-                            <span class="ml-3 flex-1">BOM GCI</span>
-                        </a>
-                        <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
-                            </svg>
-                            <span class="ml-3 flex-1">Customers</span>
-                        </a>
-                        <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
-                            </svg>
+	                <div>
+	                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Planning</div>
+	                    <div class="space-y-1">
+	                        <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
+	                            </svg>
+	                            <span class="ml-3 flex-1">Customers</span>
+	                        </a>
+	                        <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
+	                            </svg>
+	                            <span class="ml-3 flex-1">Part GCI</span>
+	                        </a>
+	                        <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
+	                            </svg>
                             <span class="ml-3 flex-1">Customer Part Mapping</span>
                         </a>
                         <a href="{{ route('planning.planning-imports.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
@@ -210,6 +204,12 @@
                             </svg>
                             <span class="ml-3 flex-1">MPS</span>
                         </a>
+	                        <a href="{{ route('planning.boms.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
+	                            </svg>
+	                            <span class="ml-3 flex-1">BOM GCI</span>
+	                        </a>
                         <a href="{{ route('planning.mrp.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21V3m9 18V3M3 7.5h18M3 16.5h18" />
@@ -441,31 +441,25 @@
 	            </a>
 	        </div>
 
-            <div>
-                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Planning</div>
-                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
-                    <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
-                        </svg>
-                        <span class="ml-3 flex-1">Part GCI</span>
-                    </a>
-                    <a href="{{ route('planning.boms.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-                        </svg>
-                        <span class="ml-3 flex-1">BOM GCI</span>
-                    </a>
-                    <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
-                        </svg>
-                        <span class="ml-3 flex-1">Customers</span>
-                    </a>
-                    <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
-                        </svg>
+	            <div>
+	                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Planning</div>
+	                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
+	                    <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
+	                        </svg>
+	                        <span class="ml-3 flex-1">Customers</span>
+	                    </a>
+	                    <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
+	                        </svg>
+	                        <span class="ml-3 flex-1">Part GCI</span>
+	                    </a>
+	                    <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
+	                        </svg>
                         <span class="ml-3 flex-1">Customer Part Mapping</span>
                     </a>
                     <a href="{{ route('planning.planning-imports.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
@@ -493,6 +487,12 @@
                         </svg>
                         <span class="ml-3 flex-1">MPS</span>
                     </a>
+	                    <a href="{{ route('planning.boms.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
+	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
+	                        </svg>
+	                        <span class="ml-3 flex-1">BOM GCI</span>
+	                    </a>
                     <a href="{{ route('planning.mrp.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21V3m9 18V3M3 7.5h18M3 16.5h18" />
