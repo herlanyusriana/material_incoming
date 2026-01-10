@@ -14,6 +14,7 @@ class GciPart extends Model
 
     protected $fillable = [
         'part_no',
+        'classification',
         'part_name',
         'model',
         'status',
@@ -40,6 +41,13 @@ class GciPart extends Model
     {
         return Attribute::make(
             set: fn ($value) => $value === null ? null : trim((string) $value),
+        );
+    }
+
+    protected function classification(): Attribute
+    {
+        return Attribute::make(
+            set: fn ($value) => self::upperOrNull($value) ?: 'FG',
         );
     }
 

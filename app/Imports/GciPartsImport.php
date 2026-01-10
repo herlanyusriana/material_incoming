@@ -44,6 +44,11 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             $data['model'] = $this->norm($data['model']);
         }
 
+        if (array_key_exists('classification', $data)) {
+            $cls = strtoupper((string) ($this->norm($data['classification']) ?? ''));
+            $data['classification'] = in_array($cls, ['FG', 'RM'], true) ? $cls : 'FG';
+        }
+
         if (array_key_exists('status', $data)) {
             $status = strtolower((string) ($this->norm($data['status']) ?? ''));
             $data['status'] = in_array($status, ['active', 'inactive'], true) ? $status : 'active';
@@ -62,6 +67,10 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
 
         $partName = $this->norm($row['part_name'] ?? $row['part_name_gci'] ?? null);
         $model = $this->norm($row['model'] ?? null);
+        $classification = strtoupper((string) ($this->norm($row['classification'] ?? null) ?? 'FG'));
+        if (!in_array($classification, ['FG', 'RM'], true)) {
+            $classification = 'FG';
+        }
         $status = strtolower((string) ($this->norm($row['status'] ?? null) ?? 'active'));
         if (!in_array($status, ['active', 'inactive'], true)) {
             $status = 'active';
@@ -70,6 +79,7 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         GciPart::updateOrCreate(
             ['part_no' => $partNo],
             [
+                'classification' => $classification,
                 'part_name' => $partName !== null && $partName !== '' ? $partName : $partNo,
                 'model' => $model,
                 'status' => $status,
@@ -84,6 +94,7 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         return [
             'part_no' => ['required_without:part_number', 'nullable', 'string', 'max:100'],
             'part_number' => ['required_without:part_no', 'nullable', 'string', 'max:100'],
+            'classification' => ['nullable', Rule::in(['FG', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'part_name_gci' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
@@ -91,4 +102,3 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         ];
     }
 }
-

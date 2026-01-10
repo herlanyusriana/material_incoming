@@ -197,7 +197,7 @@
                 
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p class="text-xs text-blue-800 font-medium mb-1">Kolom wajib (nama harus sama):</p>
-                    <p class="text-xs text-blue-700">vendor, part_no, size</p>
+                    <p class="text-xs text-blue-700">vendor, vendor_type, part_no, size</p>
                     <p class="text-xs text-blue-800 font-medium mt-2 mb-1">Kolom opsional:</p>
                     <p class="text-xs text-blue-700">part_name_vendor, part_name_gci, hs_code, quality_inspection, status</p>
                     <p class="text-xs text-blue-600 mt-1">Tip: Klik Export untuk dapat template yang sesuai.</p>

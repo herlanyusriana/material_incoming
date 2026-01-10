@@ -15,19 +15,20 @@ class GciPartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
     public function query()
     {
         return GciPart::query()
-            ->select(['part_no', 'part_name', 'model', 'status'])
+            ->select(['part_no', 'classification', 'part_name', 'model', 'status'])
             ->orderBy('part_no');
     }
 
     public function headings(): array
     {
-        return ['part_no', 'part_name', 'model', 'status'];
+        return ['part_no', 'classification', 'part_name', 'model', 'status'];
     }
 
     public function map($part): array
     {
         return [
             $part->part_no,
+            $part->classification ?? 'FG',
             $part->part_name,
             $part->model,
             $part->status ?? 'active',
@@ -43,10 +44,10 @@ class GciPartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
     {
         return [
             'A' => 22,
-            'B' => 40,
-            'C' => 18,
-            'D' => 12,
+            'B' => 14,
+            'C' => 40,
+            'D' => 18,
+            'E' => 12,
         ];
     }
 }
-

@@ -63,6 +63,11 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             $data[$key] = $raw === '' ? null : strtoupper($raw);
         }
 
+        if (array_key_exists('vendor_type', $data)) {
+            $raw = strtolower(trim((string) ($data['vendor_type'] ?? '')));
+            $data['vendor_type'] = in_array($raw, ['import', 'local', 'tolling'], true) ? $raw : null;
+        }
+
         if (array_key_exists('quality_inspection', $data)) {
             $raw = strtoupper(trim((string) ($data['quality_inspection'] ?? '')));
             $data['quality_inspection'] = in_array($raw, ['YES', 'Y', '1', 'TRUE'], true) ? 'YES' : null;
@@ -83,6 +88,11 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
     {
         $vendorId = $this->firstNonEmpty($row, ['vendor_id']);
         $vendorName = $this->firstNonEmpty($row, ['vendor', 'vendor_name']);
+        $vendorTypeRaw = $this->firstNonEmpty($row, ['vendor_type']);
+        $vendorType = $vendorTypeRaw ? mb_strtolower(trim($vendorTypeRaw)) : null;
+        if ($vendorType !== null && !in_array($vendorType, ['import', 'local', 'tolling'], true)) {
+            $vendorType = null;
+        }
 
         $vendor = null;
         if ($vendorId !== null && is_numeric($vendorId)) {
@@ -97,12 +107,18 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
         if (!$vendor && $vendorName) {
             $vendor = Vendor::create([
                 'vendor_name' => strtoupper(trim($vendorName)),
+                'vendor_type' => $vendorType ?? 'import',
                 'status' => 'active',
             ]);
         }
 
         if (!$vendor) {
             return null;
+        }
+
+        if ($vendorType !== null && (!$vendor->vendor_type || trim((string) $vendor->vendor_type) === '')) {
+            $vendor->vendor_type = $vendorType;
+            $vendor->save();
         }
 
         $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
@@ -151,6 +167,7 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             'vendor' => 'required_without_all:vendor_id,vendor_name|string|max:255',
             'vendor_name' => 'required_without_all:vendor_id,vendor|string|max:255',
             'vendor_id' => ['nullable', 'integer', Rule::exists('vendors', 'id')],
+            'vendor_type' => ['nullable', Rule::in(['import', 'local', 'tolling'])],
             'part_no' => ['required_without:part_number', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
             'part_number' => ['required_without:part_no', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
             'register_no' => 'nullable|string|max:255',

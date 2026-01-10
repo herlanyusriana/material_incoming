@@ -21,6 +21,7 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     {
         return [
             'vendor',
+            'vendor_type',
             'part_no',
             'size',
             'part_name_vendor',
@@ -35,6 +36,7 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     {
         return [
             $part->vendor->vendor_name ?? '',
+            $part->vendor->vendor_type ?? 'import',
             $part->part_no,
             $part->register_no,
             $part->part_name_vendor,
@@ -56,13 +58,14 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     {
         return [
             'A' => 25,
-            'B' => 18,
+            'B' => 14,
             'C' => 18,
-            'D' => 30,
+            'D' => 18,
             'E' => 30,
-            'F' => 14,
-            'G' => 18,
-            'H' => 12,
+            'F' => 30,
+            'G' => 14,
+            'H' => 18,
+            'I' => 12,
         ];
     }
 }

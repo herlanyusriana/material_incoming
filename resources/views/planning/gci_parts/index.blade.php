@@ -27,6 +27,14 @@
                                 <option value="inactive" @selected($status === 'inactive')>Inactive</option>
                             </select>
                         </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Classification</label>
+                            <select name="classification" class="mt-1 rounded-xl border-slate-200">
+                                <option value="">All</option>
+                                <option value="FG" @selected(($classification ?? '') === 'FG')>FG</option>
+                                <option value="RM" @selected(($classification ?? '') === 'RM')>RM</option>
+                            </select>
+                        </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
@@ -42,6 +50,7 @@
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                 <th class="px-4 py-3 text-left font-semibold">Part No</th>
+                                <th class="px-4 py-3 text-left font-semibold">Class</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                 <th class="px-4 py-3 text-left font-semibold">Model</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
@@ -52,6 +61,7 @@
                             @forelse ($parts as $p)
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3 font-semibold">{{ $p->part_no }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ strtoupper($p->classification ?? 'FG') }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
                                     <td class="px-4 py-3">
@@ -70,7 +80,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
+                                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -99,6 +109,13 @@
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Part No</label>
                         <input name="part_no" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.part_no">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Classification</label>
+                        <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.classification">
+                            <option value="FG">FG</option>
+                            <option value="RM">RM</option>
+                        </select>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Part Name</label>
@@ -131,17 +148,17 @@
                     importOpen: false,
                     mode: 'create',
                     formAction: @js(route('planning.gci-parts.store')),
-                    form: { id: null, part_no: '', part_name: '', model: '', status: 'active' },
+                    form: { id: null, part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' },
                     openCreate() {
                         this.mode = 'create';
                         this.formAction = @js(route('planning.gci-parts.store'));
-                        this.form = { id: null, part_no: '', part_name: '', model: '', status: 'active' };
+                        this.form = { id: null, part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' };
                         this.modalOpen = true;
                     },
                     openEdit(p) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/gci-parts')) + '/' + p.id;
-                        this.form = { id: p.id, part_no: p.part_no, part_name: p.part_name, model: p.model, status: p.status };
+                        this.form = { id: p.id, part_no: p.part_no, classification: (p.classification || 'FG'), part_name: p.part_name, model: p.model, status: p.status };
                         this.modalOpen = true;
                     },
                     openImport() {
@@ -164,7 +181,7 @@
                         <label class="text-sm font-semibold text-slate-700">Excel File</label>
                         <input type="file" name="file" accept=".xlsx,.xls" required class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                         <div class="mt-2 text-xs text-slate-500">
-                            Kolom: <span class="font-semibold">part_no</span>, part_name, model, status
+                            Kolom: <span class="font-semibold">part_no</span>, classification, part_name, model, status
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
