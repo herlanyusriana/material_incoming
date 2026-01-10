@@ -19,9 +19,29 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
     /** @var array<int, string> */
     private array $createdVendors = [];
 
+    /** @var array<int, string> */
+    private array $vendorTypeKeys = [
+        'vendor_type',
+        'vendor type',
+        'vendortype',
+        'supplier_type',
+        'supplier type',
+        'suppliertype',
+    ];
+
     public function createdVendors(): array
     {
         return array_values(array_unique($this->createdVendors));
+    }
+
+    private function normalizeVendorType(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $raw = mb_strtolower(trim($value));
+        return in_array($raw, ['import', 'local', 'tolling'], true) ? $raw : null;
     }
 
     private function firstNonEmpty(array $row, array $keys): ?string
@@ -71,9 +91,9 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             $data[$key] = $raw === '' ? null : strtoupper($raw);
         }
 
-        if (array_key_exists('vendor_type', $data)) {
-            $raw = strtolower(trim((string) ($data['vendor_type'] ?? '')));
-            $data['vendor_type'] = in_array($raw, ['import', 'local', 'tolling'], true) ? $raw : null;
+        $vendorTypeResolved = $this->firstNonEmpty($data, $this->vendorTypeKeys);
+        if ($vendorTypeResolved !== null) {
+            $data['vendor_type'] = $this->normalizeVendorType($vendorTypeResolved);
         }
 
         if (array_key_exists('quality_inspection', $data)) {
@@ -96,11 +116,8 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
     {
         $vendorId = $this->firstNonEmpty($row, ['vendor_id']);
         $vendorName = $this->firstNonEmpty($row, ['vendor', 'vendor_name']);
-        $vendorTypeRaw = $this->firstNonEmpty($row, ['vendor_type']);
-        $vendorType = $vendorTypeRaw ? mb_strtolower(trim($vendorTypeRaw)) : null;
-        if ($vendorType !== null && !in_array($vendorType, ['import', 'local', 'tolling'], true)) {
-            $vendorType = null;
-        }
+        $vendorTypeRaw = $this->firstNonEmpty($row, $this->vendorTypeKeys);
+        $vendorType = $this->normalizeVendorType($vendorTypeRaw);
 
         $vendor = null;
         if ($vendorId !== null && is_numeric($vendorId)) {
@@ -118,7 +135,7 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
                 'vendor_type' => $vendorType ?? 'import',
                 'status' => 'active',
             ]);
-            $this->createdVendors[] = $vendor->vendor_name;
+            $this->createdVendors[] = $vendor->vendor_name . ' (' . strtoupper($vendor->vendor_type ?? 'import') . ')';
         }
 
         if (!$vendor) {
