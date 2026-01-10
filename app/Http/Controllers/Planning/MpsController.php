@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Forecast;
 use App\Models\Mps;
 use App\Models\GciPart;
+use App\Services\Planning\ForecastGenerator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -134,10 +135,11 @@ class MpsController extends Controller
         $minggu = $validated['minggu'];
 
         DB::transaction(function () use ($minggu) {
+            app(ForecastGenerator::class)->generateForWeek($minggu);
             $this->generateForWeek($minggu);
         });
 
-        return back()->with('success', 'MPS generated (draft).');
+        return back()->with('success', 'MPS generated (draft) and forecast refreshed.');
     }
 
     public function generateRange(Request $request)
@@ -151,13 +153,14 @@ class MpsController extends Controller
 
         DB::transaction(function () use ($weeks) {
             foreach ($weeks as $w) {
+                app(ForecastGenerator::class)->generateForWeek($w);
                 $this->generateForWeek($w);
             }
         });
 
         return redirect()
             ->route('planning.mps.index', ['minggu' => $minggu, 'view' => 'calendar', 'weeks' => $weeksCount])
-            ->with('success', "MPS generated for " . count($weeks) . " weeks (draft).");
+            ->with('success', "MPS generated for " . count($weeks) . " weeks (draft) and forecast refreshed.");
     }
 
     public function upsert(Request $request)

@@ -78,13 +78,13 @@
                                 @csrf
                                 <input type="hidden" name="minggu" value="{{ $minggu }}">
                                 <input type="hidden" name="weeks" value="{{ $weeksCountValue }}">
-                                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate Range</button>
+                                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate Range (Refresh Forecast)</button>
                             </form>
                         @else
                             <form method="POST" action="{{ route('planning.mps.generate') }}">
                                 @csrf
                                 <input type="hidden" name="minggu" value="{{ $minggu }}">
-                                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate</button>
+                                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate (Refresh Forecast)</button>
                             </form>
                             <button
                                 type="submit"
@@ -228,6 +228,10 @@
                         </table>
                     </div>
                 @endif
+            </div>
+
+            <div class="text-xs text-slate-500 px-1">
+                Flow: Mapping → (Planning/PO) → Forecast (auto) → MPS (draft) → Approve → MRP. Tombol Generate di sini otomatis refresh Forecast dulu sebelum bikin/refresh MPS.
             </div>
         </div>
 
