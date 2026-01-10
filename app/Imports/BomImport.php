@@ -39,7 +39,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $partName = $partName !== null ? trim($partName) : null;
         $model = $model !== null ? trim($model) : null;
         $classification = strtoupper(trim($classification)) ?: 'FG';
-        if (!in_array($classification, ['FG', 'RM'], true)) {
+        if (!in_array($classification, ['FG', 'RM', 'WIP'], true)) {
             $classification = 'FG';
         }
 
@@ -165,7 +165,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
         $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
         $wipPartNameFromRow = $this->firstNonEmpty($row, ['wip_part_name']);
-        $wipPart = $wipPartNo ? $this->ensureGciPart($wipPartNo, $wipPartNameFromRow, null, 'FG') : null;
+        $wipPart = $wipPartNo ? $this->ensureGciPart($wipPartNo, $wipPartNameFromRow, null, 'WIP') : null;
 
         $wipQtyRaw = $this->firstNonEmpty($row, ['qty_wip', 'qty', 'qty_']);
         $wipQty = $wipQtyRaw !== null && is_numeric($wipQtyRaw) ? (float) $wipQtyRaw : null;

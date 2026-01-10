@@ -64,7 +64,7 @@ class GciPartController extends Controller
     {
         $validated = $request->validate([
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')],
-            'classification' => ['nullable', Rule::in(['FG', 'RM'])],
+            'classification' => ['nullable', Rule::in(['FG', 'RM', 'WIP'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
@@ -84,7 +84,7 @@ class GciPartController extends Controller
     {
         $validated = $request->validate([
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')->ignore($gciPart->id)],
-            'classification' => ['nullable', Rule::in(['FG', 'RM'])],
+            'classification' => ['nullable', Rule::in(['FG', 'RM', 'WIP'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],

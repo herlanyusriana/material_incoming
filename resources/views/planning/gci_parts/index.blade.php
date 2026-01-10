@@ -33,6 +33,7 @@
                                 <option value="">All</option>
                                 <option value="FG" @selected(($classification ?? '') === 'FG')>FG</option>
                                 <option value="RM" @selected(($classification ?? '') === 'RM')>RM</option>
+                                <option value="WIP" @selected(($classification ?? '') === 'WIP')>WIP</option>
                             </select>
                         </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
@@ -115,6 +116,7 @@
                         <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.classification">
                             <option value="FG">FG</option>
                             <option value="RM">RM</option>
+                            <option value="WIP">WIP</option>
                         </select>
                     </div>
                     <div>
