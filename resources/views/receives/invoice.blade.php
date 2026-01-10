@@ -115,18 +115,22 @@
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-slate-700">Planned</span>
                                     <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">{{ number_format($item->qty_goods) }}</span>
+                                    <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_goods ?? 'KGM') }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-slate-700">Remaining</span>
                                     <span class="px-2 py-1 rounded-lg bg-green-50 text-green-800" id="remaining-{{ $item->id }}">{{ number_format($item->remaining_qty) }}</span>
+                                    <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_goods ?? 'KGM') }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-slate-700">Input Total</span>
                                     <span class="px-2 py-1 rounded-lg bg-blue-50 text-blue-800" id="input-total-{{ $item->id }}">0</span>
+                                    <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_goods ?? 'KGM') }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-slate-700">Total Bundle</span>
                                     <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">{{ number_format($item->qty_bundle ?? 0) }}</span>
+                                    <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_bundle ?? 'PALLET') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -166,16 +170,14 @@
 	                                        </td>
                                         <td class="px-3 py-2 align-top">
                                             @php
-                                                $defaultBundleUnit = $item->unit_bundle ?? 'Coil';
+                                                $defaultBundleUnit = strtoupper($item->unit_bundle ?? 'PALLET');
                                             @endphp
                                             <div class="flex items-center gap-2">
                                                 <input type="number" name="items[{{ $item->id }}][tags][0][bundle_qty]" min="1" value="1" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
                                                 <select name="items[{{ $item->id }}][tags][0][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                                    <option value="Coil" @selected($defaultBundleUnit === 'Coil')>Coil</option>
-                                                    <option value="Bundle" @selected($defaultBundleUnit === 'Bundle')>Bundle</option>
-                                                    <option value="Pallets" @selected($defaultBundleUnit === 'Pallets')>Pallets</option>
-                                                    <option value="Box" @selected($defaultBundleUnit === 'Box')>Box</option>
-                                                    <option value="Pcs" @selected($defaultBundleUnit === 'Pcs')>Pcs</option>
+                                                    <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
+                                                    <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
+                                                    <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
                                                 </select>
                                             </div>
                                         </td>
@@ -294,11 +296,9 @@
                         <div class="flex items-center gap-2">
 	                        <input type="number" name="items[${itemId}][tags][${idx}][bundle_qty]" min="1" value="1" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
 	                        <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-	                            <option value="Coil">Coil</option>
-	                            <option value="Bundle">Bundle</option>
-	                            <option value="Pallets">Pallets</option>
-	                            <option value="Box">Box</option>
-	                            <option value="Pcs">Pcs</option>
+	                            <option value="PALLET">PALLET</option>
+	                            <option value="BUNDLE">BUNDLE</option>
+	                            <option value="BOX">BOX</option>
 	                        </select>
                         </div>
 	                </td>

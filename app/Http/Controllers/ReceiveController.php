@@ -269,7 +269,7 @@ class ReceiveController extends Controller
             'tags.*.tag' => 'required|string|max:255',
             'tags.*.qty' => 'required|integer|min:1',
             'tags.*.bundle_qty' => 'nullable|integer|min:1',
-            'tags.*.bundle_unit' => 'required|string|max:20',
+            'tags.*.bundle_unit' => 'required|in:PALLET,BUNDLE,BOX',
             'tags.*.location_code' => 'nullable|string|max:50',
             // Backward compatible: old form used `weight`
             'tags.*.weight' => 'nullable|numeric',
@@ -381,7 +381,7 @@ class ReceiveController extends Controller
             'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
             'items.*.tags.*.qty' => 'required_with:items.*.tags|integer|min:1',
             'items.*.tags.*.bundle_qty' => 'nullable|integer|min:1',
-            'items.*.tags.*.bundle_unit' => 'required_with:items.*.tags|string|max:20',
+            'items.*.tags.*.bundle_unit' => 'required_with:items.*.tags|in:PALLET,BUNDLE,BOX',
             'items.*.tags.*.location_code' => 'nullable|string|max:50',
             // Backward compatible: old form used `weight`
             'items.*.tags.*.weight' => 'nullable|numeric',

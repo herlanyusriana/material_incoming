@@ -148,16 +148,14 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         @php
-                                            $defaultBundleUnit = $arrivalItem->unit_bundle ?? 'Coil';
+                                            $defaultBundleUnit = strtoupper($arrivalItem->unit_bundle ?? 'PALLET');
                                         @endphp
                                         <div class="flex items-center gap-2">
                                             <input type="number" name="tags[0][bundle_qty]" min="1" value="1" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                                             <select name="tags[0][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                                                <option value="Coil" @selected($defaultBundleUnit === 'Coil')>Coil</option>
-                                                <option value="Bundle" @selected($defaultBundleUnit === 'Bundle')>Bundle</option>
-                                                <option value="Pallets" @selected($defaultBundleUnit === 'Pallets')>Pallets</option>
-                                                <option value="Box" @selected($defaultBundleUnit === 'Box')>Box</option>
-                                                <option value="Pcs" @selected($defaultBundleUnit === 'Pcs')>Pcs</option>
+                                                <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
+                                                <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
+                                                <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
                                             </select>
                                         </div>
                                     </td>
@@ -220,7 +218,7 @@
         const inputTotalEl = document.getElementById('input-total');
         const receiveForm = document.getElementById('receive-form');
         const defaultWeight = {{ $defaultWeight !== null ? $defaultWeight : 'null' }};
-        const defaultBundleUnit = @json($arrivalItem->unit_bundle ?? 'Coil');
+        const defaultBundleUnit = @json(strtoupper($arrivalItem->unit_bundle ?? 'PALLET'));
         const goodsUnit = @json(strtoupper($arrivalItem->unit_goods ?? 'KGM'));
 
         function updateTotals() {
@@ -270,11 +268,9 @@
                     <div class="flex items-center gap-2">
                         <input type="number" name="tags[${tagIndex}][bundle_qty]" min="1" value="1" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                         <select name="tags[${tagIndex}][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
-                            <option value="Coil" ${defaultBundleUnit === 'Coil' ? 'selected' : ''}>Coil</option>
-                            <option value="Bundle" ${defaultBundleUnit === 'Bundle' ? 'selected' : ''}>Bundle</option>
-                            <option value="Pallets" ${defaultBundleUnit === 'Pallets' ? 'selected' : ''}>Pallets</option>
-                            <option value="Box" ${defaultBundleUnit === 'Box' ? 'selected' : ''}>Box</option>
-                            <option value="Pcs" ${defaultBundleUnit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="PALLET" ${defaultBundleUnit === 'PALLET' ? 'selected' : ''}>PALLET</option>
+                            <option value="BUNDLE" ${defaultBundleUnit === 'BUNDLE' ? 'selected' : ''}>BUNDLE</option>
+                            <option value="BOX" ${defaultBundleUnit === 'BOX' ? 'selected' : ''}>BOX</option>
                         </select>
                     </div>
                 </td>
