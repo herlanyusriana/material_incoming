@@ -122,6 +122,9 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
         }
 
         $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
+        if (!$partNo) {
+            return null;
+        }
         $registerNo = $this->firstNonEmpty($row, ['register_no', 'register_number', 'size']);
         $partNameVendor = $this->firstNonEmpty($row, ['part_name_vendor', 'vendor_part_name']);
         $partNameGci = $this->firstNonEmpty($row, ['part_name_gci', 'part_name_internal', 'gci_part_name']);
@@ -135,30 +138,56 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             }
         }
 
-        $statusRaw = $this->firstNonEmpty($row, ['status']);
-        $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : 'active';
-        if (!in_array($status, ['active', 'inactive'], true)) {
-            $status = 'active';
-        }
-
-        if (!$partNameVendor) {
-            $partNameVendor = $partNo;
-        }
-
-        if (!$partNameGci) {
-            $partNameGci = $partNameVendor ?: $partNo;
-        }
-
-        return new Part([
-            'part_no' => $partNo,
-            'register_no' => $registerNo ?: $partNo,
-            'part_name_vendor' => $partNameVendor,
-            'part_name_gci' => $partNameGci,
-            'hs_code' => $hsCode,
-            'quality_inspection' => $qualityInspection,
+        $update = [
             'vendor_id' => $vendor->id,
-            'status' => $status,
-        ]);
+        ];
+
+        if ($registerNo !== null) {
+            $update['register_no'] = $registerNo;
+        }
+
+        if ($partNameVendor !== null) {
+            $update['part_name_vendor'] = $partNameVendor;
+        }
+
+        if ($partNameGci !== null) {
+            $update['part_name_gci'] = $partNameGci;
+        }
+
+        if ($hsCode !== null) {
+            $update['hs_code'] = $hsCode;
+        }
+
+        if ($qualityInspection !== null) {
+            $update['quality_inspection'] = $qualityInspection;
+        }
+
+        if (array_key_exists('status', $row)) {
+            $statusRaw = $this->firstNonEmpty($row, ['status']);
+            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : 'active';
+            if (!in_array($status, ['active', 'inactive'], true)) {
+                $status = 'active';
+            }
+            $update['status'] = $status;
+        }
+
+        $part = Part::updateOrCreate(
+            ['part_no' => $partNo],
+            $update,
+        );
+
+        if (!$part->register_no || trim((string) $part->register_no) === '') {
+            $part->register_no = $partNo;
+        }
+        if (!$part->part_name_vendor || trim((string) $part->part_name_vendor) === '') {
+            $part->part_name_vendor = $partNo;
+        }
+        if (!$part->part_name_gci || trim((string) $part->part_name_gci) === '') {
+            $part->part_name_gci = $part->part_name_vendor ?: $partNo;
+        }
+        $part->save();
+
+        return null;
     }
 
     public function rules(): array
@@ -168,8 +197,8 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             'vendor_name' => 'required_without_all:vendor_id,vendor|string|max:255',
             'vendor_id' => ['nullable', 'integer', Rule::exists('vendors', 'id')],
             'vendor_type' => ['nullable', Rule::in(['import', 'local', 'tolling'])],
-            'part_no' => ['required_without:part_number', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
-            'part_number' => ['required_without:part_no', 'nullable', 'string', 'max:255', Rule::unique('parts', 'part_no')],
+            'part_no' => ['required_without:part_number', 'nullable', 'string', 'max:255'],
+            'part_number' => ['required_without:part_no', 'nullable', 'string', 'max:255'],
             'register_no' => 'nullable|string|max:255',
             'register_number' => 'nullable|string|max:255',
             'size' => 'nullable|string|max:255',
