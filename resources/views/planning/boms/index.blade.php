@@ -41,7 +41,7 @@
 
                         <select name="gci_part_id" class="rounded-xl border-slate-200">
                             <option value="">All Part GCI</option>
-                            @foreach ($gciParts as $p)
+                            @foreach ($fgParts as $p)
                                 <option value="{{ $p->id }}" @selected((string) ($gciPartId ?? '') === (string) $p->id)>{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
                             @endforeach
                         </select>
@@ -315,13 +315,13 @@
                 <form action="{{ route('planning.boms.store') }}" method="POST" class="px-5 py-4 space-y-4">
                     @csrf
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">FG Part (Part GCI)</label>
-                        <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
-                            <option value="" disabled selected>Select part</option>
-                            @foreach ($gciParts as $p)
-                                <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
-                            @endforeach
-                        </select>
+	                        <label class="text-sm font-semibold text-slate-700">FG Part (Part GCI)</label>
+	                        <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
+	                            <option value="" disabled selected>Select part</option>
+	                            @foreach ($fgParts as $p)
+	                                <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+	                            @endforeach
+	                        </select>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
@@ -448,15 +448,26 @@
                     </div>
 
 	                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-	                        <div class="md:col-span-2">
-	                            <label class="text-xs font-semibold text-slate-600">RM Part No.</label>
-	                            <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.component_part_id">
-	                                <option value="" disabled>Select RM part</option>
-		                                @foreach (($components ?? []) as $c)
-		                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
-		                                @endforeach
-		                            </select>
-	                        </div>
+		                        <div class="md:col-span-2">
+		                            <label class="text-xs font-semibold text-slate-600">Component Part (GCI)</label>
+		                            <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.component_part_id">
+		                                <option value="" disabled>Select component</option>
+                                        <template x-if="(lineForm.make_or_buy || 'buy') === 'buy'">
+                                            <optgroup label="BUY (RM)">
+                                                @foreach (($rmParts ?? []) as $c)
+                                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        </template>
+                                        <template x-if="(lineForm.make_or_buy || 'buy') === 'make'">
+                                            <optgroup label="MAKE (FG/WIP)">
+                                                @foreach (($makeParts ?? []) as $c)
+                                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }} ({{ strtoupper($c->classification ?? '') }})</option>
+                                                @endforeach
+                                            </optgroup>
+                                        </template>
+			                            </select>
+		                        </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Make / Buy</label>
                             <select name="make_or_buy" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.make_or_buy">
@@ -668,9 +679,9 @@
 	                        <label class="text-xs font-semibold text-slate-600">Substitute Part (GCI)</label>
 	                        <select name="substitute_part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
 	                            <option value="" disabled selected>Select part</option>
-	                            @foreach(($gciParts ?? []) as $p)
-	                                <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
-	                            @endforeach
+		                            @foreach(($rmParts ?? []) as $p)
+		                                <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+		                            @endforeach
 	                        </select>
 	                    </div>
 	                    <div class="grid grid-cols-3 gap-2">

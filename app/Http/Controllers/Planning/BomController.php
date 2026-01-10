@@ -21,9 +21,22 @@ class BomController extends Controller
         $gciPartId = $request->query('gci_part_id');
         $q = trim((string) $request->query('q', ''));
 
-        $gciParts = GciPart::query()->orderBy('part_no')->get();
-        $wipParts = $gciParts;
-        $components = $gciParts;
+        $fgParts = GciPart::query()
+            ->where('classification', 'FG')
+            ->orderBy('part_no')
+            ->get();
+        $wipParts = GciPart::query()
+            ->where('classification', 'WIP')
+            ->orderBy('part_no')
+            ->get();
+        $rmParts = GciPart::query()
+            ->where('classification', 'RM')
+            ->orderBy('part_no')
+            ->get();
+        $makeParts = GciPart::query()
+            ->whereIn('classification', ['FG', 'WIP'])
+            ->orderBy('part_no')
+            ->get();
 
         $boms = Bom::query()
             ->with(['part', 'items.wipPart', 'items.componentPart', 'items.substitutes.part'])
@@ -38,7 +51,7 @@ class BomController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('planning.boms.index', compact('boms', 'gciParts', 'wipParts', 'components', 'gciPartId', 'q'));
+        return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'gciPartId', 'q'));
     }
 
     public function export(Request $request)
