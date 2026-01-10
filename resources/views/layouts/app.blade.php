@@ -50,7 +50,7 @@
 
             <div class="flex-1 flex flex-col min-h-screen">
                 <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
-                    <div class="max-w-7xl mx-auto px-8 py-4">
+                    <div class="w-full max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-4">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-4">
                                 @auth
@@ -109,7 +109,7 @@
                 </header>
 
                 <main class="flex-1 bg-slate-50">
-                    <div class="max-w-7xl mx-auto px-8 py-8">
+                    <div class="w-full max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         {{ $slot }}
                     </div>
                 </main>
