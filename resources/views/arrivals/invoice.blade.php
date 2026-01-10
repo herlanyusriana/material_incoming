@@ -573,17 +573,16 @@
 	    $totalNett = $arrival->items->sum(fn($i) => (float)($i->weight_nett ?? 0));
 	    $totalGross = $arrival->items->sum(fn($i) => (float)($i->weight_gross ?? 0));
 	    $totalAmount = $arrival->items->sum(fn($i) => (float)($i->total_price ?? 0));
-	    $hsCodes = $arrival->items->pluck('part.hs_code')->filter()->unique()->values();
-	    $hsCodesDisplayRaw = trim((string) ($arrival->hs_codes ?? $arrival->hs_code ?? $hsCodes->implode("\n")));
-	    $hsCodesDisplay = '';
-	    if ($hsCodesDisplayRaw !== '') {
-	        $hsCodesDisplay = collect(preg_split('/[\r\n,;]+/', $hsCodesDisplayRaw) ?: [])
-	            ->map(fn ($code) => strtoupper(trim((string) $code)))
-	            ->filter()
-	            ->unique()
-	            ->values()
-	            ->implode("\n");
-	    }
+	    // HS Code display must be based on per-part HS Code and must not duplicate.
+	    $hsCodesDisplay = $arrival->items
+	        ->pluck('part.hs_code')
+	        ->filter(fn ($code) => trim((string) $code) !== '')
+	        ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
+	        ->map(fn ($code) => strtoupper(trim((string) $code)))
+	        ->filter()
+	        ->unique()
+	        ->values()
+	        ->implode("\n");
 	    $hasBundleData = $arrival->items->contains(function ($item) {
 	        return ($item->qty_bundle ?? 0) > 0;
 	    });
