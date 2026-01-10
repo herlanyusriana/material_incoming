@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Exceptions\SheetNotFoundException;
 
 class CustomerPlanningImportController extends Controller
 {
@@ -107,8 +108,15 @@ class CustomerPlanningImportController extends Controller
         $file = $request->file('file');
         $fileName = $file?->getClientOriginalName();
 
-        $importer = new CustomerPlanningUploadImport();
-        Excel::import($importer, $file);
+        try {
+            $importer = new CustomerPlanningUploadImport(includeWeekMap: true);
+            Excel::import($importer, $file);
+        } catch (SheetNotFoundException $e) {
+            $importer = new CustomerPlanningUploadImport(includeWeekMap: false);
+            Excel::import($importer, $file);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
 
         if (!$importer->format) {
             return back()->with('error', 'Format file tidak dikenali. Gunakan template weekly (customer_part_no, minggu, qty) atau template monthly (Part Number + kolom bulan).');
@@ -254,7 +262,9 @@ class CustomerPlanningImportController extends Controller
 
             foreach ($normalizedRows as $row) {
                 $totalRows++;
-                $customerPartNo = strtoupper(trim(str_replace("\u{00A0}", ' ', (string) ($row['customer_part_no'] ?? $row['customer_part'] ?? ''))));
+                $customerPartNoRaw = str_replace("\u{00A0}", ' ', (string) ($row['customer_part_no'] ?? $row['customer_part'] ?? ''));
+                $customerPartNoRaw = preg_replace('/\s+/', ' ', $customerPartNoRaw) ?? $customerPartNoRaw;
+                $customerPartNo = strtoupper(trim($customerPartNoRaw));
                 $minggu = strtoupper(trim((string) ($row['minggu'] ?? $row['week'] ?? '')));
                 $qtyRaw = $row['qty'] ?? $row['quantity'] ?? null;
                 $qty = is_numeric($qtyRaw) ? (float) $qtyRaw : null;

@@ -85,7 +85,9 @@ class CustomerPartController extends Controller
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
-        $validated['customer_part_no'] = strtoupper(trim($validated['customer_part_no']));
+        $partNoRaw = str_replace("\u{00A0}", ' ', (string) $validated['customer_part_no']);
+        $partNoRaw = preg_replace('/\s+/', ' ', $partNoRaw) ?? $partNoRaw;
+        $validated['customer_part_no'] = strtoupper(trim($partNoRaw));
         $validated['customer_part_name'] = $validated['customer_part_name'] ? trim($validated['customer_part_name']) : null;
 
         CustomerPart::create($validated);
@@ -102,7 +104,9 @@ class CustomerPartController extends Controller
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
-        $validated['customer_part_no'] = strtoupper(trim($validated['customer_part_no']));
+        $partNoRaw = str_replace("\u{00A0}", ' ', (string) $validated['customer_part_no']);
+        $partNoRaw = preg_replace('/\s+/', ' ', $partNoRaw) ?? $partNoRaw;
+        $validated['customer_part_no'] = strtoupper(trim($partNoRaw));
         $validated['customer_part_name'] = $validated['customer_part_name'] ? trim($validated['customer_part_name']) : null;
 
         $customerPart->update($validated);

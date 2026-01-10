@@ -2,7 +2,6 @@
 
 namespace App\Services\Planning;
 
-use App\Models\CustomerPo;
 use App\Models\Forecast;
 use Illuminate\Support\Facades\DB;
 
@@ -10,6 +9,9 @@ class ForecastGenerator
 {
     public function generateForWeek(string $minggu): void
     {
+        // Forecast is system-generated (no manual input), so regenerate cleanly per week.
+        Forecast::query()->where('minggu', $minggu)->delete();
+
         $planningRows = DB::table('customer_planning_rows as r')
             ->join('customer_planning_imports as i', 'i.id', '=', 'r.import_id')
             ->join('customer_parts as cp', function ($join) {
@@ -17,6 +19,7 @@ class ForecastGenerator
                     ->on('cp.customer_part_no', '=', 'r.customer_part_no');
             })
             ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
+            ->join('gci_parts as gp', 'gp.id', '=', 'cpc.part_id')
             ->where('r.row_status', 'accepted')
             ->where('r.minggu', $minggu)
             ->select('cpc.part_id', DB::raw('SUM(r.qty * cpc.usage_qty) as qty'))
@@ -25,12 +28,13 @@ class ForecastGenerator
 
         $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn ($v) => (float) $v)->all();
 
-        $poDirect = CustomerPo::query()
-            ->whereNotNull('part_id')
-            ->where('minggu', $minggu)
-            ->where('status', 'open')
-            ->select('part_id', DB::raw('SUM(qty) as qty'))
-            ->groupBy('part_id')
+        $poDirect = DB::table('customer_pos as po')
+            ->join('gci_parts as gp', 'gp.id', '=', 'po.part_id')
+            ->whereNotNull('po.part_id')
+            ->where('po.minggu', $minggu)
+            ->where('po.status', 'open')
+            ->select('po.part_id', DB::raw('SUM(po.qty) as qty'))
+            ->groupBy('po.part_id')
             ->get();
 
         $poFromCustomerPart = DB::table('customer_pos as po')
@@ -39,6 +43,7 @@ class ForecastGenerator
                     ->on('cp.customer_part_no', '=', 'po.customer_part_no');
             })
             ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
+            ->join('gci_parts as gp', 'gp.id', '=', 'cpc.part_id')
             ->whereNull('po.part_id')
             ->whereNotNull('po.customer_part_no')
             ->where('po.minggu', $minggu)
@@ -84,4 +89,3 @@ class ForecastGenerator
         }
     }
 }
-

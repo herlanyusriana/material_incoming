@@ -9,6 +9,9 @@ use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 class CustomerPlanningUploadImport implements WithMultipleSheets
 {
     public ?string $format = null; // weekly|monthly
+    public function __construct(private readonly bool $includeWeekMap = true)
+    {
+    }
 
     /** @var array<int, array{customer_part_no:string, minggu:string, qty:float}> */
     public array $weeklyRows = [];
@@ -68,7 +71,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
 
     public function sheets(): array
     {
-        return [
+        $sheets = [
             0 => new class($this) implements ToCollection {
                 public function __construct(private readonly CustomerPlanningUploadImport $parent)
                 {
@@ -198,7 +201,13 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     // Unknown format; keep null and let controller throw a helpful error.
                 }
             },
-            1 => new class($this) implements ToCollection {
+        ];
+
+        if (!$this->includeWeekMap) {
+            return $sheets;
+        }
+
+        $sheets[1] = new class($this) implements ToCollection {
                 public function __construct(private readonly CustomerPlanningUploadImport $parent)
                 {
                 }
@@ -271,7 +280,8 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                         ];
                     }
                 }
-            },
-        ];
+            };
+
+        return $sheets;
     }
 }

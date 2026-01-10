@@ -25,6 +25,7 @@ class ForecastController extends Controller
         $forecasts = Forecast::query()
             ->with('part')
             ->where('minggu', $minggu)
+            ->whereHas('part')
             ->when($partId, fn ($q) => $q->where('part_id', $partId))
             ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'forecasts.part_id'))
             ->paginate(25)
