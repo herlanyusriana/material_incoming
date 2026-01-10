@@ -79,6 +79,13 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     return strtolower(trim($value));
                 }
 
+                private function normalizePartNo(mixed $value): string
+                {
+                    $str = str_replace("\u{00A0}", ' ', (string) ($value ?? ''));
+                    $str = preg_replace('/\s+/', ' ', $str) ?? $str;
+                    return strtoupper(trim($str));
+                }
+
                 private function rowValues(Collection $row): array
                 {
                     return array_values($row->all());
@@ -127,7 +134,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                         $this->parent->format = 'weekly';
                         foreach ($rows as $row) {
                             $arr = $this->rowValues($row);
-                            $customerPartNo = strtoupper(trim((string) ($arr[$headerIndex['customer_part_no']] ?? '')));
+                            $customerPartNo = $this->normalizePartNo($arr[$headerIndex['customer_part_no']] ?? '');
                             $minggu = strtoupper(trim((string) ($arr[$headerIndex['minggu']] ?? '')));
                             $qty = $this->parseQty($arr[$headerIndex['qty']] ?? null);
                             if ($customerPartNo === '' && $minggu === '' && $qty === 0.0) {
@@ -171,7 +178,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
 
                         foreach ($rows as $row) {
                             $arr = $this->rowValues($row);
-                            $customerPartNo = strtoupper(trim((string) ($arr[$partNumberIdx] ?? '')));
+                            $customerPartNo = $this->normalizePartNo($arr[$partNumberIdx] ?? '');
                             if ($customerPartNo === '') {
                                 continue;
                             }

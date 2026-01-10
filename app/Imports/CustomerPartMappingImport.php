@@ -49,6 +49,9 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
         if ($value === null) {
             return null;
         }
+        // Normalize NBSP and collapse whitespace so matching works across Excel exports.
+        $value = str_replace("\u{00A0}", ' ', $value);
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
         $value = trim($value);
         return $value === '' ? null : strtoupper($value);
     }
@@ -102,7 +105,14 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
     public function model(array $row)
     {
         $customerCode = $this->normalizeUpper($this->firstNonEmpty($row, ['customer_code', 'customer']));
-        $customerPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['customer_part_no', 'customer_part_no_']));
+        $customerPartNo = $this->normalizeUpper($this->firstNonEmpty($row, [
+            'customer_part_no',
+            'customer_part',
+            'customer_part_number',
+            'part_number',
+            'part number',
+            'customer_part_no_',
+        ]));
         $customerPartName = $this->firstNonEmpty($row, ['customer_part_name']);
         $status = $this->firstNonEmpty($row, ['status']);
         $status = $status ? strtolower(trim($status)) : 'active';
@@ -127,7 +137,7 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
             ],
         );
 
-        $gciPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['gci_part_no']));
+        $gciPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['gci_part_no', 'part_gci', 'part_no', 'gci_part_number']));
         if (!$gciPartNo) {
             return null;
         }
@@ -162,4 +172,3 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
         ];
     }
 }
-

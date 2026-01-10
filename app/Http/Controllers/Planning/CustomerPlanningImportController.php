@@ -254,7 +254,7 @@ class CustomerPlanningImportController extends Controller
 
             foreach ($normalizedRows as $row) {
                 $totalRows++;
-                $customerPartNo = strtoupper(trim((string) ($row['customer_part_no'] ?? $row['customer_part'] ?? '')));
+                $customerPartNo = strtoupper(trim(str_replace("\u{00A0}", ' ', (string) ($row['customer_part_no'] ?? $row['customer_part'] ?? ''))));
                 $minggu = strtoupper(trim((string) ($row['minggu'] ?? $row['week'] ?? '')));
                 $qtyRaw = $row['qty'] ?? $row['quantity'] ?? null;
                 $qty = is_numeric($qtyRaw) ? (float) $qtyRaw : null;
