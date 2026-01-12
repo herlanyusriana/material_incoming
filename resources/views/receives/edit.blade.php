@@ -58,7 +58,7 @@
                     </div>
                     <div>
                         <label class="text-xs font-semibold text-slate-600">Storage Location</label>
-                        <input type="text" name="location_code" value="{{ old('location_code', $receive->location_code) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="RACK-A1">
+                        <input type="text" name="location_code" value="{{ old('location_code', $receive->location_code) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="RACK-A1" data-qr-location-input>
                         @error('location_code') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>

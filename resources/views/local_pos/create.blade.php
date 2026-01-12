@@ -1,0 +1,260 @@
+<x-app-layout>
+    <x-slot name="header">
+        Create Local PO
+    </x-slot>
+
+    <div class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            <form action="{{ route('local-pos.store') }}" method="POST" enctype="multipart/form-data" class="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 space-y-8" id="local-po-form">
+                @csrf
+
+                <div class="flex items-center justify-between pb-6 border-b border-slate-200">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Local PO</h3>
+                        <p class="text-sm text-slate-600 mt-1">Buat PO lokal tanpa proses Departure, lalu langsung Receive.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('local-pos.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Back</a>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-4 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-700">Vendor (LOCAL)</label>
+                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200" required id="vendor-select">
+                            <option value="" disabled @selected(old('vendor_id') === null || old('vendor_id') === '')>Select vendor</option>
+                            @foreach ($vendors as $v)
+                                <option value="{{ $v->id }}" @selected((string) old('vendor_id') === (string) $v->id)>{{ $v->vendor_name }}</option>
+                            @endforeach
+                        </select>
+                        @error('vendor_id') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">PO No</label>
+                        <input type="text" name="po_no" value="{{ old('po_no') }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="PO-LOCAL-001" required>
+                        @error('po_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">PO Date</label>
+                        <input type="date" name="po_date" value="{{ old('po_date', now()->toDateString()) }}" class="mt-1 w-full rounded-xl border-slate-200" required>
+                        @error('po_date') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Currency</label>
+                        <input type="text" name="currency" value="{{ old('currency', 'IDR') }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="IDR">
+                        @error('currency') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="text-sm font-semibold text-slate-700">Notes</label>
+                        <input type="text" name="notes" value="{{ old('notes') }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="Optional">
+                        @error('notes') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-4 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-700">Upload Surat Jalan</label>
+                        <input type="file" name="delivery_note_file" class="mt-1 w-full rounded-xl border border-slate-200 text-sm" accept=".pdf,.jpg,.jpeg,.png">
+                        <p class="mt-1 text-xs text-slate-500">Format: PDF/JPG/PNG (max 10MB)</p>
+                        @error('delivery_note_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 border border-slate-200 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Items</h4>
+                        <button type="button" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold" id="add-item-btn">+ Add Item</button>
+                    </div>
+
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm" id="items-table">
+                            <thead class="bg-slate-50">
+                                <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                    <th class="px-4 py-3 text-left font-semibold">Part</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Material Group</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Size</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Package</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Qty Goods</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Net (KGM)</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Gross (KGM)</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100" id="items-tbody">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3">
+                                        <select name="items[0][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select>
+                                            <option value="" disabled selected>Select part</option>
+                                            @foreach ($parts as $p)
+                                                <option value="{{ $p->id }}" data-vendor="{{ $p->vendor_id }}">{{ $p->part_no }} — {{ $p->part_name_gci ?? $p->part_name_vendor }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <input type="text" name="items[0][material_group]" class="w-40 rounded-xl border-slate-200 uppercase" placeholder="MODEL / GROUP" value="{{ old('items.0.material_group') }}">
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <input type="text" name="items[0][size]" class="w-40 rounded-xl border-slate-200 uppercase" placeholder="0.7 X 530 X C" value="{{ old('items.0.size') }}">
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <input type="number" name="items[0][qty_bundle]" min="0" value="{{ old('items.0.qty_bundle', 0) }}" class="w-20 text-right rounded-xl border-slate-200" required>
+                                            <select name="items[0][unit_bundle]" class="w-28 rounded-xl border-slate-200" required>
+                                                <option value="PALLET">PALLET</option>
+                                                <option value="BUNDLE">BUNDLE</option>
+                                                <option value="BOX">BOX</option>
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <input type="number" name="items[0][qty_goods]" min="0" value="{{ old('items.0.qty_goods', 0) }}" class="w-24 text-right rounded-xl border-slate-200" required>
+                                            <select name="items[0][unit_goods]" class="w-24 rounded-xl border-slate-200" required>
+                                                <option value="PCS">PCS</option>
+                                                <option value="COIL">COIL</option>
+                                                <option value="SHEET">SHEET</option>
+                                                <option value="SET">SET</option>
+                                                <option value="EA">EA</option>
+                                                <option value="KGM">KGM</option>
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <input type="number" name="items[0][weight_nett]" step="0.01" min="0" value="{{ old('items.0.weight_nett', 0) }}" class="w-24 text-right rounded-xl border-slate-200">
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <input type="number" name="items[0][weight_gross]" step="0.01" min="0" value="{{ old('items.0.weight_gross', 0) }}" class="w-24 text-right rounded-xl border-slate-200">
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <button type="button" class="text-red-600 hover:text-red-800 font-semibold remove-item" disabled>Remove</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @error('items') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
+                    <a href="{{ route('local-pos.index') }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</a>
+                    <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
+                        Create &amp; Receive
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const vendorSelect = document.getElementById('vendor-select');
+            const tbody = document.getElementById('items-tbody');
+            const addBtn = document.getElementById('add-item-btn');
+            let idx = 1;
+
+            function filterPartsByVendor() {
+                const vendorId = vendorSelect.value;
+                tbody.querySelectorAll('select[data-part-select]').forEach(sel => {
+                    const current = sel.value;
+                    Array.from(sel.options).forEach(opt => {
+                        const optVendor = opt.getAttribute('data-vendor');
+                        if (!opt.value) return;
+                        opt.hidden = vendorId && optVendor && optVendor !== vendorId;
+                    });
+                    if (current) {
+                        const currentOpt = sel.querySelector(`option[value="${CSS.escape(current)}"]`);
+                        if (currentOpt && currentOpt.hidden) sel.value = '';
+                    }
+                });
+            }
+
+            function bindRemoveButtons() {
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.forEach((row, i) => {
+                    const btn = row.querySelector('.remove-item');
+                    if (!btn) return;
+                    btn.disabled = rows.length === 1;
+                });
+            }
+
+            function addRow() {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50';
+                row.innerHTML = `
+                    <td class="px-4 py-3">
+                        <select name="items[${idx}][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select>
+                            <option value="" disabled selected>Select part</option>
+                            ${Array.from(document.querySelectorAll('select[data-part-select] option[data-vendor]')).map(o => o.outerHTML).join('')}
+                        </select>
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="text" name="items[${idx}][material_group]" class="w-40 rounded-xl border-slate-200 uppercase" placeholder="MODEL / GROUP">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="text" name="items[${idx}][size]" class="w-40 rounded-xl border-slate-200 uppercase" placeholder="0.7 X 530 X C">
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-end gap-2">
+                            <input type="number" name="items[${idx}][qty_bundle]" min="0" value="0" class="w-20 text-right rounded-xl border-slate-200" required>
+                            <select name="items[${idx}][unit_bundle]" class="w-28 rounded-xl border-slate-200" required>
+                                <option value="PALLET">PALLET</option>
+                                <option value="BUNDLE">BUNDLE</option>
+                                <option value="BOX">BOX</option>
+                            </select>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-end gap-2">
+                            <input type="number" name="items[${idx}][qty_goods]" min="0" value="0" class="w-24 text-right rounded-xl border-slate-200" required>
+                            <select name="items[${idx}][unit_goods]" class="w-24 rounded-xl border-slate-200" required>
+                                <option value="PCS">PCS</option>
+                                <option value="COIL">COIL</option>
+                                <option value="SHEET">SHEET</option>
+                                <option value="SET">SET</option>
+                                <option value="EA">EA</option>
+                                <option value="KGM">KGM</option>
+                            </select>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="number" name="items[${idx}][weight_nett]" step="0.01" min="0" value="0" class="w-24 text-right rounded-xl border-slate-200">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="number" name="items[${idx}][weight_gross]" step="0.01" min="0" value="0" class="w-24 text-right rounded-xl border-slate-200">
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <button type="button" class="text-red-600 hover:text-red-800 font-semibold remove-item">Remove</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+                idx++;
+                filterPartsByVendor();
+                bindRemoveButtons();
+                row.querySelector('.remove-item')?.addEventListener('click', () => {
+                    row.remove();
+                    bindRemoveButtons();
+                });
+            }
+
+            vendorSelect?.addEventListener('change', filterPartsByVendor);
+            addBtn?.addEventListener('click', addRow);
+
+            document.querySelectorAll('.remove-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const row = e.target.closest('tr');
+                    if (!row) return;
+                    if (tbody.querySelectorAll('tr').length <= 1) return;
+                    row.remove();
+                    bindRemoveButtons();
+                });
+            });
+
+            filterPartsByVendor();
+            bindRemoveButtons();
+        })();
+    </script>
+</x-app-layout>

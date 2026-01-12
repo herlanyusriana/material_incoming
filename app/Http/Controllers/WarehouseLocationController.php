@@ -1,0 +1,141 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Exports\WarehouseLocationsExport;
+use App\Imports\WarehouseLocationsImport;
+use App\Models\WarehouseLocation;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\SvgWriter;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+
+class WarehouseLocationController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $class = trim((string) $request->query('class', ''));
+        $zone = trim((string) $request->query('zone', ''));
+        $status = trim((string) $request->query('status', ''));
+
+        $locations = WarehouseLocation::query()
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('location_code', 'like', '%' . strtoupper($search) . '%')
+                        ->orWhere('qr_payload', 'like', '%' . $search . '%');
+                });
+            })
+            ->when($class !== '', fn ($q) => $q->where('class', strtoupper($class)))
+            ->when($zone !== '', fn ($q) => $q->where('zone', strtoupper($zone)))
+            ->when($status !== '', fn ($q) => $q->where('status', strtoupper($status)))
+            ->orderBy('location_code')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('inventory.locations', compact('locations', 'search', 'class', 'zone', 'status'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'location_code' => ['required', 'string', 'max:50', Rule::unique('warehouse_locations', 'location_code')],
+            'class' => ['nullable', 'string', 'max:50'],
+            'zone' => ['nullable', 'string', 'max:50'],
+            'status' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $locationCode = strtoupper(trim($validated['location_code']));
+        $class = array_key_exists('class', $validated) ? strtoupper(trim((string) ($validated['class'] ?? ''))) : null;
+        $zone = array_key_exists('zone', $validated) ? strtoupper(trim((string) ($validated['zone'] ?? ''))) : null;
+        $status = array_key_exists('status', $validated) ? strtoupper(trim((string) ($validated['status'] ?? 'ACTIVE'))) : 'ACTIVE';
+
+        $class = $class === '' ? null : $class;
+        $zone = $zone === '' ? null : $zone;
+        $status = $status === '' ? 'ACTIVE' : $status;
+
+        WarehouseLocation::create([
+            'location_code' => $locationCode,
+            'class' => $class,
+            'zone' => $zone,
+            'status' => $status,
+            'qr_payload' => WarehouseLocation::buildPayload($locationCode, $class, $zone),
+        ]);
+
+        return back()->with('success', 'Warehouse location created.');
+    }
+
+    public function update(Request $request, WarehouseLocation $location)
+    {
+        $validated = $request->validate([
+            'location_code' => ['required', 'string', 'max:50', Rule::unique('warehouse_locations', 'location_code')->ignore($location->id)],
+            'class' => ['nullable', 'string', 'max:50'],
+            'zone' => ['nullable', 'string', 'max:50'],
+            'status' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $locationCode = strtoupper(trim($validated['location_code']));
+        $class = array_key_exists('class', $validated) ? strtoupper(trim((string) ($validated['class'] ?? ''))) : null;
+        $zone = array_key_exists('zone', $validated) ? strtoupper(trim((string) ($validated['zone'] ?? ''))) : null;
+        $status = array_key_exists('status', $validated) ? strtoupper(trim((string) ($validated['status'] ?? 'ACTIVE'))) : 'ACTIVE';
+
+        $class = $class === '' ? null : $class;
+        $zone = $zone === '' ? null : $zone;
+        $status = $status === '' ? 'ACTIVE' : $status;
+
+        $location->update([
+            'location_code' => $locationCode,
+            'class' => $class,
+            'zone' => $zone,
+            'status' => $status,
+            'qr_payload' => WarehouseLocation::buildPayload($locationCode, $class, $zone),
+        ]);
+
+        return back()->with('success', 'Warehouse location updated.');
+    }
+
+    public function destroy(WarehouseLocation $location)
+    {
+        $location->delete();
+
+        return back()->with('success', 'Warehouse location deleted.');
+    }
+
+    public function export()
+    {
+        $filename = 'warehouse_locations_' . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new WarehouseLocationsExport(), $filename);
+    }
+
+    public function import(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        Excel::import(new WarehouseLocationsImport(), $validated['file']);
+
+        return back()->with('success', 'Warehouse locations imported.');
+    }
+
+    public function printQr(WarehouseLocation $location)
+    {
+        $payload = (string) ($location->qr_payload ?? '');
+        if (trim($payload) === '') {
+            $payload = WarehouseLocation::buildPayload($location->location_code, $location->class, $location->zone);
+        }
+
+        $qrSvg = Builder::create()
+            ->writer(new SvgWriter())
+            ->data($payload)
+            ->size(260)
+            ->margin(0)
+            ->build()
+            ->getString();
+
+        return view('inventory.location_qr', compact('location', 'qrSvg', 'payload'));
+    }
+}
+

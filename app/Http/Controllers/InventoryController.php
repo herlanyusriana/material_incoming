@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Inventory;
 use App\Models\Part;
 use App\Models\Receive;
+use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Exports\InventoryExport;
@@ -44,7 +45,21 @@ class InventoryController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('inventory.receives', compact('receives', 'parts', 'partId', 'qcStatus'));
+        $locationCodes = $receives->getCollection()
+            ->pluck('location_code')
+            ->filter(fn ($code) => is_string($code) && trim($code) !== '')
+            ->map(fn ($code) => strtoupper(trim($code)))
+            ->unique()
+            ->values();
+
+        $locationMap = $locationCodes->isEmpty()
+            ? collect()
+            : WarehouseLocation::query()
+                ->whereIn('location_code', $locationCodes->all())
+                ->get()
+                ->keyBy('location_code');
+
+        return view('inventory.receives', compact('receives', 'parts', 'partId', 'qcStatus', 'locationMap'));
     }
 
     public function store(Request $request)

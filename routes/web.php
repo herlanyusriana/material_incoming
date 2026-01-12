@@ -6,6 +6,8 @@ use App\Http\Controllers\PartController;
 use App\Http\Controllers\ArrivalController;
 use App\Http\Controllers\ReceiveController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\WarehouseLocationController;
+use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
@@ -71,6 +73,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('departures', ArrivalController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
 
+    Route::get('/local-pos', [LocalPoController::class, 'index'])->name('local-pos.index');
+    Route::get('/local-pos/create', [LocalPoController::class, 'create'])->name('local-pos.create');
+    Route::post('/local-pos', [LocalPoController::class, 'store'])->name('local-pos.store');
+
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
@@ -78,6 +84,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
     Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
     Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+
+    Route::get('/inventory/locations', [WarehouseLocationController::class, 'index'])->name('inventory.locations.index');
+    Route::post('/inventory/locations', [WarehouseLocationController::class, 'store'])->name('inventory.locations.store');
+    Route::get('/inventory/locations/export', [WarehouseLocationController::class, 'export'])->name('inventory.locations.export');
+    Route::post('/inventory/locations/import', [WarehouseLocationController::class, 'import'])->name('inventory.locations.import');
+    Route::get('/inventory/locations/{location}/print', [WarehouseLocationController::class, 'printQr'])->name('inventory.locations.print');
+    Route::put('/inventory/locations/{location}', [WarehouseLocationController::class, 'update'])->name('inventory.locations.update');
+    Route::delete('/inventory/locations/{location}', [WarehouseLocationController::class, 'destroy'])->name('inventory.locations.destroy');
 
     Route::prefix('outgoing')->name('outgoing.')->group(function () {
         Route::get('/daily-planning', [OutgoingController::class, 'dailyPlanning'])->name('daily-planning');

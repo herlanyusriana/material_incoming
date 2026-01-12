@@ -4,6 +4,13 @@
     $part = $arrivalItem?->part;
     $vendorName = $arrival?->vendor?->vendor_name ?? '-';
     $invoiceNo = $arrival?->invoice_no ?? '-';
+    $storageLocation = strtoupper(trim((string) ($receive->location_code ?? '')));
+    $warehouseMeta = [];
+    if (isset($warehouseLocation) && $warehouseLocation) {
+        if ($warehouseLocation->class) $warehouseMeta[] = 'CLASS ' . $warehouseLocation->class;
+        if ($warehouseLocation->zone) $warehouseMeta[] = 'ZONE ' . $warehouseLocation->zone;
+    }
+    $warehouseMetaText = $warehouseMeta ? implode(' • ', $warehouseMeta) : null;
     $goodsUnit = strtoupper(trim((string) ($arrivalItem?->unit_goods ?? $receive->qty_unit ?? '')));
     $qtyGoodsText = number_format((float) ($receive->qty ?? 0), 0) . ' ' . strtoupper((string) ($receive->qty_unit ?? ''));
     $netWeight = (float) ($receive->net_weight ?? $receive->weight ?? 0);
@@ -177,6 +184,15 @@
                     <div class="form-row">
                         <div class="field-name">No. Tag</div><div class="colon">:</div>
                         <div class="field-value">{{ $receive->tag ?? '-' }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field-name">Storage Location</div><div class="colon">:</div>
+                        <div class="field-value">
+                            <div>{{ $storageLocation !== '' ? $storageLocation : '-' }}</div>
+                            @if ($warehouseMetaText)
+                                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">{{ $warehouseMetaText }}</div>
+                            @endif
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="field-name">No. JO</div><div class="colon">:</div>

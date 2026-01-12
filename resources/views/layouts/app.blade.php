@@ -117,6 +117,91 @@
 	        </div>
 	        <script>
 	            (function () {
+	                function parseWarehouseLocationPayload(raw) {
+	                    const text = String(raw ?? '').trim();
+	                    if (!text) return null;
+
+	                    // Prefer JSON payloads (our default)
+	                    if (text.startsWith('{') && text.endsWith('}')) {
+	                        try {
+	                            const data = JSON.parse(text);
+	                            const type = String(data?.type ?? '').toUpperCase();
+	                            const location =
+	                                data?.location ??
+	                                data?.location_code ??
+	                                data?.code ??
+	                                data?.lokasi ??
+	                                null;
+
+	                            if (!location) return null;
+
+	                            // If type exists, validate it. If not, still accept when "location" present.
+	                            if (type && type !== 'WAREHOUSE_LOCATION') return null;
+
+	                            return {
+	                                location: String(location).trim(),
+	                                class: data?.class ? String(data.class).trim() : '',
+	                                zone: data?.zone ? String(data.zone).trim() : '',
+	                            };
+	                        } catch (_) {
+	                            return null;
+	                        }
+	                    }
+
+	                    return null;
+	                }
+
+	                function applyLocationFromQr(inputEl) {
+	                    if (!(inputEl instanceof HTMLInputElement)) return false;
+	                    const parsed = parseWarehouseLocationPayload(inputEl.value);
+	                    if (!parsed) return false;
+
+	                    inputEl.value = parsed.location;
+	                    if (parsed.class) inputEl.dataset.warehouseClass = parsed.class.toUpperCase();
+	                    if (parsed.zone) inputEl.dataset.warehouseZone = parsed.zone.toUpperCase();
+	                    return true;
+	                }
+
+	                function isWarehouseLocationInput(el) {
+	                    return el instanceof HTMLInputElement && el.matches('[data-qr-location-input]');
+	                }
+
+	                // Barcode/QR scanners usually "type" then send Enter/Tab.
+	                document.addEventListener(
+	                    'keydown',
+	                    (event) => {
+	                        const el = event.target;
+	                        if (!isWarehouseLocationInput(el)) return;
+	                        if (event.key !== 'Enter' && event.key !== 'Tab') return;
+	                        applyLocationFromQr(el);
+	                    },
+	                    true
+	                );
+
+	                // Pasting JSON payload should also work.
+	                document.addEventListener(
+	                    'paste',
+	                    (event) => {
+	                        const el = event.target;
+	                        if (!isWarehouseLocationInput(el)) return;
+	                        setTimeout(() => applyLocationFromQr(el), 0);
+	                    },
+	                    true
+	                );
+
+	                document.addEventListener(
+	                    'change',
+	                    (event) => {
+	                        const el = event.target;
+	                        if (!isWarehouseLocationInput(el)) return;
+	                        applyLocationFromQr(el);
+	                    },
+	                    true
+	                );
+	            })();
+	        </script>
+	        <script>
+	            (function () {
 	                const NON_TEXT_INPUT_TYPES = new Set([
 	                    'number',
 	                    'date',

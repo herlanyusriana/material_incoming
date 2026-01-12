@@ -11,6 +11,7 @@ use App\Models\Receive;
 use App\Models\ArrivalItem;
 use App\Models\Arrival;
 use App\Models\Inventory;
+use App\Models\WarehouseLocation;
 use App\Exports\CompletedInvoiceReceivesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Endroid\QrCode\Builder\Builder;
@@ -523,6 +524,12 @@ class ReceiveController extends Controller
         $receivedAt = $receive->ata_date ?? now();
         $monthNumber = (int) $receivedAt->format('m');
 
+        $warehouseLocation = null;
+        $locCode = is_string($receive->location_code) ? strtoupper(trim($receive->location_code)) : '';
+        if ($locCode !== '') {
+            $warehouseLocation = WarehouseLocation::query()->where('location_code', $locCode)->first();
+        }
+
         $payload = [
             'type' => 'RECEIVE_LABEL',
             'receive_id' => $receive->id,
@@ -532,6 +539,11 @@ class ReceiveController extends Controller
             'part_no' => (string) ($part?->part_no ?? ''),
             'tag' => (string) ($receive->tag ?? ''),
             'location' => (string) ($receive->location_code ?? ''),
+            'warehouse' => [
+                'location_code' => (string) ($warehouseLocation?->location_code ?? ''),
+                'class' => (string) ($warehouseLocation?->class ?? ''),
+                'zone' => (string) ($warehouseLocation?->zone ?? ''),
+            ],
             'qty' => (float) ($receive->qty ?? 0),
             'uom' => (string) ($receive->qty_unit ?? ''),
             'received_at' => $receivedAt->format('Y-m-d H:i:s'),
@@ -547,7 +559,7 @@ class ReceiveController extends Controller
             ->build()
             ->getString();
 
-        return view('receives.label', compact('receive', 'qrSvg', 'monthNumber'));
+        return view('receives.label', compact('receive', 'qrSvg', 'monthNumber', 'warehouseLocation'));
     }
 
     public function edit(Receive $receive)

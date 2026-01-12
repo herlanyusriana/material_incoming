@@ -1,5 +1,5 @@
 @php
-    $incomingModuleActive = request()->routeIs('incoming-material.dashboard') || request()->routeIs('departures.*') || request()->routeIs('receives.*');
+    $incomingModuleActive = request()->routeIs('incoming-material.dashboard') || request()->routeIs('departures.*') || request()->routeIs('receives.*') || request()->routeIs('local-pos.*');
     $outgoingModuleActive = request()->routeIs('outgoing.*');
     $vendorsActive = request()->routeIs('vendors.*');
     $partsActive = request()->routeIs('parts.*');
@@ -248,6 +248,29 @@
                     </a>
 
                     <a
+                        href="{{ route('local-pos.create') }}"
+                        @class([$navLinkBase, $navActive => request()->routeIs('local-pos.create'), $navInactive => !request()->routeIs('local-pos.create') ])
+                        @click="mobileSidebarOpen = false"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 11h10M7 15h6" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+                        </svg>
+                        <span class="ml-3">Create Local PO</span>
+                    </a>
+
+                    <a
+                        href="{{ route('local-pos.index') }}"
+                        @class([$navLinkBase, $navActive => request()->routeIs('local-pos.*') && !request()->routeIs('local-pos.create'), $navInactive => !(request()->routeIs('local-pos.*') && !request()->routeIs('local-pos.create')) ])
+                        @click="mobileSidebarOpen = false"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+                        </svg>
+                        <span class="ml-3">Local PO List</span>
+                    </a>
+
+                    <a
                         href="{{ route('receives.index') }}"
                         @class([$navLinkBase,
                             $navActive => request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'),
@@ -350,7 +373,7 @@
 	                    <div class="space-y-1">
 	                    <a
                         href="{{ route('inventory.index') }}"
-                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.*'), $navInactive => !request()->routeIs('inventory.*') ])
+                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.index'), $navInactive => !request()->routeIs('inventory.index') ])
                         @click="mobileSidebarOpen = false"
                     >
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -368,6 +391,17 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
                             </svg>
                             <span class="ml-3 flex-1">Inventory Receives</span>
+                        </a>
+                        <a
+                            href="{{ route('inventory.locations.index') }}"
+                            @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*') ])
+                            @click="mobileSidebarOpen = false"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                            </svg>
+                            <span class="ml-3 flex-1">Warehouse Locations</span>
                         </a>
                     </div>
                 </div>
@@ -680,6 +714,20 @@
                             <span class="flex-1">Departure List</span>
                         </a>
                         <a
+                            href="{{ route('local-pos.create') }}"
+                            @class([$subLinkBase, $subActive => request()->routeIs('local-pos.create'), $subInactive => !request()->routeIs('local-pos.create')])
+                        >
+                            <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('local-pos.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('local-pos.create')])></span>
+                            <span class="flex-1">Create Local PO</span>
+                        </a>
+                        <a
+                            href="{{ route('local-pos.index') }}"
+                            @class([$subLinkBase, $subActive => request()->routeIs('local-pos.index'), $subInactive => !request()->routeIs('local-pos.index')])
+                        >
+                            <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('local-pos.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('local-pos.index')])></span>
+                            <span class="flex-1">Local PO List</span>
+                        </a>
+                        <a
                             href="{{ route('receives.index') }}"
                             @class([$subLinkBase,
                                 $subActive => request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'),
@@ -773,7 +821,7 @@
 	                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
 	                    <a
 	                        href="{{ route('inventory.index') }}"
-	                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.*'), $navInactive => !request()->routeIs('inventory.*') ])
+	                        @class([$navLinkBase, $navActive => request()->routeIs('inventory.index'), $navInactive => !request()->routeIs('inventory.index') ])
 	                    >
 	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 	                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
@@ -789,6 +837,16 @@
 	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
 	                            </svg>
 	                            <span class="ml-3 flex-1">Inventory Receives</span>
+	                        </a>
+	                        <a
+	                            href="{{ route('inventory.locations.index') }}"
+	                            @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*') ])
+	                        >
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z" />
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+	                            </svg>
+	                            <span class="ml-3 flex-1">Warehouse Locations</span>
 	                        </a>
 		                </div>
 		            </div>

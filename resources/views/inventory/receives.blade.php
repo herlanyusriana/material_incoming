@@ -87,7 +87,19 @@
                                     <td class="px-4 py-3">{{ $part?->part_name_gci ?? ($part?->part_name_vendor ?? '-') }}</td>
                                     <td class="px-4 py-3">{{ $arrivalItem?->size ?? '-' }}</td>
                                     <td class="px-4 py-3 font-mono text-xs">{{ $displayUom }}</td>
-                                    <td class="px-4 py-3">{{ $r->location_code ?? '-' }}</td>
+                                    <td class="px-4 py-3">
+                                        @php
+                                            $locCode = strtoupper(trim((string) ($r->location_code ?? '')));
+                                            $loc = ($locCode !== '' && isset($locationMap)) ? ($locationMap[$locCode] ?? null) : null;
+                                            $meta = [];
+                                            if ($loc?->class) $meta[] = 'Class ' . $loc->class;
+                                            if ($loc?->zone) $meta[] = 'Zone ' . $loc->zone;
+                                        @endphp
+                                        <div class="font-mono text-xs">{{ $locCode !== '' ? $locCode : '-' }}</div>
+                                        @if ($meta)
+                                            <div class="text-[11px] text-slate-500">{{ implode(' • ', $meta) }}</div>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 font-mono text-xs">{{ $r->tag ?? '-' }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">
                                         {{ number_format((float) ($r->bundle_qty ?? 0), 0) }} {{ strtoupper((string) ($r->bundle_unit ?? '')) }}

@@ -199,6 +199,7 @@ class ArrivalController extends Controller
     public function index()
     {
         $departures = Arrival::with(['vendor', 'creator', 'items.receives'])
+            ->whereHas('vendor', fn ($q) => $q->where('vendor_type', '!=', 'local'))
             ->latest()
             ->paginate(10);
 
@@ -207,7 +208,10 @@ class ArrivalController extends Controller
 
     public function create()
     {
-        $vendors = Vendor::orderBy('vendor_name')->get();
+        $vendors = Vendor::query()
+            ->where('vendor_type', '!=', 'local')
+            ->orderBy('vendor_name')
+            ->get();
         $parts = Part::with('vendor')->where('status', 'active')->get();
         $truckings = \App\Models\Trucking::where('status', 'active')->orderBy('company_name')->get();
 

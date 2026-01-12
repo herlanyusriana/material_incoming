@@ -166,7 +166,7 @@
                                             <input type="text" name="items[{{ $item->id }}][tags][0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
                                         </td>
 	                                        <td class="px-3 py-2 align-top">
-	                                            <input type="text" name="items[{{ $item->id }}][tags][0][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                                            <input type="text" name="items[{{ $item->id }}][tags][0][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
 	                                        </td>
                                         <td class="px-3 py-2 align-top">
                                             @php
@@ -290,7 +290,7 @@
 	                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
 	                </td>
 	                <td class="px-3 py-2 align-top">
-	                    <input type="text" name="items[${itemId}][tags][${idx}][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                    <input type="text" name="items[${itemId}][tags][${idx}][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
 	                </td>
 	                <td class="px-3 py-2 align-top">
                         <div class="flex items-center gap-2">

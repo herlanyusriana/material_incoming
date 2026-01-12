@@ -144,7 +144,7 @@
                                         <input type="text" name="tags[0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="text" name="tags[0][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                                        <input type="text" name="tags[0][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" data-qr-location-input />
                                     </td>
                                     <td class="px-6 py-4">
                                         @php
@@ -262,7 +262,7 @@
                     <input type="text" name="tags[${tagIndex}][tag]" placeholder="TAG-00${tagIndex + 1}" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                 </td>
                 <td class="px-6 py-4">
-                    <input type="text" name="tags[${tagIndex}][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                    <input type="text" name="tags[${tagIndex}][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" data-qr-location-input />
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
