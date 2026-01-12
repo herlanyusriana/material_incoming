@@ -16,6 +16,12 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ReceiveController extends Controller
 {
+    private function normalizeTag(?string $tag): ?string
+    {
+        $tag = is_string($tag) ? strtoupper(trim($tag)) : null;
+        return ($tag === null || $tag === '') ? null : $tag;
+    }
+
     private function hasPendingReceives(Arrival $arrival): bool
     {
         $arrival->loadMissing('items.receives');
@@ -30,7 +36,7 @@ class ReceiveController extends Controller
         return false;
     }
 
-    private function ensureTagsUniqueForArrivalItem(ArrivalItem $arrivalItem, array $tags, string $errorKey = 'tags'): void
+    private function ensureTagsUniqueForArrivalItem(ArrivalItem $arrivalItem, array $tags, string $errorKey = 'tags', ?int $ignoreReceiveId = null): void
     {
         $incomingTags = collect($tags)
             ->pluck('tag')
@@ -56,6 +62,7 @@ class ReceiveController extends Controller
 
         $existingTags = $arrivalItem->receives()
             ->whereIn('tag', $incomingTags->all())
+            ->when($ignoreReceiveId, fn ($q) => $q->where('id', '!=', $ignoreReceiveId))
             ->pluck('tag')
             ->map(fn ($tag) => strtoupper(trim((string) $tag)))
             ->unique()
@@ -472,5 +479,144 @@ class ReceiveController extends Controller
     {
         $receive->load(['arrivalItem.part', 'arrivalItem.arrival.vendor']);
         return view('receives.label', compact('receive'));
+    }
+
+    public function edit(Receive $receive)
+    {
+        $receive->load(['arrivalItem.part', 'arrivalItem.arrival.vendor']);
+
+        return view('receives.edit', [
+            'receive' => $receive,
+            'arrival' => $receive->arrivalItem->arrival,
+            'arrivalItem' => $receive->arrivalItem,
+        ]);
+    }
+
+    public function update(Request $request, Receive $receive)
+    {
+        $receive->load(['arrivalItem.arrival', 'arrivalItem.part']);
+        $arrivalItem = $receive->arrivalItem;
+        $arrival = $arrivalItem->arrival;
+
+        $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
+
+        $validated = $request->validate([
+            'receive_date' => ['required', 'date'],
+            'tag' => ['nullable', 'string', 'max:255'],
+            'location_code' => ['nullable', 'string', 'max:50'],
+            'bundle_qty' => ['nullable', 'integer', 'min:1'],
+            'bundle_unit' => ['required', 'in:PALLET,BUNDLE,BOX'],
+            'qty' => ['required', 'integer', 'min:1'],
+            'net_weight' => ['nullable', 'numeric'],
+            'gross_weight' => ['nullable', 'numeric'],
+            'qc_status' => ['required', 'in:pass,reject'],
+        ]);
+
+        $tag = $this->normalizeTag($validated['tag'] ?? null);
+        $locationCode = array_key_exists('location_code', $validated)
+            ? strtoupper(trim((string) $validated['location_code']))
+            : null;
+        if ($locationCode === '') {
+            $locationCode = null;
+        }
+
+        if (($validated['net_weight'] ?? null) !== null && ($validated['gross_weight'] ?? null) !== null) {
+            if ((float) $validated['net_weight'] > (float) $validated['gross_weight']) {
+                return back()->withInput()->withErrors([
+                    'net_weight' => 'Net weight harus lebih kecil atau sama dengan gross weight.',
+                ]);
+            }
+        }
+
+        // Check tag uniqueness within this arrival item (ignore current receive).
+        if ($tag !== null) {
+            $this->ensureTagsUniqueForArrivalItem(
+                $arrivalItem,
+                [['tag' => $tag]],
+                'tag',
+                (int) $receive->id
+            );
+        }
+
+        $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
+
+        $oldQty = (float) $receive->qty;
+        $oldPass = $receive->qc_status === 'pass';
+        $oldContribution = $oldPass ? $oldQty : 0.0;
+
+        $newQty = (float) $validated['qty'];
+        $newPass = $validated['qc_status'] === 'pass';
+        $newContribution = $newPass ? $newQty : 0.0;
+
+        $delta = $newContribution - $oldContribution;
+
+        DB::transaction(function () use (
+            $receive,
+            $arrivalItem,
+            $goodsUnit,
+            $validated,
+            $tag,
+            $locationCode,
+            $receiveAt,
+            $delta
+        ) {
+            // Update receive row
+            $receive->update([
+                'tag' => $tag,
+                'qty' => (int) $validated['qty'],
+                'bundle_unit' => $validated['bundle_unit'],
+                'bundle_qty' => (int) ($validated['bundle_qty'] ?? 1),
+                'weight' => $validated['net_weight'] ?? $validated['weight'] ?? null,
+                'net_weight' => $validated['net_weight'] ?? $validated['weight'] ?? null,
+                'gross_weight' => $validated['gross_weight'] ?? null,
+                'qty_unit' => $goodsUnit,
+                'ata_date' => $receiveAt,
+                'qc_status' => $validated['qc_status'],
+                'location_code' => $locationCode,
+            ]);
+
+            if ($delta == 0.0) {
+                return;
+            }
+
+            $partId = (int) $arrivalItem->part_id;
+            if (!$partId) {
+                return;
+            }
+
+            $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+            if (!$inventory) {
+                if ($delta < 0) {
+                    throw new HttpResponseException(back()->withInput()->withErrors([
+                        'qty' => 'Inventory tidak ditemukan untuk part ini, tidak bisa mengurangi stok.',
+                    ]));
+                }
+                Inventory::create([
+                    'part_id' => $partId,
+                    'on_hand' => $delta,
+                    'on_order' => 0,
+                    'as_of_date' => $receiveAt->toDateString(),
+                ]);
+                return;
+            }
+
+            $newOnHand = (float) $inventory->on_hand + $delta;
+            if ($newOnHand < 0) {
+                throw new HttpResponseException(back()->withInput()->withErrors([
+                    'qty' => 'Perubahan qty menyebabkan inventory menjadi minus.',
+                ]));
+            }
+
+            $inventory->update([
+                'on_hand' => $newOnHand,
+                // Mirror receive adjustment to on_order (best-effort)
+                'on_order' => max(0, (float) $inventory->on_order - $delta),
+                'as_of_date' => $receiveAt->toDateString(),
+            ]);
+        });
+
+        return redirect()
+            ->route('receives.completed.invoice', $arrival)
+            ->with('success', 'Receive berhasil diupdate.');
     }
 }

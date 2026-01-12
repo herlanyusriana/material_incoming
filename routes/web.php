@@ -98,6 +98,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/departure-items/{arrivalItem}/receive', [ReceiveController::class, 'store'])->name('receives.store');
     Route::get('/receives/invoice/{arrival}', [ReceiveController::class, 'createByInvoice'])->name('receives.invoice.create');
     Route::post('/receives/invoice/{arrival}', [ReceiveController::class, 'storeByInvoice'])->name('receives.invoice.store');
+    Route::get('/receives/{receive}/edit', [ReceiveController::class, 'edit'])->name('receives.edit');
+    Route::put('/receives/{receive}', [ReceiveController::class, 'update'])->name('receives.update');
     Route::get('/receives/{receive}/label', [ReceiveController::class, 'printLabel'])->name('receives.label');
     Route::get('/receives/completed', [ReceiveController::class, 'completed'])->name('receives.completed');
     Route::get('/receives/completed/{arrival}', [ReceiveController::class, 'completedInvoice'])->name('receives.completed.invoice');
