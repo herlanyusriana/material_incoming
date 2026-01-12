@@ -130,7 +130,8 @@ class ReceiveController extends Controller
                 'arrivals.invoice_no',
                 'arrivals.invoice_date',
                 'arrivals.vendor_id',
-                DB::raw('COUNT(receives.id) as receives_count'),
+                // Tags count: unique TAG across items within the same invoice
+                DB::raw("COUNT(DISTINCT NULLIF(TRIM(receives.tag), '')) as receives_count"),
                 DB::raw('SUM(receives.qty) as total_qty'),
                 DB::raw("SUM(CASE WHEN receives.qc_status = 'pass' THEN 1 ELSE 0 END) as pass_count"),
                 DB::raw("SUM(CASE WHEN receives.qc_status IN ('reject','fail') THEN 1 ELSE 0 END) as fail_count"),
