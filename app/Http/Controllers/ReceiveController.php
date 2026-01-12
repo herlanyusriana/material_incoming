@@ -30,7 +30,7 @@ class ReceiveController extends Controller
         return false;
     }
 
-    private function ensureTagsUniqueForArrivalItem(ArrivalItem $arrivalItem, array $tags): void
+    private function ensureTagsUniqueForArrivalItem(ArrivalItem $arrivalItem, array $tags, string $errorKey = 'tags'): void
     {
         $incomingTags = collect($tags)
             ->pluck('tag')
@@ -50,7 +50,7 @@ class ReceiveController extends Controller
 
         if ($duplicatesInRequest->isNotEmpty()) {
             throw new HttpResponseException(back()->withInput()->withErrors([
-                'tags' => 'Ada TAG duplikat di input: ' . $duplicatesInRequest->implode(', '),
+                $errorKey => 'Ada TAG duplikat di input: ' . $duplicatesInRequest->implode(', '),
             ]));
         }
 
@@ -63,51 +63,14 @@ class ReceiveController extends Controller
 
         if ($existingTags->isNotEmpty()) {
             throw new HttpResponseException(back()->withInput()->withErrors([
-                'tags' => 'TAG sudah pernah diinput untuk item ini: ' . $existingTags->implode(', '),
+                $errorKey => 'TAG sudah pernah diinput untuk item ini: ' . $existingTags->implode(', '),
             ]));
         }
     }
 
-    private function ensureTagsUniqueForArrival(Arrival $arrival, array $itemsInput): void
-    {
-        $incomingTags = collect($itemsInput)
-            ->flatMap(function ($itemData) {
-                return collect($itemData['tags'] ?? [])->pluck('tag');
-            })
-            ->filter(fn ($tag) => is_string($tag) && trim($tag) !== '')
-            ->map(fn ($tag) => strtoupper(trim($tag)))
-            ->values();
-
-        if ($incomingTags->isEmpty()) {
-            return;
-        }
-
-        $duplicatesInRequest = $incomingTags
-            ->countBy()
-            ->filter(fn ($count) => $count > 1)
-            ->keys()
-            ->values();
-
-        if ($duplicatesInRequest->isNotEmpty()) {
-            throw new HttpResponseException(back()->withInput()->withErrors([
-                'items' => 'Ada TAG duplikat di input: ' . $duplicatesInRequest->implode(', '),
-            ]));
-        }
-
-        $existingTags = Receive::query()
-            ->whereIn('tag', $incomingTags->all())
-            ->whereHas('arrivalItem', fn ($q) => $q->where('arrival_id', $arrival->id))
-            ->pluck('tag')
-            ->map(fn ($tag) => strtoupper(trim((string) $tag)))
-            ->unique()
-            ->values();
-
-        if ($existingTags->isNotEmpty()) {
-            throw new HttpResponseException(back()->withInput()->withErrors([
-                'items' => 'TAG sudah pernah diinput untuk invoice ini: ' . $existingTags->implode(', '),
-            ]));
-        }
-    }
+    // Note:
+    // TAG fisik boleh sama antar item yang berbeda dalam invoice yang sama.
+    // Yang wajib unik hanyalah TAG dalam scope 1 item (arrival_item_id).
 
     public function index()
     {
@@ -279,7 +242,7 @@ class ReceiveController extends Controller
             'tags.*.qc_status' => 'required|in:pass,reject',
         ]);
 
-        $this->ensureTagsUniqueForArrivalItem($arrivalItem, $validated['tags']);
+        $this->ensureTagsUniqueForArrivalItem($arrivalItem, $validated['tags'], 'tags');
 
         $totalRequested = collect($validated['tags'])->sum('qty');
         $totalReceived = $arrivalItem->receives()->sum('qty');
@@ -399,7 +362,13 @@ class ReceiveController extends Controller
             return back()->withErrors(['items' => 'Tambah minimal satu tag pada salah satu item.'])->withInput();
         }
 
-        $this->ensureTagsUniqueForArrival($arrival, $itemsInput);
+        foreach ($itemsInput as $itemId => $itemData) {
+            $arrivalItem = $arrival->items->firstWhere('id', $itemId);
+            if (!$arrivalItem) {
+                continue;
+            }
+            $this->ensureTagsUniqueForArrivalItem($arrivalItem, $itemData['tags'] ?? [], "items.$itemId.tags");
+        }
 
         foreach ($itemsInput as $itemId => $itemData) {
             $arrivalItem = $arrival->items->firstWhere('id', $itemId);
