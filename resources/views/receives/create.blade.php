@@ -151,7 +151,7 @@
                                             $defaultBundleUnit = strtoupper($arrivalItem->unit_bundle ?? 'PALLET');
                                         @endphp
                                         <div class="flex items-center gap-2">
-                                            <input type="number" name="tags[0][bundle_qty]" min="1" value="1" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                            <input type="number" name="tags[0][bundle_qty]" min="0" value="0" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                                             <select name="tags[0][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
                                                 <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
                                                 <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
@@ -266,7 +266,7 @@
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
-                        <input type="number" name="tags[${tagIndex}][bundle_qty]" min="1" value="1" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                        <input type="number" name="tags[${tagIndex}][bundle_qty]" min="0" value="0" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
                         <select name="tags[${tagIndex}][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
                             <option value="PALLET" ${defaultBundleUnit === 'PALLET' ? 'selected' : ''}>PALLET</option>
                             <option value="BUNDLE" ${defaultBundleUnit === 'BUNDLE' ? 'selected' : ''}>BUNDLE</option>

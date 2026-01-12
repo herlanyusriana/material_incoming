@@ -66,7 +66,7 @@
                 <div class="grid md:grid-cols-3 gap-4">
                     <div>
                         <label class="text-xs font-semibold text-slate-600">Package Qty</label>
-                        <input type="number" name="bundle_qty" min="1" value="{{ old('bundle_qty', $receive->bundle_qty ?? 1) }}" class="mt-1 w-full rounded-xl border-slate-200" required>
+                        <input type="number" name="bundle_qty" min="0" value="{{ old('bundle_qty', $receive->bundle_qty ?? 0) }}" class="mt-1 w-full rounded-xl border-slate-200" required>
                         @error('bundle_qty') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
@@ -108,4 +108,3 @@
         </div>
     </div>
 </x-app-layout>
-

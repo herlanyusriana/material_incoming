@@ -273,7 +273,7 @@ class ReceiveController extends Controller
             'tags' => 'required|array|min:1',
             'tags.*.tag' => 'required|string|max:255',
             'tags.*.qty' => 'required|integer|min:1',
-            'tags.*.bundle_qty' => 'nullable|integer|min:1',
+            'tags.*.bundle_qty' => 'nullable|integer|min:0',
             'tags.*.bundle_unit' => 'required|in:PALLET,BUNDLE,BOX',
             'tags.*.location_code' => 'nullable|string|max:50',
             // Backward compatible: old form used `weight`
@@ -328,7 +328,7 @@ class ReceiveController extends Controller
                     'tag' => $tagData['tag'],
                     'qty' => $tagData['qty'],
                     'bundle_unit' => $tagData['bundle_unit'] ?? null,
-                    'bundle_qty' => $tagData['bundle_qty'] ?? 1,
+                    'bundle_qty' => $tagData['bundle_qty'] ?? 0,
                     // Keep `weight` for existing reporting, mirror from net_weight
                     'weight' => $netWeight,
                     'net_weight' => $netWeight,
@@ -385,7 +385,7 @@ class ReceiveController extends Controller
             'items.*.tags' => 'nullable|array',
             'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
             'items.*.tags.*.qty' => 'required_with:items.*.tags|integer|min:1',
-            'items.*.tags.*.bundle_qty' => 'nullable|integer|min:1',
+            'items.*.tags.*.bundle_qty' => 'nullable|integer|min:0',
             'items.*.tags.*.bundle_unit' => 'required_with:items.*.tags|in:PALLET,BUNDLE,BOX',
             'items.*.tags.*.location_code' => 'nullable|string|max:50',
             // Backward compatible: old form used `weight`
@@ -461,7 +461,7 @@ class ReceiveController extends Controller
                         'tag' => $tagData['tag'],
                         'qty' => $tagData['qty'],
                         'bundle_unit' => $tagData['bundle_unit'] ?? null,
-                        'bundle_qty' => $tagData['bundle_qty'] ?? 1,
+                        'bundle_qty' => $tagData['bundle_qty'] ?? 0,
                         // Keep `weight` for existing reporting, mirror from net_weight
                         'weight' => $netWeight,
                         'net_weight' => $netWeight,
@@ -539,7 +539,7 @@ class ReceiveController extends Controller
             'receive_date' => ['required', 'date'],
             'tag' => ['nullable', 'string', 'max:255'],
             'location_code' => ['nullable', 'string', 'max:50'],
-            'bundle_qty' => ['nullable', 'integer', 'min:1'],
+            'bundle_qty' => ['nullable', 'integer', 'min:0'],
             'bundle_unit' => ['required', 'in:PALLET,BUNDLE,BOX'],
             'qty' => ['required', 'integer', 'min:1'],
             'net_weight' => ['nullable', 'numeric'],
@@ -600,7 +600,7 @@ class ReceiveController extends Controller
                 'tag' => $tag,
                 'qty' => (int) $validated['qty'],
                 'bundle_unit' => $validated['bundle_unit'],
-                'bundle_qty' => (int) ($validated['bundle_qty'] ?? 1),
+                'bundle_qty' => (int) ($validated['bundle_qty'] ?? 0),
                 'weight' => $validated['net_weight'] ?? $validated['weight'] ?? null,
                 'net_weight' => $validated['net_weight'] ?? $validated['weight'] ?? null,
                 'gross_weight' => $validated['gross_weight'] ?? null,
