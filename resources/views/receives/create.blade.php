@@ -124,7 +124,7 @@
                                         </button>
                                     </th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Package</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Gross Weight (KGM)</th>
