@@ -28,6 +28,9 @@ class ArrivalContainerInspection extends Model
         'photo_inside',
         'photo_seal',
         'photo_damage',
+        'photo_damage_1',
+        'photo_damage_2',
+        'photo_damage_3',
         'inspected_by',
     ];
 

@@ -58,6 +58,9 @@ class ContainerInspectionController extends Controller
             'photo_inside' => ['nullable', 'image', 'max:10240'],
             'photo_seal' => ['nullable', 'image', 'max:10240'],
             'photo_damage' => ['nullable', 'image', 'max:10240'],
+            'photo_damage_1' => ['nullable', 'image', 'max:10240'],
+            'photo_damage_2' => ['nullable', 'image', 'max:10240'],
+            'photo_damage_3' => ['nullable', 'image', 'max:10240'],
         ]);
 
         $sealCode = array_key_exists('seal_code', $validated)
@@ -85,7 +88,7 @@ class ContainerInspectionController extends Controller
         ]);
 
         $dir = "inspections/arrival-{$container->arrival_id}/container-{$container->id}";
-        foreach (['left', 'right', 'front', 'back', 'inside', 'seal', 'damage'] as $side) {
+        foreach (['left', 'right', 'front', 'back', 'inside', 'seal'] as $side) {
             $key = "photo_{$side}";
             if (!$request->hasFile($key)) {
                 continue;
@@ -93,6 +96,29 @@ class ContainerInspectionController extends Controller
             $file = $request->file($key);
             $path = $file->storePubliclyAs($dir, "{$key}." . $file->getClientOriginalExtension(), 'public');
             $inspection->setAttribute($key, $path);
+        }
+
+        // Backward compatible:
+        // - old client sends `photo_damage` (single)
+        // - new client sends `photo_damage_1..3`
+        if ($request->hasFile('photo_damage') && !$request->hasFile('photo_damage_1')) {
+            $file = $request->file('photo_damage');
+            $path = $file->storePubliclyAs($dir, "photo_damage_1." . $file->getClientOriginalExtension(), 'public');
+            $inspection->setAttribute('photo_damage_1', $path);
+            $inspection->setAttribute('photo_damage', $path);
+        }
+
+        foreach ([1, 2, 3] as $idx) {
+            $key = "photo_damage_{$idx}";
+            if (!$request->hasFile($key)) {
+                continue;
+            }
+            $file = $request->file($key);
+            $path = $file->storePubliclyAs($dir, "{$key}." . $file->getClientOriginalExtension(), 'public');
+            $inspection->setAttribute($key, $path);
+            if ($idx === 1 && empty($inspection->photo_damage)) {
+                $inspection->setAttribute('photo_damage', $path);
+            }
         }
 
         $inspection->save();
@@ -156,6 +182,9 @@ class ContainerInspectionController extends Controller
             'photo_inside_url' => $inspection->photo_inside ? url(Storage::url($inspection->photo_inside)) : null,
             'photo_seal_url' => $inspection->photo_seal ? url(Storage::url($inspection->photo_seal)) : null,
             'photo_damage_url' => $inspection->photo_damage ? url(Storage::url($inspection->photo_damage)) : null,
+            'photo_damage_1_url' => $inspection->photo_damage_1 ? url(Storage::url($inspection->photo_damage_1)) : null,
+            'photo_damage_2_url' => $inspection->photo_damage_2 ? url(Storage::url($inspection->photo_damage_2)) : null,
+            'photo_damage_3_url' => $inspection->photo_damage_3 ? url(Storage::url($inspection->photo_damage_3)) : null,
             'created_at' => optional($inspection->created_at)->toISOString(),
             'updated_at' => optional($inspection->updated_at)->toISOString(),
         ];

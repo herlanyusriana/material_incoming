@@ -958,10 +958,10 @@ class ArrivalController extends Controller
                     'back' => $photoMeta($inspection?->photo_back),
                     'inside' => $photoMeta($inspection?->photo_inside),
                     'seal' => $photoMeta($inspection?->photo_seal),
-                    // Optional damage-detail photos (only photo_damage exists today)
-                    'damage1' => $photoMeta($inspection?->photo_damage),
-                    'damage2' => null,
-                    'damage3' => null,
+                    // Optional damage-detail photos
+                    'damage1' => $photoMeta($inspection?->photo_damage_1 ?: $inspection?->photo_damage),
+                    'damage2' => $photoMeta($inspection?->photo_damage_2),
+                    'damage3' => $photoMeta($inspection?->photo_damage_3),
                 ];
             }
 
