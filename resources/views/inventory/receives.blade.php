@@ -62,30 +62,37 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @forelse ($receives as $idx => $r)
-                                @php
-                                    $part = $r->arrivalItem?->part;
-                                    $arrivalItem = $r->arrivalItem;
-                                    $arrival = $arrivalItem?->arrival;
-                                    $classification = strtoupper(trim((string) ($arrivalItem?->material_group ?? 'INCOMING')));
-                                    $statusLabel = $r->qc_status === 'pass' ? 'Good' : 'No Good';
-                                @endphp
-                                <tr class="hover:bg-slate-50">
-                                    <td class="px-4 py-3 text-slate-600">{{ $receives->firstItem() + $idx }}</td>
-                                    <td class="px-4 py-3">{{ $classification !== '' ? $classification : 'INCOMING' }}</td>
+                                @forelse ($receives as $idx => $r)
+                                    @php
+                                        $part = $r->arrivalItem?->part;
+                                        $arrivalItem = $r->arrivalItem;
+                                        $arrival = $arrivalItem?->arrival;
+                                        $classification = strtoupper(trim((string) ($arrivalItem?->material_group ?? 'INCOMING')));
+                                        $statusLabel = $r->qc_status === 'pass' ? 'Good' : 'No Good';
+                                        $goodsUnit = strtoupper(trim((string) ($arrivalItem?->unit_goods ?? $r->qty_unit ?? '')));
+                                        $displayQty = (float) ($r->qty ?? 0);
+                                        $displayUom = strtoupper((string) ($r->qty_unit ?? '-'));
+                                        if ($goodsUnit === 'COIL') {
+                                            $displayQty = (float) ($r->net_weight ?? $r->weight ?? $r->qty ?? 0);
+                                            $displayUom = 'KGM';
+                                        }
+                                    @endphp
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-4 py-3 text-slate-600">{{ $receives->firstItem() + $idx }}</td>
+                                        <td class="px-4 py-3">{{ $classification !== '' ? $classification : 'INCOMING' }}</td>
                                     <td class="px-4 py-3">
                                         <div class="font-semibold text-slate-900">{{ $part?->part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $arrival?->invoice_no ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3">{{ $part?->part_name_gci ?? ($part?->part_name_vendor ?? '-') }}</td>
                                     <td class="px-4 py-3">{{ $arrivalItem?->size ?? '-' }}</td>
-                                    <td class="px-4 py-3 font-mono text-xs">{{ strtoupper((string) ($r->qty_unit ?? '-')) }}</td>
+                                    <td class="px-4 py-3 font-mono text-xs">{{ $displayUom }}</td>
                                     <td class="px-4 py-3">{{ $r->location_code ?? '-' }}</td>
                                     <td class="px-4 py-3 font-mono text-xs">{{ $r->tag ?? '-' }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">
                                         {{ number_format((float) ($r->bundle_qty ?? 0), 0) }} {{ strtoupper((string) ($r->bundle_unit ?? '')) }}
                                     </td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) ($r->qty ?? 0), 0) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format($displayQty, $goodsUnit === 'COIL' ? 2 : 0) }}</td>
                                     <td class="px-4 py-3">
                                         <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold {{ $r->qc_status === 'pass' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200' }}">
                                             {{ $statusLabel }}
@@ -108,4 +115,3 @@
         </div>
     </div>
 </x-app-layout>
-
