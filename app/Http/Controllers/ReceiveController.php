@@ -24,7 +24,23 @@ class ReceiveController extends Controller
 
     private function hasPendingReceives(Arrival $arrival): bool
     {
-        $arrival->loadMissing('items.receives');
+        $arrival->loadMissing(['items.receives', 'containers.inspection']);
+
+        // Require container inspections (when containers exist)
+        if ($arrival->containers && $arrival->containers->isNotEmpty()) {
+            $hasMissingInspection = $arrival->containers->contains(fn ($c) => !$c->inspection);
+            if ($hasMissingInspection) {
+                return true;
+            }
+        }
+
+        // Require TAG filled for all receive rows
+        $hasMissingTag = $arrival->items
+            ->flatMap(fn ($i) => $i->receives ?? collect())
+            ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
+        if ($hasMissingTag) {
+            return true;
+        }
 
         foreach ($arrival->items as $item) {
             $received = $item->receives->sum('qty');
@@ -155,7 +171,7 @@ class ReceiveController extends Controller
 
     public function completedInvoice(Arrival $arrival)
     {
-        $arrival->load(['vendor', 'items.receives']);
+        $arrival->load(['vendor', 'items.receives', 'containers.inspection']);
 
         $receives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
             ->whereHas('arrivalItem', fn ($q) => $q->where('arrival_id', $arrival->id))
@@ -170,9 +186,23 @@ class ReceiveController extends Controller
             $received = $item->receives->sum('qty');
             return ($item->qty_goods - $received) > 0;
         })->count();
-        $hasPending = $pendingItemsCount > 0;
+        $hasMissingInspection = ($arrival->containers ?? collect())->isNotEmpty()
+            && ($arrival->containers ?? collect())->contains(fn ($c) => !$c->inspection);
+        $hasMissingTag = $arrival->items
+            ->flatMap(fn ($i) => $i->receives ?? collect())
+            ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
 
-        return view('receives.completed_invoice', compact('arrival', 'receives', 'remainingQtyTotal', 'pendingItemsCount', 'hasPending'));
+        $hasPending = ($pendingItemsCount > 0) || $hasMissingInspection || $hasMissingTag;
+
+        return view('receives.completed_invoice', compact(
+            'arrival',
+            'receives',
+            'remainingQtyTotal',
+            'pendingItemsCount',
+            'hasPending',
+            'hasMissingInspection',
+            'hasMissingTag'
+        ));
     }
 
     public function exportCompletedInvoice(Arrival $arrival)
@@ -222,6 +252,11 @@ class ReceiveController extends Controller
             ->values();
 
         if ($pendingItems->isEmpty()) {
+            if ($this->hasPendingReceives($arrival)) {
+                return redirect()
+                    ->route('receives.completed.invoice', $arrival)
+                    ->with('error', 'Invoice belum bisa dianggap complete: pastikan inspection container dan TAG sudah lengkap.');
+            }
             return redirect()->route('receives.completed.invoice', $arrival)->with('success', 'Semua item pada invoice ini sudah diterima.');
         }
 

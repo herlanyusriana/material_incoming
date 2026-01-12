@@ -5,18 +5,26 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-sm text-slate-600">{{ $arrival->vendor->vendor_name ?? '-' }} • {{ $arrival->invoice_no ?? '-' }}</div>
-                    <h3 class="text-lg font-bold text-slate-900">Receive Records</h3>
-                    @if (!empty($hasPending))
-                        <div class="text-sm text-amber-700 mt-1">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm text-slate-600">{{ $arrival->vendor->vendor_name ?? '-' }} • {{ $arrival->invoice_no ?? '-' }}</div>
+                        <h3 class="text-lg font-bold text-slate-900">Receive Records</h3>
+                        @if (!empty($hasPending))
+                            <div class="text-sm text-amber-700 mt-1">
                             Masih ada pending: {{ number_format($pendingItemsCount ?? 0) }} item.
-                        </div>
-                    @else
-                        <div class="text-sm text-emerald-700 mt-1">Semua item sudah complete receive.</div>
-                    @endif
-                </div>
+                            @if (!empty($hasMissingInspection) || !empty($hasMissingTag))
+                                <span class="text-slate-600">
+                                    ({{ collect([
+                                        !empty($hasMissingInspection) ? 'inspection container belum lengkap' : null,
+                                        !empty($hasMissingTag) ? 'TAG belum lengkap' : null,
+                                    ])->filter()->implode(', ') }})
+                                </span>
+                            @endif
+                            </div>
+                        @else
+                            <div class="text-sm text-emerald-700 mt-1">Semua item sudah complete receive.</div>
+                        @endif
+                    </div>
                 <div class="flex items-center gap-2">
                     @if (!empty($hasPending))
                         <a href="{{ route('receives.invoice.create', $arrival) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
