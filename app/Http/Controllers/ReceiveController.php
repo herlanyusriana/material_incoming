@@ -13,6 +13,8 @@ use App\Models\Arrival;
 use App\Models\Inventory;
 use App\Exports\CompletedInvoiceReceivesExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\SvgWriter;
 
 class ReceiveController extends Controller
 {
@@ -514,7 +516,38 @@ class ReceiveController extends Controller
     public function printLabel(Receive $receive)
     {
         $receive->load(['arrivalItem.part', 'arrivalItem.arrival.vendor']);
-        return view('receives.label', compact('receive'));
+        $arrivalItem = $receive->arrivalItem;
+        $arrival = $arrivalItem?->arrival;
+        $part = $arrivalItem?->part;
+
+        $receivedAt = $receive->ata_date ?? now();
+        $monthNumber = (int) $receivedAt->format('m');
+
+        $payload = [
+            'type' => 'RECEIVE_LABEL',
+            'receive_id' => $receive->id,
+            'invoice_no' => (string) ($arrival?->invoice_no ?? ''),
+            'arrival_no' => (string) ($arrival?->arrival_no ?? ''),
+            'vendor' => (string) ($arrival?->vendor?->vendor_name ?? ''),
+            'part_no' => (string) ($part?->part_no ?? ''),
+            'tag' => (string) ($receive->tag ?? ''),
+            'location' => (string) ($receive->location_code ?? ''),
+            'qty' => (float) ($receive->qty ?? 0),
+            'uom' => (string) ($receive->qty_unit ?? ''),
+            'received_at' => $receivedAt->format('Y-m-d H:i:s'),
+        ];
+
+        $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
+
+        $qrSvg = Builder::create()
+            ->writer(new SvgWriter())
+            ->data($payloadString)
+            ->size(160)
+            ->margin(0)
+            ->build()
+            ->getString();
+
+        return view('receives.label', compact('receive', 'qrSvg', 'monthNumber'));
     }
 
     public function edit(Receive $receive)
