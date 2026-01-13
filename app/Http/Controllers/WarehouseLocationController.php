@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\WarehouseLocationsExport;
 use App\Imports\WarehouseLocationsImport;
 use App\Models\WarehouseLocation;
-use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Writer\SvgWriter;
+use App\Support\QrSvg;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -127,15 +126,8 @@ class WarehouseLocationController extends Controller
             $payload = WarehouseLocation::buildPayload($location->location_code, $location->class, $location->zone);
         }
 
-        $qrSvg = Builder::create()
-            ->writer(new SvgWriter())
-            ->data($payload)
-            ->size(260)
-            ->margin(0)
-            ->build()
-            ->getString();
+        $qrSvg = QrSvg::make($payload, 260, 0);
 
         return view('inventory.location_qr', compact('location', 'qrSvg', 'payload'));
     }
 }
-

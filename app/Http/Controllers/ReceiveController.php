@@ -14,8 +14,7 @@ use App\Models\Inventory;
 use App\Models\WarehouseLocation;
 use App\Exports\CompletedInvoiceReceivesExport;
 use Maatwebsite\Excel\Facades\Excel;
-use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Writer\SvgWriter;
+use App\Support\QrSvg;
 use Illuminate\Support\Facades\Schema;
 
 class ReceiveController extends Controller
@@ -568,13 +567,7 @@ class ReceiveController extends Controller
 
         $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
 
-        $qrSvg = Builder::create()
-            ->writer(new SvgWriter())
-            ->data($payloadString)
-            ->size(160)
-            ->margin(0)
-            ->build()
-            ->getString();
+        $qrSvg = QrSvg::make($payloadString, 160, 0);
 
         return view('receives.label', compact('receive', 'qrSvg', 'monthNumber', 'warehouseLocation'));
     }
