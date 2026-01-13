@@ -63,7 +63,19 @@
                                         {{ $receive->arrivalItem->part->part_no }}
                                         <div class="text-xs text-slate-500">{{ $receive->arrivalItem->part->part_name_vendor }}</div>
                                     </td>
-                                    <td class="px-4 py-4 text-right text-slate-800 font-semibold">{{ number_format($receive->qty) }} {{ strtoupper($receive->qty_unit ?? '') }}</td>
+                                    <td class="px-4 py-4 text-right text-slate-800 font-semibold">
+                                        @php
+                                            $qtyUnit = strtoupper($receive->qty_unit ?? '');
+                                            $qtyDisplayUnit = $qtyUnit === 'COIL' ? 'KGM' : $qtyUnit;
+                                            $qtyDisplayValue = $qtyUnit === 'COIL'
+                                                ? (float) ($receive->net_weight ?? 0)
+                                                : (float) ($receive->qty ?? 0);
+                                            $qtyDisplayText = fmod($qtyDisplayValue, 1.0) == 0.0
+                                                ? number_format($qtyDisplayValue, 0, '.', ',')
+                                                : rtrim(rtrim(number_format($qtyDisplayValue, 3, '.', ','), '0'), '.');
+                                        @endphp
+                                        {{ $qtyDisplayText }} {{ $qtyDisplayUnit }}
+                                    </td>
                                     <td class="px-4 py-4 text-slate-700">
                                         {{ number_format($receive->bundle_qty ?? 1) }} {{ strtoupper($receive->bundle_unit ?? '-') }}
                                     </td>
