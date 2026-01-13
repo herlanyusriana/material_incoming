@@ -200,10 +200,14 @@ class ArrivalController extends Controller
 
     public function index()
     {
-        $departures = Arrival::with(['vendor', 'creator', 'items.receives'])
+        $departures = Arrival::with(['vendor', 'creator', 'items.receives', 'containers.inspection'])
             ->whereHas('vendor', fn ($q) => $q->where('vendor_type', '!=', 'local'))
             ->latest()
             ->paginate(10);
+
+        foreach ($departures as $arrival) {
+            $arrival->receive_complete = !$this->hasPendingReceives($arrival);
+        }
 
         return view('arrivals.index', ['departures' => $departures]);
     }

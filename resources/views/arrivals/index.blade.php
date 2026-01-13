@@ -45,10 +45,18 @@
                                     $totalItems = $arrival->items->count();
                                     $totalValue = $arrival->items->sum('total_price');
                                     $totalQtyExpected = $arrival->items->sum('qty_goods');
+                                    $isReceiveComplete = (bool) ($arrival->receive_complete ?? false);
                                 @endphp
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-4 py-4 text-slate-700">
-                                        <div class="font-medium">{{ $arrival->invoice_no }}</div>
+                                        <div class="font-medium flex items-center gap-2">
+                                            <span>{{ $arrival->invoice_no }}</span>
+                                            @if ($isReceiveComplete)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700">
+                                                    Complete
+                                                </span>
+                                            @endif
+                                        </div>
                                         <div class="text-xs text-slate-500">{{ $arrival->invoice_date?->format('d M Y') }}</div>
                                     </td>
 	                                    <td class="px-4 py-4 text-slate-700">{{ $arrival->vendor->vendor_name ?? '-' }}</td>
