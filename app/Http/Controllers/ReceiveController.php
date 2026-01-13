@@ -16,6 +16,7 @@ use App\Exports\CompletedInvoiceReceivesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\SvgWriter;
+use Illuminate\Support\Facades\Schema;
 
 class ReceiveController extends Controller
 {
@@ -29,8 +30,10 @@ class ReceiveController extends Controller
     {
         $arrival->loadMissing(['items.receives', 'containers.inspection']);
 
+        $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
+
         // Require container inspections (when containers exist)
-        if ($arrival->containers && $arrival->containers->isNotEmpty()) {
+        if (!$isLocal && $arrival->containers && $arrival->containers->isNotEmpty()) {
             $hasMissingInspection = $arrival->containers->contains(fn ($c) => !$c->inspection);
             if ($hasMissingInspection) {
                 return true;
@@ -272,8 +275,12 @@ class ReceiveController extends Controller
 
     public function store(Request $request, ArrivalItem $arrivalItem)
     {
+        $arrivalItem->loadMissing(['arrival.vendor']);
+        $isLocal = strtolower((string) ($arrivalItem->arrival?->vendor?->vendor_type ?? '')) === 'local';
+
         $validated = $request->validate([
             'receive_date' => ['required', 'date'],
+            'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
             'tags' => 'required|array|min:1',
             'tags.*.tag' => 'required|string|max:255',
             'tags.*.qty' => 'required|integer|min:1',
@@ -306,8 +313,11 @@ class ReceiveController extends Controller
         $partId = (int) $arrivalItem->part_id;
         $receiveQtyForInventory = 0;
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
+        $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
+            ? strtoupper(trim((string) $validated['truck_no']))
+            : null;
 
-        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $receiveAt, &$receiveQtyForInventory) {
+        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
             foreach ($validated['tags'] as $tagData) {
                 if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
                     throw new HttpResponseException(back()->withInput()->withErrors([
@@ -341,6 +351,7 @@ class ReceiveController extends Controller
                     'ata_date' => $receiveAt,
                     'qc_status' => $tagData['qc_status'] ?? 'pass',
                     'jo_po_number' => null,
+                    'truck_no' => $truckNo,
                     'location_code' => $locationCode,
                 ]);
 
@@ -381,10 +392,12 @@ class ReceiveController extends Controller
 
     public function storeByInvoice(Request $request, Arrival $arrival)
     {
-        $arrival->load('items.receives');
+        $arrival->loadMissing(['vendor', 'items.receives']);
+        $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
 
         $validated = $request->validate([
             'receive_date' => ['required', 'date'],
+            'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
             'items' => 'required|array|min:1',
             'items.*.tags' => 'nullable|array',
             'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
@@ -437,8 +450,11 @@ class ReceiveController extends Controller
 
         $inventoryAdds = [];
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
+        $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
+            ? strtoupper(trim((string) $validated['truck_no']))
+            : null;
 
-        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, &$inventoryAdds) {
+        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$inventoryAdds) {
             foreach ($itemsInput as $itemId => $itemData) {
                 $arrivalItem = $arrival->items->firstWhere('id', $itemId);
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
@@ -474,6 +490,7 @@ class ReceiveController extends Controller
                         'ata_date' => $receiveAt,
                         'qc_status' => $tagData['qc_status'] ?? 'pass',
                         'jo_po_number' => null,
+                        'truck_no' => $truckNo,
                         'location_code' => $locationCode,
                     ]);
 
@@ -526,7 +543,7 @@ class ReceiveController extends Controller
 
         $warehouseLocation = null;
         $locCode = is_string($receive->location_code) ? strtoupper(trim($receive->location_code)) : '';
-        if ($locCode !== '') {
+        if ($locCode !== '' && Schema::hasTable('warehouse_locations')) {
             $warehouseLocation = WarehouseLocation::query()->where('location_code', $locCode)->first();
         }
 
@@ -578,6 +595,7 @@ class ReceiveController extends Controller
         $receive->load(['arrivalItem.arrival', 'arrivalItem.part']);
         $arrivalItem = $receive->arrivalItem;
         $arrival = $arrivalItem->arrival;
+        $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
 
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
 
@@ -585,6 +603,7 @@ class ReceiveController extends Controller
             'receive_date' => ['required', 'date'],
             'tag' => ['nullable', 'string', 'max:255'],
             'location_code' => ['nullable', 'string', 'max:50'],
+            'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
             'bundle_qty' => ['nullable', 'integer', 'min:0'],
             'bundle_unit' => ['required', 'in:PALLET,BUNDLE,BOX'],
             'qty' => ['required', 'integer', 'min:1'],
@@ -641,6 +660,10 @@ class ReceiveController extends Controller
             $receiveAt,
             $delta
         ) {
+            $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
+                ? strtoupper(trim((string) $validated['truck_no']))
+                : null;
+
             // Update receive row
             $receive->update([
                 'tag' => $tag,
@@ -653,6 +676,7 @@ class ReceiveController extends Controller
                 'qty_unit' => $goodsUnit,
                 'ata_date' => $receiveAt,
                 'qc_status' => $validated['qc_status'],
+                'truck_no' => $truckNo,
                 'location_code' => $locationCode,
             ]);
 

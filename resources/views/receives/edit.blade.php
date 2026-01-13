@@ -34,6 +34,10 @@
                 @csrf
                 @method('PUT')
 
+                @php
+                    $isLocal = strtolower((string) ($arrival?->vendor?->vendor_type ?? '')) === 'local';
+                @endphp
+
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
                         <label class="text-xs font-semibold text-slate-600">Tanggal Receive</label>
@@ -62,6 +66,16 @@
                         @error('location_code') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
+
+                @if ($isLocal)
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">No. Truck</label>
+                            <input type="text" name="truck_no" value="{{ old('truck_no', $receive->truck_no) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="B 1234 CD" required>
+                            @error('truck_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                @endif
 
                 <div class="grid md:grid-cols-3 gap-4">
                     <div>

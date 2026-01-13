@@ -19,6 +19,7 @@ class Receive extends Model
         'gross_weight',
         'qty_unit',
         'jo_po_number',
+        'truck_no',
         'location_code',
     ];
 

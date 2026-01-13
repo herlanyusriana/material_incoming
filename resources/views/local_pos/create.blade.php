@@ -54,12 +54,24 @@
                     </div>
                 </div>
 
-                <div class="grid md:grid-cols-4 gap-4">
+                <div class="grid md:grid-cols-6 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-sm font-semibold text-slate-700">Upload Surat Jalan</label>
                         <input type="file" name="delivery_note_file" class="mt-1 w-full rounded-xl border border-slate-200 text-sm" accept=".pdf,.jpg,.jpeg,.png">
                         <p class="mt-1 text-xs text-slate-500">Format: PDF/JPG/PNG (max 10MB)</p>
                         @error('delivery_note_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-700">Upload Invoice</label>
+                        <input type="file" name="invoice_file" class="mt-1 w-full rounded-xl border border-slate-200 text-sm" accept=".pdf,.jpg,.jpeg,.png">
+                        <p class="mt-1 text-xs text-slate-500">Format: PDF/JPG/PNG (max 10MB)</p>
+                        @error('invoice_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-700">Upload Packing List</label>
+                        <input type="file" name="packing_list_file" class="mt-1 w-full rounded-xl border border-slate-200 text-sm" accept=".pdf,.jpg,.jpeg,.png">
+                        <p class="mt-1 text-xs text-slate-500">Format: PDF/JPG/PNG (max 10MB)</p>
+                        @error('packing_list_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
@@ -87,10 +99,7 @@
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3">
                                         <select name="items[0][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select>
-                                            <option value="" disabled selected>Select part</option>
-                                            @foreach ($parts as $p)
-                                                <option value="{{ $p->id }}" data-vendor="{{ $p->vendor_id }}">{{ $p->part_no }} — {{ $p->part_name_gci ?? $p->part_name_vendor }}</option>
-                                            @endforeach
+                                            <option value="" disabled selected>Select vendor first</option>
                                         </select>
                                     </td>
                                     <td class="px-4 py-3">
@@ -156,20 +165,42 @@
             const addBtn = document.getElementById('add-item-btn');
             let idx = 1;
 
-            function filterPartsByVendor() {
-                const vendorId = vendorSelect.value;
-                tbody.querySelectorAll('select[data-part-select]').forEach(sel => {
-                    const current = sel.value;
-                    Array.from(sel.options).forEach(opt => {
-                        const optVendor = opt.getAttribute('data-vendor');
-                        if (!opt.value) return;
-                        opt.hidden = vendorId && optVendor && optVendor !== vendorId;
-                    });
-                    if (current) {
-                        const currentOpt = sel.querySelector(`option[value="${CSS.escape(current)}"]`);
-                        if (currentOpt && currentOpt.hidden) sel.value = '';
-                    }
+            const parts = @json(
+                collect($parts)->map(fn ($p) => [
+                    'id' => $p->id,
+                    'vendor_id' => $p->vendor_id,
+                    'label' => trim((string) $p->part_no) . ' — ' . trim((string) ($p->part_name_gci ?? $p->part_name_vendor ?? '')),
+                ])->values()
+            );
+
+            function setPartsOptions(selectEl) {
+                if (!selectEl) return;
+                const vendorId = vendorSelect.value ? Number(vendorSelect.value) : null;
+                const current = selectEl.value;
+
+                selectEl.innerHTML = '';
+
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                placeholder.textContent = vendorId ? 'Select part' : 'Select vendor first';
+                selectEl.appendChild(placeholder);
+
+                if (!vendorId) return;
+
+                const list = parts.filter(p => Number(p.vendor_id) === vendorId);
+                list.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = String(p.id);
+                    opt.textContent = p.label;
+                    selectEl.appendChild(opt);
                 });
+
+                if (current) {
+                    const exists = Array.from(selectEl.options).some(o => o.value === current);
+                    if (exists) selectEl.value = current;
+                }
             }
 
             function bindRemoveButtons() {
@@ -187,8 +218,7 @@
                 row.innerHTML = `
                     <td class="px-4 py-3">
                         <select name="items[${idx}][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select>
-                            <option value="" disabled selected>Select part</option>
-                            ${Array.from(document.querySelectorAll('select[data-part-select] option[data-vendor]')).map(o => o.outerHTML).join('')}
+                            <option value="" disabled selected>Select vendor first</option>
                         </select>
                     </td>
                     <td class="px-4 py-3">
@@ -232,7 +262,7 @@
                 `;
                 tbody.appendChild(row);
                 idx++;
-                filterPartsByVendor();
+                setPartsOptions(row.querySelector('select[data-part-select]'));
                 bindRemoveButtons();
                 row.querySelector('.remove-item')?.addEventListener('click', () => {
                     row.remove();
@@ -240,7 +270,9 @@
                 });
             }
 
-            vendorSelect?.addEventListener('change', filterPartsByVendor);
+            vendorSelect?.addEventListener('change', () => {
+                tbody.querySelectorAll('select[data-part-select]').forEach(sel => setPartsOptions(sel));
+            });
             addBtn?.addEventListener('click', addRow);
 
             document.querySelectorAll('.remove-item').forEach(btn => {
@@ -253,7 +285,7 @@
                 });
             });
 
-            filterPartsByVendor();
+            tbody.querySelectorAll('select[data-part-select]').forEach(sel => setPartsOptions(sel));
             bindRemoveButtons();
         })();
     </script>

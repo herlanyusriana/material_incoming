@@ -48,6 +48,8 @@
                                 <th class="px-4 py-3 text-left font-semibold">PO Date</th>
                                 <th class="px-4 py-3 text-left font-semibold">Vendor</th>
                                 <th class="px-4 py-3 text-left font-semibold">Surat Jalan</th>
+                                <th class="px-4 py-3 text-left font-semibold">Invoice</th>
+                                <th class="px-4 py-3 text-left font-semibold">Packing List</th>
                                 <th class="px-4 py-3 text-right font-semibold">Items</th>
                                 <th class="px-4 py-3 text-right font-semibold">Remaining</th>
                                 <th class="px-4 py-3 text-right font-semibold">Action</th>
@@ -72,6 +74,20 @@
                                             <span class="text-slate-400">-</span>
                                         @endif
                                     </td>
+                                    <td class="px-4 py-3">
+                                        @if ($po->invoice_file_url)
+                                            <a href="{{ $po->invoice_file_url }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-semibold text-sm">View</a>
+                                        @else
+                                            <span class="text-slate-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if ($po->packing_list_file_url)
+                                            <a href="{{ $po->packing_list_file_url }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-semibold text-sm">View</a>
+                                        @else
+                                            <span class="text-slate-400">-</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((int) ($po->items_count ?? 0)) }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) ($po->remaining_qty ?? 0), 0) }}</td>
                                     <td class="px-4 py-3 text-right">
@@ -82,7 +98,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada Local PO.</td>
+                                    <td colspan="9" class="px-4 py-8 text-center text-slate-500">Belum ada Local PO.</td>
                                 </tr>
                             @endforelse
                         </tbody>

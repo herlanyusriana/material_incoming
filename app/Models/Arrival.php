@@ -26,6 +26,8 @@ class Arrival extends Model
         'bill_of_lading_status',
         'bill_of_lading_file',
         'delivery_note_file',
+        'invoice_file',
+        'packing_list_file',
         'price_term',
         'hs_code',
         'hs_codes',
@@ -59,6 +61,22 @@ class Arrival extends Model
             return null;
         }
         return Storage::disk('public')->url($this->delivery_note_file);
+    }
+
+    public function getInvoiceFileUrlAttribute(): ?string
+    {
+        if (!$this->invoice_file) {
+            return null;
+        }
+        return Storage::disk('public')->url($this->invoice_file);
+    }
+
+    public function getPackingListFileUrlAttribute(): ?string
+    {
+        if (!$this->packing_list_file) {
+            return null;
+        }
+        return Storage::disk('public')->url($this->packing_list_file);
     }
 
     protected static function booted(): void

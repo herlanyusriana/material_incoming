@@ -170,8 +170,10 @@ class ArrivalController extends Controller
     {
         $arrival->loadMissing(['items.receives', 'containers.inspection']);
 
+        $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
+
         // Require container inspections (when containers exist)
-        if ($arrival->containers && $arrival->containers->isNotEmpty()) {
+        if (!$isLocal && $arrival->containers && $arrival->containers->isNotEmpty()) {
             $hasMissingInspection = $arrival->containers->contains(fn ($c) => !$c->inspection);
             if ($hasMissingInspection) {
                 return true;

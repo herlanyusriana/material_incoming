@@ -7,6 +7,7 @@ use App\Models\Part;
 use App\Models\Receive;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use App\Exports\InventoryExport;
 use App\Imports\InventoryImport;
@@ -52,7 +53,7 @@ class InventoryController extends Controller
             ->unique()
             ->values();
 
-        $locationMap = $locationCodes->isEmpty()
+        $locationMap = $locationCodes->isEmpty() || !Schema::hasTable('warehouse_locations')
             ? collect()
             : WarehouseLocation::query()
                 ->whereIn('location_code', $locationCodes->all())

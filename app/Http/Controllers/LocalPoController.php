@@ -56,8 +56,11 @@ class LocalPoController extends Controller
             ->orderBy('vendor_name')
             ->get();
 
+        $localVendorIds = $vendors->pluck('id')->all();
+
         $parts = Part::with('vendor')
             ->where('status', 'active')
+            ->whereIn('vendor_id', $localVendorIds)
             ->get();
 
         return view('local_pos.create', compact('vendors', 'parts'));
@@ -76,6 +79,8 @@ class LocalPoController extends Controller
             'currency' => ['nullable', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
             'delivery_note_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'invoice_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'packing_list_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.part_id' => ['required', Rule::exists('parts', 'id')],
             'items.*.material_group' => ['nullable', 'string', 'max:255'],
@@ -86,8 +91,6 @@ class LocalPoController extends Controller
             'items.*.unit_goods' => ['required', 'in:PCS,COIL,SHEET,SET,EA,KGM'],
             'items.*.weight_nett' => ['nullable', 'numeric', 'min:0'],
             'items.*.weight_gross' => ['nullable', 'numeric', 'min:0'],
-            'items.*.price' => ['nullable', 'numeric', 'min:0'],
-            'items.*.total_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.notes' => ['nullable', 'string'],
         ]);
 
@@ -95,6 +98,24 @@ class LocalPoController extends Controller
         if ($vendor->vendor_type !== 'local') {
             return back()->withInput()->withErrors([
                 'vendor_id' => 'Vendor harus bertipe LOCAL untuk Local PO.',
+            ]);
+        }
+
+        $vendorPartIds = Part::query()
+            ->where('vendor_id', $vendor->id)
+            ->pluck('id')
+            ->all();
+
+        $invalidPartIds = collect($validated['items'] ?? [])
+            ->pluck('part_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id !== 0 && !in_array($id, $vendorPartIds, true))
+            ->unique()
+            ->values();
+
+        if ($invalidPartIds->isNotEmpty()) {
+            return back()->withInput()->withErrors([
+                'items' => 'Ada part yang tidak sesuai vendor: part_id=' . $invalidPartIds->implode(', '),
             ]);
         }
 
@@ -115,11 +136,26 @@ class LocalPoController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
+            $dir = "local_pos/arrival-{$arrival->id}";
+
             if ($request->hasFile('delivery_note_file')) {
                 $file = $request->file('delivery_note_file');
-                $dir = "delivery_notes/arrival-{$arrival->id}";
                 $path = $file->storePubliclyAs($dir, "surat_jalan." . $file->getClientOriginalExtension(), 'public');
                 $arrival->delivery_note_file = $path;
+                $arrival->save();
+            }
+
+            if ($request->hasFile('invoice_file')) {
+                $file = $request->file('invoice_file');
+                $path = $file->storePubliclyAs($dir, "invoice." . $file->getClientOriginalExtension(), 'public');
+                $arrival->invoice_file = $path;
+                $arrival->save();
+            }
+
+            if ($request->hasFile('packing_list_file')) {
+                $file = $request->file('packing_list_file');
+                $path = $file->storePubliclyAs($dir, "packing_list." . $file->getClientOriginalExtension(), 'public');
+                $arrival->packing_list_file = $path;
                 $arrival->save();
             }
 
@@ -135,8 +171,8 @@ class LocalPoController extends Controller
                     'weight_nett' => (float) ($item['weight_nett'] ?? 0),
                     'unit_weight' => 'KGM',
                     'weight_gross' => (float) ($item['weight_gross'] ?? 0),
-                    'price' => (float) ($item['price'] ?? 0),
-                    'total_price' => (float) ($item['total_price'] ?? 0),
+                    'price' => 0,
+                    'total_price' => 0,
                     'notes' => $item['notes'] ?? null,
                 ]);
             }

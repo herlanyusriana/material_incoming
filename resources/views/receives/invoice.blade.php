@@ -15,9 +15,10 @@
                     </div>
                     <div class="flex items-center gap-2">
                         @php
+                            $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
                             $hasContainerInspection = ($arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
                         @endphp
-                        @if ($hasContainerInspection)
+                        @if (!$isLocal && $hasContainerInspection)
                             <a href="{{ route('departures.inspection-report', $arrival) }}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">Print Inspection</a>
                         @endif
                         <a href="{{ route('receives.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Kembali</a>
@@ -25,7 +26,7 @@
                 </div>
 
                 <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Info Invoice</h4>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ $isLocal ? 'Info Local PO' : 'Info Invoice' }}</h4>
                     <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
                         <div class="flex items-center">
                             <span class="font-semibold text-slate-700 w-32">Supplier</span>
@@ -58,13 +59,20 @@
                             <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                             @error('receive_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
+                        @if ($isLocal)
+                            <div class="space-y-1">
+                                <label for="truck_no" class="text-sm font-medium text-slate-700">No. Truck</label>
+                                <input type="text" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase" placeholder="B 1234 CD" required>
+                                @error('truck_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
                     </div>
                 </div>
 
                 @php
                     $containers = $arrival->containers ?? collect();
                 @endphp
-                @if ($containers->count())
+                @if (!$isLocal && $containers->count())
                     <div class="bg-white rounded-xl p-6 border border-slate-200">
                         <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Container Inspection (per Container)</h4>
                         <div class="overflow-x-auto border border-slate-200 rounded-xl">
