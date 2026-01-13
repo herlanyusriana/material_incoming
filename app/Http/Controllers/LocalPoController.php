@@ -87,7 +87,8 @@ class LocalPoController extends Controller
             'items.*.size' => ['nullable', 'string', 'max:100'],
             'items.*.qty_bundle' => ['required', 'integer', 'min:0'],
             'items.*.unit_bundle' => ['required', 'in:PALLET,BUNDLE,BOX'],
-            'items.*.qty_goods' => ['required', 'numeric', 'min:0'],
+            // qty_goods stored as integer in DB; keep consistent to avoid strict-mode errors.
+            'items.*.qty_goods' => ['required', 'integer', 'min:0'],
             'items.*.unit_goods' => ['required', 'in:PCS,COIL,SHEET,SET,EA,KGM'],
             'items.*.weight_nett' => ['nullable', 'numeric', 'min:0'],
             'items.*.weight_gross' => ['nullable', 'numeric', 'min:0'],
@@ -166,7 +167,7 @@ class LocalPoController extends Controller
                     'size' => isset($item['size']) && trim((string) $item['size']) !== '' ? strtoupper(trim((string) $item['size'])) : null,
                     'qty_bundle' => (int) $item['qty_bundle'],
                     'unit_bundle' => strtoupper((string) $item['unit_bundle']),
-                    'qty_goods' => (float) $item['qty_goods'],
+                    'qty_goods' => (int) $item['qty_goods'],
                     'unit_goods' => strtoupper((string) $item['unit_goods']),
                     'weight_nett' => (float) ($item['weight_nett'] ?? 0),
                     'unit_weight' => 'KGM',

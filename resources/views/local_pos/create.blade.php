@@ -5,6 +5,16 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            @if ($errors->any())
+                <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+                    <div class="font-semibold mb-2">Gagal membuat Local PO:</div>
+                    <ul class="list-disc ml-5 space-y-1">
+                        @foreach ($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <form action="{{ route('local-pos.store') }}" method="POST" enctype="multipart/form-data" class="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 space-y-8" id="local-po-form">
                 @csrf
 
@@ -98,7 +108,7 @@
                             <tbody class="divide-y divide-slate-100" id="items-tbody">
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3">
-                                        <select name="items[0][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select>
+                                        <select name="items[0][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select data-old="{{ old('items.0.part_id') }}">
                                             <option value="" disabled selected>Select vendor first</option>
                                         </select>
                                     </td>
@@ -120,7 +130,7 @@
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center justify-end gap-2">
-                                            <input type="number" name="items[0][qty_goods]" min="0" value="{{ old('items.0.qty_goods', 0) }}" class="w-24 text-right rounded-xl border-slate-200" required>
+                                            <input type="number" name="items[0][qty_goods]" min="0" step="1" value="{{ old('items.0.qty_goods', 0) }}" class="w-24 text-right rounded-xl border-slate-200" required>
                                             <select name="items[0][unit_goods]" class="w-24 rounded-xl border-slate-200" required>
                                                 <option value="PCS">PCS</option>
                                                 <option value="COIL">COIL</option>
@@ -177,6 +187,7 @@
                 if (!selectEl) return;
                 const vendorId = vendorSelect.value ? Number(vendorSelect.value) : null;
                 const current = selectEl.value;
+                const desired = selectEl.dataset.old && String(selectEl.dataset.old).trim() !== '' ? String(selectEl.dataset.old).trim() : current;
 
                 selectEl.innerHTML = '';
 
@@ -197,9 +208,12 @@
                     selectEl.appendChild(opt);
                 });
 
-                if (current) {
-                    const exists = Array.from(selectEl.options).some(o => o.value === current);
-                    if (exists) selectEl.value = current;
+                if (desired) {
+                    const exists = Array.from(selectEl.options).some(o => o.value === desired);
+                    if (exists) {
+                        selectEl.value = desired;
+                        delete selectEl.dataset.old;
+                    }
                 }
             }
 
@@ -217,7 +231,7 @@
                 row.className = 'hover:bg-slate-50';
                 row.innerHTML = `
                     <td class="px-4 py-3">
-                        <select name="items[${idx}][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select>
+                        <select name="items[${idx}][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select data-old="">
                             <option value="" disabled selected>Select vendor first</option>
                         </select>
                     </td>
@@ -239,7 +253,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
-                            <input type="number" name="items[${idx}][qty_goods]" min="0" value="0" class="w-24 text-right rounded-xl border-slate-200" required>
+                            <input type="number" name="items[${idx}][qty_goods]" min="0" step="1" value="0" class="w-24 text-right rounded-xl border-slate-200" required>
                             <select name="items[${idx}][unit_goods]" class="w-24 rounded-xl border-slate-200" required>
                                 <option value="PCS">PCS</option>
                                 <option value="COIL">COIL</option>
