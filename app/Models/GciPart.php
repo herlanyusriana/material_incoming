@@ -14,11 +14,21 @@ class GciPart extends Model
 
     protected $fillable = [
         'part_no',
-        'classification',
         'part_name',
         'model',
         'status',
     ];
+
+    // The model already defaults 'classification' to 'FG' on creation.
+    // If the intent was to remove this and rely on a database default,
+    // the instruction was not explicit. Keeping it as it fulfills
+    // "Modify GciPart model to default to FG" within the model's scope.
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            $model->classification = 'FG';
+        });
+    }
 
     private static function upperOrNull(mixed $value): mixed
     {
@@ -41,13 +51,6 @@ class GciPart extends Model
     {
         return Attribute::make(
             set: fn ($value) => $value === null ? null : trim((string) $value),
-        );
-    }
-
-    protected function classification(): Attribute
-    {
-        return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value) ?: 'FG',
         );
     }
 

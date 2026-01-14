@@ -9,6 +9,7 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomItemSubstitute;
 use App\Models\GciPart;
+use App\Models\Uom;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -37,6 +38,12 @@ class BomController extends Controller
             ->whereIn('classification', ['FG', 'WIP'])
             ->orderBy('part_no')
             ->get();
+        
+        $uoms = Uom::query()
+            ->where('is_active', true)
+            ->orderBy('category')
+            ->orderBy('code')
+            ->get();
 
         $boms = Bom::query()
             ->with(['part', 'items.wipPart', 'items.componentPart', 'items.substitutes.part'])
@@ -51,7 +58,28 @@ class BomController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'gciPartId', 'q'));
+        return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'uoms', 'gciPartId', 'q'));
+    }
+
+    public function whereUsed(Request $request)
+    {
+        $validated = $request->validate([
+            'part_no' => ['required', 'string'],
+        ]);
+
+        $partNo = strtoupper(trim($validated['part_no']));
+        $boms = Bom::whereUsed($partNo);
+
+        return response()->json([
+            'part_no' => $partNo,
+            'used_in' => $boms->map(fn ($bom) => [
+                'id' => $bom->id,
+                'fg_part_no' => $bom->part->part_no,
+                'fg_part_name' => $bom->part->part_name,
+                'revision' => $bom->revision,
+                'status' => $bom->status,
+            ]),
+        ]);
     }
 
     public function export(Request $request)
@@ -142,6 +170,7 @@ class BomController extends Controller
             'process_name' => ['nullable', 'string', 'max:255'],
             'machine_name' => ['nullable', 'string', 'max:255'],
             'wip_part_id' => ['nullable', Rule::exists('gci_parts', 'id')],
+            'wip_part_no' => ['nullable', 'string', 'max:100'],
             'wip_qty' => ['nullable', 'numeric', 'min:0'],
             'wip_uom' => ['nullable', 'string', 'max:20'],
             'wip_part_name' => ['nullable', 'string', 'max:255'],
@@ -149,6 +178,11 @@ class BomController extends Controller
             'material_spec' => ['nullable', 'string', 'max:255'],
             'material_name' => ['nullable', 'string', 'max:255'],
             'special' => ['nullable', 'string', 'max:255'],
+            'component_part_no' => ['nullable', 'string', 'max:100'],
+            'scrap_factor' => ['nullable', 'numeric', 'min:0', 'max:1'],
+            'yield_factor' => ['nullable', 'numeric', 'min:0', 'max:1'],
+            'consumption_uom_id' => ['nullable', Rule::exists('uoms', 'id')],
+            'wip_uom_id' => ['nullable', Rule::exists('uoms', 'id')],
         ]);
 
         $payload = [
@@ -158,6 +192,7 @@ class BomController extends Controller
             'process_name' => $validated['process_name'] ?? null,
             'machine_name' => $validated['machine_name'] ?? null,
             'wip_part_id' => $validated['wip_part_id'] ?? null,
+            'wip_part_no' => $validated['wip_part_no'] ?? null,
             'wip_qty' => $validated['wip_qty'] ?? null,
             'wip_uom' => $validated['wip_uom'] ?? null,
             'wip_part_name' => $validated['wip_part_name'] ?? null,
@@ -166,6 +201,11 @@ class BomController extends Controller
             'material_name' => $validated['material_name'] ?? null,
             'special' => $validated['special'] ?? null,
             'make_or_buy' => $validated['make_or_buy'] ?? 'buy',
+            'component_part_no' => $validated['component_part_no'] ?? null,
+            'scrap_factor' => $validated['scrap_factor'] ?? 0,
+            'yield_factor' => $validated['yield_factor'] ?? 1,
+            'consumption_uom_id' => $validated['consumption_uom_id'] ?? null,
+            'wip_uom_id' => $validated['wip_uom_id'] ?? null,
         ];
 
         $bomItemId = isset($validated['bom_item_id']) ? (int) $validated['bom_item_id'] : null;
@@ -176,7 +216,7 @@ class BomController extends Controller
                 ->firstOrFail();
 
             $item->update(array_merge($payload, [
-                'component_part_id' => (int) $validated['component_part_id'],
+                'component_part_id' => $validated['component_part_id'] ? (int) $validated['component_part_id'] : null,
             ]));
 
             return back()->with('success', 'BOM line updated.');
@@ -189,7 +229,7 @@ class BomController extends Controller
 
         BomItem::create(array_merge($payload, [
             'bom_id' => $bom->id,
-            'component_part_id' => (int) $validated['component_part_id'],
+            'component_part_id' => $validated['component_part_id'] ? (int) $validated['component_part_id'] : null,
         ]));
 
         return back()->with('success', 'BOM line added.');

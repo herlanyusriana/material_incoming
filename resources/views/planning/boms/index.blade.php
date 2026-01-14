@@ -116,6 +116,11 @@
                                                 <template x-if="!expanded[{{ $bomId }}]"><span>▸</span></template>
                                             </span>
                                             <span class="font-mono text-xs font-semibold">{{ $fgNo }}</span>
+                                            @if(isset($bom->revision))
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800">
+                                                    Rev {{ $bom->revision }}
+                                                </span>
+                                            @endif
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
                                                 {{ strtoupper($bom->status) }}
                                             </span>
@@ -145,9 +150,9 @@
 	                                @forelse($items as $idx => $item)
 	                                    @php
 	                                        $lineNo = $item->line_no ?? ($idx + 1);
-	                                        $wipNo = $item->wipPart?->part_no ?? '';
+	                                        $wipNo = $item->wip_part_no ?: ($item->wipPart?->part_no ?? '');
 	                                        $wipName = $item->wip_part_name ?: ($item->wipPart?->part_name ?? '');
-	                                        $rmNo = $item->componentPart?->part_no ?? '';
+	                                        $rmNo = $item->component_part_no ?: ($item->componentPart?->part_no ?? '');
 	                                        $substitutes = $item->substitutes ?? collect();
 	                                        $subCount = $substitutes->count();
 	                                    @endphp
@@ -223,6 +228,7 @@
                                                     'process_name' => $item->process_name,
                                                     'machine_name' => $item->machine_name,
                                                     'wip_part_id' => $item->wip_part_id,
+                                                    'wip_part_no' => $item->wip_part_no,
                                                     'wip_qty' => $item->wip_qty,
                                                     'wip_uom' => $item->wip_uom,
                                                     'wip_part_name' => $item->wip_part_name,
@@ -231,9 +237,14 @@
 	                                                    'material_name' => $item->material_name,
 	                                                    'special' => $item->special,
 	                                                    'component_part_id' => $item->component_part_id,
+                                                    'component_part_no' => $item->component_part_no,
 	                                                    'make_or_buy' => $item->make_or_buy,
 	                                                    'usage_qty' => $item->usage_qty,
 	                                                    'consumption_uom' => $item->consumption_uom,
+                                                     'consumption_uom_id' => $item->consumption_uom_id,
+                                                     'wip_uom_id' => $item->wip_uom_id,
+                                                     'scrap_factor' => $item->scrap_factor,
+                                                     'yield_factor' => $item->yield_factor,
 	                                                ]))"
                                             >
                                                 ✎
@@ -268,6 +279,7 @@
                                                 'process_name' => null,
                                                 'machine_name' => null,
                                                 'wip_part_id' => null,
+                                                'wip_part_no' => null,
                                                 'wip_qty' => null,
                                                 'wip_uom' => null,
                                                 'wip_part_name' => null,
@@ -276,6 +288,7 @@
 	                                                'material_name' => null,
 	                                                'special' => null,
 	                                                'component_part_id' => null,
+                                                'component_part_no' => null,
 	                                                'make_or_buy' => 'buy',
 	                                                'usage_qty' => 1,
 	                                                'consumption_uom' => null,
@@ -352,7 +365,7 @@
 
 	                    <div class="text-sm text-slate-700 space-y-1">
 	                        <div>Gunakan format kolom yang sama seperti hasil <span class="font-semibold">Export BOM</span>.</div>
-	                        <div class="text-xs text-slate-500">Jika <span class="font-mono">FG Part No.</span>/<span class="font-mono">WIP Part No.</span>/<span class="font-mono">RM Part No.</span> belum ada di master <span class="font-mono">GCI Parts</span>, akan dibuat otomatis saat import.</div>
+	                        <div class="text-xs text-slate-500">Master <span class="font-mono text-indigo-700">FG Part No.</span> harus sudah terdaftar di GCI Parts sebelum import. Komponen RM/WIP akan disimpan langsung di level BOM.</div>
 	                    </div>
 
 	                    <div>
@@ -403,13 +416,18 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">WIP Part No.</label>
-                            <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_part_id">
-                                <option value="">-</option>
-                                @foreach(($wipParts ?? []) as $p)
-                                    <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
-                                @endforeach
-                            </select>
+                             <label class="text-xs font-semibold text-slate-600">WIP Part No.</label>
+                             <div class="flex gap-2">
+                                <template x-if="!lineForm.wip_part_id">
+                                    <input type="text" name="wip_part_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_part_no" placeholder="Part No String">
+                                </template>
+                                <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_part_id">
+                                    <option value="">(Use text / -)</option>
+                                    @foreach(($wipParts ?? []) as $p)
+                                        <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+                                    @endforeach
+                                </select>
+                             </div>
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Qty.</label>
@@ -417,7 +435,12 @@
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">UOM</label>
-                            <input type="text" name="wip_uom" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_uom" placeholder="PCS">
+                            <select name="wip_uom_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_uom_id">
+                                <option value="">-</option>
+                                @foreach(($uoms ?? []) as $uom)
+                                    <option value="{{ $uom->id }}">{{ $uom->code }} - {{ $uom->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
@@ -449,24 +472,29 @@
 
 	                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
 		                        <div class="md:col-span-2">
-		                            <label class="text-xs font-semibold text-slate-600">Component Part (GCI)</label>
-		                            <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.component_part_id">
-		                                <option value="" disabled>Select component</option>
-                                        <template x-if="(lineForm.make_or_buy || 'buy') === 'buy'">
-                                            <optgroup label="BUY (RM)">
-                                                @foreach (($rmParts ?? []) as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
-                                                @endforeach
-                                            </optgroup>
+ 		                            <label class="text-xs font-semibold text-slate-600">Component Part (GCI / String)</label>
+                                    <div class="flex gap-2">
+                                        <template x-if="!lineForm.component_part_id">
+                                            <input type="text" name="component_part_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.component_part_no" placeholder="RM/Part No">
                                         </template>
-                                        <template x-if="(lineForm.make_or_buy || 'buy') === 'make'">
-                                            <optgroup label="MAKE (FG/WIP)">
-                                                @foreach (($makeParts ?? []) as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }} ({{ strtoupper($c->classification ?? '') }})</option>
-                                                @endforeach
-                                            </optgroup>
-                                        </template>
-			                            </select>
+                                        <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.component_part_id">
+                                            <option value="">(Use text)</option>
+                                            <template x-if="(lineForm.make_or_buy || 'buy') === 'buy'">
+                                                <optgroup label="BUY (RM)">
+                                                    @foreach (($rmParts ?? []) as $c)
+                                                        <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
+                                                    @endforeach
+                                                </optgroup>
+                                            </template>
+                                            <template x-if="(lineForm.make_or_buy || 'buy') === 'make'">
+                                                <optgroup label="MAKE (FG/WIP)">
+                                                    @foreach (($makeParts ?? []) as $c)
+                                                        <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }} ({{ strtoupper($c->classification ?? '') }})</option>
+                                                    @endforeach
+                                                </optgroup>
+                                            </template>
+                                        </select>
+                                    </div>
 		                        </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Make / Buy</label>
@@ -481,10 +509,23 @@
 	                        </div>
 	                    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                         <div>
                             <label class="text-xs font-semibold text-slate-600">UOM (Consumption)</label>
-                            <input type="text" name="consumption_uom" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.consumption_uom" placeholder="KGM/PCS">
+                            <select name="consumption_uom_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.consumption_uom_id">
+                                <option value="">-</option>
+                                @foreach(($uoms ?? []) as $uom)
+                                    <option value="{{ $uom->id }}">{{ $uom->code }} - {{ $uom->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Scrap Factor</label>
+                            <input type="number" step="0.01" min="0" max="1" name="scrap_factor" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.scrap_factor" placeholder="0.05 = 5%">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Yield Factor</label>
+                            <input type="number" step="0.01" min="0" max="1" name="yield_factor" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.yield_factor" placeholder="0.95 = 95%">
                         </div>
                     </div>
 
@@ -535,9 +576,15 @@
                         material_name: '',
                         special: '',
                         component_part_id: '',
+                        component_part_no: '',
                         make_or_buy: 'buy',
                         usage_qty: '1',
                         consumption_uom: '',
+                        wip_part_no: '',
+                        consumption_uom_id: '',
+                        wip_uom_id: '',
+                        scrap_factor: 0,
+                        yield_factor: 1,
 	                    },
 	                    openCreate() { this.modalOpen = true; },
 	                    closeCreate() { this.modalOpen = false; },
@@ -579,11 +626,17 @@
 	                            material_spec: payload.material_spec ?? '',
 	                            material_name: payload.material_name ?? '',
 	                            special: payload.special ?? '',
-	                            component_part_id: payload.component_part_id ?? '',
-	                            make_or_buy: payload.make_or_buy ?? 'buy',
-	                            usage_qty: payload.usage_qty ?? '1',
-	                            consumption_uom: payload.consumption_uom ?? '',
-	                        };
+ 	                            component_part_id: payload.component_part_id ?? '',
+ 	                            component_part_no: payload.component_part_no ?? '',
+ 	                            make_or_buy: payload.make_or_buy ?? 'buy',
+ 	                            usage_qty: payload.usage_qty ?? '1',
+ 	                            consumption_uom: payload.consumption_uom ?? '',
+                                 wip_part_no: payload.wip_part_no ?? '',
+                                 consumption_uom_id: payload.consumption_uom_id ?? '',
+                                 wip_uom_id: payload.wip_uom_id ?? '',
+                                 scrap_factor: payload.scrap_factor ?? 0,
+                                 yield_factor: payload.yield_factor ?? 1,
+ 	                        };
 	                        this.lineModalOpen = true;
 	                    },
 	                    closeLineModal() { this.lineModalOpen = false; },

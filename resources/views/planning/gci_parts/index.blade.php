@@ -27,15 +27,6 @@
                                 <option value="inactive" @selected($status === 'inactive')>Inactive</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="text-xs font-semibold text-slate-600">Classification</label>
-                            <select name="classification" class="mt-1 rounded-xl border-slate-200">
-                                <option value="">All</option>
-                                <option value="FG" @selected(($classification ?? '') === 'FG')>FG</option>
-                                <option value="RM" @selected(($classification ?? '') === 'RM')>RM</option>
-                                <option value="WIP" @selected(($classification ?? '') === 'WIP')>WIP</option>
-                            </select>
-                        </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
@@ -51,7 +42,6 @@
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                 <th class="px-4 py-3 text-left font-semibold">Part No</th>
-                                <th class="px-4 py-3 text-left font-semibold">Class</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                 <th class="px-4 py-3 text-left font-semibold">Model</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
@@ -61,13 +51,12 @@
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($parts as $p)
                                 <tr class="hover:bg-slate-50">
-                                    <td class="px-4 py-3 font-semibold">{{ $p->part_no }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ strtoupper($p->classification ?? 'FG') }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                    <td class="px-4 py-3 font-semibold">{{ $parts->part_no ?? $p->part_no }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $parts->part_name ?? $p->part_name ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $parts->model ?? $p->model ?? '-' }}</td>
                                     <td class="px-4 py-3">
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $p->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
-                                            {{ strtoupper($p->status) }}
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ ($parts->status ?? $p->status) === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
+                                            {{ strtoupper($parts->status ?? $p->status) }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
@@ -112,14 +101,6 @@
                         <input name="part_no" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.part_no">
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Classification</label>
-                        <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.classification">
-                            <option value="FG">FG</option>
-                            <option value="RM">RM</option>
-                            <option value="WIP">WIP</option>
-                        </select>
-                    </div>
-                    <div>
                         <label class="text-sm font-semibold text-slate-700">Part Name</label>
                         <input name="part_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.part_name">
                     </div>
@@ -160,7 +141,7 @@
                     openEdit(p) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/gci-parts')) + '/' + p.id;
-                        this.form = { id: p.id, part_no: p.part_no, classification: (p.classification || 'FG'), part_name: p.part_name, model: p.model, status: p.status };
+                        this.form = { id: p.id, part_no: p.part_no, part_name: p.part_name, model: p.model, status: p.status };
                         this.modalOpen = true;
                     },
                     openImport() {
