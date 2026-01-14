@@ -692,7 +692,6 @@
             const nettEl = row.querySelector('.weight-nett');
             const qtyRaw = (qtyEl?.value ?? '').trim();
             const totalRaw = (totalEl?.value ?? '').trim();
-            const goodsUnit = String(unitGoodsEl?.value ?? '').trim().toUpperCase();
 
             if (!qtyRaw || !totalRaw) {
                 const hiddenPrice = row.querySelector('.price');
@@ -724,7 +723,7 @@
 
 	                const totalCents = toCents(totalRaw);
 	                const weightCenti = toCents(nettEl?.value);
-	                if (goodsUnit === 'COIL' && weightCenti > 0) {
+	                if (weightCenti > 0) {
 	                    const priceMilli = Math.floor(((totalCents * 1000) + (weightCenti / 2)) / weightCenti);
 	                    const priceText = formatMilli(priceMilli);
 

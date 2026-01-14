@@ -186,7 +186,7 @@
             const cents = toCents(totalEl.value);
             const unit = String(unitEl?.value ?? '').trim().toUpperCase();
             const weightCenti = toCents(nettEl?.value);
-            if (unit === 'COIL' && weightCenti > 0) {
+            if (weightCenti > 0) {
                 const milli = Math.floor((cents * 1000) / weightCenti);
                 priceEl.value = formatMilli(milli);
                 return;

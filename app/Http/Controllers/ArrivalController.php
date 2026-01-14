@@ -406,8 +406,7 @@ class ArrivalController extends Controller
                         $goodsUnit = strtoupper(trim((string) ($item['unit_goods'] ?? '')));
 
                         $weightCenti = $this->toCents($item['weight_nett'] ?? 0);
-                        // Only COIL uses price per KGM by net weight; others use qty_goods.
-                        if ($goodsUnit === 'COIL' && $weightCenti > 0) {
+                        if ($weightCenti > 0) {
                             $priceMilli = intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti);
                             return $this->formatMilli($priceMilli);
                         }
@@ -722,9 +721,8 @@ class ArrivalController extends Controller
         $totalPrice = round((float) $normalizedTotal, 2);
         $totalCents = $this->toCents($normalizedTotal);
 
-        $goodsUnit = strtoupper(trim((string) ($data['unit_goods'] ?? '')));
         $weightCenti = $this->toCents($normalizedNett);
-        if ($goodsUnit === 'COIL' && $weightCenti > 0) {
+        if ($weightCenti > 0) {
             $priceMilli = intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti);
         } else {
             $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
@@ -813,8 +811,9 @@ class ArrivalController extends Controller
 	        $totalPrice = round((float) $normalizedTotal, 2);
 	        $totalCents = $this->toCents($normalizedTotal);
 
+        $goodsUnit = strtoupper(trim((string) ($data['unit_goods'] ?? '')));
         $weightCenti = $this->toCents($normalizedNett);
-        if ($goodsUnit === 'COIL' && $weightCenti > 0) {
+        if ($weightCenti > 0) {
             $priceMilli = intdiv(($totalCents * 1000) + intdiv($weightCenti, 2), $weightCenti);
         } else {
             $priceMilli = $qtyGoods > 0 ? intdiv($totalCents * 10, $qtyGoods) : 0;
