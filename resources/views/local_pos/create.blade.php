@@ -152,6 +152,7 @@
                                                 <option value="PALLET">PALLET</option>
                                                 <option value="BUNDLE">BUNDLE</option>
                                                 <option value="BOX">BOX</option>
+                                                <option value="BAG">BAG</option>
                                             </select>
                                         </div>
                                     </td>
@@ -274,6 +275,7 @@
                                 <option value="PALLET">PALLET</option>
                                 <option value="BUNDLE">BUNDLE</option>
                                 <option value="BOX">BOX</option>
+                                <option value="BAG">BAG</option>
                             </select>
                         </div>
                     </td>

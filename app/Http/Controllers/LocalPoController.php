@@ -86,7 +86,7 @@ class LocalPoController extends Controller
             'items.*.material_group' => ['nullable', 'string', 'max:255'],
             'items.*.size' => ['nullable', 'string', 'max:100'],
             'items.*.qty_bundle' => ['required', 'integer', 'min:0'],
-            'items.*.unit_bundle' => ['required', 'in:PALLET,BUNDLE,BOX'],
+            'items.*.unit_bundle' => ['required', 'in:PALLET,BUNDLE,BOX,BAG'],
             // qty_goods stored as integer in DB; keep consistent to avoid strict-mode errors.
             'items.*.qty_goods' => ['required', 'integer', 'min:0'],
             'items.*.unit_goods' => ['required', 'in:PCS,COIL,SHEET,SET,EA,KGM'],

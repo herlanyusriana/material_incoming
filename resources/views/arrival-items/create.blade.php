@@ -85,6 +85,7 @@
                                 <option value="BUNDLE" {{ strtoupper((string) $unitBundle) === 'BUNDLE' ? 'selected' : '' }}>BUNDLE</option>
                                 <option value="PALLET" {{ strtoupper((string) $unitBundle) === 'PALLET' ? 'selected' : '' }}>PALLET</option>
                                 <option value="BOX" {{ strtoupper((string) $unitBundle) === 'BOX' ? 'selected' : '' }}>BOX</option>
+                                <option value="BAG" {{ strtoupper((string) $unitBundle) === 'BAG' ? 'selected' : '' }}>BAG</option>
                             </select>
                         </div>
 
@@ -213,4 +214,3 @@
         });
     </script>
 </x-app-layout>
-

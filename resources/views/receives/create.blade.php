@@ -164,6 +164,7 @@
                                                 <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
                                                 <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                 <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
+                                                <option value="BAG" @selected($defaultBundleUnit === 'BAG')>BAG</option>
                                             </select>
                                         </div>
                                     </td>
@@ -279,6 +280,7 @@
                             <option value="PALLET" ${defaultBundleUnit === 'PALLET' ? 'selected' : ''}>PALLET</option>
                             <option value="BUNDLE" ${defaultBundleUnit === 'BUNDLE' ? 'selected' : ''}>BUNDLE</option>
                             <option value="BOX" ${defaultBundleUnit === 'BOX' ? 'selected' : ''}>BOX</option>
+                            <option value="BAG" ${defaultBundleUnit === 'BAG' ? 'selected' : ''}>BAG</option>
                         </select>
                     </div>
                 </td>

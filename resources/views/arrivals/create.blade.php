@@ -954,6 +954,7 @@
                             <option value="PALLET" ${(guessedBundle === 'PALLET' || !guessedBundle) ? 'selected' : ''}>PALLET</option>
                             <option value="BUNDLE" ${guessedBundle === 'BUNDLE' ? 'selected' : ''}>BUNDLE</option>
                             <option value="BOX" ${guessedBundle === 'BOX' ? 'selected' : ''}>BOX</option>
+                            <option value="BAG" ${guessedBundle === 'BAG' ? 'selected' : ''}>BAG</option>
                         </select>
                     </div>
 

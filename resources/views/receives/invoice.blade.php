@@ -206,6 +206,7 @@
                                                     <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
                                                     <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                     <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
+                                                    <option value="BAG" @selected($defaultBundleUnit === 'BAG')>BAG</option>
                                                 </select>
                                             </div>
                                         </td>
@@ -274,6 +275,7 @@
                                                         <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
                                                         <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                         <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
+                                                        <option value="BAG" @selected($defaultBundleUnit === 'BAG')>BAG</option>
                                                     </select>
                                                 </div>
                                             </td>
@@ -393,11 +395,12 @@
 	                <td class="px-3 py-2 align-top">
                         <div class="flex items-center gap-2">
 	                        <input type="number" name="items[${itemId}][tags][${idx}][bundle_qty]" min="0" value="0" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-	                        <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-	                            <option value="PALLET">PALLET</option>
-	                            <option value="BUNDLE">BUNDLE</option>
-	                            <option value="BOX">BOX</option>
-	                        </select>
+	                            <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                                <option value="PALLET">PALLET</option>
+	                                <option value="BUNDLE">BUNDLE</option>
+	                                <option value="BOX">BOX</option>
+	                                <option value="BAG">BAG</option>
+	                            </select>
                         </div>
 	                </td>
 		                <td class="px-3 py-2 align-top">
