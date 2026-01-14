@@ -338,8 +338,20 @@
         function applyModeUi() {
             if (!isLocal) return;
             const mode = getTagMode() || 'no_tag';
-            document.querySelectorAll('.tag-mode').forEach(el => el.classList.toggle('hidden', mode !== 'with_tag'));
-            document.querySelectorAll('.no-tag-mode').forEach(el => el.classList.toggle('hidden', mode !== 'no_tag'));
+
+            const setSectionEnabled = (sectionEl, enabled) => {
+                if (!sectionEl) return;
+                sectionEl.classList.toggle('hidden', !enabled);
+                sectionEl.querySelectorAll('input, select, textarea, button').forEach(el => {
+                    // Keep radio buttons working
+                    if (el instanceof HTMLInputElement && el.type === 'radio') return;
+                    // Keep "+ Add TAG" button hidden section disabled too
+                    el.disabled = !enabled;
+                });
+            };
+
+            document.querySelectorAll('.tag-mode').forEach(el => setSectionEnabled(el, mode === 'with_tag'));
+            document.querySelectorAll('.no-tag-mode').forEach(el => setSectionEnabled(el, mode === 'no_tag'));
         }
 
         function updateTotals(itemId) {
