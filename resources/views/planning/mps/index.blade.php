@@ -4,12 +4,14 @@
     </x-slot>
 
     <div class="py-6" x-data="planningMps()">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @php
                 $viewMode = $view ?? 'calendar';
                 $weeksCountValue = (int) ($weeksCount ?? 4);
                 $weeksValue = $weeks ?? [];
                 $searchValue = $q ?? '';
+                $classificationValue = strtoupper(trim((string) ($classification ?? 'FG')));
+                $classificationValue = $classificationValue === '' ? 'ALL' : $classificationValue;
             @endphp
 
             @if (session('success'))
@@ -60,6 +62,13 @@
                                 </select>
                             @endif
 
+                            <select name="classification" class="rounded-xl border-slate-200" title="Classification">
+                                <option value="ALL" @selected($classificationValue === 'ALL')>All</option>
+                                <option value="FG" @selected($classificationValue === 'FG')>FG</option>
+                                <option value="WIP" @selected($classificationValue === 'WIP')>WIP</option>
+                                <option value="RM" @selected($classificationValue === 'RM')>RM</option>
+                            </select>
+
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
                                 <input
@@ -100,7 +109,14 @@
 
                 @if($viewMode === 'calendar')
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table class="min-w-full text-sm divide-y divide-slate-200">
+                        <table class="min-w-[980px] w-full table-fixed text-sm divide-y divide-slate-200">
+                            <colgroup>
+                                <col class="w-44">
+                                <col class="w-80">
+                                @foreach($weeksValue as $w)
+                                    <col class="w-32">
+                                @endforeach
+                            </colgroup>
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                     <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part GCI</th>
@@ -118,15 +134,15 @@
                                 @forelse(($parts ?? []) as $p)
                                     @php $byWeek = $p->mps->keyBy('minggu'); @endphp
                                     <tr class="hover:bg-slate-50">
-                                        <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap">{{ $p->part_no }}</td>
-                                        <td class="px-4 py-3 text-slate-700 whitespace-nowrap">{{ $p->part_name }}</td>
+                                        <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_no }}</td>
+                                        <td class="px-4 py-3 text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_name }}</td>
                                         @foreach($weeksValue as $w)
                                             @php $cell = $byWeek->get($w); @endphp
                                             <td class="px-4 py-3 text-center">
                                                 @if($cell)
                                                     <button
                                                         type="button"
-                                                        class="inline-flex items-center justify-center min-w-[46px] px-3 py-1 rounded-full text-xs font-semibold {{ $cell->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }}"
+                                                        class="inline-flex items-center justify-center w-full px-3 py-1 rounded-full text-xs font-semibold {{ $cell->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }}"
                                                         @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'minggu' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
                                                     >
                                                         {{ number_format((float) $cell->planned_qty, 0) }}
@@ -134,7 +150,7 @@
                                                 @else
                                                     <button
                                                         type="button"
-                                                        class="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300"
+                                                        class="inline-flex items-center justify-center w-full h-8 rounded-full border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300"
                                                         @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'minggu' => $w, 'planned_qty' => 0, 'status' => 'draft']))"
                                                     >
                                                         +
@@ -235,8 +251,8 @@
             </div>
         </div>
 
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
+                <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <div class="text-sm font-semibold text-slate-900" x-text="modalTitle"></div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">✕</button>

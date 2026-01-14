@@ -20,18 +20,26 @@ class CustomerPoController extends Controller
 
     public function index(Request $request)
     {
-        $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
+        $minggu = trim((string) $request->query('minggu', ''));
+        $minggu = $minggu !== '' ? $minggu : null;
         $customerId = $request->query('customer_id');
         $status = $request->query('status');
+        $defaultMinggu = now()->format('o-\\WW');
 
         $customers = Customer::query()->orderBy('code')->get();
-        $gciParts = GciPart::query()->where('status', 'active')->orderBy('part_no')->get();
+        // Default for Customer PO: show FG only to prevent mixing RM/WIP in PO selection.
+        $gciParts = GciPart::query()
+            ->where('status', 'active')
+            ->where('classification', 'FG')
+            ->orderBy('part_no')
+            ->get();
 
         $orders = CustomerPo::query()
             ->with(['customer', 'part'])
-            ->where('minggu', $minggu)
+            ->when($minggu, fn ($q) => $q->where('minggu', $minggu))
             ->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
             ->when($status, fn ($q) => $q->where('status', $status))
+            ->orderByDesc('minggu')
             ->latest('id')
             ->paginate(25)
             ->withQueryString();
@@ -71,7 +79,7 @@ class CustomerPoController extends Controller
             }
         }
 
-        return view('planning.customer_pos.index', compact('orders', 'customers', 'gciParts', 'minggu', 'customerId', 'status', 'translatedByPoId'));
+        return view('planning.customer_pos.index', compact('orders', 'customers', 'gciParts', 'minggu', 'defaultMinggu', 'customerId', 'status', 'translatedByPoId'));
     }
 
     public function store(Request $request)

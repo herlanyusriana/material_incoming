@@ -21,7 +21,7 @@
                     <form method="GET" class="flex flex-wrap items-end gap-3">
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Minggu (YYYY-WW)</label>
-                            <input name="minggu" value="{{ $minggu }}" class="mt-1 rounded-xl border-slate-200" placeholder="2026-W01">
+                            <input name="minggu" value="{{ $minggu ?? '' }}" class="mt-1 rounded-xl border-slate-200" placeholder="(kosongkan untuk semua)">
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Customer</label>
@@ -133,14 +133,14 @@
             </div>
         </div>
 
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+        <div class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm px-4 py-8 overflow-y-auto" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
+            <div class="w-full max-w-3xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <div class="text-sm font-semibold text-slate-900" x-text="mode === 'create' ? 'Add Customer PO' : 'Edit Customer PO'"></div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">✕</button>
                 </div>
 
-                <form :action="formAction" method="POST" class="px-5 py-4 space-y-4">
+                <form :action="formAction" method="POST" class="px-5 py-4 space-y-4 overflow-y-auto flex-1">
                     @csrf
                     <template x-if="mode === 'edit'">
                         <input type="hidden" name="_method" value="PUT">
@@ -290,7 +290,7 @@
                         <textarea name="notes" class="mt-1 w-full rounded-xl border-slate-200" rows="3" x-model="form.notes"></textarea>
                     </div>
 
-                    <div class="flex justify-end gap-2 pt-2">
+                    <div class="sticky bottom-0 bg-white border-t border-slate-100 flex justify-end gap-2 pt-4 pb-1">
                         <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">Cancel</button>
                         <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
                     </div>
@@ -304,9 +304,9 @@
                     modalOpen: false,
                     mode: 'create',
                     formAction: @js(route('planning.customer-pos.store')),
-	                    form: {
+                    form: {
                         id: null,
-                        minggu: @js($minggu),
+                        minggu: @js($minggu ?? $defaultMinggu ?? now()->format('o-\\WW')),
                         customer_id: '',
                         po_no: '',
                         po_type: 'customer_part',
@@ -333,17 +333,17 @@
 	                        this.form.items.splice(idx, 1);
 	                        if (this.form.items.length < 1) this.addItem();
 	                    },
-	                    openCreate() {
-	                        this.mode = 'create';
-	                        this.formAction = @js(route('planning.customer-pos.store'));
-	                        this.form = {
+                    openCreate() {
+                        this.mode = 'create';
+                        this.formAction = @js(route('planning.customer-pos.store'));
+                        this.form = {
                             id: null,
-                            minggu: @js($minggu),
+                            minggu: @js($defaultMinggu ?? now()->format('o-\\WW')),
                             customer_id: '',
                             po_no: '',
                             po_type: 'customer_part',
                             customer_part_no: '',
-	                            part_id: '',
+                            part_id: '',
 	                            qty: '0',
 	                            status: 'open',
 	                            notes: '',

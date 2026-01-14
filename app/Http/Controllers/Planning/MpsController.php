@@ -23,6 +23,8 @@ class MpsController extends Controller
         $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
         $view = $request->query('view', 'calendar');
         $q = trim((string) $request->query('q', ''));
+        $classification = strtoupper(trim((string) $request->query('classification', 'FG')));
+        $classification = $classification === 'ALL' ? '' : $classification;
         $weeksCount = (int) $request->query('weeks', 4);
         $weeksCount = max(1, min(12, $weeksCount));
 
@@ -32,14 +34,16 @@ class MpsController extends Controller
             $rows = Mps::query()
                 ->with('part')
                 ->where('minggu', $minggu)
+                ->when($classification !== '', fn ($q) => $q->whereHas('part', fn ($p) => $p->where('classification', $classification)))
                 ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'mps.part_id'))
                 ->get();
 
-            return view('planning.mps.index', compact('minggu', 'rows', 'view', 'weeks', 'weeksCount', 'q'));
+            return view('planning.mps.index', compact('minggu', 'rows', 'view', 'weeks', 'weeksCount', 'q', 'classification'));
         }
 
         $parts = GciPart::query()
             ->where('status', 'active')
+            ->when($classification !== '', fn ($q) => $q->where('classification', $classification))
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($sub) use ($q) {
                     $sub->where('part_no', 'like', '%' . $q . '%')
@@ -53,7 +57,7 @@ class MpsController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('planning.mps.index', compact('minggu', 'parts', 'view', 'weeks', 'weeksCount', 'q'));
+        return view('planning.mps.index', compact('minggu', 'parts', 'view', 'weeks', 'weeksCount', 'q', 'classification'));
     }
 
     private function makeWeeksRange(string $startMinggu, int $weeksCount): array

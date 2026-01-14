@@ -61,7 +61,7 @@
                     <div>
                         <label class="text-sm font-semibold text-slate-700">PO Date</label>
                         <input type="date" name="po_date" value="{{ old('po_date', now()->toDateString()) }}"
-                            class="mt-1 w-full rounded-xl border-slate-200" required>
+                            class="mt-1 w-full rounded-xl bor   der-slate-200" required>
                         @error('po_date') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
