@@ -95,6 +95,9 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('outgoing')->name('outgoing.')->group(function () {
         Route::get('/daily-planning', [OutgoingController::class, 'dailyPlanning'])->name('daily-planning');
+        Route::get('/daily-planning/template', [OutgoingController::class, 'dailyPlanningTemplate'])->name('daily-planning.template');
+        Route::post('/daily-planning/import', [OutgoingController::class, 'dailyPlanningImport'])->name('daily-planning.import');
+        Route::get('/daily-planning/{plan}/export', [OutgoingController::class, 'dailyPlanningExport'])->name('daily-planning.export');
         Route::get('/customer-po', [OutgoingController::class, 'customerPo'])->name('customer-po');
         Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
         Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');

@@ -146,16 +146,24 @@
                         <input type="hidden" name="_method" value="PUT">
                     </template>
 
-                    <template x-if="mode === 'create'">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-sm font-semibold text-slate-700">PO Type</label>
-                                <select class="mt-1 w-full rounded-xl border-slate-200" x-model="form.po_type">
-                                    <option value="customer_part">Customer Part (recommended)</option>
-                                    <option value="gci_part">Part GCI</option>
-                                </select>
-                                <div class="mt-1 text-xs text-slate-500">Default input is Customer Part No + Qty; system will translate to Part GCI using mapping.</div>
-                            </div>
+	                    <template x-if="mode === 'create'">
+	                        <div class="space-y-4">
+	                            <div>
+	                                <label class="text-sm font-semibold text-slate-700">PO Type</label>
+	                                <select
+	                                    name="po_type"
+	                                    class="mt-1 w-full rounded-xl border-slate-200"
+	                                    x-model="form.po_type"
+	                                    @change="
+	                                        if (form.po_type === 'gci_part') { form.customer_part_no = ''; }
+	                                        if (form.po_type === 'customer_part') { form.part_id = ''; }
+	                                    "
+	                                >
+	                                    <option value="customer_part">Customer Part (recommended)</option>
+	                                    <option value="gci_part">Part GCI</option>
+	                                </select>
+	                                <div class="mt-1 text-xs text-slate-500">Default input is Customer Part No + Qty; system will translate to Part GCI using mapping.</div>
+	                            </div>
                             <div>
                                 <label class="text-sm font-semibold text-slate-700">Minggu (YYYY-WW)</label>
                                 <input name="minggu" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.minggu">
@@ -169,25 +177,96 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div>
-                                <label class="text-sm font-semibold text-slate-700">PO No</label>
-                                <input name="po_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.po_no">
-                            </div>
-                            <div x-show="form.po_type === 'customer_part'">
-                                <label class="text-sm font-semibold text-slate-700">Customer Part No</label>
-                                <input name="customer_part_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.customer_part_no" :required="form.po_type === 'customer_part'">
-                            </div>
-                            <div x-show="form.po_type === 'gci_part'">
-                                <label class="text-sm font-semibold text-slate-700">Part GCI</label>
-                                <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.part_id" :required="form.po_type === 'gci_part'">
-                                    <option value="">Select part</option>
-                                    @foreach ($gciParts as $p)
-                                        <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </template>
+	                            <div>
+	                                <label class="text-sm font-semibold text-slate-700">PO No</label>
+	                                <input name="po_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.po_no">
+	                            </div>
+	                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+	                                <div class="flex items-center justify-between gap-3">
+	                                    <div>
+	                                        <div class="text-sm font-bold text-slate-900">Items</div>
+	                                        <div class="text-xs text-slate-500">Klik “Add Part” untuk input lebih dari 1 part dalam 1 PO.</div>
+	                                    </div>
+	                                    <button
+	                                        type="button"
+	                                        class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold"
+	                                        @click="addItem()"
+	                                    >
+	                                        + Add Part
+	                                    </button>
+	                                </div>
+
+	                                <template x-for="(it, idx) in form.items" :key="it._key">
+	                                    <div class="bg-white border border-slate-200 rounded-xl p-4">
+	                                        <div class="flex items-start justify-between gap-3">
+	                                            <div class="text-sm font-bold text-slate-700">Item <span x-text="idx + 1"></span></div>
+	                                            <button
+	                                                type="button"
+	                                                class="text-sm font-semibold text-red-600 hover:text-red-700"
+	                                                @click="removeItem(idx)"
+	                                                x-show="form.items.length > 1"
+	                                            >
+	                                                Remove
+	                                            </button>
+	                                        </div>
+
+	                                        <div class="mt-3 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+	                                            <div class="md:col-span-1">
+	                                                <label class="text-xs font-semibold text-slate-600">Type</label>
+	                                                <select
+	                                                    class="mt-1 w-full rounded-xl border-slate-200"
+	                                                    x-model="it.po_type"
+	                                                    @change="if (it.po_type === 'gci_part') { it.customer_part_no=''; } else { it.part_id=''; }"
+	                                                >
+	                                                    <option value="customer_part">Customer Part</option>
+	                                                    <option value="gci_part">Part GCI</option>
+	                                                </select>
+	                                                <input type="hidden" :name="`items[${idx}][po_type]`" :value="it.po_type">
+	                                            </div>
+
+	                                            <div class="md:col-span-2" x-show="it.po_type === 'customer_part'">
+	                                                <label class="text-xs font-semibold text-slate-600">Customer Part No</label>
+	                                                <input
+	                                                    class="mt-1 w-full rounded-xl border-slate-200"
+	                                                    x-model="it.customer_part_no"
+	                                                    :name="`items[${idx}][customer_part_no]`"
+	                                                    :required="it.po_type === 'customer_part'"
+	                                                >
+	                                            </div>
+
+	                                            <div class="md:col-span-2" x-show="it.po_type === 'gci_part'">
+	                                                <label class="text-xs font-semibold text-slate-600">Part GCI</label>
+	                                                <select
+	                                                    class="mt-1 w-full rounded-xl border-slate-200"
+	                                                    x-model="it.part_id"
+	                                                    :name="`items[${idx}][part_id]`"
+	                                                    :required="it.po_type === 'gci_part'"
+	                                                >
+	                                                    <option value="">Select part</option>
+	                                                    @foreach ($gciParts as $p)
+	                                                        <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+	                                                    @endforeach
+	                                                </select>
+	                                            </div>
+
+	                                            <div class="md:col-span-1">
+	                                                <label class="text-xs font-semibold text-slate-600">Qty</label>
+	                                                <input
+	                                                    type="number"
+	                                                    step="0.001"
+	                                                    min="0"
+	                                                    class="mt-1 w-full rounded-xl border-slate-200"
+	                                                    x-model="it.qty"
+	                                                    :name="`items[${idx}][qty]`"
+	                                                    required
+	                                                >
+	                                            </div>
+	                                        </div>
+	                                    </div>
+	                                </template>
+	                            </div>
+	                        </div>
+	                    </template>
 
                     <template x-if="mode === 'edit'">
                         <div class="text-xs text-slate-500">
@@ -195,10 +274,10 @@
                         </div>
                     </template>
 
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Qty</label>
-                        <input type="number" step="0.001" min="0" name="qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.qty">
-                    </div>
+	                    <div>
+	                        <label class="text-sm font-semibold text-slate-700">Qty</label>
+	                        <input type="number" step="0.001" min="0" name="qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.qty" x-show="mode === 'edit'">
+	                    </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
                         <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.status">
@@ -221,11 +300,11 @@
 
         <script>
             function planningCustomerPos() {
-                return {
+	                return {
                     modalOpen: false,
                     mode: 'create',
                     formAction: @js(route('planning.customer-pos.store')),
-                    form: {
+	                    form: {
                         id: null,
                         minggu: @js($minggu),
                         customer_id: '',
@@ -233,27 +312,45 @@
                         po_type: 'customer_part',
                         customer_part_no: '',
                         part_id: '',
-                        qty: '0',
-                        status: 'open',
-                        notes: '',
-                    },
-                    openCreate() {
-                        this.mode = 'create';
-                        this.formAction = @js(route('planning.customer-pos.store'));
-                        this.form = {
+	                        qty: '0',
+	                        status: 'open',
+	                        notes: '',
+	                        items: [],
+	                    },
+	                    _newItem(poType = 'customer_part') {
+	                        return {
+	                            _key: Date.now().toString() + Math.random().toString(16).slice(2),
+	                            po_type: poType,
+	                            customer_part_no: '',
+	                            part_id: '',
+	                            qty: '0',
+	                        };
+	                    },
+	                    addItem() {
+	                        this.form.items.push(this._newItem(this.form.po_type || 'customer_part'));
+	                    },
+	                    removeItem(idx) {
+	                        this.form.items.splice(idx, 1);
+	                        if (this.form.items.length < 1) this.addItem();
+	                    },
+	                    openCreate() {
+	                        this.mode = 'create';
+	                        this.formAction = @js(route('planning.customer-pos.store'));
+	                        this.form = {
                             id: null,
                             minggu: @js($minggu),
                             customer_id: '',
                             po_no: '',
                             po_type: 'customer_part',
                             customer_part_no: '',
-                            part_id: '',
-                            qty: '0',
-                            status: 'open',
-                            notes: '',
-                        };
-                        this.modalOpen = true;
-                    },
+	                            part_id: '',
+	                            qty: '0',
+	                            status: 'open',
+	                            notes: '',
+	                            items: [this._newItem('customer_part')],
+	                        };
+	                        this.modalOpen = true;
+	                    },
                     openEdit(o) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/customer-pos')) + '/' + o.id;

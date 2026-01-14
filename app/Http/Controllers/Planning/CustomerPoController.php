@@ -76,6 +76,72 @@ class CustomerPoController extends Controller
 
     public function store(Request $request)
     {
+        $hasItems = is_array($request->input('items')) && count((array) $request->input('items')) > 0;
+
+        if ($hasItems) {
+            $validated = $request->validate(array_merge(
+                $this->validateMinggu(),
+                [
+                    'customer_id' => ['required', Rule::exists('customers', 'id')],
+                    'po_no' => ['nullable', 'string', 'max:100'],
+                    'status' => ['required', Rule::in(['open', 'closed'])],
+                    'notes' => ['nullable', 'string'],
+                    'items' => ['required', 'array', 'min:1'],
+                    'items.*.po_type' => ['required', Rule::in(['customer_part', 'gci_part'])],
+                    'items.*.customer_part_no' => ['nullable', 'string', 'max:100', 'required_if:items.*.po_type,customer_part'],
+                    'items.*.part_id' => ['nullable', Rule::exists('gci_parts', 'id'), 'required_if:items.*.po_type,gci_part'],
+                    'items.*.qty' => ['required', 'numeric', 'min:0'],
+                ],
+            ));
+
+            $customerId = (int) $validated['customer_id'];
+            $poNo = $validated['po_no'] ? trim($validated['po_no']) : null;
+            $notes = $validated['notes'] ? trim($validated['notes']) : null;
+
+            foreach ($validated['items'] as $item) {
+                $poType = $item['po_type'];
+                $customerPartNo = null;
+                $partId = null;
+
+                if ($poType === 'customer_part') {
+                    $customerPartNo = strtoupper(trim((string) ($item['customer_part_no'] ?? '')));
+                    if ($customerPartNo === '') {
+                        return back()->with('error', 'Customer part is required.');
+                    }
+
+                    $mapping = CustomerPart::query()
+                        ->where('customer_id', $customerId)
+                        ->where('customer_part_no', $customerPartNo)
+                        ->withCount('components')
+                        ->first();
+                    if (!$mapping) {
+                        return back()->with('error', "Customer part not mapped: {$customerPartNo}");
+                    }
+                    if (($mapping->status ?? 'active') !== 'active' || $mapping->components_count < 1) {
+                        return back()->with('error', "Customer part mapping is incomplete/inactive: {$customerPartNo}");
+                    }
+                } else {
+                    $partId = isset($item['part_id']) ? (int) $item['part_id'] : null;
+                    if (!$partId) {
+                        return back()->with('error', 'GCI part is required.');
+                    }
+                }
+
+                CustomerPo::create([
+                    'po_no' => $poNo,
+                    'customer_id' => $customerId,
+                    'customer_part_no' => $customerPartNo,
+                    'part_id' => $partId,
+                    'minggu' => $validated['minggu'],
+                    'qty' => $item['qty'],
+                    'status' => $validated['status'],
+                    'notes' => $notes,
+                ]);
+            }
+
+            return back()->with('success', 'Customer PO created.');
+        }
+
         $validated = $request->validate(array_merge(
             $this->validateMinggu(),
             [
@@ -91,19 +157,24 @@ class CustomerPoController extends Controller
         ));
 
         $poType = $validated['po_type'] ?? 'customer_part';
-        $customerPartNo = $validated['customer_part_no'] ? strtoupper(trim($validated['customer_part_no'])) : null;
-        $partId = $validated['part_id'] ? (int) $validated['part_id'] : null;
+        $customerPartNo = null;
+        $partId = null;
 
-        // If customer part is provided, treat this PO as customer-part based (force translation via mapping).
-        if ($poType === 'customer_part' || $customerPartNo) {
-            $partId = null;
+        if ($poType === 'customer_part') {
+            $customerPartNo = $validated['customer_part_no'] ? strtoupper(trim($validated['customer_part_no'])) : null;
+        }
+        if ($poType === 'gci_part') {
+            $partId = $validated['part_id'] ? (int) $validated['part_id'] : null;
         }
 
-        if (!$customerPartNo && !$partId) {
-            return back()->with('error', 'PO must use customer part or GCI part.');
+        if ($poType === 'customer_part' && !$customerPartNo) {
+            return back()->with('error', 'Customer part is required.');
+        }
+        if ($poType === 'gci_part' && !$partId) {
+            return back()->with('error', 'GCI part is required.');
         }
 
-        if ($customerPartNo) {
+        if ($poType === 'customer_part' && $customerPartNo) {
             $mapping = CustomerPart::query()
                 ->where('customer_id', $validated['customer_id'])
                 ->where('customer_part_no', $customerPartNo)
