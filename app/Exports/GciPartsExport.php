@@ -15,6 +15,7 @@ class GciPartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
     public function query()
     {
         return GciPart::query()
+            ->where('classification', 'FG')
             ->select(['part_no', 'classification', 'part_name', 'model', 'status'])
             ->orderBy('part_no');
     }

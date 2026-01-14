@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\GciPart;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -111,6 +112,17 @@ class OutgoingDailyPlanningImport implements ToCollection
 
             if ($productionLine === '' && $partNo === '') {
                 continue;
+            }
+
+            // Validate that part_no exists in GCI Parts and is classified as FG
+            if ($partNo !== '') {
+                $gciPart = GciPart::query()->where('part_no', $partNo)->first();
+                if (!$gciPart) {
+                    throw new \Exception("Part No [{$partNo}] belum terdaftar di GCI Part. Hanya FG yang terdaftar yang bisa digunakan untuk outgoing.");
+                }
+                if ($gciPart->classification !== 'FG') {
+                    throw new \Exception("Part No [{$partNo}] bukan Finished Goods (FG). Outgoing hanya untuk FG, bukan RM atau WIP.");
+                }
             }
 
             $cells = [];

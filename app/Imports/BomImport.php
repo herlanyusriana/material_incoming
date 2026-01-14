@@ -111,6 +111,11 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             throw new \Exception("FG Part No [{$fgPartNo}] belum terdaftar di GCI Part.");
         }
 
+        // Validate that the part is classified as FG
+        if ($fg->classification !== 'FG') {
+            throw new \Exception("Part No [{$fgPartNo}] bukan Finished Goods (FG). Hanya FG yang bisa diimport sebagai BOM.");
+        }
+
         $bom = Bom::firstOrCreate(
             ['part_id' => $fg->id],
             ['status' => 'active']
@@ -124,9 +129,6 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $materialNameForRm = $this->firstNonEmpty($row, ['material_name']);
         $makeOrBuyRaw = $this->firstNonEmpty($row, ['make_or_buy', 'makebuy', 'make_buy']);
         $makeOrBuy = $this->normalizeMakeOrBuy($makeOrBuyRaw);
-
-        // Check if component exists in GCI (for 'make' items that might be FG themselves)
-        $componentGci = $this->getGciPart($rmPartNo);
 
         $lineNoRaw = $this->firstNonEmpty($row, ['no', 'line_no', 'line']);
         $lineNo = null;
@@ -179,7 +181,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'material_spec' => $materialSpec ? trim($materialSpec) : null,
             'material_name' => $materialName ? trim($materialName) : null,
             'special' => $special ? trim($special) : null,
-            'component_part_id' => $componentGci?->id,
+            'component_part_id' => null, // RM/WIP components are now strings only
             'component_part_no' => $rmPartNo,
             'make_or_buy' => $makeOrBuy,
             'usage_qty' => $usageQty ?? 1,
