@@ -180,12 +180,14 @@ class ArrivalController extends Controller
             }
         }
 
-        // Require TAG filled for all receive rows
-        $hasMissingTag = $arrival->items
-            ->flatMap(fn ($i) => $i->receives ?? collect())
-            ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
-        if ($hasMissingTag) {
-            return true;
+        // Require TAG filled for all receive rows (non-local only).
+        if (!$isLocal) {
+            $hasMissingTag = $arrival->items
+                ->flatMap(fn ($i) => $i->receives ?? collect())
+                ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
+            if ($hasMissingTag) {
+                return true;
+            }
         }
 
         foreach ($arrival->items as $item) {

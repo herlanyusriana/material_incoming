@@ -51,6 +51,26 @@
                     </div>
                 </div>
 
+                @if ($isLocal)
+                    <div class="bg-white rounded-xl p-6 border border-slate-200">
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Input Mode</h4>
+                        <div class="flex flex-wrap items-center gap-6 text-sm">
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="tag_mode" value="no_tag" class="rounded border-slate-300" @checked(old('tag_mode', 'no_tag') === 'no_tag')>
+                                <span class="font-semibold text-slate-800">No TAG (1 form / item)</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2">
+                                <input type="radio" name="tag_mode" value="with_tag" class="rounded border-slate-300" @checked(old('tag_mode') === 'with_tag')>
+                                <span class="font-semibold text-slate-800">With TAG (auto generate per package)</span>
+                            </label>
+                            <div class="text-xs text-slate-500">
+                                No TAG: input sekali total package + total qty. With TAG: TAG otomatis dibuat sesuai jumlah package.
+                            </div>
+                        </div>
+                        @error('tag_mode') <p class="text-xs text-red-600 mt-2">{{ $message }}</p> @enderror
+                    </div>
+                @endif
+
                 <div class="bg-white rounded-xl p-6 border border-slate-200">
                     <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Receiving Date</h4>
                     <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
@@ -143,7 +163,7 @@
                             </div>
                         </div>
 
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto tag-mode">
                             <table class="min-w-full divide-y divide-slate-200">
                                 <thead class="bg-white">
                                     <tr>
@@ -225,6 +245,63 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        @if ($isLocal)
+                            <div class="overflow-x-auto no-tag-mode">
+                                <table class="min-w-full divide-y divide-slate-200">
+                                    <thead class="bg-white">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Gross Weight (KGM)</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-3 py-2 align-top">
+                                                <input type="text" name="items[{{ $item->id }}][summary][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
+                                            </td>
+                                            <td class="px-3 py-2 align-top">
+                                                @php
+                                                    $defaultBundleUnit = strtoupper($item->unit_bundle ?? 'PALLET');
+                                                @endphp
+                                                <div class="flex items-center gap-2">
+                                                    <input type="number" name="items[{{ $item->id }}][summary][bundle_qty]" min="0" value="{{ (int) ($item->qty_bundle ?? 0) }}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                    <select name="items[{{ $item->id }}][summary][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                        <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
+                                                        <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
+                                                        <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
+                                                    </select>
+                                                </div>
+                                            </td>
+                                            <td class="px-3 py-2 align-top">
+                                                @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
+                                                <div class="flex items-center gap-2">
+                                                    <input type="number" name="items[{{ $item->id }}][summary][qty]" min="0" placeholder="0" class="no-tag-qty w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
+                                                    <input type="hidden" name="items[{{ $item->id }}][summary][qty_unit]" value="{{ $defaultGoodsUnit }}">
+                                                    <span class="w-24 text-center text-xs font-semibold text-slate-700">{{ $defaultGoodsUnit }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-3 py-2 align-top">
+                                                <input type="number" name="items[{{ $item->id }}][summary][net_weight]" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                            </td>
+                                            <td class="px-3 py-2 align-top">
+                                                <input type="number" name="items[{{ $item->id }}][summary][gross_weight]" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                            </td>
+                                            <td class="px-3 py-2 align-top">
+                                                <select name="items[{{ $item->id }}][summary][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                    <option value="pass">Pass</option>
+                                                    <option value="reject">Reject</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
 
@@ -239,6 +316,12 @@
     </div>
 
     <script>
+        const isLocal = {{ $isLocal ? 'true' : 'false' }};
+        function getTagMode() {
+            const checked = document.querySelector('input[name="tag_mode"]:checked');
+            return checked ? checked.value : null;
+        }
+
         const tagIndexes = {};
         const remainingMap = {};
         const inputTotals = {};
@@ -249,6 +332,13 @@
             remainingMap[itemId] = Number(document.getElementById(`remaining-${itemId}`).textContent.replace(/,/g, '')) || 0;
             inputTotals[itemId] = 0;
         });
+
+        function applyModeUi() {
+            if (!isLocal) return;
+            const mode = getTagMode() || 'no_tag';
+            document.querySelectorAll('.tag-mode').forEach(el => el.classList.toggle('hidden', mode !== 'with_tag'));
+            document.querySelectorAll('.no-tag-mode').forEach(el => el.classList.toggle('hidden', mode !== 'no_tag'));
+        }
 
         function updateTotals(itemId) {
             const rows = document.querySelectorAll(`.tag-rows[data-item="${itemId}"] input.qty-input`);
@@ -334,6 +424,7 @@
 
         document.querySelectorAll('.add-tag-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+                if (isLocal && (getTagMode() || 'no_tag') !== 'with_tag') return;
                 const itemId = btn.dataset.item;
                 const tbody = document.querySelector(`.tag-rows[data-item="${itemId}"]`);
                 const idx = tagIndexes[itemId] ?? 0;
@@ -353,42 +444,90 @@
             });
         });
 
-	        document.querySelectorAll('.tag-rows').forEach(tbody => {
-	            const itemId = tbody.dataset.item;
-	            const bundleCount = Number(tbody.dataset.bundles || '0');
-	            const firstNetWeightInput = tbody.querySelector('input[name$="[net_weight]"], input[name$="[weight]"]');
-	            tbody.dataset.defaultWeight = firstNetWeightInput ? firstNetWeightInput.value || '' : '';
+        function initTagTablesIfNeeded() {
+            const mode = isLocal ? (getTagMode() || 'no_tag') : 'with_tag';
+            if (mode !== 'with_tag') return;
 
-            const sizeText = tbody.dataset.size || '';
-            const partNo = tbody.dataset.partNo || '';
-            const partName = tbody.dataset.partName || '';
-            const defaultWeight = tbody.dataset.defaultWeight;
-            const goodsUnit = tbody.dataset.goodsUnit || 'KGM';
+            document.querySelectorAll('.tag-rows').forEach(tbody => {
+                const itemId = tbody.dataset.item;
+                const bundleCount = Number(tbody.dataset.bundles || '0');
+                const firstNetWeightInput = tbody.querySelector('input[name$="[net_weight]"], input[name$="[weight]"]');
+                tbody.dataset.defaultWeight = firstNetWeightInput ? firstNetWeightInput.value || '' : '';
 
-            tbody.innerHTML = '';
+                const sizeText = tbody.dataset.size || '';
+                const partNo = tbody.dataset.partNo || '';
+                const partName = tbody.dataset.partName || '';
+                const defaultWeight = tbody.dataset.defaultWeight;
+                const goodsUnit = tbody.dataset.goodsUnit || 'KGM';
 
-            const rowsToCreate = bundleCount > 0 ? bundleCount : 1;
+                tbody.innerHTML = '';
 
-            for (let idx = 0; idx < rowsToCreate; idx++) {
-                const row = document.createElement('tr');
-                row.className = 'tag-row hover:bg-slate-50 transition-colors';
-                row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit);
-                tbody.appendChild(row);
-                bindRowEvents(row, itemId);
-            }
+                const rowsToCreate = bundleCount > 0 ? bundleCount : 1;
 
-            tagIndexes[itemId] = rowsToCreate;
-            updateTotals(itemId);
-        });
+                for (let idx = 0; idx < rowsToCreate; idx++) {
+                    const row = document.createElement('tr');
+                    row.className = 'tag-row hover:bg-slate-50 transition-colors';
+                    row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit);
+                    tbody.appendChild(row);
+                    bindRowEvents(row, itemId);
+                }
+
+                if (isLocal) {
+                    tbody.querySelectorAll('input[name*="[tag]"]').forEach((input, i) => {
+                        if (input.value && String(input.value).trim() !== '') return;
+                        input.value = `${String(itemId).padStart(3, '0')}-${String(i + 1).padStart(3, '0')}`;
+                    });
+                }
+
+                tagIndexes[itemId] = rowsToCreate;
+                updateTotals(itemId);
+            });
+        }
+
+        function initNoTagTotals() {
+            if (!isLocal) return;
+            document.querySelectorAll('input.no-tag-qty').forEach(input => {
+                const itemId = input.dataset.item;
+                input.addEventListener('input', () => {
+                    const totalEl = document.getElementById(`input-total-${itemId}`);
+                    const value = Number(input.value) || 0;
+                    if (totalEl) totalEl.textContent = value;
+                });
+            });
+        }
+
+        if (isLocal) {
+            document.querySelectorAll('input[name="tag_mode"]').forEach(r => {
+                r.addEventListener('change', () => {
+                    applyModeUi();
+                    initTagTablesIfNeeded();
+                });
+            });
+        }
+
+        applyModeUi();
+        initNoTagTotals();
+        initTagTablesIfNeeded();
 
         document.getElementById('receive-form').addEventListener('submit', function (e) {
             let hasError = false;
-            Object.keys(remainingMap).forEach(itemId => {
-                updateTotals(itemId);
-                if (inputTotals[itemId] > remainingMap[itemId]) {
-                    hasError = true;
-                }
-            });
+            const mode = isLocal ? (getTagMode() || 'no_tag') : 'with_tag';
+            if (mode === 'with_tag') {
+                Object.keys(remainingMap).forEach(itemId => {
+                    updateTotals(itemId);
+                    if (inputTotals[itemId] > remainingMap[itemId]) {
+                        hasError = true;
+                    }
+                });
+            } else if (mode === 'no_tag') {
+                document.querySelectorAll('input.no-tag-qty').forEach(input => {
+                    const itemId = input.dataset.item;
+                    const value = Number(input.value) || 0;
+                    if (value > (remainingMap[itemId] || 0)) {
+                        hasError = true;
+                    }
+                });
+            }
             if (hasError) {
                 e.preventDefault();
                 alert('Ada qty yang melebihi sisa. Mohon periksa kembali.');

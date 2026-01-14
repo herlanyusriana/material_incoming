@@ -39,12 +39,14 @@ class ReceiveController extends Controller
             }
         }
 
-        // Require TAG filled for all receive rows
-        $hasMissingTag = $arrival->items
-            ->flatMap(fn ($i) => $i->receives ?? collect())
-            ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
-        if ($hasMissingTag) {
-            return true;
+        // Require TAG filled for all receive rows (non-local only).
+        if (!$isLocal) {
+            $hasMissingTag = $arrival->items
+                ->flatMap(fn ($i) => $i->receives ?? collect())
+                ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
+            if ($hasMissingTag) {
+                return true;
+            }
         }
 
         foreach ($arrival->items as $item) {
@@ -355,7 +357,7 @@ class ReceiveController extends Controller
                 ]);
 
                 if (($tagData['qc_status'] ?? 'pass') === 'pass') {
-                    $receiveQtyForInventory += (float) $tagData['qty'];
+                    $receiveQtyForInventory += $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
                 }
             }
 
@@ -394,30 +396,83 @@ class ReceiveController extends Controller
         $arrival->loadMissing(['vendor', 'items.receives']);
         $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
 
-        $validated = $request->validate([
+        $tagMode = $isLocal ? (string) $request->input('tag_mode', 'no_tag') : 'with_tag';
+        if (!in_array($tagMode, ['with_tag', 'no_tag'], true)) {
+            $tagMode = $isLocal ? 'no_tag' : 'with_tag';
+        }
+
+        $rules = [
             'receive_date' => ['required', 'date'],
             'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
-            'items' => 'required|array|min:1',
-            'items.*.tags' => 'nullable|array',
-            'items.*.tags.*.tag' => 'required_with:items.*.tags|string|max:255',
-            'items.*.tags.*.qty' => 'required_with:items.*.tags|integer|min:1',
-            'items.*.tags.*.bundle_qty' => 'nullable|integer|min:0',
-            'items.*.tags.*.bundle_unit' => 'required_with:items.*.tags|in:PALLET,BUNDLE,BOX',
-            'items.*.tags.*.location_code' => 'nullable|string|max:50',
-            // Backward compatible: old form used `weight`
-            'items.*.tags.*.weight' => 'nullable|numeric',
-            'items.*.tags.*.net_weight' => 'nullable|numeric',
-            'items.*.tags.*.gross_weight' => 'nullable|numeric',
-            'items.*.tags.*.qty_unit' => 'required_with:items.*.tags|in:KGM,KG,PCS,COIL,SHEET,SET,EA',
-            'items.*.tags.*.qc_status' => 'required_with:items.*.tags|in:pass,reject',
-        ]);
+            'tag_mode' => $isLocal ? ['required', 'in:with_tag,no_tag'] : ['nullable'],
+            'items' => ['required', 'array', 'min:1'],
+        ];
 
-        $itemsInput = collect($validated['items'])
-            ->filter(fn ($item) => !empty($item['tags']))
-            ->all();
+        if ($tagMode === 'no_tag') {
+            $rules += [
+                'items.*.summary' => ['nullable', 'array'],
+                'items.*.summary.qty' => ['nullable', 'integer', 'min:0'],
+                'items.*.summary.bundle_qty' => ['nullable', 'integer', 'min:0'],
+                'items.*.summary.bundle_unit' => ['nullable', 'in:PALLET,BUNDLE,BOX'],
+                'items.*.summary.location_code' => ['nullable', 'string', 'max:50'],
+                'items.*.summary.net_weight' => ['nullable', 'numeric'],
+                'items.*.summary.gross_weight' => ['nullable', 'numeric'],
+                'items.*.summary.qty_unit' => ['nullable', 'in:KGM,KG,PCS,COIL,SHEET,SET,EA'],
+                'items.*.summary.qc_status' => ['nullable', 'in:pass,reject'],
+            ];
+        } else {
+            $rules += [
+                'items.*.tags' => ['nullable', 'array'],
+                'items.*.tags.*.tag' => ['required_with:items.*.tags', 'string', 'max:255'],
+                'items.*.tags.*.qty' => ['required_with:items.*.tags', 'integer', 'min:1'],
+                'items.*.tags.*.bundle_qty' => ['nullable', 'integer', 'min:0'],
+                'items.*.tags.*.bundle_unit' => ['required_with:items.*.tags', 'in:PALLET,BUNDLE,BOX'],
+                'items.*.tags.*.location_code' => ['nullable', 'string', 'max:50'],
+                // Backward compatible: old form used `weight`
+                'items.*.tags.*.weight' => ['nullable', 'numeric'],
+                'items.*.tags.*.net_weight' => ['nullable', 'numeric'],
+                'items.*.tags.*.gross_weight' => ['nullable', 'numeric'],
+                'items.*.tags.*.qty_unit' => ['required_with:items.*.tags', 'in:KGM,KG,PCS,COIL,SHEET,SET,EA'],
+                'items.*.tags.*.qc_status' => ['required_with:items.*.tags', 'in:pass,reject'],
+            ];
+        }
+
+        $validated = $request->validate($rules);
+
+        $itemsInput = [];
+        if ($tagMode === 'no_tag') {
+            foreach (($validated['items'] ?? []) as $itemId => $itemData) {
+                $summary = is_array($itemData['summary'] ?? null) ? $itemData['summary'] : null;
+                $qty = (int) ($summary['qty'] ?? 0);
+                if ($qty <= 0) {
+                    continue;
+                }
+                $itemsInput[$itemId] = [
+                    'tags' => [[
+                        'tag' => null,
+                        'qty' => $qty,
+                        'bundle_qty' => (int) ($summary['bundle_qty'] ?? 0),
+                        'bundle_unit' => $summary['bundle_unit'] ?? null,
+                        'location_code' => $summary['location_code'] ?? null,
+                        'net_weight' => $summary['net_weight'] ?? null,
+                        'gross_weight' => $summary['gross_weight'] ?? null,
+                        'qty_unit' => $summary['qty_unit'] ?? null,
+                        'qc_status' => $summary['qc_status'] ?? 'pass',
+                    ]],
+                ];
+            }
+        } else {
+            $itemsInput = collect($validated['items'])
+                ->filter(fn ($item) => !empty($item['tags']))
+                ->all();
+        }
 
         if (empty($itemsInput)) {
-            return back()->withErrors(['items' => 'Tambah minimal satu tag pada salah satu item.'])->withInput();
+            return back()->withErrors([
+                'items' => $tagMode === 'no_tag'
+                    ? 'Isi minimal satu item (qty) untuk receive.'
+                    : 'Tambah minimal satu tag pada salah satu item.',
+            ])->withInput();
         }
 
         foreach ($itemsInput as $itemId => $itemData) {
@@ -477,7 +532,7 @@ class ReceiveController extends Controller
                         }
                     }
                     $arrivalItem->receives()->create([
-                        'tag' => $tagData['tag'],
+                        'tag' => $tagData['tag'] ?? null,
                         'qty' => $tagData['qty'],
                         'bundle_unit' => $tagData['bundle_unit'] ?? null,
                         'bundle_qty' => $tagData['bundle_qty'] ?? 0,
@@ -495,7 +550,8 @@ class ReceiveController extends Controller
 
                     if (($tagData['qc_status'] ?? 'pass') === 'pass') {
                         $partId = (int) $arrivalItem->part_id;
-                        $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + (float) $tagData['qty'];
+                        $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
+                        $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + $addQty;
                     }
                 }
             }
