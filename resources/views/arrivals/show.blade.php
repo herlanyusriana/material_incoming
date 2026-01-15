@@ -156,7 +156,11 @@
 	                    </div>
 	                    <div class="flex items-start gap-2">
 	                        <span class="font-semibold text-slate-700 min-w-[100px]">ETD:</span>
-	                        <span class="text-slate-900">{{ $arrival->ETD ?: '-' }}</span>
+	                        <span class="text-slate-900">{{ $arrival->ETD ? $arrival->ETD->format('Y-m-d') : '-' }}</span>
+	                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Seal Code:</span>
+	                        <span class="text-slate-900 font-semibold">{{ $arrival->seal_code ?: '-' }}</span>
 	                    </div>
 		                    <div class="flex items-start gap-2">
 		                        <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
@@ -199,16 +203,13 @@
                         <span class="text-slate-900">{{ $arrival->port_of_loading ?: '-' }}</span>
                     </div>
 	                    <div class="flex items-start gap-2 sm:col-span-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Containers & Seal:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Containers:</span>
 	                        <span class="text-slate-900">
 	                            @if ($containerDetails->count())
 	                                <div class="space-y-1">
 	                                    @foreach ($containerDetails as $idx => $row)
 	                                        <div class="text-sm">
 	                                            {{ $idx + 1 }}. {{ $row['container_no'] }}
-	                                            @if (!empty($row['seal_code']))
-	                                                <span class="text-slate-500">— SEAL {{ $row['seal_code'] }}</span>
-	                                            @endif
 	                                        </div>
 	                                    @endforeach
 	                                </div>
@@ -429,7 +430,7 @@
                                 <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Qty Goods</th>
                                 <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Nett (kg)</th>
                                 <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Gross (kg)</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Price</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Price /KG</th>
                                 <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Total</th>
                                 <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Received</th>
                                 <th class="px-4 py-3 text-center font-semibold whitespace-nowrap">Actions</th>
@@ -458,7 +459,10 @@
                                     <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ $item->qty_goods }}</td>
                                     <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ number_format($item->weight_nett, 0) }}</td>
                                     <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ number_format($item->weight_gross, 0) }}</td>
-                                    <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ number_format($item->price, 3) }}</td>
+                                    <td class="px-4 py-4 text-slate-700 whitespace-nowrap">
+                                        {{ number_format($item->price, 3) }}
+                                        <span class="text-[10px] text-slate-500 ml-0.5">/{{ $item->unit_weight ?? 'KG' }}</span>
+                                    </td>
                                     <td class="px-4 py-4 text-slate-800 font-semibold whitespace-nowrap">{{ number_format($item->total_price, 2) }}</td>
                                     <td class="px-4 py-4">
                                         <div class="text-slate-800 font-semibold">{{ number_format($receivedQty) }}</div>

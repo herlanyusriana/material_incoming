@@ -93,17 +93,22 @@
                             </div>
                         </div>
 
-	                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                                    HS Code akan otomatis ter-generate dari detail item (tidak perlu input manual).
-                                </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label for="hs_code" class="text-sm font-medium text-slate-700">Primary HS Code</label>
+                                <input type="text" id="hs_code" name="hs_code" value="{{ old('hs_code', $arrival->hs_code) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="e.g. 72269999">
                             </div>
-	                        <div class="space-y-1">
-	                            <label for="currency" class="text-sm font-medium text-slate-700">Currency</label>
-	                            <input type="text" id="currency" name="currency" value="{{ old('currency', $arrival->currency) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
-	                        </div>
-	                    </div>
+                            <div class="space-y-1">
+                                <label for="currency" class="text-sm font-medium text-slate-700">Currency</label>
+                                <input type="text" id="currency" name="currency" value="{{ old('currency', $arrival->currency) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label for="hs_codes" class="text-sm font-medium text-slate-700">All HS Codes (one per line, as shown on Invoice)</label>
+                            <textarea id="hs_codes" name="hs_codes" rows="2" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="72269999\n72259900">{{ old('hs_codes', $arrival->hs_codes) ?: $arrival->hs_code }}</textarea>
+                            <p class="text-[10px] text-slate-500 italic">Siapkan nomor HS yang muncul di cetakan invoice. Kosongkan untuk auto-generate dari sistem.</p>
+                        </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">

@@ -573,16 +573,18 @@
 	    $totalNett = $arrival->items->sum(fn($i) => (float)($i->weight_nett ?? 0));
 	    $totalGross = $arrival->items->sum(fn($i) => (float)($i->weight_gross ?? 0));
 	    $totalAmount = $arrival->items->sum(fn($i) => (float)($i->total_price ?? 0));
-	    // HS Code display must be based on per-part HS Code and must not duplicate.
-	    $hsCodesDisplay = $arrival->items
-	        ->pluck('part.hs_code')
-	        ->filter(fn ($code) => trim((string) $code) !== '')
-	        ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
-	        ->map(fn ($code) => strtoupper(trim((string) $code)))
-	        ->filter()
-	        ->unique()
-	        ->values()
-	        ->implode("\n");
+	    $hsCodesDisplay = $arrival->hs_codes ?: $arrival->hs_code;
+	    if (empty($hsCodesDisplay)) {
+	        $hsCodesDisplay = $arrival->items
+	            ->pluck('part.hs_code')
+	            ->filter(fn ($code) => trim((string) $code) !== '')
+	            ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
+	            ->map(fn ($code) => strtoupper(trim((string) $code)))
+	            ->filter()
+	            ->unique()
+	            ->values()
+	            ->implode("\n");
+	    }
 	    $hasBundleData = $arrival->items->contains(function ($item) {
 	        return ($item->qty_bundle ?? 0) > 0;
 	    });
@@ -808,11 +810,8 @@
                                     <td class="ci-center" style="white-space:nowrap;">{{ $qtyText }}</td>
                                     <td class="ci-center" style="white-space:nowrap;">{{ $nettText }}</td>
                                     <td class="ci-right" style="white-space:nowrap;">
-                                        @if(($goodsUnitLabel === 'COIL' || $showWeightOnly) && $hasWeight)
+                                        @if($hasWeight)
                                             USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}
-                                        @elseif(!$showWeightOnly && $hasWeight)
-                                            <div style="white-space:nowrap;">USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}</div>
-                                            <div style="white-space:nowrap;">USD {{ $pricePerWeight }} /{{ $unitWeightLabel }}</div>
                                         @else
                                             USD {{ $pricePerGoods }} /{{ $goodsUnitLabel }}
                                         @endif
@@ -862,14 +861,11 @@
                                             <div style="margin-top:14px; font-weight:bold;">BILL OF LADING : {{ strtoupper($arrival->bill_of_lading ?? '-') }}</div>
                                             <div style="font-weight:bold;">PRICE TERM : {{ strtoupper($arrival->price_term ?? '-') }}</div>
 
-                                            <div style="margin-top:14px; font-weight:bold;">CONTAINERS &amp; SEAL :</div>
+                                            <div style="margin-top:14px; font-weight:bold;">CONTAINERS :</div>
                                             @if($arrival->containers->count())
                                                 @foreach($arrival->containers as $container)
                                                     <div style="white-space:nowrap;">
                                                         {{ $loop->iteration }}. {{ strtoupper(trim($container->container_no)) }}
-                                                        @if($container->seal_code)
-                                                            / {{ strtoupper(trim($container->seal_code)) }}
-                                                        @endif
                                                     </div>
                                                 @endforeach
                                             @elseif($arrival->container_numbers)
@@ -878,9 +874,20 @@
                                                         <div style="white-space:nowrap;">{{ $loop->iteration }}. {{ strtoupper(trim($container)) }}</div>
                                                     @endif
                                                 @endforeach
-                                                @if($arrival->seal_code)
-                                                    <div style="white-space:nowrap;"><strong>SEAL CODE :</strong> {{ strtoupper(trim($arrival->seal_code)) }}</div>
-                                                @endif
+                                            @else
+                                                <div>-</div>
+                                            @endif
+
+                                            <div style="margin-top:10px; font-weight:bold;">SEAL CODE :</div>
+                                            @php
+                                                $allSeals = collect();
+                                                if($arrival->seal_code) $allSeals->push($arrival->seal_code);
+                                                if($arrival->containers->count()) {
+                                                    $allSeals = $allSeals->concat($arrival->containers->pluck('seal_code'))->filter()->unique();
+                                                }
+                                            @endphp
+                                            @if($allSeals->count())
+                                                <div>{{ $allSeals->map(fn($s) => strtoupper(trim($s)))->implode(', ') }}</div>
                                             @else
                                                 <div>-</div>
                                             @endif

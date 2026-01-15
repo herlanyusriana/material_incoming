@@ -98,11 +98,17 @@
 	                            <input type="text" id="port_of_loading" name="port_of_loading" value="{{ old('port_of_loading') }}" placeholder="e.g., HOCHIMINH, VIET NAM" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
 	                            @error('port_of_loading') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
 	                        </div>
-                                <div class="md:col-span-2">
-                                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                                        HS Code akan otomatis ter-generate dari detail item (tidak perlu input manual).
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="space-y-1">
+                                        <label for="hs_code" class="text-sm font-medium text-gray-700">Primary HS Code</label>
+                                        <input type="text" id="hs_code" name="hs_code" value="{{ old('hs_code') }}" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="e.g. 72269999">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label for="hs_codes" class="text-sm font-medium text-gray-700">All HS Codes</label>
+                                        <textarea id="hs_codes" name="hs_codes" rows="1" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="One per line (optional)">{{ old('hs_codes') }}</textarea>
                                     </div>
                                 </div>
+                                <p class="text-[10px] text-gray-500 mt-1">Nomor HS akan otomatis ter-generate jika dikosongkan.</p>
 		                    </div>
 		                </div>
 

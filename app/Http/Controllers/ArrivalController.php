@@ -266,6 +266,8 @@ class ArrivalController extends Controller
 		            'port_of_loading' => ['nullable', 'string', 'max:255'],
 		            'container_numbers' => ['nullable', 'string'],
 		            'seal_code' => ['nullable', 'string', 'max:100'],
+                    'hs_code' => ['nullable', 'string', 'max:50'],
+                    'hs_codes' => ['nullable', 'string'],
 	            'containers' => ['nullable', 'array'],
             'containers.*.container_no' => ['required_with:containers', 'string', 'max:50', 'distinct'],
             'containers.*.seal_code' => ['required_with:containers.*.container_no', 'string', 'max:100'],
@@ -341,10 +343,10 @@ class ArrivalController extends Controller
                 ? $normalizedContainers->pluck('container_no')->implode("\n")
                 : ($validated['container_numbers'] ?? null);
 
-		            $normalizedHsCodes = $this->inferHsCodesFromItems($validated['items'] ?? []);
-		            $hsCodePrimary = $normalizedHsCodes
+		            $normalizedHsCodes = $this->normalizeHsCodes($validated['hs_codes'] ?? null) ?: $this->inferHsCodesFromItems($validated['items'] ?? []);
+		            $hsCodePrimary = strtoupper(trim((string) ($validated['hs_code'] ?? ''))) ?: ($normalizedHsCodes
 		                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-		                : null;
+		                : null);
 
 		            $arrivalData = [
 		                'invoice_no' => $validated['invoice_no'],
@@ -497,6 +499,8 @@ class ArrivalController extends Controller
 	            'container_numbers' => ['nullable', 'string'],
 	            'seal_code' => ['nullable', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
+            'hs_code' => ['nullable', 'string', 'max:50'],
+            'hs_codes' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -508,10 +512,8 @@ class ArrivalController extends Controller
             }
 
             $departure->loadMissing('items');
-	        $normalizedHsCodes = $this->inferHsCodesFromItems($departure->items);
-	        $hsCodePrimary = $normalizedHsCodes
-	            ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-	            : null;
+	        $normalizedHsCodes = $this->normalizeHsCodes($data['hs_codes'] ?? null) ?: $this->inferHsCodesFromItems($departure->items);
+	        $hsCodePrimary = strtoupper(trim((string) ($data['hs_code'] ?? ''))) ?: (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null);
 
 		        $departureData = [
 		            'invoice_no' => $data['invoice_no'],
