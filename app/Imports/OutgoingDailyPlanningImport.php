@@ -114,14 +114,43 @@ class OutgoingDailyPlanningImport implements ToCollection
                 continue;
             }
 
-            // Validate that part_no exists in GCI Parts and is classified as FG
+            // Resolve part_no to a GCI Part ID (FG only)
+            // First try direct GCI Part lookup, then customer part mapping
+            $gciPartId = null;
+            
             if ($partNo !== '') {
-                $gciPart = GciPart::query()->where('part_no', $partNo)->first();
-                if (!$gciPart) {
-                    throw new \Exception("Part No [{$partNo}] belum terdaftar di GCI Part. Hanya FG yang terdaftar yang bisa digunakan untuk outgoing.");
-                }
-                if ($gciPart->classification !== 'FG') {
-                    throw new \Exception("Part No [{$partNo}] bukan Finished Goods (FG). Outgoing hanya untuk FG, bukan RM atau WIP.");
+                // Try direct GCI Part lookup (FG only)
+                $gciPart = GciPart::query()
+                    ->where('part_no', $partNo)
+                    ->where('classification', 'FG')
+                    ->first();
+                
+                if ($gciPart) {
+                    $gciPartId = $gciPart->id;
+                } else {
+                    // Try customer part mapping lookup
+                    $customerPart = \App\Models\CustomerPart::query()
+                        ->where('customer_part_no', $partNo)
+                        ->where('status', 'active')
+                        ->with(['components.part' => function($q) {
+                            $q->where('classification', 'FG');
+                        }])
+                        ->first();
+                    
+                    if ($customerPart) {
+                        $fgComponents = $customerPart->components->filter(fn($c) => 
+                            $c->part && $c->part->classification === 'FG'
+                        );
+                        
+                        if ($fgComponents->isEmpty()) {
+                            throw new \Exception("Customer Part [{$partNo}] tidak memiliki mapping ke FG GCI Part. Outgoing hanya untuk FG.");
+                        }
+                        
+                        // Use the first FG component
+                        $gciPartId = $fgComponents->first()->part_id;
+                    } else {
+                        throw new \Exception("Part No [{$partNo}] tidak ditemukan di GCI Part maupun Customer Part Mapping.");
+                    }
                 }
             }
 
@@ -139,7 +168,7 @@ class OutgoingDailyPlanningImport implements ToCollection
                 'row_no' => $rowNo,
                 'production_line' => $productionLine,
                 'part_no' => $partNo,
-                'gci_part_id' => isset($gciPart) ? $gciPart->id : null,
+                'gci_part_id' => $gciPartId,
                 'cells' => $cells,
             ];
         }
