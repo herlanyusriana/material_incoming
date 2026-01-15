@@ -182,14 +182,16 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3">
-                                        @php
-                                            $statusClass = match ($row->row_status) {
-                                                'accepted' => 'bg-emerald-100 text-emerald-800',
+                                            @php
+                                                $statusClass = match ($row->row_status) {
+                                                    'accepted' => 'bg-emerald-100 text-emerald-800',
                                                     'unknown_mapping' => 'bg-amber-100 text-amber-800',
                                                     default => 'bg-red-100 text-red-800',
                                                 };
                                             @endphp
-
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold {{ $statusClass }}">
+                                                {{ strtoupper(str_replace('_', ' ', $row->row_status)) }}
+                                            </span>
                                         </td>
                                         <td class="px-4 py-3 text-slate-500">{{ $row->error_message ?? '-' }}</td>
                                     </tr>
