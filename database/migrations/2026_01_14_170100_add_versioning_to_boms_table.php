@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -14,6 +15,7 @@ return new class extends Migration
             }
             if (!Schema::hasColumn('boms', 'effective_date')) {
                 $table->date('effective_date')->default(now())->after('revision');
+                $table->index('effective_date');
             }
             if (!Schema::hasColumn('boms', 'end_date')) {
                 $table->date('end_date')->nullable()->after('effective_date');
@@ -21,35 +23,35 @@ return new class extends Migration
             if (!Schema::hasColumn('boms', 'change_reason')) {
                 $table->text('change_reason')->nullable()->after('end_date');
             }
-            
-            // Re-check for index to be safe
-            $conn = Schema::getConnection();
-            $indexes = $conn->getDoctrineSchemaManager()->listTableIndexes('boms');
-            if (!array_key_exists('boms_effective_date_index', $indexes)) {
-                $table->index('effective_date');
-            }
         });
         
         // Handle unique constraint separately
-        Schema::table('boms', function (Blueprint $table) {
-            $conn = Schema::getConnection();
-            $indexes = $conn->getDoctrineSchemaManager()->listTableIndexes('boms');
-            
-            // Check if old unique exists before dropping
-            if (array_key_exists('boms_part_id_unique', $indexes)) {
-                $table->dropUnique(['part_id']);
-            }
-        });
+        // We check if the composite unique exists by querying information_schema
+        $db = DB::getDatabaseName();
+        $table = DB::getTablePrefix() . 'boms';
         
-        Schema::table('boms', function (Blueprint $table) {
-            $conn = Schema::getConnection();
-            $indexes = $conn->getDoctrineSchemaManager()->listTableIndexes('boms');
-            
-            // Add new unique if it doesn't exist
-            if (!array_key_exists('boms_part_id_revision_unique', $indexes)) {
+        $compositeExists = count(DB::select("
+            SELECT index_name FROM information_schema.statistics 
+            WHERE table_schema = ? AND table_name = ? AND index_name = 'boms_part_id_revision_unique'
+        ", [$db, $table])) > 0;
+
+        if (!$compositeExists) {
+            Schema::table('boms', function (Blueprint $table) {
+                // Drop old single unique if it exists
+                $db = DB::getDatabaseName();
+                $table_name = DB::getTablePrefix() . 'boms';
+                $oldExists = count(DB::select("
+                    SELECT index_name FROM information_schema.statistics 
+                    WHERE table_schema = ? AND table_name = ? AND index_name = 'boms_part_id_unique'
+                ", [$db, $table_name])) > 0;
+
+                if ($oldExists) {
+                    $table->dropUnique(['part_id']);
+                }
+                
                 $table->unique(['part_id', 'revision']);
-            }
-        });
+            });
+        }
     }
 
     public function down(): void
