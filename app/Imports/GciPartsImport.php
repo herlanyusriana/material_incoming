@@ -53,6 +53,10 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             $data['status'] = in_array($status, ['active', 'inactive'], true) ? $status : 'active';
         }
 
+        if (array_key_exists('customer', $data)) {
+            $data['customer'] = strtoupper((string) ($this->norm($data['customer']) ?? ''));
+        }
+
         return $data;
     }
 
@@ -72,9 +76,17 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             $status = 'active';
         }
 
+        $customerId = null;
+        $customerCode = $this->norm($row['customer'] ?? null);
+        if ($customerCode) {
+            $customer = \App\Models\Customer::where('code', strtoupper($customerCode))->first();
+            $customerId = $customer?->id;
+        }
+
         GciPart::updateOrCreate(
             ['part_no' => $partNo],
             [
+                'customer_id' => $customerId,
                 'classification' => $classification,
                 'part_name' => $partName !== null && $partName !== '' ? $partName : $partNo,
                 'model' => $model,
@@ -95,6 +107,7 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'part_name_gci' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'customer' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

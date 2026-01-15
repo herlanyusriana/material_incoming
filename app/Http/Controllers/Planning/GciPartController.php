@@ -19,13 +19,16 @@ class GciPartController extends Controller
         $classification = $request->query('classification');
 
         $parts = GciPart::query()
+            ->with('customer')
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($classification, fn ($q) => $q->where('classification', strtoupper($classification)))
             ->orderBy('part_no')
             ->paginate(25)
             ->withQueryString();
 
-        return view('planning.gci_parts.index', compact('parts', 'status', 'classification'));
+        $customers = \App\Models\Customer::where('status', 'active')->orderBy('name')->get();
+
+        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers'));
     }
 
     public function export()
@@ -63,6 +66,7 @@ class GciPartController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'customer_id' => ['nullable', 'exists:customers,id'],
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')],
             'classification' => ['nullable', Rule::in(['FG'])],
             'part_name' => ['nullable', 'string', 'max:255'],
@@ -83,6 +87,7 @@ class GciPartController extends Controller
     public function update(Request $request, GciPart $gciPart)
     {
         $validated = $request->validate([
+            'customer_id' => ['nullable', 'exists:customers,id'],
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')->ignore($gciPart->id)],
             'classification' => ['nullable', Rule::in(['FG'])],
             'part_name' => ['nullable', 'string', 'max:255'],

@@ -15,6 +15,7 @@ class OutgoingDailyPlanRow extends Model
         'row_no',
         'production_line',
         'part_no',
+        'gci_part_id',
     ];
 
     public function plan(): BelongsTo
@@ -25,6 +26,11 @@ class OutgoingDailyPlanRow extends Model
     public function cells(): HasMany
     {
         return $this->hasMany(OutgoingDailyPlanCell::class, 'row_id');
+    }
+
+    public function gciPart(): BelongsTo
+    {
+        return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
 }
 

@@ -13,11 +13,17 @@ class GciPart extends Model
     protected $table = 'gci_parts';
 
     protected $fillable = [
+        'customer_id',
         'part_no',
         'part_name',
         'model',
         'status',
     ];
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
 
     // The model already defaults 'classification' to 'FG' on creation.
     // If the intent was to remove this and rely on a database default,

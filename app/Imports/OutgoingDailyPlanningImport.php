@@ -12,7 +12,7 @@ class OutgoingDailyPlanningImport implements ToCollection
     /** @var list<string> */
     public array $dates = [];
 
-    /** @var list<array{row_no:int|null, production_line:string, part_no:string, cells:array<string, array{seq:int|null, qty:int|null}>}> */
+    /** @var list<array{row_no:int|null, production_line:string, part_no:string, gci_part_id:int|null, cells:array<string, array{seq:int|null, qty:int|null}>}> */
     public array $rows = [];
 
     private function norm(string $value): string
@@ -139,6 +139,7 @@ class OutgoingDailyPlanningImport implements ToCollection
                 'row_no' => $rowNo,
                 'production_line' => $productionLine,
                 'part_no' => $partNo,
+                'gci_part_id' => isset($gciPart) ? $gciPart->id : null,
                 'cells' => $cells,
             ];
         }

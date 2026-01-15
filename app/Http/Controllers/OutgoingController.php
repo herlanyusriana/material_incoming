@@ -119,6 +119,7 @@ class OutgoingController extends Controller
                     'row_no' => $rowNo ?: ($idx + 1),
                     'production_line' => $row['production_line'],
                     'part_no' => $row['part_no'],
+                    'gci_part_id' => $row['gci_part_id'],
                 ]);
 
                 foreach ($row['cells'] as $date => $cell) {
@@ -152,7 +153,8 @@ class OutgoingController extends Controller
 
     public function gciInventory()
     {
-        return view('outgoing.gci_inventory');
+        $inventory = \App\Models\FgInventory::with('part')->get();
+        return view('outgoing.gci_inventory', compact('inventory'));
     }
 
     public function stockAtCustomers()

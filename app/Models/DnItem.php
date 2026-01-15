@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class DnItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'dn_id',
+        'gci_part_id',
+        'customer_po_id',
+        'qty',
+    ];
+
+    public function deliveryNote()
+    {
+        return $this->belongsTo(DeliveryNote::class, 'dn_id');
+    }
+
+    public function part()
+    {
+        return $this->belongsTo(GciPart::class, 'gci_part_id');
+    }
+
+    public function customerPo()
+    {
+        return $this->belongsTo(CustomerPo::class, 'customer_po_id');
+    }
+}

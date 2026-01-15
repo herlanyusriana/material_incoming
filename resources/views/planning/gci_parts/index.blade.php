@@ -41,6 +41,7 @@
                     <table class="min-w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                <th class="px-4 py-3 text-left font-semibold">Customer</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                 <th class="px-4 py-3 text-left font-semibold">Model</th>
@@ -51,12 +52,20 @@
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($parts as $p)
                                 <tr class="hover:bg-slate-50">
-                                    <td class="px-4 py-3 font-semibold">{{ $parts->part_no ?? $p->part_no }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $parts->part_name ?? $p->part_name ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $parts->model ?? $p->model ?? '-' }}</td>
                                     <td class="px-4 py-3">
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ ($parts->status ?? $p->status) === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
-                                            {{ strtoupper($parts->status ?? $p->status) }}
+                                        @if($p->customer)
+                                            <span class="font-bold text-indigo-700">{{ $p->customer->code }}</span>
+                                            <div class="text-[10px] text-slate-500 uppercase">{{ $p->customer->name }}</div>
+                                        @else
+                                            <span class="text-slate-400 italic">No Customer</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 font-semibold">{{ $p->part_no }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $p->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
+                                            {{ strtoupper($p->status) }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
@@ -97,6 +106,15 @@
                     </template>
 
                     <div>
+                        <label class="text-sm font-semibold text-slate-700">Customer (Optional)</label>
+                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.customer_id">
+                            <option value="">-- No Customer --</option>
+                            @foreach($customers as $c)
+                                <option value="{{ $c->id }}">{{ $c->code }} - {{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
                         <label class="text-sm font-semibold text-slate-700">Part No</label>
                         <input name="part_no" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.part_no">
                     </div>
@@ -131,17 +149,17 @@
                     importOpen: false,
                     mode: 'create',
                     formAction: @js(route('planning.gci-parts.store')),
-                    form: { id: null, part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' },
+                    form: { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' },
                     openCreate() {
                         this.mode = 'create';
                         this.formAction = @js(route('planning.gci-parts.store'));
-                        this.form = { id: null, part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' };
+                        this.form = { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' };
                         this.modalOpen = true;
                     },
                     openEdit(p) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/gci-parts')) + '/' + p.id;
-                        this.form = { id: p.id, part_no: p.part_no, part_name: p.part_name, model: p.model, status: p.status };
+                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, part_name: p.part_name, model: p.model, status: p.status };
                         this.modalOpen = true;
                     },
                     openImport() {
@@ -164,7 +182,7 @@
                         <label class="text-sm font-semibold text-slate-700">Excel File</label>
                         <input type="file" name="file" accept=".xlsx,.xls" required class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                         <div class="mt-2 text-xs text-slate-500">
-                            Kolom: <span class="font-semibold">part_no</span>, classification, part_name, model, status
+                            Kolom: <span class="font-semibold">customer</span>, part_no, classification, part_name, model, status
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
