@@ -107,8 +107,55 @@ class GciPartController extends Controller
 
     public function destroy(GciPart $gciPart)
     {
-        $gciPart->delete();
-
-        return back()->with('success', 'Part GCI deleted.');
+        try {
+            $gciPart->delete();
+            return back()->with('success', 'Part GCI deleted.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Check if it's a foreign key constraint error
+            if ($e->getCode() === '23000') {
+                $references = [];
+                
+                // Check common tables that might reference this part
+                if (DB::table('boms')->where('part_id', $gciPart->id)->exists()) {
+                    $references[] = 'BOM (Bill of Materials)';
+                }
+                if (DB::table('bom_items')->where('component_part_id', $gciPart->id)->exists()) {
+                    $references[] = 'BOM Items (used as component)';
+                }
+                if (DB::table('bom_items')->where('wip_part_id', $gciPart->id)->exists()) {
+                    $references[] = 'BOM Items (used as WIP)';
+                }
+                if (DB::table('customer_part_components')->where('part_id', $gciPart->id)->exists()) {
+                    $references[] = 'Customer Part Mapping';
+                }
+                if (DB::table('mps')->where('part_id', $gciPart->id)->exists()) {
+                    $references[] = 'MPS (Master Production Schedule)';
+                }
+                if (DB::table('forecasts')->where('part_id', $gciPart->id)->exists()) {
+                    $references[] = 'Forecasts';
+                }
+                if (DB::table('mrp_production_plans')->where('part_id', $gciPart->id)->exists()) {
+                    $references[] = 'MRP Production Plans';
+                }
+                if (DB::table('mrp_purchase_plans')->where('part_id', $gciPart->id)->exists()) {
+                    $references[] = 'MRP Purchase Plans';
+                }
+                if (DB::table('gci_inventories')->where('gci_part_id', $gciPart->id)->exists()) {
+                    $references[] = 'Inventory Records';
+                }
+                if (DB::table('bom_item_substitutes')->where('substitute_part_id', $gciPart->id)->exists()) {
+                    $references[] = 'BOM Item Substitutes';
+                }
+                
+                $msg = 'Cannot delete part "' . $gciPart->part_no . '" because it is still referenced by: ' 
+                    . implode(', ', $references) 
+                    . '. Please remove these references first or set the part status to inactive instead.';
+                
+                return back()->with('error', $msg);
+            }
+            
+            // For other errors, show generic message
+            return back()->with('error', 'Failed to delete part: ' . $e->getMessage());
+        }
     }
 }
