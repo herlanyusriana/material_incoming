@@ -44,6 +44,12 @@
                             Print Inspection
                         </a>
                     @endif
+                    <a href="{{ route('departures.export-detail', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0L16.5 12M12 16.5V3" />
+                        </svg>
+                        Export Excel
+                    </a>
                     <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
@@ -124,6 +130,9 @@
 	                    } else {
 	                        $hsCodes = $arrival->items
 	                            ->pluck('part.hs_code')
+	                            ->filter(fn ($code) => trim((string) $code) !== '')
+	                            ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
+	                            ->map(fn ($code) => strtoupper(trim((string) $code)))
 	                            ->filter()
 	                            ->unique()
 	                            ->values();

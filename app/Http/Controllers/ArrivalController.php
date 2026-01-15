@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\DepartureDetailExport;
 
 class ArrivalController extends Controller
 {
@@ -131,27 +133,28 @@ class ArrivalController extends Controller
         return null;
     }
 
+    /**
+     * Infer HS Codes from a list of items (either model or array).
+     * Strictly uses Part Master HS Codes. If no Part Master code is found,
+     * it returns null rather than guessing.
+     */
     private function inferHsCodesFromItems(iterable $items): ?string
     {
         $codes = collect($items)
             ->map(function ($item) {
-                $unitGoods = strtoupper(trim((string) (data_get($item, 'unit_goods') ?? '')));
-                $materialGroup = strtoupper(trim((string) (data_get($item, 'material_group') ?? '')));
-
-                // PIN steel: size format is diameter x length, so do NOT use width parsing.
-                // Best-effort detection for now: unit EA and/or material group contains PIN.
-                if ($unitGoods === 'EA' || str_contains($materialGroup, 'PIN')) {
-                    return '72141019';
+                // 1. Try to get from the Part model if possible
+                $hsCodeModel = null;
+                if ($item instanceof ArrivalItem) {
+                    $hsCodeModel = $item->part?->hs_code;
+                } elseif (is_array($item) && !empty($item['part_id'])) {
+                    $hsCodeModel = Part::find($item['part_id'])?->hs_code;
                 }
 
-                $width = $this->parseWidthFromSize((string) (data_get($item, 'size') ?? ''));
-                if ($width === null) {
-                    return null;
-                }
-
-                // Steel sheet/coil classification by width
-                return $width >= 600 ? '72269999' : '72259900';
+                return $hsCodeModel ? strtoupper(trim((string) $hsCodeModel)) : null;
             })
+            ->filter()
+            ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
+            ->map(fn ($code) => trim((string) $code))
             ->filter()
             ->unique()
             ->values();
@@ -626,6 +629,12 @@ class ArrivalController extends Controller
             ->header('Pragma', 'no-cache');
     }
 
+    public function exportDetail(Arrival $departure)
+    {
+        $filename = 'Departure-' . str_replace(['/', '\\'], '-', ($departure->invoice_no ?: $departure->arrival_no)) . '.xlsx';
+        return Excel::download(new DepartureDetailExport($departure), $filename);
+    }
+
     public function editItem(ArrivalItem $arrivalItem)
     {
         $arrivalItem->load(['arrival', 'part', 'receives']);
@@ -748,14 +757,17 @@ class ArrivalController extends Controller
         ]);
 
         $arrival->loadMissing('items');
-        $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
-        $hsCodePrimary = $normalizedHsCodes
-            ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-            : null;
-        $arrival->update([
-            'hs_codes' => $normalizedHsCodes,
-            'hs_code' => $hsCodePrimary,
-        ]);
+        // Only update HS Code if not manually set
+        if (empty($arrival->hs_codes) && empty($arrival->hs_code)) {
+            $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
+            $hsCodePrimary = $normalizedHsCodes
+                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+                : null;
+            $arrival->update([
+                'hs_codes' => $normalizedHsCodes,
+                'hs_code' => $hsCodePrimary,
+            ]);
+        }
 
         return redirect()
             ->route('departures.show', $arrival)
@@ -840,14 +852,16 @@ class ArrivalController extends Controller
 
             $arrival = $arrivalItem->arrival;
             $arrival->loadMissing('items');
-            $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
-            $hsCodePrimary = $normalizedHsCodes
-                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-                : null;
-            $arrival->update([
-                'hs_codes' => $normalizedHsCodes,
-                'hs_code' => $hsCodePrimary,
-            ]);
+            if (empty($arrival->hs_codes) && empty($arrival->hs_code)) {
+                $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
+                $hsCodePrimary = $normalizedHsCodes
+                    ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
+                    : null;
+                $arrival->update([
+                    'hs_codes' => $normalizedHsCodes,
+                    'hs_code' => $hsCodePrimary,
+                ]);
+            }
 
 	        return redirect()
 	            ->route('departures.show', $arrivalItem->arrival)

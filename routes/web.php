@@ -60,6 +60,7 @@ Route::get('/dashboard', function () {
 // Invoice route (public untuk generate PDF)
 Route::get('/departures/{departure}/invoice', [ArrivalController::class, 'printInvoice'])->name('departures.invoice');
 Route::get('/departures/{departure}/inspection-report', [ArrivalController::class, 'printInspectionReport'])->name('departures.inspection-report');
+Route::get('/departures/{departure}/export-detail', [ArrivalController::class, 'exportDetail'])->name('departures.export-detail');
 
 Route::middleware('auth')->group(function () {
     Route::view('/incoming-material', 'incoming-material.dashboard')->name('incoming-material.dashboard');
