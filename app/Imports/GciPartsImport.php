@@ -70,29 +70,46 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
 
         $partName = $this->norm($row['part_name'] ?? $row['part_name_gci'] ?? null);
         $model = $this->norm($row['model'] ?? null);
-        $classification = 'FG';
-        $status = strtolower((string) ($this->norm($row['status'] ?? null) ?? 'active'));
-        if (!in_array($status, ['active', 'inactive'], true)) {
-            $status = 'active';
-        }
-
-        $customerId = null;
+        $status = strtolower((string) ($this->norm($row['status'] ?? null) ?? ''));
         $customerCode = $this->norm($row['customer'] ?? null);
-        if ($customerCode) {
-            $customer = \App\Models\Customer::where('code', strtoupper($customerCode))->first();
-            $customerId = $customer?->id;
+
+        // Find existing or create new
+        $part = GciPart::where('part_no', $partNo)->first() ?: new GciPart(['part_no' => $partNo]);
+
+        // Always force classification to FG for this model
+        $part->classification = 'FG';
+
+        // Only update if value is provided in Excel
+        if ($partName !== null) {
+            $part->part_name = $partName;
+        } elseif (!$part->exists) {
+            $part->part_name = $partNo; // Default for NEW records
         }
 
-        GciPart::updateOrCreate(
-            ['part_no' => $partNo],
-            [
-                'customer_id' => $customerId,
-                'classification' => $classification,
-                'part_name' => $partName !== null && $partName !== '' ? $partName : $partNo,
-                'model' => $model,
-                'status' => $status,
-            ],
-        );
+        if ($model !== null) {
+            $part->model = $model;
+        }
+
+        if ($status !== '' && in_array($status, ['active', 'inactive'], true)) {
+            $part->status = $status;
+        } elseif (!$part->exists) {
+            $part->status = 'active'; // Default for NEW records
+        }
+
+        if ($customerCode !== null) {
+            $customer = \App\Models\Customer::where('code', strtoupper($customerCode))->first();
+            if ($customer) {
+                $part->customer_id = $customer->id;
+            } else {
+                // If code is provided but not found, we could null it or leave it. 
+                // Setting to null if user explicitly cleared it in Excel? 
+                // Or leave existing if code is invalid?
+                // Let's set it to null if user provided something but it didn't match (clearing intent or typo)
+                $part->customer_id = null;
+            }
+        }
+
+        $part->save();
 
         return null;
     }

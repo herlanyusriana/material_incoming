@@ -54,8 +54,7 @@
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                 <th class="px-4 py-3 text-left font-semibold">Customer</th>
                                 <th class="px-4 py-3 text-left font-semibold">PO No</th>
-                                <th class="px-4 py-3 text-left font-semibold">Customer Part</th>
-                                <th class="px-4 py-3 text-left font-semibold">Auto Part GCI</th>
+                                <th class="px-4 py-3 text-left font-semibold">Part GCI</th>
                                 <th class="px-4 py-3 text-left font-semibold">Minggu</th>
                                 <th class="px-4 py-3 text-right font-semibold">Qty</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
@@ -70,37 +69,9 @@
                                         <div class="text-xs text-slate-500">{{ $o->customer->name ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-slate-700">{{ $o->po_no ?? '-' }}</td>
-                                    <td class="px-4 py-3">{{ $o->customer_part_no ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-xs text-slate-700">
-                                        @if ($o->part_id)
-                                            <div class="flex items-baseline justify-between gap-3">
-                                                <div class="truncate">
-                                                    <span class="font-semibold">{{ $o->part->part_no ?? '-' }}</span>
-                                                    <span class="text-slate-500">{{ $o->part->part_name ?? '' }}</span>
-                                                </div>
-                                                <div class="font-mono text-[11px] text-slate-600">{{ number_format((float) $o->qty, 3) }}</div>
-                                            </div>
-                                        @else
-                                            @php($translated = $translatedByPoId[$o->id] ?? [])
-                                            @if (!empty($translated))
-                                                <div class="space-y-1">
-                                                    @foreach ($translated as $t)
-                                                        <div class="flex items-baseline justify-between gap-3">
-                                                            <div class="truncate">
-                                                                <span class="font-semibold">{{ $t['part_no'] }}</span>
-                                                                <span class="text-slate-500">{{ $t['part_name'] ?? '' }}</span>
-                                                            </div>
-                                                            <div class="font-mono text-[11px] text-slate-600">
-                                                                {{ number_format((float) $t['demand_qty'], 3) }}
-                                                                <span class="text-slate-400">(×{{ number_format((float) $t['usage_qty'], 3) }})</span>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <span class="text-slate-400">-</span>
-                                            @endif
-                                        @endif
+                                    <td class="px-4 py-3">
+                                        <div class="font-semibold">{{ $o->part->part_no ?? '-' }}</div>
+                                        <div class="text-xs text-slate-500">{{ $o->part->part_name ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3 font-mono text-xs">{{ $o->minggu }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $o->qty, 3) }}</td>
@@ -148,22 +119,6 @@
 
 	                    <template x-if="mode === 'create'">
 	                        <div class="space-y-4">
-	                            <div>
-	                                <label class="text-sm font-semibold text-slate-700">PO Type</label>
-	                                <select
-	                                    name="po_type"
-	                                    class="mt-1 w-full rounded-xl border-slate-200"
-	                                    x-model="form.po_type"
-	                                    @change="
-	                                        if (form.po_type === 'gci_part') { form.customer_part_no = ''; }
-	                                        if (form.po_type === 'customer_part') { form.part_id = ''; }
-	                                    "
-	                                >
-	                                    <option value="customer_part">Customer Part (recommended)</option>
-	                                    <option value="gci_part">Part GCI</option>
-	                                </select>
-	                                <div class="mt-1 text-xs text-slate-500">Default input is Customer Part No + Qty; system will translate to Part GCI using mapping.</div>
-	                            </div>
                             <div>
                                 <label class="text-sm font-semibold text-slate-700">Minggu (YYYY-WW)</label>
                                 <input name="minggu" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.minggu">
@@ -210,37 +165,14 @@
 	                                            </button>
 	                                        </div>
 
-	                                        <div class="mt-3 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-	                                            <div class="md:col-span-1">
-	                                                <label class="text-xs font-semibold text-slate-600">Type</label>
-	                                                <select
-	                                                    class="mt-1 w-full rounded-xl border-slate-200"
-	                                                    x-model="it.po_type"
-	                                                    @change="if (it.po_type === 'gci_part') { it.customer_part_no=''; } else { it.part_id=''; }"
-	                                                >
-	                                                    <option value="customer_part">Customer Part</option>
-	                                                    <option value="gci_part">Part GCI</option>
-	                                                </select>
-	                                                <input type="hidden" :name="`items[${idx}][po_type]`" :value="it.po_type">
-	                                            </div>
-
-	                                            <div class="md:col-span-2" x-show="it.po_type === 'customer_part'">
-	                                                <label class="text-xs font-semibold text-slate-600">Customer Part No</label>
-	                                                <input
-	                                                    class="mt-1 w-full rounded-xl border-slate-200"
-	                                                    x-model="it.customer_part_no"
-	                                                    :name="`items[${idx}][customer_part_no]`"
-	                                                    :required="it.po_type === 'customer_part'"
-	                                                >
-	                                            </div>
-
-	                                            <div class="md:col-span-2" x-show="it.po_type === 'gci_part'">
+	                                        <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+	                                            <div class="md:col-span-3">
 	                                                <label class="text-xs font-semibold text-slate-600">Part GCI</label>
 	                                                <select
 	                                                    class="mt-1 w-full rounded-xl border-slate-200"
 	                                                    x-model="it.part_id"
 	                                                    :name="`items[${idx}][part_id]`"
-	                                                    :required="it.po_type === 'gci_part'"
+	                                                    required
 	                                                >
 	                                                    <option value="">Select part</option>
 	                                                    @foreach ($gciParts as $p)
@@ -309,26 +241,22 @@
                         minggu: @js($minggu ?? $defaultMinggu ?? now()->format('o-\\WW')),
                         customer_id: '',
                         po_no: '',
-                        po_type: 'customer_part',
-                        customer_part_no: '',
                         part_id: '',
 	                        qty: '0',
 	                        status: 'open',
 	                        notes: '',
 	                        items: [],
 	                    },
-	                    _newItem(poType = 'customer_part') {
+	                    _newItem() {
 	                        return {
 	                            _key: Date.now().toString() + Math.random().toString(16).slice(2),
-	                            po_type: poType,
-	                            customer_part_no: '',
 	                            part_id: '',
 	                            qty: '0',
 	                        };
 	                    },
-	                    addItem() {
-	                        this.form.items.push(this._newItem(this.form.po_type || 'customer_part'));
-	                    },
+	                        addItem() {
+	                            this.form.items.push(this._newItem());
+	                        },
 	                    removeItem(idx) {
 	                        this.form.items.splice(idx, 1);
 	                        if (this.form.items.length < 1) this.addItem();
@@ -341,13 +269,11 @@
                             minggu: @js($defaultMinggu ?? now()->format('o-\\WW')),
                             customer_id: '',
                             po_no: '',
-                            po_type: 'customer_part',
-                            customer_part_no: '',
                             part_id: '',
 	                            qty: '0',
 	                            status: 'open',
 	                            notes: '',
-	                            items: [this._newItem('customer_part')],
+	                            items: [this._newItem()],
 	                        };
 	                        this.modalOpen = true;
 	                    },

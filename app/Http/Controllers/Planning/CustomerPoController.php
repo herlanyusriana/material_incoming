@@ -44,42 +44,7 @@ class CustomerPoController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $translatedByPoId = [];
-        $poIds = $orders->getCollection()->pluck('id')->all();
-        if (!empty($poIds)) {
-            $translated = DB::table('customer_pos as po')
-                ->join('customer_parts as cp', function ($join) {
-                    $join->on('cp.customer_id', '=', 'po.customer_id')
-                        ->on('cp.customer_part_no', '=', 'po.customer_part_no');
-                })
-                ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
-                ->join('gci_parts as gp', 'gp.id', '=', 'cpc.part_id')
-                ->whereIn('po.id', $poIds)
-                ->whereNull('po.part_id')
-                ->whereNotNull('po.customer_part_no')
-                ->select([
-                    'po.id as po_id',
-                    'gp.part_no',
-                    'gp.part_name',
-                    'cpc.usage_qty',
-                    'po.qty as customer_qty',
-                    DB::raw('(po.qty * cpc.usage_qty) as demand_qty'),
-                ])
-                ->orderBy('po.id')
-                ->orderBy('gp.part_no')
-                ->get();
-
-            foreach ($translated as $t) {
-                $translatedByPoId[(int) $t->po_id][] = [
-                    'part_no' => $t->part_no,
-                    'part_name' => $t->part_name,
-                    'usage_qty' => (float) $t->usage_qty,
-                    'demand_qty' => (float) $t->demand_qty,
-                ];
-            }
-        }
-
-        return view('planning.customer_pos.index', compact('orders', 'customers', 'gciParts', 'minggu', 'defaultMinggu', 'customerId', 'status', 'translatedByPoId'));
+        return view('planning.customer_pos.index', compact('orders', 'customers', 'gciParts', 'minggu', 'defaultMinggu', 'customerId', 'status'));
     }
 
     public function store(Request $request)
@@ -95,9 +60,7 @@ class CustomerPoController extends Controller
                     'status' => ['required', Rule::in(['open', 'closed'])],
                     'notes' => ['nullable', 'string'],
                     'items' => ['required', 'array', 'min:1'],
-                    'items.*.po_type' => ['required', Rule::in(['customer_part', 'gci_part'])],
-                    'items.*.customer_part_no' => ['nullable', 'string', 'max:100', 'required_if:items.*.po_type,customer_part'],
-                    'items.*.part_id' => ['nullable', Rule::exists('gci_parts', 'id'), 'required_if:items.*.po_type,gci_part'],
+                    'items.*.part_id' => ['required', Rule::exists('gci_parts', 'id')],
                     'items.*.qty' => ['required', 'numeric', 'min:0'],
                 ],
             ));
@@ -107,39 +70,10 @@ class CustomerPoController extends Controller
             $notes = $validated['notes'] ? trim($validated['notes']) : null;
 
             foreach ($validated['items'] as $item) {
-                $poType = $item['po_type'];
-                $customerPartNo = null;
-                $partId = null;
-
-                if ($poType === 'customer_part') {
-                    $customerPartNo = strtoupper(trim((string) ($item['customer_part_no'] ?? '')));
-                    if ($customerPartNo === '') {
-                        return back()->with('error', 'Customer part is required.');
-                    }
-
-                    $mapping = CustomerPart::query()
-                        ->where('customer_id', $customerId)
-                        ->where('customer_part_no', $customerPartNo)
-                        ->withCount('components')
-                        ->first();
-                    if (!$mapping) {
-                        return back()->with('error', "Customer part not mapped: {$customerPartNo}");
-                    }
-                    if (($mapping->status ?? 'active') !== 'active' || $mapping->components_count < 1) {
-                        return back()->with('error', "Customer part mapping is incomplete/inactive: {$customerPartNo}");
-                    }
-                } else {
-                    $partId = isset($item['part_id']) ? (int) $item['part_id'] : null;
-                    if (!$partId) {
-                        return back()->with('error', 'GCI part is required.');
-                    }
-                }
-
                 CustomerPo::create([
                     'po_no' => $poNo,
                     'customer_id' => $customerId,
-                    'customer_part_no' => $customerPartNo,
-                    'part_id' => $partId,
+                    'part_id' => (int) $item['part_id'],
                     'minggu' => $validated['minggu'],
                     'qty' => $item['qty'],
                     'status' => $validated['status'],
@@ -155,52 +89,17 @@ class CustomerPoController extends Controller
             [
                 'customer_id' => ['required', Rule::exists('customers', 'id')],
                 'po_no' => ['nullable', 'string', 'max:100'],
-                'po_type' => ['nullable', Rule::in(['customer_part', 'gci_part'])],
-                'customer_part_no' => ['nullable', 'string', 'max:100', 'required_if:po_type,customer_part'],
-                'part_id' => ['nullable', Rule::exists('gci_parts', 'id'), 'required_if:po_type,gci_part'],
+                'part_id' => ['required', Rule::exists('gci_parts', 'id')],
                 'qty' => ['required', 'numeric', 'min:0'],
                 'status' => ['required', Rule::in(['open', 'closed'])],
                 'notes' => ['nullable', 'string'],
             ],
         ));
 
-        $poType = $validated['po_type'] ?? 'customer_part';
-        $customerPartNo = null;
-        $partId = null;
-
-        if ($poType === 'customer_part') {
-            $customerPartNo = $validated['customer_part_no'] ? strtoupper(trim($validated['customer_part_no'])) : null;
-        }
-        if ($poType === 'gci_part') {
-            $partId = $validated['part_id'] ? (int) $validated['part_id'] : null;
-        }
-
-        if ($poType === 'customer_part' && !$customerPartNo) {
-            return back()->with('error', 'Customer part is required.');
-        }
-        if ($poType === 'gci_part' && !$partId) {
-            return back()->with('error', 'GCI part is required.');
-        }
-
-        if ($poType === 'customer_part' && $customerPartNo) {
-            $mapping = CustomerPart::query()
-                ->where('customer_id', $validated['customer_id'])
-                ->where('customer_part_no', $customerPartNo)
-                ->withCount('components')
-                ->first();
-            if (!$mapping) {
-                return back()->with('error', 'Customer part not mapped.');
-            }
-            if (($mapping->status ?? 'active') !== 'active' || $mapping->components_count < 1) {
-                return back()->with('error', 'Customer part mapping is incomplete/inactive.');
-            }
-        }
-
         CustomerPo::create([
             'po_no' => $validated['po_no'] ? trim($validated['po_no']) : null,
             'customer_id' => (int) $validated['customer_id'],
-            'customer_part_no' => $customerPartNo,
-            'part_id' => $partId,
+            'part_id' => (int) $validated['part_id'],
             'minggu' => $validated['minggu'],
             'qty' => $validated['qty'],
             'status' => $validated['status'],

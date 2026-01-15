@@ -14,7 +14,6 @@ class CustomerPo extends Model
     protected $fillable = [
         'po_no',
         'customer_id',
-        'customer_part_no',
         'part_id',
         'minggu',
         'qty',
