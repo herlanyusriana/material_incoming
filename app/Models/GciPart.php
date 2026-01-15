@@ -17,23 +17,13 @@ class GciPart extends Model
         'part_no',
         'part_name',
         'model',
+        'classification',
         'status',
     ];
 
     public function customer()
     {
         return $this->belongsTo(Customer::class);
-    }
-
-    // The model already defaults 'classification' to 'FG' on creation.
-    // If the intent was to remove this and rely on a database default,
-    // the instruction was not explicit. Keeping it as it fulfills
-    // "Modify GciPart model to default to FG" within the model's scope.
-    protected static function booted()
-    {
-        static::creating(function ($model) {
-            $model->classification = 'FG';
-        });
     }
 
     private static function upperOrNull(mixed $value): mixed

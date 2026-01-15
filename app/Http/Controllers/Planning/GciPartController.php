@@ -68,14 +68,14 @@ class GciPartController extends Controller
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')],
-            'classification' => ['nullable', Rule::in(['FG'])],
+            'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
-        $validated['classification'] = 'FG';
+        $validated['classification'] = strtoupper(trim($validated['classification']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 
@@ -89,14 +89,14 @@ class GciPartController extends Controller
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
             'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')->ignore($gciPart->id)],
-            'classification' => ['nullable', Rule::in(['FG'])],
+            'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
-        $validated['classification'] = 'FG';
+        $validated['classification'] = strtoupper(trim($validated['classification']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 

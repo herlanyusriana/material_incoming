@@ -20,6 +20,15 @@
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
                         <div>
+                            <label class="text-xs font-semibold text-slate-600">Classification</label>
+                            <select name="classification" class="mt-1 rounded-xl border-slate-200">
+                                <option value="">All</option>
+                                <option value="FG" @selected($classification === 'FG')>FG</option>
+                                <option value="WIP" @selected($classification === 'WIP')>WIP</option>
+                                <option value="RM" @selected($classification === 'RM')>RM</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="text-xs font-semibold text-slate-600">Status</label>
                             <select name="status" class="mt-1 rounded-xl border-slate-200">
                                 <option value="">All</option>
@@ -45,6 +54,7 @@
                                 <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                 <th class="px-4 py-3 text-left font-semibold">Model</th>
+                                <th class="px-4 py-3 text-left font-semibold">Type</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Actions</th>
                             </tr>
@@ -64,6 +74,19 @@
                                     <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
                                     <td class="px-4 py-3">
+                                        @php
+                                            $classColors = [
+                                                'FG' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                                'WIP' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                                'RM' => 'bg-green-100 text-green-800 border-green-200',
+                                            ];
+                                            $color = $classColors[$p->classification] ?? 'bg-slate-100 text-slate-700 border-slate-200';
+                                        @endphp
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold border {{ $color }}">
+                                            {{ $p->classification ?? 'N/A' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
                                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $p->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
                                             {{ strtoupper($p->status) }}
                                         </span>
@@ -79,7 +102,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
+                                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -127,6 +150,14 @@
                         <input name="model" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.model">
                     </div>
                     <div>
+                        <label class="text-sm font-semibold text-slate-700">Classification <span class="text-red-600">*</span></label>
+                        <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.classification">
+                            <option value="FG">FG (Finished Goods)</option>
+                            <option value="WIP">WIP (Work in Progress)</option>
+                            <option value="RM">RM (Raw Materials)</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
                         <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.status">
                             <option value="active">Active</option>
@@ -159,7 +190,7 @@
                     openEdit(p) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/gci-parts')) + '/' + p.id;
-                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, part_name: p.part_name, model: p.model, status: p.status };
+                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, classification: p.classification || 'FG', part_name: p.part_name, model: p.model, status: p.status };
                         this.modalOpen = true;
                     },
                     openImport() {
