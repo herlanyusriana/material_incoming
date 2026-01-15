@@ -19,7 +19,7 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'code' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('customers', 'code')],
+            'code' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9._\- ]+$/', Rule::unique('customers', 'code')],
             'name' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
@@ -35,7 +35,7 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $validated = $request->validate([
-            'code' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('customers', 'code')->ignore($customer->id)],
+            'code' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9._\- ]+$/', Rule::unique('customers', 'code')->ignore($customer->id)],
             'name' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);

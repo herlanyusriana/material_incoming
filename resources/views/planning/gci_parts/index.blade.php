@@ -3,7 +3,7 @@
         Planning • Part GCI
     </x-slot>
 
-    <div class="py-6" x-data="planningGciParts()">
+    <div class="py-3" x-data="planningGciParts()">
         <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
@@ -16,7 +16,7 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-4 space-y-4">
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
                         <div>

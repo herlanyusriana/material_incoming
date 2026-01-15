@@ -3,8 +3,8 @@
         Planning • Customer Part Mapping
     </x-slot>
 
-	    <div class="py-6" x-data="planningCustomerParts()" x-init="init()">
-	        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+	    <div class="py-3" x-data="planningCustomerParts()" x-init="init()">
+	        <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
@@ -26,9 +26,13 @@
                 </div>
             @endif
 
-	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
+	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-4 space-y-4">
 	                <div class="flex flex-wrap items-end justify-between gap-3">
 	                    <form method="GET" class="flex flex-wrap items-end gap-3">
+                        <div class="w-64">
+                            <label class="text-xs font-semibold text-slate-600">Search</label>
+                            <input type="text" name="search" value="{{ $search }}" placeholder="Search part no / name..." class="mt-1 w-full rounded-xl border-slate-200">
+                        </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Customer</label>
                             <select name="customer_id" class="mt-1 rounded-xl border-slate-200">

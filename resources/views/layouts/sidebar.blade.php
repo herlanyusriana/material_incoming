@@ -161,63 +161,79 @@
 	                <div>
 	                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Planning</div>
 	                    <div class="space-y-1">
-	                        <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
-	                            </svg>
-	                            <span class="ml-3 flex-1">Customers</span>
-	                        </a>
-	                        <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
-	                            </svg>
-	                            <span class="ml-3 flex-1">Part GCI</span>
-	                        </a>
-	                        <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
-	                            </svg>
-                            <span class="ml-3 flex-1">Customer Part Mapping</span>
-                        </a>
-                        <a href="{{ route('planning.planning-imports.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
-                            </svg>
-                            <span class="ml-3 flex-1">Customer Planning</span>
-                        </a>
-                        <a href="{{ route('planning.customer-pos.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2Z" />
-                            </svg>
-                            <span class="ml-3 flex-1">Customer PO</span>
-                        </a>
-                        <a href="{{ route('planning.forecasts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-5 5-4-4-3 3" />
-                            </svg>
-                            <span class="ml-3 flex-1">Forecast (Part GCI)</span>
-                        </a>
-                        <a href="{{ route('planning.mps.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
-                            </svg>
-                            <span class="ml-3 flex-1">MPS</span>
-                        </a>
-	                        <a href="{{ route('planning.boms.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-	                            </svg>
-	                            <span class="ml-3 flex-1">BOM GCI</span>
-	                        </a>
-                        <a href="{{ route('planning.mrp.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}" @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21V3m9 18V3M3 7.5h18M3 16.5h18" />
-                            </svg>
-                            <span class="ml-3 flex-1">MRP</span>
-                        </a>
-                    </div>
-                </div>
+	                        <details class="group" {{ request()->routeIs('planning.*') ? 'open' : '' }}>
+	                            <summary class="list-none cursor-pointer">
+	                                <div @class([$navLinkBase, $navActive => request()->routeIs('planning.*'), $navInactive => !request()->routeIs('planning.*') ])>
+	                                    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
+	                                    </svg>
+	                                    <span class="ml-3 flex-1">Planning</span>
+	                                    <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+	                                    </svg>
+	                                </div>
+	                            </summary>
+	                            <div class="relative mt-2 ml-4 pl-4 space-y-1">
+	                                <div class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent"></div>
+
+	                                <a href="{{ route('planning.customers.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.customers.*'), $subInactive => !request()->routeIs('planning.customers.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customers.*')])></span>
+	                                    <span class="flex-1">Customers</span>
+	                                </a>
+	                                <a href="{{ route('planning.gci-parts.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.gci-parts.*'), $subInactive => !request()->routeIs('planning.gci-parts.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.gci-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.gci-parts.*')])></span>
+	                                    <span class="flex-1">Part GCI</span>
+	                                </a>
+	                                <a href="{{ route('planning.customer-parts.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>
+	                                    <span class="flex-1">Customer Part Mapping</span>
+	                                </a>
+	                                <a href="{{ route('planning.planning-imports.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.planning-imports.*'), $subInactive => !request()->routeIs('planning.planning-imports.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.planning-imports.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.planning-imports.*')])></span>
+	                                    <span class="flex-1">Customer Planning</span>
+	                                </a>
+	                                <a href="{{ route('planning.customer-pos.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-pos.*'), $subInactive => !request()->routeIs('planning.customer-pos.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-pos.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-pos.*')])></span>
+	                                    <span class="flex-1">Customer PO</span>
+	                                </a>
+	                                <a href="{{ route('planning.forecasts.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.forecasts.*'), $subInactive => !request()->routeIs('planning.forecasts.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.forecasts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.forecasts.*')])></span>
+	                                    <span class="flex-1">Forecast (Part GCI)</span>
+	                                </a>
+	                                <a href="{{ route('planning.mps.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.mps.*'), $subInactive => !request()->routeIs('planning.mps.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
+	                                    <span class="flex-1">MPS</span>
+	                                </a>
+	                                <a href="{{ route('planning.boms.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.*'), $subInactive => !request()->routeIs('planning.boms.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.*')])></span>
+	                                    <span class="flex-1">BOM GCI</span>
+	                                </a>
+	                                <a href="{{ route('planning.mrp.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
+	                                    <span class="flex-1">MRP</span>
+	                                </a>
+	                            </div>
+	                        </details>
+	                    </div>
+	                </div>
 
 		            <div>
 		                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Incoming</div>
@@ -430,33 +446,16 @@
 >
     <div class="px-4 pt-6">
         <div
-            class="flex items-center rounded-2xl border border-slate-200 bg-white shadow-sm"
-            :class="sidebarCollapsed ? 'justify-center px-3 py-4' : 'justify-between px-4 py-4'"
+            class="flex items-center rounded-2xl border border-slate-200 bg-white shadow-sm px-4 py-4"
+            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
         >
-            <div class="flex items-center" :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
-                <div class="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm">
-                    <span class="text-sm font-bold tracking-wide">GCI</span>
-                </div>
-                <div x-show="!sidebarCollapsed" x-cloak>
-                    <div class="text-sm font-semibold text-slate-900 leading-5">Geum Cheon Indo</div>
-                    <div class="text-xs text-slate-500">Material incoming</div>
-                </div>
+            <div class="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm">
+                <span class="text-sm font-bold tracking-wide">GCI</span>
             </div>
-
-            <button
-                type="button"
-                class="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
-                @click="toggleSidebar()"
-                :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-                :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            >
-                <svg x-show="!sidebarCollapsed" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                </svg>
-                <svg x-show="sidebarCollapsed" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
-                </svg>
-            </button>
+            <div x-show="!sidebarCollapsed" x-cloak>
+                <div class="text-sm font-semibold text-slate-900 leading-5">Geum Cheon Indo</div>
+                <div class="text-xs text-slate-500">Material incoming</div>
+            </div>
         </div>
     </div>
 
@@ -474,67 +473,6 @@
                 <span x-show="!sidebarCollapsed" x-cloak>Dashboard</span>
 	            </a>
 	        </div>
-
-	            <div>
-	                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Planning</div>
-	                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
-	                    <a href="{{ route('planning.customers.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3h9M4.5 7.5h15M6 12h12M7.5 16.5h9M9 21h6" />
-	                        </svg>
-	                        <span class="ml-3 flex-1">Customers</span>
-	                    </a>
-	                    <a href="{{ route('planning.gci-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10" />
-	                        </svg>
-	                        <span class="ml-3 flex-1">Part GCI</span>
-	                    </a>
-	                    <a href="{{ route('planning.customer-parts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M7 12h10M9 17h6" />
-	                        </svg>
-                        <span class="ml-3 flex-1">Customer Part Mapping</span>
-                    </a>
-                    <a href="{{ route('planning.planning-imports.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
-                        </svg>
-                        <span class="ml-3 flex-1">Customer Planning</span>
-                    </a>
-                    <a href="{{ route('planning.customer-pos.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2Z" />
-                        </svg>
-                        <span class="ml-3 flex-1">Customer PO</span>
-                    </a>
-                    <a href="{{ route('planning.forecasts.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-5 5-4-4-3 3" />
-                        </svg>
-                        <span class="ml-3 flex-1">Forecast (Part GCI)</span>
-                    </a>
-                    <a href="{{ route('planning.mps.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
-                        </svg>
-                        <span class="ml-3 flex-1">MPS</span>
-                    </a>
-	                    <a href="{{ route('planning.boms.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-	                        </svg>
-	                        <span class="ml-3 flex-1">BOM GCI</span>
-	                    </a>
-                    <a href="{{ route('planning.mrp.index') }}" class="{{ $navLinkBase }} {{ $navInactive }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21V3m9 18V3M3 7.5h18M3 16.5h18" />
-                        </svg>
-                        <span class="ml-3 flex-1">MRP</span>
-                    </a>
-                </div>
-            </div>
 
 	        <div>
 	            <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Master Data</div>
@@ -673,6 +611,83 @@
                 </a>
             </div>
         </div>
+
+	            <div>
+	                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Planning</div>
+	                
+	                <details 
+	                    class="group" 
+	                    {{ request()->routeIs('planning.*') ? 'open' : '' }} 
+	                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')"
+	                >
+	                    <summary class="list-none cursor-pointer" title="Planning" :class="sidebarCollapsed ? 'flex justify-center' : ''">
+	                        <div
+	                            @class([$navLinkBase, $navActive => request()->routeIs('planning.*'), $navInactive => !request()->routeIs('planning.*') ])
+	                            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
+	                        >
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
+	                            </svg>
+	                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Planning</span>
+	                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+	                            </svg>
+	                        </div>
+	                    </summary>
+
+	                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+	                        <div class="relative ml-4 pl-4 space-y-1">
+	                            <div class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent"></div>
+
+	                            <a href="{{ route('planning.customers.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.customers.*'), $subInactive => !request()->routeIs('planning.customers.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customers.*')])></span>
+	                                <span class="flex-1">Customers</span>
+	                            </a>
+	                            <a href="{{ route('planning.gci-parts.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.gci-parts.*'), $subInactive => !request()->routeIs('planning.gci-parts.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.gci-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.gci-parts.*')])></span>
+	                                <span class="flex-1">Part GCI</span>
+	                            </a>
+	                            <a href="{{ route('planning.customer-parts.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>
+	                                <span class="flex-1">Customer Part Mapping</span>
+	                            </a>
+	                            <a href="{{ route('planning.planning-imports.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.planning-imports.*'), $subInactive => !request()->routeIs('planning.planning-imports.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.planning-imports.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.planning-imports.*')])></span>
+	                                <span class="flex-1">Customer Planning</span>
+	                            </a>
+	                            <a href="{{ route('planning.customer-pos.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-pos.*'), $subInactive => !request()->routeIs('planning.customer-pos.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-pos.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-pos.*')])></span>
+	                                <span class="flex-1">Customer PO</span>
+	                            </a>
+	                            <a href="{{ route('planning.forecasts.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.forecasts.*'), $subInactive => !request()->routeIs('planning.forecasts.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.forecasts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.forecasts.*')])></span>
+	                                <span class="flex-1">Forecast (Part GCI)</span>
+	                            </a>
+	                            <a href="{{ route('planning.mps.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.mps.*'), $subInactive => !request()->routeIs('planning.mps.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
+	                                <span class="flex-1">MPS</span>
+	                            </a>
+	                            <a href="{{ route('planning.boms.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.*'), $subInactive => !request()->routeIs('planning.boms.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.*')])></span>
+	                                <span class="flex-1">BOM GCI</span>
+	                            </a>
+	                            <a href="{{ route('planning.mrp.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
+	                                <span class="flex-1">MRP</span>
+	                            </a>
+	                        </div>
+	                    </div>
+	                </details>
+	            </div>
 
         <div>
             <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Incoming</div>

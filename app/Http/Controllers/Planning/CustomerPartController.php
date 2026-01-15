@@ -19,6 +19,7 @@ class CustomerPartController extends Controller
     public function index(Request $request)
     {
         $customerId = $request->query('customer_id');
+        $search = $request->query('search');
 
         $customers = Customer::query()->orderBy('code')->get();
         $parts = GciPart::query()->orderBy('part_no')->get();
@@ -26,12 +27,18 @@ class CustomerPartController extends Controller
         $customerParts = CustomerPart::query()
             ->with(['customer', 'components.part'])
             ->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('customer_part_no', 'like', "%{$search}%")
+                        ->orWhere('customer_part_name', 'like', "%{$search}%");
+                });
+            })
             ->orderBy(Customer::select('code')->whereColumn('customers.id', 'customer_parts.customer_id'))
             ->orderBy('customer_part_no')
             ->paginate(20)
             ->withQueryString();
 
-        return view('planning.customer_parts.index', compact('customers', 'parts', 'customerParts', 'customerId'));
+        return view('planning.customer_parts.index', compact('customers', 'parts', 'customerParts', 'customerId', 'search'));
     }
 
     public function export(Request $request)
