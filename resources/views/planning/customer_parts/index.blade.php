@@ -236,6 +236,42 @@
 	        </div>
 	    </div>
 
+	    {{-- Import Modal --}}
+	    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importOpen" x-cloak @keydown.escape.window="closeImport()">
+	        <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+	            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+	                <h3 class="text-lg font-bold text-slate-900">Import Customer Part Mapping</h3>
+	                <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">✕</button>
+	            </div>
+
+	            <form action="{{ route('planning.customer-parts.import') }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
+	                @csrf
+	                <div>
+	                    <label class="text-sm font-semibold text-slate-700">Excel File</label>
+	                    <input 
+	                        type="file" 
+	                        name="file" 
+	                        accept=".xlsx,.xls,.csv" 
+	                        class="mt-2 w-full rounded-xl border-slate-200" 
+	                        required
+	                    >
+	                    <p class="mt-1 text-xs text-slate-500">
+	                        Format: Customer Code, Customer Part No, Customer Part Name, Status, GCI Part No, GCI Part Name, Usage Qty
+	                    </p>
+	                </div>
+
+	                <div class="flex items-center justify-end gap-2 pt-2">
+	                    <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 font-semibold" @click="closeImport()">
+	                        Cancel
+	                    </button>
+	                    <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
+	                        Upload & Import
+	                    </button>
+	                </div>
+	            </form>
+	        </div>
+	    </div>
+
 	    <script>
 	        function planningCustomerParts() {
 	            return {
