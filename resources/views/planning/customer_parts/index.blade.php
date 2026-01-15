@@ -3,7 +3,12 @@
         Planning • Customer Part Mapping
     </x-slot>
 
-	    <div class="py-3" x-data="planningCustomerParts()" x-init="init()">
+    @push('head')
+        <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    @endpush
+
+    <div class="py-3" x-data="planningCustomerParts()" x-init="init()">
 	        <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
@@ -71,7 +76,12 @@
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div>
                                     <div class="text-xs text-slate-500">{{ $cp->customer->code ?? '-' }} • {{ $cp->customer->name ?? '-' }}</div>
-                                    <div class="text-lg font-semibold text-slate-900">{{ $cp->customer_part_no }}</div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-lg font-semibold text-slate-900">{{ $cp->customer_part_no }}</div>
+                                        <div class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+                                            {{ $cp->components->count() }} Components
+                                        </div>
+                                    </div>
                                     <div class="text-sm text-slate-600">{{ $cp->customer_part_name ?? '-' }}</div>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -88,7 +98,16 @@
                             </div>
 
                             <div class="mt-4">
-                                <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Mapped Part GCI</div>
+                                <div class="mt-2 flex items-center justify-between gap-4">
+                                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Mapped Part GCI</div>
+                                    <button 
+                                        type="button" 
+                                        class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200"
+                                        @click="openComponentModal(@js($cp), @js($cp->components->map(fn($c) => ['id' => $c->id, 'part_id' => $c->part_id, 'part_no' => $c->part->part_no, 'part_name' => $c->part->part_name, 'usage_qty' => $c->usage_qty])))"
+                                    >
+                                        Manage Components
+                                    </button>
+                                </div>
                                 <div class="mt-2 overflow-x-auto border border-slate-200 rounded-xl">
                                     <table class="min-w-full text-sm divide-y divide-slate-200">
                                         <thead class="bg-slate-50">
@@ -96,49 +115,23 @@
                                                 <th class="px-3 py-2 text-left font-semibold">Part No</th>
                                                 <th class="px-3 py-2 text-left font-semibold">Part Name</th>
                                                 <th class="px-3 py-2 text-right font-semibold">Consumption</th>
-                                                <th class="px-3 py-2 text-right font-semibold">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
                                             @forelse ($cp->components as $comp)
-                                                <tr>
-                                                    <td class="px-3 py-2 font-semibold">{{ $comp->part->part_no ?? '-' }}</td>
-                                                    <td class="px-3 py-2 text-slate-600">{{ $comp->part->part_name ?? '-' }}</td>
-                                                    <td class="px-3 py-2 text-right font-mono text-xs">{{ number_format((float) $comp->usage_qty, 3) }}</td>
-                                                    <td class="px-3 py-2 text-right">
-                                                        <form action="{{ route('planning.customer-parts.components.destroy', $comp) }}" method="POST" onsubmit="return confirm('Remove component?')">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button class="text-red-600 hover:text-red-800 font-semibold" type="submit">Remove</button>
-                                                        </form>
-                                                    </td>
+                                                <tr class="hover:bg-slate-50 transition-colors">
+                                                    <td class="px-3 py-2 font-semibold text-slate-700">{{ $comp->part->part_no ?? '-' }}</td>
+                                                    <td class="px-3 py-2 text-slate-600 text-xs">{{ $comp->part->part_name ?? '-' }}</td>
+                                                    <td class="px-3 py-2 text-right font-mono text-xs text-indigo-600 font-bold whitespace-nowrap">{{ number_format((float) $comp->usage_qty, 3) }}</td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="4" class="px-3 py-4 text-center text-slate-500">No components mapped</td>
+                                                    <td colspan="3" class="px-3 py-4 text-center text-slate-500 italic">No components mapped</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
                                     </table>
                                 </div>
-
-                                <form action="{{ route('planning.customer-parts.components.store', $cp) }}" method="POST" class="mt-3 flex flex-wrap items-end gap-2">
-                                    @csrf
-                                    <div class="min-w-[240px]">
-                                        <label class="text-xs font-semibold text-slate-600">Part GCI</label>
-                                        <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
-                                            <option value="" disabled selected>Select part</option>
-                                            @foreach ($parts as $p)
-                                                <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="text-xs font-semibold text-slate-600">Consumption</label>
-                                        <input type="number" step="any" min="0" name="usage_qty" class="mt-1 rounded-xl border-slate-200" required>
-                                    </div>
-                                    <button class="px-3 py-2 rounded-xl bg-slate-900 text-white font-semibold">Add / Update</button>
-                                </form>
                             </div>
                         </div>
                     @empty
@@ -152,75 +145,94 @@
             </div>
         </div>
 
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900" x-text="mode === 'create' ? 'Add Customer Part' : 'Edit Customer Part'"></div>
-                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">✕</button>
-                </div>
-
-                <form :action="formAction" method="POST" class="px-5 py-4 space-y-4">
-                    @csrf
-                    <template x-if="mode === 'edit'">
-                        <input type="hidden" name="_method" value="PUT">
-                    </template>
-
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer</label>
-                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.customer_id">
-                            <option value="" disabled>Select customer</option>
-                            @foreach ($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer Part No</label>
-                        <input name="customer_part_no" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.customer_part_no">
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer Part Name</label>
-                        <input name="customer_part_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.customer_part_name">
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Status</label>
-                        <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.status">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">Cancel</button>
-                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
-                    </div>
-                </form>
-	        </div>
-	    </div>
-
-	    {{-- Import modal --}}
-	    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importOpen" x-cloak @keydown.escape.window="closeImport()">
-	        <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+	    {{-- Component Modal --}}
+	    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="compModalOpen" x-cloak @keydown.escape.window="closeComponentModal()">
+	        <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col max-h-[90vh]">
 	            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-	                <div class="text-sm font-semibold text-slate-900">Import Customer Part Mapping</div>
-	                <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">✕</button>
+	                <div>
+                        <div class="text-xs text-slate-500 uppercase font-bold tracking-wider" x-text="compForm.customerCode"></div>
+                        <div class="text-sm font-semibold text-slate-900" x-text="compForm.customerPartNo"></div>
+                    </div>
+	                <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeComponentModal()">✕</button>
 	            </div>
 
-	            <form action="{{ route('planning.customer-parts.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
-	                @csrf
-	                <div class="text-sm text-slate-700 space-y-1">
-	                    <div>Gunakan format kolom yang sama seperti hasil <span class="font-semibold">Export</span>.</div>
-	                    <div class="text-xs text-slate-500">Customer wajib sudah ada. Part GCI akan dibuat otomatis jika belum ada.</div>
-	                </div>
-	                <div>
-	                    <label class="text-sm font-semibold text-slate-700">File</label>
-	                    <input type="file" name="file" accept=".xlsx,.xls,.csv" class="mt-1 w-full rounded-xl border-slate-200" required>
-	                </div>
-	                <div class="flex justify-end gap-2 pt-2">
-	                    <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">Cancel</button>
-	                    <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold">Import</button>
-	                </div>
-	            </form>
+	            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                    {{-- Add New Component Form --}}
+                    <div class="bg-indigo-50 rounded-2xl p-4 border border-indigo-100">
+                        <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3">Add / Update Component</h4>
+                        <form :action="compForm.action" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                            @csrf
+                            <div class="md:col-span-2">
+                                <label class="text-[10px] font-bold text-indigo-700 uppercase">Part GCI</label>
+                                <select 
+                                    id="part-select" 
+                                    name="part_id" 
+                                    class="mt-1 w-full rounded-xl border-indigo-200 bg-white" 
+                                    required
+                                >
+                                    <option value="">Search part...</option>
+                                    @foreach ($parts as $p)
+                                        <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="md:col-span-1">
+                                <label class="text-[10px] font-bold text-indigo-700 uppercase">Consumption</label>
+                                <input type="number" step="any" min="0" name="usage_qty" placeholder="0.000" class="mt-1 w-full rounded-xl border-indigo-200 bg-white text-sm" required>
+                            </div>
+                            <div class="md:col-span-1">
+                                <button class="w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition-all">
+                                    ADD
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {{-- Existing Components List --}}
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Existing Components</h4>
+                        <div class="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                            <table class="min-w-full text-xs divide-y divide-slate-100">
+                                <thead class="bg-slate-50">
+                                    <tr class="text-slate-500 uppercase tracking-wider">
+                                        <th class="px-4 py-2.5 text-left font-bold">GCI Part</th>
+                                        <th class="px-4 py-2.5 text-right font-bold">Consumption</th>
+                                        <th class="px-4 py-2.5 text-right font-bold">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-slate-50">
+                                    <template x-for="c in compForm.items" :key="c.id">
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-4 py-3">
+                                                <div class="font-bold text-slate-800" x-text="c.part_no"></div>
+                                                <div class="text-[10px] text-slate-500" x-text="c.part_name"></div>
+                                            </td>
+                                            <td class="px-4 py-3 text-right font-mono font-bold text-indigo-600" x-text="Number(c.usage_qty).toFixed(3)"></td>
+                                            <td class="px-4 py-3 text-right">
+                                                <form :action="'{{ url('/planning/customer-parts/components') }}/' + c.id" method="POST" onsubmit="return confirm('Remove component?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="p-1 px-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-bold transition-colors">
+                                                        ×
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <template x-if="compForm.items.length === 0">
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-8 text-center text-slate-400 italic">No components mapped yet.</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-slate-100 flex justify-end">
+                    <button type="button" class="px-6 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs" @click="closeComponentModal()">DONE</button>
+                </div>
 	        </div>
 	    </div>
 
@@ -229,18 +241,37 @@
 	            return {
 	                modalOpen: false,
 	                importOpen: false,
+                    compModalOpen: false,
+                    ts: null,
 	                mode: 'create',
 	                formAction: @js(route('planning.customer-parts.store')),
 	                form: { id: null, customer_id: '', customer_part_no: '', customer_part_name: '', status: 'active' },
+                    compForm: {
+                        action: '',
+                        customerPartNo: '',
+                        customerCode: '',
+                        items: []
+                    },
                     init() {
                         const prefillCustomerPartNo = @js(request('prefill_customer_part_no'));
                         const prefillCustomerId = @js($customerId);
 
-                        if (!prefillCustomerPartNo) return;
+                        if (prefillCustomerPartNo) {
+                            this.openCreate();
+                            if (prefillCustomerId) this.form.customer_id = String(prefillCustomerId);
+                            this.form.customer_part_no = prefillCustomerPartNo;
+                        }
 
-                        this.openCreate();
-                        if (prefillCustomerId) this.form.customer_id = String(prefillCustomerId);
-                        this.form.customer_part_no = prefillCustomerPartNo;
+                        // We initialize Tom Select next tick because it needs the element to be in DOM
+                        this.$nextTick(() => {
+                            this.ts = new TomSelect('#part-select', {
+                                create: false,
+                                placeholder: 'Search Part GCI...',
+                                allowEmptyOption: true,
+                                controlInput: null,
+                                dropdownParent: 'body'
+                            });
+                        });
                     },
 	                openCreate() {
 	                    this.mode = 'create';
@@ -263,6 +294,23 @@
                         this.modalOpen = true;
 	                },
 	                close() { this.modalOpen = false; },
+                    openComponentModal(cp, items) {
+                        this.compForm.action = @js(url('/planning/customer-parts')) + '/' + cp.id + '/components';
+                        this.compForm.customerPartNo = cp.customer_part_no;
+                        this.compForm.customerCode = cp.customer?.code ?? '-';
+                        this.compForm.items = items;
+                        this.compModalOpen = true;
+                        
+                        this.$nextTick(() => {
+                            if (this.ts) {
+                                this.ts.clear();
+                                this.ts.focus();
+                            }
+                        });
+                    },
+                    closeComponentModal() { 
+                        this.compModalOpen = false; 
+                    }
 	            }
 	        }
 	    </script>
