@@ -45,7 +45,8 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         }
 
         if (array_key_exists('classification', $data)) {
-            $data['classification'] = 'FG';
+            $class = strtoupper((string) ($this->norm($data['classification']) ?? ''));
+            $data['classification'] = in_array($class, ['FG', 'WIP', 'RM'], true) ? $class : 'FG';
         }
 
         if (array_key_exists('status', $data)) {
@@ -76,8 +77,14 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         // Find existing or create new
         $part = GciPart::where('part_no', $partNo)->first() ?: new GciPart(['part_no' => $partNo]);
 
-        // Always force classification to FG for this model
-        $part->classification = 'FG';
+        // Use classification from Excel, default to FG for new parts
+        $classification = strtoupper((string) ($this->norm($row['classification'] ?? null) ?? ''));
+        if (in_array($classification, ['FG', 'WIP', 'RM'], true)) {
+            $part->classification = $classification;
+        } elseif (!$part->exists) {
+            $part->classification = 'FG'; // Default for NEW records only
+        }
+        // For existing parts without classification in Excel, keep current value
 
         // Only update if value is provided in Excel
         if ($partName !== null) {
@@ -115,7 +122,7 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         return [
             'part_no' => ['required_without:part_number', 'nullable', 'string', 'max:100'],
             'part_number' => ['required_without:part_no', 'nullable', 'string', 'max:100'],
-            'classification' => ['nullable', Rule::in(['FG'])],
+            'classification' => ['nullable', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'part_name_gci' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
