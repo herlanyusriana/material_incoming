@@ -172,6 +172,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/gci-parts/export', [PlanningGciPartController::class, 'export'])->name('gci-parts.export');
         Route::post('/gci-parts/import', [PlanningGciPartController::class, 'import'])->name('gci-parts.import');
 
+        // Classification-specific part routes
+        Route::get('/fg-parts', [PlanningGciPartController::class, 'index'])->defaults('classification', 'FG')->name('fg-parts.index');
+        Route::get('/wip-parts', [PlanningGciPartController::class, 'index'])->defaults('classification', 'WIP')->name('wip-parts.index');
+        Route::get('/rm-parts', [PlanningGciPartController::class, 'index'])->defaults('classification', 'RM')->name('rm-parts.index');
+
         Route::get('/customer-pos', [PlanningCustomerPoController::class, 'index'])->name('customer-pos.index');
         Route::post('/customer-pos', [PlanningCustomerPoController::class, 'store'])->name('customer-pos.store');
         Route::put('/customer-pos/{customerPo}', [PlanningCustomerPoController::class, 'update'])->name('customer-pos.update');

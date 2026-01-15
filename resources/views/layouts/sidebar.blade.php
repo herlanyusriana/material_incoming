@@ -181,13 +181,25 @@
 	                                   @click="mobileSidebarOpen = false">
 	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customers.*')])></span>
 	                                    <span class="flex-1">Customers</span>
-	                                </a>
-	                                <a href="{{ route('planning.gci-parts.index') }}" 
-	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.gci-parts.*'), $subInactive => !request()->routeIs('planning.gci-parts.*')])
-	                                   @click="mobileSidebarOpen = false">
-	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.gci-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.gci-parts.*')])></span>
-	                                    <span class="flex-1">Part GCI</span>
-	                                </a>
+                                </a>
+                                <a href="{{ route('planning.fg-parts.index') }}" 
+                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.fg-parts.*'), $subInactive => !request()->routeIs('planning.fg-parts.*')])
+                                   @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.fg-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.fg-parts.*')])></span>
+                                    <span class="flex-1">FG Part</span>
+                                </a>
+                                <a href="{{ route('planning.wip-parts.index') }}" 
+                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')])
+                                   @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.wip-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.wip-parts.*')])></span>
+                                    <span class="flex-1">WIP Part</span>
+                                </a>
+                                <a href="{{ route('planning.rm-parts.index') }}" 
+                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.rm-parts.*'), $subInactive => !request()->routeIs('planning.rm-parts.*')])
+                                   @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.rm-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.rm-parts.*')])></span>
+                                    <span class="flex-1">RM Part</span>
+                                </a>
 	                                <a href="{{ route('planning.customer-parts.index') }}" 
 	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')])
 	                                   @click="mobileSidebarOpen = false">
@@ -649,12 +661,22 @@
 	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.customers.*'), $subInactive => !request()->routeIs('planning.customers.*')])>
 	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customers.*')])></span>
 	                                <span class="flex-1">Customers</span>
-	                            </a>
-	                            <a href="{{ route('planning.gci-parts.index') }}" 
-	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.gci-parts.*'), $subInactive => !request()->routeIs('planning.gci-parts.*')])>
-	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.gci-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.gci-parts.*')])></span>
-	                                <span class="flex-1">Part GCI</span>
-	                            </a>
+                            </a>
+                            <a href="{{ route('planning.fg-parts.index') }}" 
+                               @class([$subLinkBase, $subActive => request()->routeIs('planning.fg-parts.*'), $subInactive => !request()->routeIs('planning.fg-parts.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.fg-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.fg-parts.*')])></span>
+                                <span class="flex-1">FG Part</span>
+                            </a>
+                            <a href="{{ route('planning.wip-parts.index') }}" 
+                               @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.wip-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.wip-parts.*')])></span>
+                                <span class="flex-1">WIP Part</span>
+                            </a>
+                            <a href="{{ route('planning.rm-parts.index') }}" 
+                               @class([$subLinkBase, $subActive => request()->routeIs('planning.rm-parts.*'), $subInactive => !request()->routeIs('planning.rm-parts.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.rm-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.rm-parts.*')])></span>
+                                <span class="flex-1">RM Part</span>
+                            </a>
 	                            <a href="{{ route('planning.customer-parts.index') }}" 
 	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')])>
 	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>

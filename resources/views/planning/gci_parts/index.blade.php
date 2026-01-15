@@ -1,6 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
-        Planning • Part GCI
+        Planning • 
+        @if($classification === 'FG')
+            FG Part
+        @elseif($classification === 'WIP')
+            WIP Part
+        @elseif($classification === 'RM')
+            RM Part
+        @else
+            Part GCI
+        @endif
     </x-slot>
 
     <div class="py-3" x-data="planningGciParts()">
@@ -19,15 +28,18 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-4 space-y-4">
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
-                        <div>
-                            <label class="text-xs font-semibold text-slate-600">Classification</label>
-                            <select name="classification" class="mt-1 rounded-xl border-slate-200">
-                                <option value="">All</option>
-                                <option value="FG" @selected($classification === 'FG')>FG</option>
-                                <option value="WIP" @selected($classification === 'WIP')>WIP</option>
-                                <option value="RM" @selected($classification === 'RM')>RM</option>
-                            </select>
-                        </div>
+                        @if(!$classification)
+                            <!-- Only show classification filter if viewing all parts -->
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">Classification</label>
+                                <select name="classification" class="mt-1 rounded-xl border-slate-200">
+                                    <option value="">All</option>
+                                    <option value="FG" @selected($classification === 'FG')>FG</option>
+                                    <option value="WIP" @selected($classification === 'WIP')>WIP</option>
+                                    <option value="RM" @selected($classification === 'RM')>RM</option>
+                                </select>
+                            </div>
+                        @endif
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Status</label>
                             <select name="status" class="mt-1 rounded-xl border-slate-200">
@@ -184,7 +196,9 @@
                     openCreate() {
                         this.mode = 'create';
                         this.formAction = @js(route('planning.gci-parts.store'));
-                        this.form = { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' };
+                        // Pre-fill classification based on current view
+                        const currentClassification = @js($classification ?? 'FG');
+                        this.form = { id: null, customer_id: '', part_no: '', classification: currentClassification, part_name: '', model: '', status: 'active' };
                         this.modalOpen = true;
                     },
                     openEdit(p) {

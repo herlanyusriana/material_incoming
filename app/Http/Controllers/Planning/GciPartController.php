@@ -16,7 +16,9 @@ class GciPartController extends Controller
     public function index(Request $request)
     {
         $status = $request->query('status');
-        $classification = $request->query('classification');
+        
+        // Get classification from route default or query param
+        $classification = $request->route('classification') ?? $request->query('classification');
 
         $parts = GciPart::query()
             ->with('customer')
