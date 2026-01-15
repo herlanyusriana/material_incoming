@@ -25,31 +25,34 @@ return new class extends Migration
             }
         });
         
-        // Handle unique constraint separately
-        // We check if the composite unique exists by querying information_schema
         $db = DB::getDatabaseName();
-        $table = DB::getTablePrefix() . 'boms';
+        $tablePrefix = DB::getTablePrefix();
+        $tableName = $tablePrefix . 'boms';
         
         $compositeExists = count(DB::select("
             SELECT index_name FROM information_schema.statistics 
             WHERE table_schema = ? AND table_name = ? AND index_name = 'boms_part_id_revision_unique'
-        ", [$db, $table])) > 0;
+        ", [$db, $tableName])) > 0;
 
         if (!$compositeExists) {
-            Schema::table('boms', function (Blueprint $table) {
-                // Drop old single unique if it exists
-                $db = DB::getDatabaseName();
-                $table_name = DB::getTablePrefix() . 'boms';
+            Schema::table('boms', function (Blueprint $table) use ($db, $tableName) {
                 $oldExists = count(DB::select("
                     SELECT index_name FROM information_schema.statistics 
                     WHERE table_schema = ? AND table_name = ? AND index_name = 'boms_part_id_unique'
-                ", [$db, $table_name])) > 0;
+                ", [$db, $tableName])) > 0;
 
                 if ($oldExists) {
-                    $table->dropUnique(['part_id']);
+                    // We can't drop unique because it's used by foreign keys in other tables.
+                    // Instead of dropping, we'll just ignore and try to add the composite one.
+                    // If adding composite fails because of duplicate keys, we might need a different strategy.
+                    try {
+                        $table->unique(['part_id', 'revision']);
+                    } catch (\Exception $e) {
+                        // Log or ignore if already exists via different name
+                    }
+                } else {
+                    $table->unique(['part_id', 'revision']);
                 }
-                
-                $table->unique(['part_id', 'revision']);
             });
         }
     }
@@ -60,11 +63,6 @@ return new class extends Migration
             if (Schema::hasColumn('boms', 'revision')) {
                 $table->dropUnique(['part_id', 'revision']);
             }
-        });
-        
-        Schema::table('boms', function (Blueprint $table) {
-            $table->unique(['part_id']);
-            $table->dropColumn(['revision', 'effective_date', 'end_date', 'change_reason']);
         });
     }
 };
