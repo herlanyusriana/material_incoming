@@ -17,18 +17,19 @@ class ForecastController extends Controller
 
     public function index(Request $request)
     {
-        $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
+        $minggu = $request->query('minggu');
         $partId = $request->query('part_id');
 
         $parts = GciPart::query()->orderBy('part_no')->get();
 
         $forecasts = Forecast::query()
             ->with('part')
-            ->where('minggu', $minggu)
+            ->when($minggu, fn ($q) => $q->where('minggu', $minggu))
             ->whereHas('part')
             ->when($partId, fn ($q) => $q->where('part_id', $partId))
+            ->orderBy('minggu')
             ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'forecasts.part_id'))
-            ->paginate(25)
+            ->paginate(100)
             ->withQueryString();
 
         return view('planning.forecasts.index', compact('parts', 'forecasts', 'minggu', 'partId'));

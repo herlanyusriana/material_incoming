@@ -21,7 +21,7 @@
                     <form method="GET" class="flex flex-wrap items-end gap-3">
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Minggu (YYYY-WW)</label>
-                            <input name="minggu" value="{{ $minggu }}" class="mt-1 rounded-xl border-slate-200" placeholder="2026-W01">
+                            <input name="minggu" value="{{ $minggu }}" class="mt-1 rounded-xl border-slate-200" placeholder="All weeks">
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Part GCI</label>
@@ -46,6 +46,7 @@
                     <table class="min-w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                <th class="px-4 py-3 text-left font-semibold">Minggu</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part GCI</th>
                                 <th class="px-4 py-3 text-right font-semibold">Planning Qty</th>
                                 <th class="px-4 py-3 text-right font-semibold">Open PO Qty</th>
@@ -56,6 +57,7 @@
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($forecasts as $f)
                                 <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3 font-mono text-xs">{{ $f->minggu }}</td>
                                     <td class="px-4 py-3">
                                         <div class="font-semibold">{{ $f->part->part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $f->part->part_name ?? '-' }}</div>

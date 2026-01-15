@@ -20,7 +20,7 @@ class MpsController extends Controller
 
     public function index(Request $request)
     {
-        $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
+        $minggu = $request->query('minggu'); // Optional
         $view = $request->query('view', 'calendar');
         $q = trim((string) $request->query('q', ''));
         $classification = strtoupper(trim((string) $request->query('classification', 'FG')));
@@ -28,16 +28,19 @@ class MpsController extends Controller
         $weeksCount = (int) $request->query('weeks', 4);
         $weeksCount = max(1, min(12, $weeksCount));
 
-        $weeks = $this->makeWeeksRange($minggu, $weeksCount);
+        // For calendar view, we need a start week. Default to now if not provided.
+        $startMinggu = $minggu ?: now()->format('o-\\WW');
+        $weeks = $this->makeWeeksRange($startMinggu, $weeksCount);
         $hideEmpty = $request->query('hide_empty', 'on') === 'on';
 
         if ($view === 'list') {
             $rows = Mps::query()
                 ->with('part')
-                ->where('minggu', $minggu)
+                ->when($minggu, fn ($q) => $q->where('minggu', $minggu)) // Filter only if specific week requested
                 ->when($classification !== '', fn ($q) => $q->whereHas('part', fn ($p) => $p->where('classification', $classification)))
+                ->orderBy('minggu')
                 ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'mps.part_id'))
-                ->get();
+                ->get(); // Using get() as requested to "show all", be careful with volume
 
             return view('planning.mps.index', compact('minggu', 'rows', 'view', 'weeks', 'weeksCount', 'q', 'classification', 'hideEmpty'));
         }

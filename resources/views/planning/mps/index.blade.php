@@ -51,7 +51,7 @@
                                 name="minggu"
                                 value="{{ $minggu }}"
                                 class="rounded-xl border-slate-200"
-                                placeholder="2026-W01"
+                                placeholder="{{ $viewMode === 'list' ? 'All Weeks' : '2026-W01' }}"
                                 title="Minggu (YYYY-WW)"
                             >
 
@@ -198,6 +198,7 @@
                                             <span>Select</span>
                                         </label>
                                     </th>
+                                    <th class="px-4 py-3 text-left font-semibold">Minggu</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part GCI</th>
                                     <th class="px-4 py-3 text-right font-semibold">Forecast Qty</th>
                                     <th class="px-4 py-3 text-right font-semibold">Planned Qty</th>
@@ -222,6 +223,7 @@
                                                 <span class="text-xs text-slate-300">—</span>
                                             @endif
                                         </td>
+                                        <td class="px-4 py-3 font-mono text-xs">{{ $r->minggu }}</td>
                                         <td class="px-4 py-3">
                                             <div class="font-semibold">{{ $r->part->part_no ?? '-' }}</div>
                                             <div class="text-xs text-slate-500">{{ $r->part->part_name ?? '-' }}</div>
