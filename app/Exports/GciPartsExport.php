@@ -28,7 +28,7 @@ class GciPartsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
     public function map($part): array
     {
         return [
-            $part->customer->code ?? '-',
+            $part->customer->name ?? '-',
             $part->part_no,
             $part->classification ?? 'FG',
             $part->part_name,

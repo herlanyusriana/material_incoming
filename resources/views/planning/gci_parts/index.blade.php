@@ -182,7 +182,7 @@
                         <label class="text-sm font-semibold text-slate-700">Excel File</label>
                         <input type="file" name="file" accept=".xlsx,.xls" required class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                         <div class="mt-2 text-xs text-slate-500">
-                            Kolom: <span class="font-semibold">customer</span>, part_no, classification, part_name, model, status
+                            Kolom: <span class="font-semibold text-indigo-700">customer (NAMA)</span>, part_no, classification, part_name, model, status
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 pt-2">

@@ -54,7 +54,7 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         }
 
         if (array_key_exists('customer', $data)) {
-            $data['customer'] = strtoupper((string) ($this->norm($data['customer']) ?? ''));
+            $data['customer'] = $this->norm($data['customer']);
         }
 
         return $data;
@@ -97,14 +97,10 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         }
 
         if ($customerCode !== null) {
-            $customer = \App\Models\Customer::where('code', strtoupper($customerCode))->first();
+            $customer = \App\Models\Customer::where('name', $customerCode)->first();
             if ($customer) {
                 $part->customer_id = $customer->id;
             } else {
-                // If code is provided but not found, we could null it or leave it. 
-                // Setting to null if user explicitly cleared it in Excel? 
-                // Or leave existing if code is invalid?
-                // Let's set it to null if user provided something but it didn't match (clearing intent or typo)
                 $part->customer_id = null;
             }
         }
