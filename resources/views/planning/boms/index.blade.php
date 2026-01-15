@@ -26,7 +26,28 @@
                 </div>
             @endif
 
-	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-8 space-y-5">
+            <style>
+                .bom-table { border-collapse: separate; border-spacing: 0; }
+                .bom-table th, .bom-table td { border: 1px solid #e2e8f0; }
+                .bom-table th { background-color: #f8fafc; position: sticky; top: 0; z-index: 20; }
+                
+                /* Sticky left columns for better context */
+                .sticky-col-1 { position: sticky; left: 0; z-index: 30; background: inherit; }
+                .sticky-col-2 { position: sticky; left: 48px; z-index: 30; background: inherit; }
+                .sticky-col-3 { position: sticky; left: 248px; z-index: 30; background: inherit; }
+                .sticky-col-4 { position: sticky; left: 348px; z-index: 30; background: inherit; }
+                
+                .th-sticky { z-index: 40 !important; background-color: #f1f5f9 !important; }
+                
+                .parent-row { background-color: #ffffff; }
+                .parent-row:hover { background-color: #f1f5f9; }
+                .child-row { background-color: #fdfdfd; }
+                .child-row:hover { background-color: #f8fafc; }
+                
+                .font-mono-compact { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: -0.025em; }
+            </style>
+
+	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-4 space-y-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <form method="GET" class="flex flex-wrap items-center gap-2">
                         <div class="relative">
@@ -69,29 +90,29 @@
 	                    </div>
 	                </div>
 
-	                <div class="overflow-x-auto border border-slate-200 rounded-xl">
-	                    <table class="min-w-[1800px] w-full text-base divide-y divide-slate-200">
-	                        <thead class="bg-slate-50">
-	                            <tr class="text-slate-600 text-sm uppercase tracking-wider">
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">No</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Name</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Model</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">FG Part No.</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Process Name</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Machine Name</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">WIP Part No.</th>
-                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Qty.</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">UOM</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">WIP Part Name</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Size</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Spec</th>
-                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Material Name</th>
-	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">spesial</th>
-	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">RM Part No.</th>
-	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">Make/Buy</th>
-	                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Consumption</th>
-	                                <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">UOM_RM</th>
-	                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">Actions</th>
+	                <div class="overflow-auto border border-slate-200 rounded-xl max-h-[700px]">
+	                    <table class="bom-table min-w-[2000px] w-full text-base">
+	                        <thead>
+	                            <tr class="text-slate-700 text-[11px] uppercase tracking-tight">
+                                    <th class="px-2 py-3 text-left font-bold sticky-col-1 th-sticky w-12">No</th>
+                                    <th class="px-2 py-3 text-left font-bold sticky-col-2 th-sticky w-48">FG Name</th>
+                                    <th class="px-2 py-3 text-left font-bold sticky-col-3 th-sticky w-24">FG Model</th>
+                                    <th class="px-2 py-3 text-left font-bold sticky-col-4 th-sticky w-48">FG Part No.</th>
+                                    <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Process Name</th>
+                                    <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Machine Name</th>
+                                    <th class="px-2 py-3 text-left font-bold whitespace-nowrap">WIP Part No.</th>
+                                    <th class="px-2 py-3 text-right font-bold whitespace-nowrap">Qty.</th>
+                                    <th class="px-2 py-3 text-left font-bold whitespace-nowrap">UOM</th>
+                                    <th class="px-2 py-3 text-left font-bold whitespace-nowrap">WIP Part Name</th>
+                                    <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Material Size</th>
+                                    <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Material Spec</th>
+                                    <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Material Name</th>
+	                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Special</th>
+	                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">RM Part No.</th>
+	                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Make/Buy</th>
+	                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap">Consump.</th>
+	                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">UOM_RM</th>
+	                                <th class="px-2 py-2 text-center font-bold sticky right-0 bg-slate-50 z-20">Actions</th>
 	                            </tr>
 	                        </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -105,44 +126,43 @@
                                 @endphp
 
                                 {{-- Parent / header row --}}
-                                <tr class="hover:bg-slate-50">
-                                    <td class="px-3 py-3 text-slate-400">—</td>
-                                    <td class="px-3 py-3 font-semibold text-slate-900 whitespace-nowrap">{{ $fgName }}</td>
-                                    <td class="px-3 py-3 text-slate-700 whitespace-nowrap">{{ $fgModel }}</td>
-                                    <td class="px-3 py-3 whitespace-nowrap">
-                                        <button type="button" class="inline-flex items-center gap-2" @click="toggle({{ $bomId }})">
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-md border border-slate-200 bg-white text-slate-700">
-                                                <template x-if="expanded[{{ $bomId }}]"><span>▾</span></template>
-                                                <template x-if="!expanded[{{ $bomId }}]"><span>▸</span></template>
-                                            </span>
-                                            <span class="font-mono text-xs font-semibold">{{ $fgNo }}</span>
+                                <tr class="parent-row">
+                                    <td class="px-2 py-3 text-center text-slate-300 sticky-col-1">—</td>
+                                    <td class="px-2 py-3 font-bold text-slate-900 whitespace-nowrap sticky-col-2">{{ $fgName }}</td>
+                                    <td class="px-2 py-3 text-slate-600 whitespace-nowrap sticky-col-3 text-xs">{{ $fgModel }}</td>
+                                    <td class="px-2 py-3 whitespace-nowrap sticky-col-4">
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded border border-slate-300 bg-white text-slate-700 shadow-sm" @click="toggle({{ $bomId }})">
+                                                <span x-text="expanded[{{ $bomId }}] ? '▾' : '▸'" class="text-[10px] font-bold"></span>
+                                            </button>
+                                            <span class="font-mono text-[11px] font-black text-indigo-700">{{ $fgNo }}</span>
                                             @if(isset($bom->revision))
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800">
-                                                    Rev {{ $bom->revision }}
-                                                </span>
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white uppercase">REV {{ $bom->revision }}</span>
                                             @endif
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
+                                        </div>
+                                    </td>
+	                                    <td class="px-2 py-3 bg-slate-50/30" colspan="14">
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700' }}">
                                                 {{ strtoupper($bom->status) }}
                                             </span>
-                                        </button>
+                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">FG Master Header</span>
+                                        </div>
                                     </td>
-	                                    <td class="px-3 py-3" colspan="14">&nbsp;</td>
-                                    <td class="px-3 py-3 text-right whitespace-nowrap">
-                                        <form action="{{ route('planning.boms.update', $bom) }}" method="POST" class="inline">
-                                            @csrf
-                                            @method('PUT')
-                                            <input type="hidden" name="status" value="{{ $bom->status === 'active' ? 'inactive' : 'active' }}">
-                                            <button type="submit" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" title="Toggle status">
-                                                ✎
-                                            </button>
-                                        </form>
-                                        <form action="{{ route('planning.boms.destroy', $bom) }}" method="POST" class="inline" onsubmit="return confirm('Delete BOM?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-red-50 text-red-600" title="Delete">
-                                                🗑
-                                            </button>
-                                        </form>
+                                    <td class="px-2 py-3 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <form action="{{ route('planning.boms.update', $bom) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="hidden" name="status" value="{{ $bom->status === 'active' ? 'inactive' : 'active' }}">
+                                                <button type="submit" class="w-7 h-7 rounded border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-[10px]" title="Toggle status">✎</button>
+                                            </form>
+                                            <form action="{{ route('planning.boms.destroy', $bom) }}" method="POST" class="inline" onsubmit="return confirm('Delete BOM?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="w-7 h-7 rounded border border-slate-300 hover:bg-red-50 text-red-600 flex items-center justify-center text-[10px]" title="Delete">🗑</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
 
@@ -156,108 +176,108 @@
 	                                        $substitutes = $item->substitutes ?? collect();
 	                                        $subCount = $substitutes->count();
 	                                    @endphp
-	                                    <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-	                                        <td class="px-3 py-2 text-slate-700 whitespace-nowrap">{{ $lineNo }}</td>
-                                        <td class="px-3 py-2 text-slate-300" colspan="2">&nbsp;</td>
-                                        <td class="px-3 py-2 text-slate-300">&nbsp;</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->process_name ?? '' }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->machine_name ?? '' }}</td>
-	                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-sm">{{ $wipNo }}</td>
-	                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-sm">{{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->wip_uom ?? '' }}</td>
-                                        <td class="px-3 py-2">{{ $wipName }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_size ?? '' }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_spec ?? '' }}</td>
-	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->material_name ?? '' }}</td>
-	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->special ?? '' }}</td>
-	                                        <td class="px-3 py-2 whitespace-nowrap font-mono text-sm">{{ $rmNo }}</td>
-	                                        <td class="px-3 py-2 whitespace-nowrap">
+	                                    <tr class="child-row group" x-show="expanded[{{ $bomId }}]" x-cloak>
+	                                        <td class="px-2 py-1.5 text-slate-500 font-bold text-center text-xs sticky-col-1">{{ $lineNo }}</td>
+                                            <td class="px-2 py-1.5 text-slate-300 sticky-col-2" colspan="2">&nbsp;</td>
+                                            <td class="px-2 py-1.5 text-slate-300 sticky-col-4">&nbsp;</td>
+                                            <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600 font-medium">{{ $item->process_name ?? '' }}</td>
+                                            <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600">{{ $item->machine_name ?? '' }}</td>
+	                                        <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">{{ $wipNo }}</td>
+	                                        <td class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-indigo-700 bg-indigo-50/20">{{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}</td>
+                                            <td class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">{{ $item->wip_uom ?? '' }}</td>
+                                            <td class="px-2 py-1.5 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $wipName }}">{{ $wipName }}</td>
+                                            <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">{{ $item->material_size ?? '' }}</td>
+                                            <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">{{ $item->material_spec ?? '' }}</td>
+	                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">{{ $item->material_name ?? '' }}</td>
+	                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-500 italic">{{ $item->special ?? '' }}</td>
+	                                        <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">{{ $rmNo }}</td>
+	                                        <td class="px-2 py-1.5 text-center whitespace-nowrap">
                                                 @php $mob = strtolower((string) ($item->make_or_buy ?? 'buy')); @endphp
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $mob === 'make' ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800' }}">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black {{ $mob === 'make' ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800' }} border {{ $mob === 'make' ? 'border-indigo-200' : 'border-amber-200' }}">
                                                     {{ strtoupper($mob) }}
                                                 </span>
                                             </td>
-	                                        <td class="px-3 py-2 text-right whitespace-nowrap font-mono text-sm">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
-	                                        <td class="px-3 py-2 whitespace-nowrap">{{ $item->consumption_uom ?? '' }}</td>
-	                                        <td class="px-3 py-2 text-right whitespace-nowrap">
-	                                            <button
-	                                                type="button"
-	                                                class="relative inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-orange-50 text-orange-700"
-	                                                title="Manage substitutes"
-	                                                @click="openSubstitutePanel(@js([
-	                                                    'bom_item_id' => $item->id,
-	                                                    'action' => route('planning.bom-items.substitutes.store', $item),
-	                                                    'fg_label' => $fgNo . ' — ' . $fgName,
-	                                                    'line_no' => $lineNo,
-	                                                    'process_name' => $item->process_name,
-	                                                    'wip_part_no' => $wipNo,
-	                                                    'material_name' => $item->material_name,
-	                                                    'material_spec' => $item->material_spec,
-	                                                    'component_part_no' => $rmNo,
-	                                                    'consumption' => $item->usage_qty,
-	                                                    'consumption_uom' => $item->consumption_uom,
-	                                                    'substitutes' => $substitutes->sortBy(fn ($s) => (int) ($s->priority ?? 1))->map(fn ($s) => [
-	                                                        'id' => $s->id,
-	                                                        'part_no' => $s->part?->part_no,
-	                                                        'part_name' => $s->part?->part_name,
-	                                                        'ratio' => $s->ratio,
-	                                                        'priority' => $s->priority,
-	                                                        'status' => $s->status,
-	                                                        'notes' => $s->notes,
-	                                                        'delete_url' => route('planning.bom-item-substitutes.destroy', $s),
-	                                                    ])->values(),
-	                                                ]))"
-	                                            >
-	                                                ♻
-	                                                @if ($subCount > 0)
-	                                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-orange-600 text-white text-[10px] font-bold">
-	                                                        {{ $subCount }}
-	                                                    </span>
-	                                                @endif
-	                                            </button>
-	                                            <button
-	                                                type="button"
-	                                                class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
-	                                                title="Edit line"
-                                                @click="openLineModal(@js([
-                                                    'mode' => 'edit',
-                                                    'action' => route('planning.boms.items.store', $bom),
-                                                    'bom_item_id' => $item->id,
-                                                    'fg_label' => $fgNo . ' — ' . $fgName,
-                                                    'line_no' => $lineNo,
-                                                    'process_name' => $item->process_name,
-                                                    'machine_name' => $item->machine_name,
-                                                    'wip_part_id' => $item->wip_part_id,
-                                                    'wip_part_no' => $item->wip_part_no,
-                                                    'wip_qty' => $item->wip_qty,
-                                                    'wip_uom' => $item->wip_uom,
-                                                    'wip_part_name' => $item->wip_part_name,
-                                                    'material_size' => $item->material_size,
-                                                    'material_spec' => $item->material_spec,
-	                                                    'material_name' => $item->material_name,
-	                                                    'special' => $item->special,
-	                                                    'component_part_id' => $item->component_part_id,
-                                                    'component_part_no' => $item->component_part_no,
-	                                                    'make_or_buy' => $item->make_or_buy,
-	                                                    'usage_qty' => $item->usage_qty,
-	                                                    'consumption_uom' => $item->consumption_uom,
-                                                     'consumption_uom_id' => $item->consumption_uom_id,
-                                                     'wip_uom_id' => $item->wip_uom_id,
-                                                     'scrap_factor' => $item->scrap_factor,
-                                                     'yield_factor' => $item->yield_factor,
-	                                                ]))"
-                                            >
-                                                ✎
-                                            </button>
-                                            <form action="{{ route('planning.boms.items.destroy', $item) }}" method="POST" class="inline" onsubmit="return confirm('Delete BOM line?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-red-50 text-red-600" title="Delete">
-                                                    🗑
+	                                        <td class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-emerald-700 bg-emerald-50/20">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
+	                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">{{ $item->consumption_uom ?? '' }}</td>
+	                                        <td class="px-2 py-1.5 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
+                                                <div class="flex items-center justify-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        class="relative w-7 h-7 rounded border border-slate-300 hover:bg-orange-50 text-orange-700 flex items-center justify-center text-[10px]"
+                                                        title="Substitutes"
+                                                        @click="openSubstitutePanel(@js([
+                                                            'bom_item_id' => $item->id,
+                                                            'action' => route('planning.bom-items.substitutes.store', $item),
+                                                            'fg_label' => $fgNo . ' — ' . $fgName,
+                                                            'line_no' => $lineNo,
+                                                            'process_name' => $item->process_name,
+                                                            'wip_part_no' => $wipNo,
+                                                            'material_name' => $item->material_name,
+                                                            'material_spec' => $item->material_spec,
+                                                            'component_part_no' => $rmNo,
+                                                            'consumption' => $item->usage_qty,
+                                                            'consumption_uom' => $item->consumption_uom,
+                                                            'substitutes' => $substitutes->sortBy(fn ($s) => (int) ($s->priority ?? 1))->map(fn ($s) => [
+                                                                'id' => $s->id,
+                                                                'part_no' => $s->part?->part_no,
+                                                                'part_name' => $s->part?->part_name,
+                                                                'ratio' => $s->ratio,
+                                                                'priority' => $s->priority,
+                                                                'status' => $s->status,
+                                                                'notes' => $s->notes,
+                                                                'delete_url' => route('planning.bom-item-substitutes.destroy', $s),
+                                                            ])->values(),
+                                                        ]))"
+                                                    >
+                                                        ♻
+                                                        @if ($subCount > 0)
+                                                            <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-orange-600 text-white text-[8px] font-bold">
+                                                                {{ $subCount }}
+                                                            </span>
+                                                        @endif
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="w-7 h-7 rounded border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-[10px]"
+                                                        title="Edit"
+                                                    @click="openLineModal(@js([
+                                                        'mode' => 'edit',
+                                                        'action' => route('planning.boms.items.store', $bom),
+                                                        'bom_item_id' => $item->id,
+                                                        'fg_label' => $fgNo . ' — ' . $fgName,
+                                                        'line_no' => $lineNo,
+                                                        'process_name' => $item->process_name,
+                                                        'machine_name' => $item->machine_name,
+                                                        'wip_part_id' => $item->wip_part_id,
+                                                        'wip_part_no' => $item->wip_part_no,
+                                                        'wip_qty' => $item->wip_qty,
+                                                        'wip_uom' => $item->wip_uom,
+                                                        'wip_part_name' => $item->wip_part_name,
+                                                        'material_size' => $item->material_size,
+                                                        'material_spec' => $item->material_spec,
+                                                        'material_name' => $item->material_name,
+                                                        'special' => $item->special,
+                                                        'component_part_id' => $item->component_part_id,
+                                                        'component_part_no' => $item->component_part_no,
+                                                        'make_or_buy' => $item->make_or_buy,
+                                                        'usage_qty' => $item->usage_qty,
+                                                        'consumption_uom' => $item->consumption_uom,
+                                                        'consumption_uom_id' => $item->consumption_uom_id,
+                                                        'wip_uom_id' => $item->wip_uom_id,
+                                                        'scrap_factor' => $item->scrap_factor,
+                                                        'yield_factor' => $item->yield_factor,
+                                                    ]))"
+                                                >
+                                                    ✎
                                                 </button>
-                                            </form>
+                                                <form action="{{ route('planning.boms.items.destroy', $item) }}" method="POST" class="inline" onsubmit="return confirm('Delete BOM line?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="w-7 h-7 rounded border border-slate-300 hover:bg-red-50 text-red-600 flex items-center justify-center text-[10px]" title="Delete">🗑</button>
+                                                </form>
+                                            </div>
                                         </td>
-                                    </tr>
+	                                    </tr>
                                 @empty
 	                                    <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
 	                                        <td colspan="19" class="px-3 py-4 text-center text-slate-500">No BOM lines</td>
