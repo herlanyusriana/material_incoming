@@ -37,26 +37,8 @@ class ForecastGenerator
             ->groupBy('po.part_id')
             ->get();
 
-        $poFromCustomerPart = DB::table('customer_pos as po')
-            ->join('customer_parts as cp', function ($join) {
-                $join->on('cp.customer_id', '=', 'po.customer_id')
-                    ->on('cp.customer_part_no', '=', 'po.customer_part_no');
-            })
-            ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
-            ->join('gci_parts as gp', 'gp.id', '=', 'cpc.part_id')
-            ->whereNull('po.part_id')
-            ->whereNotNull('po.customer_part_no')
-            ->where('po.minggu', $minggu)
-            ->where('po.status', 'open')
-            ->select('cpc.part_id', DB::raw('SUM(po.qty * cpc.usage_qty) as qty'))
-            ->groupBy('cpc.part_id')
-            ->get();
-
         $poByPart = [];
         foreach ($poDirect as $row) {
-            $poByPart[(int) $row->part_id] = ((float) $row->qty) + ($poByPart[(int) $row->part_id] ?? 0);
-        }
-        foreach ($poFromCustomerPart as $row) {
             $poByPart[(int) $row->part_id] = ((float) $row->qty) + ($poByPart[(int) $row->part_id] ?? 0);
         }
 
