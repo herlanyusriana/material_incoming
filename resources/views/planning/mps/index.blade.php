@@ -12,6 +12,7 @@
                 $searchValue = $q ?? '';
                 $classificationValue = strtoupper(trim((string) ($classification ?? 'FG')));
                 $classificationValue = $classificationValue === '' ? 'ALL' : $classificationValue;
+                $hideEmptyValue = $hideEmpty ?? true;
             @endphp
 
             @if (session('success'))
@@ -79,7 +80,14 @@
                                 >
                             </div>
 
-                            <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load</button>
+                            <div class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+                                <label class="text-xs font-semibold text-slate-600 flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" name="hide_empty" value="on" @checked($hideEmptyValue) class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span>Hide Empty</span>
+                                </label>
+                            </div>
+
+                            <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold shadow-sm hover:bg-slate-800">Load</button>
                         </form>
 
                         @if($viewMode === 'calendar')
@@ -87,7 +95,8 @@
                                 @csrf
                                 <input type="hidden" name="minggu" value="{{ $minggu }}">
                                 <input type="hidden" name="weeks" value="{{ $weeksCountValue }}">
-                                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate Range (Refresh Forecast)</button>
+                                <input type="hidden" name="hide_empty" value="{{ $hideEmptyValue ? 'on' : 'off' }}">
+                                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm">Generate Range (Refresh Forecast)</button>
                             </form>
                         @else
                             <form method="POST" action="{{ route('planning.mps.generate') }}">

@@ -29,6 +29,7 @@ class MpsController extends Controller
         $weeksCount = max(1, min(12, $weeksCount));
 
         $weeks = $this->makeWeeksRange($minggu, $weeksCount);
+        $hideEmpty = $request->query('hide_empty', 'on') === 'on';
 
         if ($view === 'list') {
             $rows = Mps::query()
@@ -38,7 +39,7 @@ class MpsController extends Controller
                 ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'mps.part_id'))
                 ->get();
 
-            return view('planning.mps.index', compact('minggu', 'rows', 'view', 'weeks', 'weeksCount', 'q', 'classification'));
+            return view('planning.mps.index', compact('minggu', 'rows', 'view', 'weeks', 'weeksCount', 'q', 'classification', 'hideEmpty'));
         }
 
         $parts = GciPart::query()
@@ -50,6 +51,11 @@ class MpsController extends Controller
                         ->orWhere('part_name', 'like', '%' . $q . '%');
                 });
             })
+            ->when($hideEmpty && $view === 'calendar', function ($query) use ($weeks) {
+                $query->whereHas('mps', function ($q) use ($weeks) {
+                    $q->whereIn('minggu', $weeks);
+                });
+            })
             ->orderBy('part_no')
             ->with(['mps' => function ($query) use ($weeks) {
                 $query->whereIn('minggu', $weeks);
@@ -57,7 +63,7 @@ class MpsController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('planning.mps.index', compact('minggu', 'parts', 'view', 'weeks', 'weeksCount', 'q', 'classification'));
+        return view('planning.mps.index', compact('minggu', 'parts', 'view', 'weeks', 'weeksCount', 'q', 'classification', 'hideEmpty'));
     }
 
     private function makeWeeksRange(string $startMinggu, int $weeksCount): array
