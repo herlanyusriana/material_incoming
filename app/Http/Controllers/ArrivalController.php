@@ -162,6 +162,26 @@ class ArrivalController extends Controller
         return $codes->isEmpty() ? null : $codes->implode("\n");
     }
 
+    private function syncHsCodes(Arrival $arrival): void
+    {
+        $arrival->loadMissing('items.part');
+        $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
+        
+        $hsCodePrimary = null;
+        if ($normalizedHsCodes) {
+            $hsCodePrimary = collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])
+                ->filter()
+                ->first() ?: null;
+        }
+
+        $arrival->withoutEvents(function () use ($arrival, $normalizedHsCodes, $hsCodePrimary) {
+            $arrival->update([
+                'hs_codes' => $normalizedHsCodes,
+                'hs_code' => $hsCodePrimary,
+            ]);
+        });
+    }
+
     private function filterArrivalColumns(array $data): array
     {
         return collect($data)
@@ -346,11 +366,6 @@ class ArrivalController extends Controller
                 ? $normalizedContainers->pluck('container_no')->implode("\n")
                 : ($validated['container_numbers'] ?? null);
 
-		            $normalizedHsCodes = $this->normalizeHsCodes($validated['hs_codes'] ?? null) ?: $this->inferHsCodesFromItems($validated['items'] ?? []);
-		            $hsCodePrimary = strtoupper(trim((string) ($validated['hs_code'] ?? ''))) ?: ($normalizedHsCodes
-		                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-		                : null);
-
 		            $arrivalData = [
 		                'invoice_no' => $validated['invoice_no'],
 		                'invoice_date' => $validated['invoice_date'],
@@ -364,8 +379,6 @@ class ArrivalController extends Controller
                         'bill_of_lading_status' => $validated['bl_status'] ?? null,
                         'bill_of_lading_file' => $billOfLadingFilePath,
 		                'price_term' => $validated['price_term'] ?? null,
-		                'hs_code' => $hsCodePrimary,
-		                'hs_codes' => $normalizedHsCodes,
 	                'port_of_loading' => $validated['port_of_loading'] ?? null,
                 'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
                 'container_numbers' => $containerNumbersLegacy,
@@ -427,6 +440,8 @@ class ArrivalController extends Controller
                     'notes' => $item['notes'] ?? null,
                 ]);
             }
+
+            $this->syncHsCodes($arrival);
 
             return $arrival;
         });
@@ -514,10 +529,6 @@ class ArrivalController extends Controller
                 $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
             }
 
-            $departure->loadMissing('items');
-	        $normalizedHsCodes = $this->normalizeHsCodes($data['hs_codes'] ?? null) ?: $this->inferHsCodesFromItems($departure->items);
-	        $hsCodePrimary = strtoupper(trim((string) ($data['hs_code'] ?? ''))) ?: (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null);
-
 		        $departureData = [
 		            'invoice_no' => $data['invoice_no'],
 		            'invoice_date' => $data['invoice_date'],
@@ -528,8 +539,6 @@ class ArrivalController extends Controller
 		            'bill_of_lading' => $data['bl_no'] ?? null,
                     'bill_of_lading_status' => $data['bl_status'] ?? null,
 		            'price_term' => $data['price_term'] ?? null,
-		            'hs_code' => $hsCodePrimary,
-	            'hs_codes' => $normalizedHsCodes,
 	            'port_of_loading' => $data['port_of_loading'] ?? null,
 	            'container_numbers' => $data['container_numbers'] ?? null,
 	            'seal_code' => $data['seal_code'] ?? null,
@@ -585,6 +594,8 @@ class ArrivalController extends Controller
                 }
             }
         });
+
+        $this->syncHsCodes($departure);
 
         return redirect()->route('departures.show', $departure)->with('success', 'Departure berhasil di-update.');
     }
@@ -756,18 +767,7 @@ class ArrivalController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
-        $arrival->loadMissing('items');
-        // Only update HS Code if not manually set
-        if (empty($arrival->hs_codes) && empty($arrival->hs_code)) {
-            $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
-            $hsCodePrimary = $normalizedHsCodes
-                ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-                : null;
-            $arrival->update([
-                'hs_codes' => $normalizedHsCodes,
-                'hs_code' => $hsCodePrimary,
-            ]);
-        }
+        $this->syncHsCodes($arrival);
 
         return redirect()
             ->route('departures.show', $arrival)
@@ -850,18 +850,7 @@ class ArrivalController extends Controller
 	            'notes' => $data['notes'] ?? null,
 	        ]);
 
-            $arrival = $arrivalItem->arrival;
-            $arrival->loadMissing('items');
-            if (empty($arrival->hs_codes) && empty($arrival->hs_code)) {
-                $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
-                $hsCodePrimary = $normalizedHsCodes
-                    ? (collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])->filter()->first() ?: null)
-                    : null;
-                $arrival->update([
-                    'hs_codes' => $normalizedHsCodes,
-                    'hs_code' => $hsCodePrimary,
-                ]);
-            }
+            $this->syncHsCodes($arrivalItem->arrival);
 
 	        return redirect()
 	            ->route('departures.show', $arrivalItem->arrival)

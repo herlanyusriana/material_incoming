@@ -119,15 +119,9 @@
 	                    }
 	                    $containerSummary = $containerDetails->pluck('container_no')->filter()->implode(', ');
 
-	                    $hsCodesRaw = $arrival->hs_codes ?: $arrival->hs_code;
-	                    $hsCodes = collect();
-	                    if ($hsCodesRaw) {
-	                        $hsCodes = collect(preg_split('/\r\n|\r|\n|,|;/', (string) $hsCodesRaw) ?: [])
-	                            ->map(fn ($v) => trim((string) $v))
-	                            ->filter()
-	                            ->unique()
-	                            ->values();
-	                    } else {
+	                    @php
+	                        // We prioritize calculating HS codes directly from the items' parts to ensure accuracy.
+	                        // Any duplicates are filtered out, as requested.
 	                        $hsCodes = $arrival->items
 	                            ->pluck('part.hs_code')
 	                            ->filter(fn ($code) => trim((string) $code) !== '')
@@ -136,8 +130,16 @@
 	                            ->filter()
 	                            ->unique()
 	                            ->values();
-	                    }
-	                @endphp
+
+	                        // If no items exist or items have no HS codes, fallback to the stored values in arrival.
+	                        if ($hsCodes->isEmpty() && ($arrival->hs_codes || $arrival->hs_code)) {
+	                            $hsCodes = collect(preg_split('/\r\n|\r|\n|,|;/', (string) ($arrival->hs_codes ?: $arrival->hs_code)) ?: [])
+	                                ->map(fn ($v) => trim((string) $v))
+	                                ->filter()
+	                                ->unique()
+	                                ->values();
+	                        }
+	                    @endphp
 	                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Invoice:</span>

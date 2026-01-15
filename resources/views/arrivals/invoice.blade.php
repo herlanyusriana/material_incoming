@@ -573,18 +573,20 @@
 	    $totalNett = $arrival->items->sum(fn($i) => (float)($i->weight_nett ?? 0));
 	    $totalGross = $arrival->items->sum(fn($i) => (float)($i->weight_gross ?? 0));
 	    $totalAmount = $arrival->items->sum(fn($i) => (float)($i->total_price ?? 0));
-	    $hsCodesDisplay = $arrival->hs_codes ?: $arrival->hs_code;
-	    if (empty($hsCodesDisplay)) {
-	        $hsCodesDisplay = $arrival->items
-	            ->pluck('part.hs_code')
-	            ->filter(fn ($code) => trim((string) $code) !== '')
-	            ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
-	            ->map(fn ($code) => strtoupper(trim((string) $code)))
-	            ->filter()
-	            ->unique()
-	            ->values()
-	            ->implode("\n");
-	    }
+	    // 1. Calculate unique HS codes from individual parts for maximum accuracy
+	    $derivedHsCodes = $arrival->items
+	        ->pluck('part.hs_code')
+	        ->filter(fn ($code) => trim((string) $code) !== '')
+	        ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
+	        ->map(fn ($code) => strtoupper(trim((string) $code)))
+	        ->filter()
+	        ->unique()
+	        ->values();
+
+	    // 2. Use derived codes, or fallback to stored arrival record if no items exist
+	    $hsCodesDisplay = $derivedHsCodes->isNotEmpty() 
+	        ? $derivedHsCodes->implode("\n")
+	        : ($arrival->hs_codes ?: $arrival->hs_code);
 	    $hasBundleData = $arrival->items->contains(function ($item) {
 	        return ($item->qty_bundle ?? 0) > 0;
 	    });

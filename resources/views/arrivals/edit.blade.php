@@ -93,21 +93,21 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label for="hs_code" class="text-sm font-medium text-slate-700">Primary HS Code</label>
-                                <input type="text" id="hs_code" name="hs_code" value="{{ old('hs_code', $arrival->hs_code) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="e.g. 72269999">
+                        <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-4 space-y-2">
+                            <div class="flex items-center gap-2 text-blue-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="text-xs font-bold uppercase tracking-wider">Automated HS Code</span>
                             </div>
-                            <div class="space-y-1">
-                                <label for="currency" class="text-sm font-medium text-slate-700">Currency</label>
-                                <input type="text" id="currency" name="currency" value="{{ old('currency', $arrival->currency) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
-                            </div>
+                            <p class="text-xs text-blue-600 leading-relaxed">
+                                HS Code akan di-generate otomatis berdasarkan Master Part dari setiap item yang Anda tambahkan ke departure ini. Sistem akan menggabungkan nomor HS yang sama menjadi satu.
+                            </p>
                         </div>
 
                         <div class="space-y-1">
-                            <label for="hs_codes" class="text-sm font-medium text-slate-700">All HS Codes (one per line, as shown on Invoice)</label>
-                            <textarea id="hs_codes" name="hs_codes" rows="2" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="72269999\n72259900">{{ old('hs_codes', $arrival->hs_codes) ?: $arrival->hs_code }}</textarea>
-                            <p class="text-[10px] text-slate-500 italic">Siapkan nomor HS yang muncul di cetakan invoice. Kosongkan untuk auto-generate dari sistem.</p>
+                            <label for="currency" class="text-sm font-medium text-slate-700">Currency</label>
+                            <input type="text" id="currency" name="currency" value="{{ old('currency', $arrival->currency) }}" class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                         </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
