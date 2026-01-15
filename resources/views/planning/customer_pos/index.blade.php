@@ -21,7 +21,7 @@
                     <form method="GET" class="flex flex-wrap items-end gap-3">
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Minggu (YYYY-WW)</label>
-                            <input name="minggu" value="{{ $minggu ?? '' }}" class="mt-1 rounded-xl border-slate-200" placeholder="(kosongkan untuk semua)">
+                            <input type="week" name="minggu" value="{{ $minggu ?? '' }}" class="mt-1 rounded-xl border-slate-200" placeholder="(kosongkan untuk semua)">
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Customer</label>
@@ -120,10 +120,6 @@
 	                    <template x-if="mode === 'create'">
 	                        <div class="space-y-4">
                             <div>
-                                <label class="text-sm font-semibold text-slate-700">Minggu (YYYY-WW)</label>
-                                <input name="minggu" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.minggu">
-                            </div>
-                            <div>
                                 <label class="text-sm font-semibold text-slate-700">Customer</label>
                                 <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.customer_id">
                                     <option value="" disabled>Select customer</option>
@@ -132,10 +128,10 @@
                                     @endforeach
                                 </select>
                             </div>
-	                            <div>
-	                                <label class="text-sm font-semibold text-slate-700">PO No</label>
-	                                <input name="po_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.po_no">
-	                            </div>
+                            <div>
+                                <label class="text-sm font-semibold text-slate-700">PO No</label>
+                                <input name="po_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.po_no" placeholder="e.g. PO-12345">
+                            </div>
 	                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
 	                                <div class="flex items-center justify-between gap-3">
 	                                    <div>
@@ -197,6 +193,22 @@
 	                                    </div>
 	                                </template>
 	                            </div>
+
+                                <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                                    <label class="text-sm font-bold text-indigo-900">Delivery Week (Minggu)</label>
+                                    <div class="mt-1 flex items-center gap-3">
+                                        <input type="week" name="minggu" class="w-full rounded-xl border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" required x-model="form.minggu">
+                                        <div class="text-[10px] text-indigo-500 font-medium whitespace-nowrap">
+                                            Format: YYYY-Www
+                                        </div>
+                                    </div>
+                                    <p class="mt-2 text-[11px] text-indigo-700 italic flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                        Gunakan icon calendar untuk memilih minggu dengan lebih mudah.
+                                    </p>
+                                </div>
 	                        </div>
 	                    </template>
 
