@@ -119,7 +119,7 @@
 	                    }
 	                    $containerSummary = $containerDetails->pluck('container_no')->filter()->implode(', ');
 
-	                    @php
+
 	                        // We prioritize calculating HS codes directly from the items' parts to ensure accuracy.
 	                        // Any duplicates are filtered out, as requested.
 	                        $hsCodes = $arrival->items
