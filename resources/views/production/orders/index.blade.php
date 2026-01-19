@@ -159,18 +159,7 @@
             </div>
         </div>
     </div>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                                No production orders found.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-            <div class="px-6 py-4">
-                {{ $orders->links() }}
-            </div>
+
         </div>
     </div>
 </x-app-layout>

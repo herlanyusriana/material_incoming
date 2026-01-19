@@ -346,7 +346,7 @@
                         
                         // Construct URL for detail
                         // payload has part_id, minggu
-                        const url = `{{ route('mps.detail') }}?part_id=${payload.part_id}&minggu=${payload.minggu}`;
+                        const url = `{{ route('planning.mps.detail') }}?part_id=${payload.part_id}&minggu=${payload.minggu}`;
                         
                         try {
                             const response = await fetch(url, {
@@ -368,7 +368,7 @@
                         this.isLoading = true;
                         this.slideOverContent = '';
                         
-                        const url = `{{ route('mps.detail') }}?part_id=${r.part_id}&minggu=${r.minggu}`;
+                        const url = `{{ route('planning.mps.detail') }}?part_id=${r.part_id}&minggu=${r.minggu}`;
                          try {
                             const response = await fetch(url, {
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
