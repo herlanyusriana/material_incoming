@@ -38,33 +38,55 @@
                         No MRP run yet for this week.
                     </div>
                 @else
-                    <div class="text-sm text-slate-600">
+                    <div class="text-sm text-slate-600 mb-4">
                         Last run: <span class="font-semibold text-slate-900">#{{ $run->id }}</span> • {{ $run->run_at?->format('Y-m-d H:i') }}
                     </div>
 
-                    <div class="grid gap-6 lg:grid-cols-2">
+                    <div class="space-y-8">
+                        <!-- Production Plan -->
                         <div class="border border-slate-200 rounded-2xl p-4">
-                            <div class="text-sm font-semibold text-slate-900">Planned Production Order</div>
-                            <div class="mt-3 overflow-x-auto border border-slate-200 rounded-xl">
+                            <div class="text-lg font-bold text-slate-900 mb-4">Planned Production Order (FG / WIP)</div>
+                            <div class="overflow-x-auto border border-slate-200 rounded-xl">
                                 <table class="min-w-full text-sm divide-y divide-slate-200">
-                                    <thead class="bg-slate-50">
+                                    <thead class="bg-indigo-50">
                                         <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                            <th class="px-3 py-2 text-left font-semibold">Part GCI</th>
-                                            <th class="px-3 py-2 text-right font-semibold">Planned Qty</th>
+                                            <th class="px-3 py-3 text-left font-bold sticky left-0 bg-indigo-50 z-10">Part Number</th>
+                                            @foreach ($dates as $date)
+                                                <th class="px-3 py-3 text-center font-bold">{{ date('D, d M', strtotime($date)) }}</th>
+                                            @endforeach
+                                            <th class="px-3 py-3 text-right font-bold">Total</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @forelse ($run->productionPlans as $row)
-                                            <tr>
-                                                <td class="px-3 py-2">
-                                                    <div class="font-semibold">{{ $row->part->part_no ?? '-' }}</div>
-                                                    <div class="text-xs text-slate-500">{{ $row->part->part_name ?? '-' }}</div>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        @php
+                                            $groupedProduction = $run->productionPlans->groupBy('part_id');
+                                        @endphp
+                                        @forelse ($groupedProduction as $partId => $plans)
+                                            @php $part = $plans->first()->part; @endphp
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="px-3 py-2 sticky left-0 bg-white z-10 border-r border-slate-100">
+                                                    <div class="font-bold text-slate-900">{{ $part->part_no ?? '-' }}</div>
+                                                    <div class="text-xs text-slate-500">{{ $part->part_name ?? '-' }}</div>
                                                 </td>
-                                                <td class="px-3 py-2 text-right font-mono text-xs">{{ number_format((float) $row->planned_qty, 3) }}</td>
+                                                @foreach ($dates as $date)
+                                                    @php
+                                                        $qty = $plans->where('plan_date', $date)->sum('planned_qty');
+                                                    @endphp
+                                                    <td class="px-3 py-2 text-center border-l border-slate-50">
+                                                        @if($qty > 0)
+                                                            <div class="font-mono text-indigo-700 font-semibold">{{ number_format($qty) }}</div>
+                                                        @else
+                                                            <span class="text-slate-200">-</span>
+                                                        @endif
+                                                    </td>
+                                                @endforeach
+                                                <td class="px-3 py-2 text-right border-l border-slate-200 font-bold bg-slate-50">
+                                                    {{ number_format($plans->sum('planned_qty')) }}
+                                                </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="2" class="px-3 py-4 text-center text-slate-500">No production plans</td>
+                                                <td colspan="{{ count($dates) + 2 }}" class="px-3 py-4 text-center text-slate-500">No production plans</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -72,34 +94,59 @@
                             </div>
                         </div>
 
+                        <!-- Purchase Plan -->
                         <div class="border border-slate-200 rounded-2xl p-4">
-                            <div class="text-sm font-semibold text-slate-900">Planned Purchase Order / PR</div>
-                            <div class="mt-3 overflow-x-auto border border-slate-200 rounded-xl">
+                            <div class="text-lg font-bold text-slate-900 mb-4">Planned Purchase (Raw Material / Components)</div>
+                            <div class="overflow-x-auto border border-slate-200 rounded-xl">
                                 <table class="min-w-full text-sm divide-y divide-slate-200">
-                                    <thead class="bg-slate-50">
+                                    <thead class="bg-emerald-50">
                                         <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                            <th class="px-3 py-2 text-left font-semibold">Component Part</th>
-                                            <th class="px-3 py-2 text-right font-semibold">Required</th>
-                                            <th class="px-3 py-2 text-right font-semibold">On Hand</th>
-                                            <th class="px-3 py-2 text-right font-semibold">On Order</th>
-                                            <th class="px-3 py-2 text-right font-semibold">Net Required</th>
+                                            <th class="px-3 py-3 text-left font-bold sticky left-0 bg-emerald-50 z-10">Part Number</th>
+                                            <th class="px-3 py-3 text-right font-bold w-24">Stock</th>
+                                            @foreach ($dates as $date)
+                                                <th class="px-3 py-3 text-center font-bold">{{ date('D, d M', strtotime($date)) }}</th>
+                                            @endforeach
+                                            <th class="px-3 py-3 text-right font-bold">Total Net Req</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @forelse ($run->purchasePlans as $row)
-                                            <tr>
-                                                <td class="px-3 py-2">
-                                                    <div class="font-semibold">{{ $row->part->part_no ?? '-' }}</div>
-                                                    <div class="text-xs text-slate-500">{{ $row->part->part_name ?? '-' }}</div>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        @php
+                                            $groupedPurchase = $run->purchasePlans->groupBy('part_id');
+                                        @endphp
+                                        @forelse ($groupedPurchase as $partId => $plans)
+                                            @php 
+                                                $firstRow = $plans->first();
+                                                $part = $firstRow->part; 
+                                                // Stock is captured at run time, usually static across days in this simplified logic
+                                                $stock = $firstRow->on_hand; 
+                                            @endphp
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="px-3 py-2 sticky left-0 bg-white z-10 border-r border-slate-100">
+                                                    <div class="font-bold text-slate-900">{{ $part->part_no ?? '-' }}</div>
+                                                    <div class="text-xs text-slate-500">{{ $part->part_name ?? '-' }}</div>
                                                 </td>
-                                                <td class="px-3 py-2 text-right font-mono text-xs">{{ number_format((float) $row->required_qty, 3) }}</td>
-                                                <td class="px-3 py-2 text-right font-mono text-xs">{{ number_format((float) $row->on_hand, 3) }}</td>
-                                                <td class="px-3 py-2 text-right font-mono text-xs">{{ number_format((float) $row->on_order, 3) }}</td>
-                                                <td class="px-3 py-2 text-right font-mono text-xs font-semibold">{{ number_format((float) $row->net_required, 3) }}</td>
+                                                <td class="px-3 py-2 text-right text-xs text-slate-500 font-mono bg-slate-50">
+                                                    {{ number_format($stock) }}
+                                                </td>
+                                                @foreach ($dates as $date)
+                                                    @php
+                                                        $qty = $plans->where('plan_date', $date)->sum('net_required');
+                                                    @endphp
+                                                    <td class="px-3 py-2 text-center border-l border-slate-50">
+                                                        @if($qty > 0)
+                                                            <div class="font-mono text-emerald-700 font-semibold">{{ number_format($qty) }}</div>
+                                                        @else
+                                                            <span class="text-slate-200">-</span>
+                                                        @endif
+                                                    </td>
+                                                @endforeach
+                                                <td class="px-3 py-2 text-right border-l border-slate-200 font-bold bg-slate-50">
+                                                    {{ number_format($plans->sum('net_required')) }}
+                                                </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="px-3 py-4 text-center text-slate-500">No purchase plans</td>
+                                                <td colspan="{{ count($dates) + 3 }}" class="px-3 py-4 text-center text-slate-500">No purchase plans</td>
                                             </tr>
                                         @endforelse
                                     </tbody>

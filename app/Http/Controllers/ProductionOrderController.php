@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ProductionOrder;
 use App\Models\ProductionInspection;
 use App\Models\GciPart;
-use App\Models\Inventory;
+use App\Models\GciInventory;
 use App\Models\Bom;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +57,7 @@ class ProductionOrderController extends Controller
     {
         // Logic to check BOM vs Inventory
         $part = $order->part;
-        $bom = Bom::where('gci_part_id', $part->id)->latest()->first(); // Assuming latest BOM
+        $bom = Bom::where('part_id', $part->id)->latest()->first(); // Assuming latest BOM
         
         if (!$bom) {
             return back()->with('error', 'No BOM found for this part.');
@@ -68,15 +68,14 @@ class ProductionOrderController extends Controller
         $isAvailable = true;
 
         foreach ($bomItems as $item) {
-            $requiredQty = $item->qty * $order->qty_planned;
-            // Check inventory (Simple check against total inventory for now)
-            // Ideally we check specific locations or FIFO
-            $currentStock = Inventory::where('gci_part_id', $item->component_part_id)->sum('qty'); // Assuming Inventory has gci_part_id
+            $requiredQty = $item->usage_qty * $order->qty_planned;
+            // Check inventory (GciInventory)
+            $currentStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand'); 
 
             if ($currentStock < $requiredQty) {
                 $isAvailable = false;
                 $missingMaterials[] = [
-                    'part' => $item->componentPart->part_no ?? 'Unknown', // Assuming relation
+                    'part' => $item->componentPart->part_no ?? 'Unknown', 
                     'required' => $requiredQty,
                     'available' => $currentStock,
                 ];

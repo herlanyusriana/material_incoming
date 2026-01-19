@@ -29,7 +29,20 @@ class MrpController extends Controller
             ->latest('id')
             ->first();
 
-        return view('planning.mrp.index', compact('minggu', 'run'));
+        // Helper to get dates from Week
+        $year = (int) substr($minggu, 0, 4);
+        $week = (int) substr($minggu, 6, 2);
+        // Carbon setISODate logic
+        $startDate = now();
+        $startDate->setISODate($year, $week); 
+        $startDate->startOfDay();
+        
+        $dates = [];
+        for ($i = 0; $i < 5; $i++) {
+            $dates[] = $startDate->copy()->addDays($i)->format('Y-m-d');
+        }
+
+        return view('planning.mrp.index', compact('minggu', 'run', 'dates'));
     }
 
     public function generate(Request $request)
@@ -55,16 +68,44 @@ class MrpController extends Controller
                 'run_at' => now(),
             ]);
 
-            foreach ($approvedMps as $row) {
-                MrpProductionPlan::create([
-                    'mrp_run_id' => $run->id,
-                    'part_id' => $row->part_id,
-                    'planned_qty' => $row->planned_qty,
-                ]);
+            // Helper to get dates from Week
+            $year = (int) substr($minggu, 0, 4);
+            $week = (int) substr($minggu, 6, 2);
+            $startDate = now()->setISODate($year, $week)->startOfDay();
+            
+            // Generate Daily Dates (Mon-Fri)
+            $workDays = 5;
+            $dates = [];
+            for ($i = 0; $i < $workDays; $i++) {
+                $dates[] = $startDate->copy()->addDays($i)->format('Y-m-d');
             }
 
-            $requirements = [];
+            foreach ($approvedMps as $row) {
+                // Production Plan for FG/WIP (From MPS)
+                // Distributed evenly
+                $dailyQty = $row->planned_qty / $workDays;
+                
+                foreach ($dates as $date) {
+                    if ($dailyQty > 0) {
+                        MrpProductionPlan::create([
+                            'mrp_run_id' => $run->id,
+                            'part_id' => $row->part_id,
+                            'plan_date' => $date, // Daily Date
+                            'planned_qty' => $dailyQty,
+                        ]);
+                    }
+                }
+            }
+
+            $requirements = []; // component_id => total_required
             $componentMode = [];
+
+            // Calculate Total Requirements first (still aggregated per week for simple calculation, 
+            // but we can also breakdown. For now let's aggregate then split again or split at source?)
+            // Better: Iterate BOM and add to specific dates? 
+            // Complexity: A part might be used in different parents.
+            // Simplified approach: Calculate Total Weekly Required -> Split Daily.
+            
             foreach ($approvedMps as $row) {
                 $bom = Bom::query()->with('items')->where('part_id', $row->part_id)->first();
                 if (!$bom) {
@@ -89,27 +130,41 @@ class MrpController extends Controller
                 $inventory = GciInventory::query()->where('gci_part_id', $partId)->first();
                 $onHand = (float) ($inventory->on_hand ?? 0);
                 $onOrder = (float) ($inventory->on_order ?? 0);
+                
+                // Net Required is calculated against Total Weekly Demand vs Total Stock
+                // This is a simplified MRP. Real MRP would run day-by-day balance.
+                // We will stick to Weekly Balance -> Daily Split for visualization.
                 $netRequired = max(0, $requiredQty - $onHand - $onOrder);
 
-                if (($componentMode[$partId] ?? 'buy') === 'make') {
-                    if ($netRequired > 0) {
-                        MrpProductionPlan::create([
-                            'mrp_run_id' => $run->id,
-                            'part_id' => $partId,
-                            'planned_qty' => $netRequired,
-                        ]);
+                $dailyNetRequired = $netRequired / $workDays;
+                $dailyRequired = $requiredQty / $workDays; // Gross required daily
+                
+                // We create entries for each day
+                foreach ($dates as $date) {
+                     if (($componentMode[$partId] ?? 'buy') === 'make') {
+                        if ($dailyNetRequired > 0) {
+                            MrpProductionPlan::create([
+                                'mrp_run_id' => $run->id,
+                                'part_id' => $partId,
+                                'plan_date' => $date,
+                                'planned_qty' => $dailyNetRequired,
+                            ]);
+                        }
+                    } else {
+                        // Purchase Plan
+                        if ($requiredQty > 0) {
+                             MrpPurchasePlan::create([
+                                'mrp_run_id' => $run->id,
+                                'part_id' => $partId,
+                                'plan_date' => $date,
+                                'required_qty' => $dailyRequired,
+                                'on_hand' => $onHand, // Showing total stock (static)
+                                'on_order' => $onOrder,
+                                'net_required' => $dailyNetRequired,
+                            ]);
+                        }
                     }
-                    continue;
                 }
-
-                MrpPurchasePlan::create([
-                    'mrp_run_id' => $run->id,
-                    'part_id' => $partId,
-                    'required_qty' => $requiredQty,
-                    'on_hand' => $onHand,
-                    'on_order' => $onOrder,
-                    'net_required' => $netRequired,
-                ]);
             }
         });
 

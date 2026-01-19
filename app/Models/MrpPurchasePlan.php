@@ -12,6 +12,7 @@ class MrpPurchasePlan extends Model
     protected $fillable = [
         'mrp_run_id',
         'part_id',
+        'plan_date',
         'required_qty',
         'on_hand',
         'on_order',
