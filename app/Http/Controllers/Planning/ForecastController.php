@@ -37,23 +37,24 @@ class ForecastController extends Controller
 
     public function preview(Request $request)
     {
-        $validated = $request->validate($this->validateMinggu());
-        $minggu = $validated['minggu'];
+        $minggu = $request->query('minggu'); // Still allow filter if provided
 
-        // Get all Customer POs for this week
+        // Get all Customer POs (status open)
         $customerPos = \App\Models\CustomerPo::query()
             ->with(['customerPart.gciPart', 'customer'])
-            ->where('minggu', $minggu)
             ->where('status', 'open')
             ->whereNotNull('part_id')
+            ->when($minggu, fn($q) => $q->where('minggu', $minggu))
+            ->orderBy('minggu')
             ->orderBy('id')
             ->get();
 
-        // Get all Planning Rows for this week
+        // Get all Planning Rows (status accepted)
         $planningRows = \App\Models\CustomerPlanningRow::query()
             ->with(['import.customer', 'customerPart.gciPart', 'customerPart.components.part'])
-            ->where('minggu', $minggu)
             ->where('row_status', 'accepted')
+            ->when($minggu, fn($q) => $q->where('minggu', $minggu))
+            ->orderBy('minggu')
             ->orderBy('id')
             ->get();
 
@@ -63,26 +64,23 @@ class ForecastController extends Controller
     public function generate(Request $request)
     {
         $validated = $request->validate([
-            'minggu' => ['required', 'string', 'regex:/^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/'],
             'selected_pos' => 'nullable|array',
             'selected_pos.*' => 'exists:customer_pos,id',
             'selected_planning' => 'nullable|array',
             'selected_planning.*' => 'exists:customer_planning_rows,id',
         ]);
         
-        $minggu = $validated['minggu'];
         $selectedPoIds = $validated['selected_pos'] ?? [];
         $selectedPlanningIds = $validated['selected_planning'] ?? [];
 
-        // If no selection, use all data (backward compatibility)
         if (empty($selectedPoIds) && empty($selectedPlanningIds)) {
-            app(ForecastGenerator::class)->generateForWeek($minggu);
-        } else {
-            app(ForecastGenerator::class)->generateFromSelected($minggu, $selectedPoIds, $selectedPlanningIds);
+            return redirect()->back()->with('error', 'Please select at least one item.');
         }
 
-        return redirect()->route('planning.forecasts.index', ['minggu' => $minggu])
-            ->with('success', 'Forecast generated.');
+        app(ForecastGenerator::class)->generateFromSelected(null, $selectedPoIds, $selectedPlanningIds);
+
+        return redirect()->route('planning.forecasts.index')
+            ->with('success', 'Forecast generated from selected sources.');
     }
 
     /**

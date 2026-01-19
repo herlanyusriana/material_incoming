@@ -36,13 +36,11 @@
                             </select>
                         </div>
                         <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
-                        
-                        <button type="submit" formaction="{{ route('planning.forecasts.preview') }}" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
-                            Select & Generate
-                        </button>
                     </form>
 
-
+                    <a href="{{ route('planning.forecasts.preview') }}" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center">
+                        Select & Generate
+                    </a>
                     
                     <a href="{{ route('planning.forecasts.history') }}" class="px-4 py-2 rounded-xl font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
                         📊 History
