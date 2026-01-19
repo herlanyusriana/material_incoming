@@ -75,9 +75,9 @@
                                         <div class="font-semibold">{{ $f->part->part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $f->part->part_name ?? '-' }}</div>
                                     </td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->planning_qty, 3) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->po_qty, 3) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($f->qty, 3) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->planning_qty) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->po_qty) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($f->qty) }}</td>
                                     <td class="px-4 py-3 text-xs uppercase tracking-wide text-slate-600">{{ $f->source }}</td>
                                 </tr>
                             @empty

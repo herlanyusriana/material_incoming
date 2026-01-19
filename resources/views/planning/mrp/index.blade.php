@@ -92,14 +92,14 @@
                                                     @endphp
                                                     <td class="px-3 py-2 text-center border-l border-slate-50">
                                                         @if($qty > 0)
-                                                            <div class="font-mono text-indigo-700 font-semibold">{{ number_format($qty) }}</div>
+                                                            <div class="font-mono text-indigo-700 font-semibold">{{ formatNumber($qty) }}</div>
                                                         @else
                                                             <span class="text-slate-200">-</span>
                                                         @endif
                                                     </td>
                                                 @endforeach
                                                 <td class="px-3 py-2 text-right border-l border-slate-200 font-bold bg-slate-50">
-                                                    {{ number_format($plans->sum('planned_qty')) }}
+                                                    {{ formatNumber($plans->sum('planned_qty')) }}
                                                 </td>
                                             </tr>
                                         @empty
@@ -144,7 +144,7 @@
                                                     <div class="text-xs text-slate-500">{{ $part->part_name ?? '-' }}</div>
                                                 </td>
                                                 <td class="px-3 py-2 text-right text-xs text-slate-500 font-mono bg-slate-50">
-                                                    {{ number_format($stock) }}
+                                                    {{ formatNumber($stock) }}
                                                 </td>
                                                 @foreach ($dates as $date)
                                                     @php
@@ -152,14 +152,14 @@
                                                     @endphp
                                                     <td class="px-3 py-2 text-center border-l border-slate-50">
                                                         @if($qty > 0)
-                                                            <div class="font-mono text-emerald-700 font-semibold">{{ number_format($qty) }}</div>
+                                                            <div class="font-mono text-emerald-700 font-semibold">{{ formatNumber($qty) }}</div>
                                                         @else
                                                             <span class="text-slate-200">-</span>
                                                         @endif
                                                     </td>
                                                 @endforeach
                                                 <td class="px-3 py-2 text-right border-l border-slate-200 font-bold bg-slate-50">
-                                                    {{ number_format($plans->sum('net_required')) }}
+                                                    {{ formatNumber($plans->sum('net_required')) }}
                                                 </td>
                                             </tr>
                                         @empty

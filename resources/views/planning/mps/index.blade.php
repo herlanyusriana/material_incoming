@@ -299,8 +299,8 @@
                                             <div class="font-semibold">{{ $r->part->part_no ?? '-' }}</div>
                                             <div class="text-xs text-slate-500">{{ $r->part->part_name ?? '-' }}</div>
                                         </td>
-                                        <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($r->forecast_qty, 3) }}</td>
-                                        <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($r->planned_qty, 3) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($r->forecast_qty) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($r->planned_qty) }}</td>
                                         <td class="px-4 py-3">
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $r->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
                                                 {{ strtoupper($r->status) }}

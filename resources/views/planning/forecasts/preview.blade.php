@@ -69,7 +69,7 @@
                                                 <div class="font-semibold text-slate-900">{{ $po->customerPart?->gciPart?->part_no ?? '-' }}</div>
                                                 <div class="text-xs text-slate-500">{{ $po->customerPart?->gciPart?->part_name ?? '-' }}</div>
                                             </td>
-                                            <td class="px-6 py-4 text-right font-mono font-semibold text-blue-700">{{ formatNumber($po->qty, 3) }}</td>
+                                            <td class="px-6 py-4 text-right font-mono font-semibold text-blue-700">{{ formatNumber($po->qty) }}</td>
                                             <td class="px-6 py-4 text-center">
                                                 <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
                                                     {{ strtoupper($po->status) }}
@@ -140,7 +140,7 @@
                                                     <span class="text-slate-400 text-xs">No components</span>
                                                 @endif
                                             </td>
-                                            <td class="px-6 py-4 text-right font-mono font-semibold text-green-700">{{ formatNumber($row->qty, 3) }}</td>
+                                            <td class="px-6 py-4 text-right font-mono font-semibold text-green-700">{{ formatNumber($row->qty) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
