@@ -17,7 +17,7 @@
         <div class="grid grid-cols-2 gap-4 text-sm">
              <div class="bg-white p-3 rounded border border-slate-100">
                  <span class="block text-xs text-slate-400">Forecast Qty</span>
-                 <span class="block font-mono font-semibold text-slate-700">{{ number_format($mps->forecast_qty) }}</span>
+                 <span class="block font-mono font-semibold text-slate-700">{{ formatNumber($mps->forecast_qty) }}</span>
              </div>
              <div class="bg-white p-3 rounded border border-slate-100">
                  <span class="block text-xs text-slate-400">Current Status</span>
@@ -110,7 +110,7 @@
                                 {{ floatval($item->usage_qty) }}
                             </td>
                             <td class="px-5 py-2 whitespace-nowrap text-sm text-right font-mono text-indigo-600 font-semibold">
-                                {{ number_format($mps->planned_qty * $item->usage_qty) }}
+                                {{ formatNumber($mps->planned_qty * $item->usage_qty) }}
                             </td>
                         </tr>
                         @endforeach

@@ -175,4 +175,42 @@ class MrpController extends Controller
         return redirect()->route('planning.mrp.index', ['minggu' => $minggu])
             ->with('success', 'MRP generated.');
     }
+
+    /**
+     * Clear all MRP data
+     */
+    public function clear(Request $request)
+    {
+        DB::transaction(function () {
+            $runCount = \App\Models\MrpRun::count();
+            $purchaseCount = \App\Models\MrpPurchasePlan::count();
+            $productionCount = \App\Models\MrpProductionPlan::count();
+            
+            \App\Models\MrpPurchasePlan::query()->delete();
+            \App\Models\MrpProductionPlan::query()->delete();
+            \App\Models\MrpRun::query()->delete();
+            
+            // Log the clear action
+            \App\Models\MrpHistory::create([
+                'user_id' => auth()->id(),
+                'action' => 'clear',
+                'parts_count' => $purchaseCount + $productionCount,
+                'notes' => "Cleared {$runCount} MRP runs, {$purchaseCount} purchase plans, {$productionCount} production plans",
+            ]);
+        });
+
+        return redirect()->route('planning.mrp.index')->with('success', 'All MRP data has been cleared.');
+    }
+
+    /**
+     * Show MRP history
+     */
+    public function history(Request $request)
+    {
+        $histories = \App\Models\MrpHistory::with('user', 'mrpRun')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        return view('planning.mrp.history', compact('histories'));
+    }
 }

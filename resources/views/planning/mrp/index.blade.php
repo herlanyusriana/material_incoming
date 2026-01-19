@@ -38,6 +38,18 @@
                     <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold shadow-sm transition-colors">
                         Generate MRP
                     </button>
+                    
+                    <a href="{{ route('planning.mrp.history') }}" class="px-4 py-2 rounded-lg font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+                        📊 History
+                    </a>
+                    
+                    <form method="POST" action="{{ route('planning.mrp.clear') }}" onsubmit="return confirm('Are you sure you want to clear ALL MRP data? This cannot be undone!');" class="inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="px-4 py-2 rounded-lg font-semibold border bg-red-600 border-red-600 text-white hover:bg-red-700">
+                            🗑️ Clear All
+                        </button>
+                    </form>
                 </form>
                 @if (!$run)
                     <div class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-500">

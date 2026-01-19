@@ -40,6 +40,18 @@
                         <input type="hidden" name="minggu" value="{{ $minggu }}">
                         <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate Forecast</button>
                     </form>
+                    
+                    <a href="{{ route('planning.forecasts.history') }}" class="px-4 py-2 rounded-xl font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+                        📊 History
+                    </a>
+                    
+                    <form method="POST" action="{{ route('planning.forecasts.clear') }}" onsubmit="return confirm('Are you sure you want to clear ALL Forecast data? This cannot be undone!');" class="inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="px-4 py-2 rounded-xl font-semibold border bg-red-600 border-red-600 text-white hover:bg-red-700">
+                            🗑️ Clear All
+                        </button>
+                    </form>
                 </div>
 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
@@ -62,9 +74,9 @@
                                         <div class="font-semibold">{{ $f->part->part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $f->part->part_name ?? '-' }}</div>
                                     </td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $f->planning_qty, 3) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $f->po_qty, 3) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ number_format((float) $f->qty, 3) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->planning_qty, 3) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->po_qty, 3) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($f->qty, 3) }}</td>
                                     <td class="px-4 py-3 text-xs uppercase tracking-wide text-slate-600">{{ $f->source }}</td>
                                 </tr>
                             @empty

@@ -15,6 +15,7 @@ class GciPart extends Model
     protected $fillable = [
         'customer_id',
         'part_no',
+        'barcode',
         'part_name',
         'model',
         'classification',
@@ -70,5 +71,32 @@ class GciPart extends Model
     public function bom()
     {
         return $this->hasOne(Bom::class, 'part_id');
+    }
+
+    public function boms()
+    {
+        return $this->hasMany(Bom::class, 'part_id');
+    }
+
+    /**
+     * Generate barcode from part_no if not set
+     */
+    public function generateBarcode(): string
+    {
+        return $this->barcode ?: $this->part_no;
+    }
+
+    /**
+     * Boot method to auto-generate barcode
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($part) {
+            if (empty($part->barcode)) {
+                $part->barcode = $part->part_no;
+            }
+        });
     }
 }

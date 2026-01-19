@@ -187,6 +187,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/forecasts', [PlanningForecastController::class, 'index'])->name('forecasts.index');
         Route::post('/forecasts/generate', [PlanningForecastController::class, 'generate'])->name('forecasts.generate');
+        Route::delete('/forecasts/clear', [PlanningForecastController::class, 'clear'])->name('forecasts.clear');
+        Route::get('/forecasts/history', [PlanningForecastController::class, 'history'])->name('forecasts.history');
 
 	        Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
 	        Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
@@ -195,9 +197,19 @@ Route::middleware('auth')->group(function () {
 	        Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
 	        Route::get('/mps/detail', [PlanningMpsController::class, 'detail'])->name('mps.detail');
 	        Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
+	        Route::delete('/mps/clear', [PlanningMpsController::class, 'clear'])->name('mps.clear');
+	        Route::get('/mps/history', [PlanningMpsController::class, 'history'])->name('mps.history');
 
         Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');
         Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('mrp.generate');
+        Route::delete('/mrp/clear', [PlanningMrpController::class, 'clear'])->name('mrp.clear');
+        Route::get('/mrp/history', [PlanningMrpController::class, 'history'])->name('mrp.history');
+    });
+    
+    Route::prefix('warehouse')->name('warehouse.')->group(function () {
+        Route::get('/labels', [App\Http\Controllers\BarcodeLabelController::class, 'index'])->name('labels.index');
+        Route::get('/labels/part/{part}', [App\Http\Controllers\BarcodeLabelController::class, 'printPartLabel'])->name('labels.part');
+        Route::post('/labels/bulk', [App\Http\Controllers\BarcodeLabelController::class, 'printBulkLabels'])->name('labels.bulk');
     });
     
     Route::prefix('production')->name('production.')->group(function () {

@@ -48,6 +48,19 @@
                             List View
                         </a>
                     </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('planning.mps.history') }}" class="px-4 py-2 rounded-xl font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+                            📊 History
+                        </a>
+                        <form method="POST" action="{{ route('planning.mps.clear') }}" onsubmit="return confirm('Are you sure you want to clear ALL MPS data? This cannot be undone!');" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="px-4 py-2 rounded-xl font-semibold border bg-red-600 border-red-600 text-white hover:bg-red-700">
+                                🗑️ Clear All
+                            </button>
+                        </form>
+                    </div>
 
                     <div class="flex flex-wrap items-center gap-2">
                         <form method="GET" class="flex flex-wrap items-center gap-2">
@@ -176,7 +189,7 @@
                                                             class="inline-flex items-center justify-center w-full px-3 py-1 rounded-full text-xs font-semibold {{ $cell->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }}"
                                                             @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'minggu' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
                                                         >
-                                                            {{ number_format((float) $cell->planned_qty, 0) }}
+                                                            {{ formatNumber($cell->planned_qty) }}
                                                         </button>
                                                     @else
                                                         <button
@@ -221,7 +234,7 @@
                                                         @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'minggu' => $m, 'planned_qty' => $monthSum, 'status' => 'draft']))"
                                                         title="Click to set monthly plan"
                                                     >
-                                                        {{ number_format($monthSum, 0) }}
+                                                        {{ formatNumber($monthSum) }}
                                                     </button>
                                                 </td>
                                             @endforeach
@@ -286,8 +299,8 @@
                                             <div class="font-semibold">{{ $r->part->part_no ?? '-' }}</div>
                                             <div class="text-xs text-slate-500">{{ $r->part->part_name ?? '-' }}</div>
                                         </td>
-                                        <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $r->forecast_qty, 3) }}</td>
-                                        <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ number_format((float) $r->planned_qty, 3) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($r->forecast_qty, 3) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($r->planned_qty, 3) }}</td>
                                         <td class="px-4 py-3">
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $r->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
                                                 {{ strtoupper($r->status) }}

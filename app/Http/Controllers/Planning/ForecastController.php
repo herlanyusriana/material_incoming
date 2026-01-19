@@ -45,4 +45,38 @@ class ForecastController extends Controller
         return redirect()->route('planning.forecasts.index', ['minggu' => $minggu])
             ->with('success', 'Forecast generated.');
     }
+
+    /**
+     * Clear all Forecast data
+     */
+    public function clear(Request $request)
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () {
+            $count = Forecast::count();
+            
+            Forecast::query()->delete();
+            
+            // Log the clear action
+            \App\Models\ForecastHistory::create([
+                'user_id' => auth()->id(),
+                'action' => 'clear',
+                'parts_count' => $count,
+                'notes' => 'Cleared all forecast data',
+            ]);
+        });
+
+        return redirect()->route('planning.forecasts.index')->with('success', 'All forecast data has been cleared.');
+    }
+
+    /**
+     * Show Forecast history
+     */
+    public function history(Request $request)
+    {
+        $histories = \App\Models\ForecastHistory::with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        return view('planning.forecasts.history', compact('histories'));
+    }
 }

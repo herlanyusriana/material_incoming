@@ -64,6 +64,8 @@ class MpsController extends Controller
                 ->paginate(25)
                 ->withQueryString();
 
+            $hideEmpty = $request->query('hide_empty', 'on') === 'on';
+
             return view('planning.mps.index', compact('minggu', 'parts', 'view', 'months', 'weeksCount', 'q', 'classification', 'hideEmpty'));
         }
 
@@ -432,5 +434,39 @@ class MpsController extends Controller
         }
 
         return view('planning.mps.partials.detail_content', compact('mps', 'part', 'minggu'));
+    }
+
+    /**
+     * Clear all MPS data
+     */
+    public function clear(Request $request)
+    {
+        DB::transaction(function () use ($request) {
+            $count = Mps::count();
+            
+            Mps::query()->delete();
+            
+            // Log the clear action
+            \App\Models\MpsHistory::create([
+                'user_id' => auth()->id(),
+                'action' => 'clear',
+                'parts_count' => $count,
+                'notes' => 'Cleared all MPS data',
+            ]);
+        });
+
+        return redirect()->route('planning.mps.index')->with('success', 'All MPS data has been cleared.');
+    }
+
+    /**
+     * Show MPS history
+     */
+    public function history(Request $request)
+    {
+        $histories = \App\Models\MpsHistory::with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        return view('planning.mps.history', compact('histories'));
     }
 }
