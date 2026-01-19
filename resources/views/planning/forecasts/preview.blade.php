@@ -58,7 +58,7 @@
                                                     type="checkbox" 
                                                     name="selected_pos[]" 
                                                     value="{{ $po->id }}"
-                                                    x-model="selectedPos"
+                                                    x-model.number="selectedPos"
                                                     class="rounded border-slate-300 text-blue-600"
                                                 >
                                             </td>
@@ -121,7 +121,7 @@
                                                     type="checkbox" 
                                                     name="selected_planning[]" 
                                                     value="{{ $row->id }}"
-                                                    x-model="selectedPlanning"
+                                                    x-model.number="selectedPlanning"
                                                     class="rounded border-slate-300 text-green-600"
                                                 >
                                             </td>

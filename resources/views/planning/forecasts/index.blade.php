@@ -35,10 +35,12 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
-                    <form method="GET" action="{{ route('planning.forecasts.preview') }}">
-                        <input type="hidden" name="minggu" value="{{ $minggu }}">
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Select & Generate</button>
-                    </form>
+                    @if($minggu)
+                        <form method="GET" action="{{ route('planning.forecasts.preview') }}">
+                            <input type="hidden" name="minggu" value="{{ $minggu }}">
+                            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Select & Generate</button>
+                        </form>
+                    @endif
                     
                     <a href="{{ route('planning.forecasts.history') }}" class="px-4 py-2 rounded-xl font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
                         📊 History
