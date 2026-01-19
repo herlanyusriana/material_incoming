@@ -26,13 +26,19 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load</button>
                     </form>
 
-                    <form method="POST" action="{{ route('planning.mrp.generate') }}" onsubmit="return confirm('Generate MRP for this week?')">
-                        @csrf
-                        <input type="hidden" name="minggu" value="{{ $minggu }}">
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate MRP</button>
-                    </form>
-                </div>
+                    <form method="POST" action="{{ route('planning.mrp.generate') }}" class="flex items-center gap-3">
+                    @csrf
+                    <input type="hidden" name="minggu" value="{{ $minggu }}">
+                    
+                    <label class="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
+                        <input type="checkbox" name="include_saturday" value="1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-sm font-semibold text-slate-600">Include Saturday (6 Days)</span>
+                    </label>
 
+                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold shadow-sm transition-colors">
+                        Generate MRP
+                    </button>
+                </form>
                 @if (!$run)
                     <div class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-500">
                         No MRP run yet for this week.

@@ -384,18 +384,7 @@
                                         <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.daily-planning'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.daily-planning')])></span>
                                         <span class="flex-1">Customers Daily Planning</span>
                                     </a>
-                                    <a href="{{ route('outgoing.customer-po') }}"
-                                       @class([$subLinkBase, $subActive => request()->routeIs('outgoing.customer-po'), $subInactive => !request()->routeIs('outgoing.customer-po')])
-                                       @click="mobileSidebarOpen = false">
-                                        <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po')])></span>
-                                        <span class="flex-1">Customers PO</span>
-                                    </a>
-                                    <a href="{{ route('outgoing.product-mapping') }}"
-                                       @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')])
-                                       @click="mobileSidebarOpen = false">
-                                        <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.product-mapping')])></span>
-                                        <span class="flex-1">Customer Product Mapping</span>
-                                    </a>
+
                                     <a href="{{ route('outgoing.delivery-requirements') }}"
                                        @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])
                                        @click="mobileSidebarOpen = false">

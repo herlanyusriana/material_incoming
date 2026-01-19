@@ -1,188 +1,175 @@
 @extends('outgoing.layout')
 
 @section('content')
-    <div class="space-y-6">
+    <div class="space-y-6" x-data="dailyPlanning()">
         @if (session('success'))
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
                 {{ session('success') }}
             </div>
         @endif
 
-        @if ($errors->any())
-            <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-                <div class="font-semibold mb-2">Gagal:</div>
-                <ul class="list-disc ml-5 space-y-1">
-                    @foreach ($errors->all() as $err)
-                        <li>{{ $err }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-start gap-3">
-                    <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-black">
+                    <div class="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black">
                         DP
                     </div>
                     <div>
-                        <div class="text-2xl md:text-3xl font-black text-slate-900">Daily Planning Schedule</div>
-                        <div class="mt-1 text-sm text-slate-600">Production line schedule with sequence and quantity</div>
+                        <div class="text-2xl md:text-3xl font-black text-slate-900">Daily Planning</div>
+                        <div class="mt-1 text-sm text-slate-600">
+                            @if($plan)
+                                Plan #{{ $plan->id }} • {{ $dateFrom->format('d M Y') }} - {{ $dateTo->format('d M Y') }}
+                            @else
+                                Viewing Period: {{ $dateFrom->format('d M Y') }} - {{ $dateTo->format('d M Y') }}
+                            @endif
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
+                     @if(!$plan)
+                        <form action="{{ route('outgoing.daily-planning.create') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="date_from" value="{{ $dateFrom->toDateString() }}">
+                            <input type="hidden" name="date_to" value="{{ $dateTo->toDateString() }}">
+                            <button class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm">
+                                + Create New Plan
+                            </button>
+                        </form>
+                    @endif
+                    
                     <a
                         href="{{ route('outgoing.daily-planning.template', ['date_from' => $dateFrom->toDateString(), 'date_to' => $dateTo->toDateString()]) }}"
                         class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     >
-                        Template
+                        Download Template
                     </a>
-
-                    @if ($plan)
-                        <a
-                            href="{{ route('outgoing.daily-planning.export', $plan) }}"
-                            class="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                        >
-                            Export
-                        </a>
-                    @else
-                        <button
-                            type="button"
-                            class="inline-flex items-center rounded-xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed"
-                            disabled
-                        >
-                            Export
-                        </button>
-                    @endif
 
                     <form action="{{ route('outgoing.daily-planning.import') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-2">
                         @csrf
-                        <input
-                            type="file"
-                            name="file"
-                            accept=".xlsx,.xls,.csv"
-                            class="block w-[220px] text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200"
-                            required
-                        />
-                        <button type="submit" class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                            Import
-                        </button>
+                        <label class="cursor-pointer inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                            <span>Import Excel</span>
+                            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="this.form.submit()">
+                        </label>
                     </form>
                 </div>
             </div>
 
-            <div class="mt-6 flex flex-wrap gap-4 items-end">
-                <form action="{{ route('outgoing.daily-planning') }}" method="GET" class="flex flex-wrap items-end gap-4">
+            <div class="mt-6 flex flex-wrap gap-4 items-end border-t border-slate-100 pt-6">
+                <form action="{{ route('outgoing.daily-planning') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
-                        <div class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700">Date From</div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
                         <input
                             type="date"
                             name="date_from"
                             value="{{ $dateFrom->toDateString() }}"
-                            class="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-blue-500"
+                            class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
                     </div>
                     <div>
-                        <div class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700">Date To</div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
                         <input
                             type="date"
                             name="date_to"
                             value="{{ $dateTo->toDateString() }}"
-                            class="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-blue-500"
+                            class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
                     </div>
-                    <button type="submit" class="rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-900">
-                        Load
+                    <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">
+                        View
                     </button>
                 </form>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            @foreach ($days as $idx => $d)
-                @php
-                    $k = $d->format('Y-m-d');
-                    $total = $totalsByDate[$k] ?? 0;
-                    $grad = match ($idx % 5) {
-                        0 => 'from-blue-600 to-blue-700',
-                        1 => 'from-purple-600 to-purple-700',
-                        2 => 'from-emerald-600 to-emerald-700',
-                        3 => 'from-orange-600 to-orange-700',
-                        default => 'from-pink-600 to-pink-700',
-                    };
-                @endphp
-                <div class="rounded-2xl bg-gradient-to-br {{ $grad }} p-5 text-white shadow-sm">
-                    <div class="text-xs font-bold uppercase tracking-wider text-white/80 mb-2">{{ $d->format('d-M') }}</div>
-                    <div class="text-3xl font-black">{{ number_format($total) }}</div>
-                    @if ($idx === 0)
-                        <div class="mt-1 text-sm text-white/80">Start</div>
-                    @endif
-                </div>
-            @endforeach
-        </div>
-
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-xs">
-                    <thead class="bg-gradient-to-r from-slate-700 to-slate-800 text-white">
+                <table class="w-full text-sm divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <th rowspan="2" class="px-3 py-4 text-left font-bold border-r border-slate-600">Production Line</th>
-                            <th rowspan="2" class="px-3 py-4 text-left font-bold border-r border-slate-600">Part No</th>
-                            @foreach ($days as $idx => $d)
-                                <th colspan="2" class="px-3 py-3 text-center font-bold {{ $idx === 0 ? 'bg-blue-600' : '' }} {{ $idx !== count($days) - 1 ? 'border-r border-slate-600' : '' }}">
-                                    {{ $d->format('d-M') }}
+                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">Line</th>
+                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-32 z-10 bg-slate-50">Part No</th>
+                            @foreach ($days as $d)
+                                <th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[120px]">
+                                    {{ $d->format('D, d M') }}
                                 </th>
                             @endforeach
                         </tr>
                         <tr>
-                            @foreach ($days as $idx => $d)
-                                <th class="px-3 py-2 text-center font-semibold {{ $idx === 0 ? 'bg-blue-600 text-blue-100' : 'text-slate-300' }} border-r border-slate-600">Seq.</th>
-                                <th class="px-3 py-2 text-center font-semibold {{ $idx === 0 ? 'bg-blue-600 text-blue-100' : 'text-slate-300' }} {{ $idx !== count($days) - 1 ? 'border-r border-slate-600' : '' }}">Qty</th>
+                            @foreach ($days as $d)
+                                <th class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-100">Seq</th>
+                                <th class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-200">Qty</th>
                             @endforeach
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($rows as $row)
                             @php
                                 $cellMap = $row->cells->keyBy(fn ($c) => $c->plan_date->format('Y-m-d'));
                             @endphp
-                            <tr class="border-b border-slate-100 hover:bg-blue-50 transition-colors">
-                                <td class="px-3 py-3 border-r border-slate-100">
-                                    <span class="px-2 py-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded text-xs font-black">
-                                        {{ $row->production_line }}
-                                    </span>
+                            <tr class="hover:bg-slate-50 group">
+                                <td class="px-4 py-3 font-semibold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
+                                    {{ $row->production_line }}
                                 </td>
-                                <td class="px-3 py-3 border-r border-slate-100 font-semibold text-slate-700">{{ $row->part_no }}</td>
-                                @foreach ($days as $idx => $d)
+                                <td class="px-4 py-3 font-mono text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-32 z-10 border-r border-slate-100">
+                                    {{ $row->part_no }}
+                                </td>
+                                @foreach ($days as $d)
                                     @php
                                         $key = $d->format('Y-m-d');
                                         $cell = $cellMap->get($key);
-                                        $seq = $cell?->seq ?? '-';
-                                        $qty = $cell?->qty ?? '-';
+                                        $seq = $cell?->seq;
+                                        $qty = $cell?->qty;
                                     @endphp
-                                    <td class="px-3 py-3 border-r border-slate-100 text-center {{ $idx === 0 ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600' }}">{{ $seq }}</td>
-                                    <td class="px-3 py-3 text-center {{ $idx === 0 ? 'bg-blue-50 text-blue-700 font-black' : 'text-slate-700 font-semibold' }} {{ $idx !== count($days) - 1 ? 'border-r border-slate-100' : '' }}">{{ $qty }}</td>
+                                    <td class="p-0 border-r border-slate-100 relative">
+                                        <input 
+                                            type="number" 
+                                            class="w-full h-full border-0 bg-transparent text-center text-xs focus:ring-1 focus:ring-indigo-500 p-2 placeholder-slate-200"
+                                            value="{{ $seq }}"
+                                            placeholder="-"
+                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'seq', $event.target.value)"
+                                        >
+                                    </td>
+                                    <td class="p-0 border-r border-slate-200 relative bg-slate-50/50">
+                                        <input 
+                                            type="number" 
+                                            class="w-full h-full border-0 bg-transparent text-center text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-indigo-500 p-2 placeholder-slate-200"
+                                            value="{{ $qty }}"
+                                            placeholder="0"
+                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'qty', $event.target.value)"
+                                        >
+                                    </td>
                                 @endforeach
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 2 + (count($days) * 2) }}" class="px-6 py-10 text-center text-slate-500">
-                                    Belum ada data. Download template lalu Import file Excel untuk membuat daily planning.
+                                <td colspan="{{ 2 + (count($days) * 2) }}" class="px-6 py-12 text-center text-slate-500">
+                                    @if($plan)
+                                        <div class="flex flex-col items-center">
+                                            <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                            <p class="font-medium text-slate-900">Plan is empty.</p>
+                                            <p class="text-sm">Add rows manually or import from Excel.</p>
+                                        </div>
+                                    @else
+                                        <p>No plan found for this period. Click <strong>Create New Plan</strong> to start.</p>
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
-                    <tfoot class="bg-gradient-to-r from-slate-100 to-slate-200 font-bold">
+                     <!-- Footer for Totals -->
+                    <tfoot class="bg-slate-50 font-bold sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
                         <tr>
-                            <td colspan="2" class="px-3 py-3 text-right text-slate-700 uppercase tracking-wider">Total Qty:</td>
+                            <td colspan="2" class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider border-r border-slate-200 sticky left-0 z-20 bg-slate-50">
+                                Daily Total
+                            </td>
                             @foreach ($days as $idx => $d)
                                 @php
                                     $k = $d->format('Y-m-d');
                                     $t = $totalsByDate[$k] ?? 0;
                                 @endphp
-                                <td class="px-3 py-3 text-center border-r border-slate-300"></td>
-                                <td class="px-3 py-3 text-center {{ $idx === 0 ? 'bg-blue-100 text-blue-700' : 'text-slate-700' }} {{ $idx !== count($days) - 1 ? 'border-r border-slate-300' : '' }}">
+                                <td colspan="1" class="border-r border-slate-100"></td> <!-- Skip Seq Col -->
+                                <td class="px-2 py-2 text-center text-xs text-indigo-700 border-r border-slate-200 bg-indigo-50/50">
                                     {{ number_format($t) }}
                                 </td>
                             @endforeach
@@ -190,6 +177,47 @@
                     </tfoot>
                 </table>
             </div>
+            
+            @if($plan)
+                <div class="border-t border-slate-200 p-4 bg-slate-50">
+                    <form action="{{ route('outgoing.daily-planning.row', $plan->id) }}" method="POST" class="flex gap-2 max-w-2xl">
+                        @csrf
+                        <input type="text" name="production_line" placeholder="Line (e.g. L1)" class="w-24 rounded-lg border-slate-300 text-sm" required>
+                        <input type="text" name="part_no" placeholder="Part No (e.g. 123-ABC)" class="flex-1 rounded-lg border-slate-300 text-sm" required>
+                        <button class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
+                            + Add Row
+                        </button>
+                    </form>
+                </div>
+            @endif
         </div>
     </div>
+
+    <script>
+        function dailyPlanning() {
+            return {
+                async updateCell(rowId, date, field, value) {
+                    try {
+                        const response = await fetch('{{ route('outgoing.daily-planning.cell') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ row_id: rowId, date, field, value })
+                        });
+                        
+                        if (response.ok) {
+                            // Optional: green flash or toast
+                            console.log('Saved');
+                        } else {
+                            alert('Failed to save');
+                        }
+                    } catch (e) {
+                         console.error(e);
+                    }
+                }
+            }
+        }
+    </script>
 @endsection

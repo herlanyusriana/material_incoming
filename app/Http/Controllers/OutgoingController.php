@@ -195,4 +195,62 @@ class OutgoingController extends Controller
         }
         return $days;
     }
+    public function updateCell(Request $request)
+    {
+        $validated = $request->validate([
+            'row_id' => 'required|exists:outgoing_daily_plan_rows,id',
+            'date' => 'required|date',
+            'field' => 'required|in:seq,qty',
+            'value' => 'nullable',
+        ]);
+
+        $rowId = $validated['row_id'];
+        $date = $validated['date'];
+        $field = $validated['field'];
+        $value = $validated['value'];
+
+        $cell = OutgoingDailyPlanCell::updateOrCreate(
+            ['row_id' => $rowId, 'plan_date' => $date],
+            [$field => $value]
+        );
+
+        return response()->json(['success' => true, 'cell' => $cell]);
+    }
+
+    public function createPlan(Request $request)
+    {
+        $validated = $request->validate([
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
+        ]);
+
+        $plan = OutgoingDailyPlan::create([
+            'date_from' => $validated['date_from'],
+            'date_to' => $validated['date_to'],
+            'created_by' => auth()->id(),
+        ]);
+
+        return redirect()->route('outgoing.daily-planning', ['plan_id' => $plan->id])
+            ->with('success', 'New plan created. Please add rows.');
+    }
+    
+    public function storeRow(Request $request, OutgoingDailyPlan $plan) 
+    {
+        $validated = $request->validate([
+            'part_no' => 'required|string',
+            'production_line' => 'required|string',
+        ]);
+        
+        // Find or create GCI Part? For now assuming manual text or simple mapping
+        $gciPart = \App\Models\GciPart::where('part_no', $validated['part_no'])->first();
+        
+        $row = $plan->rows()->create([
+            'row_no' => $plan->rows()->max('row_no') + 1,
+            'production_line' => $validated['production_line'],
+            'part_no' => $validated['part_no'],
+            'gci_part_id' => $gciPart?->id,
+        ]);
+        
+        return back()->with('success', 'Row added.');
+    }
 }

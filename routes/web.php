@@ -96,6 +96,9 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('outgoing')->name('outgoing.')->group(function () {
         Route::get('/daily-planning', [OutgoingController::class, 'dailyPlanning'])->name('daily-planning');
+        Route::post('/daily-planning/create', [OutgoingController::class, 'createPlan'])->name('daily-planning.create');
+        Route::post('/daily-planning/{plan}/row', [OutgoingController::class, 'storeRow'])->name('daily-planning.row');
+        Route::post('/daily-planning/cell', [OutgoingController::class, 'updateCell'])->name('daily-planning.cell');
         Route::get('/daily-planning/template', [OutgoingController::class, 'dailyPlanningTemplate'])->name('daily-planning.template');
         Route::post('/daily-planning/import', [OutgoingController::class, 'dailyPlanningImport'])->name('daily-planning.import');
         Route::get('/daily-planning/{plan}/export', [OutgoingController::class, 'dailyPlanningExport'])->name('daily-planning.export');
@@ -190,6 +193,7 @@ Route::middleware('auth')->group(function () {
 	        Route::post('/mps/generate-range', [PlanningMpsController::class, 'generateRange'])->name('mps.generate-range');
 	        Route::post('/mps/upsert', [PlanningMpsController::class, 'upsert'])->name('mps.upsert');
 	        Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
+	        Route::get('/mps/detail', [PlanningMpsController::class, 'detail'])->name('mps.detail');
 	        Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
 
         Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');

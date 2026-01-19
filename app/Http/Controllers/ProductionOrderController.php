@@ -47,9 +47,14 @@ class ProductionOrderController extends Controller
         return redirect()->route('production.orders.show', $order);
     }
 
-    public function show(ProductionOrder $order)
+    public function show(Request $request, ProductionOrder $order)
     {
         $order->load(['part', 'inspections.inspector', 'creator']);
+        
+        if ($request->ajax()) {
+            return view('production.orders.partials.detail_content', compact('order'));
+        }
+
         return view('production.orders.show', compact('order'));
     }
 
@@ -133,6 +138,28 @@ class ProductionOrderController extends Controller
 
          // TODO: TRIGGER INVENTORY UPDATE
          
-         return back()->with('success', 'Production completed.');
+         // Update Inventory
+         // 1. Increment FG Inventory
+         $fgInv = \App\Models\FgInventory::firstOrCreate(
+             ['gci_part_id' => $order->gci_part_id],
+             ['qty_on_hand' => 0]
+         );
+         $fgInv->increment('qty_on_hand', $order->qty_actual);
+
+         // 2. Decrement Components (Backflush)
+         // Assuming we strictly follow BOM here. In real world, we might track actual consumption.
+         $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
+         if ($bom) {
+             foreach ($bom->items as $item) {
+                 $consumedQty = $item->usage_qty * $order->qty_actual;
+                 $compInv = GciInventory::firstOrCreate(
+                     ['gci_part_id' => $item->component_part_id],
+                     ['on_hand' => 0]
+                 );
+                 $compInv->decrement('on_hand', $consumedQty);
+             }
+         }
+         
+         return back()->with('success', 'Production completed and inventory updated.');
     }
 }

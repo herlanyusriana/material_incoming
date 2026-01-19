@@ -73,8 +73,10 @@ class MrpController extends Controller
             $week = (int) substr($minggu, 6, 2);
             $startDate = now()->setISODate($year, $week)->startOfDay();
             
-            // Generate Daily Dates (Mon-Fri)
-            $workDays = 5;
+            // Work Days Config
+            $includeSaturday = $request->boolean('include_saturday');
+            $workDays = $includeSaturday ? 6 : 5;
+            
             $dates = [];
             for ($i = 0; $i < $workDays; $i++) {
                 $dates[] = $startDate->copy()->addDays($i)->format('Y-m-d');
@@ -83,6 +85,8 @@ class MrpController extends Controller
             foreach ($approvedMps as $row) {
                 // Production Plan for FG/WIP (From MPS)
                 // Distributed evenly
+                if ($row->planned_qty <= 0) continue;
+                
                 $dailyQty = $row->planned_qty / $workDays;
                 
                 foreach ($dates as $date) {

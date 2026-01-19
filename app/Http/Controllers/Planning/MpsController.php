@@ -26,12 +26,52 @@ class MpsController extends Controller
         $classification = strtoupper(trim((string) $request->query('classification', 'FG')));
         $classification = $classification === 'ALL' ? '' : $classification;
         $weeksCount = (int) $request->query('weeks', 4);
-        $weeksCount = max(1, min(12, $weeksCount));
+        $weeksCount = max(1, min(52, $weeksCount));
 
-        // For calendar view, we need a start week. Default to now if not provided.
+        if ($view === 'monthly') {
+            // Start Month
+            $startMonth = $minggu ?: now()->format('Y-m'); // YYYY-MM
+            
+            // Generate next X months
+            $months = [];
+            $date = Carbon::parse($startMonth . '-01');
+            $monthsCount = max(1, min(24, $weeksCount)); // Reuse variable for count
+            
+            for ($i = 0; $i < $monthsCount; $i++) {
+                $months[] = $date->copy()->addMonths($i)->format('Y-m');
+            }
+            
+            // For query, we need all weeks belonging to these months
+            $allWeeks = [];
+            foreach ($months as $m) {
+                $allWeeks = array_merge($allWeeks, $this->getWeeksForMonth($m));
+            }
+            $allWeeks = array_unique($allWeeks);
+
+            $parts = GciPart::query()
+                ->where('status', 'active')
+                ->when($classification !== '', fn ($q) => $q->where('classification', $classification))
+                ->when($q !== '', function ($query) use ($q) {
+                    $query->where(function ($sub) use ($q) {
+                        $sub->where('part_no', 'like', '%' . $q . '%')
+                            ->orWhere('part_name', 'like', '%' . $q . '%');
+                    });
+                })
+                ->orderBy('part_no')
+                ->with(['mps' => function ($query) use ($allWeeks) {
+                    $query->whereIn('minggu', $allWeeks);
+                }])
+                ->paginate(25)
+                ->withQueryString();
+
+            return view('planning.mps.index', compact('minggu', 'parts', 'view', 'months', 'weeksCount', 'q', 'classification', 'hideEmpty'));
+        }
+
+        // For calendar view (Weekly), we need a start week. Default to now if not provided.
         $startMinggu = $minggu ?: now()->format('o-\\WW');
         $weeks = $this->makeWeeksRange($startMinggu, $weeksCount);
         $hideEmpty = $request->query('hide_empty', 'on') === 'on';
+
 
         if ($view === 'list') {
             $rows = Mps::query()
@@ -77,8 +117,6 @@ class MpsController extends Controller
 
         $year = (int) $m[1];
         $week = (int) $m[2];
-        // Carbon version in this project doesn't support createFromIsoDate().
-        // Use setISODate() which is available in Carbon 2.
         $date = Carbon::now()->startOfDay()->setISODate($year, $week, 1);
 
         $weeks = [];
@@ -86,6 +124,44 @@ class MpsController extends Controller
             $weeks[] = $date->copy()->addWeeks($i)->format('o-\\WW');
         }
 
+        return $weeks;
+    }
+
+    private function getWeeksForMonth(string $monthStr): array
+    {
+        // monthStr = YYYY-MM
+        $startOfMonth = Carbon::parse($monthStr . '-01')->startOfDay();
+        $endOfMonth = $startOfMonth->copy()->endOfMonth();
+        
+        $weeks = [];
+        // Iterate weeks. A week belongs to a month if its Thursday is in that month (ISO-8601 standard mostly)
+        // Or simpler: If the Monday is in the month.
+        // Let's stick to: All weeks starting in this month.
+        
+        $current = $startOfMonth->copy()->startOfWeek();
+        if ($current->month != $startOfMonth->month && $current->copy()->endOfWeek()->month != $startOfMonth->month) {
+             // If the week is entirely in prev month (unlikely if we start from week start of 1st day)
+             // Actually, 1st day might be Wednesday. Start of week is Monday (prev month).
+             // Let's use: Week string of the 1st, then add weeks until we cross month.
+        }
+        
+        // Better approach:
+        // Get Week of 1st day.
+        // Get Week of Last day.
+        // Range.
+        
+        $startWeek = $startOfMonth->isoWeekYear . '-W' . str_pad($startOfMonth->isoWeek, 2, '0', STR_PAD_LEFT);
+        
+        // We iterate purely by date to stay safe
+        $iter = $startOfMonth->copy();
+        while ($iter->month == $startOfMonth->month) {
+             $w = $iter->format('o-\\WW');
+             if (!in_array($w, $weeks)) {
+                 $weeks[] = $w;
+             }
+             $iter->addWeek();
+        }
+        
         return $weeks;
     }
 
@@ -178,58 +254,80 @@ class MpsController extends Controller
 
     public function upsert(Request $request)
     {
-        $validated = $request->validate(array_merge(
-            $this->validateMinggu(),
-            [
+        $validated = $request->validate([
                 'part_id' => ['required', 'exists:gci_parts,id'],
                 'planned_qty' => ['required', 'numeric', 'min:0'],
-            ]
-        ));
+                'minggu' => ['required', 'string'], // No strict regex here, we check format manually
+        ]);
 
         $partId = (int) $validated['part_id'];
-        $minggu = $validated['minggu'];
+        $period = $validated['minggu'];
         $plannedQty = (float) $validated['planned_qty'];
 
-        try {
-            DB::transaction(function () use ($partId, $minggu, $plannedQty) {
-                $forecastQty = (float) (Forecast::query()
-                    ->where('part_id', $partId)
-                    ->where('minggu', $minggu)
-                    ->value('qty') ?? 0);
-
-                $existing = Mps::query()
-                    ->where('part_id', $partId)
-                    ->where('minggu', $minggu)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existing && $existing->status === 'approved') {
-                    throw new \RuntimeException('MPS already approved.');
+        // Check if Monthly (YYYY-MM) or Weekly (YYYY-Wxx)
+        if (preg_match('/^\d{4}-\d{2}$/', $period)) {
+            // Is Monthly
+            $weeks = $this->getWeeksForMonth($period);
+            $count = count($weeks);
+            if ($count === 0) return back()->with('error', 'No weeks found in this month.');
+            
+            $qtyPerWeek = $plannedQty / $count;
+            
+            DB::transaction(function () use ($partId, $weeks, $qtyPerWeek) {
+                foreach ($weeks as $week) {
+                     $this->upsertSingle($partId, $week, $qtyPerWeek);
                 }
-
-                if (!$existing) {
-                    Mps::create([
-                        'part_id' => $partId,
-                        'minggu' => $minggu,
-                        'forecast_qty' => $forecastQty,
-                        'open_order_qty' => 0,
-                        'planned_qty' => $plannedQty,
-                        'status' => 'draft',
-                    ]);
-                    return;
-                }
-
-                $existing->update([
-                    'forecast_qty' => $forecastQty,
-                    'open_order_qty' => 0,
-                    'planned_qty' => $plannedQty,
-                ]);
             });
-        } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
+            
+            return back()->with('success', 'Monthly plan distributed to ' . $count . ' weeks.');
+        } else {
+            // Assume Weekly
+            try {
+                DB::transaction(fn() => $this->upsertSingle($partId, $period, $plannedQty));
+            } catch (\Exception $e) {
+                return back()->with('error', $e->getMessage());
+            }
+            return back()->with('success', 'MPS saved.');
+        }
+    }
+
+    private function upsertSingle($partId, $minggu, $plannedQty)
+    {
+        $forecastQty = (float) (Forecast::query()
+            ->where('part_id', $partId)
+            ->where('minggu', $minggu)
+            ->value('qty') ?? 0);
+
+        $existing = Mps::query()
+            ->where('part_id', $partId)
+            ->where('minggu', $minggu)
+            ->lockForUpdate()
+            ->first();
+
+        if ($existing && $existing->status === 'approved') {
+            // converting exception to just return/continue if bulk? 
+            // For monthly, if one week is approved, we might fail all or skip. 
+            // Let's fail for safety.
+            throw new \RuntimeException("Week $minggu is already approved.");
         }
 
-        return back()->with('success', 'MPS saved.');
+        if (!$existing) {
+            Mps::create([
+                'part_id' => $partId,
+                'minggu' => $minggu,
+                'forecast_qty' => $forecastQty,
+                'open_order_qty' => 0,
+                'planned_qty' => $plannedQty,
+                'status' => 'draft',
+            ]);
+            return;
+        }
+
+        $existing->update([
+            'forecast_qty' => $forecastQty,
+            'open_order_qty' => 0,
+            'planned_qty' => $plannedQty,
+        ]);
     }
 
     public function update(Request $request, Mps $mps)
@@ -274,5 +372,65 @@ class MpsController extends Controller
             ]);
 
         return back()->with('success', "Approved {$updated} rows.");
+    }
+    public function detail(Request $request)
+    {
+        $validated = $request->validate([
+            'part_id' => 'required|exists:gci_parts,id',
+            'minggu' => 'required|string',
+        ]);
+        
+        $part = GciPart::with(['boms.items.componentPart'])->findOrFail($validated['part_id']);
+        $minggu = $validated['minggu'];
+        $isMonthly = preg_match('/^\d{4}-\d{2}$/', $minggu);
+
+        if ($isMonthly) {
+            $weeks = $this->getWeeksForMonth($minggu);
+            $mpsCollection = Mps::where('part_id', $part->id)
+                ->whereIn('minggu', $weeks)
+                ->get();
+                
+            $plannedQty = $mpsCollection->sum('planned_qty');
+            $forecastQty = Forecast::where('part_id', $part->id)
+                ->whereIn('minggu', $weeks)
+                ->sum('qty');
+                
+            $status = $mpsCollection->contains('status', 'approved') ? 'approved' : 'draft'; // If partial approved? simplified.
+            
+            // Create a virtual MPS object for the view
+            $mps = new Mps([
+                'part_id' => $part->id,
+                'minggu' => $minggu, // YYYY-MM
+                'forecast_qty' => $forecastQty,
+                'planned_qty' => $plannedQty,
+                'status' => $status,
+            ]);
+            $mps->setRelation('part', $part);
+            $mps->exists = $mpsCollection->isNotEmpty(); // Pseudo exists
+        } else {
+            $mps = Mps::where('part_id', $part->id)
+                ->where('minggu', $minggu)
+                ->first();
+
+            // If not exists, use Forecast info to initiate
+            if (!$mps) {
+                $forecastQty = (float) Forecast::where('part_id', $part->id)
+                    ->where('minggu', $minggu)
+                    ->value('qty');
+                    
+                $mps = new Mps([
+                    'part_id' => $part->id,
+                    'minggu' => $minggu,
+                    'forecast_qty' => $forecastQty,
+                    'planned_qty' => $forecastQty, // Default to forecast
+                    'status' => 'draft',
+                ]);
+                $mps->setRelation('part', $part);
+            } else {
+                 $mps->load('part');
+            }
+        }
+
+        return view('planning.mps.partials.detail_content', compact('mps', 'part', 'minggu'));
     }
 }
