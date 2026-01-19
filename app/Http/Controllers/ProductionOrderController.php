@@ -80,7 +80,7 @@ class ProductionOrderController extends Controller
             if ($currentStock < $requiredQty) {
                 $isAvailable = false;
                 $missingMaterials[] = [
-                    'part' => $item->componentPart->part_no ?? 'Unknown', 
+                    'part' => $item->componentPart?->part_no ?? 'Unknown', 
                     'required' => $requiredQty,
                     'available' => $currentStock,
                 ];

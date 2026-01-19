@@ -50,7 +50,7 @@ class ForecastGenerator
         foreach ($partIds as $partId) {
             $planningQty = (float) ($planningByPart[$partId] ?? 0);
             $poQty = (float) ($poByPart[$partId] ?? 0);
-            $forecastQty = max($planningQty, $poQty);
+            $forecastQty = $planningQty + $poQty;
 
             $source = 'planning';
             if ($planningQty <= 0 && $poQty > 0) {

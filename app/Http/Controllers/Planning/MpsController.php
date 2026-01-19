@@ -213,7 +213,7 @@ class MpsController extends Controller
             $existing->update([
                 'forecast_qty' => $forecastQty,
                 'open_order_qty' => 0,
-                'planned_qty' => max($existingPlanned, $forecastQty),
+                'planned_qty' => $forecastQty,
             ]);
         }
     }
