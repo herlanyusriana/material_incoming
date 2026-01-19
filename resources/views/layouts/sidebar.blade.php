@@ -444,6 +444,12 @@
                             </svg>
                             <span class="ml-3 flex-1">Inventory Receives</span>
                         </a>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Warehouse</div>
+                    <div class="space-y-1">
                         <a
                             href="{{ route('inventory.locations.index') }}"
                             @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*') ])
@@ -941,16 +947,22 @@
 	                            </svg>
 	                            <span class="ml-3 flex-1">Inventory Receives</span>
 	                        </a>
-	                        <a
-	                            href="{{ route('inventory.locations.index') }}"
-	                            @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*') ])
-	                        >
-	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z" />
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-	                            </svg>
-	                            <span class="ml-3 flex-1">Warehouse Locations</span>
-	                        </a>
+		                </div>
+		            </div>
+
+                <div>
+                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Warehouse</div>
+                    <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
+                        <a
+                            href="{{ route('inventory.locations.index') }}"
+                            @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*') ])
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                            </svg>
+                            <span class="ml-3 flex-1">Warehouse Locations</span>
+                        </a>
 		                </div>
 		            </div>
 	    </nav>
