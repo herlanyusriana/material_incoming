@@ -28,4 +28,9 @@ class CustomerPlanningRow extends Model
     {
         return $this->belongsTo(GciPart::class, 'part_id');
     }
+
+    public function customerPart()
+    {
+        return $this->hasOne(CustomerPart::class, 'customer_part_no', 'customer_part_no');
+    }
 }

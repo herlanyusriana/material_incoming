@@ -41,7 +41,7 @@ class ForecastController extends Controller
 
         // Get all Customer POs (status open)
         $customerPos = \App\Models\CustomerPo::query()
-            ->with(['customerPart.gciPart', 'customer'])
+            ->with(['part', 'customer'])
             ->where('status', 'open')
             ->whereNotNull('part_id')
             ->when($minggu, fn($q) => $q->where('minggu', $minggu))
@@ -51,7 +51,7 @@ class ForecastController extends Controller
 
         // Get all Planning Rows (status accepted)
         $planningRows = \App\Models\CustomerPlanningRow::query()
-            ->with(['import.customer', 'customerPart.gciPart', 'customerPart.components.part'])
+            ->with(['planningImport.customer', 'part', 'customerPart.components.part'])
             ->where('row_status', 'accepted')
             ->when($minggu, fn($q) => $q->where('minggu', $minggu))
             ->orderBy('minggu')

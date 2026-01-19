@@ -69,8 +69,8 @@
                                                 <td class="px-6 py-4 font-mono text-xs font-semibold text-slate-600">{{ $po->minggu }}</td>
                                                 <td class="px-6 py-4 text-slate-700">{{ $po->customer->name ?? '-' }}</td>
                                                 <td class="px-6 py-4">
-                                                    <div class="font-semibold text-slate-900">{{ $po->customerPart?->gciPart?->part_no ?? '-' }}</div>
-                                                    <div class="text-xs text-slate-500">{{ $po->customerPart?->gciPart?->part_name ?? '-' }}</div>
+                                                    <div class="font-semibold text-slate-900">{{ $po->part?->part_no ?? '-' }}</div>
+                                                    <div class="text-xs text-slate-500">{{ $po->part?->part_name ?? '-' }}</div>
                                                 </td>
                                                 <td class="px-6 py-4 text-right font-mono font-semibold text-blue-700">{{ formatNumber($po->qty) }}</td>
                                                 <td class="px-6 py-4 text-center font-mono text-xs text-slate-400">#{{ $po->id }}</td>
@@ -130,17 +130,20 @@
                                                     >
                                                 </td>
                                                 <td class="px-6 py-4 font-mono text-xs font-semibold text-slate-600">{{ $row->minggu }}</td>
-                                                <td class="px-6 py-4 text-slate-700">{{ $row->import?->customer?->name ?? '-' }}</td>
+                                                <td class="px-6 py-4 text-slate-700">{{ $row->planningImport?->customer?->name ?? '-' }}</td>
                                                 <td class="px-6 py-4">
+                                                    <div class="font-semibold text-slate-900">{{ $row->customer_part_no }}</div>
                                                     @if($row->customerPart && $row->customerPart->components->isNotEmpty())
-                                                        @foreach($row->customerPart->components as $comp)
-                                                            <div class="text-xs">
-                                                                <span class="font-semibold text-slate-900">{{ $comp->part->part_no ?? '-' }}</span>
-                                                                <span class="text-slate-500">({{ (float)$comp->usage_qty }}x)</span>
-                                                            </div>
-                                                        @endforeach
+                                                        <div class="mt-1 space-y-1">
+                                                            @foreach($row->customerPart->components as $comp)
+                                                                <div class="text-[10px] leading-tight flex justify-between gap-2 bg-slate-50 px-1 rounded border border-slate-100">
+                                                                    <span class="font-medium text-slate-700">{{ $comp->part->part_no ?? '-' }}</span>
+                                                                    <span class="text-slate-500">{{ (float)$comp->usage_qty }}x</span>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
                                                     @else
-                                                        <span class="text-slate-400 text-xs">No components</span>
+                                                        <div class="text-xs text-slate-400 mt-1">GCI: {{ $row->part?->part_no ?? 'Unmapped' }}</div>
                                                     @endif
                                                 </td>
                                                 <td class="px-6 py-4 text-right font-mono font-semibold text-green-700">{{ formatNumber($row->qty) }}</td>
