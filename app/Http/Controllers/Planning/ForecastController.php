@@ -35,12 +35,51 @@ class ForecastController extends Controller
         return view('planning.forecasts.index', compact('parts', 'forecasts', 'minggu', 'partId'));
     }
 
-    public function generate(Request $request)
+    public function preview(Request $request)
     {
         $validated = $request->validate($this->validateMinggu());
         $minggu = $validated['minggu'];
 
-        app(ForecastGenerator::class)->generateForWeek($minggu);
+        // Get all Customer POs for this week
+        $customerPos = \App\Models\CustomerPo::query()
+            ->with(['customerPart.gciPart', 'customer'])
+            ->where('minggu', $minggu)
+            ->where('status', 'open')
+            ->whereNotNull('part_id')
+            ->orderBy('id')
+            ->get();
+
+        // Get all Planning Rows for this week
+        $planningRows = \App\Models\CustomerPlanningRow::query()
+            ->with(['import.customer', 'customerPart.gciPart', 'customerPart.components.part'])
+            ->where('minggu', $minggu)
+            ->where('row_status', 'accepted')
+            ->orderBy('id')
+            ->get();
+
+        return view('planning.forecasts.preview', compact('minggu', 'customerPos', 'planningRows'));
+    }
+
+    public function generate(Request $request)
+    {
+        $validated = $request->validate([
+            'minggu' => ['required', 'string', 'regex:/^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/'],
+            'selected_pos' => 'nullable|array',
+            'selected_pos.*' => 'exists:customer_pos,id',
+            'selected_planning' => 'nullable|array',
+            'selected_planning.*' => 'exists:customer_planning_rows,id',
+        ]);
+        
+        $minggu = $validated['minggu'];
+        $selectedPoIds = $validated['selected_pos'] ?? [];
+        $selectedPlanningIds = $validated['selected_planning'] ?? [];
+
+        // If no selection, use all data (backward compatibility)
+        if (empty($selectedPoIds) && empty($selectedPlanningIds)) {
+            app(ForecastGenerator::class)->generateForWeek($minggu);
+        } else {
+            app(ForecastGenerator::class)->generateFromSelected($minggu, $selectedPoIds, $selectedPlanningIds);
+        }
 
         return redirect()->route('planning.forecasts.index', ['minggu' => $minggu])
             ->with('success', 'Forecast generated.');

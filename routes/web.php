@@ -186,6 +186,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/customer-pos/{customerPo}', [PlanningCustomerPoController::class, 'destroy'])->name('customer-pos.destroy');
 
         Route::get('/forecasts', [PlanningForecastController::class, 'index'])->name('forecasts.index');
+        Route::get('/forecasts/preview', [PlanningForecastController::class, 'preview'])->name('forecasts.preview');
         Route::post('/forecasts/generate', [PlanningForecastController::class, 'generate'])->name('forecasts.generate');
         Route::delete('/forecasts/clear', [PlanningForecastController::class, 'clear'])->name('forecasts.clear');
         Route::get('/forecasts/history', [PlanningForecastController::class, 'history'])->name('forecasts.history');
