@@ -247,6 +247,35 @@
 	                    </div>
 	                </div>
 
+                    <div>
+	                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Production</div>
+	                    <div class="space-y-1">
+	                        <details class="group" {{ request()->routeIs('production.*') ? 'open' : '' }}>
+	                            <summary class="list-none cursor-pointer">
+	                                <div @class([$navLinkBase, $navActive => request()->routeIs('production.*'), $navInactive => !request()->routeIs('production.*') ])>
+	                                    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+	                                    </svg>
+	                                    <span class="ml-3 flex-1">Production</span>
+	                                    <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+	                                    </svg>
+	                                </div>
+	                            </summary>
+	                            <div class="relative mt-2 ml-4 pl-4 space-y-1">
+	                                <div class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent"></div>
+
+	                                <a href="{{ route('production.orders.index') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
+	                                    <span class="flex-1">Production Orders</span>
+	                                </a>
+	                            </div>
+	                        </details>
+	                    </div>
+	                </div>
+
 		            <div>
 		                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Incoming</div>
 		                <div class="space-y-1">
@@ -711,6 +740,43 @@
 	                               @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
 	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
 	                                <span class="flex-1">MRP</span>
+	                            </a>
+	                        </div>
+	                    </div>
+	                </details>
+	            </div>
+
+                <div>
+	                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400" x-show="!sidebarCollapsed" x-cloak>Production</div>
+	                
+	                <details 
+	                    class="group" 
+	                    {{ request()->routeIs('production.*') ? 'open' : '' }} 
+	                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')"
+	                >
+	                    <summary class="list-none cursor-pointer" title="Production" :class="sidebarCollapsed ? 'flex justify-center' : ''">
+	                        <div
+	                            @class([$navLinkBase, $navActive => request()->routeIs('production.*'), $navInactive => !request()->routeIs('production.*') ])
+	                            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
+	                        >
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+	                            </svg>
+	                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Production</span>
+	                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+	                            </svg>
+	                        </div>
+	                    </summary>
+
+	                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+	                        <div class="relative ml-4 pl-4 space-y-1">
+	                            <div class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent"></div>
+
+	                            <a href="{{ route('production.orders.index') }}" 
+	                               @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
+	                                <span class="flex-1">Production Orders</span>
 	                            </a>
 	                        </div>
 	                    </div>
