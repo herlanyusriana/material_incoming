@@ -21,7 +21,10 @@
                     <form method="GET" class="flex flex-wrap items-end gap-3">
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Minggu (YYYY-WW)</label>
-                            <input name="minggu" value="{{ $minggu }}" class="mt-1 rounded-xl border-slate-200" placeholder="All weeks">
+                            <input name="minggu" value="{{ $minggu }}" class="mt-1 rounded-xl border-slate-200 @error('minggu') border-red-500 @enderror" placeholder="All weeks">
+                            @error('minggu')
+                                <div class="text-[10px] text-red-500 mt-1 font-semibold">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Part GCI</label>
@@ -32,13 +35,14 @@
                                 @endforeach
                             </select>
                         </div>
-                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        
+                        <button type="submit" formaction="{{ route('planning.forecasts.preview') }}" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
+                            Select & Generate
+                        </button>
                     </form>
 
-                    <form method="GET" action="{{ route('planning.forecasts.preview') }}">
-                        <input type="hidden" name="minggu" value="{{ $minggu }}">
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Select & Generate</button>
-                    </form>
+
                     
                     <a href="{{ route('planning.forecasts.history') }}" class="px-4 py-2 rounded-xl font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
                         📊 History
