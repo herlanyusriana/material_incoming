@@ -192,6 +192,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/forecasts/history', [PlanningForecastController::class, 'history'])->name('forecasts.history');
 
 	        Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
+	        Route::get('/mps/export', [PlanningMpsController::class, 'export'])->name('mps.export');
 	        Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
 	        Route::post('/mps/generate-range', [PlanningMpsController::class, 'generateRange'])->name('mps.generate-range');
 	        Route::post('/mps/upsert', [PlanningMpsController::class, 'upsert'])->name('mps.upsert');

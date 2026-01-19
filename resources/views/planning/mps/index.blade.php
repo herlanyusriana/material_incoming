@@ -50,6 +50,9 @@
                     </div>
                     
                     <div class="flex items-center gap-2">
+                        <a href="{{ route('planning.mps.export', request()->query()) }}" class="px-4 py-2 rounded-xl font-semibold border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-2">
+                            📥 Export Excel
+                        </a>
                         <a href="{{ route('planning.mps.history') }}" class="px-4 py-2 rounded-xl font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
                             📊 History
                         </a>

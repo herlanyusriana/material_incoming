@@ -20,6 +20,16 @@ class MpsController extends Controller
 
     public function index(Request $request)
     {
+        return $this->handleMpsView($request);
+    }
+
+    public function export(Request $request)
+    {
+        return $this->handleMpsView($request, true);
+    }
+
+    private function handleMpsView(Request $request, bool $isExport = false)
+    {
         $minggu = $request->query('minggu'); // Optional
         $view = $request->query('view', 'calendar');
         $q = trim((string) $request->query('q', ''));
@@ -48,7 +58,7 @@ class MpsController extends Controller
             }
             $allWeeks = array_unique($allWeeks);
 
-            $parts = GciPart::query()
+            $partsQuery = GciPart::query()
                 ->where('status', 'active')
                 ->when($classification !== '', fn ($q) => $q->where('classification', $classification))
                 ->when($q !== '', function ($query) use ($q) {
@@ -60,11 +70,17 @@ class MpsController extends Controller
                 ->orderBy('part_no')
                 ->with(['mps' => function ($query) use ($allWeeks) {
                     $query->whereIn('minggu', $allWeeks);
-                }])
-                ->paginate(25)
-                ->withQueryString();
+                }]);
 
             $hideEmpty = $request->query('hide_empty', 'on') === 'on';
+
+            if ($isExport) {
+                $parts = $partsQuery->get();
+                $excelData = compact('minggu', 'parts', 'view', 'months', 'weeksCount', 'q', 'classification', 'hideEmpty');
+                return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\MpsExport('exports.mps.monthly', $excelData), 'mps_monthly_report.xlsx');
+            }
+
+            $parts = $partsQuery->paginate(25)->withQueryString();
 
             return view('planning.mps.index', compact('minggu', 'parts', 'view', 'months', 'weeksCount', 'q', 'classification', 'hideEmpty'));
         }
@@ -87,7 +103,7 @@ class MpsController extends Controller
             return view('planning.mps.index', compact('minggu', 'rows', 'view', 'weeks', 'weeksCount', 'q', 'classification', 'hideEmpty'));
         }
 
-        $parts = GciPart::query()
+        $partsQuery = GciPart::query()
             ->where('status', 'active')
             ->when($classification !== '', fn ($q) => $q->where('classification', $classification))
             ->when($q !== '', function ($query) use ($q) {
@@ -104,9 +120,15 @@ class MpsController extends Controller
             ->orderBy('part_no')
             ->with(['mps' => function ($query) use ($weeks) {
                 $query->whereIn('minggu', $weeks);
-            }])
-            ->paginate(25)
-            ->withQueryString();
+            }]);
+
+        if ($isExport) {
+            $parts = $partsQuery->get();
+            $excelData = compact('minggu', 'parts', 'view', 'weeks', 'weeksCount', 'q', 'classification', 'hideEmpty');
+            return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\MpsExport('exports.mps.weekly', $excelData), 'mps_weekly_report.xlsx');
+        }
+
+        $parts = $partsQuery->paginate(25)->withQueryString();
 
         return view('planning.mps.index', compact('minggu', 'parts', 'view', 'weeks', 'weeksCount', 'q', 'classification', 'hideEmpty'));
     }
