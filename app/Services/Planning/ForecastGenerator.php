@@ -74,7 +74,7 @@ class ForecastGenerator
     /**
      * Generate forecast from selected POs and Planning rows only
      */
-    public function generateFromSelected(?string $minggu, array $selectedPoIds, array $selectedPlanningIds): void
+    public function generateFromSelected(?string $minggu, array $selectedPoIds, array $selectedPlanningIds, array $selectedImportIds = []): void
     {
         // If minggu is null, find all weeks present in selection
         $weeks = [];
@@ -83,7 +83,16 @@ class ForecastGenerator
         } else {
             $weeksFromPos = DB::table('customer_pos')->whereIn('id', $selectedPoIds)->pluck('minggu')->toArray();
             $weeksFromPlanning = DB::table('customer_planning_rows')->whereIn('id', $selectedPlanningIds)->pluck('minggu')->toArray();
-            $weeks = array_unique(array_merge($weeksFromPos, $weeksFromPlanning));
+            
+            $weeksFromImports = [];
+            if (!empty($selectedImportIds)) {
+                $weeksFromImports = DB::table('customer_planning_rows')
+                    ->whereIn('import_id', $selectedImportIds)
+                    ->pluck('minggu')
+                    ->toArray();
+            }
+            
+            $weeks = array_unique(array_merge($weeksFromPos, $weeksFromPlanning, $weeksFromImports));
         }
 
         foreach ($weeks as $w) {
@@ -93,19 +102,30 @@ class ForecastGenerator
             $planningByPart = [];
             $poByPart = [];
 
-            // Process selected planning rows for THIS week
-            if (!empty($selectedPlanningIds)) {
-                $planningRows = DB::table('customer_planning_rows as r')
+            // Process selected planning rows/imports for THIS week
+            if (!empty($selectedPlanningIds) || !empty($selectedImportIds)) {
+                $query = DB::table('customer_planning_rows as r')
                     ->join('customer_planning_imports as i', 'i.id', '=', 'r.import_id')
                     ->join('customer_parts as cp', function ($join) {
                         $join->on('cp.customer_id', '=', 'i.customer_id')
                             ->on('cp.customer_part_no', '=', 'r.customer_part_no');
                     })
                     ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
-                    ->whereIn('r.id', $selectedPlanningIds)
                     ->where('r.minggu', $w)
-                    ->where('r.row_status', 'accepted')
-                    ->select('cpc.part_id', DB::raw('SUM(r.qty * cpc.usage_qty) as qty'))
+                    ->where('r.row_status', 'accepted');
+
+                if (!empty($selectedPlanningIds) && !empty($selectedImportIds)) {
+                    $query->where(function($q) use ($selectedPlanningIds, $selectedImportIds) {
+                        $q->whereIn('r.id', $selectedPlanningIds)
+                          ->orWhereIn('r.import_id', $selectedImportIds);
+                    });
+                } elseif (!empty($selectedPlanningIds)) {
+                    $query->whereIn('r.id', $selectedPlanningIds);
+                } else {
+                    $query->whereIn('r.import_id', $selectedImportIds);
+                }
+
+                $planningRows = $query->select('cpc.part_id', DB::raw('SUM(r.qty * cpc.usage_qty) as qty'))
                     ->groupBy('cpc.part_id')
                     ->get();
 

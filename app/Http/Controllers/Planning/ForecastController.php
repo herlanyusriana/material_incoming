@@ -49,16 +49,22 @@ class ForecastController extends Controller
             ->orderBy('id')
             ->get();
 
-        // Get all Planning Rows (status accepted)
-        $planningRows = \App\Models\CustomerPlanningRow::query()
-            ->with(['planningImport.customer', 'part', 'customerPart.components.part'])
-            ->where('row_status', 'accepted')
-            ->when($minggu, fn($q) => $q->where('minggu', $minggu))
-            ->orderBy('minggu')
-            ->orderBy('id')
+        // Get all Customer Planning Imports (files) that have accepted rows
+        $planningImports = \App\Models\CustomerPlanningImport::query()
+            ->with(['customer'])
+            ->withCount(['rows as accepted_rows_count' => function($q) {
+                $q->where('row_status', 'accepted');
+            }])
+            ->withSum(['rows as total_accepted_qty' => function($q) {
+                $q->where('row_status', 'accepted');
+            }], 'qty')
+            ->whereHas('rows', function($q) {
+                $q->where('row_status', 'accepted');
+            })
+            ->orderBy('id', 'desc')
             ->get();
 
-        return view('planning.forecasts.preview', compact('minggu', 'customerPos', 'planningRows'));
+        return view('planning.forecasts.preview', compact('minggu', 'customerPos', 'planningImports'));
     }
 
     public function generate(Request $request)
@@ -66,18 +72,18 @@ class ForecastController extends Controller
         $validated = $request->validate([
             'selected_pos' => 'nullable|array',
             'selected_pos.*' => 'exists:customer_pos,id',
-            'selected_planning' => 'nullable|array',
-            'selected_planning.*' => 'exists:customer_planning_rows,id',
+            'selected_imports' => 'nullable|array',
+            'selected_imports.*' => 'exists:customer_planning_imports,id',
         ]);
         
         $selectedPoIds = $validated['selected_pos'] ?? [];
-        $selectedPlanningIds = $validated['selected_planning'] ?? [];
+        $selectedImportIds = $validated['selected_imports'] ?? [];
 
-        if (empty($selectedPoIds) && empty($selectedPlanningIds)) {
+        if (empty($selectedPoIds) && empty($selectedImportIds)) {
             return redirect()->back()->with('error', 'Please select at least one item.');
         }
 
-        app(ForecastGenerator::class)->generateFromSelected(null, $selectedPoIds, $selectedPlanningIds);
+        app(ForecastGenerator::class)->generateFromSelected(null, $selectedPoIds, [], $selectedImportIds);
 
         return redirect()->route('planning.forecasts.index')
             ->with('success', 'Forecast generated from selected sources.');
