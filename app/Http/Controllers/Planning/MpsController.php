@@ -377,9 +377,6 @@ class MpsController extends Controller
 
     public function approve(Request $request)
     {
-        $validated = $request->validate($this->validateMinggu());
-        $minggu = $validated['minggu'];
-
         $mpsIds = collect($request->input('mps_ids', []))
             ->filter(fn ($id) => is_numeric($id))
             ->map(fn ($id) => (int) $id)
@@ -392,7 +389,6 @@ class MpsController extends Controller
         }
 
         $updated = Mps::query()
-            ->where('minggu', $minggu)
             ->where('status', 'draft')
             ->whereIn('id', $mpsIds)
             ->update([
