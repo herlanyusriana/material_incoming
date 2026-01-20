@@ -231,10 +231,16 @@
 	                                    <span class="flex-1">MPS</span>
 	                                </a>
 	                                <a href="{{ route('planning.boms.index') }}" 
-	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.*'), $subInactive => !request()->routeIs('planning.boms.*')])
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.index'), $subInactive => !request()->routeIs('planning.boms.index')])
 	                                   @click="mobileSidebarOpen = false">
-	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.*')])></span>
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.index')])></span>
 	                                    <span class="flex-1">BOM GCI</span>
+	                                </a>
+	                                <a href="{{ route('planning.boms.where-used-page') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.where-used-page'), $subInactive => !request()->routeIs('planning.boms.where-used-page')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('planning.boms.where-used-page'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('planning.boms.where-used-page')])></span>
+	                                    <span class="flex-1">🔍 BOM Where-Used</span>
 	                                </a>
 	                                <a href="{{ route('planning.mrp.index') }}" 
 	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])

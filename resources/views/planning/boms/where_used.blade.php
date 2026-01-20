@@ -107,7 +107,7 @@
                                         <td class="px-4 py-3 text-center">
                                             <div class="flex items-center justify-center gap-2">
                                                 <a 
-                                                    :href="`{{ route('planning.boms.explosion', '') }}/${item.id}`"
+                                                    :href="`{{ url('planning/boms') }}/${item.id}/explosion`"
                                                     class="px-3 py-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold text-xs"
                                                 >
                                                     View Explosion
