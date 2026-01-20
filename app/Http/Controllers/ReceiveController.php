@@ -511,7 +511,7 @@ class ReceiveController extends Controller
             ? strtoupper(trim((string) $validated['truck_no']))
             : null;
 
-        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$inventoryAdds) {
+        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$inventoryAdds, $request) {
             foreach ($itemsInput as $itemId => $itemData) {
                 $arrivalItem = $arrival->items->firstWhere('id', $itemId);
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
