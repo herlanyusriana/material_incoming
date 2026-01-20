@@ -19,7 +19,7 @@
             @endif
 
             {{-- Search Section --}}
-            @if(!$bom && count($explosion) === 0)
+            @if(!$bom || isset($searchMode))
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">🔍 BOM Explosion Search</h3>
                     
@@ -94,7 +94,7 @@
                 </div>
             @endif
 
-            @if($bom || count($explosion) > 0)
+            @if($bom)
                 {{-- Customer Part Info (if came from customer search) --}}
                 @if(isset($customerPart))
                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
@@ -122,22 +122,6 @@
                                     <span class="text-slate-500">Revision: <span class="font-semibold">{{ $bom->revision ?? 'A' }}</span></span>
                                     <span class="text-slate-500">Status: <span class="font-semibold {{ $bom->status === 'active' ? 'text-green-600' : 'text-slate-400' }}">{{ strtoupper($bom->status) }}</span></span>
                                 </div>
-                            </div>
-                        @elseif(isset($customerPart))
-                            <div>
-                                <h3 class="text-2xl font-bold text-slate-900 tracking-tight">{{ $customerPart->customer_part_no }}</h3>
-                                <p class="text-slate-600 mt-1 font-medium">{{ $customerPart->customer_part_name }}</p>
-                                <div class="flex items-center gap-3 mt-2">
-                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wider">
-                                        {{ $customerPart->customer->name ?? 'N/A' }}
-                                    </span>
-                                    <span class="text-xs text-slate-500 font-medium">Auto-aggregated BOM Explosion</span>
-                                </div>
-                            </div>
-                        @else
-                            <div>
-                                <h3 class="text-2xl font-bold text-slate-900">BOM Results</h3>
-                                <p class="text-slate-500 mt-1 italic">Showing based on search query: {{ $searchQuery }}</p>
                             </div>
                         @endif
                         <div class="flex items-center gap-2">

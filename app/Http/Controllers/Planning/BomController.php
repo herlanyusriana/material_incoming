@@ -333,32 +333,12 @@ class BomController extends Controller
 
             $customerPartComponents = $customerPart->components;
             
-            // AUTOMATIC EXPLOSION: If we have components, explode them all immediately
-            $mergedExplosion = [];
-            $aggregatedMaterials = [];
-
-            foreach ($customerPartComponents as $component) {
+            // If customer part has only one FG component, auto-select it
+            if ($customerPartComponents->count() === 1) {
+                $component = $customerPartComponents->first();
                 if ($component->part && $component->part->bom) {
-                    // Explode this component's BOM
-                    $compExplosion = $component->part->bom->explode($quantity * $component->usage_qty);
-                    $mergedExplosion = array_merge($mergedExplosion, $compExplosion);
-
-                    // Aggregate materials
-                    $compMaterials = $component->part->bom->getTotalMaterialRequirements($quantity * $component->usage_qty);
-                    foreach ($compMaterials as $mat) {
-                        $pNo = $mat['part_no'];
-                        if (!isset($aggregatedMaterials[$pNo])) {
-                            $aggregatedMaterials[$pNo] = $mat;
-                        } else {
-                            $aggregatedMaterials[$pNo]['total_qty'] += $mat['total_qty'];
-                        }
-                    }
+                    $bom = $component->part->bom;
                 }
-            }
-
-            if (!empty($mergedExplosion)) {
-                $explosion = $mergedExplosion;
-                $materials = array_values($aggregatedMaterials);
             }
         }
 
@@ -388,8 +368,8 @@ class BomController extends Controller
             $materials = $bom->getTotalMaterialRequirements($quantity);
         }
 
-        // If no results at all, show search page
-        if (!$bom && empty($explosion)) {
+        // If no BOM found yet, return to search/overview
+        if (!$bom) {
             return view('planning.boms.explosion', [
                 'bom' => null,
                 'explosion' => [],
@@ -398,9 +378,14 @@ class BomController extends Controller
                 'searchMode' => $searchMode,
                 'searchQuery' => $searchQuery,
                 'customerPart' => $customerPart,
-                'customerPartComponents' => $customerPartComponents ?? collect(),
+                'customerPartComponents' => $customerPartComponents,
             ]);
         }
+
+        $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
+        
+        $explosion = $bom->explode($quantity);
+        $materials = $bom->getTotalMaterialRequirements($quantity);
 
         return view('planning.boms.explosion', compact(
             'bom', 
