@@ -245,14 +245,13 @@
 
 	        .page-box {
 	            border: 2px solid #000;
-                border-bottom: 0;
 	            padding: 0;
 	        }
 
             /* Commercial invoice wrapper might use a separate class name in older markup. */
             .commercial-invoice,
             .packing-list {
-                border-bottom: 0;
+                /* border-bottom: 0; removed to show border */
             }
 
         /* Packing list should match commercial invoice font scale. */
@@ -299,7 +298,7 @@
 	        .commercial-invoice .ci-content-wrapper {
 	            border-left: 2px solid #000;
 	            border-right: 2px solid #000;
-	            border-bottom: 0;
+	            border-bottom: 2px solid #000;
 	        }
 
         .commercial-invoice .ci-info-table {
