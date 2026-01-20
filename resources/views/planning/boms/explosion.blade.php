@@ -10,7 +10,7 @@
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">🔍 BOM Explosion Search</h3>
                     
-                    <form method="GET" action="{{ route('boms.explosion-search') }}" class="space-y-4">
+                    <form method="GET" action="{{ route('planning.boms.explosion-search') }}" class="space-y-4">
                         {{-- Search Mode Selector --}}
                         <div class="flex gap-3">
                             <label class="flex-1 cursor-pointer">
