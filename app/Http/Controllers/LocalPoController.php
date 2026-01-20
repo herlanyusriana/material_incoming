@@ -78,15 +78,12 @@ class LocalPoController extends Controller
             'vendor_id' => ['required', Rule::exists('vendors', 'id')],
             'currency' => ['nullable', 'string', 'max:10'],
             'notes' => ['nullable', 'string'],
-            'delivery_note_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-            'invoice_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-            'packing_list_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+
             'items' => ['required', 'array', 'min:1'],
             'items.*.part_id' => ['required', Rule::exists('parts', 'id')],
-            'items.*.material_group' => ['nullable', 'string', 'max:255'],
             'items.*.size' => ['nullable', 'string', 'max:100'],
-            'items.*.qty_bundle' => ['required', 'integer', 'min:0'],
-            'items.*.unit_bundle' => ['required', 'in:PALLET,BUNDLE,BOX,BAG'],
+            'items.*.price' => ['nullable', 'numeric', 'min:0'],
+
             // qty_goods stored as integer in DB; keep consistent to avoid strict-mode errors.
             'items.*.qty_goods' => ['required', 'integer', 'min:0'],
             'items.*.unit_goods' => ['required', 'in:PCS,COIL,SHEET,SET,EA,KGM'],
@@ -137,43 +134,26 @@ class LocalPoController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
-            $dir = "local_pos/arrival-{$arrival->id}";
 
-            if ($request->hasFile('delivery_note_file')) {
-                $file = $request->file('delivery_note_file');
-                $path = $file->storePubliclyAs($dir, "surat_jalan." . $file->getClientOriginalExtension(), 'public');
-                $arrival->delivery_note_file = $path;
-                $arrival->save();
-            }
-
-            if ($request->hasFile('invoice_file')) {
-                $file = $request->file('invoice_file');
-                $path = $file->storePubliclyAs($dir, "invoice." . $file->getClientOriginalExtension(), 'public');
-                $arrival->invoice_file = $path;
-                $arrival->save();
-            }
-
-            if ($request->hasFile('packing_list_file')) {
-                $file = $request->file('packing_list_file');
-                $path = $file->storePubliclyAs($dir, "packing_list." . $file->getClientOriginalExtension(), 'public');
-                $arrival->packing_list_file = $path;
-                $arrival->save();
-            }
 
             foreach (($validated['items'] ?? []) as $item) {
+                $qtyGoods = (int) $item['qty_goods'];
+                $price = (float) ($item['price'] ?? 0);
+                $totalPrice = $qtyGoods * $price;
+
                 $arrival->items()->create([
                     'part_id' => (int) $item['part_id'],
-                    'material_group' => isset($item['material_group']) && trim((string) $item['material_group']) !== '' ? strtoupper(trim((string) $item['material_group'])) : null,
+                    'material_group' => null, // Removed form field
                     'size' => isset($item['size']) && trim((string) $item['size']) !== '' ? strtoupper(trim((string) $item['size'])) : null,
-                    'qty_bundle' => (int) $item['qty_bundle'],
-                    'unit_bundle' => strtoupper((string) $item['unit_bundle']),
-                    'qty_goods' => (int) $item['qty_goods'],
+                    'qty_bundle' => 0, // Removed form field, set to 0 default
+                    'unit_bundle' => 'PALLET', // Default
+                    'qty_goods' => $qtyGoods,
                     'unit_goods' => strtoupper((string) $item['unit_goods']),
                     'weight_nett' => (float) ($item['weight_nett'] ?? 0),
                     'unit_weight' => 'KGM',
                     'weight_gross' => (float) ($item['weight_gross'] ?? 0),
-                    'price' => 0,
-                    'total_price' => 0,
+                    'price' => $price,
+                    'total_price' => $totalPrice,
                     'notes' => $item['notes'] ?? null,
                 ]);
             }

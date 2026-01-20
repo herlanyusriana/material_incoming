@@ -118,6 +118,12 @@
                         <span class="px-2 py-1 rounded-lg bg-green-50 text-green-800">{{ number_format($remainingQty) }}</span>
                         <span class="font-semibold">Input Total:</span>
                         <span class="px-2 py-1 rounded-lg bg-blue-50 text-blue-800" id="input-total">0</span>
+                        @if($arrivalItem->weight_nett > 0 || $arrivalItem->weight_gross > 0)
+                            <span class="font-semibold ml-2">Planned Weight:</span>
+                            <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">
+                                N: {{ number_format($arrivalItem->weight_nett, 1) }} / G: {{ number_format($arrivalItem->weight_gross, 1) }} KGM
+                            </span>
+                        @endif
                     </div>
                     <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-sm">
                         <table class="min-w-full divide-y divide-slate-200">

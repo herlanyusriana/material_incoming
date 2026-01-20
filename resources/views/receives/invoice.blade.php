@@ -5,7 +5,7 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            <form action="{{ route('receives.invoice.store', $arrival) }}" method="POST" class="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 space-y-8" id="receive-form">
+            <form action="{{ route('receives.invoice.store', $arrival) }}" method="POST" enctype="multipart/form-data" class="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 space-y-8" id="receive-form">
                 @csrf
 
                 <div class="flex items-center justify-between pb-6 border-b border-slate-200">
@@ -52,6 +52,45 @@
                 </div>
 
                 @if ($isLocal)
+                    <div class="bg-white rounded-xl p-6 border border-slate-200">
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Upload Documents</h4>
+                         <div class="grid md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Surat Jalan</label>
+                                <input type="file" name="delivery_note_file"
+                                    class="block w-full text-sm text-slate-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-full file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-indigo-50 file:text-indigo-700
+                                    hover:file:bg-indigo-100" accept=".pdf,.jpg,.jpeg,.png">
+                                @error('delivery_note_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Invoice</label>
+                                <input type="file" name="invoice_file"
+                                    class="block w-full text-sm text-slate-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-full file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-indigo-50 file:text-indigo-700
+                                    hover:file:bg-indigo-100" accept=".pdf,.jpg,.jpeg,.png">
+                                @error('invoice_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Packing List</label>
+                                <input type="file" name="packing_list_file"
+                                    class="block w-full text-sm text-slate-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-full file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-indigo-50 file:text-indigo-700
+                                    hover:file:bg-indigo-100" accept=".pdf,.jpg,.jpeg,.png">
+                                @error('packing_list_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                         </div>
+                    </div>
+
                     <div class="bg-white rounded-xl p-6 border border-slate-200">
                         <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Input Mode</h4>
                         <div class="flex flex-wrap items-center gap-6 text-sm">
@@ -160,6 +199,15 @@
                                     <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">{{ number_format($item->qty_bundle ?? 0) }}</span>
                                     <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_bundle ?? 'PALLET') }}</span>
                                 </div>
+                                @if($item->weight_nett > 0 || $item->weight_gross > 0)
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-semibold text-slate-700">Planned Weight</span>
+                                        <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs">
+                                            N: {{ number_format($item->weight_nett, 1) }} / G: {{ number_format($item->weight_gross, 1) }}
+                                        </span>
+                                        <span class="text-xs font-semibold text-slate-500">KGM</span>
+                                    </div>
+                                @endif
                             </div>
                         </div>
 

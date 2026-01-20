@@ -82,31 +82,7 @@
                     </div>
                 </div>
 
-                <div class="grid md:grid-cols-6 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="text-sm font-semibold text-slate-700">Upload Surat Jalan</label>
-                        <input type="file" name="delivery_note_file"
-                            class="mt-1 w-full rounded-xl border border-slate-200 text-sm" accept=".pdf,.jpg,.jpeg,.png">
-                        <p class="mt-1 text-xs text-slate-500">Format: PDF/JPG/PNG (max 10MB)</p>
-                        @error('delivery_note_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                    </div>
 
-                    <div class="md:col-span-2">
-                        <label class="text-sm font-semibold text-slate-700">Upload Invoice</label>
-                        <input type="file" name="invoice_file"
-                            class="mt-1 w-full rounded-xl border border-slate-200 text-sm" accept=".pdf,.jpg,.jpeg,.png">
-                        <p class="mt-1 text-xs text-slate-500">Format: PDF/JPG/PNG (max 10MB)</p>
-                        @error('invoice_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="text-sm font-semibold text-slate-700">Upload Packing List</label>
-                        <input type="file" name="packing_list_file"
-                            class="mt-1 w-full rounded-xl border border-slate-200 text-sm" accept=".pdf,.jpg,.jpeg,.png">
-                        <p class="mt-1 text-xs text-slate-500">Format: PDF/JPG/PNG (max 10MB)</p>
-                        @error('packing_list_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
-                    </div>
-                </div>
 
                 <div class="bg-white rounded-xl p-6 border border-slate-200 space-y-4">
                     <div class="flex items-center justify-between">
@@ -119,10 +95,9 @@
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                     <th class="px-4 py-3 text-left font-semibold">Part</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Material Group</th>
                                     <th class="px-4 py-3 text-left font-semibold">Size</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Package</th>
                                     <th class="px-4 py-3 text-right font-semibold">Qty Goods</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Price (IDR)</th>
                                     <th class="px-4 py-3 text-right font-semibold">Net (KGM)</th>
                                     <th class="px-4 py-3 text-right font-semibold">Gross (KGM)</th>
                                     <th class="px-4 py-3 text-right font-semibold">Action</th>
@@ -137,24 +112,8 @@
                                         </select>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input type="text" name="items[0][material_group]" class="w-40 rounded-xl border-slate-200 uppercase"
-                                            placeholder="MODEL / GROUP" value="{{ old('items.0.material_group') }}">
-                                    </td>
-                                    <td class="px-4 py-3">
                                         <input type="text" name="items[0][size]" class="w-40 rounded-xl border-slate-200 uppercase"
                                             placeholder="0.7 X 530 X C" value="{{ old('items.0.size') }}">
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center justify-end gap-2">
-                                            <input type="number" name="items[0][qty_bundle]" min="0"
-                                                value="{{ old('items.0.qty_bundle', 0) }}" class="w-20 text-right rounded-xl border-slate-200" required>
-                                            <select name="items[0][unit_bundle]" class="w-28 rounded-xl border-slate-200" required>
-                                                <option value="PALLET">PALLET</option>
-                                                <option value="BUNDLE">BUNDLE</option>
-                                                <option value="BOX">BOX</option>
-                                                <option value="BAG">BAG</option>
-                                            </select>
-                                        </div>
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center justify-end gap-2">
@@ -169,6 +128,10 @@
                                                 <option value="KGM">KGM</option>
                                             </select>
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <input type="number" name="items[0][price]" step="0.01" min="0"
+                                            value="{{ old('items.0.price', 0) }}" class="w-32 text-right rounded-xl border-slate-200" placeholder="0">
                                     </td>
                                     <td class="px-4 py-3">
                                         <input type="number" name="items[0][weight_nett]" step="0.01" min="0"
@@ -263,21 +226,7 @@
                         </select>
                     </td>
                     <td class="px-4 py-3">
-                        <input type="text" name="items[${idx}][material_group]" class="w-40 rounded-xl border-slate-200 uppercase" placeholder="MODEL / GROUP">
-                    </td>
-                    <td class="px-4 py-3">
                         <input type="text" name="items[${idx}][size]" class="w-40 rounded-xl border-slate-200 uppercase" placeholder="0.7 X 530 X C">
-                    </td>
-                    <td class="px-4 py-3">
-                        <div class="flex items-center justify-end gap-2">
-                            <input type="number" name="items[${idx}][qty_bundle]" min="0" value="0" class="w-20 text-right rounded-xl border-slate-200" required>
-                            <select name="items[${idx}][unit_bundle]" class="w-28 rounded-xl border-slate-200" required>
-                                <option value="PALLET">PALLET</option>
-                                <option value="BUNDLE">BUNDLE</option>
-                                <option value="BOX">BOX</option>
-                                <option value="BAG">BAG</option>
-                            </select>
-                        </div>
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
@@ -291,6 +240,9 @@
                                 <option value="KGM">KGM</option>
                             </select>
                         </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="number" name="items[${idx}][price]" step="0.01" min="0" value="0" class="w-32 text-right rounded-xl border-slate-200" placeholder="0">
                     </td>
                     <td class="px-4 py-3">
                         <input type="number" name="items[${idx}][weight_nett]" step="0.01" min="0" value="0" class="w-24 text-right rounded-xl border-slate-200">

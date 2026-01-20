@@ -405,6 +405,9 @@ class ReceiveController extends Controller
             'receive_date' => ['required', 'date'],
             'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
             'tag_mode' => $isLocal ? ['required', 'in:with_tag,no_tag'] : ['nullable'],
+            'delivery_note_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'invoice_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'packing_list_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'items' => ['required', 'array', 'min:1'],
         ];
 
@@ -575,6 +578,28 @@ class ReceiveController extends Controller
                         'as_of_date' => $receiveAt->toDateString(),
                     ]);
                 }
+            }
+            $dir = "local_pos/arrival-{$arrival->id}";
+
+            if ($request->hasFile('delivery_note_file')) {
+                $file = $request->file('delivery_note_file');
+                $path = $file->storePubliclyAs($dir, "surat_jalan." . $file->getClientOriginalExtension(), 'public');
+                $arrival->delivery_note_file = $path;
+                $arrival->save();
+            }
+
+            if ($request->hasFile('invoice_file')) {
+                $file = $request->file('invoice_file');
+                $path = $file->storePubliclyAs($dir, "invoice." . $file->getClientOriginalExtension(), 'public');
+                $arrival->invoice_file = $path;
+                $arrival->save();
+            }
+
+            if ($request->hasFile('packing_list_file')) {
+                $file = $request->file('packing_list_file');
+                $path = $file->storePubliclyAs($dir, "packing_list." . $file->getClientOriginalExtension(), 'public');
+                $arrival->packing_list_file = $path;
+                $arrival->save();
             }
         });
 
