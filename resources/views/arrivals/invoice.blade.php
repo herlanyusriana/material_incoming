@@ -18,9 +18,9 @@
         
         body {
             font-family: Arial, sans-serif;
-            font-size: 9px;
+            font-size: 11px;
             line-height: 1.4;
-            padding: 0;
+            padding: 30px;
         }
         
         .title {
@@ -41,7 +41,7 @@
             border: 2px solid #000;
             padding: 5px 7px;
             vertical-align: top;
-            font-size: 8px;
+            font-size: 10px;
         }
         
         .main-table .num {
@@ -70,7 +70,7 @@
         
         .section-label {
             font-weight: bold;
-            font-size: 8px;
+            font-size: 10px;
         }
         
         .company-name {
@@ -90,7 +90,7 @@
         .packing-items-table td,
         .packing-items-table th {
             padding: 6px;
-            font-size: 8px;
+            font-size: 10px;
             vertical-align: top;
         }
 
@@ -163,14 +163,14 @@
             border: none;
             padding: 5px 6px;
             vertical-align: top;
-            font-size: 9px;
+            font-size: 11px;
         }
         
         .items-table:not(.packing-items-table) th {
             background: none;
             font-weight: bold;
             text-align: center;
-            font-size: 8px;
+            font-size: 10px;
             border-bottom: none;
         }
 
@@ -191,7 +191,7 @@
         .container-box {
             padding: 6px 0;
             margin-top: 8px;
-            font-size: 9px;
+            font-size: 11px;
         }
         
         .footer-section {
@@ -234,7 +234,7 @@
             border-top: 1px solid #000;
             padding-top: 4px;
             font-weight: bold;
-            font-size: 8px;
+            font-size: 10px;
         }
         
         .page-break {
@@ -256,7 +256,7 @@
         /* Packing list should match commercial invoice font scale. */
         .page-box.packing-list {
             font-family: Arial, sans-serif;
-            font-size: 10.5px;
+            font-size: 12px;
             line-height: 1.25;
         }
 
@@ -270,7 +270,7 @@
         /* Commercial invoice (layout from user, data from existing template). */
         .commercial-invoice {
             font-family: Arial, sans-serif;
-            font-size: 10.5px;
+            font-size: 12px;
             line-height: 1.25;
             margin: 0;
             padding: 0;
@@ -421,7 +421,7 @@
         }
 
         .commercial-invoice .ci-signedby {
-            font-size: 8px;
+            font-size: 10px;
             font-weight: bold;
             text-align: left;
             white-space: nowrap;
@@ -471,7 +471,7 @@
             }
 
             .packing-list .ci-signedby {
-                font-size: 8px;
+                font-size: 10px;
                 font-weight: bold;
                 text-align: left;
                 white-space: nowrap;
