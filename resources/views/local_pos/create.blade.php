@@ -32,7 +32,7 @@
 
                 <div class="flex items-center justify-between pb-6 border-b border-slate-200">
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">Local PO</h3>
+                        <h3 class="text-xl font-bold text-slate-900">Local PO (Updated)</h3>
                         <p class="text-sm text-slate-600 mt-1">Buat PO lokal tanpa proses Departure, lalu langsung Receive.</p>
                     </div>
                     <div class="flex items-center gap-2">
