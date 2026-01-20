@@ -12,17 +12,20 @@ class Mps extends Model
     protected $table = 'mps';
 
     protected $fillable = [
+        'part_id',
+        'minggu',
         'forecast_qty',
         'open_order_qty',
         'planned_qty',
         'status',
         'approved_by',
         'approved_at',
-        'part_id',
-        'minggu',
     ];
 
     protected $casts = [
+        'forecast_qty' => 'decimal:3',
+        'open_order_qty' => 'decimal:3',
+        'planned_qty' => 'decimal:3',
         'approved_at' => 'datetime',
     ];
 

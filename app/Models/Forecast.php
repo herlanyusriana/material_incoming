@@ -9,13 +9,21 @@ class Forecast extends Model
 {
     use HasFactory;
 
+    protected $table = 'forecasts';
+
     protected $fillable = [
-        'qty',
         'part_id',
         'minggu',
+        'qty',
         'planning_qty',
         'po_qty',
         'source',
+    ];
+
+    protected $casts = [
+        'qty' => 'decimal:3',
+        'planning_qty' => 'decimal:3',
+        'po_qty' => 'decimal:3',
     ];
 
     public function part()

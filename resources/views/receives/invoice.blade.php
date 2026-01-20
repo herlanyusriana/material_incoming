@@ -36,14 +36,25 @@
                             <span class="font-semibold text-slate-700 w-32">Invoice No.</span>
                             <span class="text-slate-900">= {{ $arrival->invoice_no }}</span>
                         </div>
-                        <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">ETD</span>
-                            <span class="text-slate-900">= {{ $arrival->ETD ? $arrival->ETD->format('d M Y') : '-' }}</span>
-                        </div>
-                        <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">ETA</span>
-                            <span class="text-slate-900">= {{ $arrival->ETA ? $arrival->ETA->format('d M Y') : '-' }}</span>
-                        </div>
+                        @if ($isLocal)
+                            <div class="flex items-center">
+                                <span class="font-semibold text-slate-700 w-32">PO Date</span>
+                                <span class="text-slate-900">= {{ $arrival->invoice_date ? $arrival->invoice_date->format('d M Y') : '-' }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="font-semibold text-slate-700 w-32">Currency</span>
+                                <span class="text-slate-900">= {{ $arrival->currency ?? 'IDR' }}</span>
+                            </div>
+                        @else
+                            <div class="flex items-center">
+                                <span class="font-semibold text-slate-700 w-32">ETD</span>
+                                <span class="text-slate-900">= {{ $arrival->ETD ? $arrival->ETD->format('d M Y') : '-' }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="font-semibold text-slate-700 w-32">ETA</span>
+                                <span class="text-slate-900">= {{ $arrival->ETA ? $arrival->ETA->format('d M Y') : '-' }}</span>
+                            </div>
+                        @endif
                         <div class="flex items-center">
                             <span class="font-semibold text-slate-700 w-32">Total Bundle</span>
                             <span class="text-slate-900">= {{ number_format($pendingItems->sum('qty_bundle') ?? 0) }}</span>
