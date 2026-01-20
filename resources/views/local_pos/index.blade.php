@@ -91,9 +91,18 @@
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((int) ($po->items_count ?? 0)) }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) ($po->remaining_qty ?? 0), 0) }}</td>
                                     <td class="px-4 py-3 text-right">
+                                    <div class="flex items-center justify-end gap-2">
                                         <a href="{{ route('receives.invoice.create', $po) }}" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold">
                                             Receive
                                         </a>
+                                        <form action="{{ route('local-pos.destroy', $po) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus Local PO ini?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold transition-colors">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
                                     </td>
                                 </tr>
                             @empty

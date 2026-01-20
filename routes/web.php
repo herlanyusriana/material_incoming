@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/local-pos', [LocalPoController::class, 'index'])->name('local-pos.index');
     Route::get('/local-pos/create', [LocalPoController::class, 'create'])->name('local-pos.create');
     Route::post('/local-pos', [LocalPoController::class, 'store'])->name('local-pos.store');
+    Route::delete('/local-pos/{arrival}', [LocalPoController::class, 'destroy'])->name('local-pos.destroy');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');

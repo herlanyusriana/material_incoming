@@ -161,4 +161,19 @@ class LocalPoController extends Controller
 
         return redirect()->route('receives.invoice.create', $arrival)->with('success', 'Local PO created. Silakan lakukan receive.');
     }
+    public function destroy(Arrival $arrival)
+    {
+        // Optional: validation if it has receives?
+        // for now allow force delete, cascade will handle items ideally,
+        // but let's delete items explicitly to be safe or just delete arrival.
+        // Assuming cascade delete is set on DB level or we rely on model events. 
+        // But for safety:
+        
+        DB::transaction(function () use ($arrival) {
+             $arrival->items()->delete();
+             $arrival->delete();
+        });
+
+        return back()->with('success', 'Local PO deleted successfully.');
+    }
 }
