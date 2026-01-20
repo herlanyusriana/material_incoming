@@ -1163,24 +1163,18 @@
                                             $goodsTotalParts[] = '-';
                                         }
                                     @endphp
-                                    <table class="packing-desc packing-qty-split">
-                                        <colgroup>
-                                            <col style="width:50%;">
-                                            <col style="width:50%;">
-                                        </colgroup>
-                                        <tr>
-                                            <td class="packing-total-parts">
-                                                @foreach($bundleTotalParts as $part)
-                                                    <span>{{ $part }}</span>
-                                                @endforeach
-                                            </td>
-                                            <td class="packing-total-parts">
-                                                @foreach($goodsTotalParts as $part)
-                                                    <span>{{ $part }}</span>
-                                                @endforeach
-                                            </td>
-                                        </tr>
-                                    </table>
+                                    <div style="overflow: hidden; width: 100%;">
+                                        <div style="width: 49%; float: left; text-align: center;" class="packing-total-parts">
+                                            @foreach($bundleTotalParts as $part)
+                                                <span>{{ $part }}</span>
+                                            @endforeach
+                                        </div>
+                                        <div style="width: 49%; float: right; text-align: center;" class="packing-total-parts">
+                                            @foreach($goodsTotalParts as $part)
+                                                <span>{{ $part }}</span>
+                                            @endforeach
+                                        </div>
+                                    </div>
 						            </td>
 				            <td class="text-center text-bold" style="white-space:nowrap;">
 	                            @if($nettTotalsByUnit->count() <= 1)
