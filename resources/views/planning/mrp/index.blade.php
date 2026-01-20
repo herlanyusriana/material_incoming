@@ -5,23 +5,30 @@
 
     <div class="py-6">
         <div class="max-w-[98%] mx-auto px-2 space-y-6">
+            @php
+                $month = $month ?? now()->format('Y-m');
+                $startOfMonth = \Carbon\Carbon::parse($month . '-01')->startOfDay();
+                $endOfMonth = $startOfMonth->copy()->endOfMonth();
+                
+                // Calculate weeks for form
+                $weeks = [];
+                $current = $startOfMonth->copy();
+                while ($current->lte($endOfMonth)) {
+                    $w = $current->format('o-\\WW');
+                    if (!in_array($w, $weeks)) {
+                        $weeks[] = $w;
+                    }
+                    $current->addDay();
+                }
+                $startWeek = $weeks[0] ?? now()->format('o-\\WW');
+                $weeksCount = count($weeks);
+            @endphp
+
             @if (session('success'))
-        $month = $month ?? now()->format('Y-m');
-        $startOfMonth = \Carbon\Carbon::parse($month . '-01')->startOfDay();
-        $endOfMonth = $startOfMonth->copy()->endOfMonth();
-        
-        // Calculate weeks for form
-        $weeks = [];
-        $current = $startOfMonth->copy();
-        while ($current->lte($endOfMonth)) {
-            $w = $current->format('o-\\WW');
-            if (!in_array($w, $weeks)) {
-                $weeks[] = $w;
-            }
-            $current->addDay();
-        }
-        $startWeek = $weeks[0] ?? now()->format('o-\\WW');
-        $weeksCount = count($weeks);
+                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                    {{ session('success') }}
+                </div>
+            @endif
 
             @if (session('error'))
                 <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
