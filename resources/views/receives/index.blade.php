@@ -27,7 +27,7 @@
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Vendor</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Invoice No</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Invoice / Local PO</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">ETD</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
                             </tr>

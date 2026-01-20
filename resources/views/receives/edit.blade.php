@@ -1,6 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        Edit Receive — {{ $arrival->invoice_no ?? '-' }}
+        @php $isLocal = strtolower((string) ($arrival?->vendor?->vendor_type ?? '')) === 'local'; @endphp
+        Edit {{ $isLocal ? 'Local PO Receive' : 'Receive' }} — {{ $arrival->invoice_no ?? '-' }}
     </x-slot>
 
     <div class="py-8">
@@ -69,7 +70,7 @@
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Invoice No.</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ $isLocal ? 'Local PO No.' : 'Invoice No.' }}</label>
                         <input type="text" name="invoice_no" value="{{ old('invoice_no', $receive->invoice_no) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="INV/2024/001">
                         @error('invoice_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>

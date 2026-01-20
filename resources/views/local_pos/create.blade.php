@@ -9,6 +9,7 @@
             'vendor_id' => $p->vendor_id,
             'price' => $p->price,
             'uom' => $p->uom,
+            'size' => $p->storage_reg, // Alias for size
             'label' => trim((string) $p->part_no) . ' — ' . trim((string) ($p->part_name_gci ?? $p->part_name_vendor ?? '')),
         ])->values();
     @endphp
@@ -99,7 +100,7 @@
                                     <th class="px-4 py-3 text-left font-semibold">Part</th>
                                     <th class="px-4 py-3 text-left font-semibold">Size</th>
                                     <th class="px-4 py-3 text-right font-semibold">Qty Goods</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Price (IDR)</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Price per UOM (IDR)</th>
                                     <th class="px-4 py-3 text-right font-semibold">Action</th>
                                 </tr>
                             </thead>
@@ -258,13 +259,18 @@
                 tbody.querySelectorAll('select[data-part-select]').forEach(sel => setPartsOptions(sel));
             });
 
-            // Auto-fill price and uom when part is selected
+            // Auto-fill price, size and uom when part is selected
             tbody.addEventListener('change', (e) => {
                 if (e.target && e.target.matches('select[data-part-select]')) {
                     const row = e.target.closest('tr');
                     const partId = e.target.value;
                     const part = parts.find(p => String(p.id) === String(partId));
                     if (part && row) {
+                        // Fill size if available
+                        if (part.size) {
+                            const sizeInput = row.querySelector('input[name*="[size]"]');
+                            if (sizeInput) sizeInput.value = part.size.toUpperCase();
+                        }
                         // Fill price if available
                         if (part.price) {
                             const priceInput = row.querySelector('input[name*="[price]"]');
@@ -275,8 +281,8 @@
                             const uomSelect = row.querySelector('select[name*="[unit_goods]"]');
                             if (uomSelect) {
                                 // check if option exists
-                                const exists = Array.from(uomSelect.options).some(o => o.value === part.uom);
-                                if (exists) uomSelect.value = part.uom;
+                                const exists = Array.from(uomSelect.options).some(o => o.value === part.uom.toUpperCase());
+                                if (exists) uomSelect.value = part.uom.toUpperCase();
                             }
                         }
                     }

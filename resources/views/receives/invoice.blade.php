@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Receive Invoice {{ $arrival->invoice_no }}
+        {{ $isLocal ? 'Receive Local PO' : 'Receive Invoice' }} {{ $arrival->invoice_no }}
     </x-slot>
 
     <div class="py-8">
@@ -33,7 +33,7 @@
                             <span class="text-slate-900">= {{ $arrival->vendor->vendor_name ?? 'N/A' }}</span>
                         </div>
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">Invoice No.</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ $isLocal ? 'Local PO No.' : 'Invoice No.' }}</span>
                             <span class="text-slate-900">= {{ $arrival->invoice_no }}</span>
                         </div>
                         @if ($isLocal)

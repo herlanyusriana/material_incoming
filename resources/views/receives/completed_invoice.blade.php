@@ -1,6 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        Receive Summary — {{ $arrival->invoice_no }}
+        @php $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local'; @endphp
+        {{ $isLocal ? 'Local PO Summary' : 'Receive Summary' }} — {{ $arrival->invoice_no }}
     </x-slot>
 
     <div class="py-6">
