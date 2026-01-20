@@ -100,7 +100,7 @@
             border-bottom: 2px solid #000;
             font-weight: bold;
             text-align: center;
-            white-space: nowrap;
+            white-space: normal;
         }
 
         .packing-items-table th:first-child {
