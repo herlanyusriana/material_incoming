@@ -21,28 +21,163 @@ class MrpController extends Controller
 
     public function index(Request $request)
     {
-        $minggu = $request->query('minggu') ?: now()->format('o-\\WW');
+        $month = $request->query('month') ?: now()->format('Y-m');
+        $startOfMonth = \Carbon\Carbon::parse($month)->startOfMonth();
+        $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
-        $run = MrpRun::query()
-            ->with(['purchasePlans.part', 'productionPlans.part'])
-            ->where('minggu', $minggu)
+        // Generate Dates 1..End
+        $dates = [];
+        $temp = $startOfMonth->copy();
+        while ($temp->lte($endOfMonth)) {
+            $dates[] = $temp->format('Y-m-d');
+            $temp->addDay();
+        }
+
+        // Fetch Latest Run in this month? Or just latest generally?
+        // MRP Run is usually weekly. For Monthly view, we might need to aggregate runs or just pick the latest one active for this period.
+        // For simplicity: Pick latest run that overlaps or just the very latest run in DB.
+        // Let's assume user wants to see the latest plan state.
+        
+        $run = MrpRun::with(['purchasePlans.part', 'productionPlans.part'])
             ->latest('id')
             ->first();
 
-        // Helper to get dates from Week
-        $year = (int) substr($minggu, 0, 4);
-        $week = (int) substr($minggu, 6, 2);
-        // Carbon setISODate logic
-        $startDate = now();
-        $startDate->setISODate($year, $week); 
-        $startDate->startOfDay();
+        // Prepare Data Structure: Part -> [Info, Stock, Days => [Plan, Incoming, Projected, Net]]
+        $mrpData = [];
         
-        $dates = [];
-        for ($i = 0; $i < 5; $i++) {
-            $dates[] = $startDate->copy()->addDays($i)->format('Y-m-d');
+        // 1. Get all active Parts (or just those in BOM/Stock? Let's take parts from Inventory + MRP Plans)
+        $partIds = collect([]);
+        if ($run) {
+            $partIds = $partIds->merge($run->purchasePlans->pluck('part_id'))
+                               ->merge($run->productionPlans->pluck('part_id'));
+        }
+        $partIds = $partIds->unique();
+        
+        $parts = \App\Models\Part::whereIn('id', $partIds)->get()->keyBy('id');
+        $inventories = GciInventory::whereIn('gci_part_id', $partIds)->get()->keyBy('gci_part_id');
+        
+        // Existing Arrivals (Incoming)
+        // Check Arrivals where ETD or ATA is within range
+        // Note: 'receives' table is what we actually received. 'arrival_items' is what is expected.
+        // We look at 'arrival_items' that are NOT fully received yet (remaining).
+        // Simplification: just get ArrivalItems with ETA in this month.
+        $arrivals = \App\Models\ArrivalItem::with('arrival')
+            ->whereHas('arrival', function($q) use ($startOfMonth, $endOfMonth) {
+                 // Logic for date: Use arrival.etd (estimated time arrival)
+                 $q->whereBetween('eta', [$startOfMonth, $endOfMonth]); // Assuming 'eta' column exists or 'invoice_date'? 
+                 // Actually Upgrade: Let's assume we use invoice_date or created_at if eta missing for now, 
+                 // or properly add ETA to arrival. For now, use 'invoice_date' as proxy or CreatedAt.
+                 // Better: check migrations. 'arrivals' has 'etd' (Departure time) and 'eta' (Arrival time)?
+                 // Checked migrations: 'arrivals' has 'etd' (date) and 'eta' (date).
+                 $q->whereBetween('eta', [$startOfMonth, $endOfMonth]);
+            })
+            ->get();
+            
+        // Map Arrivals to Dates
+        $incomingMap = []; // part_id -> date -> qty
+        foreach ($arrivals as $item) {
+             $date = $item->arrival->eta?->format('Y-m-d');
+             if ($date && in_array($date, $dates)) {
+                 $incomingMap[$item->part_id][$date] = ($incomingMap[$item->part_id][$date] ?? 0) + $item->qty_goods; // Or remaining?
+             }
         }
 
-        return view('planning.mrp.index', compact('minggu', 'run', 'dates'));
+        foreach ($partIds as $partId) {
+            $part = $parts[$partId] ?? null;
+            if (!$part) continue;
+
+            $inv = $inventories[$partId] ?? null;
+            $startStock = $inv ? $inv->on_hand : 0;
+            
+            $rowData = [
+                'part' => $part,
+                'initial_stock' => $startStock,
+                'days' => []
+            ];
+            
+            $runningStock = $startStock;
+            
+            foreach ($dates as $date) {
+                // Demand/Plan (From MRP Run) -> negative stock
+                // ProductionPlan for FG is Supply for FG, BUT Demand for Components?
+                // Wait, MRP View usually shows:
+                // For FG: Demand = Forecast/Order, Supply = Production Plan.
+                // For RM: Demand = Production Plan of Parent, Supply = Purchase Plan/Arrival.
+                
+                // Simplified View: Just show what MRP Run computed.
+                // Run->productionPlans = Calculated Requirement to Make? Or Resulting Supply?
+                // In generate(): ProductionPlan is created based on MPS (Demand). So it is the "Plan to Make". 
+                // For RM: NetRequired is "Plan to Buy".
+                
+                // Let's rely on standard MRP display:
+                // Gross Requirement (Demand)
+                // Scheduled Receipts (Incoming)
+                // Projected On Hand
+                // Net Requirement (Shortage planning)
+                // Planned Order Release (New POs/Jobs)
+                
+                // Mapping our DB to this:
+                // Demand: Not stored explicitly in MRP Run for RM? Yes, we calculated $requirements.
+                // But we didn't save "Gross Requirement" in DB for RM. We only saved "MrpPurchasePlan" (Net Req).
+                // ISSUE: We need Gross Requirement to show proper calculation.
+                // Workaround: We will use PurchasePlan->required_qty which we saved! (See generate method: 'required_qty' => $dailyRequired).
+                
+                $demand = 0;
+                $supply = 0; // Existing Incoming
+                $plannedOrder = 0; // New Recommendation
+                
+                // Check Purchase Plans for this Date
+                $pPlan = $run->purchasePlans->where('part_id', $partId)->where('plan_date', $date)->first();
+                if ($pPlan) {
+                    $demand = $pPlan->required_qty;
+                    $plannedOrder = $pPlan->net_required;
+                }
+                
+                // Check Production Plans (If it's an FG/WIP, this is the "Plan to make" -> Supply? No, MPS is demand, ProdPlan is supply to meet MPS?
+                // In generate(): MPS -> MrpProductionPlan.
+                // So MrpProductionPlan IS the supply to meet external demand.
+                // Let's treat it as "Plan" row.
+                
+                $prodPlan = $run->productionPlans->where('part_id', $partId)->where('plan_date', $date)->first();
+                 if ($prodPlan) {
+                     // For FG/WIP
+                     // If this part is FG, ProdPlan is basically "Production Order Recommendation".
+                     $plannedOrder += $prodPlan->planned_qty;
+                 }
+                
+                $incoming = $incomingMap[$partId][$date] ?? 0;
+                
+                // Projected Stock Calculation for End of Day
+                // Proj = Start + Incoming + PlannedOrder(if we do it) - Demand
+                // Usually "Projected Stock" excludes "Planned Order" to show the shortage (Net Req).
+                // If we include Planned Order, stock stays >= 0 (ideally).
+                // Let's show Projected Stock assuming ONLY Existing Incoming. 
+                // Then Net Req shows what is needed.
+                
+                // Logic:
+                // Stock[i] = Stock[i-1] + Incoming[i] - Demand[i]
+                $endStock = $runningStock + $incoming - $demand;
+                
+                $rowData['days'][$date] = [
+                    'demand' => $demand,
+                    'incoming' => $incoming,
+                    'projected_stock' => $endStock,
+                    'net_required' => $endStock < 0 ? abs($endStock) : 0, 
+                    'planned_order_rec' => $plannedOrder // What MRP suggests to add
+                ];
+                
+                 // Update running stock
+                 // If we assume we fulfill the net req:
+                 // $runningStock = $endStock + ($endStock < 0 ? abs($endStock) : 0);
+                 // But strictly, Projected Stock should show the Drop.
+                 // However, for the next day, does the shortage carry over? Yes.
+                 $runningStock = $endStock; 
+            }
+            
+            $mrpData[] = $rowData;
+        }
+
+        return view('planning.mrp.index', compact('month', 'dates', 'mrpData', 'run'));
     }
 
     public function generate(Request $request)
@@ -174,6 +309,72 @@ class MrpController extends Controller
 
         return redirect()->route('planning.mrp.index', ['minggu' => $minggu])
             ->with('success', 'MRP generated.');
+    }
+
+    public function generatePo(Request $request)
+    {
+        // Expecting: items array [part_id => qty]
+        $items = $request->input('items', []);
+        
+        if (empty($items)) {
+            return back()->with('error', 'No items selected for PO.');
+        }
+
+        // Group by Vendor?
+        // Logic: All selected items must belong to LOCAL vendors for this feature?
+        // Or we create mixed?
+        // Constraint: We only support Local PO creation for now.
+        // We need to fetch parts to check vendors.
+        
+        $partIds = array_keys($items);
+        $parts = \App\Models\Part::with('vendor')->whereIn('id', $partIds)->get();
+        
+        $nonLocalParts = $parts->filter(fn($p) => strtolower($p->vendor->vendor_type ?? '') !== 'local');
+        
+        if ($nonLocalParts->isNotEmpty()) {
+             return back()->with('error', 'Some selected parts are not from LOCAL vendors. Only Local POs are supported currently.');
+        }
+        
+        // Group by Vendor to create multiple POs if needed
+        $grouped = $parts->groupBy('vendor_id');
+        
+        DB::transaction(function () use ($grouped, $items) {
+            foreach ($grouped as $vendorId => $vendorParts) {
+                // Create Arrival (PO)
+                $poNo = 'PO-MRP-' . now()->format('ymdHis') . '-' . $vendorId;
+                
+                $arrival = \App\Models\Arrival::create([
+                    'invoice_no' => $poNo,
+                    'invoice_date' => now(), // PO Date
+                    'vendor_id' => $vendorId,
+                    'currency' => 'IDR', // Default
+                    'notes' => 'Generated from MRP',
+                    'created_by' => auth()->id(),
+                ]);
+                
+                foreach ($vendorParts as $part) {
+                    $qty = (int) ($items[$part->id] ?? 0);
+                    if ($qty <= 0) continue;
+                    
+                    $price = $part->price ?? 0;
+                    
+                    $arrival->items()->create([
+                        'part_id' => $part->id,
+                        'qty_goods' => $qty,
+                        'unit_goods' => $part->uom && in_array($part->uom, ['PCS','COIL','SHEET','SET','EA','KGM','ROLL','UOM']) ? $part->uom : 'PCS',
+                        'price' => $price,
+                        'total_price' => $qty * $price,
+                        'qty_bundle' => 0,
+                        'unit_bundle' => 'PALLET',
+                        'unit_weight' => 'KGM',
+                        'weight_nett' => 0,
+                        'weight_gross' => 0,
+                    ]);
+                }
+            }
+        });
+        
+        return redirect()->route('local-pos.index')->with('success', 'Local PO(s) generated successfully from MRP Selection.');
     }
 
     /**

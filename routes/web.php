@@ -213,6 +213,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');
         Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('mrp.generate');
+        Route::post('/mrp/generate-po', [PlanningMrpController::class, 'generatePo'])->name('mrp.generate-po');
         Route::delete('/mrp/clear', [PlanningMrpController::class, 'clear'])->name('mrp.clear');
         Route::get('/mrp/history', [PlanningMrpController::class, 'history'])->name('mrp.history');
     });
