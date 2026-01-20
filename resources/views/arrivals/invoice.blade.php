@@ -260,8 +260,19 @@
             font-size: 14px;
             line-height: 1.25;
             margin: 30px;
-            border: 2px solid #000; /* Re-state border if needed/override */
+            border: none;
             width: auto;
+        }
+
+        .page-box.packing-list .title {
+            border-bottom: 2px solid #000;
+            margin-bottom: 0;
+            padding-bottom: 8px;
+        }
+
+        .packing-content-wrapper {
+            border: 2px solid #000;
+            border-top: none;
         }
 
         .page-box.packing-list .section-label,
@@ -940,6 +951,7 @@
 
 <div class="page-box packing-list">
 <div class="title">PACKING LIST</div>
+<div class="packing-content-wrapper">
 
 <table class="main-table">
     {{-- Row 1: Shipper + Invoice No & Date --}}
@@ -1239,6 +1251,8 @@
             </table>
 		</div>
 
+	</div>
+    </div>
 	</div>
 	</body>
 	</html>
