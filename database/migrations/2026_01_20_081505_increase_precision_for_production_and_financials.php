@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::table('production_orders', function (Blueprint $table) {
             $table->decimal('qty_planned', 18, 4)->change();
-            $table->decimal('qty_actual', 18, 4)->change();
-            $table->decimal('qty_rejected', 18, 4)->change();
+            $table->decimal('qty_actual', 18, 4)->default(0)->change();
+            $table->decimal('qty_rejected', 18, 4)->default(0)->change();
         });
 
         Schema::table('parts', function (Blueprint $table) {
-            $table->decimal('price', 20, 2)->change();
+            $table->decimal('price', 20, 2)->nullable()->change();
         });
     }
 
