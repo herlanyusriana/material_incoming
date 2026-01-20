@@ -46,6 +46,7 @@ class CustomerPlanningImportController extends Controller
             $rows = CustomerPlanningRow::query()
                 ->with('part')
                 ->where('import_id', $importId)
+                ->where('row_status', '!=', 'accepted')
                 ->orderBy('id')
                 ->paginate(50)
                 ->withQueryString();
