@@ -31,7 +31,11 @@ class Mps extends Model
 
     public function part()
     {
-        return $this->belongsTo(GciPart::class, 'part_id');
+        return $this->belongsTo(GciPart::class, 'part_id')->withDefault([
+            'part_no' => 'N/A',
+            'part_name' => 'Unknown Part (Deleted)',
+            'model' => '-',
+        ]);
     }
 
     public function approver()
