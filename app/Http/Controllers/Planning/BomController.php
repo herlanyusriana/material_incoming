@@ -321,8 +321,10 @@ class BomController extends Controller
         if ($searchMode === 'customer' && $searchQuery) {
             $customerPart = \App\Models\CustomerPart::query()
                 ->with(['customer', 'components.part.bom'])
-                ->where('customer_part_no', 'like', '%' . $searchQuery . '%')
-                ->orWhere('customer_part_name', 'like', '%' . $searchQuery . '%')
+                ->where(function ($query) use ($searchQuery) {
+                    $query->where('customer_part_no', 'like', '%' . $searchQuery . '%')
+                          ->orWhere('customer_part_name', 'like', '%' . $searchQuery . '%');
+                })
                 ->first();
 
             if (!$customerPart) {
