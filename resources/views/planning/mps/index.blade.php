@@ -302,9 +302,9 @@
                                         </td>
                                         <td class="px-4 py-3 font-mono text-xs">{{ $r->minggu }}</td>
                                         <td class="px-4 py-3">
-                                            <div class="font-semibold">{{ $r->part->part_no ?? '-' }}</div>
-                                            <div class="text-xs text-slate-600">{{ $r->part->model ?? '-' }}</div>
-                                            <div class="text-xs text-slate-500">{{ $r->part->part_name ?? '-' }}</div>
+                                            <div class="font-semibold">{{ $r->part?->part_no ?? '-' }}</div>
+                                            <div class="text-xs text-slate-600">{{ $r->part?->model ?? '-' }}</div>
+                                            <div class="text-xs text-slate-500">{{ $r->part?->part_name ?? '-' }}</div>
                                         </td>
                                         <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($r->forecast_qty) }}</td>
                                         <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($r->planned_qty) }}</td>

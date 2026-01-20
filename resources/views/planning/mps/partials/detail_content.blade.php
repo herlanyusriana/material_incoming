@@ -104,7 +104,7 @@
                         @foreach($bom->items as $item)
                         <tr>
                             <td class="px-5 py-2 whitespace-nowrap text-sm text-slate-700">
-                                {{ $item->componentPart->part_no }}
+                                {{ $item->componentPart?->part_no ?? 'Unknown' }}
                             </td>
                             <td class="px-5 py-2 whitespace-nowrap text-sm text-right text-slate-500">
                                 {{ floatval($item->usage_qty) }}
