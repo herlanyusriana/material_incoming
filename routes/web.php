@@ -148,7 +148,9 @@ Route::middleware('auth')->group(function () {
 	        Route::put('/boms/{bom}', [PlanningBomController::class, 'update'])->name('boms.update');
 	        Route::delete('/boms/{bom}', [PlanningBomController::class, 'destroy'])->name('boms.destroy');
 	        Route::post('/boms/{bom}/items', [PlanningBomController::class, 'storeItem'])->name('boms.items.store');
+            Route::get('/boms/where-used-page', [PlanningBomController::class, 'showWhereUsed'])->name('boms.where-used-page');
             Route::get('/boms/where-used', [PlanningBomController::class, 'whereUsed'])->name('boms.where-used');
+            Route::get('/boms/{bom}/explosion', [PlanningBomController::class, 'explosion'])->name('boms.explosion');
 	        Route::delete('/bom-items/{bomItem}', [PlanningBomController::class, 'destroyItem'])->name('boms.items.destroy');
 	        Route::post('/bom-items/{bomItem}/substitutes', [PlanningBomController::class, 'storeSubstitute'])->name('bom-items.substitutes.store');
 	        Route::delete('/bom-item-substitutes/{substitute}', [PlanningBomController::class, 'destroySubstitute'])->name('bom-item-substitutes.destroy');

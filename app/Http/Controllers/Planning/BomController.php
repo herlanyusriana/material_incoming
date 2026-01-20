@@ -74,12 +74,25 @@ class BomController extends Controller
             'part_no' => $partNo,
             'used_in' => $boms->map(fn ($bom) => [
                 'id' => $bom->id,
+                'part_id' => $bom->part_id,
                 'fg_part_no' => $bom->part->part_no,
                 'fg_part_name' => $bom->part->part_name,
                 'revision' => $bom->revision,
                 'status' => $bom->status,
             ]),
         ]);
+    }
+
+    public function showWhereUsed()
+    {
+        // Get some recent RM parts for quick search
+        $recentParts = \App\Models\GciPart::query()
+            ->where('classification', 'RM')
+            ->orderBy('updated_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('planning.boms.where_used', compact('recentParts'));
     }
 
     public function export(Request $request)
@@ -273,5 +286,20 @@ class BomController extends Controller
         $substitute->delete();
 
         return back()->with('success', 'Substitute removed.');
+    }
+
+    public function explosion(Bom $bom, Request $request)
+    {
+        $quantity = (float) ($request->query('qty', 1));
+        if ($quantity <= 0) {
+            $quantity = 1;
+        }
+
+        $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
+        
+        $explosion = $bom->explode($quantity);
+        $materials = $bom->getTotalMaterialRequirements($quantity);
+
+        return view('planning.boms.explosion', compact('bom', 'explosion', 'materials', 'quantity'));
     }
 }

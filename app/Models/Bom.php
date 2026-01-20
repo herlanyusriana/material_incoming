@@ -99,4 +99,96 @@ class Bom extends Model
         
         return $newBom;
     }
+
+    /**
+     * Recursively explode BOM to get all components with levels
+     * Returns array of components with their hierarchy level and quantities
+     */
+    public function explode($parentQty = 1, $currentLevel = 0, $maxLevels = 10, &$visited = [])
+    {
+        if ($currentLevel >= $maxLevels) {
+            return [];
+        }
+
+        // Prevent infinite loops
+        $bomKey = $this->id;
+        if (in_array($bomKey, $visited)) {
+            return [];
+        }
+        $visited[] = $bomKey;
+
+        $explosion = [];
+        
+        $this->loadMissing(['items.componentPart.bom', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
+
+        foreach ($this->items as $item) {
+            $netQty = $item->net_required * $parentQty;
+            
+            $explosionItem = [
+                'level' => $currentLevel,
+                'line_no' => $item->line_no,
+                'component_part_id' => $item->component_part_id,
+                'component_part_no' => $item->component_part_no,
+                'component_part' => $item->componentPart,
+                'wip_part_id' => $item->wip_part_id,
+                'wip_part_no' => $item->wip_part_no,
+                'wip_part_name' => $item->wip_part_name,
+                'wip_part' => $item->wipPart,
+                'wip_qty' => $item->wip_qty,
+                'wip_uom' => $item->wip_uom,
+                'process_name' => $item->process_name,
+                'machine_name' => $item->machine_name,
+                'usage_qty' => $item->usage_qty,
+                'scrap_factor' => $item->scrap_factor,
+                'yield_factor' => $item->yield_factor,
+                'net_required' => $item->net_required,
+                'total_qty' => $netQty,
+                'consumption_uom' => $item->consumption_uom,
+                'material_size' => $item->material_size,
+                'material_spec' => $item->material_spec,
+                'material_name' => $item->material_name,
+                'make_or_buy' => $item->make_or_buy,
+                'special' => $item->special,
+                'bom_item' => $item,
+            ];
+
+            $explosion[] = $explosionItem;
+
+            // If component has its own BOM, recursively explode it
+            if ($item->componentPart && $item->componentPart->bom) {
+                $subBom = $item->componentPart->bom;
+                $subExplosion = $subBom->explode($netQty, $currentLevel + 1, $maxLevels, $visited);
+                $explosion = array_merge($explosion, $subExplosion);
+            }
+        }
+
+        return $explosion;
+    }
+
+    /**
+     * Get total material requirements from explosion
+     */
+    public function getTotalMaterialRequirements($quantity = 1)
+    {
+        $explosion = $this->explode($quantity);
+        $materials = [];
+
+        foreach ($explosion as $item) {
+            $partNo = $item['component_part_no'];
+            if (!isset($materials[$partNo])) {
+                $materials[$partNo] = [
+                    'part_no' => $partNo,
+                    'part' => $item['component_part'],
+                    'total_qty' => 0,
+                    'uom' => $item['consumption_uom'],
+                    'make_or_buy' => $item['make_or_buy'],
+                    'material_spec' => $item['material_spec'],
+                ];
+            }
+            $materials[$partNo]['total_qty'] += $item['total_qty'];
+        }
+
+        return array_values($materials);
+    }
 }
+

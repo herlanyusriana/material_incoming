@@ -84,6 +84,12 @@
 	                        >
 	                            Import
 	                        </button>
+	                        <a
+	                            href="{{ route('planning.boms.where-used-page') }}"
+	                            class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold"
+	                        >
+	                            🔍 Where-Used
+	                        </a>
 	                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">
 	                            + Add BOM
 	                        </button>
@@ -151,6 +157,7 @@
                                     </td>
                                     <td class="px-2 py-3 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
                                         <div class="flex items-center justify-center gap-1">
+                                            <a href="{{ route('planning.boms.explosion', $bom) }}" class="w-7 h-7 rounded border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold" title="BOM Explosion">🌳</a>
                                             <form action="{{ route('planning.boms.update', $bom) }}" method="POST" class="inline">
                                                 @csrf
                                                 @method('PUT')
