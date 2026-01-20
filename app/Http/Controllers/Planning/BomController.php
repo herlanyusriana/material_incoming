@@ -195,6 +195,22 @@ class BomController extends Controller
         }
     }
 
+    public function downloadSubstituteTemplate()
+    {
+        return Excel::download(new class implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+            public function array(): array
+            {
+                return [
+                    ['FG-001', 'COMP-001', 'SUB-001', 1, 1, 'active', 'Optional note'], // Example row
+                ];
+            }
+            public function headings(): array
+            {
+                return ['fg_part_no', 'component_part_no', 'substitute_part_no', 'ratio', 'priority', 'status', 'notes'];
+            }
+        }, 'template_substitutes.xlsx');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

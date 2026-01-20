@@ -433,7 +433,10 @@
                         @csrf
 
                         <div class="text-sm text-slate-700 space-y-1">
-                            <div>Upload Excel dengan kolom:</div>
+                            <div class="flex justify-between items-center">
+                                <div>Upload Excel dengan kolom:</div>
+                                <a href="{{ route('planning.boms.substitutes.template') }}" class="text-xs text-blue-600 hover:text-blue-800 underline font-semibold">Download Template</a>
+                            </div>
                             <div class="font-mono text-xs bg-slate-100 p-2 rounded">fg_part_no, component_part_no, substitute_part_no, ratio, priority, status</div>
                             <div class="text-xs text-slate-500">Pastikan FG Part No dan Component Part No sesuai untuk mencocokan BOM line yang tepat.</div>
                         </div>
