@@ -47,6 +47,7 @@
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Tag</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Invoice / SJ</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Part</th>
                                 <th class="px-4 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider">Qty</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Bundle</th>
@@ -59,6 +60,10 @@
                             @forelse ($receives as $receive)
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-4 py-4 font-semibold text-slate-900">{{ $receive->tag }}</td>
+                                    <td class="px-4 py-4 text-xs text-slate-700">
+                                        <div class="font-medium">INV: {{ $receive->invoice_no ?? '-' }}</div>
+                                        <div class="text-slate-500">SJ: {{ $receive->delivery_note_no ?? '-' }}</div>
+                                    </td>
                                     <td class="px-4 py-4 text-slate-800">
                                         {{ $receive->arrivalItem->part->part_no }}
                                         <div class="text-xs text-slate-500">{{ $receive->arrivalItem->part->part_name_vendor }}</div>

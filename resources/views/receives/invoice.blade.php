@@ -122,13 +122,26 @@
                 @endif
 
                 <div class="bg-white rounded-xl p-6 border border-slate-200">
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Receiving Date</h4>
-                    <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Receiving Info</h4>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                         <div class="space-y-1">
                             <label for="receive_date" class="text-sm font-medium text-slate-700">Tanggal Receive</label>
                             <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                             @error('receive_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
+
+                        <div class="space-y-1">
+                            <label for="invoice_no" class="text-sm font-medium text-slate-700">Invoice No.</label>
+                            <input type="text" id="invoice_no" name="invoice_no" value="{{ old('invoice_no', $arrival->invoice_no) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase" placeholder="INV/2024/001">
+                            @error('invoice_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="space-y-1">
+                            <label for="delivery_note_no" class="text-sm font-medium text-slate-700">No. Surat Jalan</label>
+                            <input type="text" id="delivery_note_no" name="delivery_note_no" value="{{ old('delivery_note_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase" placeholder="SJ/2024/001">
+                            @error('delivery_note_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
                         @if ($isLocal)
                             <div class="space-y-1">
                                 <label for="truck_no" class="text-sm font-medium text-slate-700">No. Truck</label>

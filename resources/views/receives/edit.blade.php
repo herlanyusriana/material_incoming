@@ -67,6 +67,19 @@
                     </div>
                 </div>
 
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Invoice No.</label>
+                        <input type="text" name="invoice_no" value="{{ old('invoice_no', $receive->invoice_no) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="INV/2024/001">
+                        @error('invoice_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">No. Surat Jalan</label>
+                        <input type="text" name="delivery_note_no" value="{{ old('delivery_note_no', $receive->delivery_note_no) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="SJ/2024/001">
+                        @error('delivery_note_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
                 @if ($isLocal)
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>

@@ -403,6 +403,8 @@ class ReceiveController extends Controller
 
         $rules = [
             'receive_date' => ['required', 'date'],
+            'invoice_no' => ['nullable', 'string', 'max:100'],
+            'delivery_note_no' => ['nullable', 'string', 'max:100'],
             'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
             'tag_mode' => $isLocal ? ['required', 'in:with_tag,no_tag'] : ['nullable'],
             'delivery_note_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
@@ -416,7 +418,7 @@ class ReceiveController extends Controller
                 'items.*.summary' => ['nullable', 'array'],
                 'items.*.summary.qty' => ['nullable', 'integer', 'min:0'],
                 'items.*.summary.bundle_qty' => ['nullable', 'integer', 'min:0'],
-                'items.*.summary.bundle_unit' => ['nullable', 'in:PALLET,BUNDLE,BOX,BAG'],
+                'items.*.summary.bundle_unit' => ['nullable', 'in:PALLET,BUNDLE,BOX,BAG,ROLL'],
                 'items.*.summary.location_code' => ['nullable', 'string', 'max:50'],
                 'items.*.summary.net_weight' => ['nullable', 'numeric'],
                 'items.*.summary.gross_weight' => ['nullable', 'numeric'],
@@ -429,13 +431,13 @@ class ReceiveController extends Controller
                 'items.*.tags.*.tag' => ['required_with:items.*.tags', 'string', 'max:255'],
                 'items.*.tags.*.qty' => ['required_with:items.*.tags', 'integer', 'min:1'],
                 'items.*.tags.*.bundle_qty' => ['nullable', 'integer', 'min:0'],
-                'items.*.tags.*.bundle_unit' => ['required_with:items.*.tags', 'in:PALLET,BUNDLE,BOX,BAG'],
+                'items.*.tags.*.bundle_unit' => ['required_with:items.*.tags', 'in:PALLET,BUNDLE,BOX,BAG,ROLL'],
                 'items.*.tags.*.location_code' => ['nullable', 'string', 'max:50'],
                 // Backward compatible: old form used `weight`
                 'items.*.tags.*.weight' => ['nullable', 'numeric'],
                 'items.*.tags.*.net_weight' => ['nullable', 'numeric'],
                 'items.*.tags.*.gross_weight' => ['nullable', 'numeric'],
-                'items.*.tags.*.qty_unit' => ['required_with:items.*.tags', 'in:KGM,KG,PCS,COIL,SHEET,SET,EA'],
+                'items.*.tags.*.qty_unit' => ['required_with:items.*.tags', 'in:KGM,KG,PCS,COIL,SHEET,SET,EA,UOM'],
                 'items.*.tags.*.qc_status' => ['required_with:items.*.tags', 'in:pass,reject'],
             ];
         }
@@ -547,6 +549,8 @@ class ReceiveController extends Controller
                         'ata_date' => $receiveAt,
                         'qc_status' => $tagData['qc_status'] ?? 'pass',
                         'jo_po_number' => null,
+                        'invoice_no' => $validated['invoice_no'] ?? null,
+                        'delivery_note_no' => $validated['delivery_note_no'] ?? null,
                         'truck_no' => $truckNo,
                         'location_code' => $locationCode,
                     ]);
@@ -675,11 +679,13 @@ class ReceiveController extends Controller
 
         $validated = $request->validate([
             'receive_date' => ['required', 'date'],
+            'invoice_no' => ['nullable', 'string', 'max:100'],
+            'delivery_note_no' => ['nullable', 'string', 'max:100'],
             'tag' => ['nullable', 'string', 'max:255'],
             'location_code' => ['nullable', 'string', 'max:50'],
             'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
             'bundle_qty' => ['nullable', 'integer', 'min:0'],
-            'bundle_unit' => ['required', 'in:PALLET,BUNDLE,BOX,BAG'],
+            'bundle_unit' => ['required', 'in:PALLET,BUNDLE,BOX,BAG,ROLL'],
             'qty' => ['required', 'integer', 'min:1'],
             'net_weight' => ['nullable', 'numeric'],
             'gross_weight' => ['nullable', 'numeric'],
@@ -750,6 +756,8 @@ class ReceiveController extends Controller
                 'qty_unit' => $goodsUnit,
                 'ata_date' => $receiveAt,
                 'qc_status' => $validated['qc_status'],
+                'invoice_no' => $validated['invoice_no'] ?? null,
+                'delivery_note_no' => $validated['delivery_note_no'] ?? null,
                 'truck_no' => $truckNo,
                 'location_code' => $locationCode,
             ]);
