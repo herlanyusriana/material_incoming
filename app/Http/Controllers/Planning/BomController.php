@@ -333,17 +333,63 @@ class BomController extends Controller
 
             $customerPartComponents = $customerPart->components;
             
-            // If customer part has only one FG component, auto-select it
-            if ($customerPartComponents->count() === 1) {
-                $component = $customerPartComponents->first();
+            // AUTOMATIC EXPLOSION: If we have components, explode them all immediately
+            $mergedExplosion = [];
+            $aggregatedMaterials = [];
+
+            foreach ($customerPartComponents as $component) {
                 if ($component->part && $component->part->bom) {
-                    $bom = $component->part->bom;
+                    // Explode this component's BOM
+                    $compExplosion = $component->part->bom->explode($quantity * $component->usage_qty);
+                    $mergedExplosion = array_merge($mergedExplosion, $compExplosion);
+
+                    // Aggregate materials
+                    $compMaterials = $component->part->bom->getTotalMaterialRequirements($quantity * $component->usage_qty);
+                    foreach ($compMaterials as $mat) {
+                        $pNo = $mat['part_no'];
+                        if (!isset($aggregatedMaterials[$pNo])) {
+                            $aggregatedMaterials[$pNo] = $mat;
+                        } else {
+                            $aggregatedMaterials[$pNo]['total_qty'] += $mat['total_qty'];
+                        }
+                    }
                 }
+            }
+
+            if (!empty($mergedExplosion)) {
+                $explosion = $mergedExplosion;
+                $materials = array_values($aggregatedMaterials);
             }
         }
 
-        // If no BOM found yet, return to search
-        if (!$bom) {
+        // If searching by FG part
+        if ($searchMode === 'fg' && $searchQuery && !$bom) {
+            $fgPart = \App\Models\GciPart::query()
+                ->with('bom')
+                ->where(function ($query) use ($searchQuery) {
+                    $query->where('part_no', 'like', '%' . $searchQuery . '%')
+                          ->orWhere('part_name', 'like', '%' . $searchQuery . '%');
+                })
+                ->first();
+
+            if ($fgPart && $fgPart->bom) {
+                $bom = $fgPart->bom;
+            } elseif ($fgPart) {
+                return back()->with('error', 'Part found but no BOM exists: ' . $fgPart->part_no);
+            } else {
+                return back()->with('error', 'Part not found: ' . $searchQuery);
+            }
+        }
+
+        // If a specific BOM was found/passed, load its specific explosion
+        if ($bom) {
+            $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
+            $explosion = $bom->explode($quantity);
+            $materials = $bom->getTotalMaterialRequirements($quantity);
+        }
+
+        // If no results at all, show search page
+        if (!$bom && empty($explosion)) {
             return view('planning.boms.explosion', [
                 'bom' => null,
                 'explosion' => [],
@@ -352,14 +398,9 @@ class BomController extends Controller
                 'searchMode' => $searchMode,
                 'searchQuery' => $searchQuery,
                 'customerPart' => $customerPart,
-                'customerPartComponents' => $customerPartComponents,
+                'customerPartComponents' => $customerPartComponents ?? collect(),
             ]);
         }
-
-        $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
-        
-        $explosion = $bom->explode($quantity);
-        $materials = $bom->getTotalMaterialRequirements($quantity);
 
         return view('planning.boms.explosion', compact(
             'bom', 
