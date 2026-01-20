@@ -20,17 +20,26 @@ class GciPartController extends Controller
         // Get classification from route default or query param
         $classification = $request->route('classification') ?? $request->query('classification');
 
+        $qParam = trim((string) $request->query('q', ''));
+
         $parts = GciPart::query()
             ->with('customer')
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($classification, fn ($q) => $q->where('classification', strtoupper($classification)))
+            ->when($qParam, function ($query) use ($qParam) {
+                $query->where(function ($sub) use ($qParam) {
+                    $sub->where('part_no', 'like', "%{$qParam}%")
+                        ->orWhere('part_name', 'like', "%{$qParam}%")
+                        ->orWhere('model', 'like', "%{$qParam}%");
+                });
+            })
             ->orderBy('part_no')
             ->paginate(25)
             ->withQueryString();
 
         $customers = \App\Models\Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers'));
+        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers', 'qParam'));
     }
 
     public function export()
