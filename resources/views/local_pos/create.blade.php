@@ -100,8 +100,6 @@
                                     <th class="px-4 py-3 text-left font-semibold">Size</th>
                                     <th class="px-4 py-3 text-right font-semibold">Qty Goods</th>
                                     <th class="px-4 py-3 text-right font-semibold">Price (IDR)</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Net (KGM)</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Gross (KGM)</th>
                                     <th class="px-4 py-3 text-right font-semibold">Action</th>
                                 </tr>
                             </thead>
@@ -134,14 +132,6 @@
                                     <td class="px-4 py-3">
                                         <input type="number" name="items[0][price]" step="0.01" min="0"
                                             value="{{ old('items.0.price', 0) }}" class="w-32 text-right rounded-xl border-slate-200" placeholder="0">
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <input type="number" name="items[0][weight_nett]" step="0.01" min="0"
-                                            value="{{ old('items.0.weight_nett', 0) }}" class="w-24 text-right rounded-xl border-slate-200">
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <input type="number" name="items[0][weight_gross]" step="0.01" min="0"
-                                            value="{{ old('items.0.weight_gross', 0) }}" class="w-24 text-right rounded-xl border-slate-200">
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <button type="button" class="text-red-600 hover:text-red-800 font-semibold remove-item" disabled>Remove</button>
@@ -245,12 +235,6 @@
                     </td>
                     <td class="px-4 py-3">
                         <input type="number" name="items[${idx}][price]" step="0.01" min="0" value="0" class="w-32 text-right rounded-xl border-slate-200" placeholder="0">
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="number" name="items[${idx}][weight_nett]" step="0.01" min="0" value="0" class="w-24 text-right rounded-xl border-slate-200">
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="number" name="items[${idx}][weight_gross]" step="0.01" min="0" value="0" class="w-24 text-right rounded-xl border-slate-200">
                     </td>
                     <td class="px-4 py-3 text-right">
                         <button type="button" class="text-red-600 hover:text-red-800 font-semibold remove-item">Remove</button>

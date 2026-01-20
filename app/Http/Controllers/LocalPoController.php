@@ -87,8 +87,6 @@ class LocalPoController extends Controller
             // qty_goods stored as integer in DB; keep consistent to avoid strict-mode errors.
             'items.*.qty_goods' => ['required', 'integer', 'min:0'],
             'items.*.unit_goods' => ['required', 'in:PCS,COIL,SHEET,SET,EA,KGM'],
-            'items.*.weight_nett' => ['nullable', 'numeric', 'min:0'],
-            'items.*.weight_gross' => ['nullable', 'numeric', 'min:0'],
             'items.*.notes' => ['nullable', 'string'],
         ]);
 
