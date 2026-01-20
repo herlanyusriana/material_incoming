@@ -145,8 +145,8 @@
                         <table class="min-w-[980px] w-full table-fixed text-sm divide-y divide-slate-200">
                             <colgroup>
                                 <col class="w-44">
-                                <col class="w-48">
                                 <col class="w-80">
+                                <col class="w-48">
                                 @if($viewMode === 'calendar')
                                     @foreach($weeksValue as $w)
                                         <col class="w-32">
@@ -160,8 +160,8 @@
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                     <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part GCI</th>
-                                    <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Model</th>
                                     <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part Name</th>
+                                    <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Model</th>
                                     @if($viewMode === 'calendar')
                                         @foreach($weeksValue as $w)
                                             @php
@@ -181,8 +181,8 @@
                                 @forelse(($parts ?? []) as $p)
                                     <tr class="hover:bg-slate-50">
                                         <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_no }}</td>
-                                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->model }}</td>
                                         <td class="px-4 py-3 text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_name }}</td>
+                                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->model }}</td>
                                         
                                         @if($viewMode === 'calendar')
                                             @php $byWeek = $p->mps->keyBy('minggu'); @endphp
