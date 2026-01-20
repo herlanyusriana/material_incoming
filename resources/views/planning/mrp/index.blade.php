@@ -84,6 +84,7 @@
                                             <tr class="hover:bg-slate-50">
                                                 <td class="px-3 py-2 sticky left-0 bg-white z-10 border-r border-slate-100">
                                                     <div class="font-bold text-slate-900">{{ $part->part_no ?? '-' }}</div>
+                                                    <div class="text-xs text-slate-600">{{ $part->model ?? '-' }}</div>
                                                     <div class="text-xs text-slate-500">{{ $part->part_name ?? '-' }}</div>
                                                 </td>
                                                 @foreach ($dates as $date)
@@ -141,6 +142,7 @@
                                             <tr class="hover:bg-slate-50">
                                                 <td class="px-3 py-2 sticky left-0 bg-white z-10 border-r border-slate-100">
                                                     <div class="font-bold text-slate-900">{{ $part->part_no ?? '-' }}</div>
+                                                    <div class="text-xs text-slate-600">{{ $part->model ?? '-' }}</div>
                                                     <div class="text-xs text-slate-500">{{ $part->part_name ?? '-' }}</div>
                                                 </td>
                                                 <td class="px-3 py-2 text-right text-xs text-slate-500 font-mono bg-slate-50">

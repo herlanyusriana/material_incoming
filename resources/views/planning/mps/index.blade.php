@@ -145,6 +145,7 @@
                         <table class="min-w-[980px] w-full table-fixed text-sm divide-y divide-slate-200">
                             <colgroup>
                                 <col class="w-44">
+                                <col class="w-48">
                                 <col class="w-80">
                                 @if($viewMode === 'calendar')
                                     @foreach($weeksValue as $w)
@@ -159,6 +160,7 @@
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                     <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part GCI</th>
+                                    <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Model</th>
                                     <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part Name</th>
                                     @if($viewMode === 'calendar')
                                         @foreach($weeksValue as $w)
@@ -179,6 +181,7 @@
                                 @forelse(($parts ?? []) as $p)
                                     <tr class="hover:bg-slate-50">
                                         <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_no }}</td>
+                                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->model }}</td>
                                         <td class="px-4 py-3 text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_name }}</td>
                                         
                                         @if($viewMode === 'calendar')
@@ -300,6 +303,7 @@
                                         <td class="px-4 py-3 font-mono text-xs">{{ $r->minggu }}</td>
                                         <td class="px-4 py-3">
                                             <div class="font-semibold">{{ $r->part->part_no ?? '-' }}</div>
+                                            <div class="text-xs text-slate-600">{{ $r->part->model ?? '-' }}</div>
                                             <div class="text-xs text-slate-500">{{ $r->part->part_name ?? '-' }}</div>
                                         </td>
                                         <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($r->forecast_qty) }}</td>
