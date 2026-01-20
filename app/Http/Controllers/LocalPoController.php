@@ -161,6 +161,142 @@ class LocalPoController extends Controller
 
         return redirect()->route('receives.invoice.create', $arrival)->with('success', 'Local PO created. Silakan lakukan receive.');
     }
+
+    public function show(Arrival $arrival)
+    {
+        $arrival->load(['vendor', 'items.receives', 'items.part']);
+
+        // Calculate stats
+        $arrival->items->each(function ($item) {
+            $received = $item->receives->sum('qty');
+            $item->received_qty = $received;
+            $item->remaining_qty = max(0, $item->qty_goods - $received);
+        });
+
+        return view('local_pos.show', compact('arrival'));
+    }
+
+    public function edit(Arrival $arrival)
+    {
+        $arrival->load(['vendor', 'items.part']);
+
+        $vendors = Vendor::query()
+            ->where('vendor_type', 'local')
+            ->orderBy('vendor_name')
+            ->get();
+
+        $localVendorIds = $vendors->pluck('id')->all();
+
+        // Load all active parts for local vendors to allow changing parts/adding new ones
+        $parts = Part::with('vendor')
+            ->where('status', 'active')
+            ->whereIn('vendor_id', $localVendorIds)
+            ->get();
+
+        return view('local_pos.edit', compact('arrival', 'vendors', 'parts'));
+    }
+
+    public function update(Request $request, Arrival $arrival)
+    {
+         $request->merge([
+            'po_no' => strtoupper(trim((string) $request->input('po_no', ''))),
+        ]);
+
+        $validated = $request->validate([
+            'po_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')->ignore($arrival->id)],
+            'po_date' => ['required', 'date'],
+            'vendor_id' => ['required', Rule::exists('vendors', 'id')],
+            'currency' => ['nullable', 'string', 'max:10'],
+            'notes' => ['nullable', 'string'],
+
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['nullable', 'integer'], // To identify existing items
+            'items.*.part_id' => ['required', Rule::exists('parts', 'id')],
+            'items.*.size' => ['nullable', 'string', 'max:100'],
+            'items.*.price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.qty_goods' => ['required', 'integer', 'min:0'],
+            'items.*.unit_goods' => ['required', 'in:PCS,COIL,SHEET,SET,EA,KGM,ROLL,UOM'],
+            'items.*.notes' => ['nullable', 'string'],
+        ]);
+
+        $vendor = Vendor::findOrFail((int) $validated['vendor_id']);
+         if ($vendor->vendor_type !== 'local') {
+            return back()->withInput()->withErrors([
+                'vendor_id' => 'Vendor harus bertipe LOCAL untuk Local PO.',
+            ]);
+        }
+
+        DB::transaction(function () use ($arrival, $validated) {
+            $arrival->update([
+                'invoice_no' => $validated['po_no'],
+                'invoice_date' => $validated['po_date'],
+                'vendor_id' => $validated['vendor_id'],
+                'currency' => strtoupper($validated['currency'] ?? 'IDR'),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Sync Items
+            // 1. Get IDs of items present in the request
+            $inputItemIds = collect($validated['items'])
+                ->pluck('id')
+                ->filter()
+                ->map(fn($id) => (int)$id)
+                ->all();
+
+            // 2. Identify items to delete (existing in DB but not in request)
+            // CAUTION: Only delete if no receives linked? For now, we allow delete but it might crash if foreign keys restrict.
+            // Ideally we check for receives.
+            $itemsToDelete = $arrival->items()
+                ->whereNotIn('id', $inputItemIds)
+                ->get();
+
+            foreach ($itemsToDelete as $itemToDelete) {
+                // Check if has receives
+                if ($itemToDelete->receives()->exists()) {
+                     // Better to throw error or skip? Let's skip and warn or just fail.
+                     // Making it fail is safer.
+                     throw new \Exception("Item {$itemToDelete->part->part_no} sudah ada receive, tidak bisa dihapus via Edit.");
+                }
+                $itemToDelete->delete();
+            }
+
+            // 3. Update or Create items
+            foreach ($validated['items'] as $itemData) {
+                $itemId = $itemData['id'] ?? null;
+                $qtyGoods = (int) $itemData['qty_goods'];
+                $price = (float) ($itemData['price'] ?? 0);
+                $totalPrice = $qtyGoods * $price;
+
+                $data = [
+                    'part_id' => (int) $itemData['part_id'],
+                    'size' => isset($itemData['size']) && trim((string) $itemData['size']) !== '' ? strtoupper(trim((string) $itemData['size'])) : null,
+                    'qty_goods' => $qtyGoods,
+                    'unit_goods' => strtoupper((string) $itemData['unit_goods']),
+                    'price' => $price,
+                    'total_price' => $totalPrice, // Unit price * Qty
+                    'notes' => $itemData['notes'] ?? null,
+                    // Defaults/Unused in form
+                    'qty_bundle' => 0,
+                    'unit_bundle' => 'PALLET',
+                    'unit_weight' => 'KGM',
+                ];
+
+                if ($itemId) {
+                    $itemModel = $arrival->items()->findOrFail($itemId);
+                    // Prevent changing Part ID if receives exist
+                     if ($itemModel->receives()->exists() && (int)$itemModel->part_id !== (int)$data['part_id']) {
+                        throw new \Exception("Item {$itemModel->part->part_no} sudah ada receive, part tidak boleh diganti.");
+                    }
+                    $itemModel->update($data);
+                } else {
+                    $arrival->items()->create($data);
+                }
+            }
+        });
+
+        return redirect()->route('local-pos.index')->with('success', 'Local PO updated successfully.');
+    }
+
     public function destroy(Arrival $arrival)
     {
         // Optional: validation if it has receives?
