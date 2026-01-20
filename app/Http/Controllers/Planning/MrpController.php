@@ -266,6 +266,7 @@ class MrpController extends Controller
         $approvedMps = Mps::query()
             ->where('minggu', $minggu)
             ->where('status', 'approved')
+            ->whereNotNull('part_id')
             ->with('part')
             ->get();
 
