@@ -84,43 +84,71 @@
                                     <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                     <th class="px-4 py-3 text-center font-semibold">Revision</th>
                                     <th class="px-4 py-3 text-center font-semibold">Status</th>
+                                    <th class="px-4 py-3 text-center font-semibold">Customer Products</th>
                                     <th class="px-4 py-3 text-center font-semibold">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
                                 <template x-for="(item, index) in results" :key="item.id">
-                                    <tr class="hover:bg-slate-50">
-                                        <td class="px-4 py-3">
-                                            <div class="font-mono font-bold text-slate-900" x-text="item.fg_part_no"></div>
-                                        </td>
-                                        <td class="px-4 py-3 text-slate-700" x-text="item.fg_part_name"></td>
-                                        <td class="px-4 py-3 text-center">
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800" x-text="'REV ' + (item.revision || 'A')"></span>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
-                                            <span 
-                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"
-                                                :class="item.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-700'"
-                                                x-text="item.status.toUpperCase()"
-                                            ></span>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
-                                            <div class="flex items-center justify-center gap-2">
-                                                <a 
-                                                    :href="`{{ url('planning/boms') }}/${item.id}/explosion`"
-                                                    class="px-3 py-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold text-xs"
-                                                >
-                                                    View Explosion
-                                                </a>
-                                                <a 
-                                                    :href="`{{ route('planning.boms.index') }}?gci_part_id=${item.part_id}`"
-                                                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs"
-                                                >
-                                                    Edit BOM
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <template>
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-3">
+                                                <div class="font-mono font-bold text-slate-900" x-text="item.fg_part_no"></div>
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-700" x-text="item.fg_part_name"></td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800" x-text="'REV ' + (item.revision || 'A')"></span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span 
+                                                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"
+                                                    :class="item.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-700'"
+                                                    x-text="item.status.toUpperCase()"
+                                                ></span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span 
+                                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold"
+                                                    :class="(item.customer_products && item.customer_products.length > 0) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
+                                                    x-text="(item.customer_products && item.customer_products.length > 0) ? item.customer_products.length + ' Products' : 'None'"
+                                                ></span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <a 
+                                                        :href="`{{ url('planning/boms') }}/${item.id}/explosion`"
+                                                        class="px-3 py-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold text-xs"
+                                                    >
+                                                        View Explosion
+                                                    </a>
+                                                    <a 
+                                                        :href="`{{ route('planning.boms.index') }}?gci_part_id=${item.part_id}`"
+                                                        class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs"
+                                                    >
+                                                        Edit BOM
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <!-- Customer Products Detail Row -->
+                                        <tr x-show="item.customer_products && item.customer_products.length > 0" class="bg-emerald-50">
+                                            <td colspan="6" class="px-4 py-3">
+                                                <div class="text-xs font-semibold text-emerald-900 mb-2">📦 Customer Products using this FG Part:</div>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    <template x-for="cp in item.customer_products" :key="cp.customer_part_no">
+                                                        <div class="bg-white rounded-lg p-3 border border-emerald-200">
+                                                            <div class="font-mono font-bold text-sm text-slate-900" x-text="cp.customer_part_no"></div>
+                                                            <div class="text-xs text-slate-600" x-text="cp.customer_part_name"></div>
+                                                            <div class="text-xs text-slate-500 mt-1">
+                                                                <span class="font-semibold">Customer:</span> <span x-text="cp.customer_name"></span> | 
+                                                                <span class="font-semibold">Usage:</span> <span x-text="cp.usage_qty"></span> pcs
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
                                 </template>
                             </tbody>
                         </table>

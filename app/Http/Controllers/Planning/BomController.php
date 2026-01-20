@@ -70,16 +70,33 @@ class BomController extends Controller
         $partNo = strtoupper(trim($validated['part_no']));
         $boms = Bom::whereUsed($partNo);
 
-        return response()->json([
-            'part_no' => $partNo,
-            'used_in' => $boms->map(fn ($bom) => [
+        // For each BOM (FG part), find customer products that use it
+        $results = $boms->map(function ($bom) {
+            $customerProducts = \App\Models\CustomerPartComponent::query()
+                ->with(['customerPart.customer'])
+                ->where('part_id', $bom->part_id)
+                ->get()
+                ->map(fn ($comp) => [
+                    'customer_part_no' => $comp->customerPart->customer_part_no,
+                    'customer_part_name' => $comp->customerPart->customer_part_name,
+                    'customer_name' => $comp->customerPart->customer->name ?? '-',
+                    'usage_qty' => $comp->usage_qty,
+                ]);
+
+            return [
                 'id' => $bom->id,
                 'part_id' => $bom->part_id,
                 'fg_part_no' => $bom->part->part_no,
                 'fg_part_name' => $bom->part->part_name,
                 'revision' => $bom->revision,
                 'status' => $bom->status,
-            ]),
+                'customer_products' => $customerProducts,
+            ];
+        });
+
+        return response()->json([
+            'part_no' => $partNo,
+            'used_in' => $results,
         ]);
     }
 
@@ -288,11 +305,53 @@ class BomController extends Controller
         return back()->with('success', 'Substitute removed.');
     }
 
-    public function explosion(Bom $bom, Request $request)
+    public function explosion(Request $request, Bom $bom = null)
     {
+        $searchMode = $request->query('mode', 'fg'); // 'fg' or 'customer'
+        $searchQuery = $request->query('search');
         $quantity = (float) ($request->query('qty', 1));
         if ($quantity <= 0) {
             $quantity = 1;
+        }
+
+        $customerPart = null;
+        $customerPartComponents = collect();
+
+        // If searching by customer part
+        if ($searchMode === 'customer' && $searchQuery) {
+            $customerPart = \App\Models\CustomerPart::query()
+                ->with(['customer', 'components.part.bom'])
+                ->where('customer_part_no', 'like', '%' . $searchQuery . '%')
+                ->orWhere('customer_part_name', 'like', '%' . $searchQuery . '%')
+                ->first();
+
+            if (!$customerPart) {
+                return back()->with('error', 'Customer part not found: ' . $searchQuery);
+            }
+
+            $customerPartComponents = $customerPart->components;
+            
+            // If customer part has only one FG component, auto-select it
+            if ($customerPartComponents->count() === 1) {
+                $component = $customerPartComponents->first();
+                if ($component->part && $component->part->bom) {
+                    $bom = $component->part->bom;
+                }
+            }
+        }
+
+        // If no BOM found yet, return to search
+        if (!$bom) {
+            return view('planning.boms.explosion', [
+                'bom' => null,
+                'explosion' => [],
+                'materials' => [],
+                'quantity' => $quantity,
+                'searchMode' => $searchMode,
+                'searchQuery' => $searchQuery,
+                'customerPart' => $customerPart,
+                'customerPartComponents' => $customerPartComponents,
+            ]);
         }
 
         $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
@@ -300,6 +359,15 @@ class BomController extends Controller
         $explosion = $bom->explode($quantity);
         $materials = $bom->getTotalMaterialRequirements($quantity);
 
-        return view('planning.boms.explosion', compact('bom', 'explosion', 'materials', 'quantity'));
+        return view('planning.boms.explosion', compact(
+            'bom', 
+            'explosion', 
+            'materials', 
+            'quantity',
+            'searchMode',
+            'searchQuery',
+            'customerPart',
+            'customerPartComponents'
+        ));
     }
 }

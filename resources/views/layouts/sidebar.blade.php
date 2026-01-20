@@ -236,6 +236,12 @@
 	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.index')])></span>
 	                                    <span class="flex-1">BOM GCI</span>
 	                                </a>
+	                                <a href="{{ route('planning.boms.explosion-search') }}" 
+	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.explosion*'), $subInactive => !request()->routeIs('planning.boms.explosion*')])
+	                                   @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('planning.boms.explosion*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('planning.boms.explosion*')])></span>
+	                                    <span class="flex-1">🌳 BOM Explosion</span>
+	                                </a>
 	                                <a href="{{ route('planning.boms.where-used-page') }}" 
 	                                   @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.where-used-page'), $subInactive => !request()->routeIs('planning.boms.where-used-page')])
 	                                   @click="mobileSidebarOpen = false">
