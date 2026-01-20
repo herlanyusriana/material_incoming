@@ -324,6 +324,9 @@ class MrpController extends Controller
 
             foreach ($bom->items as $item) {
                 $componentId = (int) $item->component_part_id;
+                
+                if ($componentId <= 0) continue;
+
                 $requirements[$componentId] = ($requirements[$componentId] ?? 0)
                     + ((float) $row->planned_qty * (float) $item->usage_qty);
 
