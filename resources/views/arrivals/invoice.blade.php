@@ -20,7 +20,9 @@
             font-family: Arial, sans-serif;
             font-size: 11px;
             line-height: 1.4;
-            padding: 30px;
+            /* wkhtmltopdf body padding can correspond to page margins if configured right, 
+               but explicit container margins are safer for 2nd page */
+            padding: 0; 
         }
         
         .title {
@@ -41,7 +43,7 @@
             border: 2px solid #000;
             padding: 5px 7px;
             vertical-align: top;
-            font-size: 10px;
+            font-size: 12px;
         }
         
         .main-table .num {
@@ -90,7 +92,7 @@
         .packing-items-table td,
         .packing-items-table th {
             padding: 6px;
-            font-size: 10px;
+            font-size: 12px;
             vertical-align: top;
         }
 
@@ -256,8 +258,11 @@
         /* Packing list should match commercial invoice font scale. */
         .page-box.packing-list {
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 14px;
             line-height: 1.25;
+            margin: 30px;
+            border: 2px solid #000; /* Re-state border if needed/override */
+            width: auto;
         }
 
         .page-box.packing-list .section-label,
@@ -272,8 +277,9 @@
             font-family: Arial, sans-serif;
             font-size: 12px;
             line-height: 1.25;
-            margin: 0;
+            margin: 30px;
             padding: 0;
+            width: auto;
         }
 
         .commercial-invoice .invoice-container {
