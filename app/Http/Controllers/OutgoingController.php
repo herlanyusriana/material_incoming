@@ -146,9 +146,39 @@ class OutgoingController extends Controller
         return view('outgoing.product_mapping');
     }
 
-    public function deliveryRequirements()
+    public function deliveryRequirements(Request $request)
     {
-        return view('outgoing.delivery_requirements');
+        $dateFrom = $this->parseDate($request->query('date_from')) ?? now()->startOfDay();
+        $dateTo = $this->parseDate($request->query('date_to')) ?? now()->addDays(6)->startOfDay();
+        if ($dateTo->lt($dateFrom)) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        // Fetch cells from Daily Plans within range
+        // We aggregate by Date + GCI Part (or Part No if GCI Part is null)
+        $cells = OutgoingDailyPlanCell::query()
+            ->with(['row', 'row.gciPart'])
+            ->whereBetween('plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
+            ->get();
+
+        $requirements = $cells->groupBy(function ($cell) {
+            // Group key: Date|GciPartID|PartNo
+            $date = $cell->plan_date->format('Y-m-d');
+            $partId = $cell->row->gci_part_id ?? 'null';
+            $partNo = $cell->row->part_no;
+            return "{$date}|{$partId}|{$partNo}";
+        })->map(function ($group) {
+            $first = $group->first();
+            return (object) [
+                'date' => $first->plan_date,
+                'gci_part' => $first->row->gciPart,
+                'customer_part_no' => $first->row->part_no,
+                'total_qty' => $group->sum('qty'),
+                'source_plans' => $group->pluck('row.plan_id')->unique()->values(),
+            ];
+        })->sortBy('date');
+
+        return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
     }
 
     public function gciInventory()
