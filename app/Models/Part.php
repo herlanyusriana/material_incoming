@@ -19,6 +19,8 @@ class Part extends Model
         'quality_inspection',
         'vendor_id',
         'status',
+        'price',
+        'uom',
     ];
 
     private static function upperOrNull(mixed $value): mixed

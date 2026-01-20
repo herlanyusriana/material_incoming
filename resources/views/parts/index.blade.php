@@ -93,6 +93,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Size</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">HS Code</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Price / UOM</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                                 <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -137,6 +138,14 @@
                                         <td class="px-4 py-4 text-sm text-slate-700">{{ $part->register_no }}</td>
                                         <td class="px-4 py-4 text-sm text-slate-600">{{ $part->hs_code ?? '-' }}</td>
                                         <td class="px-4 py-4 text-sm text-slate-700 font-semibold">{{ strtoupper((string) ($part->quality_inspection ?? '')) === 'YES' ? 'YES' : '-' }}</td>
+                                        <td class="px-4 py-4 text-sm text-slate-700">
+                                            @if($part->price > 0)
+                                                <div class="font-medium text-slate-900">{{ number_format($part->price, 0) }}</div>
+                                                <div class="text-xs text-slate-500">{{ $part->uom ? '/ ' . $part->uom : '' }}</div>
+                                            @else
+                                                <span class="text-slate-400">-</span>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-4">
                                             <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $part->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
                                                 {{ ucfirst($part->status) }}

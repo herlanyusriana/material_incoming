@@ -103,6 +103,8 @@ class PartController extends Controller
             'quality_inspection' => ['nullable', 'in:YES'],
             'vendor_id' => ['required', 'exists:vendors,id'],
             'status' => ['required', 'in:active,inactive'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'uom' => ['nullable', 'string', 'max:10'],
         ]);
 
         Part::create($data);
@@ -128,6 +130,8 @@ class PartController extends Controller
             'quality_inspection' => ['nullable', 'in:YES'],
             'vendor_id' => ['required', 'exists:vendors,id'],
             'status' => ['required', 'in:active,inactive'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'uom' => ['nullable', 'string', 'max:10'],
         ]);
 
         $part->update($data);

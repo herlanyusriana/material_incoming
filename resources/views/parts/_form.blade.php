@@ -8,7 +8,7 @@
             <select id="vendor_id" name="vendor_id" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
                 <option value="">Select vendor</option>
                 @foreach ($vendors as $vendor)
-                    <option value="{{ $vendor->id }}" @selected(old('vendor_id', $part->vendor_id ?? '') == $vendor->id)>{{ $vendor->vendor_name }}</option>
+                    <option value="{{ $vendor->id }}" data-type="{{ strtolower($vendor->vendor_type) }}" @selected(old('vendor_id', $part->vendor_id ?? '') == $vendor->id)>{{ $vendor->vendor_name }}</option>
                 @endforeach
             </select>
             <p class="text-xs text-gray-500">Ketik satu kata, daftar vendor akan muncul.</p>
@@ -169,6 +169,31 @@
             <p class="text-xs text-gray-500">Isi YES jika part butuh QC inspection.</p>
             <x-input-error :messages="$errors->get('quality_inspection')" class="mt-1" />
         </div>
+
+        <!-- Local Vendor Specifics -->
+        <div id="local-fields" class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100 hidden">
+            <div class="col-span-full">
+                <h3 class="text-xs font-semibold text-blue-600 tracking-wide uppercase">Local Vendor Details</h3>
+            </div>
+            <div class="space-y-2">
+                <label for="price" class="text-sm font-medium text-gray-700">Price per Part</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2 text-gray-500 text-sm">Rp</span>
+                    <input type="number" id="price" name="price" step="0.01" min="0" class="pl-9 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" value="{{ old('price', $part->price ?? '') }}" placeholder="0.00">
+                </div>
+                <x-input-error :messages="$errors->get('price')" class="mt-1" />
+            </div>
+            <div class="space-y-2">
+                <label for="uom" class="text-sm font-medium text-gray-700">UOM</label>
+                <select id="uom" name="uom" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    <option value="">Select UOM</option>
+                    @foreach(['PCS', 'KG', 'SET', 'EA', 'SHEET', 'COIL', 'LITER', 'METER'] as $pkg)
+                        <option value="{{ $pkg }}" @selected(old('uom', $part->uom ?? '') === $pkg)>{{ $pkg }}</option>
+                    @endforeach
+                </select>
+                <x-input-error :messages="$errors->get('uom')" class="mt-1" />
+            </div>
+        </div>
     </div>
 
     <!-- Section 4 — Operational Status -->
@@ -240,7 +265,10 @@
             }
 
             if (vendorSelect && vendorPartSelect) {
-                vendorSelect.addEventListener('change', () => loadVendorPartNames(vendorSelect.value));
+                vendorSelect.addEventListener('change', () => {
+                     loadVendorPartNames(vendorSelect.value);
+                     toggleLocalFields();
+                });
                 vendorPartSelect.addEventListener('change', () => {
                     const chosen = String(vendorPartSelect.value || '').trim();
                     if (!chosen) return;
@@ -251,6 +279,21 @@
                     if (gciNameInput) gciNameInput.focus();
                 });
                 loadVendorPartNames(vendorSelect.value);
+                toggleLocalFields();
+            }
+
+            function toggleLocalFields() {
+                const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
+                const type = selectedOption ? selectedOption.dataset.type : '';
+                const localFields = document.getElementById('local-fields');
+
+                if (localFields) {
+                    if (type === 'local') {
+                        localFields.classList.remove('hidden');
+                    } else {
+                        localFields.classList.add('hidden');
+                    }
+                }
             }
 
 	        const thicknessInput = document.getElementById('size_thickness');

@@ -7,6 +7,8 @@
         $partsPayload = collect($parts)->map(fn ($p) => [
             'id' => $p->id,
             'vendor_id' => $p->vendor_id,
+            'price' => $p->price,
+            'uom' => $p->uom,
             'label' => trim((string) $p->part_no) . ' — ' . trim((string) ($p->part_name_gci ?? $p->part_name_vendor ?? '')),
         ])->values();
     @endphp
@@ -268,6 +270,31 @@
 
             vendorSelect?.addEventListener('change', () => {
                 tbody.querySelectorAll('select[data-part-select]').forEach(sel => setPartsOptions(sel));
+            });
+
+            // Auto-fill price and uom when part is selected
+            tbody.addEventListener('change', (e) => {
+                if (e.target && e.target.matches('select[data-part-select]')) {
+                    const row = e.target.closest('tr');
+                    const partId = e.target.value;
+                    const part = parts.find(p => String(p.id) === String(partId));
+                    if (part && row) {
+                        // Fill price if available
+                        if (part.price) {
+                            const priceInput = row.querySelector('input[name*="[price]"]');
+                            if (priceInput) priceInput.value = part.price;
+                        }
+                        // Select unit_goods if matches uom
+                        if (part.uom) {
+                            const uomSelect = row.querySelector('select[name*="[unit_goods]"]');
+                            if (uomSelect) {
+                                // check if option exists
+                                const exists = Array.from(uomSelect.options).some(o => o.value === part.uom);
+                                if (exists) uomSelect.value = part.uom;
+                            }
+                        }
+                    }
+                }
             });
 
             addBtn?.addEventListener('click', addRow);
