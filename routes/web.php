@@ -212,8 +212,9 @@ Route::middleware('auth')->group(function () {
 	        Route::get('/mps/history', [PlanningMpsController::class, 'history'])->name('mps.history');
 
         Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');
-        Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('mrp.generate');
-        Route::post('/mrp/generate-po', [PlanningMrpController::class, 'generatePo'])->name('mrp.generate-po');
+        Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('planning.mrp.generate');
+    Route::post('/mrp/generate-range', [PlanningMrpController::class, 'generateRange'])->name('planning.mrp.generate-range');
+    Route::post('/mrp/generate-po', [PlanningMrpController::class, 'generatePo'])->name('planning.mrp.generate-po');
         Route::delete('/mrp/clear', [PlanningMrpController::class, 'clear'])->name('mrp.clear');
         Route::get('/mrp/history', [PlanningMrpController::class, 'history'])->name('mrp.history');
     });

@@ -6,10 +6,23 @@
     <div class="py-6">
         <div class="max-w-[98%] mx-auto px-2 space-y-6">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-                    {{ session('success') }}
-                </div>
-            @endif
+        $month = $month ?? now()->format('Y-m');
+        $startOfMonth = \Carbon\Carbon::parse($month . '-01')->startOfDay();
+        $endOfMonth = $startOfMonth->copy()->endOfMonth();
+        
+        // Calculate weeks for form
+        $weeks = [];
+        $current = $startOfMonth->copy();
+        while ($current->lte($endOfMonth)) {
+            $w = $current->format('o-\\WW');
+            if (!in_array($w, $weeks)) {
+                $weeks[] = $w;
+            }
+            $current->addDay();
+        }
+        $startWeek = $weeks[0] ?? now()->format('o-\\WW');
+        $weeksCount = count($weeks);
+
             @if (session('error'))
                 <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
                     {{ session('error') }}
@@ -27,10 +40,11 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load View</button>
                     </form>
 
-                    <form method="POST" action="{{ route('planning.mrp.generate') }}" class="flex items-center gap-3">
+                    <form method="POST" action="{{ route('planning.mrp.generate-range') }}" class="flex items-center gap-3">
                         @csrf
-                        <input type="hidden" name="minggu" value="{{ \Carbon\Carbon::parse($month)->format('o-\\WW') }}">
-                        <span class="text-xs text-slate-500 italic mr-2">Run MRP for Week: {{ \Carbon\Carbon::parse($month)->format('o-W') }}</span>
+                        <input type="hidden" name="start_minggu" value="{{ $startWeek }}">
+                        <input type="hidden" name="weeks_count" value="{{ $weeksCount }}">
+                        <span class="text-xs text-slate-500 italic mr-2">Run MRP for {{ $weeksCount }} weeks ({{ $startWeek }} ...)</span>
                          
                         <label class="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
                             <input type="checkbox" name="include_saturday" value="1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
