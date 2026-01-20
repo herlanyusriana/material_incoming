@@ -8,6 +8,7 @@ use App\Imports\BomImport;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomItemSubstitute;
+use App\Imports\BomSubstituteImport;
 use App\Models\GciPart;
 use App\Models\Uom;
 use Illuminate\Http\Request;
@@ -154,6 +155,42 @@ class BomController extends Controller
                 return back()->with('error', "Import failed: {$preview}");
             }
 
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    public function importSubstitutes(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        try {
+            $import = new BomSubstituteImport();
+            Excel::import($import, $validated['file']);
+
+            $failures = collect($import->failures());
+            if ($failures->isNotEmpty()) {
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import substitutes selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+            }
+
+            return back()->with('success', 'Substitutes imported successfully.');
+        } catch (\Exception $e) {
+             if ($e instanceof ValidationException) {
+                $failures = collect($e->failures());
+                $preview = $failures
+                    ->take(5)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import failed: {$preview}");
+            }
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }

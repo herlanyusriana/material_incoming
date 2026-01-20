@@ -1,6 +1,8 @@
 <x-app-layout>
+    @php
+        $isLocal = strtolower((string) ($arrival?->vendor?->vendor_type ?? '')) === 'local';
+    @endphp
     <x-slot name="header">
-        @php $isLocal = strtolower((string) ($arrival?->vendor?->vendor_type ?? '')) === 'local'; @endphp
         Edit {{ $isLocal ? 'Local PO Receive' : 'Receive' }} — {{ $arrival->invoice_no ?? '-' }}
     </x-slot>
 
@@ -34,10 +36,6 @@
             <form action="{{ route('receives.update', $receive) }}" method="POST" class="bg-white border border-slate-200 rounded-2xl shadow-lg p-6 space-y-6">
                 @csrf
                 @method('PUT')
-
-                @php
-                    $isLocal = strtolower((string) ($arrival?->vendor?->vendor_type ?? '')) === 'local';
-                @endphp
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>

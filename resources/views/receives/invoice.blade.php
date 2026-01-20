@@ -1,4 +1,7 @@
 <x-app-layout>
+    @php
+        $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
+    @endphp
     <x-slot name="header">
         {{ $isLocal ? 'Receive Local PO' : 'Receive Invoice' }} {{ $arrival->invoice_no }}
     </x-slot>
@@ -15,7 +18,6 @@
                     </div>
                     <div class="flex items-center gap-2">
                         @php
-                            $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
                             $hasContainerInspection = ($arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
                         @endphp
                         @if (!$isLocal && $hasContainerInspection)

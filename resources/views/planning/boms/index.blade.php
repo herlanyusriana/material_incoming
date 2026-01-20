@@ -84,6 +84,14 @@
 	                        >
 	                            Import
 	                        </button>
+                            <button
+                                type="button"
+                                class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-600"
+                                @click="openImportSubstitute()"
+                                title="Import Substitutes via Excel"
+                            >
+                                Imp. Subst.
+                            </button>
 	                        <a
 	                            href="{{ route('planning.boms.where-used-page') }}"
 	                            class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold"
@@ -215,8 +223,8 @@
                                                 <div class="flex items-center justify-center gap-1">
                                                     <button
                                                         type="button"
-                                                        class="relative w-7 h-7 rounded border border-slate-300 hover:bg-orange-50 text-orange-700 flex items-center justify-center text-[10px]"
-                                                        title="Substitutes"
+                                                        class="relative h-7 px-2 rounded border border-slate-300 hover:bg-orange-50 text-orange-700 flex items-center justify-center text-[10px] gap-1 font-semibold"
+                                                        title="Manage Substitutes"
                                                         @click="openSubstitutePanel(@js([
                                                             'bom_item_id' => $item->id,
                                                             'action' => route('planning.bom-items.substitutes.store', $item),
@@ -241,9 +249,9 @@
                                                             ])->values(),
                                                         ]))"
                                                     >
-                                                        ♻
+                                                        ♻ Subs
                                                         @if ($subCount > 0)
-                                                            <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-orange-600 text-white text-[8px] font-bold">
+                                                            <span class="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-orange-600 text-white text-[9px] font-bold">
                                                                 {{ $subCount }}
                                                             </span>
                                                         @endif
@@ -413,6 +421,36 @@
 	            </div>
 	        </div>
 
+            {{-- Import Substitute Modal --}}
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importSubstituteOpen" x-cloak @keydown.escape.window="closeImportSubstitute()">
+                <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                        <div class="text-sm font-semibold text-slate-900">Import Substitutes (Excel)</div>
+                        <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImportSubstitute()">✕</button>
+                    </div>
+
+                    <form action="{{ route('planning.boms.substitutes.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+                        @csrf
+
+                        <div class="text-sm text-slate-700 space-y-1">
+                            <div>Upload Excel dengan kolom:</div>
+                            <div class="font-mono text-xs bg-slate-100 p-2 rounded">fg_part_no, component_part_no, substitute_part_no, ratio, priority, status</div>
+                            <div class="text-xs text-slate-500">Pastikan FG Part No dan Component Part No sesuai untuk mencocokan BOM line yang tepat.</div>
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">File</label>
+                            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="mt-1 w-full rounded-xl border-slate-200" required>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImportSubstitute()">Cancel</button>
+                            <button type="submit" class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold">Import Substitutes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
 	        {{-- Line modal --}}
 	        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
 	            <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-200">
@@ -574,6 +612,7 @@
 	                return {
 	                    modalOpen: false,
 	                    importOpen: false,
+                        importSubstituteOpen: false,
 	                    lineModalOpen: false,
 	                    substituteOpen: false,
 	                    substituteForm: {
@@ -622,6 +661,8 @@
 	                    closeCreate() { this.modalOpen = false; },
 	                    openImport() { this.importOpen = true; },
 	                    closeImport() { this.importOpen = false; },
+                        openImportSubstitute() { this.importSubstituteOpen = true; },
+                        closeImportSubstitute() { this.importSubstituteOpen = false; },
 	                    toggle(id) { this.expanded[id] = !this.expanded[id]; },
 	                    openSubstitutePanel(payload) {
 	                        this.substituteForm = {
