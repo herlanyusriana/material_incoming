@@ -74,6 +74,12 @@ class MpsController extends Controller
 
             $hideEmpty = $request->query('hide_empty', 'on') === 'on';
 
+            if ($hideEmpty) {
+                $partsQuery->whereHas('mps', function ($q) use ($allWeeks) {
+                    $q->whereIn('minggu', $allWeeks);
+                });
+            }
+
             if ($isExport) {
                 $parts = $partsQuery->get();
                 $excelData = compact('minggu', 'parts', 'view', 'months', 'weeksCount', 'q', 'classification', 'hideEmpty');
