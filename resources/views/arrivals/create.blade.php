@@ -939,10 +939,9 @@
                         <label class="text-xs font-semibold text-slate-500 sm:w-44">Unit Code / Satuan Unit</label>
                         <select name="items[${rowIndex}][unit_goods]" class="input-unit-goods mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
                             <option value="">Pilih satuan</option>
-                            <option value="PCS" ${guessedUnitGoods === 'PCS' ? 'selected' : ''}>PCS</option>
-                            <option value="COIL" ${guessedUnitGoods === 'COIL' ? 'selected' : ''}>COIL</option>
-                            <option value="SHEET" ${guessedUnitGoods === 'SHEET' ? 'selected' : ''}>SHEET</option>
-                            <option value="SET" ${guessedUnitGoods === 'SET' ? 'selected' : ''}>SET</option>
+                            <option value="EA" ${guessedUnitGoods === 'EA' ? 'selected' : ''}>EA</option>
+                            <option value="ROLL" ${guessedUnitGoods === 'ROLL' ? 'selected' : ''}>ROLL</option>
+                            <option value="KGM" ${guessedUnitGoods === 'KGM' ? 'selected' : ''}>KGM</option>
                         </select>
                     </div>
                 </div>

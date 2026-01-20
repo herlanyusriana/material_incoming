@@ -73,8 +73,9 @@
 	                                <select id="unit_goods" name="unit_goods" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
 	                                    @php $unitGoods = old('unit_goods', $item->unit_goods); @endphp
 	                                    <option value="">Pilih satuan</option>
-	                                    <option value="PCS" {{ strtoupper((string) $unitGoods) === 'PCS' ? 'selected' : '' }}>PCS</option>
-	                                    <option value="COIL" {{ strtoupper((string) $unitGoods) === 'COIL' ? 'selected' : '' }}>COIL</option>
+	                                    <option value="EA" {{ strtoupper((string) $unitGoods) === 'EA' ? 'selected' : '' }}>EA</option>
+                                    <option value="ROLL" {{ strtoupper((string) $unitGoods) === 'ROLL' ? 'selected' : '' }}>ROLL</option>
+                                    <option value="KGM" {{ strtoupper((string) $unitGoods) === 'KGM' ? 'selected' : '' }}>KGM</option>
 	                                    <option value="SHEET" {{ strtoupper((string) $unitGoods) === 'SHEET' ? 'selected' : '' }}>SHEET</option>
 	                                    <option value="SET" {{ strtoupper((string) $unitGoods) === 'SET' ? 'selected' : '' }}>SET</option>
 	                                </select>
@@ -95,6 +96,7 @@
 	                                    <option value="PALLET" {{ strtoupper((string) $unitBundle) === 'PALLET' ? 'selected' : '' }}>PALLET</option>
 	                                    <option value="BOX" {{ strtoupper((string) $unitBundle) === 'BOX' ? 'selected' : '' }}>BOX</option>
 	                                    <option value="BAG" {{ strtoupper((string) $unitBundle) === 'BAG' ? 'selected' : '' }}>BAG</option>
+                                    <option value="ROLL" {{ strtoupper((string) $unitBundle) === 'ROLL' ? 'selected' : '' }}>ROLL</option>
 	                                </select>
 	                            </div>
 

@@ -125,6 +125,7 @@
                                                 <option value="SHEET">SHEET</option>
                                                 <option value="SET">SET</option>
                                                 <option value="EA">EA</option>
+                                                <option value="ROLL">ROLL</option>
                                                 <option value="KGM">KGM</option>
                                             </select>
                                         </div>
@@ -229,6 +230,7 @@
                                 <option value="SHEET">SHEET</option>
                                 <option value="SET">SET</option>
                                 <option value="EA">EA</option>
+                                <option value="ROLL">ROLL</option>
                                 <option value="KGM">KGM</option>
                             </select>
                         </div>

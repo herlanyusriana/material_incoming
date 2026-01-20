@@ -187,7 +187,7 @@
                 <label for="uom" class="text-sm font-medium text-gray-700">UOM</label>
                 <select id="uom" name="uom" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
                     <option value="">Select UOM</option>
-                    @foreach(['PCS', 'KG', 'SET', 'EA', 'SHEET', 'COIL', 'LITER', 'METER'] as $pkg)
+                    @foreach(['PCS', 'KG', 'SET', 'EA', 'SHEET', 'COIL', 'LITER', 'METER', 'ROLL'] as $pkg)
                         <option value="{{ $pkg }}" @selected(old('uom', $part->uom ?? '') === $pkg)>{{ $pkg }}</option>
                     @endforeach
                 </select>

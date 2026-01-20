@@ -266,6 +266,7 @@
                                                     <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                     <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
                                                     <option value="BAG" @selected($defaultBundleUnit === 'BAG')>BAG</option>
+                                                    <option value="ROLL" @selected($defaultBundleUnit === 'ROLL')>ROLL</option>
                                                 </select>
                                             </div>
                                         </td>
@@ -335,6 +336,7 @@
                                                         <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                         <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
                                                         <option value="BAG" @selected($defaultBundleUnit === 'BAG')>BAG</option>
+                                                        <option value="ROLL" @selected($defaultBundleUnit === 'ROLL')>ROLL</option>
                                                     </select>
                                                 </div>
                                             </td>
@@ -471,6 +473,7 @@
 	                                <option value="BUNDLE">BUNDLE</option>
 	                                <option value="BOX">BOX</option>
 	                                <option value="BAG">BAG</option>
+	                                <option value="ROLL">ROLL</option>
 	                            </select>
                         </div>
 	                </td>

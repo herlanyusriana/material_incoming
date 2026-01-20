@@ -16,6 +16,7 @@ class UomSeeder extends Seeder
             ['code' => 'PAIR', 'name' => 'Pair', 'category' => 'quantity'],
             ['code' => 'DOZ', 'name' => 'Dozen', 'category' => 'quantity'],
             ['code' => 'GRS', 'name' => 'Gross', 'category' => 'quantity'],
+            ['code' => 'ROLL', 'name' => 'Roll', 'category' => 'quantity'],
             
             // Weight
             ['code' => 'KGM', 'name' => 'Kilogram', 'category' => 'weight'],

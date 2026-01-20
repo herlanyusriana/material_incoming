@@ -90,6 +90,7 @@
                             <option value="BUNDLE" @selected(old('bundle_unit', $receive->bundle_unit) === 'BUNDLE')>BUNDLE</option>
                             <option value="BOX" @selected(old('bundle_unit', $receive->bundle_unit) === 'BOX')>BOX</option>
                             <option value="BAG" @selected(old('bundle_unit', $receive->bundle_unit) === 'BAG')>BAG</option>
+                            <option value="ROLL" @selected(old('bundle_unit', $receive->bundle_unit) === 'ROLL')>ROLL</option>
                         </select>
                         @error('bundle_unit') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
