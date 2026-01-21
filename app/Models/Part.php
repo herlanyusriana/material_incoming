@@ -36,42 +36,42 @@ class Part extends Model
     protected function registerNo(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value),
+            set: fn($value) => self::upperOrNull($value),
         );
     }
 
     protected function partNo(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value),
+            set: fn($value) => self::upperOrNull($value),
         );
     }
 
     protected function partNameVendor(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value),
+            set: fn($value) => self::upperOrNull($value),
         );
     }
 
     protected function partNameGci(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value),
+            set: fn($value) => self::upperOrNull($value),
         );
     }
 
     protected function hsCode(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value),
+            set: fn($value) => self::upperOrNull($value),
         );
     }
 
     protected function qualityInspection(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value),
+            set: fn($value) => self::upperOrNull($value),
         );
     }
 
@@ -88,5 +88,15 @@ class Part extends Model
     public function inventory()
     {
         return $this->hasOne(Inventory::class);
+    }
+
+    public function locationInventory()
+    {
+        return $this->hasMany(LocationInventory::class);
+    }
+
+    public function binTransfers()
+    {
+        return $this->hasMany(BinTransfer::class);
     }
 }

@@ -13,7 +13,7 @@ class Mps extends Model
 
     protected $fillable = [
         'part_id',
-        'minggu',
+        'period',  // Changed from 'minggu' - Monthly period (YYYY-MM)
         'forecast_qty',
         'open_order_qty',
         'planned_qty',

@@ -19,12 +19,12 @@ use Maatwebsite\Excel\Exceptions\SheetNotFoundException;
 
 class CustomerPlanningImportController extends Controller
 {
-    private function validateMinggu(?string $value): bool
+    private function validatePeriod(?string $value): bool
     {
         if ($value === null) {
             return false;
         }
-        return (bool) preg_match('/^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/', $value);
+        return (bool) preg_match('/^\d{4}-([W]\d{2}|\d{2})$/', $value);
     }
 
     public function index(Request $request)
@@ -159,64 +159,64 @@ class CustomerPlanningImportController extends Controller
                 $weekMap = $weekMapRows
                     ->groupBy('month_header')
                     ->map(function ($rows, $monthKey) {
-                    $items = collect($rows)
-                        ->map(function ($r) {
-                            return [
-                                'minggu' => strtoupper(trim((string) ($r['minggu'] ?? ''))),
-                                'ratio' => isset($r['ratio']) && is_numeric($r['ratio']) && (float) $r['ratio'] > 0 ? (float) $r['ratio'] : null,
-                            ];
-                        })
-                        ->filter(fn ($r) => $r['minggu'] !== '')
-                        ->groupBy('minggu')
-                        ->map(function ($group, $minggu) {
-                            $ratios = collect($group)->pluck('ratio')->filter(fn ($v) => $v !== null);
-                            $ratioSum = $ratios->sum();
-                            $ratio = $ratioSum > 0 ? (float) $ratioSum : null;
-                            return ['minggu' => $minggu, 'ratio' => $ratio];
-                        })
-                        ->values();
+                        $items = collect($rows)
+                            ->map(function ($r) {
+                                return [
+                                    'minggu' => strtoupper(trim((string) ($r['minggu'] ?? ''))),
+                                    'ratio' => isset($r['ratio']) && is_numeric($r['ratio']) && (float) $r['ratio'] > 0 ? (float) $r['ratio'] : null,
+                                ];
+                            })
+                            ->filter(fn($r) => $r['minggu'] !== '')
+                            ->groupBy('minggu')
+                            ->map(function ($group, $minggu) {
+                                $ratios = collect($group)->pluck('ratio')->filter(fn($v) => $v !== null);
+                                $ratioSum = $ratios->sum();
+                                $ratio = $ratioSum > 0 ? (float) $ratioSum : null;
+                                return ['minggu' => $minggu, 'ratio' => $ratio];
+                            })
+                            ->values();
 
-                    // Validate minggu format early.
-                    $invalidWeeks = $items
-                        ->pluck('minggu')
-                        ->filter(fn ($w) => !$this->validateMinggu($w))
-                        ->values();
-                    if ($invalidWeeks->isNotEmpty()) {
-                        throw new \RuntimeException("Invalid minggu in WeekMap for {$monthKey}: " . $invalidWeeks->take(10)->implode(', '));
-                    }
-
-                    $specifiedSum = (float) $items->pluck('ratio')->filter(fn ($v) => $v !== null)->sum();
-                    if ($specifiedSum > 1.001) {
-                        throw new \RuntimeException("Invalid ratio for {$monthKey}. Total specified ratio exceeds 1.0 (now {$specifiedSum}).");
-                    }
-
-                    $unsetCount = (int) $items->filter(fn ($r) => $r['ratio'] === null)->count();
-                    if ($unsetCount === 0) {
-                        if (abs($specifiedSum - 1.0) > 0.001) {
-                            throw new \RuntimeException("Invalid ratio for {$monthKey}. Total ratio must be 1.0 (now {$specifiedSum}).");
+                        // Validate minggu format early.
+                        $invalidPeriods = $items
+                            ->pluck('minggu')
+                            ->filter(fn($w) => !$this->validatePeriod($w))
+                            ->values();
+                        if ($invalidPeriods->isNotEmpty()) {
+                            throw new \RuntimeException("Invalid period in WeekMap for {$monthKey}: " . $invalidPeriods->take(10)->implode(', '));
                         }
-                        return $items;
-                    }
 
-                    $remaining = 1.0 - $specifiedSum;
-                    if ($remaining <= 0) {
-                        throw new \RuntimeException("Invalid ratio for {$monthKey}. Remaining ratio is {$remaining} (check blank ratios).");
-                    }
-                    $even = $remaining / $unsetCount;
-
-                    return $items->map(function ($r) use ($even) {
-                        if ($r['ratio'] === null) {
-                            $r['ratio'] = $even;
+                        $specifiedSum = (float) $items->pluck('ratio')->filter(fn($v) => $v !== null)->sum();
+                        if ($specifiedSum > 1.001) {
+                            throw new \RuntimeException("Invalid ratio for {$monthKey}. Total specified ratio exceeds 1.0 (now {$specifiedSum}).");
                         }
-                        return $r;
-                    })->values();
+
+                        $unsetCount = (int) $items->filter(fn($r) => $r['ratio'] === null)->count();
+                        if ($unsetCount === 0) {
+                            if (abs($specifiedSum - 1.0) > 0.001) {
+                                throw new \RuntimeException("Invalid ratio for {$monthKey}. Total ratio must be 1.0 (now {$specifiedSum}).");
+                            }
+                            return $items;
+                        }
+
+                        $remaining = 1.0 - $specifiedSum;
+                        if ($remaining <= 0) {
+                            throw new \RuntimeException("Invalid ratio for {$monthKey}. Remaining ratio is {$remaining} (check blank ratios).");
+                        }
+                        $even = $remaining / $unsetCount;
+
+                        return $items->map(function ($r) use ($even) {
+                            if ($r['ratio'] === null) {
+                                $r['ratio'] = $even;
+                            }
+                            return $r;
+                        })->values();
                     });
             } catch (\RuntimeException $e) {
                 return back()->with('error', $e->getMessage());
             }
 
-            $allMonthHeaders = $originalMonthly->flatMap(fn ($r) => array_keys($r['months'] ?? []))->unique()->values();
-            $missingMonths = $allMonthHeaders->filter(fn ($m) => !$weekMap->has($m))->values();
+            $allMonthHeaders = $originalMonthly->flatMap(fn($r) => array_keys($r['months'] ?? []))->unique()->values();
+            $missingMonths = $allMonthHeaders->filter(fn($m) => !$weekMap->has($m))->values();
             if ($missingMonths->isNotEmpty()) {
                 return back()->with('error', 'Week mapping missing for month columns: ' . $missingMonths->take(10)->implode(', ') . ($missingMonths->count() > 10 ? ' ...' : ''));
             }
@@ -274,7 +274,7 @@ class CustomerPlanningImportController extends Controller
                 $error = null;
                 $partId = null;
 
-                if ($customerPartNo === '' || !$this->validateMinggu($minggu) || $qty === null) {
+                if ($customerPartNo === '' || !$this->validatePeriod($minggu) || $qty === null) {
                     $status = 'rejected';
                     $error = 'Invalid row data.';
                 } else {
@@ -301,7 +301,7 @@ class CustomerPlanningImportController extends Controller
                 CustomerPlanningRow::create([
                     'import_id' => $import->id,
                     'customer_part_no' => $customerPartNo,
-                    'minggu' => $minggu,
+                    'period' => $minggu, // Storing as 'period' instead of 'minggu'
                     'qty' => $qty ?? 0,
                     'part_id' => $partId,
                     'row_status' => $status,

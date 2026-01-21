@@ -15,7 +15,7 @@ class CustomerPo extends Model
         'po_no',
         'customer_id',
         'part_id',
-        'minggu',
+        'period',  // Renamed from minggu
         'qty',
         'status',
         'notes',

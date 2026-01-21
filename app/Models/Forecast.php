@@ -13,7 +13,7 @@ class Forecast extends Model
 
     protected $fillable = [
         'part_id',
-        'minggu',
+        'period',  // Changed from 'minggu' - Monthly period (YYYY-MM)
         'qty',
         'planning_qty',
         'po_qty',

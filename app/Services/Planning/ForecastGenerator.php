@@ -7,10 +7,10 @@ use Illuminate\Support\Facades\DB;
 
 class ForecastGenerator
 {
-    public function generateForWeek(string $minggu): void
+    public function generateForWeek(string $period): void
     {
-        // Forecast is system-generated (no manual input), so regenerate cleanly per week.
-        Forecast::query()->where('minggu', $minggu)->delete();
+        // Forecast is system-generated (no manual input), so regenerate cleanly per period.
+        Forecast::query()->where('period', $period)->delete();
 
         $planningRows = DB::table('customer_planning_rows as r')
             ->join('customer_planning_imports as i', 'i.id', '=', 'r.import_id')
@@ -21,17 +21,17 @@ class ForecastGenerator
             ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
             ->join('gci_parts as gp', 'gp.id', '=', 'cpc.part_id')
             ->where('r.row_status', 'accepted')
-            ->where('r.minggu', $minggu)
+            ->where('r.period', $period)
             ->select('cpc.part_id', DB::raw('SUM(r.qty * cpc.usage_qty) as qty'))
             ->groupBy('cpc.part_id')
             ->get();
 
-        $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn ($v) => (float) $v)->all();
+        $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn($v) => (float) $v)->all();
 
         $poDirect = DB::table('customer_pos as po')
             ->join('gci_parts as gp', 'gp.id', '=', 'po.part_id')
             ->whereNotNull('po.part_id')
-            ->where('po.minggu', $minggu)
+            ->where('po.period', $period)
             ->where('po.status', 'open')
             ->select('po.part_id', DB::raw('SUM(po.qty) as qty'))
             ->groupBy('po.part_id')
@@ -60,7 +60,7 @@ class ForecastGenerator
             }
 
             Forecast::updateOrCreate(
-                ['part_id' => $partId, 'minggu' => $minggu],
+                ['part_id' => $partId, 'period' => $period],
                 [
                     'qty' => $forecastQty,
                     'planning_qty' => $planningQty,
@@ -74,30 +74,30 @@ class ForecastGenerator
     /**
      * Generate forecast from selected POs and Planning rows only
      */
-    public function generateFromSelected(?string $minggu, array $selectedPoIds, array $selectedPlanningIds, array $selectedImportIds = []): void
+    public function generateFromSelected(?string $period, array $selectedPoIds, array $selectedPlanningIds, array $selectedImportIds = []): void
     {
-        // If minggu is null, find all weeks present in selection
-        $weeks = [];
-        if ($minggu) {
-            $weeks[] = $minggu;
+        // If period is null, find all periods present in selection
+        $periods = [];
+        if ($period) {
+            $periods[] = $period;
         } else {
-            $weeksFromPos = DB::table('customer_pos')->whereIn('id', $selectedPoIds)->pluck('minggu')->toArray();
-            $weeksFromPlanning = DB::table('customer_planning_rows')->whereIn('id', $selectedPlanningIds)->pluck('minggu')->toArray();
-            
-            $weeksFromImports = [];
+            $periodsFromPos = DB::table('customer_pos')->whereIn('id', $selectedPoIds)->pluck('period')->toArray();
+            $periodsFromPlanning = DB::table('customer_planning_rows')->whereIn('id', $selectedPlanningIds)->pluck('period')->toArray();
+
+            $periodsFromImports = [];
             if (!empty($selectedImportIds)) {
-                $weeksFromImports = DB::table('customer_planning_rows')
+                $periodsFromImports = DB::table('customer_planning_rows')
                     ->whereIn('import_id', $selectedImportIds)
-                    ->pluck('minggu')
+                    ->pluck('period')
                     ->toArray();
             }
-            
-            $weeks = array_unique(array_merge($weeksFromPos, $weeksFromPlanning, $weeksFromImports));
+
+            $periods = array_unique(array_merge($periodsFromPos, $periodsFromPlanning, $periodsFromImports));
         }
 
-        foreach ($weeks as $w) {
-            // Clear existing forecasts for this specific week before regenerating
-            Forecast::query()->where('minggu', $w)->delete();
+        foreach ($periods as $w) {
+            // Clear existing forecasts for this specific period before regenerating
+            Forecast::query()->where('period', $w)->delete();
 
             $planningByPart = [];
             $poByPart = [];
@@ -111,13 +111,13 @@ class ForecastGenerator
                             ->on('cp.customer_part_no', '=', 'r.customer_part_no');
                     })
                     ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
-                    ->where('r.minggu', $w)
+                    ->where('r.period', $w)
                     ->where('r.row_status', 'accepted');
 
                 if (!empty($selectedPlanningIds) && !empty($selectedImportIds)) {
-                    $query->where(function($q) use ($selectedPlanningIds, $selectedImportIds) {
+                    $query->where(function ($q) use ($selectedPlanningIds, $selectedImportIds) {
                         $q->whereIn('r.id', $selectedPlanningIds)
-                          ->orWhereIn('r.import_id', $selectedImportIds);
+                            ->orWhereIn('r.import_id', $selectedImportIds);
                     });
                 } elseif (!empty($selectedPlanningIds)) {
                     $query->whereIn('r.id', $selectedPlanningIds);
@@ -129,14 +129,14 @@ class ForecastGenerator
                     ->groupBy('cpc.part_id')
                     ->get();
 
-                $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn ($v) => (float) $v)->all();
+                $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn($v) => (float) $v)->all();
             }
 
             // Process selected POs for THIS week
             if (!empty($selectedPoIds)) {
                 $poDirect = DB::table('customer_pos as po')
                     ->whereIn('po.id', $selectedPoIds)
-                    ->where('po.minggu', $w)
+                    ->where('po.period', $w)
                     ->whereNotNull('po.part_id')
                     ->where('po.status', 'open')
                     ->select('po.part_id', DB::raw('SUM(po.qty) as qty'))
@@ -167,7 +167,7 @@ class ForecastGenerator
                 }
 
                 Forecast::updateOrCreate(
-                    ['part_id' => $partId, 'minggu' => $w],
+                    ['part_id' => $partId, 'period' => $w],
                     [
                         'qty' => $forecastQty,
                         'planning_qty' => $planningQty,

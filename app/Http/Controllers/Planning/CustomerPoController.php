@@ -13,18 +13,18 @@ use Illuminate\Validation\Rule;
 
 class CustomerPoController extends Controller
 {
-    private function validateMinggu(string $field = 'minggu'): array
+    private function validatePeriod(string $field = 'period'): array
     {
-        return [$field => ['required', 'string', 'regex:/^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/']];
+        return [$field => ['required', 'string', 'regex:/^\d{4}-([W]\d{2}|\d{2})$/']];
     }
 
     public function index(Request $request)
     {
-        $minggu = trim((string) $request->query('minggu', ''));
-        $minggu = $minggu !== '' ? $minggu : null;
+        $period = trim((string) $request->query('period', ''));
+        $period = $period !== '' ? $period : null;
         $customerId = $request->query('customer_id');
         $status = $request->query('status');
-        $defaultMinggu = now()->format('o-\\WW');
+        $defaultPeriod = now()->format('Y-m');
 
         $customers = Customer::query()->orderBy('code')->get();
         // Default for Customer PO: show FG only to prevent mixing RM/WIP in PO selection.
@@ -36,15 +36,15 @@ class CustomerPoController extends Controller
 
         $orders = CustomerPo::query()
             ->with(['customer', 'part'])
-            ->when($minggu, fn ($q) => $q->where('minggu', $minggu))
-            ->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
-            ->when($status, fn ($q) => $q->where('status', $status))
-            ->orderByDesc('minggu')
+            ->when($period, fn($q) => $q->where('period', $period))
+            ->when($customerId, fn($q) => $q->where('customer_id', $customerId))
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->orderByDesc('period')
             ->latest('id')
             ->paginate(25)
             ->withQueryString();
 
-        return view('planning.customer_pos.index', compact('orders', 'customers', 'gciParts', 'minggu', 'defaultMinggu', 'customerId', 'status'));
+        return view('planning.customer_pos.index', compact('orders', 'customers', 'gciParts', 'period', 'defaultPeriod', 'customerId', 'status'));
     }
 
     public function store(Request $request)
@@ -53,7 +53,7 @@ class CustomerPoController extends Controller
 
         if ($hasItems) {
             $validated = $request->validate(array_merge(
-                $this->validateMinggu(),
+                $this->validatePeriod(),
                 [
                     'customer_id' => ['required', Rule::exists('customers', 'id')],
                     'po_no' => ['nullable', 'string', 'max:100'],
@@ -74,7 +74,7 @@ class CustomerPoController extends Controller
                     'po_no' => $poNo,
                     'customer_id' => $customerId,
                     'part_id' => (int) $item['part_id'],
-                    'minggu' => $validated['minggu'],
+                    'period' => $validated['period'] ?? $validated['minggu'] ?? null,
                     'qty' => $item['qty'],
                     'status' => $validated['status'],
                     'notes' => $notes,
@@ -85,7 +85,7 @@ class CustomerPoController extends Controller
         }
 
         $validated = $request->validate(array_merge(
-            $this->validateMinggu(),
+            $this->validatePeriod(),
             [
                 'customer_id' => ['required', Rule::exists('customers', 'id')],
                 'po_no' => ['nullable', 'string', 'max:100'],
@@ -100,7 +100,7 @@ class CustomerPoController extends Controller
             'po_no' => $validated['po_no'] ? trim($validated['po_no']) : null,
             'customer_id' => (int) $validated['customer_id'],
             'part_id' => (int) $validated['part_id'],
-            'minggu' => $validated['minggu'],
+            'period' => $validated['period'] ?? $validated['minggu'] ?? null,
             'qty' => $validated['qty'],
             'status' => $validated['status'],
             'notes' => $validated['notes'] ? trim($validated['notes']) : null,

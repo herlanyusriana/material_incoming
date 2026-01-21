@@ -10,7 +10,7 @@ class MrpRun extends Model
     use HasFactory;
 
     protected $fillable = [
-        'minggu',
+        'period',  // Changed from 'minggu' - Monthly period (YYYY-MM)
         'status',
         'run_by',
         'run_at',

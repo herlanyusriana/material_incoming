@@ -30,7 +30,7 @@ Route::get('/dashboard', function () {
     $departures = \App\Models\Arrival::with(['vendor', 'creator', 'items.receives'])
         ->latest()
         ->paginate(10);
-    
+
     $summary = [
         'total_departures' => \App\Models\Arrival::count(),
         'total_receives' => \App\Models\Receive::count(),
@@ -90,6 +90,12 @@ Route::middleware('auth')->group(function () {
     Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
     Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
+    // Inventory Transfers (Bridge between Logistics and Production)
+    Route::get('/inventory/transfers', [\App\Http\Controllers\InventoryTransferController::class, 'index'])->name('inventory.transfers.index');
+    Route::get('/inventory/transfers/create', [\App\Http\Controllers\InventoryTransferController::class, 'create'])->name('inventory.transfers.create');
+    Route::post('/inventory/transfers', [\App\Http\Controllers\InventoryTransferController::class, 'store'])->name('inventory.transfers.store');
+    Route::post('/inventory/transfers/auto-sync', [\App\Http\Controllers\InventoryTransferController::class, 'autoSync'])->name('inventory.transfers.auto-sync');
+
     Route::get('/inventory/locations', [WarehouseLocationController::class, 'index'])->name('inventory.locations.index');
     Route::post('/inventory/locations', [WarehouseLocationController::class, 'store'])->name('inventory.locations.store');
     Route::get('/inventory/locations/export', [WarehouseLocationController::class, 'export'])->name('inventory.locations.export');
@@ -97,6 +103,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventory/locations/{location}/print', [WarehouseLocationController::class, 'printQr'])->name('inventory.locations.print');
     Route::put('/inventory/locations/{location}', [WarehouseLocationController::class, 'update'])->name('inventory.locations.update');
     Route::delete('/inventory/locations/{location}', [WarehouseLocationController::class, 'destroy'])->name('inventory.locations.destroy');
+
+    // Warehouse Bin Transfers
+    Route::prefix('warehouse')->name('warehouse.')->group(function () {
+        Route::get('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'index'])->name('bin-transfers.index');
+        Route::get('/bin-transfers/create', [\App\Http\Controllers\BinTransferController::class, 'create'])->name('bin-transfers.create');
+        Route::post('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'store'])->name('bin-transfers.store');
+        Route::get('/bin-transfers/{binTransfer}', [\App\Http\Controllers\BinTransferController::class, 'show'])->name('bin-transfers.show');
+        Route::get('/bin-transfers/{binTransfer}/label', [\App\Http\Controllers\BinTransferController::class, 'printLabel'])->name('bin-transfers.label');
+
+        // AJAX endpoints
+        Route::get('/api/location-stock', [\App\Http\Controllers\BinTransferController::class, 'getLocationStock'])->name('bin-transfers.location-stock');
+        Route::get('/api/part-locations', [\App\Http\Controllers\BinTransferController::class, 'getPartLocations'])->name('bin-transfers.part-locations');
+    });
 
     Route::prefix('outgoing')->name('outgoing.')->group(function () {
         Route::get('/daily-planning', [OutgoingController::class, 'dailyPlanning'])->name('daily-planning');
@@ -144,42 +163,42 @@ Route::middleware('auth')->group(function () {
         Route::put('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'update'])->name('gci-parts.update');
         Route::delete('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'destroy'])->name('gci-parts.destroy');
 
-	        Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
-	        Route::get('/boms/export', [PlanningBomController::class, 'export'])->name('boms.export');
-	        Route::post('/boms/import', [PlanningBomController::class, 'import'])->name('boms.import');
-	        Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
-	        Route::post('/boms/substitutes/import', [PlanningBomController::class, 'importSubstitutes'])->name('boms.substitutes.import');
-	        Route::get('/boms/substitutes/template', [PlanningBomController::class, 'downloadSubstituteTemplate'])->name('boms.substitutes.template');
-	        Route::put('/boms/{bom}', [PlanningBomController::class, 'update'])->name('boms.update');
-	        Route::delete('/boms/{bom}', [PlanningBomController::class, 'destroy'])->name('boms.destroy');
-	        Route::post('/boms/{bom}/items', [PlanningBomController::class, 'storeItem'])->name('boms.items.store');
-            Route::get('/boms/where-used-page', [PlanningBomController::class, 'showWhereUsed'])->name('boms.where-used-page');
-            Route::get('/boms/where-used', [PlanningBomController::class, 'whereUsed'])->name('boms.where-used');
-            Route::get('/boms/explosion-search', [PlanningBomController::class, 'explosion'])->name('boms.explosion-search');
-            Route::get('/boms/{bom}/explosion', [PlanningBomController::class, 'explosion'])->name('boms.explosion');
-	        Route::delete('/bom-items/{bomItem}', [PlanningBomController::class, 'destroyItem'])->name('boms.items.destroy');
-	        Route::post('/bom-items/{bomItem}/substitutes', [PlanningBomController::class, 'storeSubstitute'])->name('bom-items.substitutes.store');
-	        Route::delete('/bom-item-substitutes/{substitute}', [PlanningBomController::class, 'destroySubstitute'])->name('bom-item-substitutes.destroy');
+        Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
+        Route::get('/boms/export', [PlanningBomController::class, 'export'])->name('boms.export');
+        Route::post('/boms/import', [PlanningBomController::class, 'import'])->name('boms.import');
+        Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
+        Route::post('/boms/substitutes/import', [PlanningBomController::class, 'importSubstitutes'])->name('boms.substitutes.import');
+        Route::get('/boms/substitutes/template', [PlanningBomController::class, 'downloadSubstituteTemplate'])->name('boms.substitutes.template');
+        Route::put('/boms/{bom}', [PlanningBomController::class, 'update'])->name('boms.update');
+        Route::delete('/boms/{bom}', [PlanningBomController::class, 'destroy'])->name('boms.destroy');
+        Route::post('/boms/{bom}/items', [PlanningBomController::class, 'storeItem'])->name('boms.items.store');
+        Route::get('/boms/where-used-page', [PlanningBomController::class, 'showWhereUsed'])->name('boms.where-used-page');
+        Route::get('/boms/where-used', [PlanningBomController::class, 'whereUsed'])->name('boms.where-used');
+        Route::get('/boms/explosion-search', [PlanningBomController::class, 'explosion'])->name('boms.explosion-search');
+        Route::get('/boms/{bom}/explosion', [PlanningBomController::class, 'explosion'])->name('boms.explosion');
+        Route::delete('/bom-items/{bomItem}', [PlanningBomController::class, 'destroyItem'])->name('boms.items.destroy');
+        Route::post('/bom-items/{bomItem}/substitutes', [PlanningBomController::class, 'storeSubstitute'])->name('bom-items.substitutes.store');
+        Route::delete('/bom-item-substitutes/{substitute}', [PlanningBomController::class, 'destroySubstitute'])->name('bom-item-substitutes.destroy');
 
         Route::get('/customers', [PlanningCustomerController::class, 'index'])->name('customers.index');
         Route::post('/customers', [PlanningCustomerController::class, 'store'])->name('customers.store');
         Route::put('/customers/{customer}', [PlanningCustomerController::class, 'update'])->name('customers.update');
         Route::delete('/customers/{customer}', [PlanningCustomerController::class, 'destroy'])->name('customers.destroy');
 
-	    Route::get('/customer-parts', [PlanningCustomerPartController::class, 'index'])->name('customer-parts.index');
-	    Route::get('/customer-parts/export', [PlanningCustomerPartController::class, 'export'])->name('customer-parts.export');
-	    Route::post('/customer-parts/import', [PlanningCustomerPartController::class, 'import'])->name('customer-parts.import');
-	        Route::post('/customer-parts', [PlanningCustomerPartController::class, 'store'])->name('customer-parts.store');
-	        Route::put('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'update'])->name('customer-parts.update');
-	        Route::delete('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'destroy'])->name('customer-parts.destroy');
-	        Route::post('/customer-parts/{customerPart}/components', [PlanningCustomerPartController::class, 'storeComponent'])->name('customer-parts.components.store');
-	        Route::delete('/customer-part-components/{component}', [PlanningCustomerPartController::class, 'destroyComponent'])->name('customer-parts.components.destroy');
+        Route::get('/customer-parts', [PlanningCustomerPartController::class, 'index'])->name('customer-parts.index');
+        Route::get('/customer-parts/export', [PlanningCustomerPartController::class, 'export'])->name('customer-parts.export');
+        Route::post('/customer-parts/import', [PlanningCustomerPartController::class, 'import'])->name('customer-parts.import');
+        Route::post('/customer-parts', [PlanningCustomerPartController::class, 'store'])->name('customer-parts.store');
+        Route::put('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'update'])->name('customer-parts.update');
+        Route::delete('/customer-parts/{customerPart}', [PlanningCustomerPartController::class, 'destroy'])->name('customer-parts.destroy');
+        Route::post('/customer-parts/{customerPart}/components', [PlanningCustomerPartController::class, 'storeComponent'])->name('customer-parts.components.store');
+        Route::delete('/customer-part-components/{component}', [PlanningCustomerPartController::class, 'destroyComponent'])->name('customer-parts.components.destroy');
 
-	        Route::get('/planning-imports', [PlanningCustomerPlanningImportController::class, 'index'])->name('planning-imports.index');
-	        Route::post('/planning-imports', [PlanningCustomerPlanningImportController::class, 'store'])->name('planning-imports.store');
-	        Route::get('/planning-imports/template', [PlanningCustomerPlanningImportController::class, 'template'])->name('planning-imports.template');
-	        Route::get('/planning-imports/template-monthly', [PlanningCustomerPlanningImportController::class, 'templateMonthly'])->name('planning-imports.template-monthly');
-	    Route::get('/planning-imports/{import}/export', [PlanningCustomerPlanningImportController::class, 'export'])->name('planning-imports.export');
+        Route::get('/planning-imports', [PlanningCustomerPlanningImportController::class, 'index'])->name('planning-imports.index');
+        Route::post('/planning-imports', [PlanningCustomerPlanningImportController::class, 'store'])->name('planning-imports.store');
+        Route::get('/planning-imports/template', [PlanningCustomerPlanningImportController::class, 'template'])->name('planning-imports.template');
+        Route::get('/planning-imports/template-monthly', [PlanningCustomerPlanningImportController::class, 'templateMonthly'])->name('planning-imports.template-monthly');
+        Route::get('/planning-imports/{import}/export', [PlanningCustomerPlanningImportController::class, 'export'])->name('planning-imports.export');
 
         Route::get('/gci-parts/export', [PlanningGciPartController::class, 'export'])->name('gci-parts.export');
         Route::post('/gci-parts/import', [PlanningGciPartController::class, 'import'])->name('gci-parts.import');
@@ -200,16 +219,16 @@ Route::middleware('auth')->group(function () {
         Route::delete('/forecasts/clear', [PlanningForecastController::class, 'clear'])->name('forecasts.clear');
         Route::get('/forecasts/history', [PlanningForecastController::class, 'history'])->name('forecasts.history');
 
-	        Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
-	        Route::get('/mps/export', [PlanningMpsController::class, 'export'])->name('mps.export');
-	        Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
-	        Route::post('/mps/generate-range', [PlanningMpsController::class, 'generateRange'])->name('mps.generate-range');
-	        Route::post('/mps/upsert', [PlanningMpsController::class, 'upsert'])->name('mps.upsert');
-	        Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
-	        Route::get('/mps/detail', [PlanningMpsController::class, 'detail'])->name('mps.detail');
-	        Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
-	        Route::delete('/mps/clear', [PlanningMpsController::class, 'clear'])->name('mps.clear');
-	        Route::get('/mps/history', [PlanningMpsController::class, 'history'])->name('mps.history');
+        Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
+        Route::get('/mps/export', [PlanningMpsController::class, 'export'])->name('mps.export');
+        Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
+        Route::post('/mps/generate-range', [PlanningMpsController::class, 'generateRange'])->name('mps.generate-range');
+        Route::post('/mps/upsert', [PlanningMpsController::class, 'upsert'])->name('mps.upsert');
+        Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
+        Route::get('/mps/detail', [PlanningMpsController::class, 'detail'])->name('mps.detail');
+        Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
+        Route::delete('/mps/clear', [PlanningMpsController::class, 'clear'])->name('mps.clear');
+        Route::get('/mps/history', [PlanningMpsController::class, 'history'])->name('mps.history');
 
         Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');
         Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('mrp.generate');
@@ -218,22 +237,22 @@ Route::middleware('auth')->group(function () {
         Route::delete('/mrp/clear', [PlanningMrpController::class, 'clear'])->name('mrp.clear');
         Route::get('/mrp/history', [PlanningMrpController::class, 'history'])->name('mrp.history');
     });
-    
+
     Route::prefix('warehouse')->name('warehouse.')->group(function () {
         Route::get('/labels', [App\Http\Controllers\BarcodeLabelController::class, 'index'])->name('labels.index');
         Route::get('/labels/part/{part}', [App\Http\Controllers\BarcodeLabelController::class, 'printPartLabel'])->name('labels.part');
         Route::post('/labels/bulk', [App\Http\Controllers\BarcodeLabelController::class, 'printBulkLabels'])->name('labels.bulk');
     });
-    
+
     Route::prefix('production')->name('production.')->group(function () {
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/check-material', [\App\Http\Controllers\ProductionOrderController::class, 'checkMaterial'])->name('orders.check-material');
         Route::post('/orders/{order}/start', [\App\Http\Controllers\ProductionOrderController::class, 'startProduction'])->name('orders.start');
         Route::post('/orders/{order}/finish', [\App\Http\Controllers\ProductionOrderController::class, 'finishProduction'])->name('orders.finish');
-        
+
         Route::post('/orders/{order}/inspections', [\App\Http\Controllers\ProductionInspectionController::class, 'store'])->name('inspections.store');
         Route::put('/inspections/{inspection}', [\App\Http\Controllers\ProductionInspectionController::class, 'update'])->name('inspections.update');
     });
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -128,11 +128,20 @@
                                                     <td rowspan="4" class="sticky left-0 z-10 {{ $bgClass }} px-2 py-1 text-xs text-center border-r border-slate-200 font-mono text-slate-500">{{ $index + 1 }}</td>
                                                     <td rowspan="4" class="sticky left-8 z-10 {{ $bgClass }} px-2 py-1 text-xs font-bold text-slate-900 border-r border-slate-200 break-words whitespace-normal align-top">
                                                         {{ $part->part_no }}
-                                                        <div class="text-[10px] text-slate-500 font-normal mt-1">{{ $part->vendor->vendor_name ?? '-' }}</div>
+                                                        @if($part->classification)
+                                                            <span class="inline-block px-1.5 py-0.5 text-[9px] font-bold rounded mt-1
+                                                                {{ $part->classification === 'FG' ? 'bg-green-100 text-green-700' : '' }}
+                                                                {{ $part->classification === 'RM' ? 'bg-blue-100 text-blue-700' : '' }}
+                                                                {{ $part->classification === 'WIP' ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                                                                {{ $part->classification }}
+                                                            </span>
+                                                        @endif
                                                     </td>
                                                     <td rowspan="4" class="sticky left-40 z-10 {{ $bgClass }} px-2 py-1 text-xs text-slate-700 border-r border-slate-200 break-words whitespace-normal align-top">
-                                                        {{ $part->part_name ?? $part->part_name_vendor }}
-                                                        <div class="text-[10px] text-slate-500 mt-1">{{ $part->storage_reg }}</div>
+                                                        {{ $part->part_name }}
+                                                        @if($part->model)
+                                                            <div class="text-[10px] text-slate-500 mt-1">{{ $part->model }}</div>
+                                                        @endif
                                                     </td>
                                                     
                                                     {{-- PLAN Row --}}

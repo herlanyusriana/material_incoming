@@ -12,7 +12,7 @@ class CustomerPlanningRow extends Model
     protected $fillable = [
         'import_id',
         'customer_part_no',
-        'minggu',
+        'period', // Renamed from minggu
         'qty',
         'part_id',
         'row_status',

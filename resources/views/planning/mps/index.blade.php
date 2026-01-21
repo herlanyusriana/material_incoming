@@ -70,8 +70,8 @@
                             <input type="hidden" name="view" value="{{ $viewMode }}">
 
                             <input
-                                name="minggu"
-                                value="{{ $minggu }}"
+                                name="period"
+                                value="{{ $period }}"
                                 class="rounded-xl border-slate-200"
                                 placeholder="{{ $viewMode === 'monthly' ? 'YYYY-MM' : ($viewMode === 'list' ? 'All Weeks' : '2026-W01') }}"
                                 title="Period"
@@ -115,7 +115,7 @@
                         @if($viewMode === 'calendar')
                             <form method="POST" action="{{ route('planning.mps.generate-range') }}">
                                 @csrf
-                                <input type="hidden" name="minggu" value="{{ $minggu }}">
+                                <input type="hidden" name="period" value="{{ $period }}">
                                 <input type="hidden" name="weeks" value="{{ $weeksCountValue }}">
                                 <input type="hidden" name="hide_empty" value="{{ $hideEmptyValue ? 'on' : 'off' }}">
                                 <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm">Generate Range (Refresh Forecast)</button>
@@ -125,7 +125,7 @@
                         @else
                             <form method="POST" action="{{ route('planning.mps.generate') }}">
                                 @csrf
-                                <input type="hidden" name="minggu" value="{{ $minggu }}">
+                                <input type="hidden" name="period" value="{{ $period }}">
                                 <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Generate (Refresh Forecast)</button>
                             </form>
                             <button
@@ -185,15 +185,15 @@
                                         <td class="px-4 py-3 text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->model }}</td>
                                         
                                         @if($viewMode === 'calendar')
-                                            @php $byWeek = $p->mps->keyBy('minggu'); @endphp
+                                            @php $byPeriod = $p->mps->keyBy('period'); @endphp
                                             @foreach($weeksValue as $w)
-                                                @php $cell = $byWeek->get($w); @endphp
+                                                @php $cell = $byPeriod->get($w); @endphp
                                                 <td class="px-4 py-3 text-center">
                                                     @if($cell)
                                                         <button
                                                             type="button"
                                                             class="inline-flex items-center justify-center w-full px-3 py-1 rounded-full text-xs font-semibold {{ $cell->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }}"
-                                                            @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'minggu' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
+                                                            @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
                                                         >
                                                             {{ formatNumber($cell->planned_qty) }}
                                                         </button>
@@ -201,7 +201,7 @@
                                                         <button
                                                             type="button"
                                                             class="inline-flex items-center justify-center w-full h-8 rounded-full border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300"
-                                                            @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'minggu' => $w, 'planned_qty' => 0, 'status' => 'draft']))"
+                                                            @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $w, 'planned_qty' => 0, 'status' => 'draft']))"
                                                         >
                                                             +
                                                         </button>
@@ -219,25 +219,15 @@
                                                     // Using Carbon again in View is heavy but acceptable for 25 items x 4 months = 100 iterations.
                                                     // Better: Controller passed mapping, but filtering collection is fine too.
                                                     
-                                                    // Simplified: Just sum all MPS whose week falls in this month
-                                                    // We can use the collection filter.
-                                                    $monthSum = $p->mps->filter(function($item) use ($m) {
-                                                        // Convert item->minggu (2026-W05) to Month.
-                                                        // A bit heavy.
-                                                        // Let's rely on string comparison if possible? No.
-                                                        // Use Carbon.
-                                                        $y = (int) substr($item->minggu, 0, 4);
-                                                        $w = (int) substr($item->minggu, 6, 2);
-                                                        $d = \Carbon\Carbon::now()->setISODate($y, $w, 1); // Monday
-                                                        return $d->format('Y-m') === $m;
-                                                    })->sum('planned_qty');
+                                                    // Simplified: Just match period
+                                                    $monthSum = $p->mps->where('period', $m)->sum('planned_qty');
                                                     
                                                 @endphp
                                                 <td class="px-4 py-3 text-center">
                                                      <button
                                                         type="button"
                                                         class="inline-flex items-center justify-center w-full px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
-                                                        @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'minggu' => $m, 'planned_qty' => $monthSum, 'status' => 'draft']))"
+                                                        @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $m, 'planned_qty' => $monthSum, 'status' => 'draft']))"
                                                         title="Click to set monthly plan"
                                                     >
                                                         {{ formatNumber($monthSum) }}
@@ -263,7 +253,7 @@
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
                         <form id="approve-form" method="POST" action="{{ route('planning.mps.approve') }}">
                             @csrf
-                            <input type="hidden" name="minggu" value="{{ $minggu }}">
+                            <input type="hidden" name="period" value="{{ $period }}">
                         </form>
 
                         <table class="min-w-full text-sm divide-y divide-slate-200">
@@ -275,7 +265,7 @@
                                             <span>Select</span>
                                         </label>
                                     </th>
-                                    <th class="px-4 py-3 text-left font-semibold">Minggu</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Period</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part GCI</th>
                                     <th class="px-4 py-3 text-right font-semibold">Forecast Qty</th>
                                     <th class="px-4 py-3 text-right font-semibold">Planned Qty</th>
@@ -300,7 +290,7 @@
                                                 <span class="text-xs text-slate-300">—</span>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 font-mono text-xs">{{ $r->minggu }}</td>
+                                        <td class="px-4 py-3 font-mono text-xs">{{ $r->period }}</td>
                                         <td class="px-4 py-3">
                                             <div class="font-semibold">{{ $r->part?->part_no ?? '-' }}</div>
                                             <div class="text-xs text-slate-600">{{ $r->part?->model ?? '-' }}</div>
@@ -365,8 +355,8 @@
                         this.slideOverContent = '';
                         
                         // Construct URL for detail
-                        // payload has part_id, minggu
-                        const url = `{{ route('planning.mps.detail') }}?part_id=${payload.part_id}&minggu=${payload.minggu}`;
+                        // payload has part_id, period
+                        const url = `{{ route('planning.mps.detail') }}?part_id=${payload.part_id}&period=${payload.period ?? payload.minggu}`;
                         
                         try {
                             const response = await fetch(url, {
@@ -388,7 +378,7 @@
                         this.isLoading = true;
                         this.slideOverContent = '';
                         
-                        const url = `{{ route('planning.mps.detail') }}?part_id=${r.part_id}&minggu=${r.minggu}`;
+                        const url = `{{ route('planning.mps.detail') }}?part_id=${r.part_id}&period=${r.period ?? r.minggu}`;
                          try {
                             const response = await fetch(url, {
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }

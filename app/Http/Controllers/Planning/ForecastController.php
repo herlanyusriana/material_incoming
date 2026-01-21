@@ -10,61 +10,65 @@ use Illuminate\Http\Request;
 
 class ForecastController extends Controller
 {
-    private function validateMinggu(string $field = 'minggu'): array
+    private function validatePeriod(string $field = 'period'): array
     {
-        return [$field => ['required', 'string', 'regex:/^\d{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$/']];
+        return [$field => ['required', 'string', 'regex:/^\d{4}-\d{2}$/']];
     }
 
     public function index(Request $request)
     {
-        $minggu = $request->query('minggu');
+        $period = $request->query('period');
         $partId = $request->query('part_id');
 
         $parts = GciPart::query()->orderBy('part_no')->get();
 
         $forecasts = Forecast::query()
             ->with('part')
-            ->when($minggu, fn ($q) => $q->where('minggu', $minggu))
+            ->when($period, fn($q) => $q->where('period', $period))
             ->whereHas('part')
-            ->when($partId, fn ($q) => $q->where('part_id', $partId))
-            ->orderBy('minggu')
+            ->when($partId, fn($q) => $q->where('part_id', $partId))
+            ->orderBy('period')
             ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'forecasts.part_id'))
             ->paginate(100)
             ->withQueryString();
 
-        return view('planning.forecasts.index', compact('parts', 'forecasts', 'minggu', 'partId'));
+        return view('planning.forecasts.index', compact('parts', 'forecasts', 'period', 'partId'));
     }
 
     public function preview(Request $request)
     {
-        $minggu = $request->query('minggu'); // Still allow filter if provided
+        $period = $request->query('period'); // Monthly period filter
 
         // Get all Customer POs (status open)
         $customerPos = \App\Models\CustomerPo::query()
             ->with(['part', 'customer'])
             ->where('status', 'open')
             ->whereNotNull('part_id')
-            ->when($minggu, fn($q) => $q->where('minggu', $minggu))
-            ->orderBy('minggu')
+            ->when($period, fn($q) => $q->where('period', $period))
+            ->orderBy('period')
             ->orderBy('id')
             ->get();
 
         // Get all Customer Planning Imports (files) that have accepted rows
         $planningImports = \App\Models\CustomerPlanningImport::query()
             ->with(['customer'])
-            ->withCount(['rows as accepted_rows_count' => function($q) {
-                $q->where('row_status', 'accepted');
-            }])
-            ->withSum(['rows as total_accepted_qty' => function($q) {
-                $q->where('row_status', 'accepted');
-            }], 'qty')
-            ->whereHas('rows', function($q) {
+            ->withCount([
+                'rows as accepted_rows_count' => function ($q) {
+                    $q->where('row_status', 'accepted');
+                }
+            ])
+            ->withSum([
+                'rows as total_accepted_qty' => function ($q) {
+                    $q->where('row_status', 'accepted');
+                }
+            ], 'qty')
+            ->whereHas('rows', function ($q) {
                 $q->where('row_status', 'accepted');
             })
             ->orderBy('id', 'desc')
             ->get();
 
-        return view('planning.forecasts.preview', compact('minggu', 'customerPos', 'planningImports'));
+        return view('planning.forecasts.preview', compact('period', 'customerPos', 'planningImports'));
     }
 
     public function generate(Request $request)
@@ -75,7 +79,7 @@ class ForecastController extends Controller
             'selected_imports' => 'nullable|array',
             'selected_imports.*' => 'exists:customer_planning_imports,id',
         ]);
-        
+
         $selectedPoIds = $validated['selected_pos'] ?? [];
         $selectedImportIds = $validated['selected_imports'] ?? [];
 
@@ -96,9 +100,9 @@ class ForecastController extends Controller
     {
         \Illuminate\Support\Facades\DB::transaction(function () {
             $count = Forecast::count();
-            
+
             Forecast::query()->delete();
-            
+
             // Log the clear action
             \App\Models\ForecastHistory::create([
                 'user_id' => auth()->id(),
