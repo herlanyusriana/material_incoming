@@ -68,12 +68,12 @@ class PartController extends Controller
                 $filePath = $tempPath;
             }
 
-            if (!$filePath || !file_exists(storage_path('app/' . $filePath))) {
+            if (!$filePath || !\Illuminate\Support\Facades\Storage::exists($filePath)) {
                 return back()->with('error', 'File not found or expired. Please upload again.');
             }
 
             $import = new PartsImport($confirm);
-            Excel::import($import, storage_path('app/' . $filePath));
+            Excel::import($import, \Illuminate\Support\Facades\Storage::path($filePath));
 
             // Check for potential duplicates (Dry Run result)
             if (!empty($import->duplicates)) {
