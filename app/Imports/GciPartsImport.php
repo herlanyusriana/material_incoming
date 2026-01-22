@@ -11,7 +11,7 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 
-class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows
+class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows, SkipsOnFailure
 {
     use SkipsFailures;
 

@@ -13,7 +13,7 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 
-class PartsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows
+class PartsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows, SkipsOnFailure
 {
     use SkipsFailures;
 
