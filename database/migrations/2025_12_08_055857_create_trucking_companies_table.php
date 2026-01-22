@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('trucking_companies', function (Blueprint $table) {
-            $table->id();
-            $table->string('company_name');
-            $table->text('address');
-            $table->string('phone', 50)->nullable();
-            $table->string('email', 100)->nullable();
-            $table->string('contact_person', 100)->nullable();
-            $table->string('status', 20)->default('active');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('trucking_companies')) {
+            Schema::create('trucking_companies', function (Blueprint $table) {
+                $table->id();
+                $table->string('company_name');
+                $table->text('address');
+                $table->string('phone', 50)->nullable();
+                $table->string('email', 100)->nullable();
+                $table->string('contact_person', 100)->nullable();
+                $table->string('status', 20)->default('active');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

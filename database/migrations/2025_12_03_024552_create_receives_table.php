@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('receives', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('arrival_item_id')->constrained()->onDelete('cascade');
-            $table->string('tag')->nullable();
-            $table->integer('qty');
-            $table->dateTime('ata_date');
-            $table->string('qc_status'); // pass, fail, hold
-            $table->decimal('weight', 8, 2)->nullable();
-            $table->string('jo_po_number')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('receives')) {
+            Schema::create('receives', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('arrival_item_id')->constrained()->onDelete('cascade');
+                $table->string('tag')->nullable();
+                $table->integer('qty');
+                $table->dateTime('ata_date');
+                $table->string('qc_status'); // pass, fail, hold
+                $table->decimal('weight', 8, 2)->nullable();
+                $table->string('jo_po_number')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

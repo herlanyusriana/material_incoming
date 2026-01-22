@@ -11,29 +11,33 @@ return new class extends Migration {
     public function up(): void
     {
         // Create parts table
-        Schema::create('parts', function (Blueprint $table) {
-            $table->id();
-            $table->string('part_no')->unique();
-            $table->string('part_name_gci')->nullable();
-            $table->foreignId('vendor_id')->nullable()->constrained('vendors')->onDelete('set null');
-            $table->string('status')->default('active');
-            $table->string('uom')->nullable();
-            $table->decimal('price', 20, 3)->nullable();
-            $table->string('hs_code')->nullable();
-            $table->boolean('quality_inspection')->default(false);
-            $table->softDeletes();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('parts')) {
+            Schema::create('parts', function (Blueprint $table) {
+                $table->id();
+                $table->string('part_no')->unique();
+                $table->string('part_name_gci')->nullable();
+                $table->foreignId('vendor_id')->nullable()->constrained('vendors')->onDelete('set null');
+                $table->string('status')->default('active');
+                $table->string('uom')->nullable();
+                $table->decimal('price', 20, 3)->nullable();
+                $table->string('hs_code')->nullable();
+                $table->boolean('quality_inspection')->default(false);
+                $table->softDeletes();
+                $table->timestamps();
+            });
+        }
 
         // Create inventories table
-        Schema::create('inventories', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('part_id')->unique()->constrained('parts')->onDelete('cascade');
-            $table->decimal('on_hand', 20, 3)->default(0);
-            $table->decimal('on_order', 20, 3)->default(0);
-            $table->decimal('allocated', 20, 3)->default(0);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('inventories')) {
+            Schema::create('inventories', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('part_id')->unique()->constrained('parts')->onDelete('cascade');
+                $table->decimal('on_hand', 20, 3)->default(0);
+                $table->decimal('on_order', 20, 3)->default(0);
+                $table->decimal('allocated', 20, 3)->default(0);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

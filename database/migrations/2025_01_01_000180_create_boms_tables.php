@@ -10,20 +10,24 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('boms', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('part_id')->constrained('parts')->onDelete('cascade');
-            $table->string('bom_no')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('boms')) {
+            Schema::create('boms', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('part_id')->constrained('parts')->onDelete('cascade');
+                $table->string('bom_no')->nullable();
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('bom_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('bom_id')->constrained('boms')->onDelete('cascade');
-            $table->foreignId('component_part_id')->constrained('parts')->onDelete('cascade');
-            $table->decimal('usage_qty', 18, 4);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('bom_items')) {
+            Schema::create('bom_items', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('bom_id')->constrained('boms')->onDelete('cascade');
+                $table->foreignId('component_part_id')->constrained('parts')->onDelete('cascade');
+                $table->decimal('usage_qty', 18, 4);
+                $table->timestamps();
+            });
+        }
     }
 
     /**
