@@ -141,7 +141,12 @@ class OutgoingController extends Controller
             }
         });
 
-        return redirect()->route('outgoing.daily-planning', ['plan_id' => $plan?->id])->with('success', 'Daily planning berhasil diimport.');
+        $msg = 'Daily planning berhasil diimport.';
+        if (!empty($import->createdParts)) {
+            $msg .= ' (Info: ' . count($import->createdParts) . ' part baru otomatis didaftarkan: ' . implode(', ', array_slice($import->createdParts, 0, 5)) . (count($import->createdParts) > 5 ? '...' : '') . ')';
+        }
+
+        return redirect()->route('outgoing.daily-planning', ['plan_id' => $plan?->id])->with('success', $msg);
     }
 
     public function customerPo()

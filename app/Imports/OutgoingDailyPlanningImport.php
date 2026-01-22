@@ -15,6 +15,10 @@ class OutgoingDailyPlanningImport implements ToCollection
     /** @var list<string> */
     public array $failures = [];
 
+    /** @var list<string> */
+    public array $createdParts = [];
+
+
     public function collection(Collection $rows): void
     {
         if ($rows->isEmpty()) {
@@ -106,15 +110,29 @@ class OutgoingDailyPlanningImport implements ToCollection
                         );
                         
                         if ($fgComponents->isEmpty()) {
-                            $this->failures[] = "Baris {$excelRow} (Part {$partNo}): Customer Part tidak memiliki mapping ke FG GCI Part. Outgoing hanya untuk FG.";
-                            continue;
+                            // Auto-create GCI Part as fallback
+                            $gciPart = GciPart::create([
+                                'part_no' => $partNo,
+                                'part_name' => 'AUTO-CREATED IMPORT',
+                                'classification' => 'FG',
+                                'status' => 'active',
+                            ]);
+                            $gciPartId = $gciPart->id;
+                            $this->createdParts[] = $partNo . " (Fallback from CustomerPart)";
+                        } else {
+                            // Use the first FG component
+                            $gciPartId = $fgComponents->first()->part_id;
                         }
-                        
-                        // Use the first FG component
-                        $gciPartId = $fgComponents->first()->part_id;
                     } else {
-                        $this->failures[] = "Baris {$excelRow} (Part {$partNo}): Part tidak ditemukan di GCI Part (FG) maupun Customer Part Mapping.";
-                        continue;
+                        // Auto-create GCI Part
+                        $gciPart = GciPart::create([
+                            'part_no' => $partNo,
+                            'part_name' => 'AUTO-CREATED IMPORT',
+                            'classification' => 'FG',
+                            'status' => 'active',
+                        ]);
+                        $gciPartId = $gciPart->id;
+                        $this->createdParts[] = $partNo;
                     }
                 }
             }
