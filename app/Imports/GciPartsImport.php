@@ -74,6 +74,7 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
         // Phase 1: Check for duplicates if not confirmed
         if (!$this->confirm) {
             foreach ($rows as $rowIndex => $row) {
+                $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
                 $partNo = $this->norm($row['part_no'] ?? $row['part_number'] ?? null);
                 $partNo = $partNo !== null ? strtoupper($partNo) : null;
                 
@@ -99,6 +100,7 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
 
         // Phase 2: Process and Save
         foreach ($rows as $row) {
+            $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
             $this->processRow($row);
         }
     }

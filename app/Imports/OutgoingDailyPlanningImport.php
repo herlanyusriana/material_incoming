@@ -19,6 +19,47 @@ class OutgoingDailyPlanningImport implements ToCollection
     public array $createdParts = [];
 
 
+    private function norm(string $value): string
+    {
+        return strtolower(trim(preg_replace('/\s+/', ' ', $value) ?? $value));
+    }
+
+    private function normalizePartNo(mixed $value): string
+    {
+        $str = str_replace("\u{00A0}", ' ', (string) ($value ?? ''));
+        $str = preg_replace('/\s+/', ' ', $str) ?? $str;
+        return strtoupper(trim($str));
+    }
+
+    private function parseIntOrNull(mixed $value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_int($value)) {
+            return $value;
+        }
+        if (is_numeric($value)) {
+            $n = (int) round((float) $value);
+            return $n <= 0 ? null : $n;
+        }
+        $str = trim((string) $value);
+        if ($str === '' || $str === '-') {
+            return null;
+        }
+        $str = str_replace([',', ' '], ['', ''], $str);
+        if (!is_numeric($str)) {
+            return null;
+        }
+        $n = (int) round((float) $str);
+        return $n <= 0 ? null : $n;
+    }
+
+    private function rowValues(Collection $row): array
+    {
+        return array_values($row->all());
+    }
+
     public function collection(Collection $rows): void
     {
         if ($rows->isEmpty()) {
