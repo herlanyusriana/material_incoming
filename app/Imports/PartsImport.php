@@ -125,6 +125,8 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
         // Phase 1: Check for duplicates
         if (!$this->confirm) {
             foreach ($rows as $rowIndex => $row) {
+                // Fix: Convert Collection to array
+                $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
                 $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
                 if (!$partNo) continue;
 
@@ -146,6 +148,7 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
 
         // Phase 2: Process and Save
         foreach ($rows as $row) {
+            $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
             $this->processRow($row);
         }
     }
