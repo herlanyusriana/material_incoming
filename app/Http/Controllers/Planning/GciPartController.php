@@ -78,7 +78,7 @@ class GciPartController extends Controller
     {
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')],
+            'part_no' => ['required', 'string', 'max:100'],
             'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
@@ -90,6 +90,15 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 
+        if (!$request->boolean('confirm_duplicate')) {
+            if (GciPart::where('part_no', $validated['part_no'])->exists()) {
+                return back()
+                    ->withInput()
+                    ->with('duplicate_warning_data', $request->all())
+                    ->with('error', "Part number '{$validated['part_no']}' already exists. Please confirm to proceed.");
+            }
+        }
+
         GciPart::create($validated);
 
         return back()->with('success', 'Part GCI created.');
@@ -99,7 +108,7 @@ class GciPartController extends Controller
     {
         $validated = $request->validate([
             'customer_id' => ['nullable', 'exists:customers,id'],
-            'part_no' => ['required', 'string', 'max:100', Rule::unique('gci_parts', 'part_no')->ignore($gciPart->id)],
+            'part_no' => ['required', 'string', 'max:100'],
             'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],

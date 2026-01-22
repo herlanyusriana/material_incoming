@@ -7,8 +7,20 @@
     </x-slot>
 
     <div class="py-6">
-        <form method="POST" action="{{ route('parts.store') }}">
+        <form method="POST" action="{{ route('parts.store') }}" id="create-part-form">
             @include('parts._form')
+            <input type="hidden" name="confirm_duplicate" id="confirm_duplicate" value="0">
         </form>
     </div>
+
+    @if(session('duplicate_warning'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (confirm(@json(session('duplicate_warning')))) {
+                    document.getElementById('confirm_duplicate').value = '1';
+                    document.getElementById('create-part-form').submit();
+                }
+            });
+        </script>
+    @endif
 </x-app-layout>

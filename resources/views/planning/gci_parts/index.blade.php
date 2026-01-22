@@ -144,8 +144,9 @@
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">✕</button>
                 </div>
 
-                <form :action="formAction" method="POST" class="px-5 py-4 space-y-4">
+                <form :action="formAction" method="POST" class="px-5 py-4 space-y-4" x-ref="gciPartForm">
                     @csrf
+                    <input type="hidden" name="confirm_duplicate" value="0" x-ref="confirmDuplicateInput">
                     <template x-if="mode === 'edit'">
                         <input type="hidden" name="_method" value="PUT">
                     </template>
@@ -203,6 +204,35 @@
                     mode: 'create',
                     formAction: @js(route('planning.gci-parts.store')),
                     form: { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' },
+                    
+                    init() {
+                        const warningData = @js(session('duplicate_warning_data'));
+                        if (warningData) {
+                            this.mode = 'create';
+                            this.form = {
+                                id: null,
+                                customer_id: warningData.customer_id || '',
+                                part_no: warningData.part_no || '',
+                                classification: warningData.classification || 'FG',
+                                part_name: warningData.part_name || '',
+                                model: warningData.model || '',
+                                status: warningData.status || 'active'
+                            };
+                            this.modalOpen = true; // Open modal with data
+
+                            // Trigger confirmation
+                            setTimeout(() => {
+                                if (confirm("Part number '" + this.form.part_no + "' already exists. Do you want to proceed creating a duplicate?")) {
+                                    // Set confirm flag and submit
+                                    if (this.$refs.confirmDuplicateInput) {
+                                        this.$refs.confirmDuplicateInput.value = '1';
+                                        this.$refs.gciPartForm.submit();
+                                    }
+                                }
+                            }, 300);
+                        }
+                    },
+
                     openCreate() {
                         this.mode = 'create';
                         this.formAction = @js(route('planning.gci-parts.store'));

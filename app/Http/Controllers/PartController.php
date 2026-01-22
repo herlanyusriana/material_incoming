@@ -94,9 +94,9 @@ class PartController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $rules = [
             'register_no' => ['required', 'string', 'max:255'],
-            'part_no' => ['required', 'string', 'max:255', 'unique:parts,part_no'],
+            'part_no' => ['required', 'string', 'max:255'],
             'part_name_vendor' => ['required', 'string', 'max:255'],
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
@@ -105,9 +105,20 @@ class PartController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'uom' => ['nullable', 'string', 'max:10'],
-        ]);
+        ];
 
-        Part::create($data);
+        $validated = $request->validate($rules);
+
+        // Check for duplicates
+        if (!$request->boolean('confirm_duplicate')) {
+            if (Part::where('part_no', $validated['part_no'])->exists()) {
+                return back()
+                    ->withInput()
+                    ->with('duplicate_warning', "Part number '{$validated['part_no']}' already exists. Do you want to proceed creating a duplicate?");
+            }
+        }
+
+        Part::create($validated);
 
         return redirect()->route('parts.index')->with('status', 'Part created.');
     }
@@ -123,7 +134,7 @@ class PartController extends Controller
     {
         $data = $request->validate([
             'register_no' => ['required', 'string', 'max:255'],
-            'part_no' => ['required', 'string', 'max:255', 'unique:parts,part_no,' . $part->id],
+            'part_no' => ['required', 'string', 'max:255'],
             'part_name_vendor' => ['required', 'string', 'max:255'],
             'part_name_gci' => ['required', 'string', 'max:255'],
             'hs_code' => ['nullable', 'string', 'max:50'],
