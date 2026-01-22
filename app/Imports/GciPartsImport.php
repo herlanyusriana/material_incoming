@@ -71,34 +71,7 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
 
     public function collection(\Illuminate\Support\Collection $rows)
     {
-        // Phase 1: Check for duplicates if not confirmed
-        if (!$this->confirm) {
-            foreach ($rows as $rowIndex => $row) {
-                $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
-                $partNo = $this->norm($row['part_no'] ?? $row['part_number'] ?? null);
-                $partNo = $partNo !== null ? strtoupper($partNo) : null;
-                
-                if (!$partNo) continue;
-
-                // Check if part number already exists in DB
-                if (GciPart::where('part_no', $partNo)->exists()) {
-                    $this->duplicates[] = [
-                        'row' => $rowIndex + 2, // Excel row (1-header + 1-index)
-                        'part_no' => $partNo,
-                        'part_name' => $this->norm($row['part_name'] ?? $row['part_name_gci'] ?? null),
-                        'model' => $this->norm($row['model'] ?? null),
-                        'customer' => $this->norm($row['customer'] ?? null),
-                    ];
-                }
-            }
-
-            // If duplicates found and not confirmed, stop processing
-            if (!empty($this->duplicates)) {
-                return;
-            }
-        }
-
-        // Phase 2: Process and Save
+        // Phase 2: Process and Save (Update or Create)
         foreach ($rows as $row) {
             $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
             $this->processRow($row);
@@ -118,24 +91,35 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
         $status = strtolower((string) ($this->norm($row['status'] ?? null) ?? ''));
         $customerCode = $this->norm($row['customer'] ?? null);
 
-        // Always create new record (Duplicate Allowed)
-        $part = new GciPart(['part_no' => $partNo]);
+        // Update Existing or Create New
+        $part = GciPart::firstOrNew(['part_no' => $partNo]);
 
         // Use classification from Excel, default to FG for new parts
         $classification = strtoupper((string) ($this->norm($row['classification'] ?? null) ?? ''));
         if (in_array($classification, ['FG', 'WIP', 'RM'], true)) {
             $part->classification = $classification;
         } else {
-            $part->classification = 'FG';
+            if (!$part->exists) {
+                $part->classification = 'FG';
+            }
         }
 
-        $part->part_name = $partName ?? $partNo;
-        $part->model = $model;
+        if ($partName !== null) {
+            $part->part_name = $partName;
+        } elseif (!$part->exists && !$part->part_name) {
+             $part->part_name = $partNo;
+        }
+
+        if ($model !== null) {
+            $part->model = $model;
+        }
 
         if ($status !== '' && in_array($status, ['active', 'inactive'], true)) {
             $part->status = $status;
         } else {
-            $part->status = 'active';
+            if (!$part->exists) {
+                $part->status = 'active';
+            }
         }
 
         if ($customerCode !== null) {

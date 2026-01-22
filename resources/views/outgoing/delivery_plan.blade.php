@@ -333,158 +333,20 @@
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('deliveryPlanUI', () => ({
-            selectedDate: '2024-01-24',
-            expandedPlan: 'DP001',
-            trucks: [
-                { id: 'T001', plateNo: 'B 1234 ABC', type: 'Box Truck', capacity: '5 Ton', status: 'available' },
-                { id: 'T002', plateNo: 'B 5678 DEF', type: 'Flatbed', capacity: '8 Ton', status: 'available' },
-                { id: 'T003', plateNo: 'B 9012 GHI', type: 'Box Truck', capacity: '5 Ton', status: 'in-use' },
-            ],
-            drivers: [
-                { id: 'D001', name: 'Budi Santoso', phone: '0812-3456-7890', status: 'available', license: 'SIM B1' },
-                { id: 'D002', name: 'Ahmad Yani', phone: '0813-4567-8901', status: 'available', license: 'SIM B2' },
-                { id: 'D003', name: 'Slamet Riyadi', phone: '0814-5678-9012', status: 'on-delivery', license: 'SIM B1' },
-            ],
-            deliveryPlans: [
-                {
-                    id: 'DP001',
-                    sequence: 1,
-                    truckId: 'T003',
-                    driverId: 'D003',
-                    status: 'in-progress',
-                    estimatedDeparture: '08:00',
-                    estimatedReturn: '12:00',
-                    stops: [
-                        {
-                            id: 'STOP-001',
-                            customer: 'PT Toyota Manufacturing',
-                            customerCode: 'CUST-TOY-001',
-                            address: 'Jl. Industri No. 45, Karawang Barat',
-                            estimatedTime: '09:00',
-                            status: 'completed',
-                            deliveryOrders: [
-                                {
-                                    id: 'DO-2024-001',
-                                    poNumber: 'PO/TOY/2024/0115',
-                                    poDate: '2024-01-15',
-                                    products: [
-                                        { partNo: 'TY-BRK-9001-A', partName: 'Brake Pad Front Assembly', quantity: 500, unit: 'PCS', weight: '250 kg' },
-                                        { partNo: 'TY-BRK-9001-B', partName: 'Brake Pad Rear Assembly', quantity: 500, unit: 'PCS', weight: '250 kg' }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            id: 'STOP-002',
-                            customer: 'PT Honda Precision Parts',
-                            customerCode: 'CUST-HON-002',
-                            address: 'Jl. Raya Bekasi KM 28, Bekasi',
-                            estimatedTime: '10:30',
-                            status: 'in-progress',
-                            deliveryOrders: [
-                                {
-                                    id: 'DO-2024-002',
-                                    poNumber: 'PO/HON/2024/0118',
-                                    poDate: '2024-01-18',
-                                    products: [
-                                        { partNo: 'HD-SPK-4521', partName: 'Spark Plug NGK Standard', quantity: 1000, unit: 'PCS', weight: '50 kg' },
-                                        { partNo: 'HD-FLT-7788', partName: 'Oil Filter Premium', quantity: 500, unit: 'PCS', weight: '75 kg' }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    id: 'DP002',
-                    sequence: 2,
-                    truckId: 'T001',
-                    driverId: 'D001',
-                    status: 'scheduled',
-                    estimatedDeparture: '13:00',
-                    estimatedReturn: '17:00',
-                    stops: [
-                        {
-                            id: 'STOP-003',
-                            customer: 'PT Yamaha Indonesia Motor',
-                            customerCode: 'CUST-YAM-003',
-                            address: 'Jl. Industri Raya No. 12, Cikarang',
-                            estimatedTime: '14:00',
-                            status: 'pending',
-                            deliveryOrders: [
-                                {
-                                    id: 'DO-2024-003',
-                                    poNumber: 'PO/YAM/2024/0120',
-                                    poDate: '2024-01-20',
-                                    products: [
-                                        { partNo: 'YM-TIRE-1625-F', partName: 'Front Tire 16/25 Complete', quantity: 200, unit: 'PCS', weight: '400 kg' },
-                                        { partNo: 'YM-TIRE-1625-R', partName: 'Rear Tire 16/25 Complete', quantity: 200, unit: 'PCS', weight: '450 kg' }
-                                    ]
-                                },
-                                {
-                                    id: 'DO-2024-004',
-                                    poNumber: 'PO/YAM/2024/0121',
-                                    poDate: '2024-01-21',
-                                    products: [
-                                        { partNo: 'YM-CHN-428', partName: 'Drive Chain 428 Standard', quantity: 300, unit: 'PCS', weight: '180 kg' }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            id: 'STOP-004',
-                            customer: 'PT Suzuki Indomobil Motor',
-                            customerCode: 'CUST-SUZ-004',
-                            address: 'Jl. Raya Cakung No. 88, Jakarta Timur',
-                            estimatedTime: '15:30',
-                            status: 'pending',
-                            deliveryOrders: [
-                                {
-                                    id: 'DO-2024-005',
-                                    poNumber: 'PO/SUZ/2024/0119',
-                                    poDate: '2024-01-19',
-                                    products: [
-                                        { partNo: 'SZ-ENG-5566', partName: 'Engine Oil SAE 10W-40', quantity: 100, unit: 'LITER', weight: '90 kg' },
-                                        { partNo: 'SZ-BLT-9988', partName: 'V-Belt Standard', quantity: 200, unit: 'PCS', weight: '60 kg' }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    id: 'DP003',
-                    sequence: 3,
-                    truckId: null,
-                    driverId: null,
-                    status: 'unassigned',
-                    estimatedDeparture: '14:00',
-                    estimatedReturn: '18:00',
-                    stops: [
-                        {
-                            id: 'STOP-005',
-                            customer: 'PT Astra Daihatsu Motor',
-                            customerCode: 'CUST-DAI-005',
-                            address: 'Jl. Gaya Motor III No. 5, Sunter',
-                            estimatedTime: '15:00',
-                            status: 'pending',
-                            deliveryOrders: [
-                                {
-                                    id: 'DO-2024-006',
-                                    poNumber: 'PO/DAI/2024/0122',
-                                    poDate: '2024-01-22',
-                                    products: [
-                                        { partNo: 'DH-BRK-7788-F', partName: 'Front Brake Disc 14 inch', quantity: 400, unit: 'PCS', weight: '600 kg' },
-                                        { partNo: 'DH-BRK-7788-R', partName: 'Rear Brake Disc 13 inch', quantity: 400, unit: 'PCS', weight: '520 kg' },
-                                        { partNo: 'DH-PAD-1122', partName: 'Brake Pad Set Complete', quantity: 400, unit: 'SET', weight: '200 kg' }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
+            selectedDate: @json($selectedDate),
+            expandedPlan: null,
+            trucks: @json($trucks),
+            drivers: @json($drivers),
+            deliveryPlans: @json($deliveryPlans),
             
+            init() {
+                this.$watch('selectedDate', (value) => {
+                    if (value !== @json($selectedDate)) {
+                        window.location.href = '?date=' + value;
+                    }
+                });
+            },
+
             getTruck(id) {
                 return this.trucks.find(t => t.id === id);
             },

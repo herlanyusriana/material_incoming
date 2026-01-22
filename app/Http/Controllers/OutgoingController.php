@@ -207,7 +207,72 @@ class OutgoingController extends Controller
 
     public function deliveryPlan()
     {
-        return view('outgoing.delivery_plan');
+        $date = $this->parseDate(request('date')) ?? now()->startOfDay();
+
+        // Prepare Data for View
+        $plansDb = \App\Models\DeliveryPlan::with([
+            'truck', 
+            'driver', 
+            'stops.customer', 
+            'stops.deliveryNotes' // items?
+        ])
+        ->whereDate('plan_date', $date)
+        ->orderBy('sequence')
+        ->get();
+
+        // MAPPING to Front-End Structure
+        $deliveryPlans = $plansDb->map(function($p) {
+            return [
+                'id' => 'DP' . str_pad($p->id, 3, '0', STR_PAD_LEFT),
+                'sequence' => $p->sequence,
+                'truckId' => $p->truck_id,
+                'driverId' => $p->driver_id,
+                'status' => $p->status,
+                'estimatedDeparture' => $p->estimated_departure ? \Carbon\Carbon::parse($p->estimated_departure)->format('H:i') : '-',
+                'estimatedReturn' => $p->estimated_return ? \Carbon\Carbon::parse($p->estimated_return)->format('H:i') : '-',
+                'stops' => $p->stops->map(function($s) {
+                    return [
+                        'id' => $s->id,
+                        'customer' => $s->customer->name,
+                        'customerCode' => $s->customer->code,
+                        'address' => $s->customer->address,
+                        'estimatedTime' => $s->estimated_arrival_time ? \Carbon\Carbon::parse($s->estimated_arrival_time)->format('H:i') : '-',
+                        'status' => $s->status,
+                        'deliveryOrders' => $s->deliveryNotes->map(function($dn) {
+                            return [
+                                'id' => $dn->dn_no,
+                                'poNumber' => $dn->dn_no, // Placeholder
+                                'poDate' => $dn->delivery_date->format('Y-m-d'),
+                                'products' => [] // Todo: Fetch items
+                            ];
+                        })
+                    ];
+                })
+            ];
+        });
+
+        $trucks = \App\Models\Truck::all()->map(fn($t) => [
+            'id' => $t->id,
+            'plateNo' => $t->plate_no,
+            'type' => $t->type,
+            'capacity' => $t->capacity,
+            'status' => $t->status
+        ]);
+
+        $drivers = \App\Models\Driver::all()->map(fn($d) => [
+            'id' => $d->id,
+            'name' => $d->name,
+            'phone' => $d->phone,
+            'license' => $d->license_type,
+            'status' => $d->status
+        ]);
+
+        return view('outgoing.delivery_plan', [
+            'deliveryPlans' => $deliveryPlans,
+            'trucks' => $trucks,
+            'drivers' => $drivers,
+            'selectedDate' => $date->format('Y-m-d'),
+        ]);
     }
 
     private function parseDate(?string $value): ?Carbon

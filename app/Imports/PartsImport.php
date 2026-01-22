@@ -122,32 +122,9 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
 
     public function collection(\Illuminate\Support\Collection $rows)
     {
-        // Phase 1: Check for duplicates
-        if (!$this->confirm) {
-            foreach ($rows as $rowIndex => $row) {
-                // Fix: Convert Collection to array
-                $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
-                $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
-                if (!$partNo) continue;
-
-                if (Part::where('part_no', $partNo)->exists()) {
-                    $this->duplicates[] = [
-                        'row' => $rowIndex + 2,
-                        'part_no' => $partNo,
-                        'vendor' => $this->firstNonEmpty($row, ['vendor', 'vendor_name']),
-                        'part_name_vendor' => $this->firstNonEmpty($row, ['part_name_vendor', 'vendor_part_name']),
-                        'part_name_gci' => $this->firstNonEmpty($row, ['part_name_gci', 'part_name_internal', 'gci_part_name']),
-                    ];
-                }
-            }
-
-            if (!empty($this->duplicates)) {
-                return;
-            }
-        }
-
-        // Phase 2: Process and Save
+        // Phase 2: Process and Save (Now handles Update or Create)
         foreach ($rows as $row) {
+            // Fix: Convert Collection to array
             $row = $row instanceof \Illuminate\Support\Collection ? $row->toArray() : (array) $row;
             $this->processRow($row);
         }
@@ -205,9 +182,9 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             }
         }
 
-        // Always Create New Record (Duplicate Allowed)
-        $part = new Part(['part_no' => $partNo]);
-        $part->vendor_id = $vendor->id;
+        // Update existing or Create new
+        $part = Part::firstOrNew(['part_no' => $partNo]);
+        $part->vendor_id = $vendor->id; // Always update vendor mapping
 
         if ($registerNo !== null) {
             $part->register_no = $registerNo;
@@ -241,13 +218,19 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
 
         if (array_key_exists('status', $row)) {
             $statusRaw = $this->firstNonEmpty($row, ['status']);
-            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : 'active';
-            if (!in_array($status, ['active', 'inactive'], true)) {
-                $status = 'active';
+            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : null; // if explicit null, keep old status? No, status usually required.
+            // If explicit empty string in Excel -> inactive?
+            // "if array_key_exists" means column exists.
+            if ($status) {
+                 if (!in_array($status, ['active', 'inactive'], true)) {
+                    $status = 'active';
+                }
+                $part->status = $status;
             }
-            $part->status = $status;
         } else {
-            $part->status = 'active';
+             if (!$part->exists) {
+                $part->status = 'active';
+             }
         }
 
         if (!$part->register_no || trim((string) $part->register_no) === '') {

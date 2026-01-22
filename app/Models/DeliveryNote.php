@@ -15,6 +15,8 @@ class DeliveryNote extends Model
         'delivery_date',
         'status',
         'notes',
+        'delivery_plan_id',
+        'delivery_stop_id',
     ];
 
     protected $casts = [
@@ -29,5 +31,15 @@ class DeliveryNote extends Model
     public function items()
     {
         return $this->hasMany(DnItem::class, 'dn_id');
+    }
+
+    public function plan()
+    {
+        return $this->belongsTo(DeliveryPlan::class, 'delivery_plan_id');
+    }
+
+    public function stop()
+    {
+        return $this->belongsTo(DeliveryStop::class, 'delivery_stop_id');
     }
 }
