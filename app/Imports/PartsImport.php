@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Part;
 use App\Models\Vendor;
 use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -12,12 +13,19 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 
-class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsEmptyRows
+class PartsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
     use SkipsFailures;
 
     /** @var array<int, string> */
     private array $createdVendors = [];
+    public $duplicates = [];
+    private $confirm = false;
+
+    public function __construct($confirm = false)
+    {
+        $this->confirm = (bool) $confirm;
+    }
 
     /** @var array<int, string> */
     private array $vendorTypeKeys = [
@@ -112,7 +120,37 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
         return $data;
     }
 
-    public function model(array $row)
+    public function collection(\Illuminate\Support\Collection $rows)
+    {
+        // Phase 1: Check for duplicates
+        if (!$this->confirm) {
+            foreach ($rows as $rowIndex => $row) {
+                $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
+                if (!$partNo) continue;
+
+                if (Part::where('part_no', $partNo)->exists()) {
+                    $this->duplicates[] = [
+                        'row' => $rowIndex + 2,
+                        'part_no' => $partNo,
+                        'vendor' => $this->firstNonEmpty($row, ['vendor', 'vendor_name']),
+                        'part_name_vendor' => $this->firstNonEmpty($row, ['part_name_vendor', 'vendor_part_name']),
+                        'part_name_gci' => $this->firstNonEmpty($row, ['part_name_gci', 'part_name_internal', 'gci_part_name']),
+                    ];
+                }
+            }
+
+            if (!empty($this->duplicates)) {
+                return;
+            }
+        }
+
+        // Phase 2: Process and Save
+        foreach ($rows as $row) {
+            $this->processRow($row);
+        }
+    }
+
+    private function processRow(array $row)
     {
         $vendorId = $this->firstNonEmpty($row, ['vendor_id']);
         $vendorName = $this->firstNonEmpty($row, ['vendor', 'vendor_name']);
@@ -139,7 +177,7 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
         }
 
         if (!$vendor) {
-            return null;
+            return;
         }
 
         if ($vendorType !== null && (!$vendor->vendor_type || trim((string) $vendor->vendor_type) === '')) {
@@ -149,7 +187,7 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
 
         $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
         if (!$partNo) {
-            return null;
+            return;
         }
         $registerNo = $this->firstNonEmpty($row, ['register_no', 'register_number', 'size']);
         $partNameVendor = $this->firstNonEmpty($row, ['part_name_vendor', 'vendor_part_name']);
@@ -164,28 +202,28 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             }
         }
 
-        $update = [
-            'vendor_id' => $vendor->id,
-        ];
+        // Always Create New Record (Duplicate Allowed)
+        $part = new Part(['part_no' => $partNo]);
+        $part->vendor_id = $vendor->id;
 
         if ($registerNo !== null) {
-            $update['register_no'] = $registerNo;
+            $part->register_no = $registerNo;
         }
 
         if ($partNameVendor !== null) {
-            $update['part_name_vendor'] = $partNameVendor;
+            $part->part_name_vendor = $partNameVendor;
         }
 
         if ($partNameGci !== null) {
-            $update['part_name_gci'] = $partNameGci;
+            $part->part_name_gci = $partNameGci;
         }
 
         if ($hsCode !== null) {
-            $update['hs_code'] = $hsCode;
+            $part->hs_code = $hsCode;
         }
 
         if ($qualityInspection !== null) {
-            $update['quality_inspection'] = $qualityInspection;
+            $part->quality_inspection = $qualityInspection;
         }
 
         if (array_key_exists('status', $row)) {
@@ -194,13 +232,10 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             if (!in_array($status, ['active', 'inactive'], true)) {
                 $status = 'active';
             }
-            $update['status'] = $status;
+            $part->status = $status;
+        } else {
+            $part->status = 'active';
         }
-
-        $part = Part::updateOrCreate(
-            ['part_no' => $partNo],
-            $update,
-        );
 
         if (!$part->register_no || trim((string) $part->register_no) === '') {
             $part->register_no = $partNo;
@@ -212,8 +247,6 @@ class PartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFai
             $part->part_name_gci = $part->part_name_vendor ?: $partNo;
         }
         $part->save();
-
-        return null;
     }
 
     public function rules(): array

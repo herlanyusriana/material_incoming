@@ -46,24 +46,58 @@ class PartController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls|max:2048',
+            'file' => ['nullable', 'file', 'mimes:xlsx,xls', 'max:2048'],
+            'temp_file' => ['nullable', 'string'],
         ]);
 
+        $file = $request->file('file');
+        $tempPath = $request->input('temp_file');
+        $confirm = $request->boolean('confirm_import');
+
+        if (!$file && !$tempPath) {
+            return back()->with('error', 'Please upload a file.');
+        }
+
         try {
-            $import = new PartsImport();
-            Excel::import($import, $request->file('file'));
+            $filePath = null;
+            if ($file) {
+                // Save original file to temp storage
+                $filename = 'import_parts_' . auth()->id() . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $filePath = $file->storeAs('temp', $filename);
+            } else {
+                $filePath = $tempPath;
+            }
+
+            if (!$filePath || !file_exists(storage_path('app/' . $filePath))) {
+                return back()->with('error', 'File not found or expired. Please upload again.');
+            }
+
+            $import = new PartsImport($confirm);
+            Excel::import($import, storage_path('app/' . $filePath));
+
+            // Check for potential duplicates (Dry Run result)
+            if (!empty($import->duplicates)) {
+                return back()
+                    ->with('import_duplicates', $import->duplicates)
+                    ->with('temp_file', $filePath)
+                    ->with('error', 'Duplicate data found. Please review below.');
+            }
 
             $failures = collect($import->failures());
             if ($failures->isNotEmpty()) {
+                \Illuminate\Support\Facades\Storage::delete($filePath);
                 $preview = $failures
                     ->take(5)
                     ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
-
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
             $createdVendors = $import->createdVendors();
+            
+            // Delete temp file on success
+            \Illuminate\Support\Facades\Storage::delete($filePath);
+
             if (!empty($createdVendors)) {
                 $preview = collect($createdVendors)->take(5)->implode(', ');
                 $more = count($createdVendors) > 5 ? ' (+' . (count($createdVendors) - 5) . ' more)' : '';
@@ -73,6 +107,9 @@ class PartController extends Controller
             return back()->with('status', 'Parts imported successfully.');
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
+                // Keep file logic if reusable? Complexity. Let's delete for now on validation error.
+                if (isset($filePath)) \Illuminate\Support\Facades\Storage::delete($filePath);
+
                 $failures = collect($e->failures());
                 $preview = $failures
                     ->take(5)
@@ -80,6 +117,7 @@ class PartController extends Controller
                     ->implode(' ; ');
                 return back()->with('error', "Import failed: {$preview}");
             }
+            if (isset($filePath)) \Illuminate\Support\Facades\Storage::delete($filePath);
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }

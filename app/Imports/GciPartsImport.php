@@ -7,13 +7,21 @@ use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
-use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 
-class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsEmptyRows
+class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
     use SkipsFailures;
+
+    public $duplicates = [];
+    private $confirm = false;
+
+    public function __construct($confirm = false)
+    {
+        $this->confirm = (bool) $confirm;
+    }
 
     private function norm(mixed $value): ?string
     {
@@ -61,12 +69,46 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         return $data;
     }
 
-    public function model(array $row)
+    public function collection(\Illuminate\Support\Collection $rows)
+    {
+        // Phase 1: Check for duplicates if not confirmed
+        if (!$this->confirm) {
+            foreach ($rows as $rowIndex => $row) {
+                $partNo = $this->norm($row['part_no'] ?? $row['part_number'] ?? null);
+                $partNo = $partNo !== null ? strtoupper($partNo) : null;
+                
+                if (!$partNo) continue;
+
+                // Check if part number already exists in DB
+                if (GciPart::where('part_no', $partNo)->exists()) {
+                    $this->duplicates[] = [
+                        'row' => $rowIndex + 2, // Excel row (1-header + 1-index)
+                        'part_no' => $partNo,
+                        'part_name' => $this->norm($row['part_name'] ?? $row['part_name_gci'] ?? null),
+                        'model' => $this->norm($row['model'] ?? null),
+                        'customer' => $this->norm($row['customer'] ?? null),
+                    ];
+                }
+            }
+
+            // If duplicates found and not confirmed, stop processing
+            if (!empty($this->duplicates)) {
+                return;
+            }
+        }
+
+        // Phase 2: Process and Save
+        foreach ($rows as $row) {
+            $this->processRow($row);
+        }
+    }
+
+    private function processRow(array $row)
     {
         $partNo = $this->norm($row['part_no'] ?? $row['part_number'] ?? null);
         $partNo = $partNo !== null ? strtoupper($partNo) : null;
         if (!$partNo) {
-            return null;
+            return;
         }
 
         $partName = $this->norm($row['part_name'] ?? $row['part_name_gci'] ?? null);
@@ -74,33 +116,24 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         $status = strtolower((string) ($this->norm($row['status'] ?? null) ?? ''));
         $customerCode = $this->norm($row['customer'] ?? null);
 
-        // Find existing or create new
-        $part = GciPart::where('part_no', $partNo)->first() ?: new GciPart(['part_no' => $partNo]);
+        // Always create new record (Duplicate Allowed)
+        $part = new GciPart(['part_no' => $partNo]);
 
         // Use classification from Excel, default to FG for new parts
         $classification = strtoupper((string) ($this->norm($row['classification'] ?? null) ?? ''));
         if (in_array($classification, ['FG', 'WIP', 'RM'], true)) {
             $part->classification = $classification;
-        } elseif (!$part->exists) {
-            $part->classification = 'FG'; // Default for NEW records only
-        }
-        // For existing parts without classification in Excel, keep current value
-
-        // Only update if value is provided in Excel
-        if ($partName !== null) {
-            $part->part_name = $partName;
-        } elseif (!$part->exists) {
-            $part->part_name = $partNo; // Default for NEW records
+        } else {
+            $part->classification = 'FG';
         }
 
-        if ($model !== null) {
-            $part->model = $model;
-        }
+        $part->part_name = $partName ?? $partNo;
+        $part->model = $model;
 
         if ($status !== '' && in_array($status, ['active', 'inactive'], true)) {
             $part->status = $status;
-        } elseif (!$part->exists) {
-            $part->status = 'active'; // Default for NEW records
+        } else {
+            $part->status = 'active';
         }
 
         if ($customerCode !== null) {
@@ -113,8 +146,6 @@ class GciPartsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
         }
 
         $part->save();
-
-        return null;
     }
 
     public function rules(): array

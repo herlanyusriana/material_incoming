@@ -279,3 +279,65 @@
         </div>
     </div>
 </x-app-layout>
+
+@if(session('import_duplicates'))
+    <div class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-yellow-50 rounded-t-2xl">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-yellow-100 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Existing Data Found</h3>
+                        <p class="text-sm text-yellow-700">The following parts already exist in the database.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 overflow-y-auto">
+                <p class="text-sm text-gray-600 mb-4">Are you sure you want to import them as NEW records (duplicates)?</p>
+                
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-medium text-gray-500">Row</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-500">Part No</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-500">Part Name</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-500">Customer</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            @foreach(session('import_duplicates') as $dup)
+                                <tr>
+                                    <td class="px-3 py-2 text-gray-500">{{ $dup['row'] }}</td>
+                                    <td class="px-3 py-2 font-semibold text-gray-900">{{ $dup['part_no'] }}</td>
+                                    <td class="px-3 py-2 text-gray-600">{{ $dup['part_name'] ?? '-' }}</td>
+                                    <td class="px-3 py-2 text-gray-600">{{ $dup['customer'] ?? '-' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl">
+                <a href="{{ url()->current() }}" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-white transition-colors decoration-0">
+                    Cancel Import
+                </a>
+                
+                <form action="{{ route('planning.gci-parts.import') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="temp_file" value="{{ session('temp_file') }}">
+                    <input type="hidden" name="confirm_import" value="1">
+                    <button type="submit" class="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                        Yes, Proceed with Duplicates
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif

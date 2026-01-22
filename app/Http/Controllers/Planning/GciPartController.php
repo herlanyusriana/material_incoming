@@ -50,17 +50,53 @@ class GciPartController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+            'file' => ['nullable', 'file', 'mimes:xlsx,xls', 'max:2048'],
+            'temp_file' => ['nullable', 'string'],
         ]);
 
+        $file = $request->file('file');
+        $tempPath = $request->input('temp_file');
+        $confirm = $request->boolean('confirm_import');
+
+        if (!$file && !$tempPath) {
+            return back()->with('error', 'Please upload a file.');
+        }
+
         try {
-            $import = new GciPartsImport();
-            DB::transaction(function () use ($request, $import) {
-                Excel::import($import, $request->file('file'));
+            $filePath = null;
+            if ($file) {
+                // Save original file to temp storage to reuse if confirmation is needed
+                $filename = 'import_gci_' . auth()->id() . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $filePath = $file->storeAs('temp', $filename);
+            } else {
+                $filePath = $tempPath;
+            }
+
+            if (!$filePath || !file_exists(storage_path('app/' . $filePath))) {
+                return back()->with('error', 'File not found or expired. Please upload again.');
+            }
+
+            $import = new GciPartsImport($confirm);
+            
+            // We use a transaction, though GciPartsImport stops early if duplicates found
+            DB::transaction(function () use ($import, $filePath) {
+                Excel::import($import, storage_path('app/' . $filePath));
             });
+
+            // Check for potential duplicates (Dry Run result)
+            if (!empty($import->duplicates)) {
+                return back()
+                    ->with('import_duplicates', $import->duplicates)
+                    ->with('temp_file', $filePath) // Pass temp path back
+                    ->with('error', 'Duplicate data found. Please review below.');
+            }
 
             $failures = collect($import->failures());
             if ($failures->isNotEmpty()) {
+                // If failed, we might want to keep the file? Or just delete? 
+                // Usually failure means bad data rows, not duplicates. Delete temp.
+                \Illuminate\Support\Facades\Storage::delete($filePath);
+
                 $preview = $failures
                     ->take(5)
                     ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
@@ -68,7 +104,10 @@ class GciPartController extends Controller
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
-            return back()->with('success', 'Part GCI imported.');
+            // Success - delete temp file
+            \Illuminate\Support\Facades\Storage::delete($filePath);
+
+            return back()->with('success', 'Part GCI imported successfully.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
