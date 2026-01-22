@@ -65,36 +65,31 @@ class GciPartController extends Controller
         try {
             $filePath = null;
             if ($file) {
-                // Save original file to temp storage to reuse if confirmation is needed
                 $filename = 'import_gci_' . auth()->id() . '_' . time() . '.' . $file->getClientOriginalExtension();
                 $filePath = $file->storeAs('temp', $filename);
             } else {
                 $filePath = $tempPath;
             }
 
-            if (!$filePath || !file_exists(storage_path('app/' . $filePath))) {
+            if (!$filePath || !\Illuminate\Support\Facades\Storage::exists($filePath)) {
                 return back()->with('error', 'File not found or expired. Please upload again.');
             }
 
             $import = new GciPartsImport($confirm);
             
-            // We use a transaction, though GciPartsImport stops early if duplicates found
             DB::transaction(function () use ($import, $filePath) {
-                Excel::import($import, storage_path('app/' . $filePath));
+                Excel::import($import, \Illuminate\Support\Facades\Storage::path($filePath));
             });
 
-            // Check for potential duplicates (Dry Run result)
             if (!empty($import->duplicates)) {
                 return back()
                     ->with('import_duplicates', $import->duplicates)
-                    ->with('temp_file', $filePath) // Pass temp path back
+                    ->with('temp_file', $filePath)
                     ->with('error', 'Duplicate data found. Please review below.');
             }
 
             $failures = collect($import->failures());
             if ($failures->isNotEmpty()) {
-                // If failed, we might want to keep the file? Or just delete? 
-                // Usually failure means bad data rows, not duplicates. Delete temp.
                 \Illuminate\Support\Facades\Storage::delete($filePath);
 
                 $preview = $failures
@@ -104,7 +99,6 @@ class GciPartController extends Controller
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
-            // Success - delete temp file
             \Illuminate\Support\Facades\Storage::delete($filePath);
 
             return back()->with('success', 'Part GCI imported successfully.');
