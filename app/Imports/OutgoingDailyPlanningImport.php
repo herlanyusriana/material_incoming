@@ -12,49 +12,8 @@ class OutgoingDailyPlanningImport implements ToCollection
     /** @var list<string> */
     public array $dates = [];
 
-    /** @var list<array{row_no:int|null, production_line:string, part_no:string, gci_part_id:int|null, cells:array<string, array{seq:int|null, qty:int|null}>}> */
-    public array $rows = [];
-
-    private function norm(string $value): string
-    {
-        return strtolower(trim(preg_replace('/\s+/', ' ', $value) ?? $value));
-    }
-
-    private function normalizePartNo(mixed $value): string
-    {
-        $str = str_replace("\u{00A0}", ' ', (string) ($value ?? ''));
-        $str = preg_replace('/\s+/', ' ', $str) ?? $str;
-        return strtoupper(trim($str));
-    }
-
-    private function parseIntOrNull(mixed $value): ?int
-    {
-        if ($value === null) {
-            return null;
-        }
-        if (is_int($value)) {
-            return $value;
-        }
-        if (is_numeric($value)) {
-            $n = (int) round((float) $value);
-            return $n <= 0 ? null : $n;
-        }
-        $str = trim((string) $value);
-        if ($str === '' || $str === '-') {
-            return null;
-        }
-        $str = str_replace([',', ' '], ['', ''], $str);
-        if (!is_numeric($str)) {
-            return null;
-        }
-        $n = (int) round((float) $str);
-        return $n <= 0 ? null : $n;
-    }
-
-    private function rowValues(Collection $row): array
-    {
-        return array_values($row->all());
-    }
+    /** @var list<string> */
+    public array $failures = [];
 
     public function collection(Collection $rows): void
     {
@@ -81,6 +40,7 @@ class OutgoingDailyPlanningImport implements ToCollection
         $noIdx = $colIdx['no'] ?? $colIdx['#'] ?? null;
 
         if ($productionLineIdx === null || $partNoIdx === null) {
+            $this->failures[] = "Header kolom 'production_line' atau 'part_no' tidak ditemukan.";
             return;
         }
 
@@ -104,11 +64,14 @@ class OutgoingDailyPlanningImport implements ToCollection
         sort($dates);
         $this->dates = $dates;
 
-        foreach ($rows as $row) {
+        foreach ($rows as $index => $row) {
             $arr = $this->rowValues($row);
             $productionLine = strtoupper(trim((string) ($arr[$productionLineIdx] ?? '')));
             $partNo = $this->normalizePartNo($arr[$partNoIdx] ?? '');
             $rowNo = $this->parseIntOrNull($noIdx !== null ? ($arr[$noIdx] ?? null) : null);
+
+            // Use logical row number (2 for header + index + 1)
+            $excelRow = $index + 2; 
 
             if ($productionLine === '' && $partNo === '') {
                 continue;
@@ -143,13 +106,15 @@ class OutgoingDailyPlanningImport implements ToCollection
                         );
                         
                         if ($fgComponents->isEmpty()) {
-                            throw new \Exception("Customer Part [{$partNo}] tidak memiliki mapping ke FG GCI Part. Outgoing hanya untuk FG.");
+                            $this->failures[] = "Baris {$excelRow} (Part {$partNo}): Customer Part tidak memiliki mapping ke FG GCI Part. Outgoing hanya untuk FG.";
+                            continue;
                         }
                         
                         // Use the first FG component
                         $gciPartId = $fgComponents->first()->part_id;
                     } else {
-                        throw new \Exception("Part No [{$partNo}] tidak ditemukan di GCI Part maupun Customer Part Mapping.");
+                        $this->failures[] = "Baris {$excelRow} (Part {$partNo}): Part tidak ditemukan di GCI Part (FG) maupun Customer Part Mapping.";
+                        continue;
                     }
                 }
             }

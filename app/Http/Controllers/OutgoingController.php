@@ -98,6 +98,14 @@ class OutgoingController extends Controller
         $import = new OutgoingDailyPlanningImport();
         Excel::import($import, $request->file('file'));
 
+        if (!empty($import->failures)) {
+            $msg = implode('<br>', array_slice($import->failures, 0, 10));
+            if (count($import->failures) > 10) {
+                $msg .= '<br>... and ' . (count($import->failures) - 10) . ' more errors.';
+            }
+            return back()->with('error', 'Import errors found:<br>' . $msg);
+        }
+
         $dateFrom = $import->dateFrom();
         $dateTo = $import->dateTo();
         if (!$dateFrom || !$dateTo) {
