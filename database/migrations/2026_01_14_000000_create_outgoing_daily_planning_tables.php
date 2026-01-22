@@ -8,38 +8,44 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('outgoing_daily_plans', function (Blueprint $table) {
-            $table->id();
-            $table->date('date_from');
-            $table->date('date_to');
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
+        if (!Schema::hasTable('outgoing_daily_plans')) {
+            Schema::create('outgoing_daily_plans', function (Blueprint $table) {
+                $table->id();
+                $table->date('date_from');
+                $table->date('date_to');
+                $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamps();
 
-            $table->index(['date_from', 'date_to']);
-        });
+                $table->index(['date_from', 'date_to']);
+            });
+        }
 
-        Schema::create('outgoing_daily_plan_rows', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('plan_id')->constrained('outgoing_daily_plans')->cascadeOnDelete();
-            $table->unsignedInteger('row_no')->default(1);
-            $table->string('production_line', 50);
-            $table->string('part_no', 100);
-            $table->timestamps();
+        if (!Schema::hasTable('outgoing_daily_plan_rows')) {
+            Schema::create('outgoing_daily_plan_rows', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('plan_id')->constrained('outgoing_daily_plans')->cascadeOnDelete();
+                $table->unsignedInteger('row_no')->default(1);
+                $table->string('production_line', 50);
+                $table->string('part_no', 100);
+                $table->timestamps();
 
-            $table->index(['plan_id', 'row_no']);
-        });
+                $table->index(['plan_id', 'row_no']);
+            });
+        }
 
-        Schema::create('outgoing_daily_plan_cells', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('row_id')->constrained('outgoing_daily_plan_rows')->cascadeOnDelete();
-            $table->date('plan_date');
-            $table->unsignedInteger('seq')->nullable();
-            $table->unsignedInteger('qty')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('outgoing_daily_plan_cells')) {
+            Schema::create('outgoing_daily_plan_cells', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('row_id')->constrained('outgoing_daily_plan_rows')->cascadeOnDelete();
+                $table->date('plan_date');
+                $table->unsignedInteger('seq')->nullable();
+                $table->unsignedInteger('qty')->nullable();
+                $table->timestamps();
 
-            $table->unique(['row_id', 'plan_date']);
-            $table->index(['plan_date']);
-        });
+                $table->unique(['row_id', 'plan_date']);
+                $table->index(['plan_date']);
+            });
+        }
     }
 
     public function down(): void

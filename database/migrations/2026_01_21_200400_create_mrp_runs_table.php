@@ -10,19 +10,21 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('mrp_runs', function (Blueprint $table) {
-            $table->id();
-            $table->string('period', 7); // Monthly period: YYYY-MM
-            $table->string('status')->default('running'); // 'running', 'completed', 'failed'
-            $table->foreignId('run_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamp('run_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('mrp_runs')) {
+            Schema::create('mrp_runs', function (Blueprint $table) {
+                $table->id();
+                $table->string('period', 7); // Monthly period: YYYY-MM
+                $table->string('status')->default('running'); // 'running', 'completed', 'failed'
+                $table->foreignId('run_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->timestamp('run_at')->nullable();
+                $table->timestamps();
 
-            // Indexes
-            $table->index('period');
-            $table->index('status');
-            $table->index('run_at');
-        });
+                // Indexes
+                $table->index('period');
+                $table->index('status');
+                $table->index('run_at');
+            });
+        }
     }
 
     /**

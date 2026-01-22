@@ -10,23 +10,25 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('mrp_histories', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('mrp_run_id')->constrained('mrp_runs')->onDelete('cascade');
-            $table->foreignId('part_id')->constrained('gci_parts')->onDelete('cascade');
-            $table->date('plan_date');
-            $table->string('plan_type'); // 'purchase' or 'production'
-            $table->decimal('qty_before', 20, 4);
-            $table->decimal('qty_after', 20, 4);
-            $table->text('notes')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('mrp_histories')) {
+            Schema::create('mrp_histories', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('mrp_run_id')->constrained('mrp_runs')->onDelete('cascade');
+                $table->foreignId('part_id')->constrained('gci_parts')->onDelete('cascade');
+                $table->date('plan_date');
+                $table->string('plan_type'); // 'purchase' or 'production'
+                $table->decimal('qty_before', 20, 4);
+                $table->decimal('qty_after', 20, 4);
+                $table->text('notes')->nullable();
+                $table->timestamps();
 
-            // Indexes
-            $table->index('mrp_run_id');
-            $table->index('part_id');
-            $table->index('plan_date');
-            $table->index('plan_type');
-        });
+                // Indexes
+                $table->index('mrp_run_id');
+                $table->index('part_id');
+                $table->index('plan_date');
+                $table->index('plan_type');
+            });
+        }
     }
 
     /**

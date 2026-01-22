@@ -10,24 +10,26 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('mps', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('part_id')->constrained('gci_parts')->onDelete('cascade');
-            $table->string('period', 7); // Monthly period: YYYY-MM
-            $table->decimal('forecast_qty', 20, 3)->default(0);
-            $table->decimal('open_order_qty', 20, 3)->default(0);
-            $table->decimal('planned_qty', 20, 3)->default(0);
-            $table->string('status')->default('draft'); // 'draft', 'approved', 'locked'
-            $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamp('approved_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('mps')) {
+            Schema::create('mps', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('part_id')->constrained('gci_parts')->onDelete('cascade');
+                $table->string('period', 7); // Monthly period: YYYY-MM
+                $table->decimal('forecast_qty', 20, 3)->default(0);
+                $table->decimal('open_order_qty', 20, 3)->default(0);
+                $table->decimal('planned_qty', 20, 3)->default(0);
+                $table->string('status')->default('draft'); // 'draft', 'approved', 'locked'
+                $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
+                $table->timestamp('approved_at')->nullable();
+                $table->timestamps();
 
-            // Indexes
-            $table->index('part_id');
-            $table->index('period');
-            $table->index('status');
-            $table->unique(['part_id', 'period']);
-        });
+                // Indexes
+                $table->index('part_id');
+                $table->index('period');
+                $table->index('status');
+                $table->unique(['part_id', 'period']);
+            });
+        }
     }
 
     /**

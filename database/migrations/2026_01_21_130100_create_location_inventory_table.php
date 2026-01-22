@@ -10,21 +10,23 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('location_inventory', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('part_id')->constrained('parts')->onDelete('cascade');
-            $table->string('location_code');
-            $table->decimal('qty_on_hand', 20, 4)->default(0);
-            $table->timestamp('last_counted_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('location_inventory')) {
+            Schema::create('location_inventory', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('part_id')->constrained('parts')->onDelete('cascade');
+                $table->string('location_code');
+                $table->decimal('qty_on_hand', 20, 4)->default(0);
+                $table->timestamp('last_counted_at')->nullable();
+                $table->timestamps();
 
-            // Unique constraint: one record per part per location
-            $table->unique(['part_id', 'location_code']);
+                // Unique constraint: one record per part per location
+                $table->unique(['part_id', 'location_code']);
 
-            // Indexes
-            $table->index('location_code');
-            $table->index('qty_on_hand');
-        });
+                // Indexes
+                $table->index('location_code');
+                $table->index('qty_on_hand');
+            });
+        }
     }
 
     /**

@@ -10,19 +10,21 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('customer_parts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
-            $table->string('part_no');
-            $table->string('part_name')->nullable();
-            $table->string('description')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('customer_parts')) {
+            Schema::create('customer_parts', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
+                $table->string('part_no');
+                $table->string('part_name')->nullable();
+                $table->string('description')->nullable();
+                $table->timestamps();
 
-            // Indexes
-            $table->index('customer_id');
-            $table->index('part_no');
-            $table->unique(['customer_id', 'part_no']);
-        });
+                // Indexes
+                $table->index('customer_id');
+                $table->index('part_no');
+                $table->unique(['customer_id', 'part_no']);
+            });
+        }
     }
 
     /**
