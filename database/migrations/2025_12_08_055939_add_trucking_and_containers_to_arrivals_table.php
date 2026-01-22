@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('arrivals', function (Blueprint $table) {
             $table->foreignId('trucking_company_id')->nullable()->after('vendor_id')->constrained('trucking_companies')->nullOnDelete();
-            $table->text('container_numbers')->nullable()->after('etd');
+            $table->text('container_numbers')->nullable()->after('eta_date');
         });
     }
 

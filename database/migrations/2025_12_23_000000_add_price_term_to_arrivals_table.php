@@ -9,6 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('arrivals', function (Blueprint $table) {
+            if (!Schema::hasColumn('arrivals', 'bill_of_lading')) {
+                $table->string('bill_of_lading')->nullable()->after('container_numbers');
+            }
             $table->string('price_term', 50)
                 ->nullable()
                 ->after('bill_of_lading')

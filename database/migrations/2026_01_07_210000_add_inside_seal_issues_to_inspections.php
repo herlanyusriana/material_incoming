@@ -11,7 +11,7 @@ return new class extends Migration
         if (Schema::hasTable('arrival_container_inspections')) {
             Schema::table('arrival_container_inspections', function (Blueprint $table) {
                 if (!Schema::hasColumn('arrival_container_inspections', 'issues_inside')) {
-                    $table->json('issues_inside')->nullable()->after('issues_back');
+                    $table->json('issues_inside')->nullable()->after('photo_inside');
                 }
                 if (!Schema::hasColumn('arrival_container_inspections', 'issues_seal')) {
                     $table->json('issues_seal')->nullable()->after('issues_inside');

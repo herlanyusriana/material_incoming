@@ -13,7 +13,7 @@ return new class extends Migration
                 $table->string('component_part_no', 100)->nullable()->after('component_part_id');
             }
             if (!Schema::hasColumn('bom_items', 'wip_part_no')) {
-                $table->string('wip_part_no', 100)->nullable()->after('wip_part_id');
+                $table->string('wip_part_no', 100)->nullable()->after('component_part_no');
             }
             
             // Make component_part_id nullable if we want to support string-only parts

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('arrivals', function (Blueprint $table) {
             $table->text('hs_codes')
                 ->nullable()
-                ->after('hs_code')
+                ->after('price_term')
                 ->comment('Multiple HS codes, separated by newline/comma.');
         });
     }

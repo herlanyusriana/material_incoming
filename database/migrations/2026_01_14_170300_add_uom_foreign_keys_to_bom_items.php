@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::table('bom_items', function (Blueprint $table) {
             if (!Schema::hasColumn('bom_items', 'consumption_uom_id')) {
-                $table->unsignedBigInteger('consumption_uom_id')->nullable()->after('consumption_uom');
+                $table->unsignedBigInteger('consumption_uom_id')->nullable()->after('yield_factor');
                 $table->foreign('consumption_uom_id')->references('id')->on('uoms')->nullOnDelete();
             }
             if (!Schema::hasColumn('bom_items', 'wip_uom_id')) {
-                $table->unsignedBigInteger('wip_uom_id')->nullable()->after('wip_uom');
+                $table->unsignedBigInteger('wip_uom_id')->nullable()->after('consumption_uom_id');
                 $table->foreign('wip_uom_id')->references('id')->on('uoms')->nullOnDelete();
             }
         });

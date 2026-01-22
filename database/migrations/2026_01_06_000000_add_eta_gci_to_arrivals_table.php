@@ -12,7 +12,7 @@ return new class extends Migration
             if (Schema::hasColumn('arrivals', 'ETA_GCI')) {
                 return;
             }
-            $table->date('ETA_GCI')->nullable()->after('ETA');
+            $table->date('ETA_GCI')->nullable()->after('eta_date');
         });
     }
 
