@@ -28,6 +28,8 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             'part_name_gci',
             'hs_code',
             'quality_inspection',
+            'price',
+            'uom',
             'status',
         ];
     }
@@ -43,6 +45,8 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             $part->part_name_gci,
             $part->hs_code,
             strtoupper((string) ($part->quality_inspection ?? '')) === 'YES' ? 'YES' : '-',
+            $part->price,
+            $part->uom,
             $part->status ?? 'active',
         ];
     }
@@ -65,7 +69,9 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             'F' => 30,
             'G' => 14,
             'H' => 18,
-            'I' => 12,
+            'I' => 15,
+            'J' => 10,
+            'K' => 12,
         ];
     }
 }

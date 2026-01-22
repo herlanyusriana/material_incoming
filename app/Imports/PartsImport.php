@@ -226,6 +226,16 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             $part->quality_inspection = $qualityInspection;
         }
 
+        $price = $this->firstNonEmpty($row, ['price', 'cost']);
+        if ($price !== null && is_numeric($price)) {
+            $part->price = (float) $price;
+        }
+
+        $uom = $this->firstNonEmpty($row, ['uom', 'unit', 'unit_of_measure']);
+        if ($uom !== null) {
+            $part->uom = strtoupper(trim((string) $uom));
+        }
+
         if (array_key_exists('status', $row)) {
             $statusRaw = $this->firstNonEmpty($row, ['status']);
             $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : 'active';
@@ -262,6 +272,8 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             'register_number' => 'nullable|string|max:255',
             'size' => 'nullable|string|max:255',
             'quality_inspection' => 'nullable',
+            'price' => 'nullable|numeric|min:0',
+            'uom' => 'nullable|string|max:20',
         ];
     }
 }
