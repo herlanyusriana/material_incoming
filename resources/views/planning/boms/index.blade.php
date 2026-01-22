@@ -400,7 +400,7 @@
 	                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImport()">✕</button>
 	                </div>
 
-	                <form action="{{ route('planning.boms.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+	                <form action="{{ route('planning.boms.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4" onsubmit="showLoading('Importing BOM...')">
 	                    @csrf
 
 	                    <div class="text-sm text-slate-700 space-y-1">
@@ -429,7 +429,7 @@
                         <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImportSubstitute()">✕</button>
                     </div>
 
-                    <form action="{{ route('planning.boms.substitutes.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+                    <form action="{{ route('planning.boms.substitutes.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4" onsubmit="showLoading('Importing Substitutes...')">
                         @csrf
 
                         <div class="text-sm text-slate-700 space-y-1">

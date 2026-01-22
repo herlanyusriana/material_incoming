@@ -152,8 +152,8 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
         }
 
         CustomerPartComponent::updateOrCreate(
-            ['customer_part_id' => $customerPart->id, 'part_id' => $gciPart->id],
-            ['usage_qty' => $usageQty],
+            ['customer_part_id' => $customerPart->id, 'gci_part_id' => $gciPart->id],
+            ['qty_per_unit' => $usageQty],
         );
 
         return null;

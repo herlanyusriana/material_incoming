@@ -266,5 +266,40 @@
 	                );
 	            })();
 	        </script>
+	        <script>
+	            document.addEventListener('DOMContentLoaded', () => {
+	                // Global loading function
+	                window.showLoading = function(title = 'Processing...') {
+	                    Swal.fire({
+	                        title: title,
+	                        html: 'Please wait while we process your request.',
+	                        allowOutsideClick: false,
+	                        showConfirmButton: false,
+	                        willOpen: () => {
+	                            Swal.showLoading();
+	                        }
+	                    });
+	                };
+
+                    // Handle session flash messages with SweetAlert
+                    @if (session('success'))
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: "{{ session('success') }}",
+                            confirmButtonColor: '#3085d6',
+                        });
+                    @endif
+
+                    @if (session('error'))
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: "{{ session('error') }}",
+                            confirmButtonColor: '#d33',
+                        });
+                    @endif
+	            });
+	        </script>
 	    </body>
 	</html>

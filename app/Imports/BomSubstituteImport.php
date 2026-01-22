@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class BomSubstituteImport implements ToCollection, WithHeadingRow
 {
-    protected $rows = 0;
+    public int $rowCount = 0;
     protected $failures = [];
 
     public function collection(Collection $rows)
@@ -98,7 +98,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 ]
             );
 
-            $this->rows++;
+            $this->rowCount++;
         }
     }
 

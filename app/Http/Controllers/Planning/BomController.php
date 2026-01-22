@@ -143,7 +143,8 @@ class BomController extends Controller
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
-            return back()->with('success', 'BOM imported.');
+            $count = $import->rowCount;
+            return back()->with('success', "BOM imported successfully. {$count} rows processed.");
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
                 $failures = collect($e->failures());
@@ -180,7 +181,8 @@ class BomController extends Controller
                 return back()->with('error', "Import substitutes selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
-            return back()->with('success', 'Substitutes imported successfully.');
+            $count = $import->rowCount;
+            return back()->with('success', "Substitutes imported successfully. {$count} rows processed.");
         } catch (\Exception $e) {
              if ($e instanceof ValidationException) {
                 $failures = collect($e->failures());

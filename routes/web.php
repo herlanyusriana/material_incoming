@@ -131,6 +131,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/gci-inventory', [OutgoingController::class, 'gciInventory'])->name('gci-inventory');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
+        Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
 
         Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);
         Route::post('delivery-notes/{delivery_note}/ship', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'ship'])->name('delivery-notes.ship');

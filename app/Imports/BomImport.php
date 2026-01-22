@@ -4,7 +4,7 @@ namespace App\Imports;
 
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\GciPart;
+use App\Models\Part;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -15,6 +15,8 @@ use Maatwebsite\Excel\Concerns\SkipsFailures;
 class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsEmptyRows
 {
     use SkipsFailures;
+
+    public int $rowCount = 0;
 
     private function normalizeMakeOrBuy(?string $value): string
     {
@@ -33,10 +35,10 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         return 'buy';
     }
 
-    private function getGciPart(string $partNo): ?GciPart
+    private function getPart(string $partNo): ?Part
     {
         $partNo = $this->normalizeUpper($partNo) ?? '';
-        return GciPart::query()->where('part_no', $partNo)->first();
+        return Part::query()->where('part_no', $partNo)->first();
     }
 
     private function firstNonEmpty(array $row, array $keys): ?string
@@ -106,15 +108,12 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             return null;
         }
 
-        $fg = $this->getGciPart($fgPartNo);
+        $fg = $this->getPart($fgPartNo);
         if (!$fg) {
-            throw new \Exception("FG Part No [{$fgPartNo}] belum terdaftar di GCI Part.");
+            throw new \Exception("FG Part No [{$fgPartNo}] belum terdaftar di Parts.");
         }
 
-        // Validate that the part is classified as FG
-        if ($fg->classification !== 'FG') {
-            throw new \Exception("Part No [{$fgPartNo}] bukan Finished Goods (FG). Hanya FG yang bisa diimport sebagai BOM.");
-        }
+        // Removed FG classification check as Part model does not support it
 
         $bom = Bom::firstOrCreate(
             ['part_id' => $fg->id],
@@ -190,10 +189,12 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
         if ($item) {
             $item->update($payload);
+            $this->rowCount++;
             return null;
         }
 
         BomItem::create($payload);
+        $this->rowCount++;
         return null;
     }
 

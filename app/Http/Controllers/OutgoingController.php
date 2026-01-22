@@ -214,7 +214,7 @@ class OutgoingController extends Controller
             'truck', 
             'driver', 
             'stops.customer', 
-            'stops.deliveryNotes' // items?
+            'stops.deliveryNotes.items.part'
         ])
         ->whereDate('plan_date', $date)
         ->orderBy('sequence')
@@ -243,7 +243,15 @@ class OutgoingController extends Controller
                                 'id' => $dn->dn_no,
                                 'poNumber' => $dn->dn_no, // Placeholder
                                 'poDate' => $dn->delivery_date->format('Y-m-d'),
-                                'products' => [] // Todo: Fetch items
+                                'products' => $dn->items->map(function($item) {
+                                    return [
+                                        'partNo' => $item->part->part_no ?? 'N/A',
+                                        'partName' => $item->part->part_name ?? 'Unknown',
+                                        'quantity' => $item->qty,
+                                        'unit' => 'PCS',
+                                        'weight' => '-'
+                                    ];
+                                })
                             ];
                         })
                     ];
@@ -273,6 +281,29 @@ class OutgoingController extends Controller
             'drivers' => $drivers,
             'selectedDate' => $date->format('Y-m-d'),
         ]);
+    }
+
+    public function storeDeliveryPlan(Request $request)
+    {
+        $validated = $request->validate([
+            'plan_date' => 'required|date',
+            'truck_id' => 'nullable|exists:trucks,id',
+            'driver_id' => 'nullable|exists:drivers,id',
+        ]);
+
+        // Auto-generate sequence: Get max sequence for the day + 1
+        $maxSeq = \App\Models\DeliveryPlan::whereDate('plan_date', $validated['plan_date'])->max('sequence') ?? 0;
+
+        $plan = \App\Models\DeliveryPlan::create([
+            'plan_date' => $validated['plan_date'],
+            'sequence' => $maxSeq + 1,
+            'truck_id' => $validated['truck_id'] ?? null,
+            'driver_id' => $validated['driver_id'] ?? null,
+            'status' => 'scheduled',
+        ]);
+
+        return redirect()->route('delivery-plan', ['date' => $validated['plan_date']])
+            ->with('success', 'Delivery Plan created successfully.');
     }
 
     private function parseDate(?string $value): ?Carbon

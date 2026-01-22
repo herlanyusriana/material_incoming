@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Part;
 
 class Bom extends Model
 {
@@ -25,7 +26,7 @@ class Bom extends Model
 
     public function part()
     {
-        return $this->belongsTo(GciPart::class, 'part_id');
+        return $this->belongsTo(Part::class, 'part_id');
     }
 
     public function items()

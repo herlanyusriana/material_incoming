@@ -91,6 +91,21 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             $data['vendor_name'] = $vendorResolved;
         }
 
+        // Resolving Part Number aliases
+        $partNoResolved = $this->firstNonEmpty($data, [
+            'part_no', 'part_number',
+            'gci_part_no', 'gci_part_number',
+            'item_no', 'item_number',
+            'material_no', 'material_number',
+            'product_no', 'product_number',
+            'part',
+            'code', 'item_code'
+        ]);
+
+        if ($partNoResolved !== null) {
+            $data['part_no'] = $partNoResolved;
+        }
+
         foreach (['part_no', 'part_number', 'register_no', 'register_number', 'size', 'hs_code'] as $key) {
             if (!array_key_exists($key, $data)) {
                 continue;
@@ -178,7 +193,9 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
         if ($qualityInspectionRaw !== null) {
             $flag = strtoupper(trim((string) $qualityInspectionRaw));
             if (in_array($flag, ['YES', 'Y', '1', 'TRUE'], true)) {
-                $qualityInspection = 'YES';
+                $qualityInspection = 1;
+            } else {
+                 $qualityInspection = 0;
             }
         }
 

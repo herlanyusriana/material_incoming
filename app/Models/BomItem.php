@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Part;
 
 class BomItem extends Model
 {
@@ -41,12 +42,12 @@ class BomItem extends Model
 
     public function wipPart()
     {
-        return $this->belongsTo(GciPart::class, 'wip_part_id');
+        return $this->belongsTo(Part::class, 'wip_part_id');
     }
 
     public function componentPart()
     {
-        return $this->belongsTo(GciPart::class, 'component_part_id');
+        return $this->belongsTo(Part::class, 'component_part_id');
     }
 
     public function substitutes()

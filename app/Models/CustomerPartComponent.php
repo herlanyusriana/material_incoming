@@ -11,8 +11,8 @@ class CustomerPartComponent extends Model
 
     protected $fillable = [
         'customer_part_id',
-        'part_id',
-        'usage_qty',
+        'gci_part_id',
+        'qty_per_unit',
     ];
 
     public function customerPart()
@@ -22,6 +22,6 @@ class CustomerPartComponent extends Model
 
     public function part()
     {
-        return $this->belongsTo(GciPart::class, 'part_id');
+        return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
 }

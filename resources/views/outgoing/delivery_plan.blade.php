@@ -17,9 +17,12 @@
                         x-model="selectedDate"
                         class="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
                     />
-                    <button class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-semibold">
+                    <button 
+                        @click="openCreateModal()"
+                        class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-semibold"
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
                         Create Plan
                     </button>
@@ -328,6 +331,95 @@
             </div>
         </div>
     </div>
+    {{-- Create Plan Modal --}}
+    <div
+        x-show="showCreateModal"
+        style="display: none;"
+        class="fixed inset-0 z-50 overflow-y-auto"
+        aria-labelledby="modal-title"
+        role="dialog"
+        aria-modal="true"
+    >
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+                x-show="showCreateModal"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                @click="showCreateModal = false"
+                aria-hidden="true"
+            ></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div
+                x-show="showCreateModal"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
+            >
+                <form action="{{ route('delivery-plan.store') }}" method="POST">
+                    @csrf
+                    <div>
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
+                            <svg class="h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-5">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Create New Delivery Plan</h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">Initialize a new delivery trip. You can assign a truck and driver now or later.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-5 space-y-4">
+                            <div>
+                                <label for="plan_date" class="block text-sm font-medium text-gray-700">Plan Date</label>
+                                <input type="date" name="plan_date" id="plan_date" x-model="createForm.date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
+                            </div>
+
+                            <div>
+                                <label for="truck_id" class="block text-sm font-medium text-gray-700">Truck (Optional)</label>
+                                <select name="truck_id" id="truck_id" x-model="createForm.truckId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 bg-white">
+                                    <option value="">-- Select Truck --</option>
+                                    <template x-for="truck in trucks" :key="truck.id">
+                                        <option :value="truck.id" x-text="truck.plateNo + ' (' + truck.type + ')'"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="driver_id" class="block text-sm font-medium text-gray-700">Driver (Optional)</label>
+                                <select name="driver_id" id="driver_id" x-model="createForm.driverId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 bg-white">
+                                    <option value="">-- Select Driver --</option>
+                                    <template x-for="driver in drivers" :key="driver.id">
+                                        <option :value="driver.id" x-text="driver.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm">
+                            Create
+                        </button>
+                        <button type="button" @click="showCreateModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -339,12 +431,26 @@
             drivers: @json($drivers),
             deliveryPlans: @json($deliveryPlans),
             
+            showCreateModal: false,
+            createForm: {
+                date: '',
+                truckId: '',
+                driverId: ''
+            },
+            
             init() {
                 this.$watch('selectedDate', (value) => {
                     if (value !== @json($selectedDate)) {
                         window.location.href = '?date=' + value;
                     }
                 });
+            },
+
+            openCreateModal() {
+                this.createForm.date = this.selectedDate;
+                this.createForm.truckId = '';
+                this.createForm.driverId = '';
+                this.showCreateModal = true;
             },
 
             getTruck(id) {
