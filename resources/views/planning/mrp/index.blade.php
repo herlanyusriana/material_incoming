@@ -6,7 +6,7 @@
     <div class="py-6">
         <div class="max-w-[98%] mx-auto px-2 space-y-6">
             @php
-                $month = $month ?? now()->format('Y-m');
+                $month = $period ?? request('month') ?? now()->format('Y-m');
                 $startOfMonth = \Carbon\Carbon::parse($month . '-01')->startOfDay();
                 $endOfMonth = $startOfMonth->copy()->endOfMonth();
                 

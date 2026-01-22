@@ -190,7 +190,7 @@ class MrpController extends Controller
             $mrpData[] = $rowData;
         }
 
-        return view('planning.mrp.index', compact('month', 'dates', 'mrpData', 'runs'));
+        return view('planning.mrp.index', compact('period', 'dates', 'mrpData', 'runs'));
     }
 
     private function getWeeksForMonth(string $monthStr): array

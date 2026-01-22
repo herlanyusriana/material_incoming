@@ -218,7 +218,7 @@
 
                     <template x-if="mode === 'edit'">
                         <div class="text-xs text-slate-500">
-                            {{ $minggu }} • Only qty/status/notes are editable.
+                            Only qty/status/notes are editable.
                         </div>
                     </template>
 
