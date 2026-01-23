@@ -233,10 +233,27 @@ class BomController extends Controller
     public function update(Request $request, Bom $bom)
     {
         $validated = $request->validate([
-            'status' => ['required', Rule::in(['active', 'inactive'])],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'part_id' => [
+                'nullable',
+                Rule::exists('gci_parts', 'id')->where(fn ($q) => $q->where('classification', 'FG')),
+                Rule::unique('boms', 'part_id')->ignore($bom->id),
+            ],
         ]);
 
-        $bom->update($validated);
+        $payload = [];
+        if (array_key_exists('status', $validated) && $validated['status'] !== null) {
+            $payload['status'] = $validated['status'];
+        }
+        if (array_key_exists('part_id', $validated) && $validated['part_id'] !== null) {
+            $payload['part_id'] = (int) $validated['part_id'];
+        }
+
+        if ($payload === []) {
+            return back()->with('error', 'No changes provided.');
+        }
+
+        $bom->update($payload);
 
         return back()->with('success', 'BOM updated.');
     }

@@ -177,6 +177,16 @@
                                                 <input type="hidden" name="status" value="{{ $bom->status === 'active' ? 'inactive' : 'active' }}">
                                                 <button type="submit" class="w-7 h-7 rounded border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-[10px]" title="Toggle status">✎</button>
                                             </form>
+                                            <button
+                                                type="button"
+                                                class="w-7 h-7 rounded border border-slate-300 hover:bg-indigo-50 text-indigo-700 flex items-center justify-center text-[10px]"
+                                                title="Change FG"
+                                                @click="openChangeFg(@js([
+                                                    'action' => route('planning.boms.update', $bom),
+                                                    'part_id' => $bom->part_id,
+                                                    'current_label' => ($bom->part?->part_no ?? '-') . ' — ' . ($bom->part?->part_name ?? '-'),
+                                                ]))"
+                                            >FG</button>
                                             <form action="{{ route('planning.boms.destroy', $bom) }}" method="POST" class="inline" onsubmit="return confirm('Delete BOM?')">
                                                 @csrf
                                                 @method('DELETE')
@@ -611,16 +621,22 @@
         </div>
 
 	        <script>
-	            function planningBoms() {
-	                return {
-	                    modalOpen: false,
-	                    importOpen: false,
-                        importSubstituteOpen: false,
-	                    lineModalOpen: false,
-	                    substituteOpen: false,
-	                    substituteForm: {
-	                        action: '',
-	                        bom_item_id: null,
+                    function planningBoms() {
+                        return {
+                            modalOpen: false,
+                            importOpen: false,
+                            importSubstituteOpen: false,
+                            changeFgOpen: false,
+                            changeFgForm: {
+                                action: '',
+                                current_label: '',
+                                part_id: '',
+                            },
+                            lineModalOpen: false,
+                            substituteOpen: false,
+                            substituteForm: {
+                                action: '',
+                                bom_item_id: null,
 	                        fg_label: '',
 	                        line_no: '',
 	                        process_name: '',
@@ -660,17 +676,26 @@
                         scrap_factor: 0,
                         yield_factor: 1,
 	                    },
-	                    openCreate() { this.modalOpen = true; },
-	                    closeCreate() { this.modalOpen = false; },
-	                    openImport() { this.importOpen = true; },
-	                    closeImport() { this.importOpen = false; },
-                        openImportSubstitute() { this.importSubstituteOpen = true; },
-                        closeImportSubstitute() { this.importSubstituteOpen = false; },
-	                    toggle(id) { this.expanded[id] = !this.expanded[id]; },
-	                    openSubstitutePanel(payload) {
-	                        this.substituteForm = {
-	                            action: payload.action,
-	                            bom_item_id: payload.bom_item_id,
+                            openCreate() { this.modalOpen = true; },
+                            closeCreate() { this.modalOpen = false; },
+                            openImport() { this.importOpen = true; },
+                            closeImport() { this.importOpen = false; },
+                            openImportSubstitute() { this.importSubstituteOpen = true; },
+                            closeImportSubstitute() { this.importSubstituteOpen = false; },
+                            openChangeFg(payload) {
+                                this.changeFgForm = {
+                                    action: payload.action,
+                                    current_label: payload.current_label ?? '',
+                                    part_id: payload.part_id ?? '',
+                                };
+                                this.changeFgOpen = true;
+                            },
+                            closeChangeFg() { this.changeFgOpen = false; },
+                            toggle(id) { this.expanded[id] = !this.expanded[id]; },
+                            openSubstitutePanel(payload) {
+                                this.substituteForm = {
+                                    action: payload.action,
+                                    bom_item_id: payload.bom_item_id,
 	                            fg_label: payload.fg_label,
 	                            line_no: payload.line_no,
 	                            process_name: payload.process_name ?? '',
@@ -715,10 +740,46 @@
  	                        };
 	                        this.lineModalOpen = true;
 	                    },
-	                    closeLineModal() { this.lineModalOpen = false; },
-	                }
-	            }
-	        </script>
+                            closeLineModal() { this.lineModalOpen = false; },
+                        }
+                    }
+                </script>
+
+                {{-- Change FG modal --}}
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="changeFgOpen" x-cloak @keydown.escape.window="closeChangeFg()">
+                    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+                        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                            <div>
+                                <div class="text-sm font-semibold text-slate-900">Change FG for BOM</div>
+                                <div class="text-xs text-slate-500" x-text="changeFgForm.current_label"></div>
+                            </div>
+                            <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeChangeFg()">✕</button>
+                        </div>
+
+                        <form :action="changeFgForm.action" method="POST" class="px-5 py-4 space-y-4">
+                            @csrf
+                            @method('PUT')
+
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">New FG Part</label>
+                                <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required x-model="changeFgForm.part_id">
+                                    <option value="" disabled>Select FG…</option>
+                                    @foreach(($fgParts ?? []) as $p)
+                                        <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="mt-2 text-xs text-slate-500">
+                                    Note: FG hanya bisa dipindah ke part classification <span class="font-semibold">FG</span> dan tidak boleh sudah punya BOM lain.
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeChangeFg()">Cancel</button>
+                                <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
 	        {{-- Substitute drawer --}}
 	        <div class="fixed inset-0 z-50" x-show="substituteOpen" x-cloak>
