@@ -169,7 +169,7 @@ class GciPartController extends Controller
                 if (DB::table('bom_items')->where('wip_part_id', $gciPart->id)->exists()) {
                     $references[] = 'BOM Items (used as WIP)';
                 }
-                if (DB::table('customer_part_components')->where('part_id', $gciPart->id)->exists()) {
+                if (DB::table('customer_part_components')->where('gci_part_id', $gciPart->id)->exists()) {
                     $references[] = 'Customer Part Mapping';
                 }
                 if (DB::table('mps')->where('part_id', $gciPart->id)->exists()) {
