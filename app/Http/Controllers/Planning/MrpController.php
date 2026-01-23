@@ -87,13 +87,18 @@ class MrpController extends Controller
             if (!$part)
                 continue;
 
+            $hasPurchase = $runs->pluck('purchasePlans')->flatten()->contains(fn ($p) => (int) $p->part_id === (int) $partId);
+            $hasProduction = $runs->pluck('productionPlans')->flatten()->contains(fn ($p) => (int) $p->part_id === (int) $partId);
+
             $inv = $inventories[$partId] ?? null;
             $startStock = $inv ? $inv->on_hand : 0;
 
             $rowData = [
                 'part' => $part,
                 'initial_stock' => $startStock,
-                'days' => []
+                'days' => [],
+                'has_purchase' => $hasPurchase,
+                'has_production' => $hasProduction,
             ];
 
             $runningStock = $startStock;
@@ -196,7 +201,10 @@ class MrpController extends Controller
             $mrpData[] = $rowData;
         }
 
-        return view('planning.mrp.index', compact('period', 'dates', 'mrpData', 'runs'));
+        $mrpDataBuy = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_purchase'] ?? false)));
+        $mrpDataMake = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_production'] ?? false)));
+
+        return view('planning.mrp.index', compact('period', 'dates', 'mrpData', 'mrpDataBuy', 'mrpDataMake', 'runs'));
     }
 
     private function getWeeksForMonth(string $monthStr): array
