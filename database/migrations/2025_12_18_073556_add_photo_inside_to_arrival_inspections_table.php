@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('arrival_inspections', function (Blueprint $table) {
-            $table->string('photo_inside')->nullable()->after('photo_back');
+            if (!Schema::hasColumn('arrival_inspections', 'photo_inside')) {
+                $table->string('photo_inside')->nullable()->after('photo_back');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('arrival_inspections', function (Blueprint $table) {
-            $table->dropColumn('photo_inside');
+            if (Schema::hasColumn('arrival_inspections', 'photo_inside')) {
+                $table->dropColumn('photo_inside');
+            }
         });
     }
 };

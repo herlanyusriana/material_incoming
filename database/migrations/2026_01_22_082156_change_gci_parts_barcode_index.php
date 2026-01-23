@@ -13,10 +13,16 @@ return new class extends Migration
     {
         Schema::table('gci_parts', function (Blueprint $table) {
             // Drop unique constraint on barcode
-            $table->dropUnique('gci_parts_barcode_unique');
+            try {
+                $table->dropUnique('gci_parts_barcode_unique');
+            } catch (\Throwable $e) {
+            }
             
             // Add composite unique index for barcode similar to part_no
-            $table->unique(['barcode', 'customer_id'], 'gci_parts_barcode_customer_unique');
+            try {
+                $table->unique(['barcode', 'customer_id'], 'gci_parts_barcode_customer_unique');
+            } catch (\Throwable $e) {
+            }
         });
     }
 
@@ -26,8 +32,14 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('gci_parts', function (Blueprint $table) {
-            $table->dropUnique('gci_parts_barcode_customer_unique');
-            $table->unique('barcode', 'gci_parts_barcode_unique');
+            try {
+                $table->dropUnique('gci_parts_barcode_customer_unique');
+            } catch (\Throwable $e) {
+            }
+            try {
+                $table->unique('barcode', 'gci_parts_barcode_unique');
+            } catch (\Throwable $e) {
+            }
         });
     }
 };

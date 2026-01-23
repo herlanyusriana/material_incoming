@@ -9,17 +9,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendors', function (Blueprint $table) {
-            $table->string('country_code', 2)->nullable()->after('vendor_name');
-            $table->index('country_code');
+            if (!Schema::hasColumn('vendors', 'country_code')) {
+                $table->string('country_code', 2)->nullable()->after('vendor_name');
+            }
+            try {
+                $table->index('country_code');
+            } catch (\Throwable $e) {
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('vendors', function (Blueprint $table) {
-            $table->dropIndex(['country_code']);
-            $table->dropColumn('country_code');
+            try {
+                $table->dropIndex(['country_code']);
+            } catch (\Throwable $e) {
+            }
+            if (Schema::hasColumn('vendors', 'country_code')) {
+                $table->dropColumn('country_code');
+            }
         });
     }
 };
-

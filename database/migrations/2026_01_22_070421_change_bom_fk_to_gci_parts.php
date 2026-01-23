@@ -12,6 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('boms')) {
+            return;
+        }
         // Disable FK checks to avoid issues during switch if data exists
         $driver = DB::connection()->getDriverName();
         if ($driver === 'mysql') {
@@ -21,8 +24,14 @@ return new class extends Migration
         }
 
         Schema::table('boms', function (Blueprint $table) {
-            $table->dropForeign(['part_id']);
-            $table->foreign('part_id')->references('id')->on('gci_parts')->cascadeOnDelete();
+            try {
+                $table->dropForeign(['part_id']);
+            } catch (\Throwable $e) {
+            }
+            try {
+                $table->foreign('part_id')->references('id')->on('gci_parts')->cascadeOnDelete();
+            } catch (\Throwable $e) {
+            }
         });
 
         if ($driver === 'mysql') {
@@ -37,6 +46,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('boms')) {
+            return;
+        }
         $driver = DB::connection()->getDriverName();
         if ($driver === 'mysql') {
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
@@ -45,8 +57,14 @@ return new class extends Migration
         }
 
         Schema::table('boms', function (Blueprint $table) {
-            $table->dropForeign(['part_id']);
-            $table->foreign('part_id')->references('id')->on('parts')->cascadeOnDelete();
+            try {
+                $table->dropForeign(['part_id']);
+            } catch (\Throwable $e) {
+            }
+            try {
+                $table->foreign('part_id')->references('id')->on('parts')->cascadeOnDelete();
+            } catch (\Throwable $e) {
+            }
         });
 
         if ($driver === 'mysql') {

@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('receives', function (Blueprint $table) {
-            $table->string('invoice_no', 100)->nullable()->after('jo_po_number');
-            $table->string('delivery_note_no', 100)->nullable()->after('invoice_no');
+            if (!Schema::hasColumn('receives', 'invoice_no')) {
+                $table->string('invoice_no', 100)->nullable()->after('jo_po_number');
+            }
+            if (!Schema::hasColumn('receives', 'delivery_note_no')) {
+                $table->string('delivery_note_no', 100)->nullable()->after('invoice_no');
+            }
         });
     }
 
@@ -23,7 +27,16 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('receives', function (Blueprint $table) {
-            $table->dropColumn(['invoice_no', 'delivery_note_no']);
+            $drops = [];
+            if (Schema::hasColumn('receives', 'invoice_no')) {
+                $drops[] = 'invoice_no';
+            }
+            if (Schema::hasColumn('receives', 'delivery_note_no')) {
+                $drops[] = 'delivery_note_no';
+            }
+            if (!empty($drops)) {
+                $table->dropColumn($drops);
+            }
         });
     }
 };

@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendors', function (Blueprint $table) {
-            $table->string('signature_path')->nullable()->after('status');
+            if (!Schema::hasColumn('vendors', 'signature_path')) {
+                $table->string('signature_path')->nullable()->after('status');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('vendors', function (Blueprint $table) {
-            $table->dropColumn('signature_path');
+            if (Schema::hasColumn('vendors', 'signature_path')) {
+                $table->dropColumn('signature_path');
+            }
         });
     }
 };

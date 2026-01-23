@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::table('gci_parts', function (Blueprint $table) {
             // Add new composite unique index
             // using a shorter name to avoid length limits potentially? 'gci_parts_pn_cid_unique'
-            $table->unique(['part_no', 'customer_id'], 'gci_parts_part_no_customer_id_unique');
+            try {
+                $table->unique(['part_no', 'customer_id'], 'gci_parts_part_no_customer_id_unique');
+            } catch (\Throwable $e) {
+            }
         });
     }
 
@@ -24,8 +27,14 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('gci_parts', function (Blueprint $table) {
-            $table->dropUnique('gci_parts_part_no_customer_id_unique');
-            $table->unique('part_no');
+            try {
+                $table->dropUnique('gci_parts_part_no_customer_id_unique');
+            } catch (\Throwable $e) {
+            }
+            try {
+                $table->unique('part_no');
+            } catch (\Throwable $e) {
+            }
         });
     }
 };

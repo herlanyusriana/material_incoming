@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gci_parts', function (Blueprint $blueprint) {
-            $blueprint->foreignId('customer_id')->nullable()->after('id')->constrained('customers')->nullOnDelete();
+            if (!Schema::hasColumn('gci_parts', 'customer_id')) {
+                $blueprint->foreignId('customer_id')->nullable()->after('id')->constrained('customers')->nullOnDelete();
+            }
         });
     }
 
@@ -22,8 +24,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('gci_parts', function (Blueprint $blueprint) {
-            $blueprint->dropForeign(['customer_id']);
-            $blueprint->dropColumn('customer_id');
+            if (Schema::hasColumn('gci_parts', 'customer_id')) {
+                try {
+                    $blueprint->dropForeign(['customer_id']);
+                } catch (\Throwable $e) {
+                }
+                $blueprint->dropColumn('customer_id');
+            }
         });
     }
 };

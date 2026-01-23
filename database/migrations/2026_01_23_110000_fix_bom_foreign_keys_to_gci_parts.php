@@ -7,6 +7,31 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private function foreignKeyExists(string $table, string $constraintName): bool
+    {
+        try {
+            $driver = DB::connection()->getDriverName();
+            if ($driver !== 'mysql') {
+                return false;
+            }
+
+            $exists = DB::selectOne(
+                "SELECT CONSTRAINT_NAME
+                 FROM information_schema.TABLE_CONSTRAINTS
+                 WHERE CONSTRAINT_SCHEMA = DATABASE()
+                   AND TABLE_NAME = ?
+                   AND CONSTRAINT_NAME = ?
+                   AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                 LIMIT 1",
+                [$table, $constraintName],
+            );
+
+            return (bool) $exists;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     private function dropForeignKeyIfExists(string $table, string $constraintName): void
     {
         try {
@@ -67,11 +92,21 @@ return new class extends Migration
         }
 
         Schema::table('boms', function (Blueprint $table) {
-            $table->foreign('part_id')->references('id')->on('gci_parts')->cascadeOnDelete();
+            if (!$this->foreignKeyExists('boms', 'boms_part_id_foreign')) {
+                try {
+                    $table->foreign('part_id')->references('id')->on('gci_parts')->cascadeOnDelete();
+                } catch (\Throwable $e) {
+                }
+            }
         });
 
         Schema::table('bom_items', function (Blueprint $table) {
-            $table->foreign('component_part_id')->references('id')->on('gci_parts')->nullOnDelete();
+            if (!$this->foreignKeyExists('bom_items', 'bom_items_component_part_id_foreign')) {
+                try {
+                    $table->foreign('component_part_id')->references('id')->on('gci_parts')->nullOnDelete();
+                } catch (\Throwable $e) {
+                }
+            }
         });
     }
 
@@ -85,12 +120,21 @@ return new class extends Migration
         $this->dropForeignKeyIfExists('boms', 'boms_part_id_foreign');
 
         Schema::table('boms', function (Blueprint $table) {
-            $table->foreign('part_id')->references('id')->on('parts')->cascadeOnDelete();
+            if (!$this->foreignKeyExists('boms', 'boms_part_id_foreign')) {
+                try {
+                    $table->foreign('part_id')->references('id')->on('parts')->cascadeOnDelete();
+                } catch (\Throwable $e) {
+                }
+            }
         });
 
         Schema::table('bom_items', function (Blueprint $table) {
-            $table->foreign('component_part_id')->references('id')->on('parts')->cascadeOnDelete();
+            if (!$this->foreignKeyExists('bom_items', 'bom_items_component_part_id_foreign')) {
+                try {
+                    $table->foreign('component_part_id')->references('id')->on('parts')->cascadeOnDelete();
+                } catch (\Throwable $e) {
+                }
+            }
         });
     }
 };
-

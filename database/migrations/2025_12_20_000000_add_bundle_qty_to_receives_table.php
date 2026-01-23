@@ -9,18 +9,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('receives', function (Blueprint $table) {
-            $table
-                ->unsignedInteger('bundle_qty')
-                ->default(1)
-                ->after('bundle_unit');
+            if (!Schema::hasColumn('receives', 'bundle_qty')) {
+                $table
+                    ->unsignedInteger('bundle_qty')
+                    ->default(1)
+                    ->after('bundle_unit');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('receives', function (Blueprint $table) {
-            $table->dropColumn('bundle_qty');
+            if (Schema::hasColumn('receives', 'bundle_qty')) {
+                $table->dropColumn('bundle_qty');
+            }
         });
     }
 };
-

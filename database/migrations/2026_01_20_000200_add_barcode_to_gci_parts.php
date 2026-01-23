@@ -9,14 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gci_parts', function (Blueprint $table) {
-            $table->string('barcode', 100)->nullable()->unique()->after('part_no');
+            if (!Schema::hasColumn('gci_parts', 'barcode')) {
+                $table->string('barcode', 100)->nullable()->unique()->after('part_no');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('gci_parts', function (Blueprint $table) {
-            $table->dropColumn('barcode');
+            if (Schema::hasColumn('gci_parts', 'barcode')) {
+                $table->dropColumn('barcode');
+            }
         });
     }
 };

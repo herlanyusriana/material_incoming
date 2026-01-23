@@ -11,10 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('customer_parts', function (Blueprint $table) {
-            $table->renameColumn('part_no', 'customer_part_no');
-            $table->renameColumn('part_name', 'customer_part_name');
-        });
+        if (Schema::hasTable('customer_parts') && Schema::hasColumn('customer_parts', 'part_no') && !Schema::hasColumn('customer_parts', 'customer_part_no')) {
+            Schema::table('customer_parts', function (Blueprint $table) {
+                $table->renameColumn('part_no', 'customer_part_no');
+            });
+        }
+        if (Schema::hasTable('customer_parts') && Schema::hasColumn('customer_parts', 'part_name') && !Schema::hasColumn('customer_parts', 'customer_part_name')) {
+            Schema::table('customer_parts', function (Blueprint $table) {
+                $table->renameColumn('part_name', 'customer_part_name');
+            });
+        }
     }
 
     /**
@@ -22,9 +28,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('customer_parts', function (Blueprint $table) {
-            $table->renameColumn('customer_part_no', 'part_no');
-            $table->renameColumn('customer_part_name', 'part_name');
-        });
+        if (Schema::hasTable('customer_parts') && Schema::hasColumn('customer_parts', 'customer_part_no') && !Schema::hasColumn('customer_parts', 'part_no')) {
+            Schema::table('customer_parts', function (Blueprint $table) {
+                $table->renameColumn('customer_part_no', 'part_no');
+            });
+        }
+        if (Schema::hasTable('customer_parts') && Schema::hasColumn('customer_parts', 'customer_part_name') && !Schema::hasColumn('customer_parts', 'part_name')) {
+            Schema::table('customer_parts', function (Blueprint $table) {
+                $table->renameColumn('customer_part_name', 'part_name');
+            });
+        }
     }
 };
