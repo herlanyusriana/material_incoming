@@ -484,7 +484,7 @@
 </aside>
 
 {{-- Desktop sidebar --}}
-<aside class="hidden md:flex sticky top-0 h-screen flex-col border-r border-slate-200 bg-white transition-all duration-200 overflow-hidden"
+<aside class="hidden md:flex sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-all duration-200 overflow-hidden"
 	    :class="sidebarCollapsed ? 'w-20' : 'w-72'"
         @mouseenter="expandSidebar()"
         @mouseleave="collapseSidebar()"
