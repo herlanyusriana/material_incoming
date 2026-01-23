@@ -11,6 +11,8 @@ use App\Models\StockAtCustomer;
 use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDailyPlanRow;
+use App\Models\CustomerPart;
+use App\Models\GciPart;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -25,6 +27,15 @@ class OutgoingController extends Controller
         $dateTo = $this->parseDate(request('date_to')) ?? now()->addDays(4)->startOfDay();
         if ($dateTo->lt($dateFrom)) {
             [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        $search = trim((string) request('search', ''));
+        $perPage = (int) request('per_page', 50);
+        if ($perPage < 10) {
+            $perPage = 10;
+        }
+        if ($perPage > 200) {
+            $perPage = 200;
         }
 
         $planId = request('plan_id');
@@ -54,15 +65,38 @@ class OutgoingController extends Controller
         }
 
         if ($plan) {
-            $rows = $plan->rows()->with(['cells', 'gciPart.standardPacking'])->get();
-            foreach ($rows as $row) {
-                foreach ($row->cells as $cell) {
-                    $key = $cell->plan_date->format('Y-m-d');
-                    if (isset($totalsByDate[$key]) && $cell->qty !== null) {
-                        $totalsByDate[$key] += (int) $cell->qty;
-                    }
+            $totals = OutgoingDailyPlanCell::query()
+                ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
+                ->where('r.plan_id', $plan->id)
+                ->whereBetween('outgoing_daily_plan_cells.plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->selectRaw('outgoing_daily_plan_cells.plan_date as plan_date, SUM(COALESCE(outgoing_daily_plan_cells.qty, 0)) as total_qty')
+                ->groupBy('outgoing_daily_plan_cells.plan_date')
+                ->pluck('total_qty', 'plan_date')
+                ->all();
+
+            foreach ($totals as $k => $totalQty) {
+                if (isset($totalsByDate[$k])) {
+                    $totalsByDate[$k] = (int) $totalQty;
                 }
             }
+
+            $rows = $plan->rows()
+                ->with([
+                    'gciPart.standardPacking',
+                    'cells' => function ($query) use ($dateFrom, $dateTo) {
+                        $query
+                            ->select(['id', 'row_id', 'plan_date', 'seq', 'qty'])
+                            ->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
+                    },
+                ])
+                ->when($search !== '', function ($query) use ($search) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('production_line', 'like', '%' . $search . '%')
+                            ->orWhere('part_no', 'like', '%' . $search . '%');
+                    });
+                })
+                ->paginate($perPage)
+                ->withQueryString();
         }
 
         return view('outgoing.daily_planning', [
@@ -72,6 +106,8 @@ class OutgoingController extends Controller
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
             'totalsByDate' => $totalsByDate,
+            'search' => $search,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -171,6 +207,33 @@ class OutgoingController extends Controller
             [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
         }
 
+        // Best-effort: backfill missing gci_part_id for rows that have demand in this date range.
+        $rowIdsNeedingFix = OutgoingDailyPlanCell::query()
+            ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
+            ->whereBetween('outgoing_daily_plan_cells.plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
+            ->where('outgoing_daily_plan_cells.qty', '>', 0)
+            ->whereNull('r.gci_part_id')
+            ->distinct()
+            ->pluck('r.id');
+
+        if ($rowIdsNeedingFix->isNotEmpty()) {
+            OutgoingDailyPlanRow::query()
+                ->whereIn('id', $rowIdsNeedingFix)
+                ->select(['id', 'part_no'])
+                ->chunk(200, function ($rows) {
+                    foreach ($rows as $row) {
+                        $partNo = $this->normalizePartNo((string) ($row->part_no ?? ''));
+                        if ($partNo === '') {
+                            continue;
+                        }
+                        $resolvedId = $this->resolveFgPartIdFromPartNo($partNo);
+                        if ($resolvedId) {
+                            OutgoingDailyPlanRow::query()->whereKey($row->id)->update(['gci_part_id' => $resolvedId]);
+                        }
+                    }
+                });
+        }
+
         // Fetch cells from Daily Plans within range, filtered by quantity
         $cells = OutgoingDailyPlanCell::query()
             ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
@@ -179,25 +242,27 @@ class OutgoingController extends Controller
             ->get();
 
         $requirements = $cells->groupBy(function ($cell) {
-            // Group key: Date|GciPartID
+            // Group key: Date|GciPartID (or Date|raw part_no if unmapped)
             $date = $cell->plan_date->format('Y-m-d');
-            $partId = $cell->row->gci_part_id ?? 'null';
-            return "{$date}|{$partId}";
+            $partKey = $cell->row->gci_part_id
+                ? ('gci:' . $cell->row->gci_part_id)
+                : ('raw:' . (string) ($cell->row->part_no ?? ''));
+            return "{$date}|{$partKey}";
         })->map(function ($group) {
             $first = $group->first();
             
-            // Skip if no GCI Part
-            if (!$first->row->gciPart) return null;
+            $gciPart = $first->row->gciPart ?? null;
 
             $totalQty = $group->sum('qty');
-            $stdPacking = $first->row->gciPart->standardPacking ?? null;
+            $stdPacking = $gciPart?->standardPacking ?? null;
             $packQty = $stdPacking?->packing_qty ?? 1;
             
             return (object) [
                 'date' => $first->plan_date,
-                'customer' => $first->row->gciPart->customer ?? null,
-                'gci_part' => $first->row->gciPart,
+                'customer' => $gciPart?->customer ?? null,
+                'gci_part' => $gciPart,
                 'customer_part_no' => $first->row->part_no,
+                'unmapped' => $gciPart === null,
                 'total_qty' => $totalQty,
                 'sequence' => $group->min('seq'), // Get the minimum sequence in the group
                 'packing_std' => $packQty,
@@ -584,16 +649,68 @@ class OutgoingController extends Controller
             'production_line' => 'required|string',
         ]);
         
-        // Find or create GCI Part? For now assuming manual text or simple mapping
-        $gciPart = \App\Models\GciPart::where('part_no', $validated['part_no'])->first();
+        $partNo = $this->normalizePartNo($validated['part_no']);
+        $gciPartId = $partNo !== '' ? $this->resolveFgPartIdFromPartNo($partNo) : null;
         
         $row = $plan->rows()->create([
-            'row_no' => $plan->rows()->max('row_no') + 1,
+            'row_no' => (int) ($plan->rows()->max('row_no') ?? 0) + 1,
             'production_line' => $validated['production_line'],
-            'part_no' => $validated['part_no'],
-            'gci_part_id' => $gciPart?->id,
+            'part_no' => $partNo !== '' ? $partNo : $validated['part_no'],
+            'gci_part_id' => $gciPartId,
         ]);
         
         return back()->with('success', 'Row added.');
+    }
+
+    private function normalizePartNo(string $value): string
+    {
+        $str = str_replace("\u{00A0}", ' ', (string) ($value ?? ''));
+        $str = preg_replace('/\s+/', ' ', $str) ?? $str;
+        return strtoupper(trim($str));
+    }
+
+    private function resolveFgPartIdFromPartNo(string $partNo): ?int
+    {
+        $partNo = $this->normalizePartNo($partNo);
+        if ($partNo === '') {
+            return null;
+        }
+
+        $gciPart = GciPart::query()
+            ->where('part_no', $partNo)
+            ->where('classification', 'FG')
+            ->first();
+        if ($gciPart) {
+            return (int) $gciPart->id;
+        }
+
+        $customerPart = CustomerPart::query()
+            ->where('customer_part_no', $partNo)
+            ->where('status', 'active')
+            ->with(['components.part' => function ($q) {
+                $q->where('classification', 'FG');
+            }])
+            ->first();
+
+        if ($customerPart) {
+            $fgComponents = $customerPart->components
+                ->filter(fn ($c) => $c->part && $c->part->classification === 'FG' && $c->gci_part_id)
+                ->sortByDesc(fn ($c) => (float) ($c->qty_per_unit ?? 0))
+                ->values();
+
+            $first = $fgComponents->first();
+            if ($first && $first->gci_part_id) {
+                return (int) $first->gci_part_id;
+            }
+        }
+
+        $created = GciPart::create([
+            'part_no' => $partNo,
+            'part_name' => 'AUTO-CREATED (DAILY PLAN)',
+            'classification' => 'FG',
+            'status' => 'active',
+        ]);
+
+        return (int) $created->id;
     }
 }

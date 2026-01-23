@@ -78,6 +78,27 @@
                     <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">
                         View
                     </button>
+
+                    @if($plan)
+                        <div class="w-full md:w-auto md:ml-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Search</label>
+                            <input
+                                type="text"
+                                name="search"
+                                value="{{ $search ?? '' }}"
+                                placeholder="Line / Part No"
+                                class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Rows</label>
+                            <select name="per_page" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                @foreach([25,50,100,200] as $n)
+                                    <option value="{{ $n }}" @selected(($perPage ?? 50) === $n)>{{ $n }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                 </form>
             </div>
         </div>
@@ -116,8 +137,8 @@
                                     {{ $row->part_no }}
                                 </td>
                                 <td class="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">
-                                    {{ $row->gciPart->standardPacking->packing_qty ?? '-' }}
-                                    <span class="text-[10px] font-normal text-slate-400">{{ $row->gciPart->standardPacking->uom ?? '' }}</span>
+                                    {{ $row->gciPart?->standardPacking?->packing_qty ?? '-' }}
+                                    <span class="text-[10px] font-normal text-slate-400">{{ $row->gciPart?->standardPacking?->uom ?? '' }}</span>
                                 </td>
                                 @foreach ($days as $d)
                                     @php
@@ -185,6 +206,11 @@
             
             @if($plan)
                 <div class="border-t border-slate-200 p-4 bg-slate-50">
+                    @if(method_exists($rows, 'links'))
+                        <div class="mb-3">
+                            {{ $rows->onEachSide(1)->links() }}
+                        </div>
+                    @endif
                     <form action="{{ route('outgoing.daily-planning.row', $plan->id) }}" method="POST" class="flex gap-2 max-w-2xl">
                         @csrf
                         <input type="text" name="production_line" placeholder="Line (e.g. L1)" class="w-24 rounded-lg border-slate-300 text-sm" required>
