@@ -45,10 +45,13 @@
                     <thead class="bg-slate-50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">GCI Part Name</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">GCI Part No</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Part No</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Quantity</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Seq</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Part Details</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Total Qty</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Std Packing</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Load (Packs)</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
@@ -57,17 +60,41 @@
                                 <td class="px-4 py-3 font-semibold text-slate-700">
                                     {{ $req->date->format('d M Y') }}
                                 </td>
-                                <td class="px-4 py-3 text-slate-600">
-                                    {{ $req->gci_part->name ?? '-' }}
+                                <td class="px-4 py-3">
+                                    <div class="font-bold text-slate-900">{{ $req->customer->name ?? 'N/A' }}</div>
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase">{{ $req->customer->code ?? '-' }}</div>
                                 </td>
-                                <td class="px-4 py-3 font-mono text-xs text-slate-600">
-                                    {{ $req->gci_part->part_no ?? '-' }}
+                                <td class="px-4 py-3 font-mono text-sm text-center">
+                                    {{ $req->sequence ?? '-' }}
                                 </td>
-                                <td class="px-4 py-3 font-mono text-xs text-slate-600">
-                                    {{ $req->customer_part_no ?? '-' }}
+                                <td class="px-4 py-3">
+                                    <div class="text-slate-600 font-medium">{{ $req->gci_part->part_name ?? '-' }}</div>
+                                    <div class="text-xs text-indigo-600 font-mono">{{ $req->gci_part->part_no ?? $req->customer_part_no }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-bold text-slate-900">
+                                    {{ number_format($req->total_qty) }}
+                                </td>
+                                <td class="px-4 py-3 text-right text-slate-600">
+                                    {{ number_format($req->packing_std) }} {{ $req->uom }}
                                 </td>
                                 <td class="px-4 py-3 text-right font-bold text-indigo-700">
-                                    {{ number_format($req->total_qty) }}
+                                    {{ number_format($req->packing_load) }} Packs
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    @if($req->customer && $req->gci_part)
+                                        <form action="{{ route('outgoing.generate-so') }}" method="POST" onsubmit="return confirm('Generate SO for this requirement?')">
+                                            @csrf
+                                            <input type="hidden" name="date" value="{{ $req->date->toDateString() }}">
+                                            <input type="hidden" name="customer_id" value="{{ $req->customer->id }}">
+                                            <input type="hidden" name="items[0][gci_part_id]" value="{{ $req->gci_part->id }}">
+                                            <input type="hidden" name="items[0][qty]" value="{{ $req->total_qty }}">
+                                            <button type="submit" class="inline-flex items-center px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 transition-colors">
+                                                Generate SO
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="text-[10px] text-slate-400 italic">No mapping</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

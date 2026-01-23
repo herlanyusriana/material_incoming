@@ -171,31 +171,79 @@ class OutgoingController extends Controller
             [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
         }
 
-        // Fetch cells from Daily Plans within range
-        // We aggregate by Date + GCI Part (or Part No if GCI Part is null)
+        // Fetch cells from Daily Plans within range, filtered by quantity
         $cells = OutgoingDailyPlanCell::query()
-            ->with(['row', 'row.gciPart'])
+            ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
             ->whereBetween('plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
+            ->where('qty', '>', 0)
             ->get();
 
         $requirements = $cells->groupBy(function ($cell) {
-            // Group key: Date|GciPartID|PartNo
+            // Group key: Date|CustomerID|GciPartID|PartNo
             $date = $cell->plan_date->format('Y-m-d');
+            $customerId = $cell->row->gciPart->customer_id ?? 'null';
             $partId = $cell->row->gci_part_id ?? 'null';
             $partNo = $cell->row->part_no;
-            return "{$date}|{$partId}|{$partNo}";
+            return "{$date}|{$customerId}|{$partId}|{$partNo}";
         })->map(function ($group) {
             $first = $group->first();
+            $totalQty = $group->sum('qty');
+            $stdPacking = $first->row->gciPart->standardPacking ?? null;
+            $packQty = $stdPacking?->packing_qty ?? 1;
+            
             return (object) [
                 'date' => $first->plan_date,
+                'customer' => $first->row->gciPart->customer ?? null,
                 'gci_part' => $first->row->gciPart,
                 'customer_part_no' => $first->row->part_no,
-                'total_qty' => $group->sum('qty'),
-                'source_plans' => $group->pluck('row.plan_id')->unique()->values(),
+                'total_qty' => $totalQty,
+                'sequence' => $group->min('seq'), // Get the minimum sequence in the group
+                'packing_std' => $packQty,
+                'packing_load' => $packQty > 0 ? ceil($totalQty / $packQty) : 0,
+                'uom' => $stdPacking?->uom ?? 'PCS',
+                'source_row_ids' => $group->pluck('row_id')->unique()->values(),
             ];
-        })->sortBy('date');
+        })->sort(function($a, $b) {
+            // Sort by Date then Sequence
+            if ($a->date->ne($b->date)) {
+                return $a->date->gt($b->date) ? 1 : -1;
+            }
+            return ($a->sequence ?? 999) <=> ($b->sequence ?? 999);
+        });
 
         return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
+    }
+
+    public function generateSo(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'customer_id' => 'required|exists:customers,id',
+            'items' => 'required|array',
+            'items.*.gci_part_id' => 'required|exists:gci_parts,id',
+            'items.*.qty' => 'required|numeric|min:0.0001',
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            $dnNo = 'DN-' . now()->format('YmdHis'); // Auto-generate DN Number
+            
+            $dn = \App\Models\DeliveryNote::create([
+                'dn_no' => $dnNo,
+                'customer_id' => $validated['customer_id'],
+                'delivery_date' => $validated['date'],
+                'status' => 'draft',
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                \App\Models\DnItem::create([
+                    'dn_id' => $dn->id,
+                    'gci_part_id' => $item['gci_part_id'],
+                    'qty' => $item['qty'],
+                ]);
+            }
+        });
+
+        return redirect()->route('outgoing.delivery-notes.index')->with('success', 'SO generated successfully as Delivery Note.');
     }
 
     public function stockAtCustomers()
@@ -331,7 +379,11 @@ class OutgoingController extends Controller
                             ];
                         })
                     ];
-                })
+                }),
+                'cargo_summary' => [
+                    'total_items' => $p->stops->flatMap->deliveryNotes->flatMap->items->count(),
+                    'total_qty' => $p->stops->flatMap->deliveryNotes->flatMap->items->sum('qty'),
+                ]
             ];
         });
 
