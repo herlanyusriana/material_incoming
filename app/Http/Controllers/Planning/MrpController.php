@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
+use App\Models\Forecast;
 use App\Models\GciInventory;
 use App\Models\MrpProductionPlan;
 use App\Models\MrpPurchasePlan;
 use App\Models\MrpRun;
-use App\Models\Mps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -33,12 +33,18 @@ class MrpController extends Controller
             $temp->addDay();
         }
 
-        // Get latest MRP run for this period
-        $latestRun = MrpRun::where('period', $period)
-            ->orderBy('id', 'desc')
-            ->first();
+        // MRP runs are generated per-week (period format: YYYY-Www) and displayed in a monthly daily view.
+        // Load the latest run for each week that touches this month.
+        $weeks = $this->getWeeksForMonth($period);
+        $latestRunsByWeek = MrpRun::query()
+            ->whereIn('period', $weeks)
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('period')
+            ->map(fn ($group) => $group->first())
+            ->values();
 
-        if (!$latestRun) {
+        if ($latestRunsByWeek->isEmpty()) {
             return view('planning.mrp.index', [
                 'period' => $period,
                 'dates' => $dates,
@@ -46,7 +52,7 @@ class MrpController extends Controller
             ]);
         }
 
-        $runs = collect([$latestRun->load(['purchasePlans.part', 'productionPlans.part'])]);
+        $runs = $latestRunsByWeek->map(fn ($r) => $r->load(['purchasePlans.part', 'productionPlans.part']))->values();
 
         // Prepare Data Structure: Part -> [Info, Stock, Days => [Plan, Incoming, Projected, Net]]
         $mrpData = [];
@@ -246,9 +252,11 @@ class MrpController extends Controller
     // Extracted logic from generate()
     private function runMrpForWeek($minggu, $userId, $includeSaturday)
     {
-        $approvedMps = Mps::query()
-            ->where('minggu', $minggu)
-            ->where('status', 'approved')
+        // Use Forecast as the demand input (period can be weekly like 2026-W02).
+        // This keeps MPS (monthly) separate from MRP (weekly).
+        $forecastRows = Forecast::query()
+            ->where('period', $minggu)
+            ->where('qty', '>', 0)
             ->whereNotNull('part_id')
             ->with('part')
             ->get();
@@ -256,12 +264,12 @@ class MrpController extends Controller
         // If no approved MPS, we just skip? Or create empty run?
         // Ideally skip to avoid clutter, but for MRP view consistency maybe we need it?
         // Let's skip if empty but maybe user wants to see "No Data".
-        if ($approvedMps->isEmpty()) {
+        if ($forecastRows->isEmpty()) {
             return;
         }
 
         $run = MrpRun::create([
-            'minggu' => $minggu,
+            'period' => $minggu,
             'status' => 'completed',
             'run_by' => $userId,
             'run_at' => now(),
@@ -280,11 +288,13 @@ class MrpController extends Controller
             $dates[] = $startDate->copy()->addDays($i)->format('Y-m-d');
         }
 
-        foreach ($approvedMps as $row) {
-            if ($row->planned_qty <= 0)
+        foreach ($forecastRows as $row) {
+            $plannedQty = (float) $row->qty;
+            if ($plannedQty <= 0) {
                 continue;
+            }
 
-            $dailyQty = $row->planned_qty / $workDays;
+            $dailyQty = $plannedQty / $workDays;
 
             foreach ($dates as $date) {
                 if ($dailyQty > 0) {
@@ -293,6 +303,7 @@ class MrpController extends Controller
                         'part_id' => $row->part_id,
                         'plan_date' => $date,
                         'planned_qty' => $dailyQty,
+                        'planned_order_rec' => $dailyQty,
                     ]);
                 }
             }
@@ -302,7 +313,11 @@ class MrpController extends Controller
         $requirements = [];
         $componentMode = [];
 
-        foreach ($approvedMps as $row) {
+        foreach ($forecastRows as $row) {
+            $plannedQty = (float) $row->qty;
+            if ($plannedQty <= 0) {
+                continue;
+            }
             $bom = Bom::query()->with('items')->where('part_id', $row->part_id)->first();
             if (!$bom)
                 continue;
@@ -314,7 +329,7 @@ class MrpController extends Controller
                     continue;
 
                 $requirements[$componentId] = ($requirements[$componentId] ?? 0)
-                    + ((float) $row->planned_qty * (float) $item->usage_qty);
+                    + ($plannedQty * (float) $item->usage_qty);
 
                 $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
                 if ($mob === 'make') {
@@ -343,6 +358,8 @@ class MrpController extends Controller
                             'part_id' => $partId,
                             'plan_date' => $date,
                             'planned_qty' => $dailyNetRequired,
+                            'planned_order_rec' => $dailyNetRequired,
+                            'net_required' => $dailyNetRequired,
                         ]);
                     }
                 } else {
@@ -355,11 +372,26 @@ class MrpController extends Controller
                             'on_hand' => $onHand,
                             'on_order' => $onOrder,
                             'net_required' => $dailyNetRequired,
+                            'planned_order_rec' => $dailyNetRequired,
                         ]);
                     }
                 }
             }
         }
+    }
+
+    public function generate(Request $request)
+    {
+        $month = $request->input('month') ?: now()->format('Y-m');
+        $weeks = $this->getWeeksForMonth($month);
+
+        DB::transaction(function () use ($weeks, $request) {
+            foreach ($weeks as $minggu) {
+                $this->runMrpForWeek($minggu, $request->user()?->id, $request->boolean('include_saturday'));
+            }
+        });
+
+        return back()->with('success', 'MRP generated for ' . count($weeks) . ' weeks.');
     }
 
     public function generatePo(Request $request)

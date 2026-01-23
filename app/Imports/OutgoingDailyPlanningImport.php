@@ -162,7 +162,7 @@ class OutgoingDailyPlanningImport implements ToCollection
                             $this->createdParts[] = $partNo . " (Fallback from CustomerPart)";
                         } else {
                             // Use the first FG component
-                            $gciPartId = $fgComponents->first()->part_id;
+                            $gciPartId = $fgComponents->first()->gci_part_id;
                         }
                     } else {
                         // Auto-create GCI Part
@@ -214,4 +214,3 @@ class OutgoingDailyPlanningImport implements ToCollection
         return Carbon::createFromFormat('Y-m-d', $this->dates[count($this->dates) - 1]);
     }
 }
-

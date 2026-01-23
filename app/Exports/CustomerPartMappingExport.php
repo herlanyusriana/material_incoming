@@ -53,7 +53,7 @@ class CustomerPartMappingExport implements FromArray, WithHeadings, WithStyles, 
                     $cp->status ?? 'active',
                     $comp->part?->part_no ?? '',
                     $comp->part?->part_name ?? '',
-                    $comp->usage_qty !== null ? (string) $comp->usage_qty : '',
+                    $comp->qty_per_unit !== null ? (string) $comp->qty_per_unit : '',
                 ];
             }
         }
@@ -96,4 +96,3 @@ class CustomerPartMappingExport implements FromArray, WithHeadings, WithStyles, 
         ];
     }
 }
-

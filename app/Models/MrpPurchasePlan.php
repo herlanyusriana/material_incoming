@@ -17,6 +17,7 @@ class MrpPurchasePlan extends Model
         'on_hand',
         'on_order',
         'net_required',
+        'planned_order_rec',
     ];
 
     public function run()

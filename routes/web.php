@@ -135,6 +135,10 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);
         Route::post('delivery-notes/{delivery_note}/ship', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'ship'])->name('delivery-notes.ship');
+
+        Route::resource('standard-packings', \App\Http\Controllers\Outgoing\StandardPackingController::class);
+        Route::post('standard-packings/import', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'import'])->name('standard-packings.import');
+        Route::get('standard-packings/export', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'export'])->name('standard-packings.export');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -226,6 +230,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/mps/generate-range', [PlanningMpsController::class, 'generateRange'])->name('mps.generate-range');
         Route::post('/mps/upsert', [PlanningMpsController::class, 'upsert'])->name('mps.upsert');
         Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
+        Route::post('/mps/approve-monthly', [PlanningMpsController::class, 'approveMonthly'])->name('mps.approve-monthly');
         Route::get('/mps/detail', [PlanningMpsController::class, 'detail'])->name('mps.detail');
         Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
         Route::delete('/mps/clear', [PlanningMpsController::class, 'clear'])->name('mps.clear');

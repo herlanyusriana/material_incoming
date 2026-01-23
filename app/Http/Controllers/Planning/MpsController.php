@@ -13,23 +13,62 @@ use Illuminate\Support\Facades\DB;
 
 class MpsController extends Controller
 {
-    private function validatePeriod(string $field = 'period'): array
+    private function validateMonthPeriod(string $field = 'period'): array
     {
         return [$field => ['required', 'string', 'regex:/^\d{4}-\d{2}$/']];
     }
 
+    private function validateWeekPeriod(string $field = 'period'): array
+    {
+        return [$field => ['required', 'string', 'regex:/^\d{4}-W\d{2}$/']];
+    }
+
+    private function isMonthPeriod(?string $value): bool
+    {
+        return $value !== null && (bool) preg_match('/^\d{4}-\d{2}$/', $value);
+    }
+
+    private function isWeekPeriod(?string $value): bool
+    {
+        return $value !== null && (bool) preg_match('/^\d{4}-W\d{2}$/', $value);
+    }
+
     public function index(Request $request)
     {
-        $period = $request->query('period', now()->format('Y-m'));
+        $view = $request->query('view', 'calendar');
+        $period = trim((string) $request->query('period', ''));
+        if ($period === '') {
+            $period = $view === 'calendar' ? now()->format('o-\\WW') : now()->format('Y-m');
+        }
+
         $q = trim((string) $request->query('q', ''));
         $classification = strtoupper(trim((string) $request->query('classification', 'FG')));
         $classification = $classification === 'ALL' ? '' : $classification;
-        $monthsCount = (int) $request->query('months', 3);
-        $monthsCount = max(1, min(12, $monthsCount));
+        $weeksCount = (int) $request->query('weeks', 4);
+        $weeksCount = max(1, min(52, $weeksCount));
         $hideEmpty = $request->query('hide_empty', 'on') === 'on';
 
-        // Generate months range
-        $months = $this->makeMonthsRange($period, $monthsCount);
+        $weeks = [];
+        $months = [];
+        $monthWeeksMap = [];
+
+        $periodsForQuery = [];
+        if ($view === 'calendar') {
+            if (!$this->isWeekPeriod($period)) {
+                $period = now()->format('o-\\WW');
+            }
+            $weeks = $this->makeWeeksRange($period, $weeksCount);
+            $periodsForQuery = $weeks;
+        } elseif ($view === 'monthly') {
+            if (!$this->isMonthPeriod($period)) {
+                $period = now()->format('Y-m');
+            }
+            $months = $this->makeMonthsRange($period, min(12, $weeksCount));
+            foreach ($months as $m) {
+                $monthWeeksMap[$m] = $this->getWeeksForMonth($m);
+            }
+            $periodsForQuery = collect($monthWeeksMap)->flatten()->merge($months)->unique()->values()->all();
+        }
 
         $partsQuery = GciPart::query()
             ->where('status', 'active')
@@ -41,20 +80,46 @@ class MpsController extends Controller
                 });
             })
             ->when($hideEmpty, function ($query) use ($months) {
-                $query->whereHas('mps', function ($q) use ($months) {
-                    $q->whereIn('period', $months);
-                });
+                // filled below based on view; keep query valid when periods list is empty
             })
             ->orderBy('part_no')
             ->with([
-                'mps' => function ($query) use ($months) {
-                    $query->whereIn('period', $months);
+                'mps' => function ($query) use ($periodsForQuery) {
+                    if (!empty($periodsForQuery)) {
+                        $query->whereIn('period', $periodsForQuery);
+                    }
                 }
             ]);
 
-        $parts = $partsQuery->paginate(25)->withQueryString();
+        if ($hideEmpty && !empty($periodsForQuery)) {
+            $partsQuery->whereHas('mps', function ($q) use ($periodsForQuery) {
+                $q->whereIn('period', $periodsForQuery);
+            });
+        }
 
-        return view('planning.mps.index', compact('period', 'parts', 'months', 'monthsCount', 'q', 'classification', 'hideEmpty'));
+        $parts = null;
+        $rows = null;
+        if ($view === 'list') {
+            $rows = Mps::query()
+                ->with('part')
+                ->when($this->isMonthPeriod($period) || $this->isWeekPeriod($period), fn($q) => $q->where('period', $period))
+                ->when($classification !== '', function ($query) use ($classification) {
+                    $query->whereHas('part', fn($q) => $q->where('classification', $classification));
+                })
+                ->when($q !== '', function ($query) use ($q) {
+                    $query->whereHas('part', function ($sub) use ($q) {
+                        $sub->where('part_no', 'like', '%' . $q . '%')
+                            ->orWhere('part_name', 'like', '%' . $q . '%');
+                    });
+                })
+                ->latest('id')
+                ->paginate(50)
+                ->withQueryString();
+        } else {
+            $parts = $partsQuery->paginate(25)->withQueryString();
+        }
+
+        return view('planning.mps.index', compact('view', 'period', 'parts', 'rows', 'weeks', 'weeksCount', 'months', 'monthWeeksMap', 'q', 'classification', 'hideEmpty'));
     }
 
     private function makeMonthsRange(string $startPeriod, int $monthsCount): array
@@ -69,27 +134,63 @@ class MpsController extends Controller
         return $months;
     }
 
-    private function generateForPeriod(string $period): void
+    private function makeWeeksRange(string $startWeek, int $weeksCount): array
     {
-        $partIdsFromForecast = Forecast::query()
+        if (!preg_match('/^(?<year>\d{4})-W(?<week>\d{2})$/', $startWeek, $m)) {
+            return [];
+        }
+
+        $year = (int) $m['year'];
+        $week = (int) $m['week'];
+        $date = Carbon::now()->setISODate($year, $week, 1)->startOfDay();
+
+        $weeks = [];
+        for ($i = 0; $i < $weeksCount; $i++) {
+            $weeks[] = $date->copy()->addWeeks($i)->format('o-\\WW');
+        }
+        return $weeks;
+    }
+
+    private function getWeeksForMonth(string $monthStr): array
+    {
+        $startOfMonth = Carbon::parse($monthStr . '-01')->startOfDay();
+        $weeks = [];
+        $current = $startOfMonth->copy();
+        $endOfMonth = $startOfMonth->copy()->endOfMonth();
+
+        while ($current->lte($endOfMonth)) {
+            $w = $current->format('o-\\WW');
+            if (!in_array($w, $weeks, true)) {
+                $weeks[] = $w;
+            }
+            $current->addDay();
+        }
+
+        return $weeks;
+    }
+
+    private function generateForWeek(string $period): void
+    {
+        $forecastByPart = Forecast::query()
             ->where('period', $period)
             ->where('qty', '>', 0)
-            ->pluck('part_id');
+            ->pluck('qty', 'part_id')
+            ->map(fn($v) => (float) $v)
+            ->all();
+
+        $partIdsFromForecast = array_keys($forecastByPart);
 
         $partIdsFromExistingMps = Mps::query()
             ->where('period', $period)
             ->pluck('part_id');
 
         $parts = GciPart::query()
-            ->whereIn('id', $partIdsFromForecast->merge($partIdsFromExistingMps)->unique()->values())
+            ->whereIn('id', collect($partIdsFromForecast)->merge($partIdsFromExistingMps)->unique()->values())
             ->where('status', 'active')
             ->get(['id']);
 
         foreach ($parts as $part) {
-            $forecastQty = (float) (Forecast::query()
-                ->where('part_id', $part->id)
-                ->where('period', $period)
-                ->value('qty') ?? 0);
+            $forecastQty = (float) ($forecastByPart[$part->id] ?? 0);
 
             $existing = Mps::query()
                 ->where('part_id', $part->id)
@@ -123,37 +224,49 @@ class MpsController extends Controller
 
     public function generate(Request $request)
     {
-        $validated = $request->validate($this->validatePeriod());
-        $period = $validated['period'];
+        $validated = $request->validate(['period' => ['required', 'string']]);
+        $period = trim((string) $validated['period']);
 
-        DB::transaction(function () use ($period) {
-            // Note: ForecastGenerator might not have generateForPeriod method yet
-            // If it doesn't exist, just generate MPS from existing forecasts
-            $this->generateForPeriod($period);
-        });
+        if ($this->isWeekPeriod($period)) {
+            DB::transaction(fn () => $this->generateForWeek($period));
+            return back()->with('success', 'MPS generated (draft) for ' . $period);
+        }
 
-        return back()->with('success', 'MPS generated (draft) and forecast refreshed for ' . $period);
+        if ($this->isMonthPeriod($period)) {
+            $weeks = $this->getWeeksForMonth($period);
+            DB::transaction(function () use ($weeks) {
+                foreach ($weeks as $w) {
+                    $this->generateForWeek($w);
+                }
+            });
+            return back()->with('success', 'MPS generated (draft) for ' . $period . ' (from weeks: ' . count($weeks) . ')');
+        }
+
+        return back()->with('error', 'Invalid period. Use YYYY-MM or YYYY-Www (e.g., 2026-01 or 2026-W02).');
     }
 
     public function generateRange(Request $request)
     {
-        $validated = $request->validate($this->validatePeriod('period'));
-        $period = $validated['period'];
-        $monthsCount = (int) $request->input('months', 3);
-        $monthsCount = max(1, min(12, $monthsCount));
+        $validated = $request->validate(array_merge(
+            $this->validateWeekPeriod('period'),
+            ['weeks' => ['nullable', 'integer', 'min:1', 'max:52']]
+        ));
 
-        $months = $this->makeMonthsRange($period, $monthsCount);
+        $startWeek = $validated['period'];
+        $weeksCount = (int) ($validated['weeks'] ?? 4);
+        $weeksCount = max(1, min(52, $weeksCount));
 
-        DB::transaction(function () use ($months) {
-            foreach ($months as $m) {
-                // Note: ForecastGenerator might not have generateForPeriod method yet
-                $this->generateForPeriod($m);
+        $weeks = $this->makeWeeksRange($startWeek, $weeksCount);
+
+        DB::transaction(function () use ($weeks) {
+            foreach ($weeks as $w) {
+                $this->generateForWeek($w);
             }
         });
 
         return redirect()
-            ->route('planning.mps.index', ['period' => $period, 'months' => $monthsCount])
-            ->with('success', "MPS generated for " . count($months) . " months (draft) and forecast refreshed.");
+            ->route('planning.mps.index', ['view' => 'calendar', 'period' => $startWeek, 'weeks' => $weeksCount])
+            ->with('success', "MPS generated for " . count($weeks) . " weeks (draft).");
     }
 
     public function upsert(Request $request)
@@ -251,6 +364,53 @@ class MpsController extends Controller
             ]);
 
         return back()->with('success', "Approved {$updated} rows.");
+    }
+
+    public function approveMonthly(Request $request)
+    {
+        $keys = collect($request->input('approve_keys', []))
+            ->filter(fn ($v) => is_string($v) && str_contains($v, '|'))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($keys === []) {
+            return back()->with('error', 'Select at least one month cell to approve.');
+        }
+
+        $userId = $request->user()?->id;
+        $totalUpdated = 0;
+
+        DB::transaction(function () use ($keys, $userId, &$totalUpdated) {
+            foreach ($keys as $key) {
+                [$partIdRaw, $month] = explode('|', $key, 2);
+                if (!is_numeric($partIdRaw) || !$this->isMonthPeriod($month)) {
+                    continue;
+                }
+
+                $partId = (int) $partIdRaw;
+                $weeks = $this->getWeeksForMonth($month);
+                $periods = array_values(array_unique(array_merge([$month], $weeks)));
+
+                $updated = Mps::query()
+                    ->where('part_id', $partId)
+                    ->whereIn('period', $periods)
+                    ->where('status', 'draft')
+                    ->update([
+                        'status' => 'approved',
+                        'approved_by' => $userId,
+                        'approved_at' => now(),
+                    ]);
+
+                $totalUpdated += (int) $updated;
+            }
+        });
+
+        if ($totalUpdated < 1) {
+            return back()->with('error', 'No draft rows were approved (maybe already approved).');
+        }
+
+        return back()->with('success', "Approved {$totalUpdated} rows.");
     }
 
     public function detail(Request $request)

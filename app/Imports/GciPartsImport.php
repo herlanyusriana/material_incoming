@@ -91,22 +91,41 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
         $status = strtolower((string) ($this->norm($row['status'] ?? null) ?? ''));
         $customerCode = $this->norm($row['customer'] ?? null);
 
-        // Update Existing or Create New
-        $part = GciPart::firstOrNew(['part_no' => $partNo]);
+        // Resolve Customer FIRST
+        $customer = null;
+        if ($customerCode !== null) {
+            $customer = \App\Models\Customer::where('name', $customerCode)->first();
+        }
+
+        // Check if exists: Same Part No AND Same Customer (or both Null)
+        $query = GciPart::where('part_no', $partNo);
+        if ($customer) {
+            $query->where('customer_id', $customer->id);
+        } else {
+            $query->whereNull('customer_id');
+        }
+        $existingPart = $query->first();
+
+        if ($existingPart) {
+            $custLabel = $customer ? $customerCode : 'No Cust';
+            $this->duplicates[] = "{$partNo} [{$custLabel}]";
+            return;
+        }
+
+        $part = new GciPart();
+        $part->part_no = $partNo;
 
         // Use classification from Excel, default to FG for new parts
         $classification = strtoupper((string) ($this->norm($row['classification'] ?? null) ?? ''));
         if (in_array($classification, ['FG', 'WIP', 'RM'], true)) {
             $part->classification = $classification;
         } else {
-            if (!$part->exists) {
-                $part->classification = 'FG';
-            }
+            $part->classification = 'FG';
         }
 
         if ($partName !== null) {
             $part->part_name = $partName;
-        } elseif (!$part->exists && !$part->part_name) {
+        } else {
              $part->part_name = $partNo;
         }
 
@@ -117,18 +136,13 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
         if ($status !== '' && in_array($status, ['active', 'inactive'], true)) {
             $part->status = $status;
         } else {
-            if (!$part->exists) {
-                $part->status = 'active';
-            }
+            $part->status = 'active';
         }
 
-        if ($customerCode !== null) {
-            $customer = \App\Models\Customer::where('name', $customerCode)->first();
-            if ($customer) {
-                $part->customer_id = $customer->id;
-            } else {
-                $part->customer_id = null;
-            }
+        if ($customer) {
+            $part->customer_id = $customer->id;
+        } else {
+            $part->customer_id = null;
         }
 
         $part->save();

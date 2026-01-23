@@ -199,9 +199,20 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             }
         }
 
-        // Update existing or Create new
-        $part = Part::firstOrNew(['part_no' => $partNo]);
-        $part->vendor_id = $vendor->id; // Always update vendor mapping
+        // Check if exists
+        $existingPart = Part::where('part_no', $partNo)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if ($existingPart) {
+            // Already exists for this vendor
+            $this->duplicates[] = "{$partNo} [{$vendor->vendor_name}]";
+            return;
+        }
+
+        $part = new Part();
+        $part->part_no = $partNo;
+        $part->vendor_id = $vendor->id;
 
         if ($registerNo !== null) {
             $part->register_no = $registerNo;
@@ -235,9 +246,7 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
 
         if (array_key_exists('status', $row)) {
             $statusRaw = $this->firstNonEmpty($row, ['status']);
-            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : null; // if explicit null, keep old status? No, status usually required.
-            // If explicit empty string in Excel -> inactive?
-            // "if array_key_exists" means column exists.
+            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : null; 
             if ($status) {
                  if (!in_array($status, ['active', 'inactive'], true)) {
                     $status = 'active';
@@ -245,9 +254,7 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
                 $part->status = $status;
             }
         } else {
-             if (!$part->exists) {
-                $part->status = 'active';
-             }
+             $part->status = 'active';
         }
 
         if (!$part->register_no || trim((string) $part->register_no) === '') {

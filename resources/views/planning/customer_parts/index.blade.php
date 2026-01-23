@@ -111,7 +111,7 @@
                                     <button 
                                         type="button" 
                                         class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200"
-                                        @click="openComponentModal(@js($cp), @js($cp->components->map(fn($c) => ['id' => $c->id, 'part_id' => $c->part_id, 'part_no' => $c->part->part_no, 'part_name' => $c->part->part_name, 'usage_qty' => $c->usage_qty])))"
+                                        @click="openComponentModal(@js($cp), @js($cp->components->map(fn($c) => ['id' => $c->id, 'part_id' => $c->gci_part_id, 'part_no' => $c->part->part_no, 'part_name' => $c->part->part_name, 'usage_qty' => $c->qty_per_unit])))"
                                     >
                                         Manage Components
                                     </button>
@@ -130,7 +130,7 @@
                                                 <tr class="hover:bg-slate-50 transition-colors">
                                                     <td class="px-3 py-2 font-semibold text-slate-700">{{ $comp->part->part_no ?? '-' }}</td>
                                                     <td class="px-3 py-2 text-slate-600 text-xs">{{ $comp->part->part_name ?? '-' }}</td>
-                                                    <td class="px-3 py-2 text-right font-mono text-xs text-indigo-600 font-bold whitespace-nowrap">{{ number_format((float) $comp->usage_qty, 3) }}</td>
+                                                    <td class="px-3 py-2 text-right font-mono text-xs text-indigo-600 font-bold whitespace-nowrap">{{ number_format((float) $comp->qty_per_unit, 3) }}</td>
                                                 </tr>
                                             @empty
                                                 <tr>

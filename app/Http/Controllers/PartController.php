@@ -75,12 +75,11 @@ class PartController extends Controller
             $import = new PartsImport($confirm);
             Excel::import($import, \Illuminate\Support\Facades\Storage::path($filePath));
 
-            // Check for potential duplicates (Dry Run result)
+            // Check for skipped duplicates
+            $dupMsg = '';
             if (!empty($import->duplicates)) {
-                return back()
-                    ->with('import_duplicates', $import->duplicates)
-                    ->with('temp_file', $filePath)
-                    ->with('error', 'Duplicate data found. Please review below.');
+                $dupCount = count($import->duplicates);
+                $dupMsg = " Skipped {$dupCount} duplicate rows.";
             }
 
             $failures = collect($import->failures());
@@ -90,7 +89,7 @@ class PartController extends Controller
                     ->take(5)
                     ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
-                return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+                return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal.{$dupMsg} Details: {$preview}");
             }
 
             $createdVendors = $import->createdVendors();
@@ -98,13 +97,15 @@ class PartController extends Controller
             // Delete temp file on success
             \Illuminate\Support\Facades\Storage::delete($filePath);
 
+            $msg = "Parts imported successfully.{$dupMsg}";
+
             if (!empty($createdVendors)) {
                 $preview = collect($createdVendors)->take(5)->implode(', ');
                 $more = count($createdVendors) > 5 ? ' (+' . (count($createdVendors) - 5) . ' more)' : '';
-                return back()->with('status', "Parts imported successfully. New vendors created: {$preview}{$more}");
+                $msg .= " New vendors created: {$preview}{$more}";
             }
 
-            return back()->with('status', 'Parts imported successfully.');
+            return back()->with('status', $msg);
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
                 // Keep file logic if reusable? Complexity. Let's delete for now on validation error.

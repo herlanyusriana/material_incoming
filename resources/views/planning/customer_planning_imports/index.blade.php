@@ -113,6 +113,13 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="text-sm font-semibold text-slate-900">Imported Rows (Import #{{ $importId }})</div>
 
+                @php
+                    $fmtQty = function ($value): string {
+                        $formatted = number_format((float) ($value ?? 0), 3, '.', ',');
+                        return rtrim(rtrim($formatted, '0'), '.');
+                    };
+                @endphp
+
                 @if (($unmappedCustomerParts?->count() ?? 0) > 0)
                     <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
                         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -135,7 +142,7 @@
                                             <td class="px-4 py-2 font-semibold">{{ $u->customer_part_no }}</td>
                                             <td class="px-4 py-2 text-right font-mono text-xs">{{ (int) $u->rows_count }}</td>
                                             <td class="px-4 py-2 text-right font-mono text-xs">
-                                                {{ number_format((float) $u->total_qty, 3) }}</td>
+                                                {{ $fmtQty($u->total_qty) }}</td>
                                             <td class="px-4 py-2 text-right">
                                                 <a class="text-indigo-600 hover:text-indigo-800 font-semibold"
                                                     href="{{ route('planning.customer-parts.index', ['customer_id' => $importCustomerId, 'prefill_customer_part_no' => $u->customer_part_no]) }}">
@@ -171,7 +178,7 @@
                                 <td class="px-4 py-3 font-semibold">{{ $row->customer_part_no }}</td>
                                 <td class="px-4 py-3 font-mono text-xs">{{ $row->period }}</td>
                                 <td class="px-4 py-3 text-right font-mono text-xs">
-                                    {{ number_format((float) $row->qty, 3) }}</td>
+                                    {{ $fmtQty($row->qty) }}</td>
                                 <td class="px-4 py-3 text-slate-700 text-xs">
                                     @php($translated = $translatedByRowId[$row->id] ?? [])
                                     @if (!empty($translated))
@@ -183,9 +190,9 @@
                                                         <span class="text-slate-500">{{ $t['part_name'] ?? '' }}</span>
                                                     </div>
                                                     <div class="font-mono text-[11px] text-slate-600">
-                                                        {{ number_format((float) $t['demand_qty'], 3) }}
+                                                        {{ $fmtQty($t['demand_qty']) }}
                                                         <span
-                                                            class="text-slate-400">(×{{ number_format((float) $t['usage_qty'], 3) }})</span>
+                                                            class="text-slate-400">(×{{ $fmtQty($t['usage_qty']) }})</span>
                                                     </div>
                                                 </div>
                                             @endforeach

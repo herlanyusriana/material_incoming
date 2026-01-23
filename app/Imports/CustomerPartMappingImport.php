@@ -17,6 +17,9 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsEmptyRows
 {
     use SkipsFailures;
+    
+    public $duplicates = [];
+    private array $seenMappingKeys = [];
 
     private function firstNonEmpty(array $row, array $keys): ?string
     {
@@ -56,12 +59,15 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
         return $value === '' ? null : strtoupper($value);
     }
 
-    private function ensureGciPart(string $partNo, ?string $partName = null): GciPart
+    private function ensureGciPart(int $customerId, string $partNo, ?string $partName = null): GciPart
     {
         $partNo = $this->normalizeUpper($partNo) ?? '';
         $partName = $partName !== null ? trim($partName) : null;
 
-        $existing = GciPart::query()->where('part_no', $partNo)->first();
+        $existing = GciPart::query()
+            ->where('customer_id', $customerId)
+            ->where('part_no', $partNo)
+            ->first();
         if ($existing) {
             if ($partName !== null && $partName !== '' && ($existing->part_name === null || trim((string) $existing->part_name) === '')) {
                 $existing->update(['part_name' => $partName]);
@@ -70,6 +76,7 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
         }
 
         return GciPart::create([
+            'customer_id' => $customerId,
             'part_no' => $partNo,
             'part_name' => ($partName !== null && $partName !== '') ? $partName : $partNo,
             'status' => 'active',
@@ -129,21 +136,47 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
             return null;
         }
 
-        $customerPart = CustomerPart::updateOrCreate(
-            ['customer_id' => $customer->id, 'customer_part_no' => $customerPartNo],
-            [
+        // Check if CustomerPart exists
+        $customerPart = CustomerPart::where('customer_id', $customer->id)
+            ->where('customer_part_no', $customerPartNo)
+            ->first();
+
+        if (!$customerPart) {
+            // Create New
+            $customerPart = CustomerPart::create([
+                'customer_id' => $customer->id,
+                'customer_part_no' => $customerPartNo,
                 'customer_part_name' => $customerPartName !== null && trim($customerPartName) !== '' ? trim($customerPartName) : null,
                 'status' => $status,
-            ],
-        );
+            ]);
+        } 
+        // If exists, we proceed (to check mapping), but we do NOT update the CustomerPart details.
 
         $gciPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['gci_part_no', 'part_gci', 'part_no', 'gci_part_number']));
+        
+        // If no GCI part specified, we are done
         if (!$gciPartNo) {
-            return null;
+             if ($customerPart->wasRecentlyCreated) {
+                 return null;
+             } else {
+                 // Even if header exists, we might need to process components in next rows if this file structure is flat.
+                 // But if part info is missing, nothing to do.
+                 return null;
+             }
         }
 
+        $mappingKey = "{$customerCode}|{$customerPartNo}|{$gciPartNo}";
+        if (isset($this->seenMappingKeys[$mappingKey])) {
+            $this->duplicates[] = [
+                'customer_code' => $customerCode,
+                'customer_part_no' => $customerPartNo,
+                'gci_part_no' => $gciPartNo,
+            ];
+        }
+        $this->seenMappingKeys[$mappingKey] = true;
+
         $gciPartName = $this->firstNonEmpty($row, ['gci_part_name', 'part_name']);
-        $gciPart = $this->ensureGciPart($gciPartNo, $gciPartName);
+        $gciPart = $this->ensureGciPart((int) $customer->id, $gciPartNo, $gciPartName);
 
         $usageQtyRaw = $this->firstNonEmpty($row, ['usage_qty', 'usage', 'consumption']);
         $usageQty = $usageQtyRaw !== null && is_numeric($usageQtyRaw) ? (float) $usageQtyRaw : null;
@@ -151,10 +184,22 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
             return null;
         }
 
-        CustomerPartComponent::updateOrCreate(
-            ['customer_part_id' => $customerPart->id, 'gci_part_id' => $gciPart->id],
-            ['qty_per_unit' => $usageQty],
-        );
+        // Check if Mapping exists
+        $mapping = CustomerPartComponent::where('customer_part_id', $customerPart->id)
+            ->where('gci_part_id', $gciPart->id)
+            ->first();
+
+        if ($mapping) {
+            // Sum quantity (support repeated rows for the same mapping)
+            $current = is_numeric($mapping->qty_per_unit) ? (float) $mapping->qty_per_unit : 0.0;
+            $mapping->update(['qty_per_unit' => $current + $usageQty]);
+        } else {
+            CustomerPartComponent::create([
+                'customer_part_id' => $customerPart->id,
+                'gci_part_id' => $gciPart->id, 
+                'qty_per_unit' => $usageQty
+            ]);
+        }
 
         return null;
     }

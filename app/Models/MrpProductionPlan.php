@@ -13,6 +13,8 @@ class MrpProductionPlan extends Model
         'mrp_run_id',
         'part_id',
         'plan_date',
+        'net_required',
+        'planned_order_rec',
         'planned_qty',
     ];
 

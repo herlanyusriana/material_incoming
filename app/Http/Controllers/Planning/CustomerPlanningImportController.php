@@ -58,15 +58,15 @@ class CustomerPlanningImportController extends Controller
                         ->on('cp.customer_part_no', '=', 'r.customer_part_no');
                 })
                 ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
-                ->join('gci_parts as gp', 'gp.id', '=', 'cpc.part_id')
+                ->join('gci_parts as gp', 'gp.id', '=', 'cpc.gci_part_id')
                 ->where('r.import_id', $importId)
                 ->select([
                     'r.id as row_id',
                     'gp.part_no',
                     'gp.part_name',
-                    'cpc.usage_qty',
+                    'cpc.qty_per_unit as usage_qty',
                     'r.qty as customer_qty',
-                    DB::raw('(r.qty * cpc.usage_qty) as demand_qty'),
+                    DB::raw('(r.qty * cpc.qty_per_unit) as demand_qty'),
                 ])
                 ->orderBy('r.id')
                 ->orderBy('gp.part_no')
@@ -120,7 +120,13 @@ class CustomerPlanningImportController extends Controller
         }
 
         if (!$importer->format) {
-            return back()->with('error', 'Format file tidak dikenali. Gunakan template weekly (customer_part_no, minggu, qty) atau template monthly (Part Number + kolom bulan).');
+            $found = collect($importer->detectedHeaders ?? [])
+                ->filter(fn ($h) => trim((string) $h) !== '')
+                ->take(12)
+                ->implode(', ');
+            $suffix = $found !== '' ? " Headers ditemukan: {$found}" : '';
+
+            return back()->with('error', 'Format file tidak dikenali. Gunakan template weekly (customer_part_no, minggu, qty) atau template monthly (Part Number + kolom bulan).' . $suffix);
         }
 
         $normalizedRows = collect();
@@ -294,7 +300,7 @@ class CustomerPlanningImportController extends Controller
                         $status = 'unknown_mapping';
                         $error = 'Customer part has no mapped components.';
                     } elseif ($mapping->components_count === 1) {
-                        $partId = $mapping->components()->value('part_id');
+                        $partId = $mapping->components()->value('gci_part_id');
                     }
                 }
 

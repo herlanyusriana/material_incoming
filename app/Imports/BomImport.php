@@ -4,7 +4,7 @@ namespace App\Imports;
 
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\Part;
+use App\Models\GciPart;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -17,6 +17,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
     use SkipsFailures;
 
     public int $rowCount = 0;
+    public int $skippedRows = 0;
 
     private function normalizeMakeOrBuy(?string $value): string
     {
@@ -35,10 +36,13 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         return 'buy';
     }
 
-    private function getPart(string $partNo): ?Part
+    private function getGciPart(?string $partNo): ?GciPart
     {
+        if (!$partNo) {
+            return null;
+        }
         $partNo = $this->normalizeUpper($partNo) ?? '';
-        return Part::query()->where('part_no', $partNo)->first();
+        return GciPart::query()->where('part_no', $partNo)->first();
     }
 
     private function firstNonEmpty(array $row, array $keys): ?string
@@ -105,12 +109,13 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $fgPartNo = $this->firstNonEmpty($row, ['fg_part_no', 'fg_part_number', 'fg_partno']);
         $fgPartNo = $this->normalizeUpper($fgPartNo);
         if (!$fgPartNo) {
+            $this->skippedRows++;
             return null;
         }
 
-        $fg = $this->getPart($fgPartNo);
+        $fg = $this->getGciPart($fgPartNo);
         if (!$fg) {
-            throw new \Exception("FG Part No [{$fgPartNo}] belum terdaftar di Parts.");
+            throw new \Exception("FG Part No [{$fgPartNo}] belum terdaftar di GCI Part.");
         }
 
         // Removed FG classification check as Part model does not support it
@@ -120,8 +125,24 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             ['status' => 'active']
         );
 
-        $rmPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['rm_part_no', 'rm_part_number', 'rm_partno']));
-        if (!$rmPartNo) {
+        $rmPartNo = $this->normalizeUpper($this->firstNonEmpty($row, [
+            'rm_part_no', 'rm_part_number', 'rm_partno', 'rm_part_no.',
+            'component_part_no', 'component_part_number', 'component_part',
+            'part_no', 'part_number'
+        ]));
+        
+        $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
+
+        $processName = $this->firstNonEmpty($row, ['process_name']);
+        $machineName = $this->firstNonEmpty($row, ['machine_name']);
+
+        // Check availability of identification data
+        $hasPartNo = ($rmPartNo || $wipPartNo);
+        $hasProcess = ($processName || $machineName);
+
+        // If neither Part No nor Process is specified, then skip
+        if (!$hasPartNo && !$hasProcess) {
+            $this->skippedRows++;
             return null;
         }
 
@@ -135,11 +156,6 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             $lineNo = (int) $lineNoRaw;
         }
 
-        $processName = $this->firstNonEmpty($row, ['process_name']);
-        $machineName = $this->firstNonEmpty($row, ['machine_name']);
-
-        $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
-        
         $wipQtyRaw = $this->firstNonEmpty($row, ['qty_wip', 'qty', 'qty_']);
         $wipQty = $wipQtyRaw !== null && is_numeric($wipQtyRaw) ? (float) $wipQtyRaw : null;
 
@@ -180,7 +196,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'material_spec' => $materialSpec ? trim($materialSpec) : null,
             'material_name' => $materialName ? trim($materialName) : null,
             'special' => $special ? trim($special) : null,
-            'component_part_id' => null, // RM/WIP components are now strings only
+            'component_part_id' => $rmPartNo ? $this->getGciPart($rmPartNo)?->id : null,
             'component_part_no' => $rmPartNo,
             'make_or_buy' => $makeOrBuy,
             'usage_qty' => $usageQty ?? 1,

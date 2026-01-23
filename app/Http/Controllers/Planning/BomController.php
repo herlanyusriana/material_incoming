@@ -75,13 +75,13 @@ class BomController extends Controller
         $results = $boms->map(function ($bom) {
             $customerProducts = \App\Models\CustomerPartComponent::query()
                 ->with(['customerPart.customer'])
-                ->where('part_id', $bom->part_id)
+                ->where('gci_part_id', $bom->part_id)
                 ->get()
                 ->map(fn ($comp) => [
                     'customer_part_no' => $comp->customerPart->customer_part_no,
                     'customer_part_name' => $comp->customerPart->customer_part_name,
                     'customer_name' => $comp->customerPart->customer->name ?? '-',
-                    'usage_qty' => $comp->usage_qty,
+                    'usage_qty' => $comp->qty_per_unit,
                 ]);
 
             return [
@@ -144,7 +144,12 @@ class BomController extends Controller
             }
 
             $count = $import->rowCount;
-            return back()->with('success', "BOM imported successfully. {$count} rows processed.");
+            $skipped = $import->skippedRows;
+            $msg = "BOM imported successfully. {$count} rows processed.";
+            if ($skipped > 0) {
+                $msg .= " {$skipped} rows skipped (empty or missing part numbers).";
+            }
+            return back()->with('success', $msg);
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
                 $failures = collect($e->failures());

@@ -69,7 +69,13 @@ class CustomerPartController extends Controller
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
-            return back()->with('success', 'Customer part mapping imported.');
+            $dupCount = count($import->duplicates);
+            $msg = 'Customer part mapping imported.';
+            if ($dupCount > 0) {
+                $msg .= " Detected {$dupCount} duplicate mapping rows (same customer + customer part + GCI part); qty summed.";
+            }
+
+            return back()->with('success', $msg);
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
                 $failures = collect($e->failures());
@@ -136,8 +142,8 @@ class CustomerPartController extends Controller
         ]);
 
         CustomerPartComponent::updateOrCreate(
-            ['customer_part_id' => $customerPart->id, 'part_id' => (int) $validated['part_id']],
-            ['usage_qty' => $validated['usage_qty']],
+            ['customer_part_id' => $customerPart->id, 'gci_part_id' => (int) $validated['part_id']],
+            ['qty_per_unit' => $validated['usage_qty']],
         );
 
         return back()->with('success', 'Mapping saved.');

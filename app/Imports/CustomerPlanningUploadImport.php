@@ -9,6 +9,9 @@ use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 class CustomerPlanningUploadImport implements WithMultipleSheets
 {
     public ?string $format = null; // weekly|monthly
+    /** @var array<int, string> */
+    public array $detectedHeaders = [];
+
     public function __construct(private readonly bool $includeWeekMap = true)
     {
     }
@@ -79,7 +82,20 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
 
                 private function normHeader(string $value): string
                 {
-                    return strtolower(trim($value));
+                    $value = str_replace("\u{00A0}", ' ', $value);
+                    $value = strtolower(trim($value));
+                    $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+                    $value = preg_replace('/[^a-z0-9]+/', '_', $value) ?? $value;
+                    $value = trim($value, '_');
+
+                    return match ($value) {
+                        'customer_part', 'customer_part_no', 'customer_part_number', 'customer_partnum', 'customer_part_no_' => 'customer_part_no',
+                        'minggu', 'week', 'week_no', 'week_number', 'period' => 'minggu',
+                        'qty', 'quantity', 'qty_pcs', 'qty_pc' => 'qty',
+                        'part_number', 'part_no', 'partnum', 'partnumber' => 'part_number',
+                        'biz_type', 'biztype' => 'biz_type',
+                        default => $value,
+                    };
                 }
 
                 private function normalizePartNo(mixed $value): string
@@ -122,6 +138,7 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     }
 
                     $headers = array_map(fn ($v) => trim((string) $v), $this->rowValues($headerRow));
+                    $this->parent->detectedHeaders = array_values(array_filter($headers, fn ($h) => $h !== ''));
                     $headerIndex = [];
                     foreach ($headers as $idx => $h) {
                         $key = $this->normHeader($h);
@@ -130,14 +147,17 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                         }
                     }
 
-                    $isWeekly = isset($headerIndex['customer_part_no']) && isset($headerIndex['minggu']) && isset($headerIndex['qty']);
-                    $isMonthly = isset($headerIndex['part number']) || isset($headerIndex['part_number']);
+                    $weeklyPartKey = isset($headerIndex['customer_part_no']) ? 'customer_part_no' : (isset($headerIndex['part_number']) ? 'part_number' : null);
+                    $isWeekly = $weeklyPartKey !== null && isset($headerIndex['minggu']) && isset($headerIndex['qty']);
+
+                    $monthlyPartKey = isset($headerIndex['part_number']) ? 'part_number' : (isset($headerIndex['customer_part_no']) ? 'customer_part_no' : null);
+                    $isMonthly = $monthlyPartKey !== null;
 
                     if ($isWeekly) {
                         $this->parent->format = 'weekly';
                         foreach ($rows as $row) {
                             $arr = $this->rowValues($row);
-                            $customerPartNo = $this->normalizePartNo($arr[$headerIndex['customer_part_no']] ?? '');
+                            $customerPartNo = $this->normalizePartNo($arr[$headerIndex[$weeklyPartKey]] ?? '');
                             $minggu = strtoupper(trim((string) ($arr[$headerIndex['minggu']] ?? '')));
                             $qty = $this->parseQty($arr[$headerIndex['qty']] ?? null);
                             if ($customerPartNo === '' && $minggu === '' && $qty === 0.0) {
@@ -153,11 +173,8 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                     }
 
                     if ($isMonthly) {
-                        $this->parent->format = 'monthly';
-
-                        $partNumberKey = isset($headerIndex['part number']) ? 'part number' : 'part_number';
-                        $bizTypeIdx = $headerIndex['biz type'] ?? $headerIndex['biz_type'] ?? null;
-                        $partNumberIdx = $headerIndex[$partNumberKey];
+                        $partNumberIdx = $headerIndex[$monthlyPartKey];
+                        $bizTypeIdx = $headerIndex['biz_type'] ?? null;
 
                         $monthColumns = [];
                         foreach ($headers as $idx => $rawHeader) {
@@ -173,12 +190,19 @@ class CustomerPlanningUploadImport implements WithMultipleSheets
                                 $monthColumns[$clean] = $idx;
                                 continue;
                             }
-                            // Or explicit YYYY-MM.
-                            if (preg_match('/^\d{4}-\d{2}$/', $clean)) {
+                            // Or explicit YYYY-MM, or parseable month key.
+                            $monthKey = CustomerPlanningUploadImport::normalizeMonthKey($clean);
+                            if (preg_match('/^\d{4}-\d{2}$/', $clean) || preg_match('/^\d{4}-\d{2}$/', $monthKey)) {
                                 $monthColumns[$clean] = $idx;
                             }
                         }
 
+                        // Monthly format must have at least 1 month column.
+                        if (count($monthColumns) < 1) {
+                            return;
+                        }
+
+                        $this->parent->format = 'monthly';
                         foreach ($rows as $row) {
                             $arr = $this->rowValues($row);
                             $customerPartNo = $this->normalizePartNo($arr[$partNumberIdx] ?? '');

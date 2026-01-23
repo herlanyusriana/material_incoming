@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,13 +12,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('gci_parts', function (Blueprint $table) {
-            $table->dropUnique(['part_no']);
-        });
+        try {
+            Schema::table('gci_parts', function (Blueprint $table) {
+                $table->dropUnique('gci_parts_part_no_unique');
+            });
+        } catch (\Throwable $e) {
+            // Ignore if index does not exist (migration might have been applied partially before).
+        }
 
-        Schema::table('parts', function (Blueprint $table) {
-            $table->dropUnique('parts_part_no_unique');
-        });
+        try {
+            Schema::table('parts', function (Blueprint $table) {
+                $table->dropUnique('parts_part_no_unique');
+            });
+        } catch (\Throwable $e) {
+            // Ignore if index does not exist (migration might have been applied partially before).
+        }
     }
 
     /**

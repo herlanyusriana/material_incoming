@@ -5,15 +5,16 @@
 
     <div class="py-6" x-data="planningMps()">
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            @php
-                $viewMode = $view ?? 'calendar';
-                $weeksCountValue = (int) ($weeksCount ?? 4);
-                $weeksValue = $weeks ?? [];
-                $searchValue = $q ?? '';
-                $classificationValue = strtoupper(trim((string) ($classification ?? 'FG')));
-                $classificationValue = $classificationValue === '' ? 'ALL' : $classificationValue;
-                $hideEmptyValue = $hideEmpty ?? true;
-            @endphp
+                @php
+                    $viewMode = $view ?? 'calendar';
+                    $weeksCountValue = (int) ($weeksCount ?? 4);
+                    $weeksValue = $weeks ?? [];
+                    $searchValue = $q ?? '';
+                    $classificationValue = strtoupper(trim((string) ($classification ?? 'FG')));
+                    $classificationValue = $classificationValue === '' ? 'ALL' : $classificationValue;
+                    $hideEmptyValue = $hideEmpty ?? true;
+                    $monthWeeksMapValue = $monthWeeksMap ?? [];
+                @endphp
 
             @if (session('success'))
                 <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
@@ -120,8 +121,23 @@
                                 <input type="hidden" name="hide_empty" value="{{ $hideEmptyValue ? 'on' : 'off' }}">
                                 <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm">Generate Range (Refresh Forecast)</button>
                             </form>
+                            <button
+                                type="submit"
+                                form="approve-form"
+                                class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                onclick="return confirm('Approve selected MPS cells?')"
+                            >
+                                Approve Selected
+                            </button>
                         @elseif($viewMode === 'monthly')
-                            <!-- Monthly actions if any -->
+                            <button
+                                type="submit"
+                                form="approve-month-form"
+                                class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                onclick="return confirm('Approve selected MPS month cells?')"
+                            >
+                                Approve Selected
+                            </button>
                         @else
                             <form method="POST" action="{{ route('planning.mps.generate') }}">
                                 @csrf
@@ -142,6 +158,16 @@
 
                 @if($viewMode === 'calendar' || $viewMode === 'monthly')
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        @if($viewMode === 'calendar')
+                            <form id="approve-form" method="POST" action="{{ route('planning.mps.approve') }}">
+                                @csrf
+                            </form>
+                        @endif
+                        @if($viewMode === 'monthly')
+                            <form id="approve-month-form" method="POST" action="{{ route('planning.mps.approve-monthly') }}">
+                                @csrf
+                            </form>
+                        @endif
                         <table class="min-w-[980px] w-full table-fixed text-sm divide-y divide-slate-200">
                             <colgroup>
                                 <col class="w-44">
@@ -190,13 +216,25 @@
                                                 @php $cell = $byPeriod->get($w); @endphp
                                                 <td class="px-4 py-3 text-center">
                                                     @if($cell)
-                                                        <button
-                                                            type="button"
-                                                            class="inline-flex items-center justify-center w-full px-3 py-1 rounded-full text-xs font-semibold {{ $cell->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }}"
-                                                            @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
-                                                        >
-                                                            {{ formatNumber($cell->planned_qty) }}
-                                                        </button>
+                                                        <div class="flex items-center justify-center gap-2">
+                                                            @if($cell->status !== 'approved')
+                                                                <input
+                                                                    type="checkbox"
+                                                                    name="mps_ids[]"
+                                                                    value="{{ $cell->id }}"
+                                                                    form="approve-form"
+                                                                    class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                                    title="Select to approve"
+                                                                >
+                                                            @endif
+                                                            <button
+                                                                type="button"
+                                                                class="inline-flex flex-1 min-w-0 items-center justify-center px-3 py-1 rounded-full text-xs font-semibold {{ $cell->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }}"
+                                                                @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
+                                                            >
+                                                                {{ formatNumber($cell->planned_qty) }}
+                                                            </button>
+                                                        </div>
                                                     @else
                                                         <button
                                                             type="button"
@@ -211,29 +249,39 @@
                                         @else
                                             <!-- Monthly -->
                                             @foreach($months as $m)
-                                                @php
-                                                    // Filter MPS records belonging to this month
-                                                    // We can replicate controller logic or use simplified check (startswith YYYY-MM if week matches?)
-                                                    // But our weeks are YYYY-Wxx.
-                                                    // We need to know which weeks belong to $m
-                                                    // Using Carbon again in View is heavy but acceptable for 25 items x 4 months = 100 iterations.
-                                                    // Better: Controller passed mapping, but filtering collection is fine too.
-                                                    
-                                                    // Simplified: Just match period
-                                                    $monthSum = $p->mps->where('period', $m)->sum('planned_qty');
-                                                    
-                                                @endphp
-                                                <td class="px-4 py-3 text-center">
-                                                     <button
-                                                        type="button"
-                                                        class="inline-flex items-center justify-center w-full px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
-                                                        @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $m, 'planned_qty' => $monthSum, 'status' => 'draft']))"
-                                                        title="Click to set monthly plan"
+                                        @php
+                                            $byPeriod = $p->mps->keyBy('period');
+                                            $monthlyCell = $byPeriod->get($m);
+                                            $weeksForMonth = $monthWeeksMapValue[$m] ?? [];
+                                            $monthSum = $monthlyCell ? (float) $monthlyCell->planned_qty : (float) $p->mps->whereIn('period', $weeksForMonth)->sum('planned_qty');
+                                            $hasDraftInMonth = $p->mps
+                                                ->whereIn('period', array_merge([$m], $weeksForMonth))
+                                                ->where('status', '!=', 'approved')
+                                                ->isNotEmpty();
+                                        @endphp
+                                        <td class="px-4 py-3 text-center">
+                                             <div class="flex items-center justify-center gap-2">
+                                                @if($hasDraftInMonth)
+                                                    <input
+                                                        type="checkbox"
+                                                        name="approve_keys[]"
+                                                        value="{{ $p->id }}|{{ $m }}"
+                                                        form="approve-month-form"
+                                                        class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                        title="Select to approve month"
                                                     >
-                                                        {{ formatNumber($monthSum) }}
-                                                    </button>
-                                                </td>
-                                            @endforeach
+                                                @endif
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex flex-1 min-w-0 items-center justify-center px-3 py-1 rounded-full text-xs font-semibold {{ ($monthlyCell && $monthlyCell->status === 'approved') ? 'bg-emerald-100 text-emerald-800' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50' }}"
+                                                    @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $m, 'planned_qty' => $monthSum, 'status' => $monthlyCell?->status ?? 'draft']))"
+                                                    title="Click to set monthly plan"
+                                                >
+                                                    {{ formatNumber($monthSum) }}
+                                                </button>
+                                             </div>
+                                        </td>
+                                    @endforeach
                                         @endif
                                     </tr>
                                 @empty

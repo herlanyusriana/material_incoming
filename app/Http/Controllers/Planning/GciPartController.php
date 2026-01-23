@@ -82,21 +82,12 @@ class GciPartController extends Controller
             });
 
             if (!empty($import->duplicates)) {
-                return back()
-                    ->with('import_duplicates', $import->duplicates)
-                    ->with('temp_file', $filePath)
-                    ->with('error', 'Duplicate data found. Please review below.');
-            }
-
-            $failures = collect($import->failures());
-            if ($failures->isNotEmpty()) {
+                $dupCount = count($import->duplicates);
+                // Instead of returning error, we proceed and report skipped count
+                // We don't need to keep temp file if we are skipping them.
                 \Illuminate\Support\Facades\Storage::delete($filePath);
-
-                $preview = $failures
-                    ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
-                    ->implode(' ; ');
-                return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+                
+                return back()->with('success', "Part GCI imported successfully. Skipped {$dupCount} duplicate rows.");
             }
 
             \Illuminate\Support\Facades\Storage::delete($filePath);
