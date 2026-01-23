@@ -395,10 +395,6 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
                                     <span class="flex-1">Delivery Requirements</span>
                                 </a>
-                                <a href="{{ route('outgoing.gci-inventory') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.gci-inventory'), $subInactive => !request()->routeIs('outgoing.gci-inventory')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.gci-inventory'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.gci-inventory')])></span>
-                                    <span class="flex-1">GCI Inventory</span>
-                                </a>
                                 <a href="{{ route('outgoing.stock-at-customers') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.stock-at-customers'), $subInactive => !request()->routeIs('outgoing.stock-at-customers')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.stock-at-customers'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.stock-at-customers')])></span>
                                     <span class="flex-1">Stock at Customers</span>
@@ -876,10 +872,6 @@
                             <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
                                 <span class="flex-1">Delivery Requirements</span>
-                            </a>
-                            <a href="{{ route('outgoing.gci-inventory') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.gci-inventory'), $subInactive => !request()->routeIs('outgoing.gci-inventory')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.gci-inventory'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.gci-inventory')])></span>
-                                <span class="flex-1">GCI Inventory</span>
                             </a>
                             <a href="{{ route('outgoing.stock-at-customers') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.stock-at-customers'), $subInactive => !request()->routeIs('outgoing.stock-at-customers')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.stock-at-customers'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.stock-at-customers')])></span>

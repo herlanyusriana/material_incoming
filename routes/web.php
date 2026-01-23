@@ -128,7 +128,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/customer-po', [OutgoingController::class, 'customerPo'])->name('customer-po');
         Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
         Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
-        Route::get('/gci-inventory', [OutgoingController::class, 'gciInventory'])->name('gci-inventory');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');

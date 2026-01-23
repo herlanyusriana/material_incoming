@@ -194,12 +194,6 @@ class OutgoingController extends Controller
         return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
     }
 
-    public function gciInventory()
-    {
-        $inventory = \App\Models\FgInventory::with('part')->get();
-        return view('outgoing.gci_inventory', compact('inventory'));
-    }
-
     public function stockAtCustomers()
     {
         return view('outgoing.stock_at_customers');
