@@ -195,14 +195,6 @@ class MrpController extends Controller
         $startOfMonth = \Carbon\Carbon::parse($period)->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
-        // Generate Dates 1..End
-        $dates = [];
-        $temp = $startOfMonth->copy();
-        while ($temp->lte($endOfMonth)) {
-            $dates[] = $temp->format('Y-m-d');
-            $temp->addDay();
-        }
-
         // MRP runs are generated per-week (period format: YYYY-Www) and displayed in a monthly daily view.
         // Load the latest run for each week that touches this month.
         $weeks = $this->getWeeksForMonth($period);
@@ -217,7 +209,6 @@ class MrpController extends Controller
         if ($latestRunsByWeek->isEmpty()) {
             return view('planning.mrp.index', [
                 'period' => $period,
-                'dates' => $dates,
                 'mrpData' => [],
             ]);
         }
@@ -266,90 +257,40 @@ class MrpController extends Controller
             $inv = $inventories[$partId] ?? null;
             $startStock = $inv ? $inv->on_hand : 0;
 
+            $purchasePlans = array_values($purchaseMap[$partId] ?? []);
+            $productionPlans = array_values($productionMap[$partId] ?? []);
+
+            $purchaseDemand = 0.0;
+            $purchasePlanned = 0.0;
+            foreach ($purchasePlans as $pp) {
+                $purchaseDemand += (float) ($pp->required_qty ?? 0);
+                $purchasePlanned += (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+            }
+
+            $productionDemand = 0.0;
+            $productionPlanned = 0.0;
+            foreach ($productionPlans as $pr) {
+                $productionDemand += (float) ($pr->planned_qty ?? 0);
+                $productionPlanned += (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? 0);
+            }
+
+            $demandTotal = $purchaseDemand + $productionDemand;
+            $incomingTotal = 0.0;
+            $plannedOrderTotal = $purchasePlanned + $productionPlanned;
+            $endStock = (float) $startStock + $incomingTotal - $demandTotal;
+            $netRequired = $endStock < 0 ? abs($endStock) : 0.0;
+
             $rowData = [
                 'part' => $part,
                 'initial_stock' => $startStock,
-                'days' => [],
                 'has_purchase' => $hasPurchase,
                 'has_production' => $hasProduction,
+                'demand_total' => $demandTotal,
+                'incoming_total' => $incomingTotal,
+                'planned_order_total' => $plannedOrderTotal,
+                'end_stock' => $endStock,
+                'net_required' => $netRequired,
             ];
-
-            $runningStock = $startStock;
-
-            foreach ($dates as $date) {
-                // Demand/Plan (From MRP Run) -> negative stock
-                // ProductionPlan for FG is Supply for FG, BUT Demand for Components?
-                // Wait, MRP View usually shows:
-                // For FG: Demand = Forecast/Order, Supply = Production Plan.
-                // For RM: Demand = Production Plan of Parent, Supply = Purchase Plan/Arrival.
-
-                // Simplified View: Just show what MRP Run computed.
-                // Run->productionPlans = Calculated Requirement to Make? Or Resulting Supply?
-                // In generate(): ProductionPlan is created based on MPS (Demand). So it is the "Plan to Make". 
-                // For RM: NetRequired is "Plan to Buy".
-
-                // Let's rely on standard MRP display:
-                // Gross Requirement (Demand)
-                // Scheduled Receipts (Incoming)
-                // Projected On Hand
-                // Net Requirement (Shortage planning)
-                // Planned Order Release (New POs/Jobs)
-
-                // Mapping our DB to this:
-                // Demand: Not stored explicitly in MRP Run for RM? Yes, we calculated $requirements.
-                // But we didn't save "Gross Requirement" in DB for RM. We only saved "MrpPurchasePlan" (Net Req).
-                // ISSUE: We need Gross Requirement to show proper calculation.
-                // Workaround: We will use PurchasePlan->required_qty which we saved! (See generate method: 'required_qty' => $dailyRequired).
-
-                $demand = 0;
-                $supply = 0; // Existing Incoming
-                $plannedOrder = 0; // New Recommendation
-
-                // Check Purchase Plans for this Date (Aggregate from all relevant runs)
-                // Since runs are unique per week, and plan_date is unique day, there should be only one plan record per day across these runs.
-                // We use $runs collection.
-
-                $pPlan = $purchaseMap[$partId][$date] ?? null;
-                $prodPlan = $productionMap[$partId][$date] ?? null;
-
-                if ($pPlan) {
-                    $demand = (float) $pPlan->required_qty;
-                    $plannedOrder = (float) ($pPlan->planned_order_rec ?? $pPlan->net_required);
-                } elseif ($prodPlan) {
-                    // For MAKE parts, treat production plan as demand input (forecast distributed daily).
-                    // Recommendation is also the production plan qty.
-                    $demand = (float) ($prodPlan->planned_qty ?? 0);
-                    $plannedOrder = (float) ($prodPlan->planned_order_rec ?? $prodPlan->planned_qty ?? 0);
-                }
-
-                $incoming = $incomingMap[$partId][$date] ?? 0;
-
-                // Projected Stock Calculation for End of Day
-                // Proj = Start + Incoming + PlannedOrder(if we do it) - Demand
-                // Usually "Projected Stock" excludes "Planned Order" to show the shortage (Net Req).
-                // If we include Planned Order, stock stays >= 0 (ideally).
-                // Let's show Projected Stock assuming ONLY Existing Incoming. 
-                // Then Net Req shows what is needed.
-
-                // Logic:
-                // Stock[i] = Stock[i-1] + Incoming[i] - Demand[i]
-                $endStock = $runningStock + $incoming - $demand;
-
-                $rowData['days'][$date] = [
-                    'demand' => $demand,
-                    'incoming' => $incoming,
-                    'projected_stock' => $endStock,
-                    'net_required' => $endStock < 0 ? abs($endStock) : 0,
-                    'planned_order_rec' => $plannedOrder // What MRP suggests to add
-                ];
-
-                // Update running stock
-                // If we assume we fulfill the net req:
-                // $runningStock = $endStock + ($endStock < 0 ? abs($endStock) : 0);
-                // But strictly, Projected Stock should show the Drop.
-                // However, for the next day, does the shortage carry over? Yes.
-                $runningStock = $endStock;
-            }
 
             $mrpData[] = $rowData;
         }
@@ -357,7 +298,7 @@ class MrpController extends Controller
         $mrpDataBuy = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_purchase'] ?? false)));
         $mrpDataMake = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_production'] ?? false)));
 
-        return view('planning.mrp.index', compact('period', 'dates', 'mrpData', 'mrpDataBuy', 'mrpDataMake', 'runs'));
+        return view('planning.mrp.index', compact('period', 'mrpData', 'mrpDataBuy', 'mrpDataMake', 'runs'));
     }
 
     private function getWeeksForMonth(string $monthStr): array

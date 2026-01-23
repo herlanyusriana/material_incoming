@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Planning • MRP (Daily View)
+        Planning • MRP (Monthly View)
     </x-slot>
 
     <div class="py-6">
@@ -113,11 +113,11 @@
                     </div>
 	                @else
 	                    <div class="space-y-6" x-show="tab === 'buy' || tab === 'all'" x-cloak>
-	                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY)', 'showPoAction' => true])
+	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY)', 'showPoAction' => true])
 	                    </div>
 
 	                    <div class="space-y-6" x-show="tab === 'make' || tab === 'all'" x-cloak>
-	                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE)', 'showPoAction' => false])
+	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE)', 'showPoAction' => false])
 	                    </div>
 	                @endif
 	            </div>
