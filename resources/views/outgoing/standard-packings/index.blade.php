@@ -9,6 +9,13 @@
             <p class="mt-1 text-sm text-slate-500">Master Data for Outgoing Packing Configuration</p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{{ route('outgoing.standard-packings.create') }}"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 transition-all bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Upload Page
+            </a>
             <!-- Import Button -->
             <button type="button" 
                 onclick="document.getElementById('importModal').showModal()"
@@ -154,6 +161,10 @@
                     <ul class="list-disc list-inside space-y-1 text-blue-600">
                         <li>Ensure Part No exists in system</li>
                         <li>Format: <code>customer</code>, <code>part_no</code>, <code>qty</code>, <code>del_class</code>, <code>trolley_type</code></li>
+                        <li>
+                            Download template:
+                            <a href="{{ route('outgoing.standard-packings.template') }}" class="underline font-semibold">standard_packings_template.xlsx</a>
+                        </li>
                     </ul>
                 </div>
 

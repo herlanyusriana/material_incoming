@@ -40,7 +40,7 @@ class StandardPackingController extends Controller
      */
     public function create()
     {
-       // return view('outgoing.standard-packings.create');
+        return view('outgoing.standard-packings.upload');
     }
 
     /**
@@ -89,6 +89,11 @@ class StandardPackingController extends Controller
     public function export()
     {
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StandardPackingExport, 'standard_packings.xlsx');
+    }
+
+    public function template()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StandardPackingTemplateExport, 'standard_packings_template.xlsx');
     }
 
     /**
