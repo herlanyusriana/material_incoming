@@ -111,7 +111,7 @@
                                     <button 
                                         type="button" 
                                         class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200"
-                                        @click="openComponentModal(@js($cp), @js($cp->components->map(fn($c) => ['id' => $c->id, 'part_id' => $c->gci_part_id, 'part_no' => $c->part->part_no, 'part_name' => $c->part->part_name, 'usage_qty' => $c->qty_per_unit])))"
+                                        @click="openComponentModal(@js($cp), @js($cp->components->map(fn($c) => ['id' => $c->id, 'part_id' => $c->gci_part_id, 'part_no' => $c->part?->part_no ?? '-', 'part_name' => $c->part?->part_name ?? '-', 'usage_qty' => $c->qty_per_unit])))"
                                     >
                                         Manage Components
                                     </button>
