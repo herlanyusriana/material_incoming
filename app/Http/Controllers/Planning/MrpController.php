@@ -191,9 +191,11 @@ class MrpController extends Controller
 
     public function index(Request $request)
     {
-        $period = $request->query('period') ?: now()->format('Y-m');
+        $period = $request->query('month') ?: $request->query('period') ?: now()->format('Y-m');
         $startOfMonth = \Carbon\Carbon::parse($period)->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
+        $startKey = $startOfMonth->format('Y-m-d');
+        $endKey = $endOfMonth->format('Y-m-d');
 
         // MRP runs are generated per-week (period format: YYYY-Www) and displayed in a monthly daily view.
         // Load the latest run for each week that touches this month.
@@ -225,11 +227,17 @@ class MrpController extends Controller
         foreach ($runs as $run) {
             foreach ($run->purchasePlans as $pp) {
                 $dateKey = $pp->plan_date instanceof \Carbon\CarbonInterface ? $pp->plan_date->format('Y-m-d') : (string) $pp->plan_date;
+                if ($dateKey < $startKey || $dateKey > $endKey) {
+                    continue;
+                }
                 $purchaseMap[$pp->part_id][$dateKey] = $pp;
                 $partIds->push($pp->part_id);
             }
             foreach ($run->productionPlans as $pr) {
                 $dateKey = $pr->plan_date instanceof \Carbon\CarbonInterface ? $pr->plan_date->format('Y-m-d') : (string) $pr->plan_date;
+                if ($dateKey < $startKey || $dateKey > $endKey) {
+                    continue;
+                }
                 $productionMap[$pr->part_id][$dateKey] = $pr;
                 $partIds->push($pr->part_id);
             }
