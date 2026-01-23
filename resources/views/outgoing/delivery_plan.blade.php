@@ -366,7 +366,7 @@
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 class="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
             >
-                <form action="{{ route('delivery-plan.store') }}" method="POST">
+                <form action="{{ route('outgoing.delivery-plan.store') }}" method="POST">
                     @csrf
                     <div>
                         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
