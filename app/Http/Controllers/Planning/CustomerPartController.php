@@ -10,6 +10,7 @@ use App\Models\CustomerPart;
 use App\Models\CustomerPartComponent;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
@@ -141,10 +142,36 @@ class CustomerPartController extends Controller
             'usage_qty' => ['required', 'numeric', 'min:0.0001'],
         ]);
 
-        CustomerPartComponent::updateOrCreate(
-            ['customer_part_id' => $customerPart->id, 'gci_part_id' => (int) $validated['part_id']],
-            ['qty_per_unit' => $validated['usage_qty']],
-        );
+        $gciPartId = (int) $validated['part_id'];
+        $hasGciPartId = Schema::hasColumn('customer_part_components', 'gci_part_id');
+        $hasLegacyPartId = Schema::hasColumn('customer_part_components', 'part_id');
+
+        $componentQuery = CustomerPartComponent::query()->where('customer_part_id', $customerPart->id);
+        if ($hasGciPartId && $hasLegacyPartId) {
+            $componentQuery->where(function ($q) use ($gciPartId) {
+                $q->where('gci_part_id', $gciPartId)->orWhere('part_id', $gciPartId);
+            });
+        } elseif ($hasGciPartId) {
+            $componentQuery->where('gci_part_id', $gciPartId);
+        } elseif ($hasLegacyPartId) {
+            $componentQuery->where('part_id', $gciPartId);
+        }
+
+        $component = $componentQuery->first();
+        $payload = ['qty_per_unit' => $validated['usage_qty']];
+        if ($hasGciPartId) {
+            $payload['gci_part_id'] = $gciPartId;
+        }
+        if ($hasLegacyPartId) {
+            $payload['part_id'] = $gciPartId;
+        }
+
+        if ($component) {
+            $component->update($payload);
+        } else {
+            $payload['customer_part_id'] = $customerPart->id;
+            CustomerPartComponent::create($payload);
+        }
 
         return back()->with('success', 'Mapping saved.');
     }

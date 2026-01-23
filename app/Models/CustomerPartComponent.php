@@ -11,6 +11,7 @@ class CustomerPartComponent extends Model
 
     protected $fillable = [
         'customer_part_id',
+        'part_id',
         'gci_part_id',
         'qty_per_unit',
     ];

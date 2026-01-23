@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerPart;
 use App\Models\CustomerPartComponent;
 use App\Models\GciPart;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
@@ -20,6 +21,32 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
     
     public $duplicates = [];
     private array $seenMappingKeys = [];
+    private ?bool $hasLegacyPartIdColumn = null;
+    private ?bool $hasGciPartIdColumn = null;
+
+    private function hasLegacyPartIdColumn(): bool
+    {
+        if ($this->hasLegacyPartIdColumn !== null) {
+            return $this->hasLegacyPartIdColumn;
+        }
+
+        $this->hasLegacyPartIdColumn = Schema::hasTable('customer_part_components')
+            && Schema::hasColumn('customer_part_components', 'part_id');
+
+        return $this->hasLegacyPartIdColumn;
+    }
+
+    private function hasGciPartIdColumn(): bool
+    {
+        if ($this->hasGciPartIdColumn !== null) {
+            return $this->hasGciPartIdColumn;
+        }
+
+        $this->hasGciPartIdColumn = Schema::hasTable('customer_part_components')
+            && Schema::hasColumn('customer_part_components', 'gci_part_id');
+
+        return $this->hasGciPartIdColumn;
+    }
 
     private function firstNonEmpty(array $row, array $keys): ?string
     {
@@ -184,21 +211,49 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
             return null;
         }
 
-        // Check if Mapping exists
-        $mapping = CustomerPartComponent::where('customer_part_id', $customerPart->id)
-            ->where('gci_part_id', $gciPart->id)
-            ->first();
+        $mappingQuery = CustomerPartComponent::query()->where('customer_part_id', $customerPart->id);
+        $hasGciPartId = $this->hasGciPartIdColumn();
+        $hasLegacyPartId = $this->hasLegacyPartIdColumn();
+
+        if ($hasGciPartId && $hasLegacyPartId) {
+            $mappingQuery->where(function ($q) use ($gciPart) {
+                $q->where('gci_part_id', $gciPart->id)->orWhere('part_id', $gciPart->id);
+            });
+        } elseif ($hasGciPartId) {
+            $mappingQuery->where('gci_part_id', $gciPart->id);
+        } elseif ($hasLegacyPartId) {
+            $mappingQuery->where('part_id', $gciPart->id);
+        } else {
+            // No usable key column in legacy schema; nothing we can do safely.
+            return null;
+        }
+
+        $mapping = $mappingQuery->first();
 
         if ($mapping) {
             // Sum quantity (support repeated rows for the same mapping)
             $current = is_numeric($mapping->qty_per_unit) ? (float) $mapping->qty_per_unit : 0.0;
-            $mapping->update(['qty_per_unit' => $current + $usageQty]);
+            $updatePayload = ['qty_per_unit' => $current + $usageQty];
+            if ($hasGciPartId) {
+                $updatePayload['gci_part_id'] = $gciPart->id;
+            }
+            if ($hasLegacyPartId) {
+                $updatePayload['part_id'] = $gciPart->id;
+            }
+            $mapping->update($updatePayload);
         } else {
-            CustomerPartComponent::create([
+            $createPayload = [
                 'customer_part_id' => $customerPart->id,
-                'gci_part_id' => $gciPart->id, 
-                'qty_per_unit' => $usageQty
-            ]);
+                'qty_per_unit' => $usageQty,
+            ];
+            if ($hasGciPartId) {
+                $createPayload['gci_part_id'] = $gciPart->id;
+            }
+            if ($hasLegacyPartId) {
+                $createPayload['part_id'] = $gciPart->id;
+            }
+
+            CustomerPartComponent::create($createPayload);
         }
 
         return null;
