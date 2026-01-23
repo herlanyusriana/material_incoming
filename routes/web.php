@@ -129,6 +129,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
         Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
+        Route::get('/stock-at-customers/template', [OutgoingController::class, 'stockAtCustomersTemplate'])->name('stock-at-customers.template');
+        Route::get('/stock-at-customers/export', [OutgoingController::class, 'stockAtCustomersExport'])->name('stock-at-customers.export');
+        Route::post('/stock-at-customers/import', [OutgoingController::class, 'stockAtCustomersImport'])->name('stock-at-customers.import');
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
 

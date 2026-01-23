@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Exports\OutgoingDailyPlanningExport;
 use App\Exports\OutgoingDailyPlanningTemplateExport;
+use App\Exports\StockAtCustomersExport;
+use App\Imports\StockAtCustomersImport;
 use App\Imports\OutgoingDailyPlanningImport;
+use App\Models\StockAtCustomer;
 use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDailyPlanRow;
@@ -196,7 +199,82 @@ class OutgoingController extends Controller
 
     public function stockAtCustomers()
     {
-        return view('outgoing.stock_at_customers');
+        $period = request('period') ?: now()->format('Y-m');
+
+        $records = StockAtCustomer::query()
+            ->with(['customer', 'part'])
+            ->where('period', $period)
+            ->orderBy('customer_id')
+            ->orderBy('part_no')
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('outgoing.stock_at_customers', compact('period', 'records'));
+    }
+
+    public function stockAtCustomersTemplate(Request $request)
+    {
+        $period = $request->query('period') ?: now()->format('Y-m');
+        $filename = 'stock_at_customers_template_' . $period . '.xlsx';
+
+        return Excel::download(new class($period) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+            public function __construct(private readonly string $period)
+            {
+            }
+
+            public function array(): array
+            {
+                $row = ['CUSTOMER_NAME', 'PART-001', 'PART NAME', 'MODEL', 'active'];
+                for ($d = 1; $d <= 31; $d++) {
+                    $row[] = 0;
+                }
+                return [$row];
+            }
+
+            public function headings(): array
+            {
+                $base = ['customer', 'part_no', 'part_name', 'model', 'status'];
+                for ($d = 1; $d <= 31; $d++) {
+                    $base[] = (string) $d;
+                }
+                return $base;
+            }
+        }, $filename);
+    }
+
+    public function stockAtCustomersExport(Request $request)
+    {
+        $period = $request->query('period') ?: now()->format('Y-m');
+        $filename = 'stock_at_customers_' . $period . '_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new StockAtCustomersExport($period), $filename);
+    }
+
+    public function stockAtCustomersImport(Request $request)
+    {
+        $validated = $request->validate([
+            'period' => ['required', 'string', 'regex:/^\\d{4}-\\d{2}$/'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $import = new StockAtCustomersImport($validated['period']);
+        Excel::import($import, $validated['file']);
+
+        if (!empty($import->failures)) {
+            $preview = array_slice($import->failures, 0, 10);
+            $msg = implode(' ; ', $preview);
+            if (count($import->failures) > 10) {
+                $msg .= ' ; ... and ' . (count($import->failures) - 10) . ' more errors';
+            }
+            return back()->with('error', "Import selesai tapi ada error: {$msg}");
+        }
+
+        $msg = "Stock at Customers imported. {$import->rowCount} rows processed.";
+        if ($import->skippedRows > 0) {
+            $msg .= " {$import->skippedRows} rows skipped.";
+        }
+
+        return redirect()->route('outgoing.stock-at-customers', ['period' => $validated['period']])->with('success', $msg);
     }
 
     public function deliveryPlan()
