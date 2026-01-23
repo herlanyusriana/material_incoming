@@ -3,6 +3,7 @@
     $mrpRows = $mrpRows ?? [];
     $modeLabel = $modeLabel ?? 'MRP';
     $showPoAction = (bool) ($showPoAction ?? false);
+    $showIncoming = (bool) ($showIncoming ?? true);
 @endphp
 
 <div class="flex items-center justify-between gap-3">
@@ -35,7 +36,9 @@
                             <th scope="col" class="px-3 py-2 text-left text-xs font-bold uppercase">Name / Spec</th>
                             <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">Stock</th>
                             <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">Demand</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">Incoming</th>
+                            @if($showIncoming)
+                                <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">Incoming</th>
+                            @endif
                             <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">Planned</th>
                             <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">End Stock</th>
                             <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">Net Req</th>
@@ -77,7 +80,9 @@
                                 </td>
                                 <td class="px-3 py-2 text-right text-xs font-bold text-slate-800 bg-yellow-50">{{ formatNumber($stock) }}</td>
                                 <td class="px-3 py-2 text-right text-xs {{ $demand > 0 ? 'font-bold text-slate-900' : 'text-slate-400' }}">{{ $demand > 0 ? formatNumber($demand) : '-' }}</td>
-                                <td class="px-3 py-2 text-right text-xs {{ $incoming > 0 ? 'font-bold text-emerald-700 bg-emerald-50' : 'text-slate-400' }}">{{ $incoming > 0 ? formatNumber($incoming) : '-' }}</td>
+                                @if($showIncoming)
+                                    <td class="px-3 py-2 text-right text-xs {{ $incoming > 0 ? 'font-bold text-emerald-700 bg-emerald-50' : 'text-slate-400' }}">{{ $incoming > 0 ? formatNumber($incoming) : '-' }}</td>
+                                @endif
                                 <td class="px-3 py-2 text-right text-xs {{ $planned > 0 ? 'font-bold text-indigo-700' : 'text-slate-400' }}">{{ $planned > 0 ? formatNumber($planned) : '-' }}</td>
                                 <td class="px-3 py-2 text-right text-xs {{ $endStock < 0 ? 'font-bold text-red-600 bg-red-50' : 'text-slate-700' }}">{{ formatNumber($endStock) }}</td>
                                 <td class="px-3 py-2 text-right text-xs {{ $netReq > 0 ? 'font-bold text-red-600' : 'text-slate-400' }}">{{ $netReq > 0 ? formatNumber($netReq) : '-' }}</td>
@@ -102,4 +107,3 @@
         </form>
     @endif
 @endif
-

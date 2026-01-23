@@ -133,20 +133,20 @@
                     </div>
 	                @else
 	                    <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'daily'" x-cloak>
-	                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Daily', 'showPoAction' => true])
+	                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Daily', 'showPoAction' => true, 'showIncoming' => true])
 	                    </div>
 	                    <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'summary'" x-cloak>
-	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Summary', 'showPoAction' => true])
+	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Summary', 'showPoAction' => true, 'showIncoming' => true])
 	                    </div>
 	                    <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'month'" x-cloak>
 	                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Demand per Month', 'showPoAction' => true, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
 	                    </div>
 
 	                    <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'daily'" x-cloak>
-	                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Daily', 'showPoAction' => false])
+	                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Daily', 'showPoAction' => false, 'showIncoming' => false])
 	                    </div>
 	                    <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'summary'" x-cloak>
-	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Summary', 'showPoAction' => false])
+	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Summary', 'showPoAction' => false, 'showIncoming' => false])
 	                    </div>
 	                    <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'month'" x-cloak>
 	                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Demand per Month', 'showPoAction' => false, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])

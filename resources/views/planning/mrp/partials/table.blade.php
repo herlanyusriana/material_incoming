@@ -3,6 +3,7 @@
     $mrpRows = $mrpRows ?? [];
     $modeLabel = $modeLabel ?? 'MRP';
     $showPoAction = (bool) ($showPoAction ?? false);
+    $showIncoming = (bool) ($showIncoming ?? true);
 @endphp
 
 <div class="flex items-center justify-between gap-3">
@@ -80,6 +81,7 @@
                                 @endforeach
                             </tr>
 
+                            @if($showIncoming)
                             <tr class="{{ $bgClass }}">
                                 <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-slate-900 border-r border-slate-200">Incoming</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs text-slate-400 border-r-2 border-slate-300">-</td>
@@ -91,6 +93,7 @@
                                     </td>
                                 @endforeach
                             </tr>
+                            @endif
 
                             <tr class="{{ $bgClass }}">
                                 <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-slate-900 border-r border-slate-200">Stock</td>
@@ -110,7 +113,7 @@
                             </tr>
 
                             <tr class="{{ $bgClass }} border-b-2 border-slate-300">
-                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-bold text-red-700 border-r border-slate-200">Net Req</td>
+                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-bold text-red-700 border-r border-slate-200">Planned</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs text-slate-400 border-r-2 border-slate-300">-</td>
 
                                 @foreach ($dates as $date)
