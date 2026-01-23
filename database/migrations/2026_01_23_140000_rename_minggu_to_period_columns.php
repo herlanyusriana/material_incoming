@@ -15,7 +15,23 @@ return new class extends Migration
         }
     }
 
-    private function renameMingguToPeriod(string $table, string $defaultPeriodSql): void
+    private function buildCoalescePeriodExpr(string $table, array $candidates, string $format): string
+    {
+        $cols = [];
+        foreach ($candidates as $col) {
+            if (Schema::hasColumn($table, $col)) {
+                $cols[] = "`{$col}`";
+            }
+        }
+
+        // Always fallback to NOW() to avoid NULL.
+        $cols[] = 'NOW()';
+
+        $coalesce = 'COALESCE(' . implode(', ', $cols) . ')';
+        return "DATE_FORMAT({$coalesce}, '{$format}')";
+    }
+
+    private function renameMingguToPeriod(string $table, string $format, array $dateCandidates): void
     {
         if (!Schema::hasTable($table)) {
             return;
@@ -33,6 +49,8 @@ return new class extends Migration
             return;
         }
 
+        $defaultPeriodSql = $this->buildCoalescePeriodExpr($table, $dateCandidates, $format);
+
         // Backfill minggu first so NOT NULL changes won't fail.
         DB::statement("
             UPDATE `{$table}`
@@ -48,11 +66,11 @@ return new class extends Migration
     {
         // Legacy schemas used `minggu` as the period column. Current code expects `period`.
         // Backfill is best-effort using available dates.
-        $this->renameMingguToPeriod('customer_pos', "DATE_FORMAT(COALESCE(`po_date`, `delivery_date`, `created_at`, `updated_at`, NOW()), '%Y-%m')");
-        $this->renameMingguToPeriod('customer_planning_rows', "DATE_FORMAT(COALESCE(`created_at`, `updated_at`, NOW()), '%Y-%m')");
-        $this->renameMingguToPeriod('forecasts', "DATE_FORMAT(COALESCE(`created_at`, `updated_at`, NOW()), '%Y-%m')");
-        $this->renameMingguToPeriod('mps', "DATE_FORMAT(COALESCE(`approved_at`, `created_at`, `updated_at`, NOW()), '%Y-%m')");
-        $this->renameMingguToPeriod('mrp_runs', "DATE_FORMAT(COALESCE(`run_at`, `created_at`, `updated_at`, NOW()), '%x-W%v')");
+        $this->renameMingguToPeriod('customer_pos', '%Y-%m', ['po_date', 'delivery_date', 'created_at', 'updated_at']);
+        $this->renameMingguToPeriod('customer_planning_rows', '%Y-%m', ['created_at', 'updated_at']);
+        $this->renameMingguToPeriod('forecasts', '%Y-%m', ['created_at', 'updated_at']);
+        $this->renameMingguToPeriod('mps', '%Y-%m', ['approved_at', 'created_at', 'updated_at']);
+        $this->renameMingguToPeriod('mrp_runs', '%x-W%v', ['run_at', 'created_at', 'updated_at']);
     }
 
     public function down(): void
@@ -60,4 +78,3 @@ return new class extends Migration
         // No-op: we don't want to reintroduce legacy column names.
     }
 };
-
