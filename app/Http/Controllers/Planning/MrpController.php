@@ -11,6 +11,7 @@ use App\Models\MrpPurchasePlan;
 use App\Models\MrpRun;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MrpController extends Controller
 {
@@ -240,15 +241,37 @@ class MrpController extends Controller
         }
 
         // Fetch plans directly (avoid eager-loading each run with all relations).
+        $purchaseSelect = ['part_id', 'plan_date'];
+        if (Schema::hasColumn('mrp_purchase_plans', 'required_qty')) {
+            $purchaseSelect[] = 'required_qty';
+        }
+        if (Schema::hasColumn('mrp_purchase_plans', 'net_required')) {
+            $purchaseSelect[] = 'net_required';
+        }
+        if (Schema::hasColumn('mrp_purchase_plans', 'planned_order_rec')) {
+            $purchaseSelect[] = 'planned_order_rec';
+        }
+
         $purchasePlans = MrpPurchasePlan::query()
             ->whereIn('mrp_run_id', $latestRunIds)
             ->whereBetween('plan_date', [$startKey, $endKey])
-            ->get(['part_id', 'plan_date', 'required_qty', 'planned_order_rec', 'net_required']);
+            ->get($purchaseSelect);
+
+        $productionSelect = ['part_id', 'plan_date'];
+        if (Schema::hasColumn('mrp_production_plans', 'planned_qty')) {
+            $productionSelect[] = 'planned_qty';
+        }
+        if (Schema::hasColumn('mrp_production_plans', 'net_required')) {
+            $productionSelect[] = 'net_required';
+        }
+        if (Schema::hasColumn('mrp_production_plans', 'planned_order_rec')) {
+            $productionSelect[] = 'planned_order_rec';
+        }
 
         $productionPlans = MrpProductionPlan::query()
             ->whereIn('mrp_run_id', $latestRunIds)
             ->whereBetween('plan_date', [$startKey, $endKey])
-            ->get(['part_id', 'plan_date', 'planned_qty', 'planned_order_rec']);
+            ->get($productionSelect);
 
         // Prepare Data Structure: Part -> [Info, Stock, Days => [Plan, Incoming, Projected, Net]]
         $mrpData = [];
@@ -265,12 +288,14 @@ class MrpController extends Controller
         foreach ($purchasePlans as $pp) {
             $dateKey = $pp->plan_date instanceof \Carbon\CarbonInterface ? $pp->plan_date->format('Y-m-d') : (string) $pp->plan_date;
             $ym = substr($dateKey, 0, 7);
-            $purchaseByPartMonth[$pp->part_id][$ym]['demand'] = ($purchaseByPartMonth[$pp->part_id][$ym]['demand'] ?? 0) + (float) ($pp->required_qty ?? 0);
-            $purchaseByPartMonth[$pp->part_id][$ym]['planned'] = ($purchaseByPartMonth[$pp->part_id][$ym]['planned'] ?? 0) + (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+            $ppDemand = (float) (($pp->required_qty ?? null) !== null ? $pp->required_qty : ($pp->net_required ?? 0));
+            $ppPlanned = (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+            $purchaseByPartMonth[$pp->part_id][$ym]['demand'] = ($purchaseByPartMonth[$pp->part_id][$ym]['demand'] ?? 0) + $ppDemand;
+            $purchaseByPartMonth[$pp->part_id][$ym]['planned'] = ($purchaseByPartMonth[$pp->part_id][$ym]['planned'] ?? 0) + $ppPlanned;
 
             if ($dateKey >= $monthStartKey && $dateKey <= $monthEndKey) {
-                $purchaseByPartDate[$pp->part_id][$dateKey]['demand'] = ($purchaseByPartDate[$pp->part_id][$dateKey]['demand'] ?? 0) + (float) ($pp->required_qty ?? 0);
-                $purchaseByPartDate[$pp->part_id][$dateKey]['planned'] = ($purchaseByPartDate[$pp->part_id][$dateKey]['planned'] ?? 0) + (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+                $purchaseByPartDate[$pp->part_id][$dateKey]['demand'] = ($purchaseByPartDate[$pp->part_id][$dateKey]['demand'] ?? 0) + $ppDemand;
+                $purchaseByPartDate[$pp->part_id][$dateKey]['planned'] = ($purchaseByPartDate[$pp->part_id][$dateKey]['planned'] ?? 0) + $ppPlanned;
             }
 
             $partIds->push($pp->part_id);
@@ -279,12 +304,14 @@ class MrpController extends Controller
         foreach ($productionPlans as $pr) {
             $dateKey = $pr->plan_date instanceof \Carbon\CarbonInterface ? $pr->plan_date->format('Y-m-d') : (string) $pr->plan_date;
             $ym = substr($dateKey, 0, 7);
-            $productionByPartMonth[$pr->part_id][$ym]['demand'] = ($productionByPartMonth[$pr->part_id][$ym]['demand'] ?? 0) + (float) ($pr->planned_qty ?? 0);
-            $productionByPartMonth[$pr->part_id][$ym]['planned'] = ($productionByPartMonth[$pr->part_id][$ym]['planned'] ?? 0) + (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? 0);
+            $prDemand = (float) (($pr->planned_qty ?? null) !== null ? $pr->planned_qty : ($pr->net_required ?? 0));
+            $prPlanned = (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? $pr->net_required ?? 0);
+            $productionByPartMonth[$pr->part_id][$ym]['demand'] = ($productionByPartMonth[$pr->part_id][$ym]['demand'] ?? 0) + $prDemand;
+            $productionByPartMonth[$pr->part_id][$ym]['planned'] = ($productionByPartMonth[$pr->part_id][$ym]['planned'] ?? 0) + $prPlanned;
 
             if ($dateKey >= $monthStartKey && $dateKey <= $monthEndKey) {
-                $productionByPartDate[$pr->part_id][$dateKey]['demand'] = ($productionByPartDate[$pr->part_id][$dateKey]['demand'] ?? 0) + (float) ($pr->planned_qty ?? 0);
-                $productionByPartDate[$pr->part_id][$dateKey]['planned'] = ($productionByPartDate[$pr->part_id][$dateKey]['planned'] ?? 0) + (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? 0);
+                $productionByPartDate[$pr->part_id][$dateKey]['demand'] = ($productionByPartDate[$pr->part_id][$dateKey]['demand'] ?? 0) + $prDemand;
+                $productionByPartDate[$pr->part_id][$dateKey]['planned'] = ($productionByPartDate[$pr->part_id][$dateKey]['planned'] ?? 0) + $prPlanned;
             }
 
             $partIds->push($pr->part_id);
