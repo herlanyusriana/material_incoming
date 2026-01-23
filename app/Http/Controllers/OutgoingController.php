@@ -335,7 +335,20 @@ class OutgoingController extends Controller
             ];
         });
 
-        $trucks = \App\Models\Truck::all()->map(fn($t) => [
+        $assignedTruckIds = $plansDb->pluck('truck_id')->filter()->unique()->values();
+        $trucksDb = \App\Models\Truck::query()
+            ->select(['id', 'plate_no', 'type', 'capacity', 'status'])
+            ->when($assignedTruckIds->isNotEmpty(), function ($query) use ($assignedTruckIds) {
+                $query->whereIn('id', $assignedTruckIds)->orWhere('status', 'available');
+            }, function ($query) {
+                $query->where('status', 'available');
+            })
+            ->orderBy('plate_no')
+            ->get()
+            ->unique('id')
+            ->values();
+
+        $trucks = $trucksDb->map(fn($t) => [
             'id' => $t->id,
             'plateNo' => $t->plate_no,
             'type' => $t->type,
@@ -343,7 +356,20 @@ class OutgoingController extends Controller
             'status' => $t->status
         ]);
 
-        $drivers = \App\Models\Driver::all()->map(fn($d) => [
+        $assignedDriverIds = $plansDb->pluck('driver_id')->filter()->unique()->values();
+        $driversDb = \App\Models\Driver::query()
+            ->select(['id', 'name', 'phone', 'license_type', 'status'])
+            ->when($assignedDriverIds->isNotEmpty(), function ($query) use ($assignedDriverIds) {
+                $query->whereIn('id', $assignedDriverIds)->orWhere('status', 'available');
+            }, function ($query) {
+                $query->where('status', 'available');
+            })
+            ->orderBy('name')
+            ->get()
+            ->unique('id')
+            ->values();
+
+        $drivers = $driversDb->map(fn($d) => [
             'id' => $d->id,
             'name' => $d->name,
             'phone' => $d->phone,
@@ -378,7 +404,7 @@ class OutgoingController extends Controller
             'status' => 'scheduled',
         ]);
 
-        return redirect()->route('delivery-plan', ['date' => $validated['plan_date']])
+        return redirect()->route('outgoing.delivery-plan', ['date' => $validated['plan_date']])
             ->with('success', 'Delivery Plan created successfully.');
     }
 
