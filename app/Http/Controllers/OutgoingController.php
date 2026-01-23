@@ -11,6 +11,7 @@ use App\Models\StockAtCustomer;
 use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDailyPlanRow;
+use Carbon\CarbonImmutable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -200,6 +201,8 @@ class OutgoingController extends Controller
     public function stockAtCustomers()
     {
         $period = request('period') ?: now()->format('Y-m');
+        $daysInMonth = CarbonImmutable::parse($period . '-01')->daysInMonth;
+        $days = range(1, $daysInMonth);
 
         $records = StockAtCustomer::query()
             ->with(['customer', 'part'])
@@ -209,23 +212,24 @@ class OutgoingController extends Controller
             ->paginate(50)
             ->withQueryString();
 
-        return view('outgoing.stock_at_customers', compact('period', 'records'));
+        return view('outgoing.stock_at_customers', compact('period', 'records', 'days'));
     }
 
     public function stockAtCustomersTemplate(Request $request)
     {
         $period = $request->query('period') ?: now()->format('Y-m');
+        $daysInMonth = CarbonImmutable::parse($period . '-01')->daysInMonth;
         $filename = 'stock_at_customers_template_' . $period . '.xlsx';
 
-        return Excel::download(new class($period) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
-            public function __construct(private readonly string $period)
+        return Excel::download(new class($period, $daysInMonth) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+            public function __construct(private readonly string $period, private readonly int $daysInMonth)
             {
             }
 
             public function array(): array
             {
                 $row = ['CUSTOMER_NAME', 'PART-001', 'PART NAME', 'MODEL', 'active'];
-                for ($d = 1; $d <= 31; $d++) {
+                for ($d = 1; $d <= $this->daysInMonth; $d++) {
                     $row[] = 0;
                 }
                 return [$row];
@@ -234,7 +238,7 @@ class OutgoingController extends Controller
             public function headings(): array
             {
                 $base = ['customer', 'part_no', 'part_name', 'model', 'status'];
-                for ($d = 1; $d <= 31; $d++) {
+                for ($d = 1; $d <= $this->daysInMonth; $d++) {
                     $base[] = (string) $d;
                 }
                 return $base;

@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use Carbon\CarbonImmutable;
 use App\Models\StockAtCustomer;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -17,6 +18,7 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
     public function array(): array
     {
         $rows = [];
+        $daysInMonth = CarbonImmutable::parse($this->period . '-01')->daysInMonth;
 
         $records = StockAtCustomer::query()
             ->with(['customer', 'part'])
@@ -34,7 +36,7 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
                 $rec->status ?? '',
             ];
 
-            for ($d = 1; $d <= 31; $d++) {
+            for ($d = 1; $d <= $daysInMonth; $d++) {
                 $row[] = (float) ($rec->{'day_' . $d} ?? 0);
             }
 
@@ -47,7 +49,8 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
     public function headings(): array
     {
         $base = ['customer', 'part_no', 'part_name', 'model', 'status'];
-        for ($d = 1; $d <= 31; $d++) {
+        $daysInMonth = CarbonImmutable::parse($this->period . '-01')->daysInMonth;
+        for ($d = 1; $d <= $daysInMonth; $d++) {
             $base[] = (string) $d;
         }
         return $base;
@@ -60,4 +63,3 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
         ];
     }
 }
-

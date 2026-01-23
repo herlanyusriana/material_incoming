@@ -91,9 +91,9 @@
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Part Name</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Model</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Status</th>
-                            @for($d=1; $d<=31; $d++)
+                            @foreach($days as $d)
                                 <th class="px-3 py-3 text-right font-bold text-slate-700 w-16">{{ $d }}</th>
-                            @endfor
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -104,16 +104,16 @@
                                 <td class="px-4 py-3 text-slate-700 whitespace-nowrap">{{ $rec->part_name ?: ($rec->part?->part_name ?? '') }}</td>
                                 <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ $rec->model ?: ($rec->part?->model ?? '') }}</td>
                                 <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ $rec->status ?? '' }}</td>
-                                @for($d=1; $d<=31; $d++)
+                                @foreach($days as $d)
                                     @php($v = (float) ($rec->{'day_'.$d} ?? 0))
                                     <td class="px-3 py-3 text-right text-slate-700 {{ $v > 0 ? 'font-semibold' : 'text-slate-400' }}">
                                         {{ $v > 0 ? number_format($v, 0) : '-' }}
                                     </td>
-                                @endfor
+                                @endforeach
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="36" class="px-6 py-12 text-center text-slate-500 italic">Belum ada data untuk period ini.</td>
+                                <td colspan="{{ 5 + count($days) }}" class="px-6 py-12 text-center text-slate-500 italic">Belum ada data untuk period ini.</td>
                             </tr>
                         @endforelse
                     </tbody>
