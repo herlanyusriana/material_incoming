@@ -54,7 +54,7 @@ class OutgoingController extends Controller
         }
 
         if ($plan) {
-            $rows = $plan->rows()->with('cells')->get();
+            $rows = $plan->rows()->with(['cells', 'gciPart.standardPacking'])->get();
             foreach ($rows as $row) {
                 foreach ($row->cells as $cell) {
                     $key = $cell->plan_date->format('Y-m-d');
@@ -179,14 +179,16 @@ class OutgoingController extends Controller
             ->get();
 
         $requirements = $cells->groupBy(function ($cell) {
-            // Group key: Date|CustomerID|GciPartID|PartNo
+            // Group key: Date|GciPartID
             $date = $cell->plan_date->format('Y-m-d');
-            $customerId = $cell->row->gciPart->customer_id ?? 'null';
             $partId = $cell->row->gci_part_id ?? 'null';
-            $partNo = $cell->row->part_no;
-            return "{$date}|{$customerId}|{$partId}|{$partNo}";
+            return "{$date}|{$partId}";
         })->map(function ($group) {
             $first = $group->first();
+            
+            // Skip if no GCI Part
+            if (!$first->row->gciPart) return null;
+
             $totalQty = $group->sum('qty');
             $stdPacking = $first->row->gciPart->standardPacking ?? null;
             $packQty = $stdPacking?->packing_qty ?? 1;
@@ -203,7 +205,7 @@ class OutgoingController extends Controller
                 'uom' => $stdPacking?->uom ?? 'PCS',
                 'source_row_ids' => $group->pluck('row_id')->unique()->values(),
             ];
-        })->sort(function($a, $b) {
+        })->filter()->sort(function($a, $b) {
             // Sort by Date then Sequence
             if ($a->date->ne($b->date)) {
                 return $a->date->gt($b->date) ? 1 : -1;
