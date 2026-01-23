@@ -132,6 +132,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-at-customers/template', [OutgoingController::class, 'stockAtCustomersTemplate'])->name('stock-at-customers.template');
         Route::get('/stock-at-customers/export', [OutgoingController::class, 'stockAtCustomersExport'])->name('stock-at-customers.export');
         Route::post('/stock-at-customers/import', [OutgoingController::class, 'stockAtCustomersImport'])->name('stock-at-customers.import');
+
+        Route::get('/trucks', [\App\Http\Controllers\Outgoing\TruckController::class, 'index'])->name('trucks.index');
+        Route::post('/trucks', [\App\Http\Controllers\Outgoing\TruckController::class, 'store'])->name('trucks.store');
+        Route::put('/trucks/{truck}', [\App\Http\Controllers\Outgoing\TruckController::class, 'update'])->name('trucks.update');
+        Route::delete('/trucks/{truck}', [\App\Http\Controllers\Outgoing\TruckController::class, 'destroy'])->name('trucks.destroy');
+        Route::get('/trucks/template', [\App\Http\Controllers\Outgoing\TruckController::class, 'template'])->name('trucks.template');
+        Route::get('/trucks/export', [\App\Http\Controllers\Outgoing\TruckController::class, 'export'])->name('trucks.export');
+        Route::post('/trucks/import', [\App\Http\Controllers\Outgoing\TruckController::class, 'import'])->name('trucks.import');
+
+        Route::get('/drivers', [\App\Http\Controllers\Outgoing\DriverController::class, 'index'])->name('drivers.index');
+        Route::post('/drivers', [\App\Http\Controllers\Outgoing\DriverController::class, 'store'])->name('drivers.store');
+        Route::put('/drivers/{driver}', [\App\Http\Controllers\Outgoing\DriverController::class, 'update'])->name('drivers.update');
+        Route::delete('/drivers/{driver}', [\App\Http\Controllers\Outgoing\DriverController::class, 'destroy'])->name('drivers.destroy');
+        Route::get('/drivers/template', [\App\Http\Controllers\Outgoing\DriverController::class, 'template'])->name('drivers.template');
+        Route::get('/drivers/export', [\App\Http\Controllers\Outgoing\DriverController::class, 'export'])->name('drivers.export');
+        Route::post('/drivers/import', [\App\Http\Controllers\Outgoing\DriverController::class, 'import'])->name('drivers.import');
+
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
 

@@ -12,6 +12,12 @@
                 </div>
                 
                 <div class="flex items-center gap-3">
+                    <a href="{{ route('outgoing.trucks.index') }}" class="px-4 py-2 border border-slate-300 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold">
+                        Manage Trucks
+                    </a>
+                    <a href="{{ route('outgoing.drivers.index') }}" class="px-4 py-2 border border-slate-300 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold">
+                        Manage Drivers
+                    </a>
                     <input
                         type="date"
                         x-model="selectedDate"
