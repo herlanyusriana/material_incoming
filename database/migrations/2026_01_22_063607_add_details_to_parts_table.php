@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('parts', function (Blueprint $table) {
-            $table->string('register_no')->nullable()->after('part_no');
-            $table->string('part_name_vendor')->nullable()->after('part_name_gci');
+            if (!Schema::hasColumn('parts', 'register_no')) {
+                $table->string('register_no')->nullable()->after('part_no');
+            }
+            if (!Schema::hasColumn('parts', 'part_name_vendor')) {
+                $table->string('part_name_vendor')->nullable()->after('part_name_gci');
+            }
         });
     }
 
@@ -23,7 +27,16 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('parts', function (Blueprint $table) {
-            $table->dropColumn(['register_no', 'part_name_vendor']);
+            $drops = [];
+            if (Schema::hasColumn('parts', 'register_no')) {
+                $drops[] = 'register_no';
+            }
+            if (Schema::hasColumn('parts', 'part_name_vendor')) {
+                $drops[] = 'part_name_vendor';
+            }
+            if (!empty($drops)) {
+                $table->dropColumn($drops);
+            }
         });
     }
 };
