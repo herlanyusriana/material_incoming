@@ -429,12 +429,60 @@ class OutgoingController extends Controller
             'status' => $d->status
         ]);
 
+        $unassignedSos = \App\Models\DeliveryNote::with(['customer', 'items.part'])
+            ->whereDate('delivery_date', $date)
+            ->whereNull('delivery_plan_id')
+            ->where('status', 'draft')
+            ->get()
+            ->map(function($dn) {
+                return [
+                    'id' => $dn->id,
+                    'dn_no' => $dn->dn_no,
+                    'customer' => $dn->customer->name,
+                    'itemCount' => $dn->items->count(),
+                    'totalQty' => $dn->items->sum('qty'),
+                ];
+            });
+
         return view('outgoing.delivery_plan', [
             'deliveryPlans' => $deliveryPlans,
+            'unassignedSos' => $unassignedSos,
             'trucks' => $trucks,
             'drivers' => $drivers,
             'selectedDate' => $date->format('Y-m-d'),
         ]);
+    }
+
+    public function assignSoToPlan(Request $request)
+    {
+        $validated = $request->validate([
+            'delivery_note_id' => 'required|exists:delivery_notes,id',
+            'delivery_plan_id' => 'required|exists:delivery_plans,id',
+        ]);
+
+        $dn = \App\Models\DeliveryNote::findOrFail($validated['delivery_note_id']);
+        $plan = \App\Models\DeliveryPlan::findOrFail($validated['delivery_plan_id']);
+
+        DB::transaction(function () use ($dn, $plan) {
+            // Find or create a stop for this customer in this plan
+            $stop = \App\Models\DeliveryStop::firstOrCreate(
+                [
+                    'plan_id' => $plan->id,
+                    'customer_id' => $dn->customer_id,
+                ],
+                [
+                    'sequence' => ($plan->stops()->max('sequence') ?? 0) + 1,
+                    'status' => 'pending',
+                ]
+            );
+
+            $dn->update([
+                'delivery_plan_id' => $plan->id,
+                'delivery_stop_id' => $stop->id,
+            ]);
+        });
+
+        return response()->json(['success' => true]);
     }
 
     public function storeDeliveryPlan(Request $request)

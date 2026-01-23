@@ -71,30 +71,40 @@
                                     @php
                                         $statusClasses = match ($dn->status) {
                                             'draft' => 'bg-slate-100 text-slate-700 border-slate-300',
-                                            'confirmed' => 'bg-blue-50 text-blue-700 border-blue-200',
+                                            'picking' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                            'ready_to_ship' => 'bg-blue-50 text-blue-700 border-blue-200',
                                             'shipped' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                                             'cancelled' => 'bg-red-50 text-red-700 border-red-200',
                                             default => 'bg-slate-100 text-slate-700 border-slate-300',
                                         };
                                     @endphp
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $statusClasses }} uppercase tracking-wider">
-                                        {{ $dn->status }}
+                                        {{ str_replace('_', ' ', $dn->status) }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        <a href="{{ route('outgoing.delivery-notes.show', $dn) }}" class="text-indigo-600 hover:text-indigo-900 font-bold">Details</a>
+                                        <a href="{{ route('outgoing.delivery-notes.show', $dn) }}" class="text-indigo-600 hover:text-indigo-900 font-bold text-xs uppercase tracking-tighter">Details</a>
                                         
                                         @if ($dn->status === 'draft')
-                                            <form action="{{ route('outgoing.delivery-notes.ship', $dn) }}" method="POST" onsubmit="return confirm('Confirm shipping? Inventory will be deducted.')">
+                                            <form action="{{ route('outgoing.delivery-notes.start-picking', $dn) }}" method="POST">
                                                 @csrf
-                                                <button type="submit" class="text-emerald-600 hover:text-emerald-900 font-bold">Ship</button>
+                                                <button type="submit" class="bg-amber-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-amber-700 transition-colors">Start Picking</button>
                                             </form>
-
                                             <form action="{{ route('outgoing.delivery-notes.destroy', $dn) }}" method="POST" onsubmit="return confirm('Delete this Delivery Note?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-red-500 hover:text-red-700 font-bold ml-2">Delete</button>
+                                                <button type="submit" class="text-red-500 hover:text-red-700 font-bold ml-2 text-xs uppercase tracking-tighter">Delete</button>
+                                            </form>
+                                        @elseif ($dn->status === 'picking')
+                                            <form action="{{ route('outgoing.delivery-notes.complete-picking', $dn) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-blue-700 transition-colors">Complete Picking</button>
+                                            </form>
+                                        @elseif ($dn->status === 'ready_to_ship')
+                                            <form action="{{ route('outgoing.delivery-notes.ship', $dn) }}" method="POST" onsubmit="return confirm('Confirm shipping? Inventory will be deducted.')">
+                                                @csrf
+                                                <button type="submit" class="bg-emerald-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors">Ship Now</button>
                                             </form>
                                         @endif
                                     </div>

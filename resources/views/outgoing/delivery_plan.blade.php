@@ -340,6 +340,56 @@
                         </template>
                     </div>
                 </div>
+
+                {{-- Awaiting Assignment (SOs) --}}
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide">Awaiting Assignment</h3>
+                        <span class="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold" x-text="unassignedSos.length"></span>
+                    </div>
+                    <div class="p-3 space-y-3 max-h-[500px] overflow-y-auto">
+                        <template x-for="so in unassignedSos" :key="so.id">
+                            <div class="p-4 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-indigo-500 transition-all group">
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div>
+                                        <div class="font-bold text-slate-900 text-sm" x-text="so.dn_no"></div>
+                                        <div class="text-xs font-bold text-indigo-600 mt-0.5" x-text="so.customer"></div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs font-bold text-slate-900" x-text="formatNumber(so.totalQty) + ' PCS'"></div>
+                                        <div class="text-[10px] text-slate-500 font-medium" x-text="so.itemCount + ' Items'"></div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 min-w-0">
+                                    <select 
+                                        class="flex-1 text-[10px] font-bold py-1 px-2 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                        x-model="selectedPlans[so.id]"
+                                    >
+                                        <option value="">Assign to Trip...</option>
+                                        <template x-for="plan in deliveryPlans" :key="plan.id">
+                                            <option :value="plan.id" x-text="'Trip #' + plan.sequence + ' (' + plan.id + ')'"></option>
+                                        </template>
+                                    </select>
+                                    <button 
+                                        @click="assignSo(so.id)"
+                                        :disabled="!selectedPlans[so.id] || isAssigning"
+                                        class="px-3 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    >
+                                        Go
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        <template x-if="unassignedSos.length === 0">
+                            <div class="text-center py-8">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-slate-200 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div class="text-xs text-slate-400 italic">All SOs are assigned</div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -442,8 +492,11 @@
             trucks: @json($trucks),
             drivers: @json($drivers),
             deliveryPlans: @json($deliveryPlans),
+            unassignedSos: @json($unassignedSos),
             
             showCreateModal: false,
+            isAssigning: false,
+            selectedPlans: {},
             createForm: {
                 date: '',
                 truckId: '',
@@ -456,6 +509,42 @@
                         window.location.href = '?date=' + value;
                     }
                 });
+            },
+
+            async assignSo(soId) {
+                const planIdStr = this.selectedPlans[soId];
+                if (!planIdStr) return;
+                
+                // Extract numeric ID from 'DP001' format if necessary, 
+                // but our backend expects the ID. Let's look up the actual ID.
+                const plan = this.deliveryPlans.find(p => p.id === planIdStr);
+                if (!plan) return;
+
+                this.isAssigning = true;
+                try {
+                    const response = await fetch('{{ route('outgoing.delivery-plan.assign-so') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            delivery_note_id: soId,
+                            delivery_plan_id: planIdStr.replace('DP', '').replace(/^0+/, '')
+                        })
+                    });
+
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Assignment failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error assigning SO:', error);
+                    alert('An error occurred.');
+                } finally {
+                    this.isAssigning = false;
+                }
             },
 
             openCreateModal() {

@@ -72,10 +72,36 @@ class DeliveryNoteController extends Controller
         return view('outgoing.delivery_notes.show', compact('deliveryNote'));
     }
 
+    public function startPicking(DeliveryNote $deliveryNote)
+    {
+        if ($deliveryNote->status !== 'draft') {
+            return back()->with('error', 'Only draft delivery notes can start picking.');
+        }
+
+        $deliveryNote->update(['status' => 'picking']);
+
+        return back()->with('success', 'Picking process started.');
+    }
+
+    public function completePicking(DeliveryNote $deliveryNote)
+    {
+        if ($deliveryNote->status !== 'picking') {
+            return back()->with('error', 'Only delivery notes in picking status can be completed.');
+        }
+
+        $deliveryNote->update(['status' => 'ready_to_ship']);
+
+        return back()->with('success', 'Picking process completed. Ready to ship.');
+    }
+
     public function ship(DeliveryNote $deliveryNote)
     {
         if ($deliveryNote->status === 'shipped') {
             return back()->with('error', 'Delivery Note already shipped.');
+        }
+
+        if ($deliveryNote->status !== 'ready_to_ship') {
+            return back()->with('error', 'Delivery Note must be picked before shipping.');
         }
 
         DB::transaction(function () use ($deliveryNote) {

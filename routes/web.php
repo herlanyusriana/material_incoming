@@ -152,8 +152,11 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
+        Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
 
         Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);
+        Route::post('delivery-notes/{delivery_note}/start-picking', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startPicking'])->name('delivery-notes.start-picking');
+        Route::post('delivery-notes/{delivery_note}/complete-picking', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'completePicking'])->name('delivery-notes.complete-picking');
         Route::post('delivery-notes/{delivery_note}/ship', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'ship'])->name('delivery-notes.ship');
 
         Route::get('standard-packings/template', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'template'])->name('standard-packings.template');
