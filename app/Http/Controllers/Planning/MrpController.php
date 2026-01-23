@@ -227,15 +227,26 @@ class MrpController extends Controller
         // Prepare Data Structure: Part -> [Info, Stock, Days => [Plan, Incoming, Projected, Net]]
         $mrpData = [];
 
-        // 1. Get all active Parts (or just those in BOM/Stock? Let's take parts from Inventory + MRP Plans)
-        $partIds = collect([]);
-        // 1. Get all active Parts
-        $partIds = collect([]);
+        $purchaseMap = [];   // [part_id][Y-m-d] => MrpPurchasePlan
+        $productionMap = []; // [part_id][Y-m-d] => MrpProductionPlan
+        $partIds = collect();
+
         foreach ($runs as $run) {
-            $partIds = $partIds->merge($run->purchasePlans->pluck('part_id'))
-                ->merge($run->productionPlans->pluck('part_id'));
+            foreach ($run->purchasePlans as $pp) {
+                $dateKey = $pp->plan_date instanceof \Carbon\CarbonInterface ? $pp->plan_date->format('Y-m-d') : (string) $pp->plan_date;
+                $purchaseMap[$pp->part_id][$dateKey] = $pp;
+                $partIds->push($pp->part_id);
+            }
+            foreach ($run->productionPlans as $pr) {
+                $dateKey = $pr->plan_date instanceof \Carbon\CarbonInterface ? $pr->plan_date->format('Y-m-d') : (string) $pr->plan_date;
+                $productionMap[$pr->part_id][$dateKey] = $pr;
+                $partIds->push($pr->part_id);
+            }
         }
-        $partIds = $partIds->unique();
+
+        $partIds = $partIds->unique()->values();
+        $hasPurchaseParts = array_fill_keys(array_map('intval', array_keys($purchaseMap)), true);
+        $hasProductionParts = array_fill_keys(array_map('intval', array_keys($productionMap)), true);
 
         $parts = \App\Models\GciPart::whereIn('id', $partIds)->get()->keyBy('id');
         $inventories = GciInventory::whereIn('gci_part_id', $partIds)->get()->keyBy('gci_part_id');
@@ -249,8 +260,8 @@ class MrpController extends Controller
             if (!$part)
                 continue;
 
-            $hasPurchase = $runs->pluck('purchasePlans')->flatten()->contains(fn ($p) => (int) $p->part_id === (int) $partId);
-            $hasProduction = $runs->pluck('productionPlans')->flatten()->contains(fn ($p) => (int) $p->part_id === (int) $partId);
+            $hasPurchase = isset($hasPurchaseParts[(int) $partId]);
+            $hasProduction = isset($hasProductionParts[(int) $partId]);
 
             $inv = $inventories[$partId] ?? null;
             $startStock = $inv ? $inv->on_hand : 0;
@@ -298,21 +309,8 @@ class MrpController extends Controller
                 // Since runs are unique per week, and plan_date is unique day, there should be only one plan record per day across these runs.
                 // We use $runs collection.
 
-                $pPlan = null;
-                $prodPlan = null;
-
-                foreach ($runs as $runItem) {
-                    // Purchase Plan
-                    $pp = $runItem->purchasePlans->where('part_id', $partId)->where('plan_date', $date)->first();
-                    if ($pp) {
-                        $pPlan = $pp;
-                    }
-                    // Production Plan
-                    $prp = $runItem->productionPlans->where('part_id', $partId)->where('plan_date', $date)->first();
-                    if ($prp) {
-                        $prodPlan = $prp;
-                    }
-                }
+                $pPlan = $purchaseMap[$partId][$date] ?? null;
+                $prodPlan = $productionMap[$partId][$date] ?? null;
 
                 if ($pPlan) {
                     $demand = (float) $pPlan->required_qty;
@@ -321,19 +319,7 @@ class MrpController extends Controller
                     // For MAKE parts, treat production plan as demand input (forecast distributed daily).
                     // Recommendation is also the production plan qty.
                     $demand = (float) ($prodPlan->planned_qty ?? 0);
-                    $plannedOrder = (float) ($prodPlan->planned_qty ?? 0);
-                }
-
-                // Check Production Plans (If it's an FG/WIP, this is the "Plan to make" -> Supply? No, MPS is demand, ProdPlan is supply to meet MPS?
-                // In generate(): MPS -> MrpProductionPlan.
-                // So MrpProductionPlan IS the supply to meet external demand.
-                // Let's treat it as "Plan" row.
-
-                // ProdPlan already fetched in loop above
-                if ($prodPlan) {
-                    // For FG/WIP
-                    // If this part is FG, ProdPlan is basically "Production Order Recommendation".
-                    $plannedOrder += $prodPlan->planned_qty;
+                    $plannedOrder = (float) ($prodPlan->planned_order_rec ?? $prodPlan->planned_qty ?? 0);
                 }
 
                 $incoming = $incomingMap[$partId][$date] ?? 0;
