@@ -240,6 +240,13 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
                                     <span class="flex-1">MRP</span>
                                 </a>
+
+                                @canany(['manage_planning', 'manage_outgoing'])
+                                    <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')]) @click="mobileSidebarOpen = false">
+                                        <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
+                                        <span class="flex-1">Standard Packing</span>
+                                    </a>
+                                @endcanany
                             </div>
                         </details>
                     </div>
@@ -717,6 +724,13 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
                                 <span class="flex-1">MRP</span>
                             </a>
+
+                            @canany(['manage_planning', 'manage_outgoing'])
+                                <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
+                                    <span class="flex-1">Standard Packing</span>
+                                </a>
+                            @endcanany
                         </div>
                     </div>
                 </details>
