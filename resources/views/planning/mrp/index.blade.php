@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Planning • MRP (Monthly Demand by Month)
+        Planning • MRP
     </x-slot>
 
     <div class="py-6">
@@ -36,14 +36,16 @@
                 </div>
             @endif
 
-	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4" x-data="{ tab: 'buy' }">
+	            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4" x-data="{ tab: 'buy', viewMode: 'summary' }">
 	                {{-- Control Bar --}}
 	                <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Month (year basis)</label>
+                            <label class="text-xs font-semibold text-slate-600">Month</label>
                             <input type="month" name="month" value="{{ $month }}" class="mt-1 rounded-xl border-slate-200">
-                            <div class="text-[11px] text-slate-500 mt-1">Tabel menampilkan demand Jan–Dec untuk tahun {{ substr($month, 0, 4) }}</div>
+                            <div class="text-[11px] text-slate-500 mt-1" x-show="viewMode === 'month'" x-cloak>
+                                Demand Jan–Dec untuk tahun {{ substr($month, 0, 4) }}
+                            </div>
                         </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load View</button>
                     </form>
@@ -93,8 +95,20 @@
 	                            All
 	                        </button>
 	                    </div>
+	                    <div class="flex items-center gap-2">
+	                        <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold border"
+	                            :class="viewMode === 'summary' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+	                            @click="viewMode = 'summary'">
+	                            Summary
+	                        </button>
+	                        <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold border"
+	                            :class="viewMode === 'month' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+	                            @click="viewMode = 'month'">
+	                            Demand by Month
+	                        </button>
+	                    </div>
 	                    <div class="text-xs text-slate-500">
-	                        BUY = purchase plans, MAKE = production plans.
+	                        Summary = demand/incoming/stock/net req. Demand by Month = demand per bulan (Jan–Dec).
 	                    </div>
 	                </div>
 
@@ -113,11 +127,17 @@
                         <p class="text-slate-500 mt-1">Run MRP first or check if you have Parts/Inventory data.</p>
                     </div>
 	                @else
-	                    <div class="space-y-6" x-show="tab === 'buy' || tab === 'all'" x-cloak>
+	                    <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'summary'" x-cloak>
+	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Summary', 'showPoAction' => true])
+	                    </div>
+	                    <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'month'" x-cloak>
 	                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Demand per Month', 'showPoAction' => true, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
 	                    </div>
 
-	                    <div class="space-y-6" x-show="tab === 'make' || tab === 'all'" x-cloak>
+	                    <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'summary'" x-cloak>
+	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Summary', 'showPoAction' => false])
+	                    </div>
+	                    <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'month'" x-cloak>
 	                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Demand per Month', 'showPoAction' => false, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
 	                    </div>
 	                @endif
