@@ -20,6 +20,7 @@ return [
             'view_planning',
             'view_production',
             'create_production_entry', // Example: Scanning incoming materials
+            'manage_incoming',
         ],
         'ppic' => [
             'view_dashboard',
