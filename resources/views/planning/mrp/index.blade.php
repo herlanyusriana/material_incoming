@@ -99,7 +99,7 @@
 
 	                @if(!empty($mrpDataMake) && empty($mrpDataBuy))
 	                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-	                        Demand/incoming komponen BUY belum muncul karena MRP Purchase Plan masih kosong. Biasanya ini karena data BOM belum punya mapping komponen (`bom_items.component_part_no/id`).
+	                        Demand/incoming komponen BUY belum muncul karena MRP Purchase Plan masih kosong. Biasanya ini karena BOM belum ter-relasi ke master part: `bom_items.component_part_id` masih kosong atau `component_part_no` belum ada di `gci_parts.part_no`.
 	                    </div>
 	                @endif
 

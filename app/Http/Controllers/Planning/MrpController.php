@@ -19,6 +19,176 @@ class MrpController extends Controller
         return [$field => ['required', 'string', 'regex:/^\d{4}-\d{2}$/']];
     }
 
+    private function normalizePartNo(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = strtoupper(trim($value));
+        return $value === '' ? null : $value;
+    }
+
+    private function resolveGciPartIdFromPartNo(?string $partNo, array &$cache): ?int
+    {
+        $partNo = $this->normalizePartNo($partNo);
+        if ($partNo === null) {
+            return null;
+        }
+
+        // Some upstream files append notes after a space; try the first token too.
+        $candidates = [$partNo];
+        if (str_contains($partNo, ' ')) {
+            $candidates[] = $this->normalizePartNo(strtok($partNo, ' '));
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($candidate === null) {
+                continue;
+            }
+
+            if (array_key_exists($candidate, $cache)) {
+                return $cache[$candidate];
+            }
+
+            $id = (int) (\App\Models\GciPart::query()->where('part_no', $candidate)->value('id') ?? 0);
+            $cache[$candidate] = $id > 0 ? $id : null;
+
+            if ($cache[$candidate] !== null) {
+                return $cache[$candidate];
+            }
+        }
+
+        // Ensure all candidates are cached to avoid repeated queries.
+        foreach ($candidates as $candidate) {
+            if ($candidate !== null && !array_key_exists($candidate, $cache)) {
+                $cache[$candidate] = null;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveOrCreateGciPartIdFromBomItem(\App\Models\BomItem $item, array &$partNoCache): ?int
+    {
+        $partNo = $this->normalizePartNo($item->component_part_no);
+        if ($partNo === null) {
+            return null;
+        }
+
+        $id = $this->resolveGciPartIdFromPartNo($partNo, $partNoCache);
+        if ($id !== null) {
+            if ((int) ($item->component_part_id ?? 0) <= 0) {
+                $item->component_part_id = $id;
+                $item->component_part_no = $partNo;
+                $item->save();
+            }
+            return $id;
+        }
+
+        $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+        $classification = $mob === 'make' ? 'WIP' : 'RM';
+        $partName = $item->material_name ? trim((string) $item->material_name) : null;
+
+        $part = \App\Models\GciPart::query()->firstOrCreate(
+            ['part_no' => $partNo],
+            ['part_name' => $partName, 'classification' => $classification, 'status' => 'active'],
+        );
+
+        $partNoCache[$partNo] = (int) $part->id;
+
+        if ((int) ($item->component_part_id ?? 0) <= 0) {
+            $item->component_part_id = (int) $part->id;
+            $item->component_part_no = $partNo;
+            $item->save();
+        }
+
+        return (int) $part->id;
+    }
+
+    private function explodeBomRequirements(
+        int $parentPartId,
+        float $parentQty,
+        array &$requirements,
+        array &$componentMode,
+        array &$bomCache,
+        array &$partNoCache,
+        int $level = 0,
+        int $maxLevels = 10,
+        array &$path = [],
+    ): void {
+        if ($level >= $maxLevels) {
+            return;
+        }
+
+        // Prevent cycles per branch.
+        if (isset($path[$parentPartId])) {
+            return;
+        }
+        $path[$parentPartId] = true;
+
+        $bom = $bomCache[$parentPartId] ?? null;
+        if ($bom === null) {
+            $bom = Bom::query()
+                ->with('items')
+                ->where('part_id', $parentPartId)
+                ->where('status', 'active')
+                ->first();
+            $bomCache[$parentPartId] = $bom ?: false;
+        }
+
+        if ($bom === false || !$bom) {
+            unset($path[$parentPartId]);
+            return;
+        }
+
+        foreach ($bom->items as $item) {
+            $componentId = (int) ($item->component_part_id ?? 0);
+            if ($componentId <= 0) {
+                $componentId = (int) ($this->resolveOrCreateGciPartIdFromBomItem($item, $partNoCache) ?? 0);
+            }
+
+            if ($componentId <= 0) {
+                continue;
+            }
+
+            $netUsage = (float) ($item->net_required ?? $item->usage_qty ?? 0);
+            if ($netUsage <= 0) {
+                continue;
+            }
+
+            $requiredQty = $parentQty * $netUsage;
+            if ($requiredQty <= 0) {
+                continue;
+            }
+
+            $requirements[$componentId] = ($requirements[$componentId] ?? 0) + $requiredQty;
+
+            $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+            if ($mob === 'make') {
+                $componentMode[$componentId] = 'make';
+            } elseif (!isset($componentMode[$componentId])) {
+                $componentMode[$componentId] = 'buy';
+            }
+
+            if ($mob === 'make') {
+                $this->explodeBomRequirements(
+                    $componentId,
+                    $requiredQty,
+                    $requirements,
+                    $componentMode,
+                    $bomCache,
+                    $partNoCache,
+                    $level + 1,
+                    $maxLevels,
+                    $path,
+                );
+            }
+        }
+
+        unset($path[$parentPartId]);
+    }
+
     public function index(Request $request)
     {
         $period = $request->query('period') ?: now()->format('Y-m');
@@ -317,32 +487,28 @@ class MrpController extends Controller
         // Calculate Requirements
         $requirements = [];
         $componentMode = [];
+        $bomCache = [];
+        $partNoCache = [];
 
         foreach ($forecastRows as $row) {
             $plannedQty = (float) $row->qty;
             if ($plannedQty <= 0) {
                 continue;
             }
-            $bom = Bom::query()->with('items')->where('part_id', $row->part_id)->first();
-            if (!$bom)
-                continue;
 
-            foreach ($bom->items as $item) {
-                $componentId = (int) $item->component_part_id;
-
-                if ($componentId <= 0)
-                    continue;
-
-                $requirements[$componentId] = ($requirements[$componentId] ?? 0)
-                    + ($plannedQty * (float) $item->usage_qty);
-
-                $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
-                if ($mob === 'make') {
-                    $componentMode[$componentId] = 'make';
-                } elseif (!isset($componentMode[$componentId])) {
-                    $componentMode[$componentId] = 'buy';
-                }
-            }
+            // Explode BOM (multi-level) using BOM make/buy.
+            $path = [];
+            $this->explodeBomRequirements(
+                (int) $row->part_id,
+                $plannedQty,
+                $requirements,
+                $componentMode,
+                $bomCache,
+                $partNoCache,
+                0,
+                10,
+                $path,
+            );
         }
 
         foreach ($requirements as $partId => $requiredQty) {
