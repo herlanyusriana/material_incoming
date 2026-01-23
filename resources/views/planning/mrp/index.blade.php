@@ -97,6 +97,12 @@
 	                    </div>
 	                </div>
 
+	                @if(!empty($mrpDataMake) && empty($mrpDataBuy))
+	                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+	                        Demand/incoming komponen BUY belum muncul karena MRP Purchase Plan masih kosong. Biasanya ini karena data BOM belum punya mapping komponen (`bom_items.component_part_no/id`).
+	                    </div>
+	                @endif
+
                 @if(empty($mrpData))
                     <div class="rounded-xl border border-dashed border-slate-200 p-12 text-center text-slate-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">

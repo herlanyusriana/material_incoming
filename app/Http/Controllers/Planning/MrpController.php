@@ -70,17 +70,9 @@ class MrpController extends Controller
         $parts = \App\Models\GciPart::whereIn('id', $partIds)->get()->keyBy('id');
         $inventories = GciInventory::whereIn('gci_part_id', $partIds)->get()->keyBy('gci_part_id');
 
-        // Incoming from Purchase Plans (scheduled receipts)
-        // Get all purchase plans from the runs that haven't been received yet
+        // Incoming should represent existing scheduled receipts (actual open POs/arrivals),
+        // not MRP-generated recommendations. For now, keep it empty unless integrated.
         $incomingMap = []; // gci_part_id -> date -> qty
-        foreach ($runs as $run) {
-            foreach ($run->purchasePlans as $plan) {
-                $date = $plan->plan_date;
-                if (in_array($date, $dates)) {
-                    $incomingMap[$plan->part_id][$date] = ($incomingMap[$plan->part_id][$date] ?? 0) + $plan->net_required;
-                }
-            }
-        }
 
         foreach ($partIds as $partId) {
             $part = $parts[$partId] ?? null;
@@ -153,8 +145,13 @@ class MrpController extends Controller
                 }
 
                 if ($pPlan) {
-                    $demand = $pPlan->required_qty;
-                    $plannedOrder = $pPlan->net_required;
+                    $demand = (float) $pPlan->required_qty;
+                    $plannedOrder = (float) ($pPlan->planned_order_rec ?? $pPlan->net_required);
+                } elseif ($prodPlan) {
+                    // For MAKE parts, treat production plan as demand input (forecast distributed daily).
+                    // Recommendation is also the production plan qty.
+                    $demand = (float) ($prodPlan->planned_qty ?? 0);
+                    $plannedOrder = (float) ($prodPlan->planned_qty ?? 0);
                 }
 
                 // Check Production Plans (If it's an FG/WIP, this is the "Plan to make" -> Supply? No, MPS is demand, ProdPlan is supply to meet MPS?
