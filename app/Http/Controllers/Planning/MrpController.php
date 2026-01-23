@@ -193,6 +193,17 @@ class MrpController extends Controller
     {
         $period = $request->query('month') ?: $request->query('period') ?: now()->format('Y-m');
         $year = (int) substr($period, 0, 4);
+        $selectedMonth = \Carbon\Carbon::createFromFormat('Y-m', $period)->startOfMonth();
+        $selectedMonthEnd = $selectedMonth->copy()->endOfMonth();
+
+        // Dates for daily view (1..end of selected month)
+        $dates = [];
+        $cursor = $selectedMonth->copy();
+        while ($cursor->lte($selectedMonthEnd)) {
+            $dates[] = $cursor->format('Y-m-d');
+            $cursor->addDay();
+        }
+
         $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
         $endOfYear = $startOfYear->copy()->endOfYear();
         $startKey = $startOfYear->format('Y-m-d');
@@ -222,6 +233,7 @@ class MrpController extends Controller
             return view('planning.mrp.index', [
                 'period' => $period,
                 'mrpData' => [],
+                'dates' => $dates,
                 'months' => $months,
                 'monthLabels' => $monthLabels,
             ]);
@@ -243,13 +255,24 @@ class MrpController extends Controller
 
         $purchaseByPartMonth = [];   // [part_id][Y-m] => [demand, planned]
         $productionByPartMonth = []; // [part_id][Y-m] => [demand, planned]
+        $purchaseByPartDate = [];    // [part_id][Y-m-d] => [demand, planned] (selected month only)
+        $productionByPartDate = [];  // [part_id][Y-m-d] => [demand, planned] (selected month only)
         $partIds = collect();
+
+        $monthStartKey = $selectedMonth->format('Y-m-d');
+        $monthEndKey = $selectedMonthEnd->format('Y-m-d');
 
         foreach ($purchasePlans as $pp) {
             $dateKey = $pp->plan_date instanceof \Carbon\CarbonInterface ? $pp->plan_date->format('Y-m-d') : (string) $pp->plan_date;
             $ym = substr($dateKey, 0, 7);
             $purchaseByPartMonth[$pp->part_id][$ym]['demand'] = ($purchaseByPartMonth[$pp->part_id][$ym]['demand'] ?? 0) + (float) ($pp->required_qty ?? 0);
             $purchaseByPartMonth[$pp->part_id][$ym]['planned'] = ($purchaseByPartMonth[$pp->part_id][$ym]['planned'] ?? 0) + (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+
+            if ($dateKey >= $monthStartKey && $dateKey <= $monthEndKey) {
+                $purchaseByPartDate[$pp->part_id][$dateKey]['demand'] = ($purchaseByPartDate[$pp->part_id][$dateKey]['demand'] ?? 0) + (float) ($pp->required_qty ?? 0);
+                $purchaseByPartDate[$pp->part_id][$dateKey]['planned'] = ($purchaseByPartDate[$pp->part_id][$dateKey]['planned'] ?? 0) + (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+            }
+
             $partIds->push($pp->part_id);
         }
 
@@ -258,6 +281,12 @@ class MrpController extends Controller
             $ym = substr($dateKey, 0, 7);
             $productionByPartMonth[$pr->part_id][$ym]['demand'] = ($productionByPartMonth[$pr->part_id][$ym]['demand'] ?? 0) + (float) ($pr->planned_qty ?? 0);
             $productionByPartMonth[$pr->part_id][$ym]['planned'] = ($productionByPartMonth[$pr->part_id][$ym]['planned'] ?? 0) + (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? 0);
+
+            if ($dateKey >= $monthStartKey && $dateKey <= $monthEndKey) {
+                $productionByPartDate[$pr->part_id][$dateKey]['demand'] = ($productionByPartDate[$pr->part_id][$dateKey]['demand'] ?? 0) + (float) ($pr->planned_qty ?? 0);
+                $productionByPartDate[$pr->part_id][$dateKey]['planned'] = ($productionByPartDate[$pr->part_id][$dateKey]['planned'] ?? 0) + (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? 0);
+            }
+
             $partIds->push($pr->part_id);
         }
 
@@ -295,6 +324,38 @@ class MrpController extends Controller
             $endStock = (float) $startStock + $incomingTotal - (float) $demandTotal;
             $netRequired = $endStock < 0 ? abs($endStock) : 0.0;
 
+            // Build daily view row for the selected month.
+            $days = [];
+            $runningStock = (float) $startStock;
+            foreach ($dates as $dateKey) {
+                $p = $purchaseByPartDate[$partId][$dateKey] ?? null;
+                $pr = $productionByPartDate[$partId][$dateKey] ?? null;
+
+                $demand = 0.0;
+                $planned = 0.0;
+
+                if ($p) {
+                    $demand = (float) ($p['demand'] ?? 0);
+                    $planned = (float) ($p['planned'] ?? 0);
+                } elseif ($pr) {
+                    $demand = (float) ($pr['demand'] ?? 0);
+                    $planned = (float) ($pr['planned'] ?? 0);
+                }
+
+                $incoming = 0.0;
+                $endDayStock = $runningStock + $incoming - $demand;
+
+                $days[$dateKey] = [
+                    'demand' => $demand,
+                    'incoming' => $incoming,
+                    'projected_stock' => $endDayStock,
+                    'net_required' => $endDayStock < 0 ? abs($endDayStock) : 0,
+                    'planned_order_rec' => $planned,
+                ];
+
+                $runningStock = $endDayStock;
+            }
+
             $rowData = [
                 'part' => $part,
                 'initial_stock' => $startStock,
@@ -307,6 +368,7 @@ class MrpController extends Controller
                 'net_required' => $netRequired,
                 'monthly_demand' => $monthlyDemand,
                 'monthly_planned' => $monthlyPlanned,
+                'days' => $days,
             ];
 
             $mrpData[] = $rowData;
@@ -315,7 +377,7 @@ class MrpController extends Controller
         $mrpDataBuy = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_purchase'] ?? false)));
         $mrpDataMake = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_production'] ?? false)));
 
-        return view('planning.mrp.index', compact('period', 'months', 'monthLabels', 'mrpData', 'mrpDataBuy', 'mrpDataMake'));
+        return view('planning.mrp.index', compact('period', 'dates', 'months', 'monthLabels', 'mrpData', 'mrpDataBuy', 'mrpDataMake'));
     }
 
     private function getWeeksForRange(\Carbon\Carbon $start, \Carbon\Carbon $end): array
