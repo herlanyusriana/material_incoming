@@ -24,29 +24,45 @@
 	        </style>
 	    </head>
     <body class="font-sans antialiased bg-slate-50">
-        <div
-            class="min-h-screen flex"
-            x-data="{
-                sidebarCollapsed: false,
-                mobileSidebarOpen: false,
-                init() {
-                    try {
-                        this.sidebarCollapsed = JSON.parse(localStorage.getItem('sidebarCollapsed') ?? 'false');
-                    } catch (e) {
-                        this.sidebarCollapsed = false;
-                    }
-                },
-                toggleSidebar() {
-                    this.sidebarCollapsed = !this.sidebarCollapsed;
-                    localStorage.setItem('sidebarCollapsed', JSON.stringify(this.sidebarCollapsed));
-                },
-            }"
-            x-init="init()"
-            @keydown.escape.window="mobileSidebarOpen = false"
-        >
-            @auth
-                @include('layouts.sidebar')
-            @endauth
+	        <div
+	            class="min-h-screen flex"
+	            x-data="{
+	                sidebarCollapsed: false,
+	                mobileSidebarOpen: false,
+	                init() {
+	                    try {
+	                        this.sidebarCollapsed = JSON.parse(localStorage.getItem('sidebarCollapsed') ?? 'false');
+	                    } catch (e) {
+	                        this.sidebarCollapsed = false;
+	                    }
+	                },
+	                persistSidebar() {
+	                    localStorage.setItem('sidebarCollapsed', JSON.stringify(this.sidebarCollapsed));
+	                },
+	                toggleSidebar() {
+	                    this.sidebarCollapsed = !this.sidebarCollapsed;
+	                    this.persistSidebar();
+	                },
+	                collapseSidebar() {
+	                    this.sidebarCollapsed = true;
+	                    this.persistSidebar();
+	                },
+	                expandSidebar() {
+	                    this.sidebarCollapsed = false;
+	                    this.persistSidebar();
+	                },
+	            }"
+	            x-init="init()"
+	            @keydown.escape.window="mobileSidebarOpen = false"
+	        >
+	            @auth
+	                <div
+	                    class="hidden md:block fixed left-0 top-0 h-screen w-3 z-40"
+	                    @mouseenter="expandSidebar()"
+	                    @mousemove="expandSidebar()"
+	                ></div>
+	                @include('layouts.sidebar')
+	            @endauth
 
             <div class="flex-1 flex flex-col min-h-screen">
                 <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
