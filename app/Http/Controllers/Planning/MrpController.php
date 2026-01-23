@@ -192,67 +192,81 @@ class MrpController extends Controller
     public function index(Request $request)
     {
         $period = $request->query('month') ?: $request->query('period') ?: now()->format('Y-m');
-        $startOfMonth = \Carbon\Carbon::parse($period)->startOfMonth();
-        $endOfMonth = $startOfMonth->copy()->endOfMonth();
-        $startKey = $startOfMonth->format('Y-m-d');
-        $endKey = $endOfMonth->format('Y-m-d');
+        $year = (int) substr($period, 0, 4);
+        $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+        $endOfYear = $startOfYear->copy()->endOfYear();
+        $startKey = $startOfYear->format('Y-m-d');
+        $endKey = $endOfYear->format('Y-m-d');
 
-        // MRP runs are generated per-week (period format: YYYY-Www) and displayed in a monthly daily view.
-        // Load the latest run for each week that touches this month.
-        $weeks = $this->getWeeksForMonth($period);
-        $latestRunsByWeek = MrpRun::query()
+        $months = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $months[] = \Carbon\Carbon::create($year, $m, 1)->format('Y-m');
+        }
+        $monthLabels = collect($months)->mapWithKeys(function (string $ym) {
+            $label = \Carbon\Carbon::createFromFormat('Y-m', $ym)->format('M');
+            return [$ym => $label];
+        })->all();
+
+        // MRP runs are generated per-week (period format: YYYY-Www). For monthly (month-columns) view,
+        // load the latest run for each ISO week that touches the selected year.
+        $weeks = $this->getWeeksForRange($startOfYear, $endOfYear);
+        $latestRunIds = MrpRun::query()
             ->whereIn('period', $weeks)
-            ->orderByDesc('id')
-            ->get()
+            ->selectRaw('MAX(id) as id')
             ->groupBy('period')
-            ->map(fn ($group) => $group->first())
+            ->pluck('id')
+            ->filter()
             ->values();
 
-        if ($latestRunsByWeek->isEmpty()) {
+        if ($latestRunIds->isEmpty()) {
             return view('planning.mrp.index', [
                 'period' => $period,
                 'mrpData' => [],
+                'months' => $months,
+                'monthLabels' => $monthLabels,
             ]);
         }
 
-        $runs = $latestRunsByWeek->map(fn ($r) => $r->load(['purchasePlans.part', 'productionPlans.part']))->values();
+        // Fetch plans directly (avoid eager-loading each run with all relations).
+        $purchasePlans = MrpPurchasePlan::query()
+            ->whereIn('mrp_run_id', $latestRunIds)
+            ->whereBetween('plan_date', [$startKey, $endKey])
+            ->get(['part_id', 'plan_date', 'required_qty', 'planned_order_rec', 'net_required']);
+
+        $productionPlans = MrpProductionPlan::query()
+            ->whereIn('mrp_run_id', $latestRunIds)
+            ->whereBetween('plan_date', [$startKey, $endKey])
+            ->get(['part_id', 'plan_date', 'planned_qty', 'planned_order_rec']);
 
         // Prepare Data Structure: Part -> [Info, Stock, Days => [Plan, Incoming, Projected, Net]]
         $mrpData = [];
 
-        $purchaseMap = [];   // [part_id][Y-m-d] => MrpPurchasePlan
-        $productionMap = []; // [part_id][Y-m-d] => MrpProductionPlan
+        $purchaseByPartMonth = [];   // [part_id][Y-m] => [demand, planned]
+        $productionByPartMonth = []; // [part_id][Y-m] => [demand, planned]
         $partIds = collect();
 
-        foreach ($runs as $run) {
-            foreach ($run->purchasePlans as $pp) {
-                $dateKey = $pp->plan_date instanceof \Carbon\CarbonInterface ? $pp->plan_date->format('Y-m-d') : (string) $pp->plan_date;
-                if ($dateKey < $startKey || $dateKey > $endKey) {
-                    continue;
-                }
-                $purchaseMap[$pp->part_id][$dateKey] = $pp;
-                $partIds->push($pp->part_id);
-            }
-            foreach ($run->productionPlans as $pr) {
-                $dateKey = $pr->plan_date instanceof \Carbon\CarbonInterface ? $pr->plan_date->format('Y-m-d') : (string) $pr->plan_date;
-                if ($dateKey < $startKey || $dateKey > $endKey) {
-                    continue;
-                }
-                $productionMap[$pr->part_id][$dateKey] = $pr;
-                $partIds->push($pr->part_id);
-            }
+        foreach ($purchasePlans as $pp) {
+            $dateKey = $pp->plan_date instanceof \Carbon\CarbonInterface ? $pp->plan_date->format('Y-m-d') : (string) $pp->plan_date;
+            $ym = substr($dateKey, 0, 7);
+            $purchaseByPartMonth[$pp->part_id][$ym]['demand'] = ($purchaseByPartMonth[$pp->part_id][$ym]['demand'] ?? 0) + (float) ($pp->required_qty ?? 0);
+            $purchaseByPartMonth[$pp->part_id][$ym]['planned'] = ($purchaseByPartMonth[$pp->part_id][$ym]['planned'] ?? 0) + (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+            $partIds->push($pp->part_id);
+        }
+
+        foreach ($productionPlans as $pr) {
+            $dateKey = $pr->plan_date instanceof \Carbon\CarbonInterface ? $pr->plan_date->format('Y-m-d') : (string) $pr->plan_date;
+            $ym = substr($dateKey, 0, 7);
+            $productionByPartMonth[$pr->part_id][$ym]['demand'] = ($productionByPartMonth[$pr->part_id][$ym]['demand'] ?? 0) + (float) ($pr->planned_qty ?? 0);
+            $productionByPartMonth[$pr->part_id][$ym]['planned'] = ($productionByPartMonth[$pr->part_id][$ym]['planned'] ?? 0) + (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? 0);
+            $partIds->push($pr->part_id);
         }
 
         $partIds = $partIds->unique()->values();
-        $hasPurchaseParts = array_fill_keys(array_map('intval', array_keys($purchaseMap)), true);
-        $hasProductionParts = array_fill_keys(array_map('intval', array_keys($productionMap)), true);
+        $hasPurchaseParts = array_fill_keys(array_map('intval', array_keys($purchaseByPartMonth)), true);
+        $hasProductionParts = array_fill_keys(array_map('intval', array_keys($productionByPartMonth)), true);
 
         $parts = \App\Models\GciPart::whereIn('id', $partIds)->get()->keyBy('id');
         $inventories = GciInventory::whereIn('gci_part_id', $partIds)->get()->keyBy('gci_part_id');
-
-        // Incoming should represent existing scheduled receipts (actual open POs/arrivals),
-        // not MRP-generated recommendations. For now, keep it empty unless integrated.
-        $incomingMap = []; // gci_part_id -> date -> qty
 
         foreach ($partIds as $partId) {
             $part = $parts[$partId] ?? null;
@@ -265,27 +279,20 @@ class MrpController extends Controller
             $inv = $inventories[$partId] ?? null;
             $startStock = $inv ? $inv->on_hand : 0;
 
-            $purchasePlans = array_values($purchaseMap[$partId] ?? []);
-            $productionPlans = array_values($productionMap[$partId] ?? []);
+            $monthlyDemand = [];
+            $monthlyPlanned = [];
 
-            $purchaseDemand = 0.0;
-            $purchasePlanned = 0.0;
-            foreach ($purchasePlans as $pp) {
-                $purchaseDemand += (float) ($pp->required_qty ?? 0);
-                $purchasePlanned += (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
+            foreach ($months as $ym) {
+                $demand = (float) (($purchaseByPartMonth[$partId][$ym]['demand'] ?? 0) + ($productionByPartMonth[$partId][$ym]['demand'] ?? 0));
+                $planned = (float) (($purchaseByPartMonth[$partId][$ym]['planned'] ?? 0) + ($productionByPartMonth[$partId][$ym]['planned'] ?? 0));
+                $monthlyDemand[$ym] = $demand;
+                $monthlyPlanned[$ym] = $planned;
             }
 
-            $productionDemand = 0.0;
-            $productionPlanned = 0.0;
-            foreach ($productionPlans as $pr) {
-                $productionDemand += (float) ($pr->planned_qty ?? 0);
-                $productionPlanned += (float) ($pr->planned_order_rec ?? $pr->planned_qty ?? 0);
-            }
-
-            $demandTotal = $purchaseDemand + $productionDemand;
+            $demandTotal = array_sum($monthlyDemand);
+            $plannedOrderTotal = array_sum($monthlyPlanned);
             $incomingTotal = 0.0;
-            $plannedOrderTotal = $purchasePlanned + $productionPlanned;
-            $endStock = (float) $startStock + $incomingTotal - $demandTotal;
+            $endStock = (float) $startStock + $incomingTotal - (float) $demandTotal;
             $netRequired = $endStock < 0 ? abs($endStock) : 0.0;
 
             $rowData = [
@@ -298,6 +305,8 @@ class MrpController extends Controller
                 'planned_order_total' => $plannedOrderTotal,
                 'end_stock' => $endStock,
                 'net_required' => $netRequired,
+                'monthly_demand' => $monthlyDemand,
+                'monthly_planned' => $monthlyPlanned,
             ];
 
             $mrpData[] = $rowData;
@@ -306,7 +315,21 @@ class MrpController extends Controller
         $mrpDataBuy = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_purchase'] ?? false)));
         $mrpDataMake = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_production'] ?? false)));
 
-        return view('planning.mrp.index', compact('period', 'mrpData', 'mrpDataBuy', 'mrpDataMake', 'runs'));
+        return view('planning.mrp.index', compact('period', 'months', 'monthLabels', 'mrpData', 'mrpDataBuy', 'mrpDataMake'));
+    }
+
+    private function getWeeksForRange(\Carbon\Carbon $start, \Carbon\Carbon $end): array
+    {
+        $weeks = [];
+        $current = $start->copy();
+        while ($current->lte($end)) {
+            $w = $current->format('o-\\WW');
+            if (!in_array($w, $weeks, true)) {
+                $weeks[] = $w;
+            }
+            $current->addDay();
+        }
+        return $weeks;
     }
 
     private function getWeeksForMonth(string $monthStr): array

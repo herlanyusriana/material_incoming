@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Planning • MRP (Monthly View)
+        Planning • MRP (Monthly Demand by Month)
     </x-slot>
 
     <div class="py-6">
@@ -41,8 +41,9 @@
 	                <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Month</label>
+                            <label class="text-xs font-semibold text-slate-600">Month (year basis)</label>
                             <input type="month" name="month" value="{{ $month }}" class="mt-1 rounded-xl border-slate-200">
+                            <div class="text-[11px] text-slate-500 mt-1">Tabel menampilkan demand Jan–Dec untuk tahun {{ substr($month, 0, 4) }}</div>
                         </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load View</button>
                     </form>
@@ -113,11 +114,11 @@
                     </div>
 	                @else
 	                    <div class="space-y-6" x-show="tab === 'buy' || tab === 'all'" x-cloak>
-	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY)', 'showPoAction' => true])
+	                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => 'Purchase Planning (BUY) • Demand per Month', 'showPoAction' => true, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
 	                    </div>
 
 	                    <div class="space-y-6" x-show="tab === 'make' || tab === 'all'" x-cloak>
-	                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE)', 'showPoAction' => false])
+	                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => 'Production Planning (MAKE) • Demand per Month', 'showPoAction' => false, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
 	                    </div>
 	                @endif
 	            </div>
