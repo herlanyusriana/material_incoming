@@ -110,7 +110,11 @@
 
                 <main class="flex-1 bg-slate-50">
                     <div class="w-full max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                        {{ $slot }}
+                        @isset($slot)
+                            {{ $slot }}
+                        @else
+                            @yield('content')
+                        @endisset
                     </div>
                 </main>
             </div>
