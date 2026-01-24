@@ -9,6 +9,7 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomItemSubstitute;
 use App\Imports\BomSubstituteImport;
+use App\Imports\BomSubstituteMappingImport;
 use App\Models\GciPart;
 use App\Models\Uom;
 use Illuminate\Http\Request;
@@ -202,6 +203,42 @@ class BomController extends Controller
         }
     }
 
+    public function importSubstitutesMapping(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+            'auto_create_parts' => ['nullable', 'boolean'],
+        ]);
+
+        try {
+            $import = new BomSubstituteMappingImport((bool) ($validated['auto_create_parts'] ?? true));
+            Excel::import($import, $validated['file']);
+
+            $failures = collect($import->failures());
+            if ($failures->isNotEmpty()) {
+                $preview = $failures
+                    ->take(10)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import mapping selesai tapi ada {$failures->count()} baris gagal. {$preview}");
+            }
+
+            return back()->with('success', "Substitute mapping imported successfully. {$import->rowCount} rows processed.");
+        } catch (\Exception $e) {
+            if ($e instanceof ValidationException) {
+                $failures = collect($e->failures());
+                $preview = $failures
+                    ->take(10)
+                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->implode(' ; ');
+
+                return back()->with('error', "Import failed: {$preview}");
+            }
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
     public function downloadSubstituteTemplate()
     {
         return Excel::download(new class implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
@@ -217,6 +254,24 @@ class BomController extends Controller
             }
         }, 'template_substitutes.xlsx');
     }
+
+    public function downloadSubstituteMappingTemplate()
+    {
+        return Excel::download(new class implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+            public function array(): array
+            {
+                return [
+                    // Example row: component (RM) -> substitute (RM), optional supplier + notes
+                    ['5040JA3071C', 'KJPGICBOMG65S', 'PT. POSCO - INDONESIA JAKARTA PROCESSING CENTER', 1, 1, 'active', 'from incoming mapping'],
+                ];
+            }
+            public function headings(): array
+            {
+                return ['component_part_no', 'substitute_part_no', 'supplier', 'ratio', 'priority', 'status', 'notes'];
+            }
+        }, 'template_substitute_mapping.xlsx');
+    }
+
 
     public function store(Request $request)
     {

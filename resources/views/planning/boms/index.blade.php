@@ -439,6 +439,26 @@
                         <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImportSubstitute()">✕</button>
                     </div>
 
+                    <div class="px-5 pt-4 pb-2 text-xs text-slate-600">
+                        Pilih mode import:
+                        <span class="font-semibold">Per-FG</span> (butuh `fg_part_no`) atau
+                        <span class="font-semibold">Mapping</span> (RM→Substitute, apply ke semua BOM line yang match).
+                    </div>
+
+                    <div class="px-5 pb-2 flex gap-2">
+                        <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold border"
+                            :class="subImportMode === 'fg' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+                            @click="subImportMode = 'fg'">
+                            Per-FG
+                        </button>
+                        <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold border"
+                            :class="subImportMode === 'mapping' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+                            @click="subImportMode = 'mapping'">
+                            Mapping
+                        </button>
+                    </div>
+
+                    <div x-show="subImportMode === 'fg'" x-cloak>
                     <form action="{{ route('planning.boms.substitutes.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4" onsubmit="showLoading('Importing Substitutes...')">
                         @csrf
 
@@ -461,6 +481,40 @@
                             <button type="submit" class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold">Import Substitutes</button>
                         </div>
                     </form>
+                    </div>
+
+                    <div x-show="subImportMode === 'mapping'" x-cloak>
+                        <form action="{{ route('planning.boms.substitutes.import-mapping') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4" onsubmit="showLoading('Importing Substitute Mapping...')">
+                            @csrf
+
+                            <div class="text-sm text-slate-700 space-y-1">
+                                <div class="flex justify-between items-center">
+                                    <div>Upload Excel mapping:</div>
+                                    <a href="{{ route('planning.boms.substitutes.template-mapping') }}" class="text-xs text-blue-600 hover:text-blue-800 underline font-semibold">Download Template</a>
+                                </div>
+                                <div class="font-mono text-xs bg-slate-100 p-2 rounded">component_part_no, substitute_part_no, supplier, ratio, priority, status</div>
+                                <div class="text-xs text-slate-500">Akan diterapkan ke semua BOM line yang memakai `component_part_no`. Part substitute akan di-auto-create ke GCI Parts (RM) jika belum ada.</div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <input type="hidden" name="auto_create_parts" value="0">
+                                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input type="checkbox" name="auto_create_parts" value="1" class="rounded border-slate-300" checked>
+                                    Auto-create missing substitute part
+                                </label>
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-slate-700">File</label>
+                                <input type="file" name="file" accept=".xlsx,.xls,.csv" class="mt-1 w-full rounded-xl border-slate-200" required>
+                            </div>
+
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImportSubstitute()">Cancel</button>
+                                <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Import Mapping</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -627,6 +681,7 @@
                             modalOpen: false,
                             importOpen: false,
                             importSubstituteOpen: false,
+                            subImportMode: 'fg',
                             changeFgOpen: false,
                             changeFgForm: {
                                 action: '',
@@ -682,7 +737,7 @@
                             openImport() { this.importOpen = true; },
                             closeImport() { this.importOpen = false; },
                             openImportSubstitute() { this.importSubstituteOpen = true; },
-                            closeImportSubstitute() { this.importSubstituteOpen = false; },
+                            closeImportSubstitute() { this.importSubstituteOpen = false; this.subImportMode = 'fg'; },
                             openChangeFg(payload) {
                                 this.changeFgForm = {
                                     action: payload.action,
