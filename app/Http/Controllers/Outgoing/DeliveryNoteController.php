@@ -228,7 +228,7 @@ class DeliveryNoteController extends Controller
                     if (!$mappedPart) {
                         throw new \Exception("Part master (parts) tidak ditemukan untuk FG {$gciPartNo}. Tidak bisa deduct stok per lokasi.");
                     }
-                    LocationInventory::updateStock((int) $mappedPart->id, $loc, -(float) $item->qty);
+                    LocationInventory::consumeStock((int) $mappedPart->id, $loc, (float) $item->qty);
                 }
 
                 $inventory = FgInventory::firstOrCreate(

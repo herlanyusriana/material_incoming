@@ -93,6 +93,8 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Name</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Prod Date</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Qty</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Updated</th>
                             </tr>
@@ -120,6 +122,12 @@
                                     <td class="px-4 py-3 text-sm text-slate-700">
                                         {{ $rec->part?->part_name_gci ?? ($rec->part?->part_name_vendor ?? '-') }}
                                     </td>
+                                    <td class="px-4 py-3">
+                                        <span class="font-mono text-xs text-slate-700">{{ $rec->batch_no ?? '-' }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">
+                                        {{ $rec->production_date?->format('Y-m-d') ?? '-' }}
+                                    </td>
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-mono font-bold text-indigo-700">{{ formatNumber((float) $rec->qty_on_hand) }}</span>
                                     </td>
@@ -129,7 +137,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">No records.</td>
+                                    <td colspan="7" class="px-6 py-12 text-center text-slate-500">No records.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -145,4 +153,3 @@
         </div>
     </div>
 </x-app-layout>
-

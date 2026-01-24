@@ -15,12 +15,15 @@ class LocationInventory extends Model
     protected $fillable = [
         'part_id',
         'location_code',
+        'batch_no',
+        'production_date',
         'qty_on_hand',
         'last_counted_at',
     ];
 
     protected $casts = [
         'qty_on_hand' => 'decimal:4',
+        'production_date' => 'date',
         'last_counted_at' => 'datetime',
     ];
 
@@ -43,28 +46,43 @@ class LocationInventory extends Model
     /**
      * Get stock quantity for a specific part at a specific location
      */
-    public static function getStockByLocation(int $partId, string $locationCode): float
+    public static function getStockByLocation(int $partId, string $locationCode, ?string $batchNo = null): float
     {
-        $record = self::where('part_id', $partId)
-            ->where('location_code', $locationCode)
-            ->first();
+        $q = self::query()
+            ->where('part_id', $partId)
+            ->where('location_code', strtoupper(trim($locationCode)));
 
-        return $record ? (float) $record->qty_on_hand : 0;
+        $batchNo = $batchNo !== null ? strtoupper(trim($batchNo)) : null;
+        if ($batchNo !== null && $batchNo !== '') {
+            $q->where('batch_no', $batchNo);
+            $record = $q->first();
+            return $record ? (float) $record->qty_on_hand : 0;
+        }
+
+        return (float) $q->sum('qty_on_hand');
     }
 
     /**
      * Update stock for a part at a location
      * Positive qtyChange = increase, Negative = decrease
      */
-    public static function updateStock(int $partId, string $locationCode, float $qtyChange): void
+    public static function updateStock(int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null): void
     {
+        $locationCode = strtoupper(trim($locationCode));
+        $batchNo = $batchNo !== null ? strtoupper(trim($batchNo)) : null;
+        if ($batchNo === '') {
+            $batchNo = null;
+        }
+
         $record = self::firstOrCreate(
             [
                 'part_id' => $partId,
                 'location_code' => $locationCode,
+                'batch_no' => $batchNo,
             ],
             [
                 'qty_on_hand' => 0,
+                'production_date' => $productionDate ?: null,
             ]
         );
 
@@ -78,14 +96,70 @@ class LocationInventory extends Model
     }
 
     /**
+     * Consume stock (decrement) with optional batch allocation.
+     * If no batch specified, consumes FIFO by production_date (oldest first) then batch_no.
+     */
+    public static function consumeStock(int $partId, string $locationCode, float $qty, ?string $batchNo = null): void
+    {
+        $qty = (float) $qty;
+        if ($qty <= 0) {
+            return;
+        }
+
+        $locationCode = strtoupper(trim($locationCode));
+        $batchNo = $batchNo !== null ? strtoupper(trim($batchNo)) : null;
+        if ($batchNo === '') {
+            $batchNo = null;
+        }
+
+        if ($batchNo !== null) {
+            self::updateStock($partId, $locationCode, -$qty, $batchNo);
+            return;
+        }
+
+        $remaining = $qty;
+
+        $rows = self::query()
+            ->where('part_id', $partId)
+            ->where('location_code', $locationCode)
+            ->where('qty_on_hand', '>', 0)
+            ->orderByRaw('production_date IS NULL') // non-null first
+            ->orderBy('production_date')
+            ->orderBy('batch_no')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($rows as $row) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $available = (float) $row->qty_on_hand;
+            if ($available <= 0) {
+                continue;
+            }
+
+            $take = min($available, $remaining);
+            $row->update(['qty_on_hand' => $available - $take]);
+            $remaining -= $take;
+        }
+
+        if ($remaining > 0) {
+            throw new \Exception("Not enough stock at {$locationCode}. Need {$qty}, remaining {$remaining}.");
+        }
+    }
+
+    /**
      * Get all locations for a specific part with stock
      */
     public static function getLocationsForPart(int $partId)
     {
-        return self::where('part_id', $partId)
+        return self::query()
+            ->where('part_id', $partId)
             ->where('qty_on_hand', '>', 0)
             ->with('location')
             ->orderBy('location_code')
+            ->orderBy('batch_no')
             ->get();
     }
 
