@@ -214,7 +214,7 @@
                                             <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600">{{ $item->machine_name ?? '' }}</td>
 	                                        <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">{{ $wipNo }}</td>
 	                                        <td class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-indigo-700 bg-indigo-50/20">{{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}</td>
-                                            <td class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">{{ $item->wip_uom ?? '' }}</td>
+                                            <td class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">{{ $item->wipUom?->code ?? ($item->wip_uom ?? '') }}</td>
                                             <td class="px-2 py-1.5 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $wipName }}">{{ $wipName }}</td>
                                             <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">{{ $item->material_size ?? '' }}</td>
                                             <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">{{ $item->material_spec ?? '' }}</td>
@@ -228,7 +228,7 @@
                                                 </span>
                                             </td>
 	                                        <td class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-emerald-700 bg-emerald-50/20">{{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}</td>
-	                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">{{ $item->consumption_uom ?? '' }}</td>
+	                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">{{ $item->consumptionUom?->code ?? ($item->consumption_uom ?? '') }}</td>
 	                                        <td class="px-2 py-1.5 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
                                                 <div class="flex items-center justify-center gap-1">
                                                     <button

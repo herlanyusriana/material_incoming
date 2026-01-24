@@ -18,6 +18,8 @@ class OutgoingDailyPlanCell extends Model
 
     protected $casts = [
         'plan_date' => 'date',
+        'seq' => 'integer',
+        'qty' => 'integer',
     ];
 
     public function row(): BelongsTo
@@ -25,4 +27,3 @@ class OutgoingDailyPlanCell extends Model
         return $this->belongsTo(OutgoingDailyPlanRow::class, 'row_id');
     }
 }
-

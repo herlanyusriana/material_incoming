@@ -47,7 +47,7 @@ class BomController extends Controller
             ->get();
 
         $boms = Bom::query()
-            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.substitutes.part'])
+            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.wipUom', 'items.consumptionUom', 'items.substitutes.part'])
             ->when($gciPartId, fn ($q) => $q->where('part_id', $gciPartId))
             ->when($q !== '', function ($query) use ($q) {
                 $query->whereHas('part', function ($sub) use ($q) {
@@ -292,6 +292,47 @@ class BomController extends Controller
             'wip_uom_id' => ['nullable', Rule::exists('uoms', 'id')],
         ]);
 
+        $consumptionUomId = isset($validated['consumption_uom_id']) ? (int) ($validated['consumption_uom_id'] ?? 0) : 0;
+        $wipUomId = isset($validated['wip_uom_id']) ? (int) ($validated['wip_uom_id'] ?? 0) : 0;
+
+        $consumptionUomCode = isset($validated['consumption_uom']) && is_string($validated['consumption_uom'])
+            ? strtoupper(trim($validated['consumption_uom']))
+            : null;
+        if ($consumptionUomCode === '') {
+            $consumptionUomCode = null;
+        }
+
+        $wipUomCode = isset($validated['wip_uom']) && is_string($validated['wip_uom'])
+            ? strtoupper(trim($validated['wip_uom']))
+            : null;
+        if ($wipUomCode === '') {
+            $wipUomCode = null;
+        }
+
+        if ($consumptionUomId > 0) {
+            $uom = Uom::query()->find($consumptionUomId);
+            if ($uom) {
+                $consumptionUomCode = $uom->code;
+            }
+        } elseif ($consumptionUomCode !== null) {
+            $uom = Uom::query()->where('code', $consumptionUomCode)->first();
+            if ($uom) {
+                $consumptionUomId = (int) $uom->id;
+            }
+        }
+
+        if ($wipUomId > 0) {
+            $uom = Uom::query()->find($wipUomId);
+            if ($uom) {
+                $wipUomCode = $uom->code;
+            }
+        } elseif ($wipUomCode !== null) {
+            $uom = Uom::query()->where('code', $wipUomCode)->first();
+            if ($uom) {
+                $wipUomId = (int) $uom->id;
+            }
+        }
+
         $componentPartId = array_key_exists('component_part_id', $validated) ? (int) ($validated['component_part_id'] ?? 0) : 0;
         $componentPartNo = array_key_exists('component_part_no', $validated) && is_string($validated['component_part_no'])
             ? strtoupper(trim($validated['component_part_no']))
@@ -308,14 +349,14 @@ class BomController extends Controller
 
         $payload = [
             'usage_qty' => $validated['usage_qty'],
-            'consumption_uom' => $validated['consumption_uom'] ?? null,
+            'consumption_uom' => $consumptionUomCode,
             'line_no' => $validated['line_no'] ?? null,
             'process_name' => $validated['process_name'] ?? null,
             'machine_name' => $validated['machine_name'] ?? null,
             'wip_part_id' => $validated['wip_part_id'] ?? null,
             'wip_part_no' => $validated['wip_part_no'] ?? null,
             'wip_qty' => $validated['wip_qty'] ?? null,
-            'wip_uom' => $validated['wip_uom'] ?? null,
+            'wip_uom' => $wipUomCode,
             'wip_part_name' => $validated['wip_part_name'] ?? null,
             'material_size' => $validated['material_size'] ?? null,
             'material_spec' => $validated['material_spec'] ?? null,
@@ -325,8 +366,8 @@ class BomController extends Controller
             'component_part_no' => $componentPartNo,
             'scrap_factor' => $validated['scrap_factor'] ?? 0,
             'yield_factor' => $validated['yield_factor'] ?? 1,
-            'consumption_uom_id' => $validated['consumption_uom_id'] ?? null,
-            'wip_uom_id' => $validated['wip_uom_id'] ?? null,
+            'consumption_uom_id' => $consumptionUomId > 0 ? $consumptionUomId : null,
+            'wip_uom_id' => $wipUomId > 0 ? $wipUomId : null,
         ];
 
         $bomItemId = isset($validated['bom_item_id']) ? (int) $validated['bom_item_id'] : null;
@@ -335,6 +376,15 @@ class BomController extends Controller
                 ->where('bom_id', $bom->id)
                 ->where('id', $bomItemId)
                 ->firstOrFail();
+
+            // If the edit form didn't provide any UOM selection, preserve existing values.
+            // This avoids accidentally clearing legacy string-based UOMs when *_uom_id is empty.
+            if ($consumptionUomId <= 0 && $consumptionUomCode === null) {
+                unset($payload['consumption_uom'], $payload['consumption_uom_id']);
+            }
+            if ($wipUomId <= 0 && $wipUomCode === null) {
+                unset($payload['wip_uom'], $payload['wip_uom_id']);
+            }
 
             $item->update(array_merge($payload, [
                 'component_part_id' => $componentPartId > 0 ? $componentPartId : null,

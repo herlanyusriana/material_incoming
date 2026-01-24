@@ -257,6 +257,12 @@ class OutgoingController extends Controller
             $totalQty = $group->sum('qty');
             $stdPacking = $gciPart?->standardPacking ?? null;
             $packQty = $stdPacking?->packing_qty ?? 1;
+
+            $sequence = $group
+                ->pluck('seq')
+                ->filter(fn ($v) => $v !== null && $v !== '')
+                ->map(fn ($v) => (int) $v)
+                ->min();
             
             return (object) [
                 'date' => $first->plan_date,
@@ -265,7 +271,7 @@ class OutgoingController extends Controller
                 'customer_part_no' => $first->row->part_no,
                 'unmapped' => $gciPart === null,
                 'total_qty' => $totalQty,
-                'sequence' => $group->min('seq'), // Get the minimum sequence in the group
+                'sequence' => $sequence, // Minimum numeric sequence in the group
                 'packing_std' => $packQty,
                 'packing_load' => $packQty > 0 ? ceil($totalQty / $packQty) : 0,
                 'uom' => $stdPacking?->uom ?? 'PCS',
@@ -277,7 +283,7 @@ class OutgoingController extends Controller
                 return $a->date->gt($b->date) ? 1 : -1;
             }
             return ($a->sequence ?? 999) <=> ($b->sequence ?? 999);
-        });
+        })->values();
 
         return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
     }
@@ -675,7 +681,24 @@ class OutgoingController extends Controller
     {
         $str = str_replace("\u{00A0}", ' ', (string) ($value ?? ''));
         $str = preg_replace('/\s+/', ' ', $str) ?? $str;
-        return strtoupper(trim($str));
+        $str = strtoupper(trim($str));
+        if ($str === '') {
+            return '';
+        }
+
+        // Common import patterns append notes like "(REV A)" or extra tokens after spaces.
+        // Canonicalize to reduce accidental duplicates during auto-mapping.
+        $str = preg_replace('/\s*[\\(\\[].*$/', '', $str) ?? $str;
+        $str = trim($str);
+        if ($str === '') {
+            return '';
+        }
+
+        if (str_contains($str, ' ')) {
+            $str = (string) strtok($str, ' ');
+        }
+
+        return trim($str);
     }
 
     private function resolveFgPartIdFromPartNo(string $partNo): ?int
