@@ -23,6 +23,17 @@
                     </select>
                 </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Process</label>
+                        <input type="text" name="process_name" value="{{ old('process_name') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="ex: PRESS / ASSY">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Machine</label>
+                        <input type="text" name="machine_name" value="{{ old('machine_name') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="ex: LINE-01 / MACHINE-A">
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Planned Quantity</label>
                     <input type="number" name="qty_planned" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>

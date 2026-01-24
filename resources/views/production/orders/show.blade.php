@@ -18,6 +18,14 @@
                         <dd class="font-medium">{{ $order->part->part_name }}</dd>
                     </div>
                     <div>
+                        <dt class="text-gray-500">Process</dt>
+                        <dd class="font-medium">{{ $order->process_name ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Machine</dt>
+                        <dd class="font-medium">{{ $order->machine_name ?? '-' }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-gray-500">Planned Qty</dt>
                         <dd class="font-medium text-lg">{{ number_format($order->qty_planned) }}</dd>
                     </div>

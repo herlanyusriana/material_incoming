@@ -46,6 +46,7 @@
                         <tr>
                             <th class="px-6 py-4 font-semibold">Order #</th>
                             <th class="px-6 py-4 font-semibold">Part</th>
+                            <th class="px-6 py-4 font-semibold">Process / Machine</th>
                             <th class="px-6 py-4 font-semibold">Plan Date</th>
                             <th class="px-6 py-4 font-semibold">Qty</th>
                             <th class="px-6 py-4 font-semibold">Status</th>
@@ -60,6 +61,10 @@
                                 <td class="px-6 py-4">
                                     <div class="font-medium text-slate-900">{{ $order->part->part_no }}</div>
                                     <div class="text-xs text-slate-500">{{ $order->part->part_name }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-slate-900">{{ $order->process_name ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ $order->machine_name ?: '-' }}</div>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
                                 <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_planned) }}</td>
@@ -90,7 +95,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">
+                                <td colspan="8" class="px-6 py-12 text-center text-slate-500 italic">
                                     No production orders found. Create one to get started.
                                 </td>
                             </tr>

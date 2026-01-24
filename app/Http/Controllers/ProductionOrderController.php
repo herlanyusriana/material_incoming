@@ -29,6 +29,8 @@ class ProductionOrderController extends Controller
     {
         $validated = $request->validate([
             'gci_part_id' => 'required|exists:gci_parts,id',
+            'process_name' => 'nullable|string|max:255',
+            'machine_name' => 'nullable|string|max:255',
             'plan_date' => 'required|date',
             'qty_planned' => 'required|numeric|min:1',
             'production_order_number' => 'required|unique:production_orders,production_order_number',
@@ -37,6 +39,8 @@ class ProductionOrderController extends Controller
         $order = ProductionOrder::create([
             'production_order_number' => $validated['production_order_number'],
             'gci_part_id' => $validated['gci_part_id'],
+            'process_name' => isset($validated['process_name']) && trim((string) $validated['process_name']) !== '' ? trim((string) $validated['process_name']) : null,
+            'machine_name' => isset($validated['machine_name']) && trim((string) $validated['machine_name']) !== '' ? trim((string) $validated['machine_name']) : null,
             'plan_date' => $validated['plan_date'],
             'qty_planned' => $validated['qty_planned'],
             'status' => 'planned',
