@@ -439,16 +439,34 @@
                             </svg>
                             <span class="ml-3 flex-1">Inventory</span>
                         </a>
-                        <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')]) @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
-                            </svg>
-                            <span class="ml-3 flex-1">Inventory Receives</span>
-                        </a>
-                    </div>
-                </div>
-            @endcan
+	                        <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')]) @click="mobileSidebarOpen = false">
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+	                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+	                            </svg>
+	                            <span class="ml-3 flex-1">Inventory Receives</span>
+	                        </a>
+                            <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')]) @click="mobileSidebarOpen = false">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
+                                </svg>
+                                <span class="ml-3 flex-1">Inventory Transfers</span>
+                            </a>
+                            <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')]) @click="mobileSidebarOpen = false">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
+                                </svg>
+                                <span class="ml-3 flex-1">GCI Inventory</span>
+                            </a>
+	                    </div>
+	                </div>
+	            @endcan
 
             @can('manage_inventory')
                 <div>
@@ -966,16 +984,34 @@
                         </svg>
                         <span class="ml-3 flex-1">Inventory</span>
                     </a>
-                    <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')])>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
-                        </svg>
-                        <span class="ml-3 flex-1">Inventory Receives</span>
-                    </a>
-                </div>
-            </div>
-        @endcan
+	                    <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')])>
+	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+	                            stroke="currentColor" stroke-width="2">
+	                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+	                        </svg>
+	                        <span class="ml-3 flex-1">Inventory Receives</span>
+	                    </a>
+                        <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')])>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
+                            </svg>
+                            <span class="ml-3 flex-1">Inventory Transfers</span>
+                        </a>
+                        <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
+                            </svg>
+                            <span class="ml-3 flex-1">GCI Inventory</span>
+                        </a>
+	                </div>
+	            </div>
+	        @endcan
 
         @can('manage_inventory')
             <div>

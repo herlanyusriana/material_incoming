@@ -6,6 +6,7 @@ use App\Http\Controllers\PartController;
 use App\Http\Controllers\ArrivalController;
 use App\Http\Controllers\ReceiveController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\GciInventoryController;
 use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
@@ -82,13 +83,14 @@ Route::middleware('auth')->group(function () {
     Route::put('/local-pos/{arrival}', [LocalPoController::class, 'update'])->name('local-pos.update');
     Route::delete('/local-pos/{arrival}', [LocalPoController::class, 'destroy'])->name('local-pos.destroy');
 
-    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
-    Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
-    Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-    Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
-    Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
-    Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
-    Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+	    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+	    Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
+	    Route::get('/inventory/gci', [GciInventoryController::class, 'index'])->name('inventory.gci.index');
+	    Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+	    Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+	    Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
+	    Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
+	    Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
     // Inventory Transfers (Bridge between Logistics and Production)
     Route::get('/inventory/transfers', [\App\Http\Controllers\InventoryTransferController::class, 'index'])->name('inventory.transfers.index');
