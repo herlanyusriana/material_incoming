@@ -14,6 +14,13 @@ use Illuminate\Support\Facades\DB;
 
 class DeliveryNoteController extends Controller
 {
+    private const STATUS_DRAFT = 'draft';
+    private const STATUS_KITTING = 'kitting';
+    private const STATUS_READY_TO_PICK = 'ready_to_pick';
+    private const STATUS_PICKING = 'picking';
+    private const STATUS_READY_TO_SHIP = 'ready_to_ship';
+    private const STATUS_SHIPPED = 'shipped';
+
     public function index()
     {
         $deliveryNotes = DeliveryNote::with(['customer', 'items.part'])
@@ -74,38 +81,60 @@ class DeliveryNoteController extends Controller
 
     public function startPicking(DeliveryNote $deliveryNote)
     {
-        if ($deliveryNote->status !== 'draft') {
-            return back()->with('error', 'Only draft delivery notes can start picking.');
+        if ($deliveryNote->status !== self::STATUS_READY_TO_PICK) {
+            return back()->with('error', 'Delivery Note must finish kitting before picking can start.');
         }
 
-        $deliveryNote->update(['status' => 'picking']);
+        $deliveryNote->update(['status' => self::STATUS_PICKING]);
 
         return back()->with('success', 'Picking process started.');
     }
 
     public function completePicking(DeliveryNote $deliveryNote)
     {
-        if ($deliveryNote->status !== 'picking') {
+        if ($deliveryNote->status !== self::STATUS_PICKING) {
             return back()->with('error', 'Only delivery notes in picking status can be completed.');
         }
 
-        $deliveryNote->update(['status' => 'ready_to_ship']);
+        $deliveryNote->update(['status' => self::STATUS_READY_TO_SHIP]);
 
         return back()->with('success', 'Picking process completed. Ready to ship.');
     }
 
+    public function startKitting(DeliveryNote $deliveryNote)
+    {
+        if ($deliveryNote->status !== self::STATUS_DRAFT) {
+            return back()->with('error', 'Only draft delivery notes can start kitting.');
+        }
+
+        $deliveryNote->update(['status' => self::STATUS_KITTING]);
+
+        return back()->with('success', 'Kitting process started.');
+    }
+
+    public function completeKitting(DeliveryNote $deliveryNote)
+    {
+        if ($deliveryNote->status !== self::STATUS_KITTING) {
+            return back()->with('error', 'Only delivery notes in kitting status can be completed.');
+        }
+
+        $deliveryNote->update(['status' => self::STATUS_READY_TO_PICK]);
+
+        return back()->with('success', 'Kitting process completed. Ready to pick.');
+    }
+
     public function ship(DeliveryNote $deliveryNote)
     {
-        if ($deliveryNote->status === 'shipped') {
+        if ($deliveryNote->status === self::STATUS_SHIPPED) {
             return back()->with('error', 'Delivery Note already shipped.');
         }
 
-        if ($deliveryNote->status !== 'ready_to_ship') {
-            return back()->with('error', 'Delivery Note must be picked before shipping.');
+        if ($deliveryNote->status !== self::STATUS_READY_TO_SHIP) {
+            return back()->with('error', 'Delivery Note must be ready to ship before shipping.');
         }
 
         DB::transaction(function () use ($deliveryNote) {
-            $deliveryNote->update(['status' => 'shipped']);
+            $deliveryNote->update(['status' => self::STATUS_SHIPPED]);
 
             foreach ($deliveryNote->items as $item) {
                 $inventory = FgInventory::firstOrCreate(
@@ -122,7 +151,7 @@ class DeliveryNoteController extends Controller
 
     public function destroy(DeliveryNote $deliveryNote)
     {
-        if ($deliveryNote->status === 'shipped') {
+        if ($deliveryNote->status === self::STATUS_SHIPPED) {
             return back()->with('error', 'Cannot delete shipped Delivery Note.');
         }
 

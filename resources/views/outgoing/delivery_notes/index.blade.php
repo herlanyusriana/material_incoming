@@ -71,6 +71,8 @@
                                     @php
                                         $statusClasses = match ($dn->status) {
                                             'draft' => 'bg-slate-100 text-slate-700 border-slate-300',
+                                            'kitting' => 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+                                            'ready_to_pick' => 'bg-violet-50 text-violet-700 border-violet-200',
                                             'picking' => 'bg-amber-50 text-amber-700 border-amber-200',
                                             'ready_to_ship' => 'bg-blue-50 text-blue-700 border-blue-200',
                                             'shipped' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -87,14 +89,24 @@
                                         <a href="{{ route('outgoing.delivery-notes.show', $dn) }}" class="text-indigo-600 hover:text-indigo-900 font-bold text-xs uppercase tracking-tighter">Details</a>
                                         
                                         @if ($dn->status === 'draft')
-                                            <form action="{{ route('outgoing.delivery-notes.start-picking', $dn) }}" method="POST">
+                                            <form action="{{ route('outgoing.delivery-notes.start-kitting', $dn) }}" method="POST">
                                                 @csrf
-                                                <button type="submit" class="bg-amber-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-amber-700 transition-colors">Start Picking</button>
+                                                <button type="submit" class="bg-fuchsia-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-fuchsia-700 transition-colors">Start Kitting</button>
                                             </form>
                                             <form action="{{ route('outgoing.delivery-notes.destroy', $dn) }}" method="POST" onsubmit="return confirm('Delete this Delivery Note?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="text-red-500 hover:text-red-700 font-bold ml-2 text-xs uppercase tracking-tighter">Delete</button>
+                                            </form>
+                                        @elseif ($dn->status === 'kitting')
+                                            <form action="{{ route('outgoing.delivery-notes.complete-kitting', $dn) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="bg-violet-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-violet-700 transition-colors">Complete Kitting</button>
+                                            </form>
+                                        @elseif ($dn->status === 'ready_to_pick')
+                                            <form action="{{ route('outgoing.delivery-notes.start-picking', $dn) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="bg-amber-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase hover:bg-amber-700 transition-colors">Start Picking</button>
                                             </form>
                                         @elseif ($dn->status === 'picking')
                                             <form action="{{ route('outgoing.delivery-notes.complete-picking', $dn) }}" method="POST">

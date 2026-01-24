@@ -499,7 +499,7 @@ class OutgoingController extends Controller
         $unassignedSos = \App\Models\DeliveryNote::with(['customer', 'items.part'])
             ->whereDate('delivery_date', $date)
             ->whereNull('delivery_plan_id')
-            ->where('status', 'draft')
+            ->whereIn('status', ['draft', 'kitting', 'ready_to_pick', 'picking', 'ready_to_ship'])
             ->get()
             ->map(function($dn) {
                 return [

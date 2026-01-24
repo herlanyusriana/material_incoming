@@ -169,6 +169,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
 
         Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);
+        Route::post('delivery-notes/{delivery_note}/start-kitting', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startKitting'])->name('delivery-notes.start-kitting');
+        Route::post('delivery-notes/{delivery_note}/complete-kitting', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'completeKitting'])->name('delivery-notes.complete-kitting');
         Route::post('delivery-notes/{delivery_note}/start-picking', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startPicking'])->name('delivery-notes.start-picking');
         Route::post('delivery-notes/{delivery_note}/complete-picking', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'completePicking'])->name('delivery-notes.complete-picking');
         Route::post('delivery-notes/{delivery_note}/ship', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'ship'])->name('delivery-notes.ship');
