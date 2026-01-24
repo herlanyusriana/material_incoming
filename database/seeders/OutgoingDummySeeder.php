@@ -75,6 +75,9 @@ class OutgoingDummySeeder extends Seeder
             if (Schema::hasColumn('parts', 'register_no')) {
                 $defaults['register_no'] = $gci->part_no;
             }
+            if (Schema::hasColumn('parts', 'part_name_vendor')) {
+                $defaults['part_name_vendor'] = $gci->part_name;
+            }
 
             Part::query()->firstOrCreate(
                 ['part_no' => $gci->part_no],
