@@ -115,6 +115,15 @@ Route::middleware('auth')->group(function () {
         // AJAX endpoints
         Route::get('/api/location-stock', [\App\Http\Controllers\BinTransferController::class, 'getLocationStock'])->name('bin-transfers.location-stock');
         Route::get('/api/part-locations', [\App\Http\Controllers\BinTransferController::class, 'getPartLocations'])->name('bin-transfers.part-locations');
+
+        // Warehouse stock (by location)
+        Route::get('/stock', [\App\Http\Controllers\WarehouseStockController::class, 'index'])->name('stock.index');
+        Route::get('/stock/reconcile', [\App\Http\Controllers\WarehouseStockController::class, 'reconcile'])->name('stock.reconcile');
+
+        // Warehouse stock adjustments
+        Route::get('/stock-adjustments', [\App\Http\Controllers\WarehouseStockAdjustmentController::class, 'index'])->name('stock-adjustments.index');
+        Route::get('/stock-adjustments/create', [\App\Http\Controllers\WarehouseStockAdjustmentController::class, 'create'])->name('stock-adjustments.create');
+        Route::post('/stock-adjustments', [\App\Http\Controllers\WarehouseStockAdjustmentController::class, 'store'])->name('stock-adjustments.store');
     });
 
     Route::prefix('outgoing')->name('outgoing.')->group(function () {

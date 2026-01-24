@@ -1,0 +1,143 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Inventory;
+use App\Models\LocationInventory;
+use App\Models\LocationInventoryAdjustment;
+use App\Models\Part;
+use App\Models\WarehouseLocation;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+
+class WarehouseStockAdjustmentController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $location = strtoupper(trim((string) $request->query('location', '')));
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $perPage = (int) $request->query('per_page', 50);
+        if ($perPage < 10) {
+            $perPage = 10;
+        }
+        if ($perPage > 200) {
+            $perPage = 200;
+        }
+
+        $query = LocationInventoryAdjustment::query()
+            ->with(['part', 'location', 'creator'])
+            ->when($location !== '', fn ($q) => $q->where('location_code', $location))
+            ->when($search !== '', function ($q) use ($search) {
+                $s = strtoupper($search);
+                $q->whereHas('part', function ($qp) use ($s) {
+                    $qp->where('part_no', 'like', '%' . $s . '%')
+                        ->orWhere('part_name_gci', 'like', '%' . $s . '%')
+                        ->orWhere('part_name_vendor', 'like', '%' . $s . '%');
+                })->orWhere('location_code', 'like', '%' . $s . '%');
+            })
+            ->when($dateFrom, fn ($q) => $q->whereDate('adjusted_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->whereDate('adjusted_at', '<=', $dateTo))
+            ->orderByDesc('adjusted_at')
+            ->orderByDesc('id');
+
+        $adjustments = $query->paginate($perPage)->withQueryString();
+
+        return view('warehouse.stock.adjustments_index', compact('adjustments', 'search', 'location', 'dateFrom', 'dateTo', 'perPage'));
+    }
+
+    public function create()
+    {
+        $parts = Part::orderBy('part_no')->get();
+        $locations = WarehouseLocation::query()->where('status', 'ACTIVE')->orderBy('location_code')->get();
+
+        return view('warehouse.stock.adjustments_create', compact('parts', 'locations'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'part_id' => ['required', 'exists:parts,id'],
+            'location_code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE')),
+            ],
+            'qty_after' => ['required', 'numeric', 'min:0'],
+            'adjusted_at' => ['nullable', 'date'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $partId = (int) $validated['part_id'];
+        $locationCode = strtoupper(trim((string) $validated['location_code']));
+        $qtyAfter = (float) $validated['qty_after'];
+        $adjustedAt = isset($validated['adjusted_at']) && $validated['adjusted_at']
+            ? Carbon::parse($validated['adjusted_at'])
+            : now();
+
+        DB::transaction(function () use ($partId, $locationCode, $qtyAfter, $adjustedAt, $validated) {
+            $locInv = LocationInventory::query()
+                ->where('part_id', $partId)
+                ->where('location_code', $locationCode)
+                ->lockForUpdate()
+                ->first();
+
+            $qtyBefore = $locInv ? (float) $locInv->qty_on_hand : 0.0;
+            $qtyChange = $qtyAfter - $qtyBefore;
+
+            if (!$locInv) {
+                $locInv = LocationInventory::query()->create([
+                    'part_id' => $partId,
+                    'location_code' => $locationCode,
+                    'qty_on_hand' => 0,
+                ]);
+            }
+
+            $locInv->update([
+                'qty_on_hand' => $qtyAfter,
+                'last_counted_at' => $adjustedAt,
+            ]);
+
+            // Mirror adjustment to overall inventory (best-effort).
+            $inv = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+            if (!$inv) {
+                if ($qtyChange < 0) {
+                    throw new \Exception('Inventory tidak ditemukan untuk part ini, tidak bisa mengurangi stok.');
+                }
+                Inventory::query()->create([
+                    'part_id' => $partId,
+                    'on_hand' => $qtyChange,
+                    'on_order' => 0,
+                    'as_of_date' => $adjustedAt->toDateString(),
+                ]);
+            } else {
+                $newOnHand = (float) $inv->on_hand + $qtyChange;
+                if ($newOnHand < 0) {
+                    throw new \Exception('Adjustment menyebabkan inventory menjadi minus.');
+                }
+                $inv->update([
+                    'on_hand' => $newOnHand,
+                    'as_of_date' => $adjustedAt->toDateString(),
+                ]);
+            }
+
+            LocationInventoryAdjustment::query()->create([
+                'part_id' => $partId,
+                'location_code' => $locationCode,
+                'qty_before' => $qtyBefore,
+                'qty_after' => $qtyAfter,
+                'qty_change' => $qtyChange,
+                'reason' => $validated['reason'] ?? null,
+                'adjusted_at' => $adjustedAt,
+                'created_by' => auth()->id(),
+            ]);
+        });
+
+        return redirect()->route('warehouse.stock-adjustments.index')->with('success', 'Stock adjustment saved.');
+    }
+}
+

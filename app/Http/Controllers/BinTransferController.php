@@ -9,6 +9,7 @@ use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class BinTransferController extends Controller
 {
@@ -75,8 +76,17 @@ class BinTransferController extends Controller
     {
         $validated = $request->validate([
             'part_id' => ['required', 'exists:parts,id'],
-            'from_location_code' => ['required', 'string'],
-            'to_location_code' => ['required', 'string', 'different:from_location_code'],
+            'from_location_code' => [
+                'required',
+                'string',
+                Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE')),
+            ],
+            'to_location_code' => [
+                'required',
+                'string',
+                'different:from_location_code',
+                Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE')),
+            ],
             'qty' => ['required', 'numeric', 'min:0.0001'],
             'transfer_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],

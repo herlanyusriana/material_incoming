@@ -11,11 +11,13 @@ use App\Models\Receive;
 use App\Models\ArrivalItem;
 use App\Models\Arrival;
 use App\Models\Inventory;
+use App\Models\LocationInventory;
 use App\Models\WarehouseLocation;
 use App\Exports\CompletedInvoiceReceivesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Support\QrSvg;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 
 class ReceiveController extends Controller
 {
@@ -279,6 +281,11 @@ class ReceiveController extends Controller
         $arrivalItem->loadMissing(['arrival.vendor']);
         $isLocal = strtolower((string) ($arrivalItem->arrival?->vendor?->vendor_type ?? '')) === 'local';
 
+        $locationCodeRule = ['nullable', 'string', 'max:50'];
+        if (Schema::hasTable('warehouse_locations')) {
+            $locationCodeRule[] = Rule::exists('warehouse_locations', 'location_code');
+        }
+
         $validated = $request->validate([
             'receive_date' => ['required', 'date'],
             'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
@@ -287,7 +294,7 @@ class ReceiveController extends Controller
             'tags.*.qty' => 'required|integer|min:1',
             'tags.*.bundle_qty' => 'nullable|integer|min:0',
             'tags.*.bundle_unit' => 'required|in:PALLET,BUNDLE,BOX,BAG',
-            'tags.*.location_code' => 'nullable|string|max:50',
+            'tags.*.location_code' => $locationCodeRule,
             // Backward compatible: old form used `weight`
             'tags.*.weight' => 'nullable|numeric',
             'tags.*.net_weight' => 'nullable|numeric',
@@ -319,6 +326,7 @@ class ReceiveController extends Controller
             : null;
 
         DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
+            $locationAdds = [];
             foreach ($validated['tags'] as $tagData) {
                 if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
                     throw new HttpResponseException(back()->withInput()->withErrors([
@@ -357,7 +365,11 @@ class ReceiveController extends Controller
                 ]);
 
                 if (($tagData['qc_status'] ?? 'pass') === 'pass') {
-                    $receiveQtyForInventory += $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
+                    $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
+                    $receiveQtyForInventory += $addQty;
+                    if ($locationCode) {
+                        $locationAdds[$locationCode] = ($locationAdds[$locationCode] ?? 0) + $addQty;
+                    }
                 }
             }
 
@@ -376,6 +388,15 @@ class ReceiveController extends Controller
                         'on_order' => 0,
                         'as_of_date' => $receiveAt->toDateString(),
                     ]);
+                }
+            }
+
+            // Putaway: update stock per location (pass only).
+            if (!empty($locationAdds) && $partId) {
+                foreach ($locationAdds as $locationCode => $qty) {
+                    if ($qty > 0 && is_string($locationCode) && $locationCode !== '') {
+                        LocationInventory::updateStock($partId, $locationCode, (float) $qty);
+                    }
                 }
             }
         });
@@ -401,6 +422,11 @@ class ReceiveController extends Controller
             $tagMode = $isLocal ? 'no_tag' : 'with_tag';
         }
 
+        $locationCodeRule = ['nullable', 'string', 'max:50'];
+        if (Schema::hasTable('warehouse_locations')) {
+            $locationCodeRule[] = Rule::exists('warehouse_locations', 'location_code');
+        }
+
         $rules = [
             'receive_date' => ['required', 'date'],
             'invoice_no' => ['nullable', 'string', 'max:100'],
@@ -419,7 +445,7 @@ class ReceiveController extends Controller
                 'items.*.summary.qty' => ['nullable', 'integer', 'min:0'],
                 'items.*.summary.bundle_qty' => ['nullable', 'integer', 'min:0'],
                 'items.*.summary.bundle_unit' => ['nullable', 'in:PALLET,BUNDLE,BOX,BAG,ROLL'],
-                'items.*.summary.location_code' => ['nullable', 'string', 'max:50'],
+                'items.*.summary.location_code' => $locationCodeRule,
                 'items.*.summary.net_weight' => ['nullable', 'numeric'],
                 'items.*.summary.gross_weight' => ['nullable', 'numeric'],
                 'items.*.summary.qty_unit' => ['nullable', 'in:KGM,KG,PCS,COIL,SHEET,SET,EA'],
@@ -432,7 +458,7 @@ class ReceiveController extends Controller
                 'items.*.tags.*.qty' => ['required_with:items.*.tags', 'integer', 'min:1'],
                 'items.*.tags.*.bundle_qty' => ['nullable', 'integer', 'min:0'],
                 'items.*.tags.*.bundle_unit' => ['required_with:items.*.tags', 'in:PALLET,BUNDLE,BOX,BAG,ROLL'],
-                'items.*.tags.*.location_code' => ['nullable', 'string', 'max:50'],
+                'items.*.tags.*.location_code' => $locationCodeRule,
                 // Backward compatible: old form used `weight`
                 'items.*.tags.*.weight' => ['nullable', 'numeric'],
                 'items.*.tags.*.net_weight' => ['nullable', 'numeric'],
@@ -508,12 +534,13 @@ class ReceiveController extends Controller
         }
 
         $inventoryAdds = [];
+        $locationAdds = [];
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
             ? strtoupper(trim((string) $validated['truck_no']))
             : null;
 
-        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$inventoryAdds, $request) {
+        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$inventoryAdds, &$locationAdds, $request, $validated) {
             foreach ($itemsInput as $itemId => $itemData) {
                 $arrivalItem = $arrival->items->firstWhere('id', $itemId);
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
@@ -559,6 +586,9 @@ class ReceiveController extends Controller
                         $partId = (int) $arrivalItem->part_id;
                         $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
                         $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + $addQty;
+                        if ($locationCode) {
+                            $locationAdds[$partId][$locationCode] = ($locationAdds[$partId][$locationCode] ?? 0) + $addQty;
+                        }
                     }
                 }
             }
@@ -581,6 +611,18 @@ class ReceiveController extends Controller
                         'on_order' => 0,
                         'as_of_date' => $receiveAt->toDateString(),
                     ]);
+                }
+            }
+
+            // Putaway: update stock per location (pass only).
+            foreach ($locationAdds as $partId => $byLocation) {
+                if (!$partId || empty($byLocation) || !is_array($byLocation)) {
+                    continue;
+                }
+                foreach ($byLocation as $locationCode => $qty) {
+                    if ($qty > 0 && is_string($locationCode) && $locationCode !== '') {
+                        LocationInventory::updateStock((int) $partId, $locationCode, (float) $qty);
+                    }
                 }
             }
             $dir = "local_pos/arrival-{$arrival->id}";
@@ -677,12 +719,17 @@ class ReceiveController extends Controller
 
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
 
+        $locationCodeRule = ['nullable', 'string', 'max:50'];
+        if (Schema::hasTable('warehouse_locations')) {
+            $locationCodeRule[] = Rule::exists('warehouse_locations', 'location_code');
+        }
+
         $validated = $request->validate([
             'receive_date' => ['required', 'date'],
             'invoice_no' => ['nullable', 'string', 'max:100'],
             'delivery_note_no' => ['nullable', 'string', 'max:100'],
             'tag' => ['nullable', 'string', 'max:255'],
-            'location_code' => ['nullable', 'string', 'max:50'],
+            'location_code' => $locationCodeRule,
             'truck_no' => $isLocal ? ['required', 'string', 'max:50'] : ['nullable', 'string', 'max:50'],
             'bundle_qty' => ['nullable', 'integer', 'min:0'],
             'bundle_unit' => ['required', 'in:PALLET,BUNDLE,BOX,BAG,ROLL'],
@@ -720,13 +767,26 @@ class ReceiveController extends Controller
 
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
 
+        $oldLocationCode = is_string($receive->location_code) ? strtoupper(trim((string) $receive->location_code)) : '';
+        if ($oldLocationCode === '') {
+            $oldLocationCode = null;
+        }
+
         $oldQty = (float) $receive->qty;
         $oldPass = $receive->qc_status === 'pass';
-        $oldContribution = $oldPass ? $oldQty : 0.0;
+        $oldContribution = $oldPass
+            ? ($goodsUnit === 'COIL'
+                ? (float) ($receive->net_weight ?? $receive->weight ?? $receive->qty ?? 0)
+                : $oldQty)
+            : 0.0;
 
         $newQty = (float) $validated['qty'];
         $newPass = $validated['qc_status'] === 'pass';
-        $newContribution = $newPass ? $newQty : 0.0;
+        $newContribution = $newPass
+            ? ($goodsUnit === 'COIL'
+                ? (float) ($validated['net_weight'] ?? $validated['weight'] ?? $validated['qty'] ?? 0)
+                : $newQty)
+            : 0.0;
 
         $delta = $newContribution - $oldContribution;
 
@@ -737,6 +797,9 @@ class ReceiveController extends Controller
             $validated,
             $tag,
             $locationCode,
+            $oldLocationCode,
+            $oldContribution,
+            $newContribution,
             $receiveAt,
             $delta
         ) {
@@ -762,12 +825,18 @@ class ReceiveController extends Controller
                 'location_code' => $locationCode,
             ]);
 
-            if ($delta == 0.0) {
-                return;
+            // Keep location stock consistent with pass qty.
+            $partId = (int) $arrivalItem->part_id;
+            if ($partId) {
+                if ($oldLocationCode && $oldContribution > 0) {
+                    LocationInventory::updateStock($partId, $oldLocationCode, -$oldContribution);
+                }
+                if ($locationCode && $newContribution > 0) {
+                    LocationInventory::updateStock($partId, $locationCode, $newContribution);
+                }
             }
 
-            $partId = (int) $arrivalItem->part_id;
-            if (!$partId) {
+            if ($delta == 0.0) {
                 return;
             }
 
