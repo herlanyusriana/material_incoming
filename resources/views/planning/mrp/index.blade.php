@@ -61,6 +61,11 @@
                             <span class="text-sm font-semibold text-slate-600">Include Sat</span>
                         </label>
 
+                        <label class="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
+                            <input type="checkbox" name="generate_production_orders" value="1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" checked>
+                            <span class="text-sm font-semibold text-slate-600">Auto Create Prod Order</span>
+                        </label>
+
                         <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold shadow-sm transition-colors">
                             Run MRP
                         </button>

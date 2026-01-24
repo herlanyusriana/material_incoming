@@ -9,6 +9,7 @@ use App\Models\GciInventory;
 use App\Models\MrpProductionPlan;
 use App\Models\MrpPurchasePlan;
 use App\Models\MrpRun;
+use App\Models\ProductionOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -447,6 +448,7 @@ class MrpController extends Controller
     {
         $startMinggu = $request->input('start_minggu');
         $weeksCount = (int) $request->input('weeks_count', 4);
+        $generateProductionOrders = $request->boolean('generate_production_orders', true);
 
         if (!$startMinggu) {
             return back()->with('error', 'Start week is required.');
@@ -463,20 +465,131 @@ class MrpController extends Controller
             return back()->with('error', 'Invalid start week format.');
         }
 
-        DB::transaction(function () use ($weeks, $request) {
+        $productionOrdersCreated = 0;
+        $productionOrdersUpdated = 0;
+
+        DB::transaction(function () use ($weeks, $request, $generateProductionOrders, &$productionOrdersCreated, &$productionOrdersUpdated) {
             foreach ($weeks as $minggu) {
                 // Call generate logic per week
                 // We construct a fake request or extract logic.
                 // Extracting logic is cleaner.
-                $this->runMrpForWeek($minggu, $request->user()?->id, $request->boolean('include_saturday'));
+                $summary = $this->runMrpForWeek(
+                    $minggu,
+                    $request->user()?->id,
+                    $request->boolean('include_saturday'),
+                    $generateProductionOrders,
+                );
+
+                if (is_array($summary)) {
+                    $productionOrdersCreated += (int) ($summary['production_orders_created'] ?? 0);
+                    $productionOrdersUpdated += (int) ($summary['production_orders_updated'] ?? 0);
+                }
             }
         });
 
-        return back()->with('success', 'MRP generated for ' . count($weeks) . ' weeks.');
+        $msg = 'MRP generated for ' . count($weeks) . ' weeks.';
+        if ($generateProductionOrders) {
+            $msg .= ' Production Orders: ' . $productionOrdersCreated . ' created, ' . $productionOrdersUpdated . ' updated.';
+        }
+
+        return back()->with('success', $msg);
     }
 
     // Extracted logic from generate()
-    private function runMrpForWeek($minggu, $userId, $includeSaturday)
+    private function syncProductionOrdersFromMrpRun(MrpRun $run, string $planDate, ?int $userId): array
+    {
+        $periodKey = preg_replace('/[^0-9A-Za-z]/', '', (string) $run->period);
+
+        $qtyCols = [];
+        if (Schema::hasColumn('mrp_production_plans', 'planned_order_rec')) {
+            $qtyCols[] = 'planned_order_rec';
+        }
+        if (Schema::hasColumn('mrp_production_plans', 'planned_qty')) {
+            $qtyCols[] = 'planned_qty';
+        }
+        if (Schema::hasColumn('mrp_production_plans', 'net_required')) {
+            $qtyCols[] = 'net_required';
+        }
+
+        if (empty($qtyCols)) {
+            return ['created' => 0, 'updated' => 0];
+        }
+
+        $qtyExpr = 'SUM(COALESCE(' . implode(', ', $qtyCols) . ', 0))';
+
+        $planRows = MrpProductionPlan::query()
+            ->where('mrp_run_id', $run->id)
+            ->select([
+                'part_id',
+                DB::raw($qtyExpr . ' as qty'),
+            ])
+            ->groupBy('part_id')
+            ->get();
+
+        if ($planRows->isEmpty()) {
+            return ['created' => 0, 'updated' => 0];
+        }
+
+        $allowedPartIds = \App\Models\GciPart::query()
+            ->whereIn('id', $planRows->pluck('part_id')->all())
+            ->whereIn('classification', ['FG', 'WIP'])
+            ->pluck('id')
+            ->flip();
+
+        $created = 0;
+        $updated = 0;
+
+        foreach ($planRows as $row) {
+            $partId = (int) $row->part_id;
+            if ($partId <= 0) {
+                continue;
+            }
+
+            if (!isset($allowedPartIds[$partId])) {
+                continue;
+            }
+
+            $qtyPlanned = (float) ($row->qty ?? 0);
+            if ($qtyPlanned <= 0) {
+                continue;
+            }
+
+            $orderNo = 'MO-MRP-' . $periodKey . '-' . str_pad((string) $partId, 6, '0', STR_PAD_LEFT);
+
+            $existing = ProductionOrder::query()
+                ->where('production_order_number', $orderNo)
+                ->first();
+
+            if ($existing) {
+                if (in_array((string) $existing->status, ['draft', 'planned'], true)) {
+                    $existing->update([
+                        'gci_part_id' => $partId,
+                        'plan_date' => $planDate,
+                        'qty_planned' => $qtyPlanned,
+                        'workflow_stage' => $existing->workflow_stage ?: 'planned',
+                    ]);
+                    $updated++;
+                }
+                continue;
+            }
+
+            ProductionOrder::create([
+                'production_order_number' => $orderNo,
+                'gci_part_id' => $partId,
+                'plan_date' => $planDate,
+                'qty_planned' => $qtyPlanned,
+                'status' => 'planned',
+                'workflow_stage' => 'planned',
+                'created_by' => $userId,
+            ]);
+
+            $created++;
+        }
+
+        return ['created' => $created, 'updated' => $updated];
+    }
+
+    private function runMrpForWeek($minggu, $userId, $includeSaturday, bool $generateProductionOrders = false): ?array
     {
         // Use Forecast as the demand input (period can be weekly like 2026-W02).
         // This keeps MPS (monthly) separate from MRP (weekly).
@@ -491,7 +604,7 @@ class MrpController extends Controller
         // Ideally skip to avoid clutter, but for MRP view consistency maybe we need it?
         // Let's skip if empty but maybe user wants to see "No Data".
         if ($forecastRows->isEmpty()) {
-            return;
+            return null;
         }
 
         $run = MrpRun::create([
@@ -600,20 +713,49 @@ class MrpController extends Controller
                 }
             }
         }
+
+        $summary = ['production_orders_created' => 0, 'production_orders_updated' => 0];
+
+        if ($generateProductionOrders) {
+            $poSummary = $this->syncProductionOrdersFromMrpRun($run, $startDate->toDateString(), $userId);
+            $summary['production_orders_created'] = (int) ($poSummary['created'] ?? 0);
+            $summary['production_orders_updated'] = (int) ($poSummary['updated'] ?? 0);
+        }
+
+        return $summary;
     }
 
     public function generate(Request $request)
     {
         $month = $request->input('month') ?: now()->format('Y-m');
         $weeks = $this->getWeeksForMonth($month);
+        $generateProductionOrders = $request->boolean('generate_production_orders', true);
 
-        DB::transaction(function () use ($weeks, $request) {
+        $productionOrdersCreated = 0;
+        $productionOrdersUpdated = 0;
+
+        DB::transaction(function () use ($weeks, $request, $generateProductionOrders, &$productionOrdersCreated, &$productionOrdersUpdated) {
             foreach ($weeks as $minggu) {
-                $this->runMrpForWeek($minggu, $request->user()?->id, $request->boolean('include_saturday'));
+                $summary = $this->runMrpForWeek(
+                    $minggu,
+                    $request->user()?->id,
+                    $request->boolean('include_saturday'),
+                    $generateProductionOrders,
+                );
+
+                if (is_array($summary)) {
+                    $productionOrdersCreated += (int) ($summary['production_orders_created'] ?? 0);
+                    $productionOrdersUpdated += (int) ($summary['production_orders_updated'] ?? 0);
+                }
             }
         });
 
-        return back()->with('success', 'MRP generated for ' . count($weeks) . ' weeks.');
+        $msg = 'MRP generated for ' . count($weeks) . ' weeks.';
+        if ($generateProductionOrders) {
+            $msg .= ' Production Orders: ' . $productionOrdersCreated . ' created, ' . $productionOrdersUpdated . ' updated.';
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function generatePo(Request $request)
