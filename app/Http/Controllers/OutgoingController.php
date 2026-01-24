@@ -285,7 +285,127 @@ class OutgoingController extends Controller
             return ($a->sequence ?? 999) <=> ($b->sequence ?? 999);
         })->values();
 
-        return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
+        $trucks = \App\Models\Truck::query()
+            ->select(['id', 'plate_no', 'type', 'capacity', 'status'])
+            ->where('status', 'available')
+            ->orderBy('plate_no')
+            ->get();
+
+        $drivers = \App\Models\Driver::query()
+            ->select(['id', 'name', 'phone', 'license_type', 'status'])
+            ->where('status', 'available')
+            ->orderBy('name')
+            ->get();
+
+        return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo', 'trucks', 'drivers'));
+    }
+
+    public function generateSoBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'truck_id' => ['required', 'exists:trucks,id'],
+            'driver_id' => ['required', 'exists:drivers,id'],
+            'selected' => ['required', 'array', 'min:1'],
+            'selected.*' => ['integer', 'min:0'],
+            'lines' => ['required', 'array'],
+            'lines.*.date' => ['required', 'date'],
+            'lines.*.customer_id' => ['required', 'exists:customers,id'],
+            'lines.*.gci_part_id' => ['required', 'exists:gci_parts,id'],
+            'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
+        ]);
+
+        $selectedIdx = collect($validated['selected'])->map(fn ($v) => (int) $v)->unique()->values();
+        $lines = collect($validated['lines']);
+
+        $selectedLines = $selectedIdx
+            ->map(fn (int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
+            ->filter()
+            ->values();
+
+        if ($selectedLines->isEmpty()) {
+            return back()->with('error', 'No lines selected.');
+        }
+
+        $dates = $selectedLines->pluck('date')->unique()->values();
+        if ($dates->count() !== 1) {
+            return back()->with('error', 'Please select requirements for a single date only.');
+        }
+        $planDate = (string) $dates->first();
+
+        $truck = \App\Models\Truck::query()->whereKey((int) $validated['truck_id'])->where('status', 'available')->first();
+        if (!$truck) {
+            return back()->with('error', 'Selected truck is not available.');
+        }
+
+        $driver = \App\Models\Driver::query()->whereKey((int) $validated['driver_id'])->where('status', 'available')->first();
+        if (!$driver) {
+            return back()->with('error', 'Selected driver is not available.');
+        }
+
+        DB::transaction(function () use ($validated, $selectedLines, $planDate) {
+            $maxSeq = \App\Models\DeliveryPlan::whereDate('plan_date', $planDate)->max('sequence') ?? 0;
+
+            $plan = \App\Models\DeliveryPlan::create([
+                'plan_date' => $planDate,
+                'sequence' => $maxSeq + 1,
+                'truck_id' => (int) $validated['truck_id'],
+                'driver_id' => (int) $validated['driver_id'],
+                'status' => 'scheduled',
+            ]);
+
+            $byCustomer = $selectedLines->groupBy('customer_id');
+
+            foreach ($byCustomer as $customerId => $customerLines) {
+                $stop = \App\Models\DeliveryStop::firstOrCreate(
+                    [
+                        'plan_id' => $plan->id,
+                        'customer_id' => (int) $customerId,
+                    ],
+                    [
+                        'sequence' => ($plan->stops()->max('sequence') ?? 0) + 1,
+                        'status' => 'pending',
+                    ]
+                );
+
+                $dnNo = null;
+                for ($attempt = 0; $attempt < 5; $attempt++) {
+                    $candidate = 'DN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+                    if (!\App\Models\DeliveryNote::query()->where('dn_no', $candidate)->exists()) {
+                        $dnNo = $candidate;
+                        break;
+                    }
+                }
+                $dnNo ??= 'DN-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
+
+                $dn = \App\Models\DeliveryNote::create([
+                    'dn_no' => $dnNo,
+                    'customer_id' => (int) $customerId,
+                    'delivery_date' => $planDate,
+                    'status' => 'draft',
+                    'delivery_plan_id' => $plan->id,
+                    'delivery_stop_id' => $stop->id,
+                    'notes' => 'Generated from Delivery Requirements',
+                ]);
+
+                $items = $customerLines
+                    ->groupBy('gci_part_id')
+                    ->map(fn ($rows) => (float) $rows->sum('qty'));
+
+                foreach ($items as $partId => $qty) {
+                    if ($qty <= 0) {
+                        continue;
+                    }
+                    \App\Models\DnItem::create([
+                        'dn_id' => $dn->id,
+                        'gci_part_id' => (int) $partId,
+                        'qty' => $qty,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('outgoing.delivery-plan', ['date' => $planDate])
+            ->with('success', 'Delivery Plan + Delivery Notes generated successfully.');
     }
 
     public function generateSo(Request $request)

@@ -143,6 +143,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
         Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
         Route::post('/delivery-requirements/generate-so', [OutgoingController::class, 'generateSo'])->name('generate-so');
+        Route::post('/delivery-requirements/generate-so-bulk', [OutgoingController::class, 'generateSoBulk'])->name('generate-so-bulk');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
         Route::get('/stock-at-customers/template', [OutgoingController::class, 'stockAtCustomersTemplate'])->name('stock-at-customers.template');
         Route::get('/stock-at-customers/export', [OutgoingController::class, 'stockAtCustomersExport'])->name('stock-at-customers.export');
