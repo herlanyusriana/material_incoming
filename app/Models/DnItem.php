@@ -14,6 +14,7 @@ class DnItem extends Model
         'gci_part_id',
         'customer_po_id',
         'qty',
+        'kitting_location_code',
     ];
 
     public function deliveryNote()

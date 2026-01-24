@@ -39,12 +39,9 @@
                             </button>
                         </form>
                     @elseif ($deliveryNote->status === 'kitting')
-                        <form action="{{ route('outgoing.delivery-notes.complete-kitting', $deliveryNote) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="px-6 py-2 rounded-xl bg-violet-600 text-white font-black hover:bg-violet-700 shadow-lg shadow-violet-100 transition-all active:scale-95">
-                                COMPLETE KITTING
-                            </button>
-                        </form>
+                        <button type="submit" form="kitting-form" class="px-6 py-2 rounded-xl bg-violet-600 text-white font-black hover:bg-violet-700 shadow-lg shadow-violet-100 transition-all active:scale-95">
+                            COMPLETE KITTING
+                        </button>
                     @elseif ($deliveryNote->status === 'ready_to_pick')
                         <form action="{{ route('outgoing.delivery-notes.start-picking', $deliveryNote) }}" method="POST">
                             @csrf
@@ -93,11 +90,14 @@
                 </h2>
 
                 <div class="border border-slate-100 rounded-2xl overflow-hidden">
-                    <table class="w-full text-sm">
+                    <form id="kitting-form" action="{{ route('outgoing.delivery-notes.complete-kitting', $deliveryNote) }}" method="POST">
+                        @csrf
+                        <table class="w-full text-sm">
                         <thead class="bg-slate-50 border-b border-slate-100">
                             <tr>
                                 <th class="px-5 py-3 text-left font-bold text-slate-600">Part Number</th>
                                 <th class="px-5 py-3 text-left font-bold text-slate-600">Part Name</th>
+                                <th class="px-5 py-3 text-left font-bold text-slate-600">Kitting Location</th>
                                 <th class="px-5 py-3 text-right font-bold text-slate-600">Quantity</th>
                             </tr>
                         </thead>
@@ -106,17 +106,38 @@
                                 <tr>
                                     <td class="px-5 py-4 font-black text-slate-900">{{ $item->part->part_no }}</td>
                                     <td class="px-5 py-4 text-slate-600 font-semibold">{{ $item->part->part_name }}</td>
+                                    <td class="px-5 py-4 text-slate-700">
+                                        @if ($deliveryNote->status === 'kitting')
+                                            @php $opts = $kittingLocationsByItem[$item->id] ?? []; @endphp
+                                            <select name="kitting_locations[{{ $item->id }}]" class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <option value="">Select location...</option>
+                                                @foreach ($opts as $opt)
+                                                    <option value="{{ $opt['code'] }}" @selected(strtoupper((string) ($item->kitting_location_code ?? '')) === $opt['code'])>
+                                                        {{ $opt['code'] }} ({{ number_format((float) $opt['qty'], 0) }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @if (empty($opts))
+                                                <div class="text-[11px] text-slate-400 mt-1">
+                                                    No stock by location (check `parts` mapping + `location_inventory`).
+                                                </div>
+                                            @endif
+                                        @else
+                                            <span class="font-mono text-xs">{{ $item->kitting_location_code ?: '-' }}</span>
+                                        @endif
+                                    </td>
                                     <td class="px-5 py-4 text-right font-black text-indigo-600 text-lg">{{ number_format($item->qty) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
                         <tfoot class="bg-indigo-50 font-black">
                             <tr>
-                                <td colspan="2" class="px-5 py-4 text-right text-indigo-900 uppercase tracking-wider">Total Quantity</td>
+                                <td colspan="3" class="px-5 py-4 text-right text-indigo-900 uppercase tracking-wider">Total Quantity</td>
                                 <td class="px-5 py-4 text-right text-indigo-900 text-xl">{{ number_format($deliveryNote->items->sum('qty')) }}</td>
                             </tr>
                         </tfoot>
-                    </table>
+                        </table>
+                    </form>
                 </div>
             </div>
 

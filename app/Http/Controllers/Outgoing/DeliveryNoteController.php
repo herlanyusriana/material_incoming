@@ -9,8 +9,12 @@ use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\FgInventory;
 use App\Models\GciPart;
+use App\Models\LocationInventory;
+use App\Models\Part;
+use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DeliveryNoteController extends Controller
 {
@@ -76,7 +80,46 @@ class DeliveryNoteController extends Controller
     public function show(DeliveryNote $deliveryNote)
     {
         $deliveryNote->load(['customer', 'items.part', 'items.customerPo']);
-        return view('outgoing.delivery_notes.show', compact('deliveryNote'));
+
+        $kittingLocationsByItem = [];
+        if (Schema::hasTable('warehouse_locations') && Schema::hasTable('location_inventory')) {
+            $locationCodes = WarehouseLocation::query()
+                ->where('status', 'ACTIVE')
+                ->orderBy('location_code')
+                ->pluck('location_code')
+                ->all();
+
+            $partsByNo = Part::query()
+                ->whereIn('part_no', $deliveryNote->items->map(fn ($i) => $i->part?->part_no)->filter()->unique()->values())
+                ->get()
+                ->keyBy('part_no');
+
+            $partIds = $partsByNo->pluck('id')->values();
+
+            $stocks = LocationInventory::query()
+                ->whereIn('part_id', $partIds)
+                ->whereIn('location_code', $locationCodes)
+                ->where('qty_on_hand', '>', 0)
+                ->get()
+                ->groupBy('part_id');
+
+            foreach ($deliveryNote->items as $item) {
+                $gciPartNo = (string) ($item->part?->part_no ?? '');
+                $part = $partsByNo[$gciPartNo] ?? null;
+                if (!$part) {
+                    $kittingLocationsByItem[$item->id] = [];
+                    continue;
+                }
+
+                $kittingLocationsByItem[$item->id] = ($stocks[$part->id] ?? collect())
+                    ->sortBy('location_code')
+                    ->map(fn ($s) => ['code' => $s->location_code, 'qty' => (float) $s->qty_on_hand])
+                    ->values()
+                    ->all();
+            }
+        }
+
+        return view('outgoing.delivery_notes.show', compact('deliveryNote', 'kittingLocationsByItem'));
     }
 
     public function startPicking(DeliveryNote $deliveryNote)
@@ -118,7 +161,46 @@ class DeliveryNoteController extends Controller
             return back()->with('error', 'Only delivery notes in kitting status can be completed.');
         }
 
-        $deliveryNote->update(['status' => self::STATUS_READY_TO_PICK]);
+        $validated = request()->validate([
+            'kitting_locations' => ['required', 'array'],
+        ]);
+
+        $deliveryNote->loadMissing(['items.part']);
+
+        if (Schema::hasTable('warehouse_locations') && Schema::hasTable('location_inventory')) {
+            $activeLocations = WarehouseLocation::query()
+                ->where('status', 'ACTIVE')
+                ->pluck('location_code')
+                ->flip();
+
+            foreach ($deliveryNote->items as $item) {
+                $loc = strtoupper(trim((string) ($validated['kitting_locations'][$item->id] ?? '')));
+                if ($loc === '' || !isset($activeLocations[$loc])) {
+                    return back()->with('error', "Kitting location wajib diisi & ACTIVE untuk part {$item->part?->part_no}.");
+                }
+
+                $gciPartNo = (string) ($item->part?->part_no ?? '');
+                $mappedPart = Part::query()->where('part_no', $gciPartNo)->first();
+                if (!$mappedPart) {
+                    return back()->with('error', "Part master (parts) tidak ditemukan untuk FG {$gciPartNo}. Buat dulu di master Part agar bisa cek stok per lokasi.");
+                }
+
+                $available = LocationInventory::getStockByLocation((int) $mappedPart->id, $loc);
+                if ($available < (float) $item->qty) {
+                    return back()->with('error', "Stok lokasi {$loc} untuk {$gciPartNo} kurang. Available {$available}, need {$item->qty}.");
+                }
+            }
+        } else {
+            return back()->with('error', 'Warehouse locations / location inventory not configured. Cannot complete kitting with location validation.');
+        }
+
+        DB::transaction(function () use ($deliveryNote, $validated) {
+            foreach ($deliveryNote->items as $item) {
+                $loc = strtoupper(trim((string) ($validated['kitting_locations'][$item->id] ?? '')));
+                $item->update(['kitting_location_code' => $loc !== '' ? $loc : null]);
+            }
+            $deliveryNote->update(['status' => self::STATUS_READY_TO_PICK]);
+        });
 
         return back()->with('success', 'Kitting process completed. Ready to pick.');
     }
@@ -133,10 +215,22 @@ class DeliveryNoteController extends Controller
             return back()->with('error', 'Delivery Note must be ready to ship before shipping.');
         }
 
+        $deliveryNote->loadMissing(['items.part']);
+
         DB::transaction(function () use ($deliveryNote) {
             $deliveryNote->update(['status' => self::STATUS_SHIPPED]);
 
             foreach ($deliveryNote->items as $item) {
+                $loc = strtoupper(trim((string) ($item->kitting_location_code ?? '')));
+                if ($loc !== '' && Schema::hasTable('location_inventory') && Schema::hasTable('warehouse_locations')) {
+                    $gciPartNo = (string) ($item->part?->part_no ?? '');
+                    $mappedPart = Part::query()->where('part_no', $gciPartNo)->first();
+                    if (!$mappedPart) {
+                        throw new \Exception("Part master (parts) tidak ditemukan untuk FG {$gciPartNo}. Tidak bisa deduct stok per lokasi.");
+                    }
+                    LocationInventory::updateStock((int) $mappedPart->id, $loc, -(float) $item->qty);
+                }
+
                 $inventory = FgInventory::firstOrCreate(
                     ['gci_part_id' => $item->gci_part_id],
                     ['qty_on_hand' => 0]
