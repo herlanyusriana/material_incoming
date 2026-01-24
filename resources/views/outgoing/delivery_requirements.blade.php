@@ -56,11 +56,13 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @php
-                            $grouped = collect($requirements)
-                                ->filter(fn ($r) => $r->customer && $r->gci_part)
+                            $displayRequirements = collect($requirements)
+                                ->filter(fn ($r) => $r->customer);
+
+                            $grouped = $displayRequirements
                                 ->groupBy(fn ($r) => $r->date->toDateString() . '|' . $r->customer->id);
                         @endphp
-                        @forelse ($requirements as $req)
+                        @forelse ($displayRequirements as $req)
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-semibold text-slate-700">
                                     {{ $req->date->format('d M Y') }}
