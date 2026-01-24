@@ -126,6 +126,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-adjustments', [\App\Http\Controllers\WarehouseStockAdjustmentController::class, 'index'])->name('stock-adjustments.index');
         Route::get('/stock-adjustments/create', [\App\Http\Controllers\WarehouseStockAdjustmentController::class, 'create'])->name('stock-adjustments.create');
         Route::post('/stock-adjustments', [\App\Http\Controllers\WarehouseStockAdjustmentController::class, 'store'])->name('stock-adjustments.store');
+
+        // Production load (schedule for warehouse)
+        Route::get('/production-load', [\App\Http\Controllers\WarehouseProductionLoadController::class, 'index'])->name('production-load.index');
     });
 
     Route::prefix('outgoing')->name('outgoing.')->group(function () {

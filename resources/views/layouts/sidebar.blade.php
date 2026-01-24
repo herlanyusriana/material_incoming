@@ -519,6 +519,14 @@
                             </svg>
                             <span class="ml-3 flex-1">Reconcile Stock</span>
                         </a>
+                        <a href="{{ route('warehouse.production-load.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.production-load.*'), $navInactive => !request()->routeIs('warehouse.production-load.*')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h10M4 17h16" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 11l3 3-3 3" />
+                            </svg>
+                            <span class="ml-3 flex-1">Production Load</span>
+                        </a>
                     </div>
                 </div>
             @endcan
@@ -1063,6 +1071,14 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 19l-2-2 2-2" />
                         </svg>
                         <span class="ml-3 flex-1">Reconcile Stock</span>
+                    </a>
+                    <a href="{{ route('warehouse.production-load.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.production-load.*'), $navInactive => !request()->routeIs('warehouse.production-load.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h10M4 17h16" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11l3 3-3 3" />
+                        </svg>
+                        <span class="ml-3 flex-1">Production Load</span>
                     </a>
                 </div>
             </div>
