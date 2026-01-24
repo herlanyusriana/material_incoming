@@ -26,6 +26,10 @@
                         <dd class="font-medium">{{ $order->machine_name ?? '-' }}</dd>
                     </div>
                     <div>
+                        <dt class="text-gray-500">Dies</dt>
+                        <dd class="font-medium">{{ $order->die_name ?? '-' }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-gray-500">Planned Qty</dt>
                         <dd class="font-medium text-lg">{{ number_format($order->qty_planned) }}</dd>
                     </div>
@@ -45,8 +49,21 @@
             <!-- Workflow Actions -->
             <div class="bg-white border rounded-lg shadow-sm p-6">
                 <h3 class="text-lg font-semibold mb-4">Workflow Actions</h3>
-                
-                @if($order->status == 'planned' || $order->status == 'material_hold')
+
+                @if($order->status == 'planned')
+                    <div class="p-4 bg-slate-50 rounded border mb-4">
+                        <h4 class="font-medium mb-2">0. Work Order &amp; Kanban Release</h4>
+                        <p class="text-sm text-gray-600 mb-3">Release work order to Kanban.</p>
+                        <form action="{{ route('production.orders.release-kanban', $order) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="w-full px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800">
+                                Release Kanban
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
+                @if($order->status == 'kanban_released' || $order->status == 'material_hold' || $order->status == 'resource_hold')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">1. Material Availability</h4>
                         <p class="text-sm text-gray-600 mb-3">Check if components are available in inventory.</p>
@@ -54,6 +71,35 @@
                             @csrf
                             <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
                                 Check Material
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
+                @if($order->workflow_stage == 'final_inspection')
+                    <div class="p-4 bg-slate-50 rounded border mb-4">
+                        <h4 class="font-medium mb-2">4. Final Inspection</h4>
+                        <p class="text-sm text-gray-600">Complete Final Inspection, then do Kanban Update.</p>
+                    </div>
+                @endif
+
+                @if($order->workflow_stage == 'kanban_update')
+                    <div class="p-4 bg-slate-50 rounded border mb-4">
+                        <h4 class="font-medium mb-2">5. Kanban Update → Inventory</h4>
+                        <form action="{{ route('production.orders.kanban-update', $order) }}" method="POST" class="space-y-3">
+                            @csrf
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Qty Good</label>
+                                    <input type="number" step="0.0001" min="0" name="qty_good" value="{{ old('qty_good', $order->qty_actual > 0 ? $order->qty_actual : $order->qty_planned) }}" class="w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Qty NG</label>
+                                    <input type="number" step="0.0001" min="0" name="qty_ng" value="{{ old('qty_ng', $order->qty_ng ?? 0) }}" class="w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                                Post Kanban &amp; Update Inventory
                             </button>
                         </form>
                     </div>
@@ -82,7 +128,7 @@
                              <form action="{{ route('production.orders.finish', $order) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="return confirm('Ensure all inspections are passed. Continue?');">
-                                    Finish Production
+                                    Finish Production (Go to Final Inspection)
                                 </button>
                             </form>
                          </div>

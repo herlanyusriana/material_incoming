@@ -64,7 +64,9 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-slate-900">{{ $order->process_name ?: '-' }}</div>
-                                    <div class="text-xs text-slate-500">{{ $order->machine_name ?: '-' }}</div>
+                                    <div class="text-xs text-slate-500">
+                                        {{ $order->machine_name ?: '-' }}{{ $order->die_name ? ' • ' . $order->die_name : '' }}
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
                                 <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_planned) }}</td>

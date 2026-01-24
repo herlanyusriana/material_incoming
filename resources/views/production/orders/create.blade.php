@@ -35,6 +35,11 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700">Dies</label>
+                    <input type="text" name="die_name" value="{{ old('die_name') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="ex: DIES-01">
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700">Planned Quantity</label>
                     <input type="number" name="qty_planned" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                 </div>

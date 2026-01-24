@@ -37,17 +37,20 @@ class ProductionInspectionController extends Controller
                     'status' => 'pending',
                 ]);
             } elseif ($inspection->type === 'in_process') {
-                 // Clean up for now, could loop or go to final
-                 $order->update(['workflow_stage' => 'mass_production']); 
+                 $order->update(['workflow_stage' => 'mass_production']);
                  // Allow manual creation of Final? Or Auto?
                  // Let's assume after In-Process comes Final when they click "Finish"
             } elseif ($inspection->type === 'final') {
-                 // Ready for stock update
-                 $order->update(['workflow_stage' => 'stock_update']);
+                 // Ready for Kanban Update
+                 $order->update(['workflow_stage' => 'kanban_update']);
             }
         } else {
-            // If fail, what happens? Hold?
-             $order->update(['status' => 'hold', 'notes' => 'Inspection Failed: ' . $inspection->type]);
+            // If fail, go to Dies Adjustment
+            $order->update([
+                'status' => 'dies_adjustment',
+                'workflow_stage' => 'dies_adjustment',
+                'dies_adjustment_notes' => 'Inspection failed: ' . $inspection->type,
+            ]);
         }
 
         return back()->with('success', 'Inspection updated.');

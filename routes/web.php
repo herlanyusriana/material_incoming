@@ -290,9 +290,11 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('production')->name('production.')->group(function () {
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
+        Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');
         Route::post('/orders/{order}/check-material', [\App\Http\Controllers\ProductionOrderController::class, 'checkMaterial'])->name('orders.check-material');
         Route::post('/orders/{order}/start', [\App\Http\Controllers\ProductionOrderController::class, 'startProduction'])->name('orders.start');
         Route::post('/orders/{order}/finish', [\App\Http\Controllers\ProductionOrderController::class, 'finishProduction'])->name('orders.finish');
+        Route::post('/orders/{order}/kanban-update', [\App\Http\Controllers\ProductionOrderController::class, 'kanbanUpdate'])->name('orders.kanban-update');
 
         Route::post('/orders/{order}/inspections', [\App\Http\Controllers\ProductionInspectionController::class, 'store'])->name('inspections.store');
         Route::put('/inspections/{inspection}', [\App\Http\Controllers\ProductionInspectionController::class, 'update'])->name('inspections.update');
