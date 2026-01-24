@@ -11,6 +11,7 @@ use App\Models\OutgoingDailyPlanRow;
 use App\Models\Part;
 use App\Models\StandardPacking;
 use App\Models\Truck;
+use App\Models\Vendor;
 use App\Models\WarehouseLocation;
 use App\Models\LocationInventory;
 use App\Models\User;
@@ -63,6 +64,11 @@ class OutgoingDummySeeder extends Seeder
             ['packing_qty' => 15, 'uom' => 'PCS', 'trolley_type' => 'C', 'status' => 'active'],
         );
 
+        $vendor = Vendor::query()->firstOrCreate(
+            ['vendor_code' => 'V-DEMO'],
+            ['vendor_name' => 'Demo Vendor', 'vendor_type' => 'local', 'status' => 'active'],
+        );
+
         // Outgoing uses FG gci_parts; kitting/stock per location uses `parts` + `location_inventory`.
         // Create matching `parts.part_no` for demo FG parts so the kitting validation can resolve.
         foreach ([$gciA, $gciB, $gciC] as $gci) {
@@ -77,6 +83,9 @@ class OutgoingDummySeeder extends Seeder
             }
             if (Schema::hasColumn('parts', 'part_name_vendor')) {
                 $defaults['part_name_vendor'] = $gci->part_name;
+            }
+            if (Schema::hasColumn('parts', 'vendor_id')) {
+                $defaults['vendor_id'] = $vendor->id;
             }
 
             Part::query()->firstOrCreate(
