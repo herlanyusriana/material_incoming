@@ -243,12 +243,16 @@ class OutgoingController extends Controller
             ->get();
 
         $requirements = $cells->groupBy(function ($cell) {
-            // Group key: Date|GciPartID (or Date|raw part_no if unmapped)
+            // Group key: Date|Part|Seq
+            // Keep seq in the key so aggregated requirements don't "inherit" the wrong sequence
+            // when the same part appears under different seq in Daily Planning.
             $date = $cell->plan_date->format('Y-m-d');
             $partKey = $cell->row->gci_part_id
                 ? ('gci:' . $cell->row->gci_part_id)
                 : ('raw:' . (string) ($cell->row->part_no ?? ''));
-            return "{$date}|{$partKey}";
+
+            $seq = $cell->seq !== null && $cell->seq !== '' ? (int) $cell->seq : 9999;
+            return "{$date}|{$partKey}|seq:{$seq}";
         })->map(function ($group) {
             $first = $group->first();
             
@@ -258,11 +262,7 @@ class OutgoingController extends Controller
             $stdPacking = $gciPart?->standardPacking ?? null;
             $packQty = $stdPacking?->packing_qty ?? 1;
 
-            $sequence = $group
-                ->pluck('seq')
-                ->filter(fn ($v) => $v !== null && $v !== '')
-                ->map(fn ($v) => (int) $v)
-                ->min();
+            $sequence = $first->seq !== null && $first->seq !== '' ? (int) $first->seq : 9999;
             
             return (object) [
                 'date' => $first->plan_date,
@@ -271,7 +271,7 @@ class OutgoingController extends Controller
                 'customer_part_no' => $first->row->part_no,
                 'unmapped' => $gciPart === null,
                 'total_qty' => $totalQty,
-                'sequence' => $sequence, // Minimum numeric sequence in the group
+                'sequence' => $sequence,
                 'packing_std' => $packQty,
                 'packing_load' => $packQty > 0 ? ceil($totalQty / $packQty) : 0,
                 'uom' => $stdPacking?->uom ?? 'PCS',
@@ -282,7 +282,12 @@ class OutgoingController extends Controller
             if ($a->date->ne($b->date)) {
                 return $a->date->gt($b->date) ? 1 : -1;
             }
-            return ($a->sequence ?? 999) <=> ($b->sequence ?? 999);
+            $seqCmp = ($a->sequence ?? 9999) <=> ($b->sequence ?? 9999);
+            if ($seqCmp !== 0) {
+                return $seqCmp;
+            }
+
+            return strcmp((string) ($a->gci_part?->part_no ?? ''), (string) ($b->gci_part?->part_no ?? ''));
         })->values();
 
         $trucks = \App\Models\Truck::query()
