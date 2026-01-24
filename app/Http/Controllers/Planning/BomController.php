@@ -269,9 +269,10 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'bom_item_id' => ['nullable', 'integer'],
-            'component_part_id' => ['required', Rule::exists('gci_parts', 'id')],
-            'make_or_buy' => ['nullable', Rule::in(['make', 'buy'])],
-            'usage_qty' => ['required', 'numeric', 'min:0.0001'],
+            'component_part_id' => ['nullable', Rule::exists('gci_parts', 'id')],
+            'component_part_no' => ['nullable', 'string', 'max:100'],
+            'make_or_buy' => ['nullable', Rule::in(['make', 'buy', 'free_issue'])],
+            'usage_qty' => ['required', 'numeric', 'min:0'],
             'consumption_uom' => ['nullable', 'string', 'max:20'],
             'line_no' => ['nullable', 'integer', 'min:1'],
             'process_name' => ['nullable', 'string', 'max:255'],
@@ -285,12 +286,25 @@ class BomController extends Controller
             'material_spec' => ['nullable', 'string', 'max:255'],
             'material_name' => ['nullable', 'string', 'max:255'],
             'special' => ['nullable', 'string', 'max:255'],
-            'component_part_no' => ['nullable', 'string', 'max:100'],
             'scrap_factor' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'yield_factor' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'consumption_uom_id' => ['nullable', Rule::exists('uoms', 'id')],
             'wip_uom_id' => ['nullable', Rule::exists('uoms', 'id')],
         ]);
+
+        $componentPartId = array_key_exists('component_part_id', $validated) ? (int) ($validated['component_part_id'] ?? 0) : 0;
+        $componentPartNo = array_key_exists('component_part_no', $validated) && is_string($validated['component_part_no'])
+            ? strtoupper(trim($validated['component_part_no']))
+            : null;
+        if ($componentPartNo === '') {
+            $componentPartNo = null;
+        }
+
+        if ($componentPartId <= 0 && !$componentPartNo) {
+            return back()->withInput()->withErrors([
+                'component_part_id' => 'Component Part wajib diisi (pilih dari list atau isi Part No).',
+            ]);
+        }
 
         $payload = [
             'usage_qty' => $validated['usage_qty'],
@@ -308,7 +322,7 @@ class BomController extends Controller
             'material_name' => $validated['material_name'] ?? null,
             'special' => $validated['special'] ?? null,
             'make_or_buy' => $validated['make_or_buy'] ?? 'buy',
-            'component_part_no' => $validated['component_part_no'] ?? null,
+            'component_part_no' => $componentPartNo,
             'scrap_factor' => $validated['scrap_factor'] ?? 0,
             'yield_factor' => $validated['yield_factor'] ?? 1,
             'consumption_uom_id' => $validated['consumption_uom_id'] ?? null,
@@ -323,7 +337,7 @@ class BomController extends Controller
                 ->firstOrFail();
 
             $item->update(array_merge($payload, [
-                'component_part_id' => $validated['component_part_id'] ? (int) $validated['component_part_id'] : null,
+                'component_part_id' => $componentPartId > 0 ? $componentPartId : null,
             ]));
 
             return back()->with('success', 'BOM line updated.');
@@ -336,7 +350,7 @@ class BomController extends Controller
 
         BomItem::create(array_merge($payload, [
             'bom_id' => $bom->id,
-            'component_part_id' => $validated['component_part_id'] ? (int) $validated['component_part_id'] : null,
+            'component_part_id' => $componentPartId > 0 ? $componentPartId : null,
         ]));
 
         return back()->with('success', 'BOM line added.');

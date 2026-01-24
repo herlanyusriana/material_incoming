@@ -562,7 +562,7 @@
                                         </template>
                                         <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.component_part_id">
                                             <option value="">(Use text)</option>
-                                            <template x-if="(lineForm.make_or_buy || 'buy') === 'buy'">
+                                            <template x-if="['buy','free_issue'].includes((lineForm.make_or_buy || 'buy'))">
                                                 <optgroup label="BUY (RM)">
                                                     @foreach (($rmParts ?? []) as $c)
                                                         <option value="{{ $c->id }}">{{ $c->part_no }} — {{ $c->part_name ?? '-' }}</option>
@@ -584,11 +584,12 @@
                             <select name="make_or_buy" class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.make_or_buy">
                                 <option value="buy">BUY</option>
                                 <option value="make">MAKE</option>
+                                <option value="free_issue">FREE ISSUE</option>
                             </select>
                         </div>
 	                        <div>
 	                            <label class="text-xs font-semibold text-slate-600">Consumption</label>
-	                            <input type="number" step="any" min="0.0001" name="usage_qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.usage_qty">
+	                            <input type="number" step="any" min="0" name="usage_qty" class="mt-1 w-full rounded-xl border-slate-200" required x-model="lineForm.usage_qty">
 	                        </div>
 	                    </div>
 

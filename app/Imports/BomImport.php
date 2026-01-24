@@ -29,6 +29,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         if (in_array($raw, ['make', 'm'], true)) {
             return 'make';
         }
+        if (in_array($raw, ['free_issue', 'free issue', 'freeissue', 'fi'], true)) {
+            return 'free_issue';
+        }
         if (in_array($raw, ['buy', 'b', 'purchase'], true)) {
             return 'buy';
         }
@@ -236,9 +239,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'spesial' => ['nullable', 'string', 'max:255'],
             'special' => ['nullable', 'string', 'max:255'],
             'rm_part_no' => ['nullable', 'string', 'max:255'],
-            'consumption' => ['required_with:rm_part_no', 'nullable', 'numeric', 'min:0.0001'],
+            'consumption' => ['required_with:rm_part_no', 'nullable', 'numeric', 'min:0'],
             'uom_rm' => ['nullable', 'string', 'max:20'],
-            'make_or_buy' => ['nullable', 'in:make,buy,MAKE,BUY,M,B,Purchase,purchase'],
+            'make_or_buy' => ['nullable', 'in:make,buy,free_issue,MAKE,BUY,FREE_ISSUE,M,B,Purchase,purchase,FI,Free Issue,free issue'],
             // backward compat
             'uom_1' => ['nullable', 'string', 'max:20'],
         ];

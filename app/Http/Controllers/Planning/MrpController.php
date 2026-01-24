@@ -153,6 +153,11 @@ class MrpController extends Controller
                 continue;
             }
 
+            $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+            if ($mob === 'free_issue') {
+                continue;
+            }
+
             $netUsage = (float) ($item->net_required ?? $item->usage_qty ?? 0);
             if ($netUsage <= 0) {
                 continue;
@@ -165,7 +170,6 @@ class MrpController extends Controller
 
             $requirements[$componentId] = ($requirements[$componentId] ?? 0) + $requiredQty;
 
-            $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
             if ($mob === 'make') {
                 $componentMode[$componentId] = 'make';
             } elseif (!isset($componentMode[$componentId])) {
