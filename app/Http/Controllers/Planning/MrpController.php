@@ -21,6 +21,27 @@ class MrpController extends Controller
         return [$field => ['required', 'string', 'regex:/^\d{4}-\d{2}$/']];
     }
 
+    private function countWorkdaysInMonth(string $ym, bool $includeSaturday): int
+    {
+        try {
+            $cursor = \Carbon\Carbon::createFromFormat('Y-m', $ym)->startOfMonth();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+
+        $end = $cursor->copy()->endOfMonth();
+        $count = 0;
+
+        while ($cursor->lte($end)) {
+            if ($cursor->isWeekday() || ($includeSaturday && $cursor->isSaturday())) {
+                $count++;
+            }
+            $cursor->addDay();
+        }
+
+        return $count;
+    }
+
     private function normalizePartNo(?string $value): ?string
     {
         if ($value === null) {
@@ -449,9 +470,14 @@ class MrpController extends Controller
         $startMinggu = $request->input('start_minggu');
         $weeksCount = (int) $request->input('weeks_count', 4);
         $generateProductionOrders = $request->boolean('generate_production_orders', true);
+        $month = $request->input('month');
 
         if (!$startMinggu) {
             return back()->with('error', 'Start week is required.');
+        }
+
+        if ($month !== null && !preg_match('/^\\d{4}-\\d{2}$/', (string) $month)) {
+            return back()->with('error', 'Invalid month format.');
         }
 
         $weeks = [];
@@ -467,8 +493,9 @@ class MrpController extends Controller
 
         $productionOrdersCreated = 0;
         $productionOrdersUpdated = 0;
+        $runsCreated = 0;
 
-        DB::transaction(function () use ($weeks, $request, $generateProductionOrders, &$productionOrdersCreated, &$productionOrdersUpdated) {
+        DB::transaction(function () use ($weeks, $request, $generateProductionOrders, $month, &$productionOrdersCreated, &$productionOrdersUpdated, &$runsCreated) {
             foreach ($weeks as $minggu) {
                 // Call generate logic per week
                 // We construct a fake request or extract logic.
@@ -478,16 +505,22 @@ class MrpController extends Controller
                     $request->user()?->id,
                     $request->boolean('include_saturday'),
                     $generateProductionOrders,
+                    $month,
                 );
 
                 if (is_array($summary)) {
+                    $runsCreated += (int) ($summary['mrp_runs_created'] ?? 0);
                     $productionOrdersCreated += (int) ($summary['production_orders_created'] ?? 0);
                     $productionOrdersUpdated += (int) ($summary['production_orders_updated'] ?? 0);
                 }
             }
         });
 
-        $msg = 'MRP generated for ' . count($weeks) . ' weeks.';
+        if ($runsCreated <= 0) {
+            return back()->with('error', 'MRP skipped: no Forecast found for selected period.');
+        }
+
+        $msg = 'MRP generated for ' . $runsCreated . ' week(s).';
         if ($generateProductionOrders) {
             $msg .= ' Production Orders: ' . $productionOrdersCreated . ' created, ' . $productionOrdersUpdated . ' updated.';
         }
@@ -589,23 +622,11 @@ class MrpController extends Controller
         return ['created' => $created, 'updated' => $updated];
     }
 
-    private function runMrpForWeek($minggu, $userId, $includeSaturday, bool $generateProductionOrders = false): ?array
+    private function runMrpForWeek($minggu, $userId, $includeSaturday, bool $generateProductionOrders = false, ?string $targetMonth = null): ?array
     {
-        // Use Forecast as the demand input (period can be weekly like 2026-W02).
-        // This keeps MPS (monthly) separate from MRP (weekly).
-        $forecastRows = Forecast::query()
-            ->where('period', $minggu)
-            ->where('qty', '>', 0)
-            ->whereNotNull('part_id')
-            ->with('part')
-            ->get();
-
-        // If no approved MPS, we just skip? Or create empty run?
-        // Ideally skip to avoid clutter, but for MRP view consistency maybe we need it?
-        // Let's skip if empty but maybe user wants to see "No Data".
-        if ($forecastRows->isEmpty()) {
-            return null;
-        }
+        // Demand input:
+        // - Prefer Forecast period weekly (YYYY-Www) if present.
+        // - Fallback to monthly (YYYY-MM) by prorating to workdays inside this week.
 
         $run = MrpRun::create([
             'period' => $minggu,
@@ -627,24 +648,130 @@ class MrpController extends Controller
             $dates[] = $startDate->copy()->addDays($i)->format('Y-m-d');
         }
 
-        foreach ($forecastRows as $row) {
-            $plannedQty = (float) $row->qty;
-            if ($plannedQty <= 0) {
-                continue;
-            }
+        if ($targetMonth !== null) {
+            $dates = array_values(array_filter($dates, fn (string $d) => substr($d, 0, 7) === $targetMonth));
+        }
 
-            $dailyQty = $plannedQty / $workDays;
+        if (empty($dates)) {
+            $run->delete();
+            return null;
+        }
 
-            foreach ($dates as $date) {
-                if ($dailyQty > 0) {
-                    MrpProductionPlan::create([
+        $forecastWeeklyRows = Forecast::query()
+            ->where('period', $minggu)
+            ->where('qty', '>', 0)
+            ->whereNotNull('part_id')
+            ->select(['id', 'part_id', 'period', 'qty'])
+            ->get();
+
+        $mrpProductionPlanHasPlannedQty = Schema::hasColumn('mrp_production_plans', 'planned_qty');
+        $mrpProductionPlanHasNetRequired = Schema::hasColumn('mrp_production_plans', 'net_required');
+
+        $forecastRows = $forecastWeeklyRows;
+        $weeklyPlannedQtyByPart = []; // [part_id => qty] used for BOM explode
+
+        if ($forecastRows->isNotEmpty()) {
+            foreach ($forecastRows as $row) {
+                $plannedQty = (float) $row->qty;
+                if ($plannedQty <= 0) {
+                    continue;
+                }
+
+                $dailyQty = $plannedQty / count($dates);
+                $weeklyPlannedQtyByPart[(int) $row->part_id] = ($weeklyPlannedQtyByPart[(int) $row->part_id] ?? 0) + $plannedQty;
+
+                foreach ($dates as $date) {
+                    if ($dailyQty <= 0) {
+                        continue;
+                    }
+
+                    $payload = [
                         'mrp_run_id' => $run->id,
                         'part_id' => $row->part_id,
                         'plan_date' => $date,
-                        'planned_qty' => $dailyQty,
                         'planned_order_rec' => $dailyQty,
-                    ]);
+                    ];
+                    if ($mrpProductionPlanHasPlannedQty) {
+                        $payload['planned_qty'] = $dailyQty;
+                    }
+                    if ($mrpProductionPlanHasNetRequired) {
+                        $payload['net_required'] = 0;
+                    }
+
+                    MrpProductionPlan::create($payload);
                 }
+            }
+        } else {
+            $demandPeriods = $targetMonth ? [$targetMonth] : array_values(array_unique(array_map(fn (string $d) => substr($d, 0, 7), $dates)));
+
+            $forecastMonthlyRows = Forecast::query()
+                ->whereIn('period', $demandPeriods)
+                ->where('qty', '>', 0)
+                ->whereNotNull('part_id')
+                ->select(['id', 'part_id', 'period', 'qty'])
+                ->get();
+
+            if ($forecastMonthlyRows->isEmpty()) {
+                $run->delete();
+                return null;
+            }
+
+            $workdaysInMonthCache = [];
+            $datesByMonth = [];
+            foreach ($dates as $date) {
+                $ym = substr($date, 0, 7);
+                $datesByMonth[$ym][] = $date;
+            }
+
+            foreach ($forecastMonthlyRows as $row) {
+                $monthKey = (string) $row->period;
+                $plannedQtyMonthly = (float) $row->qty;
+                if ($plannedQtyMonthly <= 0) {
+                    continue;
+                }
+
+                $datesInThisWeekForMonth = $datesByMonth[$monthKey] ?? [];
+                if (empty($datesInThisWeekForMonth)) {
+                    continue;
+                }
+
+                if (!array_key_exists($monthKey, $workdaysInMonthCache)) {
+                    $workdaysInMonthCache[$monthKey] = $this->countWorkdaysInMonth($monthKey, (bool) $includeSaturday);
+                }
+                $workdaysInMonth = (int) ($workdaysInMonthCache[$monthKey] ?? 0);
+                if ($workdaysInMonth <= 0) {
+                    continue;
+                }
+
+                $dailyQty = $plannedQtyMonthly / $workdaysInMonth;
+                $weeklyQty = $dailyQty * count($datesInThisWeekForMonth);
+                if ($weeklyQty <= 0) {
+                    continue;
+                }
+
+                $weeklyPlannedQtyByPart[(int) $row->part_id] = ($weeklyPlannedQtyByPart[(int) $row->part_id] ?? 0) + $weeklyQty;
+
+                foreach ($datesInThisWeekForMonth as $date) {
+                    $payload = [
+                        'mrp_run_id' => $run->id,
+                        'part_id' => $row->part_id,
+                        'plan_date' => $date,
+                        'planned_order_rec' => $dailyQty,
+                    ];
+                    if ($mrpProductionPlanHasPlannedQty) {
+                        $payload['planned_qty'] = $dailyQty;
+                    }
+                    if ($mrpProductionPlanHasNetRequired) {
+                        $payload['net_required'] = 0;
+                    }
+
+                    MrpProductionPlan::create($payload);
+                }
+            }
+
+            if (empty($weeklyPlannedQtyByPart)) {
+                $run->delete();
+                return null;
             }
         }
 
@@ -654,16 +781,11 @@ class MrpController extends Controller
         $bomCache = [];
         $partNoCache = [];
 
-        foreach ($forecastRows as $row) {
-            $plannedQty = (float) $row->qty;
-            if ($plannedQty <= 0) {
-                continue;
-            }
-
+        foreach ($weeklyPlannedQtyByPart as $partId => $plannedQty) {
             // Explode BOM (multi-level) using BOM make/buy.
             $path = [];
             $this->explodeBomRequirements(
-                (int) $row->part_id,
+                (int) $partId,
                 $plannedQty,
                 $requirements,
                 $componentMode,
@@ -682,20 +804,25 @@ class MrpController extends Controller
 
             $netRequired = max(0, $requiredQty - $onHand - $onOrder);
 
-            $dailyNetRequired = $netRequired / $workDays;
-            $dailyRequired = $requiredQty / $workDays;
+            $dailyNetRequired = $netRequired / count($dates);
+            $dailyRequired = $requiredQty / count($dates);
 
             foreach ($dates as $date) {
                 if (($componentMode[$partId] ?? 'buy') === 'make') {
                     if ($dailyNetRequired > 0) {
-                        MrpProductionPlan::create([
+                        $payload = [
                             'mrp_run_id' => $run->id,
                             'part_id' => $partId,
                             'plan_date' => $date,
-                            'planned_qty' => $dailyNetRequired,
                             'planned_order_rec' => $dailyNetRequired,
-                            'net_required' => $dailyNetRequired,
-                        ]);
+                        ];
+                        if ($mrpProductionPlanHasPlannedQty) {
+                            $payload['planned_qty'] = $dailyNetRequired;
+                        }
+                        if ($mrpProductionPlanHasNetRequired) {
+                            $payload['net_required'] = $dailyNetRequired;
+                        }
+                        MrpProductionPlan::create($payload);
                     }
                 } else {
                     if ($requiredQty > 0) {
@@ -714,7 +841,7 @@ class MrpController extends Controller
             }
         }
 
-        $summary = ['production_orders_created' => 0, 'production_orders_updated' => 0];
+        $summary = ['mrp_runs_created' => 1, 'production_orders_created' => 0, 'production_orders_updated' => 0];
 
         if ($generateProductionOrders) {
             $poSummary = $this->syncProductionOrdersFromMrpRun($run, $startDate->toDateString(), $userId);
@@ -733,24 +860,31 @@ class MrpController extends Controller
 
         $productionOrdersCreated = 0;
         $productionOrdersUpdated = 0;
+        $runsCreated = 0;
 
-        DB::transaction(function () use ($weeks, $request, $generateProductionOrders, &$productionOrdersCreated, &$productionOrdersUpdated) {
+        DB::transaction(function () use ($weeks, $request, $generateProductionOrders, $month, &$productionOrdersCreated, &$productionOrdersUpdated, &$runsCreated) {
             foreach ($weeks as $minggu) {
                 $summary = $this->runMrpForWeek(
                     $minggu,
                     $request->user()?->id,
                     $request->boolean('include_saturday'),
                     $generateProductionOrders,
+                    $month,
                 );
 
                 if (is_array($summary)) {
+                    $runsCreated += (int) ($summary['mrp_runs_created'] ?? 0);
                     $productionOrdersCreated += (int) ($summary['production_orders_created'] ?? 0);
                     $productionOrdersUpdated += (int) ($summary['production_orders_updated'] ?? 0);
                 }
             }
         });
 
-        $msg = 'MRP generated for ' . count($weeks) . ' weeks.';
+        if ($runsCreated <= 0) {
+            return back()->with('error', 'MRP skipped: no Forecast found for selected period.');
+        }
+
+        $msg = 'MRP generated for ' . $runsCreated . ' week(s).';
         if ($generateProductionOrders) {
             $msg .= ' Production Orders: ' . $productionOrdersCreated . ' created, ' . $productionOrdersUpdated . ' updated.';
         }

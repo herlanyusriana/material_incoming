@@ -50,11 +50,12 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load View</button>
                     </form>
 
-                    <form method="POST" action="{{ route('planning.mrp.generate-range') }}" class="flex items-center gap-3">
-                        @csrf
-                        <input type="hidden" name="start_minggu" value="{{ $startWeek }}">
-                        <input type="hidden" name="weeks_count" value="{{ $weeksCount }}">
-                        <span class="text-xs text-slate-500 italic mr-2">Run MRP for {{ $weeksCount }} weeks ({{ $startWeek }} ...)</span>
+	                    <form method="POST" action="{{ route('planning.mrp.generate-range') }}" class="flex items-center gap-3">
+	                        @csrf
+                            <input type="hidden" name="month" value="{{ $month }}">
+	                        <input type="hidden" name="start_minggu" value="{{ $startWeek }}">
+	                        <input type="hidden" name="weeks_count" value="{{ $weeksCount }}">
+	                        <span class="text-xs text-slate-500 italic mr-2">Run MRP for {{ $weeksCount }} weeks ({{ $startWeek }} ...)</span>
                          
                         <label class="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
                             <input type="checkbox" name="include_saturday" value="1" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
