@@ -55,6 +55,11 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
+                        @php
+                            $grouped = collect($requirements)
+                                ->filter(fn ($r) => $r->customer && $r->gci_part)
+                                ->groupBy(fn ($r) => $r->date->toDateString() . '|' . $r->customer->id);
+                        @endphp
                         @forelse ($requirements as $req)
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-semibold text-slate-700">
@@ -82,14 +87,20 @@
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     @if($req->customer && $req->gci_part)
+                                        @php
+                                            $groupKey = $req->date->toDateString() . '|' . $req->customer->id;
+                                            $groupItems = $grouped->get($groupKey, collect());
+                                        @endphp
                                         <form action="{{ route('outgoing.generate-so') }}" method="POST" onsubmit="return confirm('Generate SO for this requirement?')">
                                             @csrf
                                             <input type="hidden" name="date" value="{{ $req->date->toDateString() }}">
                                             <input type="hidden" name="customer_id" value="{{ $req->customer->id }}">
-                                            <input type="hidden" name="items[0][gci_part_id]" value="{{ $req->gci_part->id }}">
-                                            <input type="hidden" name="items[0][qty]" value="{{ $req->total_qty }}">
+                                            @foreach ($groupItems as $i => $gi)
+                                                <input type="hidden" name="items[{{ $i }}][gci_part_id]" value="{{ $gi->gci_part->id }}">
+                                                <input type="hidden" name="items[{{ $i }}][qty]" value="{{ $gi->total_qty }}">
+                                            @endforeach
                                             <button type="submit" class="inline-flex items-center px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 transition-colors">
-                                                Generate SO
+                                                Generate SO ({{ $groupItems->count() }} Part)
                                             </button>
                                         </form>
                                     @else

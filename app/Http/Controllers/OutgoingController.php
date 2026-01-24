@@ -16,6 +16,7 @@ use App\Models\GciPart;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -292,7 +293,15 @@ class OutgoingController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            $dnNo = 'DN-' . now()->format('YmdHis'); // Auto-generate DN Number
+            $dnNo = null;
+            for ($attempt = 0; $attempt < 5; $attempt++) {
+                $candidate = 'DN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+                if (!\App\Models\DeliveryNote::query()->where('dn_no', $candidate)->exists()) {
+                    $dnNo = $candidate;
+                    break;
+                }
+            }
+            $dnNo ??= 'DN-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
             
             $dn = \App\Models\DeliveryNote::create([
                 'dn_no' => $dnNo,
