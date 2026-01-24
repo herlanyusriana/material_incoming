@@ -66,9 +66,19 @@ class OutgoingDummySeeder extends Seeder
         // Outgoing uses FG gci_parts; kitting/stock per location uses `parts` + `location_inventory`.
         // Create matching `parts.part_no` for demo FG parts so the kitting validation can resolve.
         foreach ([$gciA, $gciB, $gciC] as $gci) {
+            $defaults = [
+                'part_name_gci' => $gci->part_name,
+                'status' => 'active',
+                'uom' => 'PCS',
+            ];
+
+            if (Schema::hasColumn('parts', 'register_no')) {
+                $defaults['register_no'] = $gci->part_no;
+            }
+
             Part::query()->firstOrCreate(
                 ['part_no' => $gci->part_no],
-                ['part_name_gci' => $gci->part_name, 'status' => 'active', 'uom' => 'PCS'],
+                $defaults,
             );
         }
 
@@ -160,4 +170,3 @@ class OutgoingDummySeeder extends Seeder
         $this->command?->info('Try: Outgoing → Delivery Requirements (date range includes today)');
     }
 }
-
