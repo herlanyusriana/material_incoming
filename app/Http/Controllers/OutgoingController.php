@@ -312,6 +312,8 @@ class OutgoingController extends Controller
             'lines.*.customer_id' => ['required', 'exists:customers,id'],
             'lines.*.gci_part_id' => ['required', 'exists:gci_parts,id'],
             'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
+            'lines.*.row_ids' => ['nullable', 'array'],
+            'lines.*.row_ids.*' => ['integer', 'exists:outgoing_daily_plan_rows,id'],
         ]);
 
         $selectedIdx = collect($validated['selected'])->map(fn ($v) => (int) $v)->unique()->values();
@@ -401,6 +403,22 @@ class OutgoingController extends Controller
                         'qty' => $qty,
                     ]);
                 }
+            }
+
+            // Mark selected requirements as fulfilled (so they won't show again):
+            // Delivery Requirements page is based on OutgoingDailyPlanCell qty > 0.
+            $rowIds = $selectedLines
+                ->flatMap(fn ($l) => $l['row_ids'] ?? [])
+                ->map(fn ($v) => (int) $v)
+                ->filter(fn ($v) => $v > 0)
+                ->unique()
+                ->values();
+
+            if ($rowIds->isNotEmpty()) {
+                \App\Models\OutgoingDailyPlanCell::query()
+                    ->whereIn('row_id', $rowIds->all())
+                    ->whereDate('plan_date', $planDate)
+                    ->update(['qty' => 0]);
             }
         });
 

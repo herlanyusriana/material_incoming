@@ -111,6 +111,9 @@
                                         <input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $req->customer->id }}">
                                         <input type="hidden" name="lines[{{ $idx }}][gci_part_id]" value="{{ $req->gci_part->id }}">
                                         <input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $req->total_qty }}">
+                                        @foreach(($req->source_row_ids ?? []) as $rowId)
+                                            <input type="hidden" name="lines[{{ $idx }}][row_ids][]" value="{{ $rowId }}">
+                                        @endforeach
                                     </td>
                                     <td class="px-4 py-3 font-semibold text-slate-700">
                                         {{ $req->date->format('d M Y') }}
