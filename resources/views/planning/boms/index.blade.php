@@ -476,6 +476,14 @@
                             <input type="file" name="file" accept=".xlsx,.xls,.csv" class="mt-1 w-full rounded-xl border-slate-200" required>
                         </div>
 
+                        <div class="flex items-center gap-2">
+                            <input type="hidden" name="auto_create_parts" value="0">
+                            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                <input type="checkbox" name="auto_create_parts" value="1" class="rounded border-slate-300" checked>
+                                Auto-create missing substitute part
+                            </label>
+                        </div>
+
                         <div class="flex justify-end gap-2 pt-2">
                             <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImportSubstitute()">Cancel</button>
                             <button type="submit" class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold">Import Substitutes</button>

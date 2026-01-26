@@ -17,6 +17,10 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
     public int $rowCount = 0;
     protected array $failures = [];
 
+    public function __construct(private readonly bool $autoCreateParts = true)
+    {
+    }
+
     public function collection(Collection $rows)
     {
         foreach ($rows as $index => $row) {
@@ -40,9 +44,9 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            $fgPartNo = trim((string) $row['fg_part_no']);
-            $componentPartNo = trim((string) $row['component_part_no']);
-            $subPartNo = trim((string) $row['substitute_part_no']);
+            $fgPartNo = strtoupper(trim((string) $row['fg_part_no']));
+            $componentPartNo = strtoupper(trim((string) $row['component_part_no']));
+            $subPartNo = strtoupper(trim((string) $row['substitute_part_no']));
 
             // 1. Find FG Part
             $fgPart = GciPart::where('part_no', $fgPartNo)->first();
@@ -76,6 +80,14 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
 
             // 4. Find Substitute Part
             $subPart = GciPart::where('part_no', $subPartNo)->first();
+            if (!$subPart && $this->autoCreateParts) {
+                $subPart = GciPart::query()->create([
+                    'part_no' => $subPartNo,
+                    'part_name' => 'AUTO-CREATED (SUBSTITUTE)',
+                    'classification' => 'RM',
+                    'status' => 'active',
+                ]);
+            }
             if (!$subPart) {
                 $this->addFailure($rowIndex, "Substitute Part not found: $subPartNo");
                 continue;

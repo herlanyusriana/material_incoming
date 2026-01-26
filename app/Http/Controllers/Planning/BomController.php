@@ -171,10 +171,11 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+            'auto_create_parts' => ['nullable', 'boolean'],
         ]);
 
         try {
-            $import = new BomSubstituteImport();
+            $import = new BomSubstituteImport((bool) ($validated['auto_create_parts'] ?? true));
             Excel::import($import, $validated['file']);
 
             $failures = collect($import->failures());
