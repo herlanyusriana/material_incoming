@@ -83,6 +83,15 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         return $value === '' ? null : strtoupper($value);
     }
 
+    private function whereNullable($query, string $column, mixed $value)
+    {
+        if ($value === null || (is_string($value) && trim($value) === '')) {
+            return $query->whereNull($column);
+        }
+
+        return $query->where($column, $value);
+    }
+
     public function prepareForValidation(array $data, int $index): array
     {
         $upperKeys = [
@@ -180,14 +189,8 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             $lineNo = $next > 0 ? $next : 1;
         }
 
-        $item = BomItem::query()
-            ->where('bom_id', $bom->id)
-            ->where('line_no', $lineNo)
-            ->first();
-
         $payload = [
             'bom_id' => $bom->id,
-            'line_no' => $lineNo,
             'process_name' => $processName ? trim($processName) : null,
             'machine_name' => $machineName ? trim($machineName) : null,
             'wip_part_id' => null, // Explicitly null as we use wip_part_no
@@ -206,11 +209,36 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'consumption_uom' => $consumptionUom,
         ];
 
-        if ($item) {
-            $item->update($payload);
+        // Update only if the same logical row exists; otherwise create a new line.
+        // This prevents accidental overwrites when `line_no` is duplicated in the file.
+        $signatureQuery = BomItem::query()->where('bom_id', $bom->id);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'process_name', $payload['process_name']);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'machine_name', $payload['machine_name']);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'wip_part_no', $payload['wip_part_no']);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'component_part_no', $payload['component_part_no']);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'material_size', $payload['material_size']);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'material_spec', $payload['material_spec']);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'material_name', $payload['material_name']);
+
+        $existing = $signatureQuery->first();
+        if ($existing) {
+            $existing->update($payload);
             $this->rowCount++;
             return null;
         }
+
+        // Use provided line_no if it's free; otherwise append at the end.
+        $requestedLineNo = $lineNo;
+        $lineNoTaken = BomItem::query()
+            ->where('bom_id', $bom->id)
+            ->where('line_no', $requestedLineNo)
+            ->exists();
+
+        if ($lineNoTaken) {
+            $lineNo = (int) (BomItem::query()->where('bom_id', $bom->id)->max('line_no') ?? 0) + 1;
+        }
+
+        $payload['line_no'] = $lineNo;
 
         BomItem::create($payload);
         $this->rowCount++;

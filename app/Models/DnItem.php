@@ -14,7 +14,14 @@ class DnItem extends Model
         'gci_part_id',
         'customer_po_id',
         'qty',
+        'picked_qty',
+        'picked_at',
+        'picked_by',
         'kitting_location_code',
+    ];
+
+    protected $casts = [
+        'picked_at' => 'datetime',
     ];
 
     public function deliveryNote()
@@ -30,5 +37,10 @@ class DnItem extends Model
     public function customerPo()
     {
         return $this->belongsTo(CustomerPo::class, 'customer_po_id');
+    }
+
+    public function picker()
+    {
+        return $this->belongsTo(User::class, 'picked_by');
     }
 }

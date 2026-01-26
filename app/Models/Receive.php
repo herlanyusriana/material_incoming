@@ -14,6 +14,9 @@ class Receive extends Model
         'bundle_qty',
         'ata_date',
         'qc_status',
+        'qc_note',
+        'qc_updated_at',
+        'qc_updated_by',
         'weight',
         'net_weight',
         'gross_weight',
@@ -27,10 +30,16 @@ class Receive extends Model
 
     protected $casts = [
         'ata_date' => 'datetime',
+        'qc_updated_at' => 'datetime',
     ];
 
     public function arrivalItem()
     {
         return $this->belongsTo(ArrivalItem::class);
+    }
+
+    public function qcUpdater()
+    {
+        return $this->belongsTo(User::class, 'qc_updated_by');
     }
 }

@@ -43,6 +43,10 @@
                             COMPLETE KITTING
                         </button>
                     @elseif ($deliveryNote->status === 'ready_to_pick')
+                        <a href="{{ route('outgoing.delivery-notes.picking-scan', $deliveryNote) }}"
+                            class="px-6 py-2 rounded-xl border border-slate-200 text-slate-700 font-black hover:bg-slate-50">
+                            PICKING SCAN
+                        </a>
                         <form action="{{ route('outgoing.delivery-notes.start-picking', $deliveryNote) }}" method="POST">
                             @csrf
                             <button type="submit" class="px-6 py-2 rounded-xl bg-amber-600 text-white font-black hover:bg-amber-700 shadow-lg shadow-amber-100 transition-all active:scale-95">
@@ -50,6 +54,10 @@
                             </button>
                         </form>
                     @elseif ($deliveryNote->status === 'picking')
+                        <a href="{{ route('outgoing.delivery-notes.picking-scan', $deliveryNote) }}"
+                            class="px-6 py-2 rounded-xl border border-slate-200 text-slate-700 font-black hover:bg-slate-50">
+                            PICKING SCAN
+                        </a>
                         <form action="{{ route('outgoing.delivery-notes.complete-picking', $deliveryNote) }}" method="POST">
                             @csrf
                             <button type="submit" class="px-6 py-2 rounded-xl bg-blue-600 text-white font-black hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">
@@ -98,6 +106,7 @@
                                 <th class="px-5 py-3 text-left font-bold text-slate-600">Part Number</th>
                                 <th class="px-5 py-3 text-left font-bold text-slate-600">Part Name</th>
                                 <th class="px-5 py-3 text-left font-bold text-slate-600">Kitting Location</th>
+                                <th class="px-5 py-3 text-right font-bold text-slate-600">Picked</th>
                                 <th class="px-5 py-3 text-right font-bold text-slate-600">Quantity</th>
                             </tr>
                         </thead>
@@ -126,6 +135,9 @@
                                             <span class="font-mono text-xs">{{ $item->kitting_location_code ?: '-' }}</span>
                                         @endif
                                     </td>
+                                    <td class="px-5 py-4 text-right font-black text-slate-900">
+                                        {{ number_format((float) ($item->picked_qty ?? 0), 4) }}
+                                    </td>
                                     <td class="px-5 py-4 text-right font-black text-indigo-600 text-lg">{{ number_format($item->qty) }}</td>
                                 </tr>
                             @endforeach
@@ -133,6 +145,7 @@
                         <tfoot class="bg-indigo-50 font-black">
                             <tr>
                                 <td colspan="3" class="px-5 py-4 text-right text-indigo-900 uppercase tracking-wider">Total Quantity</td>
+                                <td class="px-5 py-4 text-right text-indigo-900 text-xl">{{ number_format((float) $deliveryNote->items->sum('picked_qty'), 4) }}</td>
                                 <td class="px-5 py-4 text-right text-indigo-900 text-xl">{{ number_format($deliveryNote->items->sum('qty')) }}</td>
                             </tr>
                         </tfoot>

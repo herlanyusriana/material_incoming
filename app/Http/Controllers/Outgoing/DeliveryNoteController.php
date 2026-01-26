@@ -79,7 +79,7 @@ class DeliveryNoteController extends Controller
 
     public function show(DeliveryNote $deliveryNote)
     {
-        $deliveryNote->load(['customer', 'items.part', 'items.customerPo']);
+        $deliveryNote->load(['customer', 'items.part', 'items.customerPo', 'items.picker']);
 
         $kittingLocationsByItem = [];
         if (Schema::hasTable('warehouse_locations') && Schema::hasTable('location_inventory')) {
@@ -122,6 +122,79 @@ class DeliveryNoteController extends Controller
         return view('outgoing.delivery_notes.show', compact('deliveryNote', 'kittingLocationsByItem'));
     }
 
+    public function pickingScan(DeliveryNote $deliveryNote)
+    {
+        if (!in_array($deliveryNote->status, [self::STATUS_PICKING, self::STATUS_READY_TO_PICK], true)) {
+            return back()->with('error', 'Delivery Note must be ready to pick / picking.');
+        }
+
+        $deliveryNote->load(['customer', 'items.part']);
+
+        return view('outgoing.delivery_notes.picking_scan', compact('deliveryNote'));
+    }
+
+    public function pickingScanStore(Request $request, DeliveryNote $deliveryNote)
+    {
+        if ($deliveryNote->status !== self::STATUS_PICKING) {
+            return back()->with('error', 'Picking scan only available when status is PICKING. Click START PICKING first.');
+        }
+
+        $validated = $request->validate([
+            'location_code' => ['required', 'string', 'max:50'],
+            'part_no' => ['required', 'string', 'max:100'],
+            'qty' => ['nullable', 'numeric', 'min:0.0001'],
+        ]);
+
+        $locationCode = strtoupper(trim((string) $validated['location_code']));
+        $partNo = strtoupper(trim((string) $validated['part_no']));
+        $qty = (float) ($validated['qty'] ?? 1);
+
+        $deliveryNote->loadMissing(['items.part']);
+
+        $item = $deliveryNote->items
+            ->first(function ($i) use ($partNo, $locationCode) {
+                $pno = strtoupper(trim((string) ($i->part?->part_no ?? '')));
+                $loc = strtoupper(trim((string) ($i->kitting_location_code ?? '')));
+
+                $remaining = (float) $i->qty - (float) ($i->picked_qty ?? 0);
+                return $pno === $partNo && $loc === $locationCode && $remaining > 0;
+            });
+
+        if (!$item) {
+            $msg = "No matching DN item remaining for part {$partNo} at location {$locationCode}.";
+            return back()->with('error', $msg);
+        }
+
+        $remaining = (float) $item->qty - (float) ($item->picked_qty ?? 0);
+        if ($qty > $remaining) {
+            return back()->with('error', "Pick qty too large. Remaining {$remaining} for {$partNo}.");
+        }
+
+        DB::transaction(function () use ($item, $qty, $request) {
+            $locked = DnItem::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
+            $current = (float) ($locked->picked_qty ?? 0);
+            $new = $current + $qty;
+
+            if ($new > (float) $locked->qty) {
+                throw new \RuntimeException('Pick qty exceeds required qty.');
+            }
+
+            $payload = [
+                'picked_qty' => $new,
+            ];
+
+            if ($new >= (float) $locked->qty) {
+                $payload['picked_at'] = now();
+                $payload['picked_by'] = (int) ($request->user()?->id ?? 0) ?: null;
+            }
+
+            $locked->update($payload);
+        });
+
+        $done = ((float) ($item->picked_qty ?? 0) + $qty) >= (float) $item->qty;
+        return back()->with('success', $done ? "Picked complete: {$partNo}" : "Picked: {$partNo} (+{$qty})");
+    }
+
     public function startPicking(DeliveryNote $deliveryNote)
     {
         if ($deliveryNote->status !== self::STATUS_READY_TO_PICK) {
@@ -137,6 +210,12 @@ class DeliveryNoteController extends Controller
     {
         if ($deliveryNote->status !== self::STATUS_PICKING) {
             return back()->with('error', 'Only delivery notes in picking status can be completed.');
+        }
+
+        $deliveryNote->loadMissing(['items']);
+        $incomplete = $deliveryNote->items->first(fn ($i) => (float) ($i->picked_qty ?? 0) < (float) $i->qty);
+        if ($incomplete) {
+            return back()->with('error', 'Picking belum lengkap. Pastikan semua item sudah picked qty = required qty.');
         }
 
         $deliveryNote->update(['status' => self::STATUS_READY_TO_SHIP]);

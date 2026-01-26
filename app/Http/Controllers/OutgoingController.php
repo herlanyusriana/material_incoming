@@ -12,6 +12,7 @@ use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDailyPlanRow;
 use App\Models\CustomerPart;
+use App\Models\DeliveryRequirementFulfillment;
 use App\Models\GciPart;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
@@ -235,12 +236,34 @@ class OutgoingController extends Controller
                 });
         }
 
-        // Fetch cells from Daily Plans within range, filtered by quantity
+        // Fetch planned cells within range (we will subtract fulfillments below)
         $cells = OutgoingDailyPlanCell::query()
             ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
             ->whereBetween('plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
             ->where('qty', '>', 0)
             ->get();
+
+        $fulfilledMap = DeliveryRequirementFulfillment::query()
+            ->selectRaw('plan_date, row_id, SUM(qty) as fulfilled_qty')
+            ->whereBetween('plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
+            ->groupBy('plan_date', 'row_id')
+            ->get()
+            ->mapWithKeys(function ($r) {
+                $k = (string) $r->plan_date . '|' . (int) $r->row_id;
+                return [$k => (float) $r->fulfilled_qty];
+            })
+            ->all();
+
+        $cells = $cells
+            ->map(function ($cell) use ($fulfilledMap) {
+                $key = $cell->plan_date->format('Y-m-d') . '|' . (int) $cell->row_id;
+                $fulfilled = (float) ($fulfilledMap[$key] ?? 0);
+                $remaining = max(0, (float) $cell->qty - $fulfilled);
+                $cell->remaining_qty = $remaining;
+                return $cell;
+            })
+            ->filter(fn ($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
+            ->values();
 
         $requirements = $cells->groupBy(function ($cell) {
             // Group key: Date|Part|Seq
@@ -258,7 +281,7 @@ class OutgoingController extends Controller
             
             $gciPart = $first->row->gciPart ?? null;
 
-            $totalQty = $group->sum('qty');
+            $totalQty = $group->sum(fn ($c) => (float) ($c->remaining_qty ?? 0));
             $stdPacking = $gciPart?->standardPacking ?? null;
             $packQty = $stdPacking?->packing_qty ?? 1;
 
@@ -410,8 +433,8 @@ class OutgoingController extends Controller
                 }
             }
 
-            // Mark selected requirements as fulfilled (so they won't show again):
-            // Delivery Requirements page is based on OutgoingDailyPlanCell qty > 0.
+            // Mark selected requirements as fulfilled without mutating Daily Planning:
+            // Create fulfillment records (best-effort, idempotent on remaining qty).
             $rowIds = $selectedLines
                 ->flatMap(fn ($l) => $l['row_ids'] ?? [])
                 ->map(fn ($v) => (int) $v)
@@ -419,11 +442,44 @@ class OutgoingController extends Controller
                 ->unique()
                 ->values();
 
-            if ($rowIds->isNotEmpty()) {
-                \App\Models\OutgoingDailyPlanCell::query()
-                    ->whereIn('row_id', $rowIds->all())
-                    ->whereDate('plan_date', $planDate)
-                    ->update(['qty' => 0]);
+            if ($rowIds->isEmpty()) {
+                return;
+            }
+
+            $cells = \App\Models\OutgoingDailyPlanCell::query()
+                ->whereIn('row_id', $rowIds->all())
+                ->whereDate('plan_date', $planDate)
+                ->get(['row_id', 'qty', 'plan_date']);
+
+            $alreadyFulfilled = DeliveryRequirementFulfillment::query()
+                ->whereIn('row_id', $rowIds->all())
+                ->whereDate('plan_date', $planDate)
+                ->selectRaw('row_id, SUM(qty) as fulfilled_qty')
+                ->groupBy('row_id')
+                ->pluck('fulfilled_qty', 'row_id')
+                ->map(fn ($v) => (float) $v)
+                ->all();
+
+            foreach ($cells as $cell) {
+                $planned = (float) $cell->qty;
+                if ($planned <= 0) {
+                    continue;
+                }
+
+                $rowId = (int) $cell->row_id;
+                $fulfilled = (float) ($alreadyFulfilled[$rowId] ?? 0);
+                $remaining = max(0, $planned - $fulfilled);
+                if ($remaining <= 0) {
+                    continue;
+                }
+
+                DeliveryRequirementFulfillment::create([
+                    'plan_date' => $planDate,
+                    'row_id' => $rowId,
+                    'qty' => $remaining,
+                    'delivery_plan_id' => (int) $plan->id,
+                    'created_by' => auth()->id(),
+                ]);
             }
         });
 

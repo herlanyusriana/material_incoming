@@ -13,6 +13,7 @@ use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\LogisticsDashboardController;
 use App\Http\Controllers\WarehousePutawayController;
+use App\Http\Controllers\WarehouseQcController;
 use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
 use App\Http\Controllers\Planning\BomController as PlanningBomController;
 use App\Http\Controllers\Planning\GciPartController as PlanningGciPartController;
@@ -111,6 +112,9 @@ Route::middleware('auth')->group(function () {
 
     // Warehouse Bin Transfers
     Route::prefix('warehouse')->name('warehouse.')->group(function () {
+        Route::get('/qc', [WarehouseQcController::class, 'index'])->name('qc.index');
+        Route::post('/qc/{receive}', [WarehouseQcController::class, 'update'])->name('qc.update');
+
         Route::get('/putaway', [WarehousePutawayController::class, 'index'])->name('putaway.index');
         Route::post('/putaway/{receive}', [WarehousePutawayController::class, 'store'])->name('putaway.store');
         Route::post('/putaway', [WarehousePutawayController::class, 'bulk'])->name('putaway.bulk');
@@ -181,6 +185,8 @@ Route::middleware('auth')->group(function () {
         Route::post('delivery-notes/{delivery_note}/complete-kitting', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'completeKitting'])->name('delivery-notes.complete-kitting');
         Route::post('delivery-notes/{delivery_note}/start-picking', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startPicking'])->name('delivery-notes.start-picking');
         Route::post('delivery-notes/{delivery_note}/complete-picking', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'completePicking'])->name('delivery-notes.complete-picking');
+        Route::get('delivery-notes/{delivery_note}/picking-scan', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'pickingScan'])->name('delivery-notes.picking-scan');
+        Route::post('delivery-notes/{delivery_note}/picking-scan', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'pickingScanStore'])->name('delivery-notes.picking-scan.store');
         Route::post('delivery-notes/{delivery_note}/ship', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'ship'])->name('delivery-notes.ship');
 
         Route::get('standard-packings/template', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'template'])->name('standard-packings.template');

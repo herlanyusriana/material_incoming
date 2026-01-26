@@ -6,6 +6,7 @@
             </h2>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('receives.index') }}" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">Receiving</a>
+                <a href="{{ route('warehouse.qc.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">QC Queue</a>
                 <a href="{{ route('warehouse.putaway.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Putaway Queue</a>
                 <a href="{{ route('inventory.locations.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Locations</a>
                 <a href="{{ route('warehouse.stock.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Stock by Location</a>
