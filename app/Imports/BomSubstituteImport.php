@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
 class BomSubstituteImport implements ToCollection, WithHeadingRow
 {
     public int $rowCount = 0;
-    protected $failures = [];
+    protected array $failures = [];
 
     public function collection(Collection $rows)
     {
@@ -36,10 +36,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             ]);
 
             if ($validator->fails()) {
-                $this->failures[] = (object) [
-                    'row' => fn() => $rowIndex,
-                    'errors' => fn() => $validator->errors()->all(),
-                ];
+                $this->failures[] = new ImportFailure($rowIndex, $validator->errors()->all());
                 continue;
             }
 
@@ -104,13 +101,10 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
 
     protected function addFailure($row, $message)
     {
-        $this->failures[] = (object) [
-            'row' => fn() => $row,
-            'errors' => fn() => [$message],
-        ];
+        $this->failures[] = new ImportFailure((int) $row, [$message]);
     }
 
-    public function failures()
+    public function failures(): array
     {
         return $this->failures;
     }

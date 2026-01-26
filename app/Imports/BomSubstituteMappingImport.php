@@ -113,10 +113,7 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
 
     protected function addFailure(int $row, string $message): void
     {
-        $this->failures[] = (object) [
-            'row' => fn () => $row,
-            'errors' => fn () => [$message],
-        ];
+        $this->failures[] = new ImportFailure($row, [$message]);
     }
 
     public function failures(): array
@@ -124,4 +121,3 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
         return $this->failures;
     }
 }
-
