@@ -12,6 +12,7 @@ class BomItemSubstitute extends Model
     protected $fillable = [
         'bom_item_id',
         'substitute_part_id',
+        'substitute_part_no',
         'ratio',
         'priority',
         'status',
@@ -28,4 +29,3 @@ class BomItemSubstitute extends Model
         return $this->belongsTo(GciPart::class, 'substitute_part_id');
     }
 }
-

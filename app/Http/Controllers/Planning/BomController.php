@@ -163,7 +163,6 @@ class BomController extends Controller
             }
 
             return back()->with('error', 'Import failed: ' . $e->getMessage());
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 

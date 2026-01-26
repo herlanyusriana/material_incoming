@@ -10,15 +10,23 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class BomSubstituteImport implements ToCollection, WithHeadingRow
 {
     public int $rowCount = 0;
     protected array $failures = [];
+    protected array $seenKeys = [];
 
     public function __construct(private readonly bool $autoCreateParts = true)
     {
+    }
+
+    private function normalizePartNo(mixed $value): string
+    {
+        $normalized = strtoupper(trim((string) $value));
+        $normalized = preg_replace('/\\s+/u', '', $normalized) ?? $normalized;
+
+        return $normalized;
     }
 
     public function collection(Collection $rows)
@@ -44,9 +52,20 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            $fgPartNo = strtoupper(trim((string) $row['fg_part_no']));
-            $componentPartNo = strtoupper(trim((string) $row['component_part_no']));
-            $subPartNo = strtoupper(trim((string) $row['substitute_part_no']));
+            $fgPartNo = $this->normalizePartNo($row['fg_part_no']);
+            $componentPartNo = $this->normalizePartNo($row['component_part_no']);
+            $subPartNo = $this->normalizePartNo($row['substitute_part_no']);
+            if ($fgPartNo === '' || $componentPartNo === '' || $subPartNo === '') {
+                $this->addFailure($rowIndex, 'fg_part_no/component_part_no/substitute_part_no cannot be empty');
+                continue;
+            }
+
+            $dedupeKey = "{$fgPartNo}|{$componentPartNo}|{$subPartNo}";
+            if (isset($this->seenKeys[$dedupeKey])) {
+                $this->addFailure($rowIndex, "Duplicate row in file: {$dedupeKey}");
+                continue;
+            }
+            $this->seenKeys[$dedupeKey] = true;
 
             // 1. Find FG Part
             $fgPart = GciPart::where('part_no', $fgPartNo)->first();
@@ -56,7 +75,11 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             }
 
             // 2. Find BOM
-            $bom = Bom::where('part_id', $fgPart->id)->first();
+            $bom = Bom::activeVersion($fgPart->id) ?? Bom::query()
+                ->where('part_id', $fgPart->id)
+                ->orderByDesc('effective_date')
+                ->orderByDesc('id')
+                ->first();
             if (!$bom) {
                 $this->addFailure($rowIndex, "BOM not found for FG: $fgPartNo");
                 continue;
@@ -67,11 +90,20 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             $bomItem = BomItem::query()
                 ->where('bom_id', $bom->id)
                 ->where(function ($q) use ($componentPartNo) {
-                    $q->where('component_part_no', $componentPartNo)
-                      ->orWhereHas('componentPart', fn($sq) => $sq->where('part_no', $componentPartNo))
-                      ->orWhere('wip_part_no', $componentPartNo);
+                    $q->whereRaw('TRIM(UPPER(component_part_no)) = ?', [$componentPartNo])
+                        ->orWhereHas('componentPart', fn ($sq) => $sq->whereRaw('TRIM(UPPER(part_no)) = ?', [$componentPartNo]))
+                        ->orWhereRaw('TRIM(UPPER(wip_part_no)) = ?', [$componentPartNo]);
                 })
                 ->first();
+            if (!$bomItem) {
+                $bomItem = BomItem::query()
+                    ->where('bom_id', $bom->id)
+                    ->where(function ($q) use ($componentPartNo) {
+                        $q->whereRaw('UPPER(component_part_no) LIKE ?', [$componentPartNo . '%'])
+                            ->orWhereRaw('UPPER(wip_part_no) LIKE ?', [$componentPartNo . '%']);
+                    })
+                    ->first();
+            }
 
             if (!$bomItem) {
                 $this->addFailure($rowIndex, "BOM line not found for component: $componentPartNo in BOM $fgPartNo");
@@ -93,19 +125,34 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            // 5. Create/Update Substitute
-            BomItemSubstitute::updateOrCreate(
-                [
-                    'bom_item_id' => $bomItem->id,
-                    'substitute_part_id' => $subPart->id,
-                ],
-                [
-                    'ratio' => $row['ratio'] ?? 1,
-                    'priority' => $row['priority'] ?? 1,
-                    'status' => $row['status'] ?? 'active',
-                    'notes' => $row['notes'] ?? null,
-                ]
-            );
+            // 5. Create/Update Substitute (reject duplicates in DB)
+            $existing = BomItemSubstitute::query()
+                ->where('bom_item_id', (int) $bomItem->id)
+                ->where('substitute_part_id', (int) $subPart->id)
+                ->get();
+            if ($existing->count() > 1) {
+                $this->addFailure($rowIndex, "Duplicate substitute records already exist in DB for component {$componentPartNo} / sub {$subPartNo} (FG {$fgPartNo}). Please cleanup duplicates first.");
+                continue;
+            }
+
+            $payload = [
+                'ratio' => $row['ratio'] ?? 1,
+                'priority' => $row['priority'] ?? 1,
+                'status' => $row['status'] ?? 'active',
+                'notes' => $row['notes'] ?? null,
+            ];
+
+            if ($existing->count() === 1) {
+                $existing->first()->update($payload);
+            } else {
+                BomItemSubstitute::query()->create(array_merge(
+                    [
+                        'bom_item_id' => (int) $bomItem->id,
+                        'substitute_part_id' => (int) $subPart->id,
+                    ],
+                    $payload
+                ));
+            }
 
             $this->rowCount++;
         }

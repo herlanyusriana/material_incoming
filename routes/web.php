@@ -11,6 +11,8 @@ use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\TruckingController;
+use App\Http\Controllers\LogisticsDashboardController;
+use App\Http\Controllers\WarehousePutawayController;
 use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
 use App\Http\Controllers\Planning\BomController as PlanningBomController;
 use App\Http\Controllers\Planning\GciPartController as PlanningGciPartController;
@@ -65,6 +67,7 @@ Route::get('/departures/{departure}/export-detail', [ArrivalController::class, '
 
 Route::middleware('auth')->group(function () {
     Route::view('/incoming-material', 'incoming-material.dashboard')->name('incoming-material.dashboard');
+    Route::get('/logistics', [LogisticsDashboardController::class, 'index'])->name('logistics.dashboard');
     Route::resource('vendors', VendorController::class)->except(['show']);
     Route::get('/vendors/export', [VendorController::class, 'export'])->name('vendors.export');
     Route::post('/vendors/import', [VendorController::class, 'import'])->name('vendors.import');
@@ -108,6 +111,10 @@ Route::middleware('auth')->group(function () {
 
     // Warehouse Bin Transfers
     Route::prefix('warehouse')->name('warehouse.')->group(function () {
+        Route::get('/putaway', [WarehousePutawayController::class, 'index'])->name('putaway.index');
+        Route::post('/putaway/{receive}', [WarehousePutawayController::class, 'store'])->name('putaway.store');
+        Route::post('/putaway', [WarehousePutawayController::class, 'bulk'])->name('putaway.bulk');
+
         Route::get('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'index'])->name('bin-transfers.index');
         Route::get('/bin-transfers/create', [\App\Http\Controllers\BinTransferController::class, 'create'])->name('bin-transfers.create');
         Route::post('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'store'])->name('bin-transfers.store');

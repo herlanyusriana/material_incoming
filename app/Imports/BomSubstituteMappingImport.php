@@ -14,6 +14,7 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
 {
     public int $rowCount = 0;
     protected array $failures = [];
+    protected array $seenKeys = [];
 
     public function __construct(private readonly bool $autoCreateParts = true)
     {
@@ -47,6 +48,13 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
                 $this->addFailure($rowIndex, 'component_part_no/substitute_part_no cannot be empty');
                 continue;
             }
+
+            $dedupeKey = "{$componentPartNo}|{$subPartNo}";
+            if (isset($this->seenKeys[$dedupeKey])) {
+                $this->addFailure($rowIndex, "Duplicate row in file: {$dedupeKey}");
+                continue;
+            }
+            $this->seenKeys[$dedupeKey] = true;
 
             $supplier = isset($row['supplier']) ? trim((string) $row['supplier']) : '';
             $notes = isset($row['notes']) ? trim((string) $row['notes']) : '';
@@ -92,19 +100,34 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             }
 
             foreach ($bomItems as $bomItem) {
-                BomItemSubstitute::updateOrCreate(
-                    [
-                        'bom_item_id' => (int) $bomItem->id,
-                        'substitute_part_id' => (int) $subPart->id,
-                    ],
-                    [
-                        'substitute_part_no' => $subPartNo,
-                        'ratio' => $row['ratio'] ?? 1,
-                        'priority' => $row['priority'] ?? 1,
-                        'status' => $row['status'] ?? 'active',
-                        'notes' => $finalNotes !== '' ? $finalNotes : null,
-                    ]
-                );
+                $existing = BomItemSubstitute::query()
+                    ->where('bom_item_id', (int) $bomItem->id)
+                    ->where('substitute_part_id', (int) $subPart->id)
+                    ->get();
+                if ($existing->count() > 1) {
+                    $this->addFailure($rowIndex, "Duplicate substitute records already exist in DB for component {$componentPartNo} / sub {$subPartNo}. Please cleanup duplicates first.");
+                    continue;
+                }
+
+                $payload = [
+                    'substitute_part_no' => $subPartNo,
+                    'ratio' => $row['ratio'] ?? 1,
+                    'priority' => $row['priority'] ?? 1,
+                    'status' => $row['status'] ?? 'active',
+                    'notes' => $finalNotes !== '' ? $finalNotes : null,
+                ];
+
+                if ($existing->count() === 1) {
+                    $existing->first()->update($payload);
+                } else {
+                    BomItemSubstitute::query()->create(array_merge(
+                        [
+                            'bom_item_id' => (int) $bomItem->id,
+                            'substitute_part_id' => (int) $subPart->id,
+                        ],
+                        $payload
+                    ));
+                }
             }
 
             $this->rowCount++;
