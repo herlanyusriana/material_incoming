@@ -107,12 +107,20 @@
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-2 py-2 border-r border-slate-200 text-slate-600 font-semibold sticky-l left-0">{{ $no }}</td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-12">{{ $r->delivery_class }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[168px]">{{ $r->part_name }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[168px]">
+	                                    <div class="font-semibold">{{ $r->part_name }}</div>
+	                                    @if(!empty($r->part_model))
+	                                        <div class="text-[10px] text-slate-500">Model: {{ $r->part_model }}</div>
+	                                    @endif
+	                                </td>
                                     <td class="px-2 py-2 border-r border-slate-200 font-mono text-indigo-700 font-bold sticky-l left-[388px]">{{ $r->part_no }}</td>
 	                                    <td class="px-2 py-2 border-r border-slate-200 text-center text-slate-700 font-semibold sticky-l left-[528px]">
 	                                        @if(($r->std_pack_qty ?? null) !== null)
 	                                            {{ (float) $r->std_pack_qty > 0 ? number_format((float) $r->std_pack_qty, 0) : '-' }}
 	                                            <span class="text-[10px] text-slate-500">{{ $r->std_pack_uom ?? '' }}</span>
+	                                            @if(!empty($r->trolley_type))
+	                                                <div class="text-[10px] text-slate-500">Trolley: {{ $r->trolley_type }}</div>
+	                                            @endif
 	                                        @else
 	                                            -
 	                                        @endif

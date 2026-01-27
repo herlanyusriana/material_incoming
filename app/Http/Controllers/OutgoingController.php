@@ -843,6 +843,8 @@ class OutgoingController extends Controller
                 $partId = (int) ($gciPart?->id ?? 0);
                 $stdPackQty = $gciPart?->standardPacking?->packing_qty;
                 $stdPackUom = $gciPart?->standardPacking?->uom;
+                $trolleyType = $gciPart?->standardPacking?->trolley_type;
+                $partModel = $gciPart?->model;
 
                 $perSeqGross = [];
                 foreach ($sequences as $seq) {
@@ -911,6 +913,8 @@ class OutgoingController extends Controller
                     'production_lines' => $productionLines !== '' ? $productionLines : '-',
                     'std_pack_qty' => $stdPackQty,
                     'std_pack_uom' => $stdPackUom,
+                    'trolley_type' => $trolleyType,
+                    'part_model' => $partModel,
                     'plan_total' => $planTotal,
                     'stock_at_customer' => $stock,
                     'balance' => $balance,
