@@ -10,6 +10,7 @@ use App\Http\Controllers\GciInventoryController;
 use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
+use App\Http\Controllers\Outgoing\SalesOrderController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\LogisticsDashboardController;
 use App\Http\Controllers\WarehousePutawayController;
@@ -179,6 +180,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
         Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
+
+        Route::get('sales-orders/{sales_order}', [SalesOrderController::class, 'show'])->name('sales-orders.show');
+        Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');
 
         Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);
         Route::post('delivery-notes/{delivery_note}/start-kitting', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startKitting'])->name('delivery-notes.start-kitting');

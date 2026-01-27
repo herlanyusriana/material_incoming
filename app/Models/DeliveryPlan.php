@@ -39,4 +39,9 @@ class DeliveryPlan extends Model
     {
         return $this->hasMany(DeliveryNote::class, 'delivery_plan_id');
     }
+
+    public function salesOrders()
+    {
+        return $this->hasMany(SalesOrder::class, 'delivery_plan_id');
+    }
 }

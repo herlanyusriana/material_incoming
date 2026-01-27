@@ -14,6 +14,8 @@ use App\Models\OutgoingDailyPlanRow;
 use App\Models\CustomerPart;
 use App\Models\DeliveryRequirementFulfillment;
 use App\Models\GciPart;
+use App\Models\SalesOrderItem;
+use App\Models\SalesOrder;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -212,7 +214,8 @@ class OutgoingController extends Controller
         // Best-effort: backfill missing gci_part_id for rows that have demand in this date range.
         $rowIdsNeedingFix = OutgoingDailyPlanCell::query()
             ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
-            ->whereBetween('outgoing_daily_plan_cells.plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
+            ->whereDate('outgoing_daily_plan_cells.plan_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('outgoing_daily_plan_cells.plan_date', '<=', $dateTo->format('Y-m-d'))
             ->where('outgoing_daily_plan_cells.qty', '>', 0)
             ->whereNull('r.gci_part_id')
             ->distinct()
@@ -239,13 +242,15 @@ class OutgoingController extends Controller
         // Fetch planned cells within range (we will subtract fulfillments below)
         $cells = OutgoingDailyPlanCell::query()
             ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
-            ->whereBetween('plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
+            ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('plan_date', '<=', $dateTo->format('Y-m-d'))
             ->where('qty', '>', 0)
             ->get();
 
         $fulfilledMap = DeliveryRequirementFulfillment::query()
             ->selectRaw('plan_date, row_id, SUM(qty) as fulfilled_qty')
-            ->whereBetween('plan_date', [$dateFrom->format('Y-m-d'), $dateTo->format('Y-m-d')])
+            ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('plan_date', '<=', $dateTo->format('Y-m-d'))
             ->groupBy('plan_date', 'row_id')
             ->get()
             ->mapWithKeys(function ($r) {
@@ -265,7 +270,61 @@ class OutgoingController extends Controller
             ->filter(fn ($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
             ->values();
 
-        $requirements = $cells->groupBy(function ($cell) {
+        // Stock at Customers (consignment) map: period|customer_id|gci_part_id => record.
+        // We'll subtract available stock from requirements, allocating stock to the latest sequence first
+        // so earlier sequences remain prioritized.
+        $periods = $cells
+            ->pluck('plan_date')
+            ->filter()
+            ->map(fn ($d) => $d->format('Y-m'))
+            ->unique()
+            ->values();
+
+        $customerIds = $cells
+            ->map(fn ($c) => $c->row?->gciPart?->customer_id)
+            ->filter(fn ($v) => $v !== null)
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values();
+
+        $partIds = $cells
+            ->map(fn ($c) => $c->row?->gci_part_id)
+            ->filter(fn ($v) => $v !== null)
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values();
+
+        $stockMap = [];
+        if ($periods->isNotEmpty() && $customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
+            $stockMap = StockAtCustomer::query()
+                ->whereIn('period', $periods->all())
+                ->whereIn('customer_id', $customerIds->all())
+                ->whereIn('gci_part_id', $partIds->all())
+                ->get()
+                ->mapWithKeys(function ($rec) {
+                    $k = (string) $rec->period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
+                    return [$k => $rec];
+                })
+                ->all();
+        }
+
+        $getStockAtCustomer = function (Carbon $date, int $customerId, int $gciPartId) use ($stockMap): float {
+            $period = $date->format('Y-m');
+            $day = (int) $date->format('j');
+            if ($day < 1 || $day > 31) {
+                return 0.0;
+            }
+
+            $k = $period . '|' . $customerId . '|' . $gciPartId;
+            $rec = $stockMap[$k] ?? null;
+            if (!$rec) {
+                return 0.0;
+            }
+
+            return (float) ($rec->{'day_' . $day} ?? 0);
+        };
+
+        $lines = $cells->groupBy(function ($cell) {
             // Group key: Date|Part|Seq
             // Keep seq in the key so aggregated requirements don't "inherit" the wrong sequence
             // when the same part appears under different seq in Daily Planning.
@@ -281,10 +340,6 @@ class OutgoingController extends Controller
             
             $gciPart = $first->row->gciPart ?? null;
 
-            $totalQty = $group->sum(fn ($c) => (float) ($c->remaining_qty ?? 0));
-            $stdPacking = $gciPart?->standardPacking ?? null;
-            $packQty = $stdPacking?->packing_qty ?? 1;
-
             $sequence = $first->seq !== null && $first->seq !== '' ? (int) $first->seq : 9999;
             
             return (object) [
@@ -293,14 +348,58 @@ class OutgoingController extends Controller
                 'gci_part' => $gciPart,
                 'customer_part_no' => $first->row->part_no,
                 'unmapped' => $gciPart === null,
-                'total_qty' => $totalQty,
+                'gross_qty' => $group->sum(fn ($c) => (float) ($c->remaining_qty ?? 0)),
                 'sequence' => $sequence,
-                'packing_std' => $packQty,
-                'packing_load' => $packQty > 0 ? ceil($totalQty / $packQty) : 0,
-                'uom' => $stdPacking?->uom ?? 'PCS',
+                'packing_std' => ($gciPart?->standardPacking?->packing_qty ?? 1) ?: 1,
+                'uom' => $gciPart?->standardPacking?->uom ?? 'PCS',
                 'source_row_ids' => $group->pluck('row_id')->unique()->values(),
             ];
-        })->filter()->sort(function($a, $b) {
+        })->filter()->values();
+
+        // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
+        $requirements = $lines
+            ->groupBy(function ($r) {
+                $date = $r->date?->format('Y-m-d') ?? '';
+                $custId = (int) ($r->customer?->id ?? 0);
+                $partId = (int) ($r->gci_part?->id ?? 0);
+                return "{$date}|cust:{$custId}|part:{$partId}";
+            })
+            ->flatMap(function ($group) use ($getStockAtCustomer) {
+                /** @var \Illuminate\Support\Collection $group */
+                $first = $group->first();
+                $date = $first->date;
+                $custId = (int) ($first->customer?->id ?? 0);
+                $partId = (int) ($first->gci_part?->id ?? 0);
+
+                $stockTotal = 0.0;
+                if ($date && $custId > 0 && $partId > 0) {
+                    $stockTotal = $getStockAtCustomer($date, $custId, $partId);
+                }
+
+                $remainingStock = $stockTotal;
+
+                $sorted = $group->sortByDesc(fn ($r) => (int) ($r->sequence ?? 9999))->values();
+                foreach ($sorted as $r) {
+                    $gross = (float) ($r->gross_qty ?? 0);
+                    $used = 0.0;
+                    if ($remainingStock > 0 && $gross > 0) {
+                        $used = min($gross, $remainingStock);
+                        $remainingStock -= $used;
+                    }
+
+                    $r->stock_at_customer = $stockTotal;
+                    $r->stock_used = $used;
+                    $r->total_qty = max(0, $gross - $used);
+
+                    $packQty = (float) ($r->packing_std ?? 1);
+                    $packQty = $packQty > 0 ? $packQty : 1;
+                    $r->packing_load = $packQty > 0 ? (int) ceil(((float) $r->total_qty) / $packQty) : 0;
+                }
+
+                return $sorted;
+            })
+            ->filter(fn ($r) => (float) ($r->total_qty ?? 0) > 0)
+            ->sort(function ($a, $b) {
             // Sort by Date then Sequence
             if ($a->date->ne($b->date)) {
                 return $a->date->gt($b->date) ? 1 : -1;
@@ -311,28 +410,15 @@ class OutgoingController extends Controller
             }
 
             return strcmp((string) ($a->gci_part?->part_no ?? ''), (string) ($b->gci_part?->part_no ?? ''));
-        })->values();
+        })
+            ->values();
 
-        $trucks = \App\Models\Truck::query()
-            ->select(['id', 'plate_no', 'type', 'capacity', 'status'])
-            ->where('status', 'available')
-            ->orderBy('plate_no')
-            ->get();
-
-        $drivers = \App\Models\Driver::query()
-            ->select(['id', 'name', 'phone', 'license_type', 'status'])
-            ->where('status', 'available')
-            ->orderBy('name')
-            ->get();
-
-        return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo', 'trucks', 'drivers'));
+        return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
     }
 
     public function generateSoBulk(Request $request)
     {
         $validated = $request->validate([
-            'truck_id' => ['required', 'exists:trucks,id'],
-            'driver_id' => ['required', 'exists:drivers,id'],
             'selected' => ['required', 'array', 'min:1'],
             'selected.*' => ['integer', 'min:0'],
             'lines' => ['required', 'array'],
@@ -362,59 +448,27 @@ class OutgoingController extends Controller
         }
         $planDate = (string) $dates->first();
 
-        $truck = \App\Models\Truck::query()->whereKey((int) $validated['truck_id'])->where('status', 'available')->first();
-        if (!$truck) {
-            return back()->with('error', 'Selected truck is not available.');
-        }
-
-        $driver = \App\Models\Driver::query()->whereKey((int) $validated['driver_id'])->where('status', 'available')->first();
-        if (!$driver) {
-            return back()->with('error', 'Selected driver is not available.');
-        }
-
         DB::transaction(function () use ($validated, $selectedLines, $planDate) {
-            $maxSeq = \App\Models\DeliveryPlan::whereDate('plan_date', $planDate)->max('sequence') ?? 0;
-
-            $plan = \App\Models\DeliveryPlan::create([
-                'plan_date' => $planDate,
-                'sequence' => $maxSeq + 1,
-                'truck_id' => (int) $validated['truck_id'],
-                'driver_id' => (int) $validated['driver_id'],
-                'status' => 'scheduled',
-            ]);
-
             $byCustomer = $selectedLines->groupBy('customer_id');
 
             foreach ($byCustomer as $customerId => $customerLines) {
-                $stop = \App\Models\DeliveryStop::firstOrCreate(
-                    [
-                        'plan_id' => $plan->id,
-                        'customer_id' => (int) $customerId,
-                    ],
-                    [
-                        'sequence' => ($plan->stops()->max('sequence') ?? 0) + 1,
-                        'status' => 'pending',
-                    ]
-                );
-
-                $dnNo = null;
+                $soNo = null;
                 for ($attempt = 0; $attempt < 5; $attempt++) {
-                    $candidate = 'DN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
-                    if (!\App\Models\DeliveryNote::query()->where('dn_no', $candidate)->exists()) {
-                        $dnNo = $candidate;
+                    $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+                    if (!\App\Models\SalesOrder::query()->where('so_no', $candidate)->exists()) {
+                        $soNo = $candidate;
                         break;
                     }
                 }
-                $dnNo ??= 'DN-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
+                $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
 
-                $dn = \App\Models\DeliveryNote::create([
-                    'dn_no' => $dnNo,
+                $so = \App\Models\SalesOrder::create([
+                    'so_no' => $soNo,
                     'customer_id' => (int) $customerId,
-                    'delivery_date' => $planDate,
+                    'so_date' => $planDate,
                     'status' => 'draft',
-                    'delivery_plan_id' => $plan->id,
-                    'delivery_stop_id' => $stop->id,
                     'notes' => 'Generated from Delivery Requirements',
+                    'created_by' => auth()->id(),
                 ]);
 
                 $items = $customerLines
@@ -425,10 +479,10 @@ class OutgoingController extends Controller
                     if ($qty <= 0) {
                         continue;
                     }
-                    \App\Models\DnItem::create([
-                        'dn_id' => $dn->id,
+                    \App\Models\SalesOrderItem::create([
+                        'sales_order_id' => $so->id,
                         'gci_part_id' => (int) $partId,
-                        'qty' => $qty,
+                        'qty_ordered' => $qty,
                     ]);
                 }
             }
@@ -477,14 +531,14 @@ class OutgoingController extends Controller
                     'plan_date' => $planDate,
                     'row_id' => $rowId,
                     'qty' => $remaining,
-                    'delivery_plan_id' => (int) $plan->id,
+                    'delivery_plan_id' => null,
                     'created_by' => auth()->id(),
                 ]);
             }
         });
 
         return redirect()->route('outgoing.delivery-plan', ['date' => $planDate])
-            ->with('success', 'Delivery Plan + Delivery Notes generated successfully.');
+            ->with('success', 'SO generated successfully. Assign truck/driver in Delivery Plan.');
     }
 
     public function generateSo(Request $request)
@@ -498,33 +552,34 @@ class OutgoingController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            $dnNo = null;
+            $soNo = null;
             for ($attempt = 0; $attempt < 5; $attempt++) {
-                $candidate = 'DN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
-                if (!\App\Models\DeliveryNote::query()->where('dn_no', $candidate)->exists()) {
-                    $dnNo = $candidate;
+                $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+                if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
+                    $soNo = $candidate;
                     break;
                 }
             }
-            $dnNo ??= 'DN-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
-            
-            $dn = \App\Models\DeliveryNote::create([
-                'dn_no' => $dnNo,
+            $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
+
+            $so = SalesOrder::create([
+                'so_no' => $soNo,
                 'customer_id' => $validated['customer_id'],
-                'delivery_date' => $validated['date'],
+                'so_date' => $validated['date'],
                 'status' => 'draft',
+                'created_by' => auth()->id(),
             ]);
 
             foreach ($validated['items'] as $item) {
-                \App\Models\DnItem::create([
-                    'dn_id' => $dn->id,
+                SalesOrderItem::create([
+                    'sales_order_id' => $so->id,
                     'gci_part_id' => $item['gci_part_id'],
-                    'qty' => $item['qty'],
+                    'qty_ordered' => $item['qty'],
                 ]);
             }
         });
 
-        return redirect()->route('outgoing.delivery-notes.index')->with('success', 'SO generated successfully as Delivery Note.');
+        return redirect()->route('outgoing.delivery-plan', ['date' => $validated['date']])->with('success', 'SO generated successfully.');
     }
 
     public function stockAtCustomers()
@@ -619,7 +674,7 @@ class OutgoingController extends Controller
             'truck', 
             'driver', 
             'stops.customer', 
-            'stops.deliveryNotes.items.part'
+            'stops.salesOrders.items.part.standardPacking'
         ])
         ->whereDate('plan_date', $date)
         ->orderBy('sequence')
@@ -627,6 +682,12 @@ class OutgoingController extends Controller
 
         // MAPPING to Front-End Structure
         $deliveryPlans = $plansDb->map(function($p) {
+            $customerNames = $p->stops
+                ->map(fn ($s) => (string) ($s->customer?->name ?? ''))
+                ->filter(fn ($v) => trim($v) !== '')
+                ->unique()
+                ->values();
+
             return [
                 'id' => 'DP' . str_pad($p->id, 3, '0', STR_PAD_LEFT),
                 'sequence' => $p->sequence,
@@ -635,6 +696,7 @@ class OutgoingController extends Controller
                 'status' => $p->status,
                 'estimatedDeparture' => $p->estimated_departure ? \Carbon\Carbon::parse($p->estimated_departure)->format('H:i') : '-',
                 'estimatedReturn' => $p->estimated_return ? \Carbon\Carbon::parse($p->estimated_return)->format('H:i') : '-',
+                'customerNames' => $customerNames,
                 'stops' => $p->stops->map(function($s) {
                     return [
                         'id' => $s->id,
@@ -643,16 +705,19 @@ class OutgoingController extends Controller
                         'address' => $s->customer->address,
                         'estimatedTime' => $s->estimated_arrival_time ? \Carbon\Carbon::parse($s->estimated_arrival_time)->format('H:i') : '-',
                         'status' => $s->status,
-                        'deliveryOrders' => $s->deliveryNotes->map(function($dn) {
+                        'deliveryOrders' => $s->salesOrders->map(function($so) {
                             return [
-                                'id' => $dn->dn_no,
-                                'poNumber' => $dn->dn_no, // Placeholder
-                                'poDate' => $dn->delivery_date->format('Y-m-d'),
-                                'products' => $dn->items->map(function($item) {
+                                'id' => $so->so_no,
+                                'poNumber' => $so->so_no,
+                                'poDate' => $so->so_date->format('Y-m-d'),
+                                'products' => $so->items->map(function($item) {
+                                    $std = $item->part?->standardPacking;
                                     return [
+                                        'delClass' => $std?->delivery_class ?? '-',
+                                        'trolleyType' => $std?->trolley_type ?? '-',
                                         'partNo' => $item->part->part_no ?? 'N/A',
                                         'partName' => $item->part->part_name ?? 'Unknown',
-                                        'quantity' => $item->qty,
+                                        'quantity' => (float) ($item->qty_ordered ?? 0),
                                         'unit' => 'PCS',
                                         'weight' => '-'
                                     ];
@@ -662,8 +727,8 @@ class OutgoingController extends Controller
                     ];
                 }),
                 'cargo_summary' => [
-                    'total_items' => $p->stops->flatMap->deliveryNotes->flatMap->items->count(),
-                    'total_qty' => $p->stops->flatMap->deliveryNotes->flatMap->items->sum('qty'),
+                    'total_items' => $p->stops->flatMap->salesOrders->flatMap->items->count(),
+                    'total_qty' => $p->stops->flatMap->salesOrders->flatMap->items->sum('qty_ordered'),
                 ]
             ];
         });
@@ -710,18 +775,18 @@ class OutgoingController extends Controller
             'status' => $d->status
         ]);
 
-        $unassignedSos = \App\Models\DeliveryNote::with(['customer', 'items.part'])
-            ->whereDate('delivery_date', $date)
+        $unassignedSos = SalesOrder::with(['customer', 'items.part'])
+            ->whereDate('so_date', $date)
             ->whereNull('delivery_plan_id')
-            ->whereIn('status', ['draft', 'kitting', 'ready_to_pick', 'picking', 'ready_to_ship'])
+            ->whereIn('status', ['draft', 'assigned', 'partial_shipped'])
             ->get()
-            ->map(function($dn) {
+            ->map(function($so) {
                 return [
-                    'id' => $dn->id,
-                    'dn_no' => $dn->dn_no,
-                    'customer' => $dn->customer->name,
-                    'itemCount' => $dn->items->count(),
-                    'totalQty' => $dn->items->sum('qty'),
+                    'id' => $so->id,
+                    'dn_no' => $so->so_no, // re-use key expected by UI
+                    'customer' => $so->customer->name,
+                    'itemCount' => $so->items->count(),
+                    'totalQty' => $so->items->sum('qty_ordered'),
                 ];
             });
 
@@ -737,19 +802,19 @@ class OutgoingController extends Controller
     public function assignSoToPlan(Request $request)
     {
         $validated = $request->validate([
-            'delivery_note_id' => 'required|exists:delivery_notes,id',
+            'sales_order_id' => 'required|exists:sales_orders,id',
             'delivery_plan_id' => 'required|exists:delivery_plans,id',
         ]);
 
-        $dn = \App\Models\DeliveryNote::findOrFail($validated['delivery_note_id']);
+        $so = SalesOrder::findOrFail($validated['sales_order_id']);
         $plan = \App\Models\DeliveryPlan::findOrFail($validated['delivery_plan_id']);
 
-        DB::transaction(function () use ($dn, $plan) {
+        DB::transaction(function () use ($so, $plan) {
             // Find or create a stop for this customer in this plan
             $stop = \App\Models\DeliveryStop::firstOrCreate(
                 [
                     'plan_id' => $plan->id,
-                    'customer_id' => $dn->customer_id,
+                    'customer_id' => $so->customer_id,
                 ],
                 [
                     'sequence' => ($plan->stops()->max('sequence') ?? 0) + 1,
@@ -757,9 +822,10 @@ class OutgoingController extends Controller
                 ]
             );
 
-            $dn->update([
+            $so->update([
                 'delivery_plan_id' => $plan->id,
                 'delivery_stop_id' => $stop->id,
+                'status' => $so->status === 'draft' ? 'assigned' : $so->status,
             ]);
         });
 

@@ -16,11 +16,19 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
     public int $rowCount = 0;
     protected array $failures = [];
     protected array $seenKeys = [];
-    private string $nbsp;
+    /** @var list<string> */
+    private array $stripChars;
 
     public function __construct(private readonly bool $autoCreateParts = true)
     {
-        $this->nbsp = "\u{00A0}";
+        $this->stripChars = [
+            "\u{00A0}", // NBSP
+            "\t",
+            "\n",
+            "\r",
+            "\u{200B}", // zero-width space
+            "\u{FEFF}", // BOM / zero-width no-break space
+        ];
     }
 
     private function normalizePartNo(mixed $value): string
@@ -31,17 +39,20 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
         return $normalized;
     }
 
-    private function normalizedEqualsSql(string $columnSql): string
+    private function normalizedExprSql(string $columnSql): string
     {
-        // Normalize in SQL to match normalizePartNo(): trim + uppercase + remove regular spaces + remove non-breaking spaces.
-        // This is defensive against hidden whitespace in master data (e.g., '4810 JM3004B' vs '4810JM3004B').
-        return "REPLACE(REPLACE(UPPER(TRIM({$columnSql})), ' ', ''), ?, '') = ?";
+        // Normalize in SQL to match normalizePartNo(): trim + uppercase + remove whitespace/noise chars.
+        $expr = "REPLACE(UPPER(TRIM({$columnSql})), ' ', '')";
+        foreach ($this->stripChars as $_) {
+            $expr = "REPLACE({$expr}, ?, '')";
+        }
+        return $expr;
     }
 
     private function findGciPartByPartNo(string $normalizedPartNo): ?GciPart
     {
         return GciPart::query()
-            ->whereRaw($this->normalizedEqualsSql('part_no'), [$this->nbsp, $normalizedPartNo])
+            ->whereRaw($this->normalizedExprSql('part_no') . ' = ?', array_merge($this->stripChars, [$normalizedPartNo]))
             ->first();
     }
 
@@ -100,7 +111,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             if (!$bom) {
                 $bom = Bom::query()
                     ->join('gci_parts as gp', 'gp.id', '=', 'boms.part_id')
-                    ->whereRaw($this->normalizedEqualsSql('gp.part_no'), [$this->nbsp, $fgPartNo])
+                    ->whereRaw($this->normalizedExprSql('gp.part_no') . ' = ?', array_merge($this->stripChars, [$fgPartNo]))
                     ->orderByDesc('boms.effective_date')
                     ->orderByDesc('boms.id')
                     ->select('boms.*')
@@ -124,17 +135,17 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             $bomItem = BomItem::query()
                 ->where('bom_id', $bom->id)
                 ->where(function ($q) use ($componentPartNo) {
-                    $q->whereRaw($this->normalizedEqualsSql('component_part_no'), [$this->nbsp, $componentPartNo])
-                        ->orWhereHas('componentPart', fn ($sq) => $sq->whereRaw($this->normalizedEqualsSql('part_no'), [$this->nbsp, $componentPartNo]))
-                        ->orWhereRaw($this->normalizedEqualsSql('wip_part_no'), [$this->nbsp, $componentPartNo]);
+                    $q->whereRaw($this->normalizedExprSql('component_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]))
+                        ->orWhereHas('componentPart', fn ($sq) => $sq->whereRaw($this->normalizedExprSql('part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo])))
+                        ->orWhereRaw($this->normalizedExprSql('wip_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]));
                 })
                 ->first();
             if (!$bomItem) {
                 $bomItem = BomItem::query()
                     ->where('bom_id', $bom->id)
                     ->where(function ($q) use ($componentPartNo) {
-                        $q->whereRaw("REPLACE(REPLACE(UPPER(TRIM(component_part_no)), ' ', ''), ?, '') LIKE ?", [$this->nbsp, $componentPartNo . '%'])
-                            ->orWhereRaw("REPLACE(REPLACE(UPPER(TRIM(wip_part_no)), ' ', ''), ?, '') LIKE ?", [$this->nbsp, $componentPartNo . '%']);
+                        $q->whereRaw($this->normalizedExprSql('component_part_no') . ' LIKE ?', array_merge($this->stripChars, [$componentPartNo . '%']))
+                            ->orWhereRaw($this->normalizedExprSql('wip_part_no') . ' LIKE ?', array_merge($this->stripChars, [$componentPartNo . '%']));
                     })
                     ->first();
             }

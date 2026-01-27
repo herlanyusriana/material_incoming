@@ -15,22 +15,42 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
     public int $rowCount = 0;
     protected array $failures = [];
     protected array $seenKeys = [];
-    private string $nbsp;
+    /** @var list<string> */
+    private array $stripChars;
 
     public function __construct(private readonly bool $autoCreateParts = true)
     {
-        $this->nbsp = "\u{00A0}";
+        $this->stripChars = [
+            "\u{00A0}", // NBSP
+            "\t",
+            "\n",
+            "\r",
+            "\u{200B}", // zero-width space
+            "\u{FEFF}", // BOM / zero-width no-break space
+        ];
     }
 
-    private function normalizedEqualsSql(string $columnSql): string
+    private function normalizePartNo(mixed $value): string
     {
-        return "REPLACE(REPLACE(UPPER(TRIM({$columnSql})), ' ', ''), ?, '') = ?";
+        $normalized = strtoupper(trim((string) $value));
+        $normalized = preg_replace('/\\s+/u', '', $normalized) ?? $normalized;
+
+        return $normalized;
+    }
+
+    private function normalizedExprSql(string $columnSql): string
+    {
+        $expr = "REPLACE(UPPER(TRIM({$columnSql})), ' ', '')";
+        foreach ($this->stripChars as $_) {
+            $expr = "REPLACE({$expr}, ?, '')";
+        }
+        return $expr;
     }
 
     private function findGciPartByPartNo(string $normalizedPartNo): ?GciPart
     {
         return GciPart::query()
-            ->whereRaw($this->normalizedEqualsSql('part_no'), [$this->nbsp, $normalizedPartNo])
+            ->whereRaw($this->normalizedExprSql('part_no') . ' = ?', array_merge($this->stripChars, [$normalizedPartNo]))
             ->first();
     }
 
@@ -56,8 +76,8 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            $componentPartNo = strtoupper(trim((string) $row['component_part_no']));
-            $subPartNo = strtoupper(trim((string) $row['substitute_part_no']));
+            $componentPartNo = $this->normalizePartNo($row['component_part_no']);
+            $subPartNo = $this->normalizePartNo($row['substitute_part_no']);
             if ($componentPartNo === '' || $subPartNo === '') {
                 $this->addFailure($rowIndex, 'component_part_no/substitute_part_no cannot be empty');
                 continue;
@@ -74,7 +94,7 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             $notes = isset($row['notes']) ? trim((string) $row['notes']) : '';
             $finalNotes = trim(implode(' | ', array_values(array_filter([$supplier !== '' ? $supplier : null, $notes !== '' ? $notes : null]))));
 
-            $subPart = $this->findGciPartByPartNo(str_replace(["\u{00A0}", ' '], '', $subPartNo));
+            $subPart = $this->findGciPartByPartNo($subPartNo);
             if (!$subPart && $this->autoCreateParts) {
                 $subPart = GciPart::query()->create([
                     'part_no' => $subPartNo,
@@ -89,21 +109,21 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            $componentPart = $this->findGciPartByPartNo(str_replace(["\u{00A0}", ' '], '', $componentPartNo));
+            $componentPart = $this->findGciPartByPartNo($componentPartNo);
             $componentPartId = $componentPart ? (int) $componentPart->id : 0;
 
             $bomItems = BomItem::query()
                 ->when($componentPartId > 0, function ($q) use ($componentPartId) {
                     $q->where('component_part_id', $componentPartId);
                 }, function ($q) use ($componentPartNo) {
-                    $q->whereRaw($this->normalizedEqualsSql('component_part_no'), [$this->nbsp, str_replace(["\u{00A0}", ' '], '', $componentPartNo)]);
+                    $q->whereRaw($this->normalizedExprSql('component_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]));
                 })
                 ->get(['id']);
 
             // Fallback: some BOMs keep only component_part_no even if master exists
             if ($componentPartId > 0) {
                 $extra = BomItem::query()
-                    ->whereRaw($this->normalizedEqualsSql('component_part_no'), [$this->nbsp, str_replace(["\u{00A0}", ' '], '', $componentPartNo)])
+                    ->whereRaw($this->normalizedExprSql('component_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]))
                     ->get(['id']);
                 $bomItems = $bomItems->merge($extra)->unique('id')->values();
             }

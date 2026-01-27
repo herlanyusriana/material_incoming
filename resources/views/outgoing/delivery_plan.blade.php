@@ -38,9 +38,9 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-6 py-6">
-        <div class="grid grid-cols-12 gap-6">
-            {{-- Left Panel - Delivery Plans --}}
-            <div class="col-span-8 space-y-4">
+        <div class="space-y-6">
+            {{-- Delivery Plans --}}
+            <div class="space-y-4">
                 <template x-for="plan in deliveryPlans" :key="plan.id">
                     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md">
                         {{-- Plan Header --}}
@@ -65,6 +65,12 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                                 <span x-text="plan.estimatedDeparture + ' - ' + plan.estimatedReturn"></span>
+                                            </div>
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+                                                </svg>
+                                                <span class="truncate" x-text="(plan.customerNames && plan.customerNames.length) ? plan.customerNames.join(', ') : '-'"></span>
                                             </div>
                                             <div class="flex items-center gap-1.5">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -202,17 +208,21 @@
                                                     {{-- Products Table --}}
                                                     <div class="space-y-2">
                                                         <div class="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider pb-1 px-1">
+                                                            <div class="col-span-2">Del Class</div>
+                                                            <div class="col-span-1">Trolley</div>
                                                             <div class="col-span-3">Part Number</div>
-                                                            <div class="col-span-5">Product Name</div>
-                                                            <div class="col-span-2 text-right">Quantity</div>
-                                                            <div class="col-span-2 text-right">Weight</div>
+                                                            <div class="col-span-4">Product Name</div>
+                                                            <div class="col-span-1 text-right">Qty</div>
+                                                            <div class="col-span-1 text-right">Weight</div>
                                                         </div>
                                                         <template x-for="(product, idx) in order.products" :key="idx">
                                                             <div class="grid grid-cols-12 gap-2 text-sm bg-slate-50/50 rounded-lg p-2 border border-slate-100 items-center">
+                                                                <div class="col-span-2 font-semibold text-slate-700 text-xs" x-text="product.delClass ?? '-'"></div>
+                                                                <div class="col-span-1 font-semibold text-slate-700 text-xs" x-text="product.trolleyType ?? '-'"></div>
                                                                 <div class="col-span-3 font-mono font-bold text-indigo-700 text-xs" x-text="product.partNo"></div>
-                                                                <div class="col-span-5 text-slate-700 font-medium text-xs truncate" x-text="product.partName" :title="product.partName"></div>
-                                                                <div class="col-span-2 text-right font-bold text-slate-900 text-xs" x-text="formatNumber(product.quantity) + ' ' + product.unit"></div>
-                                                                <div class="col-span-2 text-right text-slate-500 font-medium text-xs" x-text="product.weight"></div>
+                                                                <div class="col-span-4 text-slate-700 font-medium text-xs truncate" x-text="product.partName" :title="product.partName"></div>
+                                                                <div class="col-span-1 text-right font-bold text-slate-900 text-xs" x-text="formatNumber(product.quantity) + ' ' + product.unit"></div>
+                                                                <div class="col-span-1 text-right text-slate-500 font-medium text-xs" x-text="product.weight"></div>
                                                             </div>
                                                         </template>
                                                     </div>
@@ -237,8 +247,8 @@
                 </template>
             </div>
 
-            {{-- Right Panel - Resources & Summary --}}
-            <div class="col-span-4 space-y-6">
+            {{-- Resources & Summary --}}
+            <div class="space-y-6">
                 {{-- Summary Stats --}}
                 <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                     <h3 class="font-bold text-slate-900 mb-4 text-base">Today's Summary</h3>
@@ -352,7 +362,7 @@
                             <div class="p-4 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-indigo-500 transition-all group">
                                 <div class="flex items-start justify-between gap-3 mb-3">
                                     <div>
-                                        <div class="font-bold text-slate-900 text-sm" x-text="so.dn_no"></div>
+                                        <a class="font-bold text-slate-900 text-sm hover:underline" :href="'{{ url('/outgoing/sales-orders') }}/' + so.id" x-text="so.dn_no"></a>
                                         <div class="text-xs font-bold text-indigo-600 mt-0.5" x-text="so.customer"></div>
                                     </div>
                                     <div class="text-right">
@@ -529,7 +539,7 @@
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
                         body: JSON.stringify({
-                            delivery_note_id: soId,
+                            sales_order_id: soId,
                             delivery_plan_id: planIdStr.replace('DP', '').replace(/^0+/, '')
                         })
                     });

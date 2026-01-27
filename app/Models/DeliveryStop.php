@@ -28,4 +28,9 @@ class DeliveryStop extends Model
     {
         return $this->hasMany(DeliveryNote::class, 'delivery_stop_id');
     }
+
+    public function salesOrders()
+    {
+        return $this->hasMany(SalesOrder::class, 'delivery_stop_id');
+    }
 }
