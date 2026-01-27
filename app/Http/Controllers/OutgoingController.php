@@ -841,6 +841,8 @@ class OutgoingController extends Controller
                 $deliveryClass = (string) ($gciPart?->standardPacking?->delivery_class ?? 'unknown');
                 $customerId = (int) ($gciPart?->customer_id ?? 0);
                 $partId = (int) ($gciPart?->id ?? 0);
+                $stdPackQty = $gciPart?->standardPacking?->packing_qty;
+                $stdPackUom = $gciPart?->standardPacking?->uom;
 
                 $perSeqGross = [];
                 foreach ($sequences as $seq) {
@@ -902,10 +904,13 @@ class OutgoingController extends Controller
 
                 return (object) [
                     'gci_part_id' => $partId,
+                    'customer_id' => $customerId,
                     'delivery_class' => $deliveryClass,
                     'part_name' => $gciPart?->part_name ?? '-',
                     'part_no' => $gciPart?->part_no ?? '-',
                     'production_lines' => $productionLines !== '' ? $productionLines : '-',
+                    'std_pack_qty' => $stdPackQty,
+                    'std_pack_uom' => $stdPackUom,
                     'plan_total' => $planTotal,
                     'stock_at_customer' => $stock,
                     'balance' => $balance,

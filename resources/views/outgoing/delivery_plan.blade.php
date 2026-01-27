@@ -21,73 +21,166 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-auto">
-                <table class="min-w-max w-full text-xs">
-                    <thead class="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200 w-10">No</th>
-                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Classification</th>
-                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Part Name</th>
-                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Part Number</th>
-                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-20">Plan</th>
-                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-28">Stock at Customer</th>
-                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-20">Balance</th>
-                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200 w-24">Duedate</th>
-                            <th colspan="{{ count($sequences) }}" class="px-2 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Sequence</th>
-                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 w-20">Remain</th>
-                        </tr>
-                        <tr>
-                            @foreach($sequences as $seq)
-                                <th class="px-2 py-2 text-center font-bold text-slate-700 border-r border-slate-200 w-10">{{ $seq }}</th>
-                            @endforeach
+	                <table class="min-w-max w-full text-xs">
+	                    <thead class="bg-slate-50 border-b border-slate-200">
+	                        <tr>
+	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200 w-10">No</th>
+	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Classification</th>
+	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Part Name</th>
+	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Part Number</th>
+	                            <th rowspan="2" class="px-2 py-3 text-center font-bold text-slate-700 border-r border-slate-200 w-20">Std Pack</th>
+	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-20">Plan</th>
+	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-28">Stock at Customer</th>
+	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-20">Balance</th>
+	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200 w-24">Duedate</th>
+	                            <th colspan="{{ count($sequences) }}" class="px-2 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Sequence</th>
+	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 w-20">Remain</th>
+	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 w-28">Action</th>
+	                        </tr>
+	                        <tr>
+	                            @foreach($sequences as $seq)
+	                                <th class="px-2 py-2 text-center font-bold text-slate-700 border-r border-slate-200 w-10">{{ $seq }}</th>
+	                            @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @php($no = 0)
-                        @forelse(($groups ?? []) as $class => $rows)
-                            <tr class="bg-slate-100">
-                                <td class="px-2 py-2 border-r border-slate-200"></td>
-                                <td class="px-2 py-2 font-black text-slate-800 border-r border-slate-200" colspan="1">{{ $class }}</td>
-                                <td class="px-2 py-2 border-r border-slate-200" colspan="3"></td>
-                                <td class="px-2 py-2 border-r border-slate-200"></td>
-                                <td class="px-2 py-2 border-r border-slate-200"></td>
-                                <td class="px-2 py-2 border-r border-slate-200"></td>
-                                <td class="px-2 py-2 border-r border-slate-200"></td>
-                                @foreach($sequences as $seq)
-                                    <td class="px-2 py-2 border-r border-slate-200"></td>
-                                @endforeach
-                                <td class="px-2 py-2"></td>
-                            </tr>
-                            @foreach($rows as $r)
-                                @php($no++)
-                                <tr class="hover:bg-slate-50">
-                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-600 font-semibold">{{ $no }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->delivery_class }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->part_name }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 font-mono text-indigo-700 font-bold">{{ $r->part_no }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900">{{ number_format((float) $r->plan_total, 0) }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700">{{ number_format((float) $r->stock_at_customer, 0) }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900">{{ number_format((float) $r->balance, 0) }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->due_date?->format('Y-m-d') }}</td>
-                                    @foreach($sequences as $seq)
-                                        @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
+	                        @forelse(($groups ?? []) as $class => $rows)
+	                            <tr class="bg-slate-100">
+	                                <td class="px-2 py-2 border-r border-slate-200"></td>
+	                                <td class="px-2 py-2 font-black text-slate-800 border-r border-slate-200" colspan="1">{{ $class }}</td>
+	                                <td class="px-2 py-2 border-r border-slate-200" colspan="4"></td>
+	                                <td class="px-2 py-2 border-r border-slate-200"></td>
+	                                <td class="px-2 py-2 border-r border-slate-200"></td>
+	                                <td class="px-2 py-2 border-r border-slate-200"></td>
+	                                <td class="px-2 py-2 border-r border-slate-200"></td>
+	                                @foreach($sequences as $seq)
+	                                    <td class="px-2 py-2 border-r border-slate-200"></td>
+	                                @endforeach
+	                                <td class="px-2 py-2"></td>
+	                                <td class="px-2 py-2"></td>
+	                            </tr>
+	                            @foreach($rows as $r)
+	                                @php($no++)
+	                                <tr class="hover:bg-slate-50">
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-600 font-semibold">{{ $no }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->delivery_class }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->part_name }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 font-mono text-indigo-700 font-bold">{{ $r->part_no }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-center text-slate-700 font-semibold">
+	                                        @if(($r->std_pack_qty ?? null) !== null)
+	                                            {{ (float) $r->std_pack_qty > 0 ? number_format((float) $r->std_pack_qty, 0) : '-' }}
+	                                            <span class="text-[10px] text-slate-500">{{ $r->std_pack_uom ?? '' }}</span>
+	                                        @else
+	                                            -
+	                                        @endif
+	                                    </td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900">{{ number_format((float) $r->plan_total, 0) }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700">{{ (float) $r->stock_at_customer > 0 ? number_format((float) $r->stock_at_customer, 0) : '-' }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900">{{ number_format((float) $r->balance, 0) }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->due_date?->format('Y-m-d') }}</td>
+	                                    @foreach($sequences as $seq)
+	                                        @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
                                         <td class="px-2 py-2 border-r border-slate-200 text-center {{ $v > 0 ? 'font-bold text-slate-900' : 'text-slate-400' }}">
-                                            {{ $v > 0 ? number_format($v, 0) : '' }}
-                                        </td>
-                                    @endforeach
-                                    <td class="px-2 py-2 text-right font-bold text-slate-900">{{ number_format((float) $r->remain, 0) }}</td>
-                                </tr>
-                            @endforeach
-                        @empty
-                            <tr>
-                                <td colspan="{{ 9 + count($sequences) }}" class="px-6 py-12 text-center text-slate-500 italic">
-                                    No data for selected date.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-@endsection
+	                                            {{ $v > 0 ? number_format($v, 0) : '' }}
+	                                        </td>
+	                                    @endforeach
+	                                    <td class="px-2 py-2 text-right font-bold text-slate-900">{{ number_format((float) $r->remain, 0) }}</td>
+	                                    <td class="px-2 py-2 text-right">
+	                                        <button
+	                                            type="button"
+	                                            class="rounded-lg bg-indigo-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+	                                            onclick="openCreateSoModal(this)"
+	                                            data-date="{{ $selectedDate }}"
+	                                            data-customer-id="{{ (int) ($r->customer_id ?? 0) }}"
+	                                            data-gci-part-id="{{ (int) ($r->gci_part_id ?? 0) }}"
+	                                            data-part-no="{{ $r->part_no }}"
+	                                            data-part-name="{{ $r->part_name }}"
+	                                            data-balance="{{ (float) ($r->balance ?? 0) }}"
+	                                            @disabled(((int) ($r->customer_id ?? 0)) <= 0 || ((int) ($r->gci_part_id ?? 0)) <= 0)
+	                                        >
+	                                            Create SO
+	                                        </button>
+	                                    </td>
+	                                </tr>
+	                            @endforeach
+	                        @empty
+	                            <tr>
+	                                <td colspan="{{ 11 + count($sequences) }}" class="px-6 py-12 text-center text-slate-500 italic">
+	                                    No data for selected date.
+	                                </td>
+	                            </tr>
+	                        @endforelse
+	                    </tbody>
+	                </table>
+	            </div>
+	        </div>
+	    </div>
 
+	    <div id="createSoModal" class="hidden fixed inset-0 z-50">
+	        <div class="absolute inset-0 bg-slate-900/40" onclick="closeCreateSoModal()"></div>
+	        <div class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg px-4">
+	            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+	                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+	                    <div class="font-black text-slate-900">Create Sales Order</div>
+	                    <button type="button" class="text-slate-500 hover:text-slate-900" onclick="closeCreateSoModal()">✕</button>
+	                </div>
+	                <form id="createSoForm" method="POST" action="{{ route('outgoing.generate-so') }}" class="p-6 space-y-4">
+	                    @csrf
+	                    <input type="hidden" name="date" id="so_date">
+	                    <input type="hidden" name="customer_id" id="so_customer_id">
+	                    <input type="hidden" name="items[0][gci_part_id]" id="so_gci_part_id">
+
+	                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+	                        <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Item</div>
+	                        <div class="mt-1 text-sm font-semibold text-slate-900">
+	                            <span class="font-mono" id="so_part_no"></span>
+	                            <span class="text-slate-400">•</span>
+	                            <span id="so_part_name"></span>
+	                        </div>
+	                        <div class="mt-2 text-xs text-slate-600">
+	                            Default qty = Balance (<span class="font-bold" id="so_balance"></span>)
+	                        </div>
+	                    </div>
+
+	                    <div>
+	                        <div class="text-xs font-semibold text-slate-500 mb-1">Qty (adjustable)</div>
+	                        <input type="number" step="0.0001" min="0.0001" name="items[0][qty]" id="so_qty" class="w-full rounded-lg border-slate-300 text-sm text-right" required>
+	                    </div>
+
+	                    <div class="flex justify-end gap-2 pt-2">
+	                        <button type="button" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50" onclick="closeCreateSoModal()">Cancel</button>
+	                        <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">Create</button>
+	                    </div>
+	                </form>
+	            </div>
+	        </div>
+	    </div>
+
+	    <script>
+	        function openCreateSoModal(btn) {
+	            const date = btn.dataset.date || '';
+	            const customerId = btn.dataset.customerId || '';
+	            const gciPartId = btn.dataset.gciPartId || '';
+	            const partNo = btn.dataset.partNo || '';
+	            const partName = btn.dataset.partName || '';
+	            const balance = Number(btn.dataset.balance || 0);
+
+	            document.getElementById('so_date').value = date;
+	            document.getElementById('so_customer_id').value = customerId;
+	            document.getElementById('so_gci_part_id').value = gciPartId;
+	            document.getElementById('so_part_no').textContent = partNo;
+	            document.getElementById('so_part_name').textContent = partName;
+	            document.getElementById('so_balance').textContent = String(Math.round(balance));
+
+	            const qtyEl = document.getElementById('so_qty');
+	            qtyEl.value = balance > 0 ? balance : '';
+	            document.getElementById('createSoModal').classList.remove('hidden');
+	            setTimeout(() => qtyEl.focus(), 0);
+	        }
+
+	        function closeCreateSoModal() {
+	            document.getElementById('createSoModal').classList.add('hidden');
+	        }
+	    </script>
+@endsection
