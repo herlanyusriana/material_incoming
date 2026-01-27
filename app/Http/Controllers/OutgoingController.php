@@ -14,6 +14,9 @@ use App\Models\OutgoingDailyPlanRow;
 use App\Models\CustomerPart;
 use App\Models\DeliveryRequirementFulfillment;
 use App\Models\GciPart;
+use App\Models\DeliveryPlan;
+use App\Models\Truck;
+use App\Models\Driver;
 use App\Models\SalesOrderItem;
 use App\Models\SalesOrder;
 use Carbon\CarbonImmutable;
@@ -670,6 +673,22 @@ class OutgoingController extends Controller
         $date = $this->parseDate(request('date')) ?? now()->startOfDay();
         $sequences = range(1, 13);
 
+        $plans = DeliveryPlan::query()
+            ->with(['truck', 'driver'])
+            ->whereDate('plan_date', $date)
+            ->orderBy('sequence')
+            ->get();
+
+        $trucks = Truck::query()
+            ->select(['id', 'plate_no', 'type', 'capacity', 'status'])
+            ->orderBy('plate_no')
+            ->get();
+
+        $drivers = Driver::query()
+            ->select(['id', 'name', 'phone', 'license_type', 'status'])
+            ->orderBy('name')
+            ->get();
+
         $cells = OutgoingDailyPlanCell::query()
             ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
             ->whereDate('plan_date', $date->toDateString())
@@ -787,16 +806,30 @@ class OutgoingController extends Controller
                 $remain = $extraGross;
                 $balance = max(0, (array_sum($perSeqNet) + $extraGross));
 
+                $productionLines = $group
+                    ->map(fn ($c) => (string) ($c->row?->production_line ?? ''))
+                    ->map(fn ($v) => trim($v))
+                    ->filter(fn ($v) => $v !== '')
+                    ->unique()
+                    ->values()
+                    ->implode(', ');
+
+                $jigNr1 = $balance > 0 ? (int) ceil($balance / 10) : 0; // NR1: 10 pcs per jig
+                $jigNr2 = $balance > 0 ? (int) ceil($balance / 9) : 0;  // NR2: 9 pcs per jig
+
                 return (object) [
                     'delivery_class' => $deliveryClass,
                     'part_name' => $gciPart?->part_name ?? '-',
                     'part_no' => $gciPart?->part_no ?? '-',
+                    'production_lines' => $productionLines !== '' ? $productionLines : '-',
                     'plan_total' => $planTotal,
                     'stock_at_customer' => $stock,
                     'balance' => $balance,
                     'due_date' => $first->plan_date,
                     'per_seq' => $perSeqNet,
                     'remain' => $remain,
+                    'jig_nr1' => $jigNr1,
+                    'jig_nr2' => $jigNr2,
                 ];
             })
             ->values()
@@ -809,7 +842,25 @@ class OutgoingController extends Controller
             'selectedDate' => $date->toDateString(),
             'sequences' => $sequences,
             'groups' => $groups,
+            'plans' => $plans,
+            'trucks' => $trucks,
+            'drivers' => $drivers,
         ]);
+    }
+
+    public function assignDeliveryPlanResources(Request $request, DeliveryPlan $plan)
+    {
+        $validated = $request->validate([
+            'truck_id' => ['nullable', 'exists:trucks,id'],
+            'driver_id' => ['nullable', 'exists:drivers,id'],
+        ]);
+
+        $plan->update([
+            'truck_id' => $validated['truck_id'] ?? null,
+            'driver_id' => $validated['driver_id'] ?? null,
+        ]);
+
+        return back()->with('success', 'Trip resources updated.');
     }
 
     public function assignSoToPlan(Request $request)
