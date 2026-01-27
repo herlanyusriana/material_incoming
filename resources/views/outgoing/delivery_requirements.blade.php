@@ -46,58 +46,10 @@
                         ->filter(fn ($r) => $r->customer && $r->gci_part)
                         ->values();
                 @endphp
-
-                <form action="{{ route('outgoing.generate-so-bulk') }}" method="POST" onsubmit="return confirm('Generate Delivery Notes (SO) from selected requirements?')">
-                    @csrf
-                    <div class="flex flex-wrap items-end justify-between gap-3 px-4 py-4 border-b border-slate-200 bg-slate-50">
-                        <div class="flex flex-wrap items-end gap-3">
-                            <div class="text-xs text-slate-500 max-w-xl">
-                                Pilih beberapa baris (multi-select). Sistem akan membuat <span class="font-semibold">1 Delivery Note per customer</span> untuk tanggal yang sama. Setelah itu, assign Truck+Driver di menu <span class="font-semibold">Delivery Plan</span>.
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            @php
-                                $sequences = $displayRequirements
-                                    ->pluck('sequence')
-                                    ->filter(fn ($v) => $v !== null && $v !== '')
-                                    ->unique()
-                                    ->sort()
-                                    ->values();
-                            @endphp
-                            <div class="flex items-center gap-2">
-                                <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Seq</label>
-                                <select id="seqSelect" class="rounded-lg border-slate-300 text-xs focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">Select...</option>
-                                    @foreach($sequences as $seq)
-                                        <option value="{{ (int) $seq }}">{{ (int) $seq }}</option>
-                                    @endforeach
-                                </select>
-                                <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100" onclick="toggleSeq(true)">
-                                    Select seq
-                                </button>
-                                <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100" onclick="toggleSeq(false)">
-                                    Unselect seq
-                                </button>
-                            </div>
-                            <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100" onclick="toggleAllReq(true)">
-                                Select all
-                            </button>
-                            <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100" onclick="toggleAllReq(false)">
-                                Clear
-                            </button>
-                            <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
-                                Generate SO
-                            </button>
-                        </div>
-                    </div>
-
-                    <table class="w-full text-sm divide-y divide-slate-200">
+                <table class="w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-12">
-                                    <input type="checkbox" class="rounded border-slate-300" onclick="toggleAllReq(this.checked)">
-                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">#</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Del Class</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Trolley</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
@@ -112,16 +64,7 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($displayRequirements as $idx => $req)
                                 <tr class="hover:bg-slate-50">
-                                    <td class="px-4 py-3 text-center">
-                                        <input type="checkbox" class="req-checkbox rounded border-slate-300" name="selected[]" value="{{ $idx }}" data-seq="{{ $req->sequence ?? '' }}">
-                                        <input type="hidden" name="lines[{{ $idx }}][date]" value="{{ $req->date->toDateString() }}">
-                                        <input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $req->customer->id }}">
-                                        <input type="hidden" name="lines[{{ $idx }}][gci_part_id]" value="{{ $req->gci_part->id }}">
-                                        <input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $req->total_qty }}">
-                                        @foreach(($req->source_row_ids ?? []) as $rowId)
-                                            <input type="hidden" name="lines[{{ $idx }}][row_ids][]" value="{{ $rowId }}">
-                                        @endforeach
-                                    </td>
+                                    <td class="px-4 py-3 text-slate-500 font-semibold">{{ $idx + 1 }}</td>
                                     <td class="px-4 py-3 text-slate-700 font-semibold">
                                         {{ $req->gci_part?->standardPacking?->delivery_class ?? '-' }}
                                     </td>
@@ -136,9 +79,7 @@
                                         <div class="text-[10px] text-slate-500 font-bold uppercase">{{ $req->customer->code ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3 font-mono text-sm text-center">
-                                        <button type="button" class="font-mono text-sm text-indigo-700 hover:underline" onclick="toggleSeqValue({{ (int) ($req->sequence ?? 0) }}, true)">
-                                            {{ $req->sequence ?? '-' }}
-                                        </button>
+                                        {{ $req->sequence ?? '-' }}
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="text-slate-600 font-medium">{{ $req->gci_part->part_name ?? '-' }}</div>
@@ -172,34 +113,9 @@
                                 </tr>
                             @endforelse
                         </tbody>
-                    </table>
-                </form>
+                </table>
             </div>
         </div>
     </div>
 
-    <script>
-        function toggleAllReq(checked) {
-            document.querySelectorAll('.req-checkbox').forEach((el) => {
-                el.checked = !!checked;
-            });
-        }
-
-        function toggleSeq(checked) {
-            const sel = document.getElementById('seqSelect');
-            const seq = sel ? sel.value : '';
-            if (!seq) return;
-            toggleSeqValue(seq, checked);
-        }
-
-        function toggleSeqValue(seq, checked) {
-            const key = String(seq ?? '').trim();
-            if (!key || key === '0') return;
-            document.querySelectorAll('.req-checkbox').forEach((el) => {
-                if (String(el.dataset.seq ?? '').trim() === key) {
-                    el.checked = !!checked;
-                }
-            });
-        }
-    </script>
 @endsection

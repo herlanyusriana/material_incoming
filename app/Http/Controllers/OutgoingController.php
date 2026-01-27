@@ -668,134 +668,147 @@ class OutgoingController extends Controller
     public function deliveryPlan()
     {
         $date = $this->parseDate(request('date')) ?? now()->startOfDay();
+        $sequences = range(1, 13);
 
-        // Prepare Data for View
-        $plansDb = \App\Models\DeliveryPlan::with([
-            'truck', 
-            'driver', 
-            'stops.customer', 
-            'stops.salesOrders.items.part.standardPacking'
-        ])
-        ->whereDate('plan_date', $date)
-        ->orderBy('sequence')
-        ->get();
+        $cells = OutgoingDailyPlanCell::query()
+            ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
+            ->whereDate('plan_date', $date->toDateString())
+            ->where('qty', '>', 0)
+            ->get();
 
-        // MAPPING to Front-End Structure
-        $deliveryPlans = $plansDb->map(function($p) {
-            $customerNames = $p->stops
-                ->map(fn ($s) => (string) ($s->customer?->name ?? ''))
-                ->filter(fn ($v) => trim($v) !== '')
-                ->unique()
-                ->values();
-
-            return [
-                'id' => 'DP' . str_pad($p->id, 3, '0', STR_PAD_LEFT),
-                'sequence' => $p->sequence,
-                'truckId' => $p->truck_id,
-                'driverId' => $p->driver_id,
-                'status' => $p->status,
-                'estimatedDeparture' => $p->estimated_departure ? \Carbon\Carbon::parse($p->estimated_departure)->format('H:i') : '-',
-                'estimatedReturn' => $p->estimated_return ? \Carbon\Carbon::parse($p->estimated_return)->format('H:i') : '-',
-                'customerNames' => $customerNames,
-                'stops' => $p->stops->map(function($s) {
-                    return [
-                        'id' => $s->id,
-                        'customer' => $s->customer->name,
-                        'customerCode' => $s->customer->code,
-                        'address' => $s->customer->address,
-                        'estimatedTime' => $s->estimated_arrival_time ? \Carbon\Carbon::parse($s->estimated_arrival_time)->format('H:i') : '-',
-                        'status' => $s->status,
-                        'deliveryOrders' => $s->salesOrders->map(function($so) {
-                            return [
-                                'id' => $so->so_no,
-                                'poNumber' => $so->so_no,
-                                'poDate' => $so->so_date->format('Y-m-d'),
-                                'products' => $so->items->map(function($item) {
-                                    $std = $item->part?->standardPacking;
-                                    return [
-                                        'delClass' => $std?->delivery_class ?? '-',
-                                        'trolleyType' => $std?->trolley_type ?? '-',
-                                        'partNo' => $item->part->part_no ?? 'N/A',
-                                        'partName' => $item->part->part_name ?? 'Unknown',
-                                        'quantity' => (float) ($item->qty_ordered ?? 0),
-                                        'unit' => 'PCS',
-                                        'weight' => '-'
-                                    ];
-                                })
-                            ];
-                        })
-                    ];
-                }),
-                'cargo_summary' => [
-                    'total_items' => $p->stops->flatMap->salesOrders->flatMap->items->count(),
-                    'total_qty' => $p->stops->flatMap->salesOrders->flatMap->items->sum('qty_ordered'),
-                ]
-            ];
-        });
-
-        $assignedTruckIds = $plansDb->pluck('truck_id')->filter()->unique()->values();
-        $trucksDb = \App\Models\Truck::query()
-            ->select(['id', 'plate_no', 'type', 'capacity', 'status'])
-            ->when($assignedTruckIds->isNotEmpty(), function ($query) use ($assignedTruckIds) {
-                $query->whereIn('id', $assignedTruckIds)->orWhere('status', 'available');
-            }, function ($query) {
-                $query->where('status', 'available');
-            })
-            ->orderBy('plate_no')
+        $fulfilledMap = DeliveryRequirementFulfillment::query()
+            ->selectRaw('plan_date, row_id, SUM(qty) as fulfilled_qty')
+            ->whereDate('plan_date', $date->toDateString())
+            ->groupBy('plan_date', 'row_id')
             ->get()
-            ->unique('id')
+            ->mapWithKeys(function ($r) {
+                $k = (string) $r->plan_date . '|' . (int) $r->row_id;
+                return [$k => (float) $r->fulfilled_qty];
+            })
+            ->all();
+
+        $cells = $cells
+            ->map(function ($cell) use ($fulfilledMap) {
+                $key = $cell->plan_date->format('Y-m-d') . '|' . (int) $cell->row_id;
+                $fulfilled = (float) ($fulfilledMap[$key] ?? 0);
+                $remaining = max(0, (float) $cell->qty - $fulfilled);
+                $cell->remaining_qty = $remaining;
+                return $cell;
+            })
+            ->filter(fn ($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
             ->values();
 
-        $trucks = $trucksDb->map(fn($t) => [
-            'id' => $t->id,
-            'plateNo' => $t->plate_no,
-            'type' => $t->type,
-            'capacity' => $t->capacity,
-            'status' => $t->status
-        ]);
+        $period = $date->format('Y-m');
+        $day = (int) $date->format('j');
 
-        $assignedDriverIds = $plansDb->pluck('driver_id')->filter()->unique()->values();
-        $driversDb = \App\Models\Driver::query()
-            ->select(['id', 'name', 'phone', 'license_type', 'status'])
-            ->when($assignedDriverIds->isNotEmpty(), function ($query) use ($assignedDriverIds) {
-                $query->whereIn('id', $assignedDriverIds)->orWhere('status', 'available');
-            }, function ($query) {
-                $query->where('status', 'available');
-            })
-            ->orderBy('name')
-            ->get()
-            ->unique('id')
+        $customerIds = $cells
+            ->map(fn ($c) => $c->row?->gciPart?->customer_id)
+            ->filter(fn ($v) => $v !== null)
+            ->map(fn ($v) => (int) $v)
+            ->unique()
             ->values();
 
-        $drivers = $driversDb->map(fn($d) => [
-            'id' => $d->id,
-            'name' => $d->name,
-            'phone' => $d->phone,
-            'license' => $d->license_type,
-            'status' => $d->status
-        ]);
+        $partIds = $cells
+            ->map(fn ($c) => $c->row?->gci_part_id)
+            ->filter(fn ($v) => $v !== null)
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values();
 
-        $unassignedSos = SalesOrder::with(['customer', 'items.part'])
-            ->whereDate('so_date', $date)
-            ->whereNull('delivery_plan_id')
-            ->whereIn('status', ['draft', 'assigned', 'partial_shipped'])
-            ->get()
-            ->map(function($so) {
-                return [
-                    'id' => $so->id,
-                    'dn_no' => $so->so_no, // re-use key expected by UI
-                    'customer' => $so->customer->name,
-                    'itemCount' => $so->items->count(),
-                    'totalQty' => $so->items->sum('qty_ordered'),
+        $stockMap = [];
+        if ($customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
+            $stockMap = StockAtCustomer::query()
+                ->where('period', $period)
+                ->whereIn('customer_id', $customerIds->all())
+                ->whereIn('gci_part_id', $partIds->all())
+                ->get()
+                ->mapWithKeys(function ($rec) use ($period) {
+                    $k = $period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
+                    return [$k => $rec];
+                })
+                ->all();
+        }
+
+        $rowsByPart = $cells
+            ->filter(fn ($c) => $c->row?->gciPart)
+            ->groupBy(fn ($c) => (int) $c->row->gci_part_id)
+            ->map(function ($group) use ($sequences, $stockMap, $period, $day) {
+                $first = $group->first();
+                $gciPart = $first->row->gciPart;
+
+                $deliveryClass = (string) ($gciPart?->standardPacking?->delivery_class ?? 'unknown');
+                $customerId = (int) ($gciPart?->customer_id ?? 0);
+                $partId = (int) ($gciPart?->id ?? 0);
+
+                $perSeqGross = [];
+                foreach ($sequences as $seq) {
+                    $perSeqGross[$seq] = 0.0;
+                }
+                $extraGross = 0.0;
+
+                foreach ($group as $cell) {
+                    $seq = $cell->seq !== null && $cell->seq !== '' ? (int) $cell->seq : 9999;
+                    $qty = (float) ($cell->remaining_qty ?? 0);
+                    if (in_array($seq, $sequences, true)) {
+                        $perSeqGross[$seq] += $qty;
+                    } else {
+                        $extraGross += $qty;
+                    }
+                }
+
+                $planTotal = array_sum($perSeqGross) + $extraGross;
+
+                $stock = 0.0;
+                if ($customerId > 0 && $partId > 0 && $day >= 1 && $day <= 31) {
+                    $k = $period . '|' . $customerId . '|' . $partId;
+                    $rec = $stockMap[$k] ?? null;
+                    if ($rec) {
+                        $stock = (float) ($rec->{'day_' . $day} ?? 0);
+                    }
+                }
+
+                // Allocate stock to latest sequence first, then extra.
+                $remainingStock = $stock;
+                $perSeqNet = $perSeqGross;
+                foreach (array_reverse($sequences) as $seq) {
+                    if ($remainingStock <= 0) {
+                        break;
+                    }
+                    $take = min($perSeqNet[$seq], $remainingStock);
+                    $perSeqNet[$seq] -= $take;
+                    $remainingStock -= $take;
+                }
+                if ($remainingStock > 0 && $extraGross > 0) {
+                    $take = min($extraGross, $remainingStock);
+                    $extraGross -= $take;
+                    $remainingStock -= $take;
+                }
+
+                $remain = $extraGross;
+                $balance = max(0, (array_sum($perSeqNet) + $extraGross));
+
+                return (object) [
+                    'delivery_class' => $deliveryClass,
+                    'part_name' => $gciPart?->part_name ?? '-',
+                    'part_no' => $gciPart?->part_no ?? '-',
+                    'plan_total' => $planTotal,
+                    'stock_at_customer' => $stock,
+                    'balance' => $balance,
+                    'due_date' => $first->plan_date,
+                    'per_seq' => $perSeqNet,
+                    'remain' => $remain,
                 ];
-            });
+            })
+            ->values()
+            ->sortBy(fn ($r) => $r->delivery_class)
+            ->values();
+
+        $groups = $rowsByPart->groupBy('delivery_class')->all();
 
         return view('outgoing.delivery_plan', [
-            'deliveryPlans' => $deliveryPlans,
-            'unassignedSos' => $unassignedSos,
-            'trucks' => $trucks,
-            'drivers' => $drivers,
-            'selectedDate' => $date->format('Y-m-d'),
+            'selectedDate' => $date->toDateString(),
+            'sequences' => $sequences,
+            'groups' => $groups,
         ]);
     }
 
