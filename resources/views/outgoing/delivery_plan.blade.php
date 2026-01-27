@@ -1,6 +1,49 @@
 @extends('outgoing.layout')
 
 @section('content')
+	<style>
+		.dp-scroll {
+			overflow: auto;
+		}
+
+		/* Keep headers visible while scrolling */
+		.dp-table thead tr:first-child th {
+			position: sticky;
+			top: 0;
+			z-index: 50;
+			background: rgb(248 250 252); /* slate-50 */
+		}
+		.dp-table thead tr:nth-child(2) th {
+			position: sticky;
+			top: 40px; /* matches header row 1 height */
+			z-index: 49;
+			background: rgb(248 250 252); /* slate-50 */
+		}
+
+		/* Sticky left columns */
+		.dp-table .sticky-l {
+			position: sticky;
+			z-index: 40;
+			background: #fff;
+		}
+		.dp-table .sticky-l.bg-group {
+			background: rgb(241 245 249); /* slate-100 */
+		}
+
+		/* Sticky right columns */
+		.dp-table .sticky-r {
+			position: sticky;
+			z-index: 40;
+			background: #fff;
+		}
+
+		/* Make sticky cells sit above non-sticky cells */
+		.dp-table thead .sticky-l,
+		.dp-table thead .sticky-r {
+			z-index: 60;
+		}
+	</style>
+
     <div class="space-y-6">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -20,54 +63,53 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-auto">
-	                <table class="min-w-max w-full text-xs">
-	                    <thead class="bg-slate-50 border-b border-slate-200">
-	                        <tr>
-	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200 w-10">No</th>
-	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Classification</th>
-	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Part Name</th>
-	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200">Part Number</th>
-	                            <th rowspan="2" class="px-2 py-3 text-center font-bold text-slate-700 border-r border-slate-200 w-20">Std Pack</th>
-	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-20">Plan</th>
-	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-28">Stock at Customer</th>
-	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 border-r border-slate-200 w-20">Balance</th>
-	                            <th rowspan="2" class="px-2 py-3 text-left font-bold text-slate-700 border-r border-slate-200 w-24">Duedate</th>
-	                            <th colspan="{{ count($sequences) }}" class="px-2 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Sequence</th>
-	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 w-20">Remain</th>
-	                            <th rowspan="2" class="px-2 py-3 text-right font-bold text-slate-700 w-28">Action</th>
-	                        </tr>
-	                        <tr>
-	                            @foreach($sequences as $seq)
-	                                <th class="px-2 py-2 text-center font-bold text-slate-700 border-r border-slate-200 w-10">{{ $seq }}</th>
-	                            @endforeach
+            <div class="dp-scroll">
+                <table class="dp-table min-w-max w-full text-xs">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-12 sticky-l left-0">No</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-[120px] sticky-l left-12">Classification</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-[220px] sticky-l left-[168px]">Part Name</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-[140px] sticky-l left-[388px]">Part Number</th>
+	                            <th rowspan="2" class="px-2 py-2 h-10 text-center font-bold text-slate-700 border-r border-slate-200 w-[90px] sticky-l left-[528px]">Std Pack</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[90px] sticky-l left-[618px]">Plan</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[130px] sticky-l left-[708px]">Stock at Customer</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[90px] sticky-l left-[838px]">Balance</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-[110px] sticky-l left-[928px]">Duedate</th>
+                            <th colspan="{{ count($sequences) }}" class="px-2 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Sequence</th>
+                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 w-[90px] sticky-r right-[110px] border-l border-slate-200">Remain</th>
+	                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 w-[110px] sticky-r right-0 border-l border-slate-200">Action</th>
+                        </tr>
+                        <tr>
+                            @foreach($sequences as $seq)
+                                <th class="px-2 py-1 h-8 text-center font-bold text-slate-700 border-r border-slate-200 w-10">{{ $seq }}</th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @php($no = 0)
-	                        @forelse(($groups ?? []) as $class => $rows)
-	                            <tr class="bg-slate-100">
-	                                <td class="px-2 py-2 border-r border-slate-200"></td>
-	                                <td class="px-2 py-2 font-black text-slate-800 border-r border-slate-200" colspan="1">{{ $class }}</td>
-	                                <td class="px-2 py-2 border-r border-slate-200" colspan="4"></td>
-	                                <td class="px-2 py-2 border-r border-slate-200"></td>
-	                                <td class="px-2 py-2 border-r border-slate-200"></td>
-	                                <td class="px-2 py-2 border-r border-slate-200"></td>
-	                                <td class="px-2 py-2 border-r border-slate-200"></td>
-	                                @foreach($sequences as $seq)
-	                                    <td class="px-2 py-2 border-r border-slate-200"></td>
-	                                @endforeach
-	                                <td class="px-2 py-2"></td>
-	                                <td class="px-2 py-2"></td>
-	                            </tr>
-	                            @foreach($rows as $r)
-	                                @php($no++)
-	                                <tr class="hover:bg-slate-50">
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-600 font-semibold">{{ $no }}</td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->delivery_class }}</td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->part_name }}</td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 font-mono text-indigo-700 font-bold">{{ $r->part_no }}</td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-center text-slate-700 font-semibold">
+                        @forelse(($groups ?? []) as $class => $rows)
+                            <tr class="bg-slate-100">
+                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-0 bg-group"></td>
+                                <td class="px-2 py-2 font-black text-slate-800 border-r border-slate-200 sticky-l left-12 bg-group" colspan="1">{{ $class }}</td>
+	                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[168px] bg-group" colspan="4"></td>
+                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[708px] bg-group"></td>
+                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[838px] bg-group"></td>
+                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[928px] bg-group"></td>
+                                @foreach($sequences as $seq)
+                                    <td class="px-2 py-2 border-r border-slate-200"></td>
+                                @endforeach
+                                <td class="px-2 py-2 sticky-r right-[110px] bg-group border-l border-slate-200"></td>
+	                                <td class="px-2 py-2 sticky-r right-0 bg-group border-l border-slate-200"></td>
+                            </tr>
+                            @foreach($rows as $r)
+                                @php($no++)
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-600 font-semibold sticky-l left-0">{{ $no }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-12">{{ $r->delivery_class }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[168px]">{{ $r->part_name }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 font-mono text-indigo-700 font-bold sticky-l left-[388px]">{{ $r->part_no }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-center text-slate-700 font-semibold sticky-l left-[528px]">
 	                                        @if(($r->std_pack_qty ?? null) !== null)
 	                                            {{ (float) $r->std_pack_qty > 0 ? number_format((float) $r->std_pack_qty, 0) : '-' }}
 	                                            <span class="text-[10px] text-slate-500">{{ $r->std_pack_uom ?? '' }}</span>
@@ -75,18 +117,18 @@
 	                                            -
 	                                        @endif
 	                                    </td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900">{{ number_format((float) $r->plan_total, 0) }}</td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700">{{ (float) $r->stock_at_customer > 0 ? number_format((float) $r->stock_at_customer, 0) : '-' }}</td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900">{{ number_format((float) $r->balance, 0) }}</td>
-	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700">{{ $r->due_date?->format('Y-m-d') }}</td>
-	                                    @foreach($sequences as $seq)
-	                                        @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
+                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900 sticky-l left-[618px]">{{ number_format((float) $r->plan_total, 0) }}</td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700 sticky-l left-[708px]">{{ (float) $r->stock_at_customer > 0 ? number_format((float) $r->stock_at_customer, 0) : '-' }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900 sticky-l left-[838px]">{{ number_format((float) $r->balance, 0) }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[928px]">{{ $r->due_date?->format('Y-m-d') }}</td>
+                                    @foreach($sequences as $seq)
+                                        @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
                                         <td class="px-2 py-2 border-r border-slate-200 text-center {{ $v > 0 ? 'font-bold text-slate-900' : 'text-slate-400' }}">
-	                                            {{ $v > 0 ? number_format($v, 0) : '' }}
-	                                        </td>
-	                                    @endforeach
-	                                    <td class="px-2 py-2 text-right font-bold text-slate-900">{{ number_format((float) $r->remain, 0) }}</td>
-	                                    <td class="px-2 py-2 text-right">
+                                            {{ $v > 0 ? number_format($v, 0) : '' }}
+                                        </td>
+                                    @endforeach
+                                    <td class="px-2 py-2 text-right font-bold text-slate-900 sticky-r right-[110px] border-l border-slate-200">{{ number_format((float) $r->remain, 0) }}</td>
+	                                    <td class="px-2 py-2 text-right sticky-r right-0 border-l border-slate-200">
 	                                        <button
 	                                            type="button"
 	                                            class="rounded-lg bg-indigo-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
