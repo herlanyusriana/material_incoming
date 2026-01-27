@@ -17,7 +17,8 @@ return new class extends Migration
                 $table->foreignId('delivery_plan_id')->nullable()->constrained('delivery_plans')->nullOnDelete();
                 $table->timestamps();
 
-                $table->unique(['plan_date', 'gci_part_id']);
+                // MySQL index name limit is 64 chars; set an explicit short name.
+                $table->unique(['plan_date', 'gci_part_id'], 'dp_req_assign_uq1');
             });
         }
     }
@@ -27,4 +28,3 @@ return new class extends Migration
         Schema::dropIfExists('delivery_plan_requirement_assignments');
     }
 };
-
