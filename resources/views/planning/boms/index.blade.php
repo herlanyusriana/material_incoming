@@ -92,12 +92,12 @@
                             >
                                 Imp. Subst.
                             </button>
-	                        <a
-	                            href="{{ route('planning.boms.where-used-page') }}"
-	                            class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold"
-	                        >
-	                            🔍 Where-Used
-	                        </a>
+		                        <a
+		                            href="{{ route('outgoing.product-mapping') }}#where-used"
+		                            class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold"
+		                        >
+		                            🔍 Where-Used
+		                        </a>
 	                        <a
 	                            href="{{ route('planning.boms.explosion-search') }}"
 	                            class="px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 font-semibold"

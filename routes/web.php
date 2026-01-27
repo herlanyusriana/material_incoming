@@ -151,11 +151,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/daily-planning/template', [OutgoingController::class, 'dailyPlanningTemplate'])->name('daily-planning.template');
         Route::post('/daily-planning/import', [OutgoingController::class, 'dailyPlanningImport'])->name('daily-planning.import');
         Route::get('/daily-planning/{plan}/export', [OutgoingController::class, 'dailyPlanningExport'])->name('daily-planning.export');
-        Route::get('/customer-po', [OutgoingController::class, 'customerPo'])->name('customer-po');
-        Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
-        Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
-        Route::post('/delivery-requirements/generate-so', [OutgoingController::class, 'generateSo'])->name('generate-so');
-        Route::post('/delivery-requirements/generate-so-bulk', [OutgoingController::class, 'generateSoBulk'])->name('generate-so-bulk');
+	        Route::get('/customer-po', [OutgoingController::class, 'customerPo'])->name('customer-po');
+	        Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
+	        Route::get('/where-used', [OutgoingController::class, 'whereUsed'])->name('where-used');
+	        Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
+	        Route::post('/delivery-requirements/generate-so', [OutgoingController::class, 'generateSo'])->name('generate-so');
+	        Route::post('/delivery-requirements/generate-so-bulk', [OutgoingController::class, 'generateSoBulk'])->name('generate-so-bulk');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
         Route::get('/stock-at-customers/template', [OutgoingController::class, 'stockAtCustomersTemplate'])->name('stock-at-customers.template');
         Route::get('/stock-at-customers/export', [OutgoingController::class, 'stockAtCustomersExport'])->name('stock-at-customers.export');

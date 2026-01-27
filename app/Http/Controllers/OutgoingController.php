@@ -15,6 +15,7 @@ use App\Models\CustomerPart;
 use App\Models\DeliveryRequirementFulfillment;
 use App\Models\DeliveryPlanRequirementAssignment;
 use App\Models\GciPart;
+use App\Models\Bom;
 use App\Models\DeliveryPlan;
 use App\Models\Truck;
 use App\Models\Driver;
@@ -204,7 +205,51 @@ class OutgoingController extends Controller
 
     public function productMapping()
     {
-        return view('outgoing.product_mapping');
+        $recentParts = \App\Models\GciPart::query()
+            ->where('classification', 'RM')
+            ->orderBy('updated_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('outgoing.product_mapping', compact('recentParts'));
+    }
+
+    public function whereUsed(Request $request)
+    {
+        $validated = $request->validate([
+            'part_no' => ['required', 'string'],
+        ]);
+
+        $partNo = strtoupper(trim($validated['part_no']));
+        $boms = Bom::whereUsed($partNo);
+
+        $results = $boms->map(function ($bom) {
+            $customerProducts = \App\Models\CustomerPartComponent::query()
+                ->with(['customerPart.customer'])
+                ->where('gci_part_id', $bom->part_id)
+                ->get()
+                ->map(fn ($comp) => [
+                    'customer_part_no' => $comp->customerPart->customer_part_no,
+                    'customer_part_name' => $comp->customerPart->customer_part_name,
+                    'customer_name' => $comp->customerPart->customer->name ?? '-',
+                    'usage_qty' => $comp->qty_per_unit,
+                ]);
+
+            return [
+                'id' => $bom->id,
+                'part_id' => $bom->part_id,
+                'fg_part_no' => $bom->part->part_no,
+                'fg_part_name' => $bom->part->part_name,
+                'revision' => $bom->revision,
+                'status' => $bom->status,
+                'customer_products' => $customerProducts,
+            ];
+        });
+
+        return response()->json([
+            'part_no' => $partNo,
+            'used_in' => $results,
+        ]);
     }
 
     public function deliveryRequirements(Request $request)

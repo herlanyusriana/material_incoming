@@ -232,15 +232,10 @@
                                     <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('planning.boms.explosion*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('planning.boms.explosion*')])></span>
                                     <span class="flex-1">🌳 BOM Explosion</span>
                                 </a>
-                                <a href="{{ route('planning.boms.where-used-page') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.where-used-page'), $subInactive => !request()->routeIs('planning.boms.where-used-page')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('planning.boms.where-used-page'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('planning.boms.where-used-page')])></span>
-                                    <span class="flex-1">🔍 BOM Where-Used</span>
-                                </a>
-                                <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
-                                    <span class="flex-1">MRP</span>
-                                </a>
+	                                <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
+	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
+	                                    <span class="flex-1">MRP</span>
+	                                </a>
                             </div>
                         </details>
                     </div>
@@ -971,14 +966,18 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po')])></span>
                                 <span class="flex-1">Customers PO</span>
                             </a>
-                            <a href="{{ route('outgoing.product-mapping') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.product-mapping')])></span>
-                                <span class="flex-1">Customer Product Mapping</span>
-                            </a>
-                            <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
-                                <span class="flex-1">Delivery Requirements</span>
-                            </a>
+	                            <a href="{{ route('outgoing.product-mapping') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.product-mapping')])></span>
+	                                <span class="flex-1">Customer Product Mapping</span>
+	                            </a>
+	                            <a href="{{ route('outgoing.product-mapping') }}#where-used" @class([$subLinkBase, $subActive => false, $subInactive => true])>
+	                                <span @class([$subDotBase, 'bg-emerald-600'])></span>
+	                                <span class="flex-1">🔍 Where-Used (BOM)</span>
+	                            </a>
+	                            <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])>
+	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
+	                                <span class="flex-1">Delivery Requirements</span>
+	                            </a>
                             <a href="{{ route('outgoing.stock-at-customers') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.stock-at-customers'), $subInactive => !request()->routeIs('outgoing.stock-at-customers')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.stock-at-customers'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.stock-at-customers')])></span>
                                 <span class="flex-1">Stock at Customers</span>
