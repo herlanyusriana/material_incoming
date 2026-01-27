@@ -220,8 +220,44 @@ class OutgoingController extends Controller
             'part_no' => ['required', 'string'],
         ]);
 
-        $partNo = strtoupper(trim($validated['part_no']));
-        $boms = Bom::whereUsed($partNo);
+        $partNo = $this->normalizePartNo((string) $validated['part_no']);
+        if ($partNo === '') {
+            return response()->json([
+                'part_no' => '',
+                'mode' => 'invalid',
+                'used_in' => [],
+            ]);
+        }
+
+        // If the input is an FG (GCI) part number, show the FG BOM(s) directly (so user can see customer mappings),
+        // instead of treating it as a "component" for implosion.
+        $mode = 'component';
+        $boms = null;
+
+        $fgPartId = null;
+        $fg = GciPart::query()->where('part_no', $partNo)->where('classification', 'FG')->first();
+        if ($fg) {
+            $fgPartId = (int) $fg->id;
+        } else {
+            // Also allow customer part numbers: map -> first FG component.
+            $mappedFgId = $this->resolveFgPartIdFromPartNo($partNo);
+            if ($mappedFgId) {
+                $fgPartId = (int) $mappedFgId;
+            }
+        }
+
+        if ($fgPartId) {
+            $mode = 'fg';
+            $boms = Bom::query()
+                ->with(['part', 'items.componentPart'])
+                ->where('part_id', $fgPartId)
+                ->where('status', 'active')
+                ->get();
+        }
+
+        if ($boms === null) {
+            $boms = Bom::whereUsed($partNo);
+        }
 
         $results = $boms->map(function ($bom) {
             $customerProducts = \App\Models\CustomerPartComponent::query()
@@ -248,6 +284,7 @@ class OutgoingController extends Controller
 
         return response()->json([
             'part_no' => $partNo,
+            'mode' => $mode,
             'used_in' => $results,
         ]);
     }
