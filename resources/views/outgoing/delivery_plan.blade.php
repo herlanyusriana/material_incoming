@@ -242,15 +242,18 @@
                         <tbody id="tableBody">
                             @forelse(($groups ?? []) as $class => $items)
                                 @foreach(($items ?? []) as $r)
-                                    @php
-                                        $rowNo++;
-                                        $assignment = $r->assignment ?? null;
-                                        $assignedPlan = $assignment?->plan;
-                                        $status = (string) ($assignment?->status ?? 'pending');
-                                        $statusBadge = match ($status) {
-                                            'assigned' => '<span class="badge badge-success">Assigned</span>',
-                                            'picking' => '<span class="badge badge-info">Picking</span>',
-                                            'shipped' => '<span class="badge badge-success">Shipped</span>',
+	                                    @php
+	                                        $rowNo++;
+	                                        $assignment = $r->assignment ?? null;
+	                                        $assignedPlan = $assignment?->plan;
+	                                        $status = (string) ($assignment?->status ?? 'pending');
+	                                        $lineKey = strtoupper((string) ($r->production_lines ?? ''));
+	                                        $isNr1 = $lineKey !== '' && str_contains($lineKey, 'NR1');
+	                                        $isNr2 = $lineKey !== '' && str_contains($lineKey, 'NR2');
+	                                        $statusBadge = match ($status) {
+	                                            'assigned' => '<span class="badge badge-success">Assigned</span>',
+	                                            'picking' => '<span class="badge badge-info">Picking</span>',
+	                                            'shipped' => '<span class="badge badge-success">Shipped</span>',
                                             default => '<span class="badge badge-warning">Pending</span>',
                                         };
                                     @endphp
@@ -274,18 +277,30 @@
                                         <td class="mono">{{ $r->part_no ?? '-' }}</td>
                                         <td style="text-align:right; font-weight:900;">{{ number_format((float) ($r->plan_total ?? 0), 0) }}</td>
                                         <td style="text-align:right; font-weight:900;">{{ (float) ($r->stock_at_customer ?? 0) > 0 ? number_format((float) ($r->stock_at_customer ?? 0), 0) : '-' }}</td>
-                                        <td style="text-align:right; font-weight:900;">{{ number_format((float) ($r->balance ?? 0), 0) }}</td>
-                                        <td>
-                                            <div class="mono" style="font-weight:800;">
-                                                NR1: {{ (int) ($r->jig_nr1 ?? 0) > 0 ? (int) $r->jig_nr1 : '-' }}
-                                                <span class="muted">|</span>
-                                                NR2: {{ (int) ($r->jig_nr2 ?? 0) > 0 ? (int) $r->jig_nr2 : '-' }}
-                                            </div>
-                                            <div class="muted" style="font-size:12px;">NR1 = ceil(Balance/10), NR2 = ceil(Balance/9)</div>
-                                        </td>
-                                        <td class="mono">{{ $r->due_date?->format('Y-m-d') }}</td>
-                                        @foreach($sequences as $seq)
-                                            @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
+	                                        <td style="text-align:right; font-weight:900;">{{ number_format((float) ($r->balance ?? 0), 0) }}</td>
+	                                        <td>
+	                                            @if($isNr1 && !$isNr2)
+	                                                <div class="mono" style="font-weight:800;">
+	                                                    NR1: {{ (int) ($r->jig_nr1 ?? 0) > 0 ? (int) $r->jig_nr1 : '-' }}
+	                                                </div>
+	                                                <div class="muted" style="font-size:12px;">JIG NR1 = ceil(Balance/10)</div>
+	                                            @elseif($isNr2 && !$isNr1)
+	                                                <div class="mono" style="font-weight:800;">
+	                                                    NR2: {{ (int) ($r->jig_nr2 ?? 0) > 0 ? (int) $r->jig_nr2 : '-' }}
+	                                                </div>
+	                                                <div class="muted" style="font-size:12px;">JIG NR2 = ceil(Balance/9)</div>
+	                                            @else
+	                                                <div class="mono" style="font-weight:800;">
+	                                                    NR1: {{ (int) ($r->jig_nr1 ?? 0) > 0 ? (int) $r->jig_nr1 : '-' }}
+	                                                    <span class="muted">|</span>
+	                                                    NR2: {{ (int) ($r->jig_nr2 ?? 0) > 0 ? (int) $r->jig_nr2 : '-' }}
+	                                                </div>
+	                                                <div class="muted" style="font-size:12px;">NR1 = ceil(Balance/10), NR2 = ceil(Balance/9)</div>
+	                                            @endif
+	                                        </td>
+	                                        <td class="mono">{{ $r->due_date?->format('Y-m-d') }}</td>
+	                                        @foreach($sequences as $seq)
+	                                            @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
                                             <td class="sequence-cell">{{ $v > 0 ? number_format($v, 0) : '' }}</td>
                                         @endforeach
                                         <td style="text-align:right; font-weight:900;">{{ number_format((float) ($r->remain ?? 0), 0) }}</td>
@@ -479,4 +494,3 @@
         document.getElementById('partNameFilter')?.addEventListener('input', applyFilters);
     </script>
 @endsection
-

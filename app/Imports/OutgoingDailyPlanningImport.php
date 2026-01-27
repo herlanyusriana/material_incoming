@@ -21,7 +21,16 @@ class OutgoingDailyPlanningImport implements ToCollection
 
     private function norm(string $value): string
     {
-        return strtolower(trim(preg_replace('/\s+/', ' ', $value) ?? $value));
+        $v = (string) $value;
+        $v = str_replace("\u{00A0}", ' ', $v); // NBSP
+        $v = str_replace("\u{200B}", '', $v); // zero-width space
+        $v = str_replace("\u{FEFF}", '', $v); // BOM
+        $v = str_replace('_', ' ', $v);
+        $v = strtolower($v);
+        // Turn punctuation into spaces so "Part No." matches "part no"
+        $v = preg_replace('/[^a-z0-9]+/i', ' ', $v) ?? $v;
+        $v = preg_replace('/\s+/', ' ', $v) ?? $v;
+        return trim($v);
     }
 
     private function normalizePartNo(mixed $value): string
@@ -66,28 +75,60 @@ class OutgoingDailyPlanningImport implements ToCollection
             return;
         }
 
-        $headerRow = $rows->shift();
-        if (!$headerRow) {
-            return;
-        }
-
-        $headers = array_map(fn ($v) => trim((string) $v), $this->rowValues($headerRow));
+        // Some users add a title row above the real header, so we scan a few first rows.
+        $maxScan = min(10, $rows->count());
+        $headerRow = null;
+        $headers = [];
         $colIdx = [];
-        foreach ($headers as $idx => $h) {
-            $key = $this->norm($h);
-            if ($key !== '') {
-                $colIdx[$key] = $idx;
+        $productionLineIdx = null;
+        $partNoIdx = null;
+        $noIdx = null;
+        $headerRowPos = -1;
+
+        for ($i = 0; $i < $maxScan; $i++) {
+            $candidate = $rows->get($i);
+            if (!$candidate) {
+                continue;
+            }
+
+            $candidateHeaders = array_map(fn ($v) => trim((string) $v), $this->rowValues($candidate));
+            $candidateIdx = [];
+            foreach ($candidateHeaders as $idx => $h) {
+                $key = $this->norm($h);
+                if ($key !== '') {
+                    $candidateIdx[$key] = $idx;
+                }
+            }
+
+            $candProductionLineIdx = $candidateIdx['production line'] ?? $candidateIdx['line'] ?? $candidateIdx['productionline'] ?? null;
+            $candPartNoIdx = $candidateIdx['part no'] ?? $candidateIdx['part number'] ?? $candidateIdx['part'] ?? $candidateIdx['partno'] ?? null;
+            $candNoIdx = $candidateIdx['no'] ?? $candidateIdx['number'] ?? $candidateIdx['#'] ?? $candidateIdx['no '] ?? null;
+
+            if ($candProductionLineIdx !== null && $candPartNoIdx !== null) {
+                $headerRow = $candidate;
+                $headers = $candidateHeaders;
+                $colIdx = $candidateIdx;
+                $productionLineIdx = $candProductionLineIdx;
+                $partNoIdx = $candPartNoIdx;
+                $noIdx = $candNoIdx;
+                $headerRowPos = $i;
+                break;
             }
         }
 
-        $productionLineIdx = $colIdx['production_line'] ?? $colIdx['production line'] ?? null;
-        $partNoIdx = $colIdx['part_no'] ?? $colIdx['part no'] ?? $colIdx['part number'] ?? null;
-        $noIdx = $colIdx['no'] ?? $colIdx['#'] ?? null;
-
-        if ($productionLineIdx === null || $partNoIdx === null) {
-            $this->failures[] = "Header kolom 'production_line' atau 'part_no' tidak ditemukan.";
+        if ($headerRow === null || $productionLineIdx === null || $partNoIdx === null) {
+            $first = $rows->first();
+            $firstHeaders = $first ? array_map(fn ($v) => trim((string) $v), $this->rowValues($first)) : [];
+            $preview = array_slice(array_filter($firstHeaders, fn ($v) => (string) $v !== ''), 0, 12);
+            $this->failures[] =
+                "Header kolom 'production_line/LINE' atau 'part_no/Part No' tidak ditemukan. " .
+                "Saran: download template Daily Planning. " .
+                (!empty($preview) ? ("Header row pertama terbaca: " . implode(' | ', $preview)) : '');
             return;
         }
+
+        // Drop all rows above the header row, and the header row itself.
+        $rows = $rows->slice($headerRowPos + 1)->values();
 
         /** @var array<string, array{seq:int, qty:int}> $dateCols */
         $dateCols = [];

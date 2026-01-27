@@ -191,12 +191,18 @@
                             <h3 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Material & Part Lines</h3>
                             <p class="text-sm text-gray-600">Kelompokkan part internal berdasarkan jenis material (contoh: SPHC / PO STEEL IN COIL).</p>
                         </div>
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                            <button type="button" id="refresh-parts" class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-md border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition sm:w-auto" disabled>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 9.75a7.5 7.5 0 0 1 13.208-3.464M19.5 14.25a7.5 7.5 0 0 1-13.208 3.464M4.5 4.5v5.25H9.75M19.5 19.5v-5.25H14.25" />
-                                </svg>
-                                <span data-label>Sync Part Catalog</span>
+	                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+	                            <button type="button" id="open-qty-goods-sheet" class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition sm:w-auto">
+	                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18" />
+	                                </svg>
+	                                Qty Goods Sheet
+	                            </button>
+	                            <button type="button" id="refresh-parts" class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-md border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition sm:w-auto" disabled>
+	                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+	                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 9.75a7.5 7.5 0 0 1 13.208-3.464M19.5 14.25a7.5 7.5 0 0 1-13.208 3.464M4.5 4.5v5.25H9.75M19.5 19.5v-5.25H14.25" />
+	                                </svg>
+	                                <span data-label>Sync Part Catalog</span>
                             </button>
                         </div>
                     </div>
@@ -211,13 +217,45 @@
                         Save Departure
                     </button>
                 </div>
-            </form>
-        </div>
-    </div>
+	            </form>
+	        </div>
+	    </div>
 
-    <script>
-        const partApiBase = @json(url('/vendors'));
-        const partsCache = {};
+	    <div id="qty-goods-sheet-modal" class="fixed inset-0 z-50 hidden">
+	        <div class="absolute inset-0 bg-slate-900/50" data-close-qty-goods-sheet></div>
+	        <div class="absolute inset-x-0 top-10 mx-auto w-full max-w-5xl px-4">
+	            <div class="rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+	                <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200 bg-slate-50">
+	                    <div>
+	                        <div class="text-lg font-black text-slate-900">Qty Goods Sheet</div>
+	                        <div class="text-xs text-slate-600">Bulk input untuk Qty Goods (support paste banyak baris).</div>
+	                    </div>
+	                    <div class="flex items-center gap-2">
+	                        <button type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100" data-close-qty-goods-sheet>Close</button>
+	                    </div>
+	                </div>
+	                <div class="max-h-[70vh] overflow-auto">
+	                    <table class="min-w-full text-sm">
+	                        <thead class="sticky top-0 bg-white border-b border-slate-200">
+	                            <tr>
+	                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-14">No</th>
+	                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Material Group</th>
+	                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Size</th>
+	                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Part No GCI</th>
+	                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Part Name GCI</th>
+	                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider w-40">Qty Goods</th>
+	                            </tr>
+	                        </thead>
+	                        <tbody id="qty-goods-sheet-body" class="divide-y divide-slate-100"></tbody>
+	                    </table>
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	
+	    <script>
+	        const partApiBase = @json(url('/vendors'));
+	        const partsCache = {};
         const vendorsData = @json($vendors->map(fn($v) => ['id' => $v->id, 'name' => $v->vendor_name])->values());
         const hasOldInput = @json(!empty(session()->getOldInput()));
         const draftStorageKey = 'arrival-form-draft';
@@ -889,16 +927,17 @@
 	            });
 	        }
 
-	        function addRowToGroup(groupEl, existing = null) {
-	            const vendorId = vendorIdInput.value;
-	            const rowsContainer = groupEl.querySelector('.group-rows');
-	            const row = document.createElement('div');
-	            row.className = 'line-row rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
-            const guessedBundle = existing?.unit_bundle ? String(existing.unit_bundle).trim().toUpperCase() : null;
-            const guessedWeight = existing?.unit_weight ?? null;
-            const guessedUnitGoods = existing?.unit_goods ? String(existing.unit_goods).trim().toUpperCase() : null;
-            const groupTitle = getGroupTitle(groupEl);
-            const initialMaterialGroup = escapeHtml(groupTitle);
+		        function addRowToGroup(groupEl, existing = null) {
+		            const vendorId = vendorIdInput.value;
+		            const rowsContainer = groupEl.querySelector('.group-rows');
+		            const row = document.createElement('div');
+		            row.className = 'line-row rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
+		            row.dataset.itemIndex = String(rowIndex);
+	            const guessedBundle = existing?.unit_bundle ? String(existing.unit_bundle).trim().toUpperCase() : null;
+	            const guessedWeight = existing?.unit_weight ?? null;
+	            const guessedUnitGoods = existing?.unit_goods ? String(existing.unit_goods).trim().toUpperCase() : null;
+	            const groupTitle = getGroupTitle(groupEl);
+	            const initialMaterialGroup = escapeHtml(groupTitle);
             const existingQty = Number(existing?.qty_goods ?? 0);
             const existingTotal = existing?.total_amount ?? (existing ? ((Number(existing?.price ?? 0) * existingQty) || 0) : '');
 	            row.innerHTML = `
@@ -1295,5 +1334,107 @@
                 requestSaveDraft();
             });
         }
+
+        const qtyGoodsSheetBtn = document.getElementById('open-qty-goods-sheet');
+        const qtyGoodsSheetModal = document.getElementById('qty-goods-sheet-modal');
+        const qtyGoodsSheetBody = document.getElementById('qty-goods-sheet-body');
+
+        function getItemIndexFromRowEl(rowEl) {
+            const idx = rowEl?.dataset?.itemIndex;
+            if (idx !== undefined && idx !== null && String(idx).trim() !== '') return String(idx);
+            const input = rowEl?.querySelector('input[name^="items["]');
+            const name = input?.getAttribute('name') || '';
+            const m = name.match(/^items\[(\d+)\]/);
+            return m ? m[1] : '';
+        }
+
+        function openQtyGoodsSheet() {
+            if (!qtyGoodsSheetModal || !qtyGoodsSheetBody) return;
+
+            const lineRows = Array.from(document.querySelectorAll('.line-row'));
+            if (lineRows.length === 0) {
+                alert('Belum ada part line.');
+                return;
+            }
+
+            qtyGoodsSheetBody.innerHTML = '';
+            const frag = document.createDocumentFragment();
+
+            lineRows.forEach((rowEl, i) => {
+                const groupEl = rowEl.closest('.material-group');
+                const groupTitle = groupEl ? getGroupTitle(groupEl) : '';
+                const size = rowEl.querySelector('.input-size')?.value || '';
+                const partNo = rowEl.querySelector('.input-part-no-gci')?.value || '';
+                const partName = rowEl.querySelector('.input-part-name-gci')?.value || '';
+                const qty = rowEl.querySelector('.qty-goods')?.value || '';
+                const itemIndex = getItemIndexFromRowEl(rowEl);
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50';
+                tr.dataset.itemIndex = itemIndex;
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-slate-700 font-semibold">${i + 1}</td>
+                    <td class="px-4 py-3 text-slate-700">${escapeHtml(groupTitle)}</td>
+                    <td class="px-4 py-3 text-slate-700">${escapeHtml(size)}</td>
+                    <td class="px-4 py-3 text-slate-700 font-mono text-xs">${escapeHtml(partNo)}</td>
+                    <td class="px-4 py-3 text-slate-700">${escapeHtml(partName)}</td>
+                    <td class="px-4 py-3 text-right">
+                        <input type="number" class="sheet-qty w-32 text-right rounded-lg border-slate-300 text-sm" value="${escapeHtml(qty)}" min="0" placeholder="0" data-row="${escapeHtml(itemIndex)}">
+                    </td>
+                `;
+                frag.appendChild(tr);
+            });
+
+            qtyGoodsSheetBody.appendChild(frag);
+
+            qtyGoodsSheetBody.querySelectorAll('.sheet-qty').forEach((inputEl) => {
+                inputEl.addEventListener('input', (e) => {
+                    const target = e.target;
+                    const idx = target.dataset.row;
+                    const value = target.value;
+                    const sourceRow = document.querySelector(`.line-row[data-item-index="${CSS.escape(String(idx))}"]`);
+                    if (!sourceRow) return;
+                    const qtyEl = sourceRow.querySelector('.qty-goods');
+                    if (qtyEl) qtyEl.value = value;
+                    updateTotal(sourceRow);
+                    requestSaveDraft();
+                });
+
+                inputEl.addEventListener('paste', (e) => {
+                    const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+                    const values = text
+                        .split(/\r\n|\r|\n|\t|,|;/)
+                        .map(v => String(v || '').trim())
+                        .filter(Boolean);
+                    if (values.length <= 1) return;
+                    e.preventDefault();
+
+                    const allInputs = Array.from(qtyGoodsSheetBody.querySelectorAll('.sheet-qty'));
+                    const startIdx = allInputs.indexOf(e.target);
+                    if (startIdx < 0) return;
+
+                    values.forEach((v, offset) => {
+                        const el = allInputs[startIdx + offset];
+                        if (!el) return;
+                        el.value = v;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    });
+                });
+            });
+
+            qtyGoodsSheetModal.classList.remove('hidden');
+        }
+
+        function closeQtyGoodsSheet() {
+            qtyGoodsSheetModal?.classList.add('hidden');
+        }
+
+        qtyGoodsSheetBtn?.addEventListener('click', openQtyGoodsSheet);
+        qtyGoodsSheetModal?.querySelectorAll('[data-close-qty-goods-sheet]')?.forEach(el => el.addEventListener('click', closeQtyGoodsSheet));
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && qtyGoodsSheetModal && !qtyGoodsSheetModal.classList.contains('hidden')) {
+                closeQtyGoodsSheet();
+            }
+        });
     </script>
 </x-app-layout>

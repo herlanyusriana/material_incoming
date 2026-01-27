@@ -137,16 +137,19 @@
 	                                }
 	                                $jigNr1 = $totalQty > 0 ? (int) ceil($totalQty / 10) : 0;
 	                                $jigNr2 = $totalQty > 0 ? (int) ceil($totalQty / 9) : 0;
+	                                $lineKey = strtoupper(trim((string) ($row->production_line ?? '')));
+	                                $isNr1 = $lineKey !== '' && str_contains($lineKey, 'NR1');
+	                                $isNr2 = $lineKey !== '' && str_contains($lineKey, 'NR2');
 	                            @endphp
 	                            <tr class="hover:bg-slate-50 group">
 	                                <td class="px-4 py-3 font-semibold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
 	                                    {{ $row->production_line }}
 	                                </td>
 	                                <td class="px-4 py-3 text-center font-bold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-32 z-10 border-r border-slate-100">
-	                                    {{ $jigNr1 > 0 ? $jigNr1 : '-' }}
+	                                    {{ $isNr2 ? '-' : ($jigNr1 > 0 ? $jigNr1 : '-') }}
 	                                </td>
 	                                <td class="px-4 py-3 text-center font-bold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-48 z-10 border-r border-slate-100">
-	                                    {{ $jigNr2 > 0 ? $jigNr2 : '-' }}
+	                                    {{ $isNr1 ? '-' : ($jigNr2 > 0 ? $jigNr2 : '-') }}
 	                                </td>
 	                                <td class="px-4 py-3 font-mono text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-64 z-10 border-r border-slate-100">
 	                                    {{ $row->part_no }}
