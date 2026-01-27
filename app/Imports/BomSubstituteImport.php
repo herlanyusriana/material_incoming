@@ -16,9 +16,11 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
     public int $rowCount = 0;
     protected array $failures = [];
     protected array $seenKeys = [];
+    private string $nbsp;
 
     public function __construct(private readonly bool $autoCreateParts = true)
     {
+        $this->nbsp = "\u{00A0}";
     }
 
     private function normalizePartNo(mixed $value): string
@@ -27,6 +29,20 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
         $normalized = preg_replace('/\\s+/u', '', $normalized) ?? $normalized;
 
         return $normalized;
+    }
+
+    private function normalizedEqualsSql(string $columnSql): string
+    {
+        // Normalize in SQL to match normalizePartNo(): trim + uppercase + remove regular spaces + remove non-breaking spaces.
+        // This is defensive against hidden whitespace in master data (e.g., '4810 JM3004B' vs '4810JM3004B').
+        return "REPLACE(REPLACE(UPPER(TRIM({$columnSql})), ' ', ''), ?, '') = ?";
+    }
+
+    private function findGciPartByPartNo(string $normalizedPartNo): ?GciPart
+    {
+        return GciPart::query()
+            ->whereRaw($this->normalizedEqualsSql('part_no'), [$this->nbsp, $normalizedPartNo])
+            ->first();
     }
 
     public function collection(Collection $rows)
@@ -68,18 +84,36 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             $this->seenKeys[$dedupeKey] = true;
 
             // 1. Find FG Part
-            $fgPart = GciPart::where('part_no', $fgPartNo)->first();
+            $fgPart = $this->findGciPartByPartNo($fgPartNo);
+
+            // 2. Find BOM
+            $bom = null;
+            if ($fgPart) {
+                $bom = Bom::activeVersion($fgPart->id) ?? Bom::query()
+                    ->where('part_id', $fgPart->id)
+                    ->orderByDesc('effective_date')
+                    ->orderByDesc('id')
+                    ->first();
+            }
+
+            // Fallback: some databases contain duplicate/dirty FG part_no rows; prefer the one that actually has a BOM.
+            if (!$bom) {
+                $bom = Bom::query()
+                    ->join('gci_parts as gp', 'gp.id', '=', 'boms.part_id')
+                    ->whereRaw($this->normalizedEqualsSql('gp.part_no'), [$this->nbsp, $fgPartNo])
+                    ->orderByDesc('boms.effective_date')
+                    ->orderByDesc('boms.id')
+                    ->select('boms.*')
+                    ->first();
+                if ($bom) {
+                    $fgPart = $bom->part;
+                }
+            }
+
             if (!$fgPart) {
                 $this->addFailure($rowIndex, "FG Part not found: $fgPartNo");
                 continue;
             }
-
-            // 2. Find BOM
-            $bom = Bom::activeVersion($fgPart->id) ?? Bom::query()
-                ->where('part_id', $fgPart->id)
-                ->orderByDesc('effective_date')
-                ->orderByDesc('id')
-                ->first();
             if (!$bom) {
                 $this->addFailure($rowIndex, "BOM not found for FG: $fgPartNo");
                 continue;
@@ -90,17 +124,17 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             $bomItem = BomItem::query()
                 ->where('bom_id', $bom->id)
                 ->where(function ($q) use ($componentPartNo) {
-                    $q->whereRaw('TRIM(UPPER(component_part_no)) = ?', [$componentPartNo])
-                        ->orWhereHas('componentPart', fn ($sq) => $sq->whereRaw('TRIM(UPPER(part_no)) = ?', [$componentPartNo]))
-                        ->orWhereRaw('TRIM(UPPER(wip_part_no)) = ?', [$componentPartNo]);
+                    $q->whereRaw($this->normalizedEqualsSql('component_part_no'), [$this->nbsp, $componentPartNo])
+                        ->orWhereHas('componentPart', fn ($sq) => $sq->whereRaw($this->normalizedEqualsSql('part_no'), [$this->nbsp, $componentPartNo]))
+                        ->orWhereRaw($this->normalizedEqualsSql('wip_part_no'), [$this->nbsp, $componentPartNo]);
                 })
                 ->first();
             if (!$bomItem) {
                 $bomItem = BomItem::query()
                     ->where('bom_id', $bom->id)
                     ->where(function ($q) use ($componentPartNo) {
-                        $q->whereRaw('UPPER(component_part_no) LIKE ?', [$componentPartNo . '%'])
-                            ->orWhereRaw('UPPER(wip_part_no) LIKE ?', [$componentPartNo . '%']);
+                        $q->whereRaw("REPLACE(REPLACE(UPPER(TRIM(component_part_no)), ' ', ''), ?, '') LIKE ?", [$this->nbsp, $componentPartNo . '%'])
+                            ->orWhereRaw("REPLACE(REPLACE(UPPER(TRIM(wip_part_no)), ' ', ''), ?, '') LIKE ?", [$this->nbsp, $componentPartNo . '%']);
                     })
                     ->first();
             }
@@ -111,7 +145,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             }
 
             // 4. Find Substitute Part
-            $subPart = GciPart::where('part_no', $subPartNo)->first();
+            $subPart = $this->findGciPartByPartNo($subPartNo);
             if (!$subPart && $this->autoCreateParts) {
                 $subPart = GciPart::query()->create([
                     'part_no' => $subPartNo,
