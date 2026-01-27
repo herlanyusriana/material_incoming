@@ -177,10 +177,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/drivers/export', [\App\Http\Controllers\Outgoing\DriverController::class, 'export'])->name('drivers.export');
         Route::post('/drivers/import', [\App\Http\Controllers\Outgoing\DriverController::class, 'import'])->name('drivers.import');
 
-        Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
-        Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
-        Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
-        Route::post('/delivery-plan/{plan}/assign-resources', [OutgoingController::class, 'assignDeliveryPlanResources'])->name('delivery-plan.assign-resources');
+	        Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
+	        Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
+	        Route::post('/delivery-plan/assign-items', [OutgoingController::class, 'assignDeliveryPlanItems'])->name('delivery-plan.assign-items');
+	        Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
+	        Route::post('/delivery-plan/{plan}/assign-resources', [OutgoingController::class, 'assignDeliveryPlanResources'])->name('delivery-plan.assign-resources');
 
         Route::get('sales-orders/{sales_order}', [SalesOrderController::class, 'show'])->name('sales-orders.show');
         Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');

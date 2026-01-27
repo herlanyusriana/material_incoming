@@ -105,15 +105,17 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">Line</th>
-                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-32 z-10 bg-slate-50">Part No</th>
-                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-slate-200 bg-slate-50">Std Pack</th>
-                            @foreach ($days as $d)
-                                <th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[120px]">
-                                    {{ $d->format('D, d M') }}
+	                <table class="w-full text-sm divide-y divide-slate-200">
+	                    <thead class="bg-slate-50">
+	                        <tr>
+	                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">Line</th>
+	                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-16 border-r border-slate-200 sticky left-32 z-10 bg-slate-50">JIG NR1</th>
+	                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-16 border-r border-slate-200 sticky left-48 z-10 bg-slate-50">JIG NR2</th>
+	                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-64 z-10 bg-slate-50">Part No</th>
+	                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-slate-200 bg-slate-50">Std Pack</th>
+	                            @foreach ($days as $d)
+	                                <th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[120px]">
+	                                    {{ $d->format('D, d M') }}
                                 </th>
                             @endforeach
                         </tr>
@@ -124,21 +126,34 @@
                             @endforeach
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        @forelse ($rows as $row)
-                            @php
-                                $cellMap = $row->cells->keyBy(fn ($c) => $c->plan_date->format('Y-m-d'));
-                            @endphp
-                            <tr class="hover:bg-slate-50 group">
-                                <td class="px-4 py-3 font-semibold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
-                                    {{ $row->production_line }}
-                                </td>
-                                <td class="px-4 py-3 font-mono text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-32 z-10 border-r border-slate-100">
-                                    {{ $row->part_no }}
-                                </td>
-                                <td class="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">
-                                    {{ $row->gciPart?->standardPacking?->packing_qty ?? '-' }}
-                                    <span class="text-[10px] font-normal text-slate-400">{{ $row->gciPart?->standardPacking?->uom ?? '' }}</span>
+	                    <tbody class="divide-y divide-slate-100 bg-white">
+	                        @forelse ($rows as $row)
+	                            @php
+	                                $cellMap = $row->cells->keyBy(fn ($c) => $c->plan_date->format('Y-m-d'));
+	                                $totalQty = 0;
+	                                foreach ($days as $d) {
+	                                    $k = $d->format('Y-m-d');
+	                                    $totalQty += (int) ($cellMap->get($k)?->qty ?? 0);
+	                                }
+	                                $jigNr1 = $totalQty > 0 ? (int) ceil($totalQty / 10) : 0;
+	                                $jigNr2 = $totalQty > 0 ? (int) ceil($totalQty / 9) : 0;
+	                            @endphp
+	                            <tr class="hover:bg-slate-50 group">
+	                                <td class="px-4 py-3 font-semibold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
+	                                    {{ $row->production_line }}
+	                                </td>
+	                                <td class="px-4 py-3 text-center font-bold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-32 z-10 border-r border-slate-100">
+	                                    {{ $jigNr1 > 0 ? $jigNr1 : '-' }}
+	                                </td>
+	                                <td class="px-4 py-3 text-center font-bold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-48 z-10 border-r border-slate-100">
+	                                    {{ $jigNr2 > 0 ? $jigNr2 : '-' }}
+	                                </td>
+	                                <td class="px-4 py-3 font-mono text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-64 z-10 border-r border-slate-100">
+	                                    {{ $row->part_no }}
+	                                </td>
+	                                <td class="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">
+	                                    {{ $row->gciPart?->standardPacking?->packing_qty ?? '-' }}
+	                                    <span class="text-[10px] font-normal text-slate-400">{{ $row->gciPart?->standardPacking?->uom ?? '' }}</span>
                                 </td>
                                 @foreach ($days as $d)
                                     @php
@@ -167,13 +182,13 @@
                                     </td>
                                 @endforeach
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="{{ 3 + (count($days) * 2) }}" class="px-6 py-12 text-center text-slate-500">
-                                    @if($plan)
-                                        <div class="flex flex-col items-center">
-                                            <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                            <p class="font-medium text-slate-900">Plan is empty.</p>
+	                        @empty
+	                            <tr>
+	                                <td colspan="{{ 5 + (count($days) * 2) }}" class="px-6 py-12 text-center text-slate-500">
+	                                    @if($plan)
+	                                        <div class="flex flex-col items-center">
+	                                            <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+	                                            <p class="font-medium text-slate-900">Plan is empty.</p>
                                             <p class="text-sm">Add rows manually or import from Excel.</p>
                                         </div>
                                     @else
@@ -182,16 +197,16 @@
                                 </td>
                             </tr>
                         @endforelse
-                    </tbody>
-                     <!-- Footer for Totals -->
-                    <tfoot class="bg-slate-50 font-bold sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
-                        <tr>
-                            <td colspan="3" class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider border-r border-slate-200 sticky left-0 z-20 bg-slate-50">
-                                Daily Total
-                            </td>
-                            @foreach ($days as $idx => $d)
-                                @php
-                                    $k = $d->format('Y-m-d');
+	                    </tbody>
+	                     <!-- Footer for Totals -->
+	                    <tfoot class="bg-slate-50 font-bold sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+	                        <tr>
+	                            <td colspan="5" class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider border-r border-slate-200 sticky left-0 z-20 bg-slate-50">
+	                                Daily Total
+	                            </td>
+	                            @foreach ($days as $idx => $d)
+	                                @php
+	                                    $k = $d->format('Y-m-d');
                                     $t = $totalsByDate[$k] ?? 0;
                                 @endphp
                                 <td colspan="1" class="border-r border-slate-100"></td> <!-- Skip Seq Col -->

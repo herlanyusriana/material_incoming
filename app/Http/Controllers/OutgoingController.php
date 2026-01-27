@@ -13,6 +13,7 @@ use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDailyPlanRow;
 use App\Models\CustomerPart;
 use App\Models\DeliveryRequirementFulfillment;
+use App\Models\DeliveryPlanRequirementAssignment;
 use App\Models\GciPart;
 use App\Models\DeliveryPlan;
 use App\Models\Truck;
@@ -818,6 +819,7 @@ class OutgoingController extends Controller
                 $jigNr2 = $balance > 0 ? (int) ceil($balance / 9) : 0;  // NR2: 9 pcs per jig
 
                 return (object) [
+                    'gci_part_id' => $partId,
                     'delivery_class' => $deliveryClass,
                     'part_name' => $gciPart?->part_name ?? '-',
                     'part_no' => $gciPart?->part_no ?? '-',
@@ -836,6 +838,28 @@ class OutgoingController extends Controller
             ->sortBy(fn ($r) => $r->delivery_class)
             ->values();
 
+        $assignmentMap = [];
+        $assignedPartIds = $rowsByPart
+            ->map(fn ($r) => (int) ($r->gci_part_id ?? 0))
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (!empty($assignedPartIds)) {
+            $assignmentMap = DeliveryPlanRequirementAssignment::query()
+                ->with(['plan.truck', 'plan.driver'])
+                ->whereDate('plan_date', $date->toDateString())
+                ->whereIn('gci_part_id', $assignedPartIds)
+                ->get()
+                ->keyBy(fn ($a) => (int) $a->gci_part_id)
+                ->all();
+        }
+
+        foreach ($rowsByPart as $r) {
+            $r->assignment = $assignmentMap[(int) ($r->gci_part_id ?? 0)] ?? null;
+        }
+
         $groups = $rowsByPart->groupBy('delivery_class')->all();
 
         return view('outgoing.delivery_plan', [
@@ -846,6 +870,62 @@ class OutgoingController extends Controller
             'trucks' => $trucks,
             'drivers' => $drivers,
         ]);
+    }
+
+    public function assignDeliveryPlanItems(Request $request)
+    {
+        $validated = $request->validate([
+            'plan_date' => ['required', 'date'],
+            'gci_part_ids' => ['required', 'array', 'min:1'],
+            'gci_part_ids.*' => ['integer', 'exists:gci_parts,id'],
+            'delivery_plan_id' => ['nullable', 'integer', 'exists:delivery_plans,id'],
+            'truck_id' => ['nullable', 'exists:trucks,id'],
+            'driver_id' => ['nullable', 'exists:drivers,id'],
+        ]);
+
+        $date = Carbon::parse($validated['plan_date'])->startOfDay();
+        $gciPartIds = array_values(array_unique(array_map('intval', $validated['gci_part_ids'])));
+
+        DB::transaction(function () use ($date, $validated, $gciPartIds) {
+            $plan = null;
+            if (!empty($validated['delivery_plan_id'])) {
+                $plan = DeliveryPlan::query()->whereKey((int) $validated['delivery_plan_id'])->first();
+                if ($plan && $plan->plan_date?->toDateString() !== $date->toDateString()) {
+                    abort(422, 'Trip date mismatch.');
+                }
+            }
+
+            if (!$plan) {
+                $maxSeq = DeliveryPlan::query()->whereDate('plan_date', $date->toDateString())->max('sequence') ?? 0;
+                $plan = DeliveryPlan::create([
+                    'plan_date' => $date->toDateString(),
+                    'sequence' => $maxSeq + 1,
+                    'truck_id' => $validated['truck_id'] ?? null,
+                    'driver_id' => $validated['driver_id'] ?? null,
+                    'status' => 'scheduled',
+                ]);
+            } else {
+                $plan->update([
+                    'truck_id' => $validated['truck_id'] ?? $plan->truck_id,
+                    'driver_id' => $validated['driver_id'] ?? $plan->driver_id,
+                ]);
+            }
+
+            foreach ($gciPartIds as $partId) {
+                DeliveryPlanRequirementAssignment::updateOrCreate(
+                    [
+                        'plan_date' => $date->toDateString(),
+                        'gci_part_id' => $partId,
+                    ],
+                    [
+                        'delivery_plan_id' => $plan->id,
+                        'status' => 'assigned',
+                    ]
+                );
+            }
+        });
+
+        return back()->with('success', 'Items assigned to trip.');
     }
 
     public function assignDeliveryPlanResources(Request $request, DeliveryPlan $plan)
