@@ -83,6 +83,11 @@ class GciPart extends Model
         return $this->hasOne(StandardPacking::class, 'gci_part_id');
     }
 
+    public function stockAtCustomers()
+    {
+        return $this->hasMany(StockAtCustomer::class, 'gci_part_id');
+    }
+
     /**
      * Generate barcode from part_no if not set
      */

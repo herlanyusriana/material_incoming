@@ -25,4 +25,9 @@ class Customer extends Model
     {
         return $this->hasMany(GciPart::class);
     }
+
+    public function stockAtCustomers()
+    {
+        return $this->hasMany(StockAtCustomer::class);
+    }
 }
