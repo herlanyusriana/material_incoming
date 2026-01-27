@@ -34,7 +34,7 @@ class OutgoingDailyPlanningTemplateExport implements FromArray, WithHeadings, Wi
 
     public function headings(): array
     {
-        $headings = ['No', 'production_line', 'part_no'];
+        $headings = ['No', 'LINE', 'PART NO'];
         foreach ($this->days() as $d) {
             $date = $d->format('Y-m-d');
             $headings[] = "{$date} Seq";
@@ -77,4 +77,3 @@ class OutgoingDailyPlanningTemplateExport implements FromArray, WithHeadings, Wi
         return $days;
     }
 }
-

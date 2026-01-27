@@ -12,12 +12,50 @@ class OutgoingDailyPlanningImport implements ToCollection
     /** @var list<string> */
     public array $dates = [];
 
+    /** @var array<int, array{row_no:int|null, production_line:string, part_no:string, gci_part_id:int|null, cells:array<string, array{seq:int|null, qty:int|null}>}> */
+    public array $rows = [];
+
     /** @var list<string> */
     public array $failures = [];
 
     /** @var list<string> */
     public array $createdParts = [];
 
+    /**
+     * Parse date column header.
+     *
+     * Supported examples:
+     * - "2026-01-30 Seq"
+     * - "2026/01/30 Qty"
+     * - "2026 01 30 seq"
+     * - "Seq 2026-01-30"
+     */
+    private function parseDateColumnHeader(string $raw): ?array
+    {
+        $v = $raw;
+        $v = str_replace("\u{00A0}", ' ', $v); // NBSP
+        $v = str_replace("\u{200B}", '', $v); // zero-width space
+        $v = str_replace("\u{FEFF}", '', $v); // BOM
+        $v = trim($v);
+        if ($v === '') {
+            return null;
+        }
+
+        $v = str_replace('_', ' ', $v);
+        $v = preg_replace('/\s+/', ' ', $v) ?? $v;
+
+        if (preg_match('/^(?<y>\d{4})[-\/ ](?<m>\d{1,2})[-\/ ](?<d>\d{1,2})\s+(?<kind>seq|qty)$/i', $v, $m)) {
+            $date = sprintf('%04d-%02d-%02d', (int) $m['y'], (int) $m['m'], (int) $m['d']);
+            return [$date, strtolower($m['kind'])];
+        }
+
+        if (preg_match('/^(?<kind>seq|qty)\s+(?<y>\d{4})[-\/ ](?<m>\d{1,2})[-\/ ](?<d>\d{1,2})$/i', $v, $m)) {
+            $date = sprintf('%04d-%02d-%02d', (int) $m['y'], (int) $m['m'], (int) $m['d']);
+            return [$date, strtolower($m['kind'])];
+        }
+
+        return null;
+    }
 
     private function norm(string $value): string
     {
@@ -137,13 +175,13 @@ class OutgoingDailyPlanningImport implements ToCollection
             if ($raw === '') {
                 continue;
             }
-            $norm = $this->norm($raw);
-            if (preg_match('/^(?<date>\d{4}-\d{2}-\d{2})\s+(?<kind>seq|qty)$/i', $norm, $m)) {
-                $date = $m['date'];
-                $kind = strtolower($m['kind']);
-                $dateCols[$date] ??= ['seq' => -1, 'qty' => -1];
-                $dateCols[$date][$kind] = $idx;
+            $parsed = $this->parseDateColumnHeader($raw);
+            if (!$parsed) {
+                continue;
             }
+            [$date, $kind] = $parsed;
+            $dateCols[$date] ??= ['seq' => -1, 'qty' => -1];
+            $dateCols[$date][$kind] = $idx;
         }
 
         $dates = array_keys($dateCols);
