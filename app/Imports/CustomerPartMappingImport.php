@@ -133,6 +133,12 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
             $data['status'] = in_array($status, ['active', 'inactive'], true) ? $status : 'active';
         }
 
+        // Fix logic for Case: Excel might read it as int/float. Force to string.
+        $case = $this->firstNonEmpty($data, ['case', 'case_name', 'packing_case', 'box', 'case_type']);
+        if ($case !== null) {
+            $data['case'] = (string) $case;
+        }
+
         return $data;
     }
 
