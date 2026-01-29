@@ -15,7 +15,7 @@ class MpsController extends Controller
 {
     private function validateMonthPeriod(string $field = 'period'): array
     {
-        return [$field => ['required', 'string', 'regex:/^\d{4}-\d{2}$/']];
+        return [$field => ['required', 'string', 'regex:/^\d{4}-(W\d{2}|\d{2})$/']];
     }
 
     private function validateWeekPeriod(string $field = 'period'): array
@@ -47,6 +47,8 @@ class MpsController extends Controller
         $weeksCount = (int) $request->query('weeks', 4);
         $weeksCount = max(1, min(52, $weeksCount));
         $hideEmpty = $request->query('hide_empty', 'on') === 'on';
+        $view = $request->query('view', 'calendar');
+        $weeksCount = (int) $request->query('weeks', 4);
 
         $weeks = [];
         $months = [];
@@ -228,7 +230,7 @@ class MpsController extends Controller
         $period = trim((string) $validated['period']);
 
         if ($this->isWeekPeriod($period)) {
-            DB::transaction(fn () => $this->generateForWeek($period));
+            DB::transaction(fn() => $this->generateForWeek($period));
             return back()->with('success', 'MPS generated (draft) for ' . $period);
         }
 
@@ -274,7 +276,7 @@ class MpsController extends Controller
         $validated = $request->validate([
             'part_id' => ['required', 'exists:gci_parts,id'],
             'planned_qty' => ['required', 'numeric', 'min:0'],
-            'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
+            'period' => ['required', 'regex:/^\d{4}-(W\d{2}|\d{2})$/'],
         ]);
 
         try {
@@ -369,7 +371,7 @@ class MpsController extends Controller
     public function approveMonthly(Request $request)
     {
         $keys = collect($request->input('approve_keys', []))
-            ->filter(fn ($v) => is_string($v) && str_contains($v, '|'))
+            ->filter(fn($v) => is_string($v) && str_contains($v, '|'))
             ->unique()
             ->values()
             ->all();
@@ -417,7 +419,7 @@ class MpsController extends Controller
     {
         $validated = $request->validate([
             'part_id' => 'required|exists:gci_parts,id',
-            'period' => 'required|regex:/^\d{4}-\d{2}$/',
+            'period' => 'required|regex:/^\d{4}-(W\d{2}|\d{2})$/',
         ]);
 
         $part = GciPart::with(['boms.items.componentPart'])->findOrFail($validated['part_id']);

@@ -27,7 +27,7 @@ class CustomerPartController extends Controller
 
         $customerParts = CustomerPart::query()
             ->with(['customer', 'components.part'])
-            ->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
+            ->when($customerId, fn($q) => $q->where('customer_id', $customerId))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('customer_part_no', 'like', "%{$search}%")
@@ -64,7 +64,7 @@ class CustomerPartController extends Controller
             if ($failures->isNotEmpty()) {
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
 
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
@@ -82,7 +82,7 @@ class CustomerPartController extends Controller
                 $failures = collect($e->failures());
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
                 return back()->with('error', "Import failed: {$preview}");
             }
@@ -96,6 +96,8 @@ class CustomerPartController extends Controller
             'customer_id' => ['required', Rule::exists('customers', 'id')],
             'customer_part_no' => ['required', 'string', 'max:100'],
             'customer_part_name' => ['nullable', 'string', 'max:255'],
+            'line' => ['nullable', 'string', 'max:255'],
+            'case_name' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
@@ -103,6 +105,8 @@ class CustomerPartController extends Controller
         $partNoRaw = preg_replace('/\s+/', ' ', $partNoRaw) ?? $partNoRaw;
         $validated['customer_part_no'] = strtoupper(trim($partNoRaw));
         $validated['customer_part_name'] = $validated['customer_part_name'] ? trim($validated['customer_part_name']) : null;
+        $validated['line'] = $validated['line'] ? trim($validated['line']) : null;
+        $validated['case_name'] = $validated['case_name'] ? trim($validated['case_name']) : null;
 
         CustomerPart::create($validated);
 
@@ -115,6 +119,8 @@ class CustomerPartController extends Controller
             'customer_id' => ['required', Rule::exists('customers', 'id')],
             'customer_part_no' => ['required', 'string', 'max:100'],
             'customer_part_name' => ['nullable', 'string', 'max:255'],
+            'line' => ['nullable', 'string', 'max:255'],
+            'case_name' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
@@ -122,6 +128,8 @@ class CustomerPartController extends Controller
         $partNoRaw = preg_replace('/\s+/', ' ', $partNoRaw) ?? $partNoRaw;
         $validated['customer_part_no'] = strtoupper(trim($partNoRaw));
         $validated['customer_part_name'] = $validated['customer_part_name'] ? trim($validated['customer_part_name']) : null;
+        $validated['line'] = $validated['line'] ? trim($validated['line']) : null;
+        $validated['case_name'] = $validated['case_name'] ? trim($validated['case_name']) : null;
 
         $customerPart->update($validated);
 

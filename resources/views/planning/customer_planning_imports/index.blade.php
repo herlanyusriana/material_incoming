@@ -229,7 +229,9 @@
                 </div>
 
                 <div class="mt-4">
-                    {{ $rows->links() }}
+                    @if(is_object($rows) && method_exists($rows, 'links'))
+                        {{ $rows->links() }}
+                    @endif
                 </div>
             </div>
             @endif

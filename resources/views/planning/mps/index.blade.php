@@ -130,6 +130,7 @@
                                 Approve Selected
                             </button>
                         @elseif($viewMode === 'monthly')
+<<<<<<< Updated upstream
                             <button
                                 type="submit"
                                 form="approve-month-form"
@@ -138,6 +139,15 @@
                             >
                                 Approve Selected
                             </button>
+=======
+                            <form method="POST" action="{{ route('planning.mps.generate-range') }}">
+                                @csrf
+                                <input type="hidden" name="period" value="{{ $period }}">
+                                <input type="hidden" name="months" value="{{ $monthsCount ?? 3 }}">
+                                <input type="hidden" name="hide_empty" value="{{ $hideEmptyValue ? 'on' : 'off' }}">
+                                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm">Generate Monthly (Refresh Forecast)</button>
+                            </form>
+>>>>>>> Stashed changes
                         @else
                             <form method="POST" action="{{ route('planning.mps.generate') }}">
                                 @csrf
@@ -364,11 +374,17 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">No MPS rows. Click Generate.</td>
+                                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">No MPS rows. Click Generate.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
+                        
+                        @if($rows instanceof \Illuminate\Contracts\Pagination\Paginator)
+                            <div class="p-4 border-t border-slate-200">
+                                {{ $rows->links() }}
+                            </div>
+                        @endif
                     </div>
                 @endif
             </div>

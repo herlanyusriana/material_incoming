@@ -27,29 +27,31 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
-                     @if(!$plan)
+                    @if(!$plan)
                         <form action="{{ route('outgoing.daily-planning.create') }}" method="POST">
                             @csrf
                             <input type="hidden" name="date_from" value="{{ $dateFrom->toDateString() }}">
                             <input type="hidden" name="date_to" value="{{ $dateTo->toDateString() }}">
-                            <button class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm">
+                            <button
+                                class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm">
                                 + Create New Plan
                             </button>
                         </form>
                     @endif
-                    
-                    <a
-                        href="{{ route('outgoing.daily-planning.template', ['date_from' => $dateFrom->toDateString(), 'date_to' => $dateTo->toDateString()]) }}"
-                        class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                    >
+
+                    <a href="{{ route('outgoing.daily-planning.template', ['date_from' => $dateFrom->toDateString(), 'date_to' => $dateTo->toDateString()]) }}"
+                        class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         Download Template
                     </a>
 
-                    <form action="{{ route('outgoing.daily-planning.import') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-2">
+                    <form action="{{ route('outgoing.daily-planning.import') }}" method="POST" enctype="multipart/form-data"
+                        class="flex items-center gap-2">
                         @csrf
-                        <label class="cursor-pointer inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        <label
+                            class="cursor-pointer inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                             <span>Import Excel</span>
-                            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="this.form.submit()">
+                            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="hidden"
+                                onchange="this.form.submit()">
                         </label>
                     </form>
                 </div>
@@ -59,41 +61,30 @@
                 <form action="{{ route('outgoing.daily-planning') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
-                        <input
-                            type="date"
-                            name="date_from"
-                            value="{{ $dateFrom->toDateString() }}"
-                            class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
+                        <input type="date" name="date_from" value="{{ $dateFrom->toDateString() }}"
+                            class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
-                        <input
-                            type="date"
-                            name="date_to"
-                            value="{{ $dateTo->toDateString() }}"
-                            class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
+                        <input type="date" name="date_to" value="{{ $dateTo->toDateString() }}"
+                            class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
-                    <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">
+                    <button type="submit"
+                        class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">
                         View
                     </button>
 
                     @if($plan)
                         <div class="w-full md:w-auto md:ml-2">
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Search</label>
-                            <input
-                                type="text"
-                                name="search"
-                                value="{{ $search ?? '' }}"
-                                placeholder="Line / Part No"
-                                class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
+                            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Line / Part No"
+                                class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Rows</label>
-                            <select name="per_page" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                @foreach([25,50,100,200] as $n)
+                            <select name="per_page"
+                                class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                @foreach([25, 50, 100, 200] as $n)
                                     <option value="{{ $n }}" @selected(($perPage ?? 50) === $n)>{{ $n }}</option>
                                 @endforeach
                             </select>
@@ -105,58 +96,59 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-	                <table class="w-full text-sm divide-y divide-slate-200">
-	                    <thead class="bg-slate-50">
-	                        <tr>
-	                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">Line</th>
-	                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-16 border-r border-slate-200 sticky left-32 z-10 bg-slate-50">JIG NR1</th>
-	                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-16 border-r border-slate-200 sticky left-48 z-10 bg-slate-50">JIG NR2</th>
-	                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-64 z-10 bg-slate-50">Part No</th>
-	                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-slate-200 bg-slate-50">Std Pack</th>
-	                            @foreach ($days as $d)
-	                                <th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[120px]">
-	                                    {{ $d->format('D, d M') }}
+                <table class="w-full text-sm divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th rowspan="2"
+                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">
+                                Line</th>
+                            <th rowspan="2"
+                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-32 z-10 bg-slate-50">
+                                Part No</th>
+                            <th rowspan="2"
+                                class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-slate-200 bg-slate-50">
+                                Std Pack</th>
+                            @foreach ($days as $d)
+                                <th colspan="2"
+                                    class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[120px]">
+                                    {{ $d->format('D, d M') }}
                                 </th>
                             @endforeach
                         </tr>
                         <tr>
                             @foreach ($days as $d)
-                                <th class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-100">Seq</th>
-                                <th class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-200">Qty</th>
+                                <th
+                                    class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-100">
+                                    Seq</th>
+                                <th
+                                    class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-200">
+                                    Qty</th>
                             @endforeach
                         </tr>
                     </thead>
-	                    <tbody class="divide-y divide-slate-100 bg-white">
-	                        @forelse ($rows as $row)
-	                            @php
-	                                $cellMap = $row->cells->keyBy(fn ($c) => $c->plan_date->format('Y-m-d'));
-	                                $totalQty = 0;
-	                                foreach ($days as $d) {
-	                                    $k = $d->format('Y-m-d');
-	                                    $totalQty += (int) ($cellMap->get($k)?->qty ?? 0);
-	                                }
-	                                $jigNr1 = $totalQty > 0 ? (int) ceil($totalQty / 10) : 0;
-	                                $jigNr2 = $totalQty > 0 ? (int) ceil($totalQty / 9) : 0;
-	                                $lineKey = strtoupper(trim((string) ($row->production_line ?? '')));
-	                                $isNr1 = $lineKey !== '' && str_contains($lineKey, 'NR1');
-	                                $isNr2 = $lineKey !== '' && str_contains($lineKey, 'NR2');
-	                            @endphp
-	                            <tr class="hover:bg-slate-50 group">
-	                                <td class="px-4 py-3 font-semibold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
-	                                    {{ $row->production_line }}
-	                                </td>
-	                                <td class="px-4 py-3 text-center font-bold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-32 z-10 border-r border-slate-100">
-	                                    {{ $isNr2 ? '-' : ($jigNr1 > 0 ? $jigNr1 : '-') }}
-	                                </td>
-	                                <td class="px-4 py-3 text-center font-bold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-48 z-10 border-r border-slate-100">
-	                                    {{ $isNr1 ? '-' : ($jigNr2 > 0 ? $jigNr2 : '-') }}
-	                                </td>
-	                                <td class="px-4 py-3 font-mono text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-64 z-10 border-r border-slate-100">
-	                                    {{ $row->part_no }}
-	                                </td>
-	                                <td class="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">
-	                                    {{ $row->gciPart?->standardPacking?->packing_qty ?? '-' }}
-	                                    <span class="text-[10px] font-normal text-slate-400">{{ $row->gciPart?->standardPacking?->uom ?? '' }}</span>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        @forelse ($rows as $row)
+                            @php
+                                $cellMap = $row->cells->keyBy(fn($c) => $c->plan_date->format('Y-m-d'));
+                                $totalQty = 0;
+                                foreach ($days as $d) {
+                                    $k = $d->format('Y-m-d');
+                                    $totalQty += (int) ($cellMap->get($k)?->qty ?? 0);
+                                }
+                            @endphp
+                            <tr class="hover:bg-slate-50 group">
+                                <td
+                                    class="px-4 py-3 font-semibold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
+                                    {{ $row->production_line }}
+                                </td>
+                                <td
+                                    class="px-4 py-3 font-mono text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-32 z-10 border-r border-slate-100">
+                                    {{ $row->part_no }}
+                                </td>
+                                <td class="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">
+                                    {{ $row->gciPart?->standardPacking?->packing_qty ?? '-' }}
+                                    <span
+                                        class="text-[10px] font-normal text-slate-400">{{ $row->gciPart?->standardPacking?->uom ?? '' }}</span>
                                 </td>
                                 @foreach ($days as $d)
                                     @php
@@ -166,32 +158,31 @@
                                         $qty = $cell?->qty;
                                     @endphp
                                     <td class="p-0 border-r border-slate-100 relative">
-                                        <input 
-                                            type="number" 
+                                        <input type="number"
                                             class="w-full h-full border-0 bg-transparent text-center text-xs focus:ring-1 focus:ring-indigo-500 p-2 placeholder-slate-200"
-                                            value="{{ $seq }}"
-                                            placeholder="-"
-                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'seq', $event.target.value)"
-                                        >
+                                            value="{{ $seq }}" placeholder="-"
+                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'seq', $event.target.value)">
                                     </td>
                                     <td class="p-0 border-r border-slate-200 relative bg-slate-50/50">
-                                        <input 
-                                            type="number" 
+                                        <input type="number"
                                             class="w-full h-full border-0 bg-transparent text-center text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-indigo-500 p-2 placeholder-slate-200"
-                                            value="{{ $qty }}"
-                                            placeholder="0"
-                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'qty', $event.target.value)"
-                                        >
+                                            value="{{ $qty }}" placeholder="0"
+                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'qty', $event.target.value)">
                                     </td>
                                 @endforeach
                             </tr>
-	                        @empty
-	                            <tr>
-	                                <td colspan="{{ 5 + (count($days) * 2) }}" class="px-6 py-12 text-center text-slate-500">
-	                                    @if($plan)
-	                                        <div class="flex flex-col items-center">
-	                                            <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-	                                            <p class="font-medium text-slate-900">Plan is empty.</p>
+                        @empty
+                            <tr>
+                                <td colspan="{{ 3 + (count($days) * 2) }}" class="px-6 py-12 text-center text-slate-500">
+                                    @if($plan)
+                                        <div class="flex flex-col items-center">
+                                            <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                                                </path>
+                                            </svg>
+                                            <p class="font-medium text-slate-900">Plan is empty.</p>
                                             <p class="text-sm">Add rows manually or import from Excel.</p>
                                         </div>
                                     @else
@@ -200,20 +191,22 @@
                                 </td>
                             </tr>
                         @endforelse
-	                    </tbody>
-	                     <!-- Footer for Totals -->
-	                    <tfoot class="bg-slate-50 font-bold sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
-	                        <tr>
-	                            <td colspan="5" class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider border-r border-slate-200 sticky left-0 z-20 bg-slate-50">
-	                                Daily Total
-	                            </td>
-	                            @foreach ($days as $idx => $d)
-	                                @php
-	                                    $k = $d->format('Y-m-d');
+                    </tbody>
+                    <!-- Footer for Totals -->
+                    <tfoot class="bg-slate-50 font-bold sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+                        <tr>
+                            <td colspan="3"
+                                class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider border-r border-slate-200 sticky left-0 z-20 bg-slate-50">
+                                Daily Total
+                            </td>
+                            @foreach ($days as $idx => $d)
+                                @php
+                                    $k = $d->format('Y-m-d');
                                     $t = $totalsByDate[$k] ?? 0;
                                 @endphp
                                 <td colspan="1" class="border-r border-slate-100"></td> <!-- Skip Seq Col -->
-                                <td class="px-2 py-2 text-center text-xs text-indigo-700 border-r border-slate-200 bg-indigo-50/50">
+                                <td
+                                    class="px-2 py-2 text-center text-xs text-indigo-700 border-r border-slate-200 bg-indigo-50/50">
                                     {{ number_format($t) }}
                                 </td>
                             @endforeach
@@ -221,7 +214,7 @@
                     </tfoot>
                 </table>
             </div>
-            
+
             @if($plan)
                 <div class="border-t border-slate-200 p-4 bg-slate-50">
                     @if(method_exists($rows, 'links'))
@@ -229,11 +222,15 @@
                             {{ $rows->onEachSide(1)->links() }}
                         </div>
                     @endif
-                    <form action="{{ route('outgoing.daily-planning.row', $plan->id) }}" method="POST" class="flex gap-2 max-w-2xl">
+                    <form action="{{ route('outgoing.daily-planning.row', $plan->id) }}" method="POST"
+                        class="flex gap-2 max-w-2xl">
                         @csrf
-                        <input type="text" name="production_line" placeholder="Line (e.g. L1)" class="w-24 rounded-lg border-slate-300 text-sm" required>
-                        <input type="text" name="part_no" placeholder="Part No (e.g. 123-ABC)" class="flex-1 rounded-lg border-slate-300 text-sm" required>
-                        <button class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
+                        <input type="text" name="production_line" placeholder="Line (e.g. L1)"
+                            class="w-24 rounded-lg border-slate-300 text-sm" required>
+                        <input type="text" name="part_no" placeholder="Part No (e.g. 123-ABC)"
+                            class="flex-1 rounded-lg border-slate-300 text-sm" required>
+                        <button
+                            class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
                             + Add Row
                         </button>
                     </form>
@@ -255,7 +252,7 @@
                             },
                             body: JSON.stringify({ row_id: rowId, date, field, value })
                         });
-                        
+
                         if (response.ok) {
                             // Optional: green flash or toast
                             console.log('Saved');
@@ -263,7 +260,7 @@
                             alert('Failed to save');
                         }
                     } catch (e) {
-                         console.error(e);
+                        console.error(e);
                     }
                 }
             }

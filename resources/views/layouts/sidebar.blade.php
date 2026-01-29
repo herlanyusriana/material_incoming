@@ -196,14 +196,14 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.fg-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.fg-parts.*')])></span>
                                     <span class="flex-1">FG Part</span>
                                 </a>
-                                <!-- <a href="{{ route('planning.wip-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')]) @click="mobileSidebarOpen = false">
+                                <a href="{{ route('planning.wip-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.wip-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.wip-parts.*')])></span>
                                     <span class="flex-1">WIP Part</span>
                                 </a>
                                 <a href="{{ route('planning.rm-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.rm-parts.*'), $subInactive => !request()->routeIs('planning.rm-parts.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.rm-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.rm-parts.*')])></span>
                                     <span class="flex-1">RM Part</span>
-                                </a> -->
+                                </a>
                                 <a href="{{ route('planning.customer-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>
                                     <span class="flex-1">Customer Part Mapping</span>
@@ -232,10 +232,10 @@
                                     <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('planning.boms.explosion*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('planning.boms.explosion*')])></span>
                                     <span class="flex-1">🌳 BOM Explosion</span>
                                 </a>
-	                                <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
-	                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
-	                                    <span class="flex-1">MRP</span>
-	                                </a>
+                                <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
+                                    <span class="flex-1">MRP</span>
+                                </a>
                             </div>
                         </details>
                     </div>
@@ -411,7 +411,8 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
                                     <span class="flex-1 text-indigo-600 font-bold">Delivery Notes (Surat Jalan)</span>
                                 </a>
-                                <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')]) @click="mobileSidebarOpen = false">
+                                <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')])
+                                    @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
                                     <span class="flex-1">Standard Packing</span>
                                 </a>
@@ -421,65 +422,68 @@
                 </div>
             @endcan
 
-	            @can('manage_inventory')
-	                <div>
-	                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Inventory</div>
-	                    <div class="space-y-1">
-	                        <a href="{{ route('inventory.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.index'), $navInactive => !request()->routeIs('inventory.index')])
-	                            @click="mobileSidebarOpen = false">
-	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-	                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            @can('manage_inventory')
+                <div>
+                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Inventory</div>
+                    <div class="space-y-1">
+                        <a href="{{ route('inventory.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.index'), $navInactive => !request()->routeIs('inventory.index')])
+                            @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
                             </svg>
                             <span class="ml-3 flex-1">Inventory</span>
                         </a>
-	                        <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')]) @click="mobileSidebarOpen = false">
-	                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-	                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
-	                            </svg>
-	                            <span class="ml-3 flex-1">Inventory Receives</span>
-	                        </a>
-                            <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')]) @click="mobileSidebarOpen = false">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
-                                </svg>
-                                <span class="ml-3 flex-1">Inventory Transfers</span>
-                            </a>
-                            <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')]) @click="mobileSidebarOpen = false">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
-                                </svg>
-                                <span class="ml-3 flex-1">GCI Inventory</span>
-                            </a>
-	                    </div>
-	                </div>
-	            @endcan
+                        <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+                            </svg>
+                            <span class="ml-3 flex-1">Inventory Receives</span>
+                        </a>
+                        <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
+                            </svg>
+                            <span class="ml-3 flex-1">Inventory Transfers</span>
+                        </a>
+                        <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])
+                            @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
+                            </svg>
+                            <span class="ml-3 flex-1">GCI Inventory</span>
+                        </a>
+                    </div>
+                </div>
+            @endcan
 
             @can('manage_inventory')
                 <div>
                     <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Warehouse</div>
                     <div class="space-y-1">
-                        <a href="{{ route('logistics.dashboard') }}" @class([$navLinkBase, $navActive => $logisticsActive, $navInactive => !$logisticsActive])
-                            @click="mobileSidebarOpen = false">
+                        <a href="{{ route('logistics.dashboard') }}" @class([$navLinkBase, $navActive => $logisticsActive, $navInactive => !$logisticsActive]) @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l3 8 4-16 3 8h5" />
                             </svg>
                             <span class="ml-3 flex-1">Logistics Dashboard</span>
                         </a>
-                        <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')]) @click="mobileSidebarOpen = false">
+                        <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])
+                            @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h3m2.25-12.75 1.5 1.5M6.75 4.5l1.5 1.5M6 2h12a2 2 0 0 1 2 2v18H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h6m-6 4h3m2.25-12.75 1.5 1.5M6.75 4.5l1.5 1.5M6 2h12a2 2 0 0 1 2 2v18H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
                             </svg>
                             <span class="ml-3 flex-1">QC Queue</span>
                         </a>
@@ -549,7 +553,8 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 6h10M10 12h10M10 18h10" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h2v2H4V6Zm0 6h2v2H4v-2Zm0 6h2v2H4v-2Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M4 6h2v2H4V6Zm0 6h2v2H4v-2Zm0 6h2v2H4v-2Z" />
                             </svg>
                             <span class="ml-3 flex-1">Production Orders</span>
                         </a>
@@ -573,15 +578,13 @@
 </aside>
 
 {{-- Desktop sidebar --}}
-<aside class="hidden md:flex sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-all duration-200 overflow-hidden"
-	    :class="sidebarCollapsed ? 'w-20' : 'w-72'"
-        @mouseenter="expandSidebar()"
-        @mouseleave="collapseSidebar()"
-        @click="if ($event.target.closest('a')) collapseSidebar()"
-    >
-	    <div class="px-4 pt-6">
-	        <div class="flex items-center rounded-2xl border border-slate-200 bg-white shadow-sm px-4 py-4"
-	            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+<aside
+    class="hidden md:flex sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-all duration-200 overflow-hidden"
+    :class="sidebarCollapsed ? 'w-20' : 'w-72'" @mouseenter="expandSidebar()" @mouseleave="collapseSidebar()"
+    @click="if ($event.target.closest('a')) collapseSidebar()">
+    <div class="px-4 pt-6">
+        <div class="flex items-center rounded-2xl border border-slate-200 bg-white shadow-sm px-4 py-4"
+            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
             <div
                 class="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm">
                 <span class="text-sm font-bold tracking-wide">GCI</span>
@@ -591,13 +594,13 @@
                 <div class="text-xs text-slate-500">Material incoming</div>
             </div>
         </div>
-	    </div>
-	
-	    <nav class="flex-1 min-h-0 overflow-y-auto px-4 pb-6 pt-6 space-y-6">
-	        <div class="space-y-1">
-	            <a href="{{ route('dashboard') }}" title="Dashboard" @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard')])
-	                :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
-	                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+    </div>
+
+    <nav class="flex-1 min-h-0 overflow-y-auto px-4 pb-6 pt-6 space-y-6">
+        <div class="space-y-1">
+            <a href="{{ route('dashboard') }}" title="Dashboard" @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard')])
+                :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5V21h6v-6h6v6h6v-7.5L12 3 3 10.5" />
                 </svg>
@@ -774,14 +777,14 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.fg-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.fg-parts.*')])></span>
                                 <span class="flex-1">FG Part</span>
                             </a>
-                            <!-- <a href="{{ route('planning.wip-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')])>
+                            <a href="{{ route('planning.wip-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.wip-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.wip-parts.*')])></span>
                                 <span class="flex-1">WIP Part</span>
                             </a>
                             <a href="{{ route('planning.rm-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.rm-parts.*'), $subInactive => !request()->routeIs('planning.rm-parts.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.rm-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.rm-parts.*')])></span>
                                 <span class="flex-1">RM Part</span>
-                            </a> -->
+                            </a>
                             <a href="{{ route('planning.customer-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>
                                 <span class="flex-1">Customer Part Mapping</span>
@@ -966,18 +969,18 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po')])></span>
                                 <span class="flex-1">Customers PO</span>
                             </a>
-	                            <a href="{{ route('outgoing.product-mapping') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')])>
-	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.product-mapping')])></span>
-	                                <span class="flex-1">Customer Product Mapping</span>
-	                            </a>
-	                            <a href="{{ route('outgoing.product-mapping') }}#where-used" @class([$subLinkBase, $subActive => false, $subInactive => true])>
-	                                <span @class([$subDotBase, 'bg-emerald-600'])></span>
-	                                <span class="flex-1">🔍 Where-Used (BOM)</span>
-	                            </a>
-	                            <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])>
-	                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
-	                                <span class="flex-1">Delivery Requirements</span>
-	                            </a>
+                            <a href="{{ route('outgoing.product-mapping') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.product-mapping')])></span>
+                                <span class="flex-1">Customer Product Mapping</span>
+                            </a>
+                            <a href="{{ route('outgoing.product-mapping') }}#where-used" @class([$subLinkBase, $subActive => false, $subInactive => true])>
+                                <span @class([$subDotBase, 'bg-emerald-600'])></span>
+                                <span class="flex-1">🔍 Where-Used (BOM)</span>
+                            </a>
+                            <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
+                                <span class="flex-1">Delivery Requirements</span>
+                            </a>
                             <a href="{{ route('outgoing.stock-at-customers') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.stock-at-customers'), $subInactive => !request()->routeIs('outgoing.stock-at-customers')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.stock-at-customers'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.stock-at-customers')])></span>
                                 <span class="flex-1">Stock at Customers</span>
@@ -1022,66 +1025,68 @@
                         </svg>
                         <span class="ml-3 flex-1">Inventory</span>
                     </a>
-	                    <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')])>
-	                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-	                            stroke="currentColor" stroke-width="2">
-	                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
-	                        </svg>
-	                        <span class="ml-3 flex-1">Inventory Receives</span>
-	                    </a>
-                        <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')])>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
-                            </svg>
-                            <span class="ml-3 flex-1">Inventory Transfers</span>
-                        </a>
-                        <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
-                            </svg>
-                            <span class="ml-3 flex-1">GCI Inventory</span>
-                        </a>
-	                </div>
-	            </div>
-	        @endcan
+                    <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+                        </svg>
+                        <span class="ml-3 flex-1">Inventory Receives</span>
+                    </a>
+                    <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
+                        </svg>
+                        <span class="ml-3 flex-1">Inventory Transfers</span>
+                    </a>
+                    <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
+                        </svg>
+                        <span class="ml-3 flex-1">GCI Inventory</span>
+                    </a>
+                </div>
+            </div>
+        @endcan
 
-	        @can('manage_inventory')
-	            <div>
-	                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
-	                    x-show="!sidebarCollapsed" x-cloak>Warehouse</div>
-	                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
-                        <a href="{{ route('logistics.dashboard') }}" @class([$navLinkBase, $navActive => $logisticsActive, $navInactive => !$logisticsActive])>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l3 8 4-16 3 8h5" />
-                            </svg>
-                            <span class="ml-3 flex-1">Logistics Dashboard</span>
-                        </a>
-                        <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h3m2.25-12.75 1.5 1.5M6.75 4.5l1.5 1.5M6 2h12a2 2 0 0 1 2 2v18H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
-                            </svg>
-                            <span class="ml-3 flex-1">QC Queue</span>
-                        </a>
-                        <a href="{{ route('warehouse.putaway.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.putaway.*'), $navInactive => !request()->routeIs('warehouse.putaway.*')])>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m9-9H3" />
-                            </svg>
-                            <span class="ml-3 flex-1">Putaway Queue</span>
-                        </a>
-		                    <a href="{{ route('inventory.locations.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*')])>
-		                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-		                            stroke="currentColor" stroke-width="2">
-		                            <path stroke-linecap="round" stroke-linejoin="round"
-	                                d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z" />
+        @can('manage_inventory')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Warehouse</div>
+                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
+                    <a href="{{ route('logistics.dashboard') }}" @class([$navLinkBase, $navActive => $logisticsActive, $navInactive => !$logisticsActive])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l3 8 4-16 3 8h5" />
+                        </svg>
+                        <span class="ml-3 flex-1">Logistics Dashboard</span>
+                    </a>
+                    <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12h6m-6 4h3m2.25-12.75 1.5 1.5M6.75 4.5l1.5 1.5M6 2h12a2 2 0 0 1 2 2v18H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+                        </svg>
+                        <span class="ml-3 flex-1">QC Queue</span>
+                    </a>
+                    <a href="{{ route('warehouse.putaway.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.putaway.*'), $navInactive => !request()->routeIs('warehouse.putaway.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m9-9H3" />
+                        </svg>
+                        <span class="ml-3 flex-1">Putaway Queue</span>
+                    </a>
+                    <a href="{{ route('inventory.locations.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
                         </svg>
                         <span class="ml-3 flex-1">Warehouse Locations</span>
@@ -1135,7 +1140,8 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10 6h10M10 12h10M10 18h10" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h2v2H4V6Zm0 6h2v2H4v-2Zm0 6h2v2H4v-2Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 6h2v2H4V6Zm0 6h2v2H4v-2Zm0 6h2v2H4v-2Z" />
                         </svg>
                         <span class="ml-3 flex-1">Production Orders</span>
                     </a>

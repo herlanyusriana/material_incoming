@@ -18,7 +18,7 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure, SkipsEmptyRows
 {
     use SkipsFailures;
-    
+
     public $duplicates = [];
     private array $seenMappingKeys = [];
     private ?bool $hasLegacyPartIdColumn = null;
@@ -168,28 +168,43 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
             ->where('customer_part_no', $customerPartNo)
             ->first();
 
+        $line = $this->firstNonEmpty($row, ['line', 'prod_line', 'production_line']);
+        $caseName = $this->firstNonEmpty($row, ['case', 'case_name', 'packing_case', 'box', 'case_type']);
+
         if (!$customerPart) {
             // Create New
             $customerPart = CustomerPart::create([
                 'customer_id' => $customer->id,
                 'customer_part_no' => $customerPartNo,
                 'customer_part_name' => $customerPartName !== null && trim($customerPartName) !== '' ? trim($customerPartName) : null,
+                'line' => $line,
+                'case_name' => $caseName,
                 'status' => $status,
             ]);
-        } 
+        } else {
+            // If exists, update line and case info if available.
+            if ($line !== null || $caseName !== null) {
+                $updateStart = [];
+                if ($line !== null)
+                    $updateStart['line'] = $line;
+                if ($caseName !== null)
+                    $updateStart['case_name'] = $caseName;
+                $customerPart->update($updateStart);
+            }
+        }
         // If exists, we proceed (to check mapping), but we do NOT update the CustomerPart details.
 
         $gciPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['gci_part_no', 'part_gci', 'part_no', 'gci_part_number']));
-        
+
         // If no GCI part specified, we are done
         if (!$gciPartNo) {
-             if ($customerPart->wasRecentlyCreated) {
-                 return null;
-             } else {
-                 // Even if header exists, we might need to process components in next rows if this file structure is flat.
-                 // But if part info is missing, nothing to do.
-                 return null;
-             }
+            if ($customerPart->wasRecentlyCreated) {
+                return null;
+            } else {
+                // Even if header exists, we might need to process components in next rows if this file structure is flat.
+                // But if part info is missing, nothing to do.
+                return null;
+            }
         }
 
         $mappingKey = "{$customerCode}|{$customerPartNo}|{$gciPartNo}";
@@ -265,6 +280,8 @@ class CustomerPartMappingImport implements ToModel, WithHeadingRow, WithValidati
             'customer_code' => ['required', 'string', 'max:50', Rule::exists('customers', 'code')],
             'customer_part_no' => ['required', 'string', 'max:100'],
             'customer_part_name' => ['nullable', 'string', 'max:255'],
+            'line' => ['nullable', 'string', 'max:255'],
+            'case' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'gci_part_no' => ['nullable', 'string', 'max:255'],
             'gci_part_name' => ['nullable', 'string', 'max:255'],

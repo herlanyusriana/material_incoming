@@ -5,28 +5,38 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     private function foreignKeyExists(string $table, string $constraintName): bool
     {
         try {
             $driver = DB::connection()->getDriverName();
-            if ($driver !== 'mysql') {
-                return false;
+            if ($driver === 'mysql') {
+                $exists = DB::selectOne(
+                    "SELECT CONSTRAINT_NAME
+                     FROM information_schema.TABLE_CONSTRAINTS
+                     WHERE CONSTRAINT_SCHEMA = DATABASE()
+                       AND TABLE_NAME = ?
+                       AND CONSTRAINT_NAME = ?
+                       AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                     LIMIT 1",
+                    [$table, $constraintName],
+                );
+                return (bool) $exists;
             }
 
-            $exists = DB::selectOne(
-                "SELECT CONSTRAINT_NAME
-                 FROM information_schema.TABLE_CONSTRAINTS
-                 WHERE CONSTRAINT_SCHEMA = DATABASE()
-                   AND TABLE_NAME = ?
-                   AND CONSTRAINT_NAME = ?
-                   AND CONSTRAINT_TYPE = 'FOREIGN KEY'
-                 LIMIT 1",
-                [$table, $constraintName],
-            );
+            if ($driver === 'pgsql') {
+                $exists = DB::selectOne(
+                    "SELECT constraint_name
+                     FROM information_schema.table_constraints
+                     WHERE table_name = ?
+                       AND constraint_name = ?
+                       AND constraint_type = 'FOREIGN KEY'",
+                    [$table, $constraintName]
+                );
+                return (bool) $exists;
+            }
 
-            return (bool) $exists;
+            return false;
         } catch (\Throwable $e) {
             return false;
         }
@@ -36,23 +46,23 @@ return new class extends Migration
     {
         try {
             $driver = DB::connection()->getDriverName();
-            if ($driver !== 'mysql') {
-                return;
-            }
+            if ($driver === 'mysql') {
+                $exists = DB::selectOne(
+                    "SELECT CONSTRAINT_NAME
+                     FROM information_schema.TABLE_CONSTRAINTS
+                     WHERE CONSTRAINT_SCHEMA = DATABASE()
+                       AND TABLE_NAME = ?
+                       AND CONSTRAINT_NAME = ?
+                       AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                     LIMIT 1",
+                    [$table, $constraintName],
+                );
 
-            $exists = DB::selectOne(
-                "SELECT CONSTRAINT_NAME
-                 FROM information_schema.TABLE_CONSTRAINTS
-                 WHERE CONSTRAINT_SCHEMA = DATABASE()
-                   AND TABLE_NAME = ?
-                   AND CONSTRAINT_NAME = ?
-                   AND CONSTRAINT_TYPE = 'FOREIGN KEY'
-                 LIMIT 1",
-                [$table, $constraintName],
-            );
-
-            if ($exists) {
-                DB::statement("ALTER TABLE `{$table}` DROP FOREIGN KEY `{$constraintName}`");
+                if ($exists) {
+                    DB::statement("ALTER TABLE `{$table}` DROP FOREIGN KEY `{$constraintName}`");
+                }
+            } elseif ($driver === 'pgsql') {
+                DB::statement("ALTER TABLE \"{$table}\" DROP CONSTRAINT IF EXISTS \"{$constraintName}\"");
             }
         } catch (\Throwable $e) {
             // Best-effort: different DBs / missing privileges shouldn't block deploy.
@@ -85,6 +95,19 @@ return new class extends Migration
                     FROM boms b
                     LEFT JOIN gci_parts gp ON gp.id = b.part_id
                     WHERE gp.id IS NULL
+                ");
+            } elseif ($driver === 'pgsql') {
+                DB::statement("
+                    UPDATE bom_items
+                    SET component_part_id = NULL
+                    WHERE component_part_id IS NOT NULL
+                    AND component_part_id NOT IN (SELECT id FROM gci_parts)
+                ");
+
+                DB::statement("
+                    DELETE FROM boms
+                    WHERE part_id IS NOT NULL
+                    AND part_id NOT IN (SELECT id FROM gci_parts)
                 ");
             }
         } catch (\Throwable $e) {

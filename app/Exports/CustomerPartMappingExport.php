@@ -23,18 +23,20 @@ class CustomerPartMappingExport implements FromArray, WithHeadings, WithStyles, 
 
         $customerParts = CustomerPart::query()
             ->with(['customer', 'components.part'])
-            ->when($this->customerId, fn ($q) => $q->where('customer_id', $this->customerId))
+            ->when($this->customerId, fn($q) => $q->where('customer_id', $this->customerId))
             ->orderBy(Customer::select('code')->whereColumn('customers.id', 'customer_parts.customer_id'))
             ->orderBy('customer_part_no')
             ->get();
 
         foreach ($customerParts as $cp) {
-            $components = ($cp->components ?? collect())->sortBy(fn ($c) => $c->part?->part_no ?? '');
+            $components = ($cp->components ?? collect())->sortBy(fn($c) => $c->part?->part_no ?? '');
             if ($components->isEmpty()) {
                 $rows[] = [
                     $cp->customer?->code ?? '',
                     $cp->customer?->name ?? '',
                     $cp->customer_part_no ?? '',
+                    $cp->line ?? '',
+                    $cp->case_name ?? '',
                     $cp->customer_part_name ?? '',
                     $cp->status ?? 'active',
                     '',
@@ -49,6 +51,8 @@ class CustomerPartMappingExport implements FromArray, WithHeadings, WithStyles, 
                     $cp->customer?->code ?? '',
                     $cp->customer?->name ?? '',
                     $cp->customer_part_no ?? '',
+                    $cp->line ?? '',
+                    $cp->case_name ?? '',
                     $cp->customer_part_name ?? '',
                     $cp->status ?? 'active',
                     $comp->part?->part_no ?? '',
@@ -67,6 +71,8 @@ class CustomerPartMappingExport implements FromArray, WithHeadings, WithStyles, 
             'Customer Code',
             'Customer Name',
             'Customer Part No',
+            'Line',
+            'Case',
             'Customer Part Name',
             'Status',
             'GCI Part No',
@@ -88,11 +94,13 @@ class CustomerPartMappingExport implements FromArray, WithHeadings, WithStyles, 
             'A' => 16,
             'B' => 24,
             'C' => 22,
-            'D' => 28,
-            'E' => 10,
-            'F' => 18,
-            'G' => 28,
-            'H' => 12,
+            'D' => 12,
+            'E' => 12,
+            'F' => 28,
+            'G' => 10,
+            'H' => 18,
+            'I' => 28,
+            'J' => 12,
         ];
     }
 }

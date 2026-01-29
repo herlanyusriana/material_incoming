@@ -13,6 +13,8 @@ class CustomerPart extends Model
         'customer_id',
         'customer_part_no',
         'customer_part_name',
+        'line',
+        'case_name',
         'status',
     ];
 

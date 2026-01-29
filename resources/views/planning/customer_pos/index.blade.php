@@ -30,7 +30,8 @@
                                 <option value="">All</option>
                                 @foreach ($customers as $c)
                                     <option value="{{ $c->id }}" @selected((string) $customerId === (string) $c->id)>
-                                        {{ $c->code }} — {{ $c->name }}</option>
+                                        {{ $c->code }} — {{ $c->name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -78,7 +79,8 @@
                                     </td>
                                     <td class="px-4 py-3 font-mono text-xs">{{ $o->period }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">
-                                        {{ number_format((float) $o->qty, 3) }}</td>
+                                        {{ number_format((float) $o->qty, 3) }}
+                                    </td>
                                     <td class="px-4 py-3">
                                         <span
                                             class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $o->status === 'open' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
@@ -180,7 +182,8 @@
                                                     <option value="">Select part</option>
                                                     @foreach ($gciParts as $p)
                                                         <option value="{{ $p->id }}">{{ $p->part_no }} —
-                                                            {{ $p->part_name ?? '-' }}</option>
+                                                            {{ $p->part_name ?? '-' }}
+                                                        </option>
                                                     @endforeach
                                                 </select>
                                             </div>
