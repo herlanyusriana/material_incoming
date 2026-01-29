@@ -264,11 +264,13 @@ class OutgoingController extends Controller
                 ->with(['customerPart.customer'])
                 ->where('gci_part_id', $bom->part_id)
                 ->get()
-                ->map(fn ($comp) => [
+                ->map(fn($comp) => [
                     'customer_part_no' => $comp->customerPart->customer_part_no,
                     'customer_part_name' => $comp->customerPart->customer_part_name,
                     'customer_name' => $comp->customerPart->customer->name ?? '-',
                     'usage_qty' => $comp->qty_per_unit,
+                    'line' => $comp->customerPart->line,
+                    'case_name' => $comp->customerPart->case_name,
                 ]);
 
             return [
@@ -353,7 +355,7 @@ class OutgoingController extends Controller
                 $cell->remaining_qty = $remaining;
                 return $cell;
             })
-            ->filter(fn ($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
+            ->filter(fn($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
             ->values();
 
         // Stock at Customers (consignment) map: period|customer_id|gci_part_id => record.
@@ -362,21 +364,21 @@ class OutgoingController extends Controller
         $periods = $cells
             ->pluck('plan_date')
             ->filter()
-            ->map(fn ($d) => $d->format('Y-m'))
+            ->map(fn($d) => $d->format('Y-m'))
             ->unique()
             ->values();
 
         $customerIds = $cells
-            ->map(fn ($c) => $c->row?->gciPart?->customer_id)
-            ->filter(fn ($v) => $v !== null)
-            ->map(fn ($v) => (int) $v)
+            ->map(fn($c) => $c->row?->gciPart?->customer_id)
+            ->filter(fn($v) => $v !== null)
+            ->map(fn($v) => (int) $v)
             ->unique()
             ->values();
 
         $partIds = $cells
-            ->map(fn ($c) => $c->row?->gci_part_id)
-            ->filter(fn ($v) => $v !== null)
-            ->map(fn ($v) => (int) $v)
+            ->map(fn($c) => $c->row?->gci_part_id)
+            ->filter(fn($v) => $v !== null)
+            ->map(fn($v) => (int) $v)
             ->unique()
             ->values();
 
@@ -423,18 +425,18 @@ class OutgoingController extends Controller
             return "{$date}|{$partKey}|seq:{$seq}";
         })->map(function ($group) {
             $first = $group->first();
-            
+
             $gciPart = $first->row->gciPart ?? null;
 
             $sequence = $first->seq !== null && $first->seq !== '' ? (int) $first->seq : 9999;
-            
+
             return (object) [
                 'date' => $first->plan_date,
                 'customer' => $gciPart?->customer ?? null,
                 'gci_part' => $gciPart,
                 'customer_part_no' => $first->row->part_no,
                 'unmapped' => $gciPart === null,
-                'gross_qty' => $group->sum(fn ($c) => (float) ($c->remaining_qty ?? 0)),
+                'gross_qty' => $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0)),
                 'sequence' => $sequence,
                 'packing_std' => ($gciPart?->standardPacking?->packing_qty ?? 1) ?: 1,
                 'uom' => $gciPart?->standardPacking?->uom ?? 'PCS',
@@ -464,7 +466,7 @@ class OutgoingController extends Controller
 
                 $remainingStock = $stockTotal;
 
-                $sorted = $group->sortByDesc(fn ($r) => (int) ($r->sequence ?? 9999))->values();
+                $sorted = $group->sortByDesc(fn($r) => (int) ($r->sequence ?? 9999))->values();
                 foreach ($sorted as $r) {
                     $gross = (float) ($r->gross_qty ?? 0);
                     $used = 0.0;
@@ -484,19 +486,19 @@ class OutgoingController extends Controller
 
                 return $sorted;
             })
-            ->filter(fn ($r) => (float) ($r->total_qty ?? 0) > 0)
+            ->filter(fn($r) => (float) ($r->total_qty ?? 0) > 0)
             ->sort(function ($a, $b) {
-            // Sort by Date then Sequence
-            if ($a->date->ne($b->date)) {
-                return $a->date->gt($b->date) ? 1 : -1;
-            }
-            $seqCmp = ($a->sequence ?? 9999) <=> ($b->sequence ?? 9999);
-            if ($seqCmp !== 0) {
-                return $seqCmp;
-            }
+                // Sort by Date then Sequence
+                if ($a->date->ne($b->date)) {
+                    return $a->date->gt($b->date) ? 1 : -1;
+                }
+                $seqCmp = ($a->sequence ?? 9999) <=> ($b->sequence ?? 9999);
+                if ($seqCmp !== 0) {
+                    return $seqCmp;
+                }
 
-            return strcmp((string) ($a->gci_part?->part_no ?? ''), (string) ($b->gci_part?->part_no ?? ''));
-        })
+                return strcmp((string) ($a->gci_part?->part_no ?? ''), (string) ($b->gci_part?->part_no ?? ''));
+            })
             ->values();
 
         return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
@@ -516,11 +518,11 @@ class OutgoingController extends Controller
             'lines.*.row_ids.*' => ['integer', 'exists:outgoing_daily_plan_rows,id'],
         ]);
 
-        $selectedIdx = collect($validated['selected'])->map(fn ($v) => (int) $v)->unique()->values();
+        $selectedIdx = collect($validated['selected'])->map(fn($v) => (int) $v)->unique()->values();
         $lines = collect($validated['lines']);
 
         $selectedLines = $selectedIdx
-            ->map(fn (int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
+            ->map(fn(int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
             ->filter()
             ->values();
 
@@ -559,7 +561,7 @@ class OutgoingController extends Controller
 
                 $items = $customerLines
                     ->groupBy('gci_part_id')
-                    ->map(fn ($rows) => (float) $rows->sum('qty'));
+                    ->map(fn($rows) => (float) $rows->sum('qty'));
 
                 foreach ($items as $partId => $qty) {
                     if ($qty <= 0) {
@@ -576,9 +578,9 @@ class OutgoingController extends Controller
             // Mark selected requirements as fulfilled without mutating Daily Planning:
             // Create fulfillment records (best-effort, idempotent on remaining qty).
             $rowIds = $selectedLines
-                ->flatMap(fn ($l) => $l['row_ids'] ?? [])
-                ->map(fn ($v) => (int) $v)
-                ->filter(fn ($v) => $v > 0)
+                ->flatMap(fn($l) => $l['row_ids'] ?? [])
+                ->map(fn($v) => (int) $v)
+                ->filter(fn($v) => $v > 0)
                 ->unique()
                 ->values();
 
@@ -597,7 +599,7 @@ class OutgoingController extends Controller
                 ->selectRaw('row_id, SUM(qty) as fulfilled_qty')
                 ->groupBy('row_id')
                 ->pluck('fulfilled_qty', 'row_id')
-                ->map(fn ($v) => (float) $v)
+                ->map(fn($v) => (float) $v)
                 ->all();
 
             foreach ($cells as $cell) {
@@ -691,7 +693,7 @@ class OutgoingController extends Controller
         $daysInMonth = CarbonImmutable::parse($period . '-01')->daysInMonth;
         $filename = 'stock_at_customers_template_' . $period . '.xlsx';
 
-        return Excel::download(new class($period, $daysInMonth) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+        return Excel::download(new class ($period, $daysInMonth) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
             public function __construct(private readonly string $period, private readonly int $daysInMonth)
             {
             }
@@ -797,23 +799,23 @@ class OutgoingController extends Controller
                 $cell->remaining_qty = $remaining;
                 return $cell;
             })
-            ->filter(fn ($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
+            ->filter(fn($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
             ->values();
 
         $period = $date->format('Y-m');
         $day = (int) $date->format('j');
 
         $customerIds = $cells
-            ->map(fn ($c) => $c->row?->gciPart?->customer_id)
-            ->filter(fn ($v) => $v !== null)
-            ->map(fn ($v) => (int) $v)
+            ->map(fn($c) => $c->row?->gciPart?->customer_id)
+            ->filter(fn($v) => $v !== null)
+            ->map(fn($v) => (int) $v)
             ->unique()
             ->values();
 
         $partIds = $cells
-            ->map(fn ($c) => $c->row?->gci_part_id)
-            ->filter(fn ($v) => $v !== null)
-            ->map(fn ($v) => (int) $v)
+            ->map(fn($c) => $c->row?->gci_part_id)
+            ->filter(fn($v) => $v !== null)
+            ->map(fn($v) => (int) $v)
             ->unique()
             ->values();
 
@@ -832,8 +834,8 @@ class OutgoingController extends Controller
         }
 
         $rowsByPart = $cells
-            ->filter(fn ($c) => $c->row?->gciPart)
-            ->groupBy(fn ($c) => (int) $c->row->gci_part_id)
+            ->filter(fn($c) => $c->row?->gciPart)
+            ->groupBy(fn($c) => (int) $c->row->gci_part_id)
             ->map(function ($group) use ($sequences, $stockMap, $period, $day) {
                 $first = $group->first();
                 $gciPart = $first->row->gciPart;
@@ -894,16 +896,16 @@ class OutgoingController extends Controller
                 $balance = max(0, (array_sum($perSeqNet) + $extraGross));
 
                 $productionLines = $group
-                    ->map(fn ($c) => (string) ($c->row?->production_line ?? ''))
-                    ->map(fn ($v) => trim($v))
-                    ->filter(fn ($v) => $v !== '')
+                    ->map(fn($c) => (string) ($c->row?->production_line ?? ''))
+                    ->map(fn($v) => trim($v))
+                    ->filter(fn($v) => $v !== '')
                     ->unique()
                     ->values()
                     ->implode(', ');
 
                 $jigNr1 = $balance > 0 ? (int) ceil($balance / 10) : 0; // NR1: 10 pcs per jig
                 $jigNr2 = $balance > 0 ? (int) ceil($balance / 9) : 0;  // NR2: 9 pcs per jig
-
+    
                 return (object) [
                     'gci_part_id' => $partId,
                     'customer_id' => $customerId,
@@ -926,13 +928,13 @@ class OutgoingController extends Controller
                 ];
             })
             ->values()
-            ->sortBy(fn ($r) => $r->delivery_class)
+            ->sortBy(fn($r) => $r->delivery_class)
             ->values();
 
         $assignmentMap = [];
         $assignedPartIds = $rowsByPart
-            ->map(fn ($r) => (int) ($r->gci_part_id ?? 0))
-            ->filter(fn ($id) => $id > 0)
+            ->map(fn($r) => (int) ($r->gci_part_id ?? 0))
+            ->filter(fn($id) => $id > 0)
             ->unique()
             ->values()
             ->all();
@@ -943,7 +945,7 @@ class OutgoingController extends Controller
                 ->whereDate('plan_date', $date->toDateString())
                 ->whereIn('gci_part_id', $assignedPartIds)
                 ->get()
-                ->keyBy(fn ($a) => (int) $a->gci_part_id)
+                ->keyBy(fn($a) => (int) $a->gci_part_id)
                 ->all();
         }
 
@@ -1156,24 +1158,24 @@ class OutgoingController extends Controller
         return redirect()->route('outgoing.daily-planning', ['plan_id' => $plan->id])
             ->with('success', 'New plan created. Please add rows.');
     }
-    
-    public function storeRow(Request $request, OutgoingDailyPlan $plan) 
+
+    public function storeRow(Request $request, OutgoingDailyPlan $plan)
     {
         $validated = $request->validate([
             'part_no' => 'required|string',
             'production_line' => 'required|string',
         ]);
-        
+
         $partNo = $this->normalizePartNo($validated['part_no']);
         $gciPartId = $partNo !== '' ? $this->resolveFgPartIdFromPartNo($partNo) : null;
-        
+
         $row = $plan->rows()->create([
             'row_no' => (int) ($plan->rows()->max('row_no') ?? 0) + 1,
             'production_line' => $validated['production_line'],
             'part_no' => $partNo !== '' ? $partNo : $validated['part_no'],
             'gci_part_id' => $gciPartId,
         ]);
-        
+
         return back()->with('success', 'Row added.');
     }
 
@@ -1219,15 +1221,17 @@ class OutgoingController extends Controller
         $customerPart = CustomerPart::query()
             ->where('customer_part_no', $partNo)
             ->where('status', 'active')
-            ->with(['components.part' => function ($q) {
-                $q->where('classification', 'FG');
-            }])
+            ->with([
+                'components.part' => function ($q) {
+                    $q->where('classification', 'FG');
+                }
+            ])
             ->first();
 
         if ($customerPart) {
             $fgComponents = $customerPart->components
-                ->filter(fn ($c) => $c->part && $c->part->classification === 'FG' && $c->gci_part_id)
-                ->sortByDesc(fn ($c) => (float) ($c->qty_per_unit ?? 0))
+                ->filter(fn($c) => $c->part && $c->part->classification === 'FG' && $c->gci_part_id)
+                ->sortByDesc(fn($c) => (float) ($c->qty_per_unit ?? 0))
                 ->values();
 
             $first = $fgComponents->first();
