@@ -87,41 +87,56 @@
             letter-spacing: 2px;
         }
 
-        .header-qr {
-            width: 60px;
-            height: 60px;
-            padding: 2px;
-            background: white;
-            border: 1px solid #ddd;
+        .header-month {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #e91e63, #f48fb1);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
             border-radius: 4px;
         }
 
-        .header-qr svg { width: 100%; height: 100%; display: block; }
-
-        .content { display: flex; flex: 1; }
+        .content { display: flex; flex: 1; overflow: hidden; }
         .left-section { flex: 1; border-right: 2px solid #333; display: flex; flex-direction: column; }
+        .right-section { width: 40mm; display: flex; flex-direction: column; }
+
+        .qr-box {
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 35mm;
+            border-bottom: 2px solid #333;
+            padding: 2mm;
+        }
+
+        .qr-box svg { width: 100%; height: 100%; display: block; }
 
         .form-row { display: flex; border-bottom: 1px solid #333; flex: 1; min-height: 0; }
         .form-row:last-child { border-bottom: none; }
 
         .field-name {
-            width: 100px;
-            padding: 2px 8px;
+            width: 25mm;
+            padding: 1mm 2mm;
             font-weight: 600;
             background: #e8f4f8;
             border-right: 1px solid #333;
-            font-size: 10px;
+            font-size: 9pt;
             display: flex;
             align-items: center;
         }
 
         .colon {
-            width: 12px;
-            padding: 2px 0;
+            width: 4mm;
+            padding: 1mm 0;
             text-align: center;
             border-right: 1px solid #333;
             background: #f9f9f9;
-            font-size: 10px;
+            font-size: 9pt;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -129,8 +144,8 @@
 
         .field-value { 
             flex: 1; 
-            padding: 2px 8px; 
-            font-size: 11px; 
+            padding: 1mm 2mm; 
+            font-size: 10pt; 
             display: flex; 
             flex-direction: column; 
             justify-content: center;
@@ -138,21 +153,6 @@
             white-space: nowrap;
             text-overflow: ellipsis;
         }
-
-        .right-section { width: 100px; display: flex; flex-direction: column; }
-
-        .number-box {
-            background: linear-gradient(135deg, #e91e63, #f48fb1);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            font-weight: bold;
-            height: 35mm;
-            border-bottom: 2px solid #333;
-        }
-
         .iqc-section { flex: 1; display: flex; flex-direction: column; }
         .iqc-title { text-align: center; padding: 4px; font-weight: bold; background: #f0f0f0; border-bottom: 1px solid #333; font-size: 10px; }
         .stamp-section { display: flex; flex: 1; }
@@ -182,7 +182,7 @@
                     <div class="logo">GL</div>
                     <div class="header-title">LABEL MATERIAL</div>
                 </div>
-                <div class="header-qr">{!! $qrSvg ?? '' !!}</div>
+                <div class="header-month">{{ $monthBox }}</div>
             </div>
 
             <div class="content">
@@ -212,19 +212,6 @@
                         <div class="field-value">{{ $receive->tag ?? '-' }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Storage Location</div><div class="colon">:</div>
-                        <div class="field-value">
-                            <div>{{ $storageLocation !== '' ? $storageLocation : '-' }}</div>
-                            @if ($warehouseMetaText)
-                                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">{{ $warehouseMetaText }}</div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-name">No. JO</div><div class="colon">:</div>
-                        <div class="field-value">{{ $receive->jo_po_number ?? '-' }}</div>
-                    </div>
-                    <div class="form-row">
                         <div class="field-name">Qty / Weight</div><div class="colon">:</div>
                         <div class="field-value">{{ $qtyWeightText }}</div>
                     </div>
@@ -239,7 +226,7 @@
                 </div>
 
                 <div class="right-section">
-                    <div class="number-box">{{ $monthBox }}</div>
+                    <div class="qr-box">{!! $qrSvg ?? '' !!}</div>
                     <div class="iqc-section">
                         <div class="iqc-title">IQC Check</div>
                         <div class="stamp-section">
