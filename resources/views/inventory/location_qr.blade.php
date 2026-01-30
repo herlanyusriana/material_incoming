@@ -14,7 +14,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 18px; background: #f8fafc; }
-        .card { background: white; border: 2px solid #111827; border-radius: 12px; padding: 18px; max-width: 520px; margin: 0 auto; }
+        .card { background: white; border: 2px solid #111827; border-radius: 12px; padding: 18px; max-width: 520px; margin: 0 auto; width: 100mm; height: 75mm; }
         .title { font-size: 28px; font-weight: 800; letter-spacing: 1px; text-align: center; }
         .subtitle { margin-top: 6px; font-size: 12px; text-align: center; color: #334155; }
         .qr { margin: 16px auto 10px; width: 280px; height: 280px; padding: 10px; border: none; border-radius: 10px; }
