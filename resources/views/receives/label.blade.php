@@ -45,80 +45,101 @@
 
         .label-container {
             background: white;
-            width: 600px;
-            border: 3px solid #333;
+            width: 110mm;
+            height: 75mm;
+            border: 2px solid #333;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
             background: linear-gradient(to right, #e8f4f8, #ffffff);
-            padding: 15px 20px;
-            border-bottom: 3px solid #333;
+            padding: 8px 12px;
+            border-bottom: 2px solid #333;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            height: 20mm;
         }
 
-        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
 
         .logo {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #4a90e2;
+            width: 35px;
+            height: 35px;
+            border: 2px solid #4a90e2;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 24px;
+            font-size: 16px;
             color: #4a90e2;
             background: white;
         }
 
         .header-title {
-            font-size: 32px;
+            font-size: 20px;
             font-weight: bold;
             color: #4a90e2;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
         }
 
         .header-qr {
-            width: 100px;
-            height: 100px;
-            padding: 5px;
+            width: 60px;
+            height: 60px;
+            padding: 2px;
             background: white;
-            border: 2px solid #ddd;
+            border: 1px solid #ddd;
             border-radius: 4px;
         }
 
         .header-qr svg { width: 100%; height: 100%; display: block; }
 
-        .content { display: flex; }
-        .left-section { flex: 1; border-right: 2px solid #333; }
+        .content { display: flex; flex: 1; }
+        .left-section { flex: 1; border-right: 2px solid #333; display: flex; flex-direction: column; }
 
-        .form-row { display: flex; border-bottom: 2px solid #333; }
+        .form-row { display: flex; border-bottom: 1px solid #333; flex: 1; min-height: 0; }
         .form-row:last-child { border-bottom: none; }
 
         .field-name {
-            width: 140px;
-            padding: 12px 15px;
+            width: 100px;
+            padding: 2px 8px;
             font-weight: 600;
             background: #e8f4f8;
-            border-right: 2px solid #333;
-            font-size: 14px;
+            border-right: 1px solid #333;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
         }
 
         .colon {
-            width: 20px;
-            padding: 12px 5px;
+            width: 12px;
+            padding: 2px 0;
             text-align: center;
-            border-right: 2px solid #333;
+            border-right: 1px solid #333;
             background: #f9f9f9;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .field-value { flex: 1; padding: 12px 15px; min-height: 45px; font-size: 14px; }
+        .field-value { 
+            flex: 1; 
+            padding: 2px 8px; 
+            font-size: 11px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
 
-        .right-section { width: 200px; display: flex; flex-direction: column; }
+        .right-section { width: 100px; display: flex; flex-direction: column; }
 
         .number-box {
             background: linear-gradient(135deg, #e91e63, #f48fb1);
@@ -126,24 +147,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 72px;
+            font-size: 48px;
             font-weight: bold;
-            height: 200px;
+            height: 35mm;
             border-bottom: 2px solid #333;
         }
 
         .iqc-section { flex: 1; display: flex; flex-direction: column; }
-        .iqc-title { text-align: center; padding: 10px; font-weight: bold; background: #f0f0f0; border-bottom: 2px solid #333; }
+        .iqc-title { text-align: center; padding: 4px; font-weight: bold; background: #f0f0f0; border-bottom: 1px solid #333; font-size: 10px; }
         .stamp-section { display: flex; flex: 1; }
-        .stamp-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #666; }
+        .stamp-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #666; }
         .stamp-box:first-child { border-right: 2px solid #333; }
 
         .print-btn { margin-top: 12px; text-align: right; }
         .print-btn button { background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
+        @page {
+            size: 110mm 75mm;
+            margin: 0;
+        }
+
         @media print {
             body { background: white; padding: 0; min-height: auto; }
-            .label-container { box-shadow: none; }
+            .label-container { box-shadow: none; border: 2px solid #333; }
             .print-btn { display: none; }
         }
     </style>
