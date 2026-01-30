@@ -12,13 +12,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warehouse Location QR</title>
     <style>
+        @page { size: 100mm 75mm; margin: 0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; padding: 18px; background: #f8fafc; }
+        body { font-family: Arial, sans-serif; padding: 8px 0 0; background: #f8fafc; margin: 0; }
         .card {
             background: white;
             border: 1px solid rgba(17, 24, 39, 0.25);
             border-radius: 14px;
-            padding: 18px;
+            padding: 12px 12px 16px;
             max-width: 520px;
             width: min(100%, 100mm);
             margin: 0 auto;
