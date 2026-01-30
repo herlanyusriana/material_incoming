@@ -56,47 +56,47 @@
 
         .header {
             background: linear-gradient(to right, #e8f4f8, #ffffff);
-            padding: 10mm 15mm;
+            padding: 8mm 12mm;
             border-bottom: 2px solid #333;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 30mm;
+            height: 22mm;
         }
 
-        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
 
         .logo {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #4a90e2;
+            width: 42px;
+            height: 42px;
+            border: 2px solid #4a90e2;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 24px;
+            font-size: 20px;
             color: #4a90e2;
             background: white;
         }
 
         .header-title {
-            font-size: 32px;
+            font-size: 26px;
             font-weight: bold;
             color: #4a90e2;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
         }
 
         .header-month {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             background: linear-gradient(135deg, #e91e63, #f48fb1);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 32px;
+            font-size: 28px;
             border-radius: 6px;
         }
 
