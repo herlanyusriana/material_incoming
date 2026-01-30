@@ -655,6 +655,7 @@ class MrpController extends Controller
                 'qty_planned' => $qtyPlanned,
                 'status' => 'planned',
                 'workflow_stage' => 'planned',
+                'qty_actual' => 0,
                 'created_by' => $userId,
             ]);
 

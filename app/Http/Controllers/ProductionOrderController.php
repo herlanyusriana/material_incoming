@@ -85,6 +85,7 @@ class ProductionOrderController extends Controller
             'qty_planned' => $validated['qty_planned'],
             'status' => 'planned',
             'workflow_stage' => 'planned',
+            'qty_actual' => 0,
             'created_by' => Auth::id(),
         ]);
 

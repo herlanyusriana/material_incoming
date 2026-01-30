@@ -23,4 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/outgoing/delivery-notes/{deliveryNote}', [OutgoingPickingController::class, 'show']);
     Route::post('/outgoing/delivery-notes/{deliveryNote}/start-picking', [OutgoingPickingController::class, 'startPicking']);
     Route::post('/outgoing/delivery-notes/{deliveryNote}/pick', [OutgoingPickingController::class, 'pick']);
+    // Warehouse Scanning & Putaway
+    Route::get('/warehouse/tag-info', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'getTagInfo']);
+    Route::post('/warehouse/putaway', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'putaway']);
+    Route::get('/warehouse/locations', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'getLocations']);
 });
