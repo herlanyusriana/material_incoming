@@ -62,6 +62,56 @@
             </div>
         </div>
 
+        @if(($autoMappedRowCount ?? 0) > 0)
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                Auto-mapped <span class="font-bold">{{ (int) $autoMappedRowCount }}</span> row(s) ke FG berdasarkan Customer Part Mapping / Product Mapping.
+                <span class="text-emerald-800">Cek kembali mapping-nya kalau ada yang tidak sesuai.</span>
+            </div>
+        @endif
+
+        @if(!empty($unmappedRows) && count($unmappedRows) > 0)
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div class="text-sm text-amber-900">
+                        Ada <span class="font-bold">{{ count($unmappedRows) }}</span> row yang <span class="font-bold">belum terdaftar / belum bisa di-mapping</span> ke FG (gci_part_id kosong), sehingga tidak masuk ke Delivery Plan utama.
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="{{ route('planning.customer-parts.index') }}"
+                           class="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-50">
+                            Customer Part Mapping
+                        </a>
+                        <a href="{{ route('outgoing.product-mapping') }}"
+                           class="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-50">
+                            Product Mapping (Where-Used)
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-3 overflow-x-auto rounded-xl border border-amber-200 bg-white">
+                    <table class="min-w-full text-xs divide-y divide-amber-100">
+                        <thead class="bg-amber-50">
+                            <tr class="text-[11px] uppercase tracking-wider text-amber-900">
+                                <th class="px-3 py-2 text-left font-bold w-16">Row</th>
+                                <th class="px-3 py-2 text-left font-bold w-20">Line</th>
+                                <th class="px-3 py-2 text-left font-bold w-44">Part No</th>
+                                <th class="px-3 py-2 text-right font-bold w-24">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-amber-50">
+                            @foreach($unmappedRows as $u)
+                                <tr>
+                                    <td class="px-3 py-2 text-slate-700 font-mono">{{ (int) ($u->row_id ?? 0) }}</td>
+                                    <td class="px-3 py-2 text-slate-700 font-semibold">{{ $u->production_line ?? '-' }}</td>
+                                    <td class="px-3 py-2 text-slate-900 font-mono font-bold">{{ $u->part_no ?? '-' }}</td>
+                                    <td class="px-3 py-2 text-right text-slate-900 font-bold">{{ number_format((float) ($u->total_qty ?? 0), 0) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="dp-scroll">
                 <table class="dp-table min-w-max w-full text-xs">
@@ -121,7 +171,7 @@
 	                                        @else
 	                                            -
 	                                        @endif
-	                                    </td>
+                                    </td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900 sticky-l left-[618px]">{{ number_format((float) $r->plan_total, 0) }}</td>
 	                                    <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700 sticky-l left-[708px]">{{ (float) $r->stock_at_customer > 0 ? number_format((float) $r->stock_at_customer, 0) : '-' }}</td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-right sticky-l left-[838px]">
@@ -130,7 +180,14 @@
                                             JIG NR1: {{ (int) ($r->jig_nr1 ?? 0) }} • NR2: {{ (int) ($r->jig_nr2 ?? 0) }}
                                         </div>
                                     </td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[928px]">{{ $r->due_date?->format('Y-m-d') }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[928px]">
+                                        <div>{{ $r->due_date?->format('Y-m-d') }}</div>
+                                        @if(!empty($r->auto_mapped))
+                                            <div class="mt-1 inline-flex items-center rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                                                AUTO-MAPPED
+                                            </div>
+                                        @endif
+                                    </td>
                                     @foreach($sequences as $seq)
                                         @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
                                         <td class="px-2 py-2 border-r border-slate-200 text-center {{ $v > 0 ? 'font-bold text-slate-900' : 'text-slate-400' }}">

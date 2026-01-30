@@ -758,6 +758,36 @@ class OutgoingController extends Controller
         $date = $this->parseDate(request('date')) ?? now()->startOfDay();
         $sequences = range(1, 13);
 
+        // Best-effort: backfill missing gci_part_id for rows that have demand on this date,
+        // using customer part mapping / FG mapping. This makes Delivery Plan show more rows automatically.
+        $autoMappedRowIds = [];
+        $rowIdsNeedingFix = OutgoingDailyPlanCell::query()
+            ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
+            ->whereDate('outgoing_daily_plan_cells.plan_date', $date->toDateString())
+            ->where('outgoing_daily_plan_cells.qty', '>', 0)
+            ->whereNull('r.gci_part_id')
+            ->distinct()
+            ->pluck('r.id');
+
+        if ($rowIdsNeedingFix->isNotEmpty()) {
+            OutgoingDailyPlanRow::query()
+                ->whereIn('id', $rowIdsNeedingFix)
+                ->select(['id', 'part_no'])
+                ->chunk(200, function ($rows) use (&$autoMappedRowIds) {
+                    foreach ($rows as $row) {
+                        $partNo = $this->normalizePartNo((string) ($row->part_no ?? ''));
+                        if ($partNo === '') {
+                            continue;
+                        }
+                        $resolvedId = $this->resolveFgPartIdFromPartNo($partNo);
+                        if ($resolvedId) {
+                            OutgoingDailyPlanRow::query()->whereKey($row->id)->update(['gci_part_id' => $resolvedId]);
+                            $autoMappedRowIds[] = (int) $row->id;
+                        }
+                    }
+                });
+        }
+
         $plans = DeliveryPlan::query()
             ->with(['truck', 'driver'])
             ->whereDate('plan_date', $date)
@@ -801,6 +831,8 @@ class OutgoingController extends Controller
             })
             ->filter(fn($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
             ->values();
+
+        $autoMappedRowIdSet = array_fill_keys(array_map('intval', $autoMappedRowIds), true);
 
         $period = $date->format('Y-m');
         $day = (int) $date->format('j');
@@ -905,6 +937,22 @@ class OutgoingController extends Controller
 
                 $jigNr1 = $balance > 0 ? (int) ceil($balance / 10) : 0; // NR1: 10 pcs per jig
                 $jigNr2 = $balance > 0 ? (int) ceil($balance / 9) : 0;  // NR2: 9 pcs per jig
+
+                $sourceRowIds = $group
+                    ->pluck('row_id')
+                    ->map(fn($v) => (int) $v)
+                    ->filter(fn($v) => $v > 0)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $autoMapped = false;
+                foreach ($sourceRowIds as $rid) {
+                    if (isset($autoMappedRowIdSet[$rid])) {
+                        $autoMapped = true;
+                        break;
+                    }
+                }
     
                 return (object) [
                     'gci_part_id' => $partId,
@@ -925,10 +973,46 @@ class OutgoingController extends Controller
                     'remain' => $remain,
                     'jig_nr1' => $jigNr1,
                     'jig_nr2' => $jigNr2,
+                    'auto_mapped' => $autoMapped,
+                    'source_row_ids' => $sourceRowIds,
                 ];
             })
             ->values()
             ->sortBy(fn($r) => $r->delivery_class)
+            ->values();
+
+        $unmappedRows = $cells
+            ->filter(fn($c) => !$c->row?->gciPart)
+            ->groupBy(fn($c) => (int) $c->row_id)
+            ->map(function ($group) use ($sequences) {
+                $first = $group->first();
+                $row = $first?->row;
+
+                $perSeq = [];
+                foreach ($sequences as $seq) {
+                    $perSeq[$seq] = 0.0;
+                }
+                $extra = 0.0;
+
+                foreach ($group as $cell) {
+                    $seq = $cell->seq !== null && $cell->seq !== '' ? (int) $cell->seq : 9999;
+                    $qty = (float) ($cell->remaining_qty ?? 0);
+                    if (in_array($seq, $sequences, true)) {
+                        $perSeq[$seq] += $qty;
+                    } else {
+                        $extra += $qty;
+                    }
+                }
+
+                return (object) [
+                    'row_id' => (int) ($row?->id ?? 0),
+                    'production_line' => (string) ($row?->production_line ?? '-'),
+                    'part_no' => (string) ($row?->part_no ?? '-'),
+                    'total_qty' => array_sum($perSeq) + $extra,
+                    'per_seq' => $perSeq,
+                    'extra_qty' => $extra,
+                ];
+            })
             ->values();
 
         $assignmentMap = [];
@@ -962,6 +1046,8 @@ class OutgoingController extends Controller
             'plans' => $plans,
             'trucks' => $trucks,
             'drivers' => $drivers,
+            'autoMappedRowCount' => count($autoMappedRowIds),
+            'unmappedRows' => $unmappedRows,
         ]);
     }
 
