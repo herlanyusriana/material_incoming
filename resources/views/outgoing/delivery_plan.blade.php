@@ -124,7 +124,12 @@
 	                                    </td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900 sticky-l left-[618px]">{{ number_format((float) $r->plan_total, 0) }}</td>
 	                                    <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700 sticky-l left-[708px]">{{ (float) $r->stock_at_customer > 0 ? number_format((float) $r->stock_at_customer, 0) : '-' }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900 sticky-l left-[838px]">{{ number_format((float) $r->balance, 0) }}</td>
+                                    <td class="px-2 py-2 border-r border-slate-200 text-right sticky-l left-[838px]">
+                                        <div class="font-bold text-slate-900">{{ number_format((float) $r->balance, 0) }}</div>
+                                        <div class="text-[10px] font-semibold text-slate-500">
+                                            JIG NR1: {{ (int) ($r->jig_nr1 ?? 0) }} • NR2: {{ (int) ($r->jig_nr2 ?? 0) }}
+                                        </div>
+                                    </td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[928px]">{{ $r->due_date?->format('Y-m-d') }}</td>
                                     @foreach($sequences as $seq)
                                         @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))

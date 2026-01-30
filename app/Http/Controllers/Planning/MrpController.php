@@ -388,11 +388,12 @@ class MrpController extends Controller
                 $planned = 0.0;
 
                 if ($p) {
-                    $demand = (float) ($p['demand'] ?? 0);
-                    $planned = (float) ($p['planned'] ?? 0);
-                } elseif ($pr) {
-                    $demand = (float) ($pr['demand'] ?? 0);
-                    $planned = (float) ($pr['planned'] ?? 0);
+                    $demand += (float) ($p['demand'] ?? 0);
+                    $planned += (float) ($p['planned'] ?? 0);
+                }
+                if ($pr) {
+                    $demand += (float) ($pr['demand'] ?? 0);
+                    $planned += (float) ($pr['planned'] ?? 0);
                 }
 
                 $incoming = 0.0;

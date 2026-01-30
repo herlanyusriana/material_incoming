@@ -70,12 +70,12 @@
                                     <div class="font-semibold">{{ $part->part_name ?? '-' }}</div>
                                     <div class="text-[10px] text-slate-500">{{ $part->model ?? '-' }}</div>
                                 </td>
-                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-indigo-900 border-r border-slate-200">Demand</td>
+                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-rose-800 border-r border-slate-200">Outgoing</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs text-slate-400 border-r-2 border-slate-300">-</td>
 
                                 @foreach ($dates as $date)
                                     @php $val = $row['days'][$date]['demand'] ?? 0; @endphp
-                                    <td class="px-1 py-1 text-center text-xs border-l border-slate-100 {{ $val > 0 ? 'font-bold text-slate-900' : 'text-slate-300' }}">
+                                    <td class="px-1 py-1 text-center text-xs border-l border-slate-100 {{ $val > 0 ? 'font-bold text-rose-800' : 'text-slate-300' }}">
                                         {{ $val > 0 ? formatNumber($val) : '-' }}
                                     </td>
                                 @endforeach

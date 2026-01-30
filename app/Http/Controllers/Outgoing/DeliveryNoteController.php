@@ -252,6 +252,9 @@ class DeliveryNoteController extends Controller
                 ->pluck('location_code')
                 ->flip();
 
+            $mappedPartByNo = [];
+            $requiredByLocationPart = [];
+
             foreach ($deliveryNote->items as $item) {
                 $loc = strtoupper(trim((string) ($validated['kitting_locations'][$item->id] ?? '')));
                 if ($loc === '' || !isset($activeLocations[$loc])) {
@@ -259,14 +262,23 @@ class DeliveryNoteController extends Controller
                 }
 
                 $gciPartNo = (string) ($item->part?->part_no ?? '');
-                $mappedPart = Part::query()->where('part_no', $gciPartNo)->first();
+                if (!array_key_exists($gciPartNo, $mappedPartByNo)) {
+                    $mappedPartByNo[$gciPartNo] = Part::query()->where('part_no', $gciPartNo)->first();
+                }
+                $mappedPart = $mappedPartByNo[$gciPartNo] ?? null;
                 if (!$mappedPart) {
                     return back()->with('error', "Part master (parts) tidak ditemukan untuk FG {$gciPartNo}. Buat dulu di master Part agar bisa cek stok per lokasi.");
                 }
 
-                $available = LocationInventory::getStockByLocation((int) $mappedPart->id, $loc);
-                if ($available < (float) $item->qty) {
-                    return back()->with('error', "Stok lokasi {$loc} untuk {$gciPartNo} kurang. Available {$available}, need {$item->qty}.");
+                $key = $loc . '|' . (int) $mappedPart->id;
+                $requiredByLocationPart[$key] = ($requiredByLocationPart[$key] ?? 0.0) + (float) $item->qty;
+            }
+
+            foreach ($requiredByLocationPart as $key => $requiredQty) {
+                [$loc, $partId] = explode('|', $key, 2);
+                $available = LocationInventory::getStockByLocation((int) $partId, (string) $loc);
+                if ($available + 1e-9 < (float) $requiredQty) {
+                    return back()->with('error', "Stok lokasi {$loc} kurang. Available {$available}, need {$requiredQty}.");
                 }
             }
         } else {
