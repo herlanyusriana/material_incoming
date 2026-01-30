@@ -209,6 +209,21 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'consumption_uom' => $consumptionUom,
         ];
 
+        // Prefer updating by line_no when it is provided.
+        // This keeps stable bom_item_id values so existing substitute relations are preserved.
+        if ($lineNo !== null) {
+            $byLine = BomItem::query()
+                ->where('bom_id', $bom->id)
+                ->where('line_no', $lineNo)
+                ->get();
+
+            if ($byLine->count() === 1) {
+                $byLine->first()->update(array_merge($payload, ['line_no' => $lineNo]));
+                $this->rowCount++;
+                return null;
+            }
+        }
+
         // Update only if the same logical row exists; otherwise create a new line.
         // This prevents accidental overwrites when `line_no` is duplicated in the file.
         $signatureQuery = BomItem::query()->where('bom_id', $bom->id);
