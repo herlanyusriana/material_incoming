@@ -50,6 +50,17 @@
                         <div class="mt-1 text-xs text-slate-500">Hanya lokasi status ACTIVE yang bisa dipilih.</div>
                     </div>
 
+                    <div id="batch-selector-container" style="display:none;">
+                        <label class="block text-sm font-semibold text-slate-700">Batch No (Optional)</label>
+                        <select name="batch_no" id="batch_no" class="mt-1 w-full rounded-xl border-slate-200">
+                            <option value="">-- All Batches (Total Qty) --</option>
+                        </select>
+                        <div class="mt-1 text-xs text-slate-500">Pilih batch tertentu untuk adjustment, atau kosongkan untuk adjust total qty di lokasi.</div>
+                        <div id="batch-current-qty" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm" style="display:none;">
+                            <strong>Current Stock:</strong> <span id="current-qty-value">-</span>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700">Qty After</label>
@@ -75,5 +86,66 @@
             </div>
         </div>
     </div>
+
+    <script>
+        const partSelect = document.querySelector('select[name="part_id"]');
+        const locationSelect = document.querySelector('select[name="location_code"]');
+        const batchSelect = document.getElementById('batch_no');
+        const batchContainer = document.getElementById('batch-selector-container');
+        const batchCurrentQty = document.getElementById('batch-current-qty');
+        const currentQtyValue = document.getElementById('current-qty-value');
+
+        function loadBatches() {
+            const partId = partSelect.value;
+            const locationCode = locationSelect.value;
+
+            if (!partId || !locationCode) {
+                batchContainer.style.display = 'none';
+                return;
+            }
+
+            fetch(`{{ route('warehouse.stock-adjustments.get-batches') }}?part_id=${partId}&location_code=${encodeURIComponent(locationCode)}`)
+                .then(res => res.json())
+                .then(batches => {
+                    batchSelect.innerHTML = '<option value="">-- All Batches (Total Qty) --</option>';
+                    
+                    if (batches.length === 0) {
+                        batchContainer.style.display = 'none';
+                        batchCurrentQty.style.display = 'none';
+                        return;
+                    }
+
+                    batches.forEach(batch => {
+                        const option = document.createElement('option');
+                        option.value = batch.batch_no || '';
+                        const batchLabel = batch.batch_no || '(No Batch)';
+                        const prodDate = batch.production_date ? ` [${batch.production_date}]` : '';
+                        option.textContent = `${batchLabel}${prodDate} - Current: ${batch.qty_on_hand}`;
+                        option.dataset.qty = batch.qty_on_hand;
+                        batchSelect.appendChild(option);
+                    });
+
+                    batchContainer.style.display = 'block';
+                })
+                .catch(err => {
+                    console.error('Error loading batches:', err);
+                    batchContainer.style.display = 'none';
+                });
+        }
+
+        function updateCurrentQty() {
+            const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.qty) {
+                currentQtyValue.textContent = selectedOption.dataset.qty;
+                batchCurrentQty.style.display = 'block';
+            } else {
+                batchCurrentQty.style.display = 'none';
+            }
+        }
+
+        partSelect.addEventListener('change', loadBatches);
+        locationSelect.addEventListener('change', loadBatches);
+        batchSelect.addEventListener('change', updateCurrentQty);
+    </script>
 </x-app-layout>
 

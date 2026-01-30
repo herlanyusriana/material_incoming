@@ -67,6 +67,7 @@ class WarehouseStockAdjustmentController extends Controller
                 'max:50',
                 Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE')),
             ],
+            'batch_no' => ['nullable', 'string', 'max:255'],
             'qty_after' => ['required', 'numeric', 'min:0'],
             'adjusted_at' => ['nullable', 'date'],
             'reason' => ['nullable', 'string', 'max:1000'],
@@ -74,70 +75,160 @@ class WarehouseStockAdjustmentController extends Controller
 
         $partId = (int) $validated['part_id'];
         $locationCode = strtoupper(trim((string) $validated['location_code']));
+        $batchNo = isset($validated['batch_no']) && trim((string) $validated['batch_no']) !== '' 
+            ? strtoupper(trim((string) $validated['batch_no'])) 
+            : null;
         $qtyAfter = (float) $validated['qty_after'];
         $adjustedAt = isset($validated['adjusted_at']) && $validated['adjusted_at']
             ? Carbon::parse($validated['adjusted_at'])
             : now();
 
-        DB::transaction(function () use ($partId, $locationCode, $qtyAfter, $adjustedAt, $validated) {
-            $locInv = LocationInventory::query()
-                ->where('part_id', $partId)
-                ->where('location_code', $locationCode)
-                ->lockForUpdate()
-                ->first();
+        DB::transaction(function () use ($partId, $locationCode, $batchNo, $qtyAfter, $adjustedAt, $validated) {
+            // If batch specified, adjust only that batch
+            if ($batchNo !== null) {
+                $locInv = LocationInventory::query()
+                    ->where('part_id', $partId)
+                    ->where('location_code', $locationCode)
+                    ->where('batch_no', $batchNo)
+                    ->lockForUpdate()
+                    ->first();
 
-            $qtyBefore = $locInv ? (float) $locInv->qty_on_hand : 0.0;
-            $qtyChange = $qtyAfter - $qtyBefore;
+                $qtyBefore = $locInv ? (float) $locInv->qty_on_hand : 0.0;
+                $qtyChange = $qtyAfter - $qtyBefore;
 
-            if (!$locInv) {
-                $locInv = LocationInventory::query()->create([
+                if (!$locInv) {
+                    $locInv = LocationInventory::query()->create([
+                        'part_id' => $partId,
+                        'location_code' => $locationCode,
+                        'batch_no' => $batchNo,
+                        'qty_on_hand' => 0,
+                    ]);
+                }
+
+                $locInv->update([
+                    'qty_on_hand' => $qtyAfter,
+                    'last_counted_at' => $adjustedAt,
+                ]);
+
+                // Update global inventory
+                $inv = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+                if (!$inv) {
+                    if ($qtyChange < 0) {
+                        throw new \Exception('Inventory tidak ditemukan untuk part ini, tidak bisa mengurangi stok.');
+                    }
+                    Inventory::query()->create([
+                        'part_id' => $partId,
+                        'on_hand' => $qtyChange,
+                        'on_order' => 0,
+                        'as_of_date' => $adjustedAt->toDateString(),
+                    ]);
+                } else {
+                    $newOnHand = (float) $inv->on_hand + $qtyChange;
+                    if ($newOnHand < 0) {
+                        throw new \Exception('Adjustment menyebabkan inventory menjadi minus.');
+                    }
+                    $inv->update([
+                        'on_hand' => $newOnHand,
+                        'as_of_date' => $adjustedAt->toDateString(),
+                    ]);
+                }
+
+                LocationInventoryAdjustment::query()->create([
                     'part_id' => $partId,
                     'location_code' => $locationCode,
-                    'qty_on_hand' => 0,
-                ]);
-            }
-
-            $locInv->update([
-                'qty_on_hand' => $qtyAfter,
-                'last_counted_at' => $adjustedAt,
-            ]);
-
-            // Mirror adjustment to overall inventory (best-effort).
-            $inv = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
-            if (!$inv) {
-                if ($qtyChange < 0) {
-                    throw new \Exception('Inventory tidak ditemukan untuk part ini, tidak bisa mengurangi stok.');
-                }
-                Inventory::query()->create([
-                    'part_id' => $partId,
-                    'on_hand' => $qtyChange,
-                    'on_order' => 0,
-                    'as_of_date' => $adjustedAt->toDateString(),
+                    'batch_no' => $batchNo,
+                    'qty_before' => $qtyBefore,
+                    'qty_after' => $qtyAfter,
+                    'qty_change' => $qtyChange,
+                    'reason' => $validated['reason'] ?? null,
+                    'adjusted_at' => $adjustedAt,
+                    'created_by' => auth()->id(),
                 ]);
             } else {
-                $newOnHand = (float) $inv->on_hand + $qtyChange;
-                if ($newOnHand < 0) {
-                    throw new \Exception('Adjustment menyebabkan inventory menjadi minus.');
+                // No batch specified: adjust total qty at location (all batches combined)
+                $locInv = LocationInventory::query()
+                    ->where('part_id', $partId)
+                    ->where('location_code', $locationCode)
+                    ->lockForUpdate()
+                    ->first();
+
+                $qtyBefore = $locInv ? (float) $locInv->qty_on_hand : 0.0;
+                $qtyChange = $qtyAfter - $qtyBefore;
+
+                if (!$locInv) {
+                    $locInv = LocationInventory::query()->create([
+                        'part_id' => $partId,
+                        'location_code' => $locationCode,
+                        'qty_on_hand' => 0,
+                    ]);
                 }
-                $inv->update([
-                    'on_hand' => $newOnHand,
-                    'as_of_date' => $adjustedAt->toDateString(),
+
+                $locInv->update([
+                    'qty_on_hand' => $qtyAfter,
+                    'last_counted_at' => $adjustedAt,
+                ]);
+
+                // Mirror adjustment to overall inventory (best-effort).
+                $inv = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+                if (!$inv) {
+                    if ($qtyChange < 0) {
+                        throw new \Exception('Inventory tidak ditemukan untuk part ini, tidak bisa mengurangi stok.');
+                    }
+                    Inventory::query()->create([
+                        'part_id' => $partId,
+                        'on_hand' => $qtyChange,
+                        'on_order' => 0,
+                        'as_of_date' => $adjustedAt->toDateString(),
+                    ]);
+                } else {
+                    $newOnHand = (float) $inv->on_hand + $qtyChange;
+                    if ($newOnHand < 0) {
+                        throw new \Exception('Adjustment menyebabkan inventory menjadi minus.');
+                    }
+                    $inv->update([
+                        'on_hand' => $newOnHand,
+                        'as_of_date' => $adjustedAt->toDateString(),
+                    ]);
+                }
+
+                LocationInventoryAdjustment::query()->create([
+                    'part_id' => $partId,
+                    'location_code' => $locationCode,
+                    'batch_no' => null,
+                    'qty_before' => $qtyBefore,
+                    'qty_after' => $qtyAfter,
+                    'qty_change' => $qtyChange,
+                    'reason' => $validated['reason'] ?? null,
+                    'adjusted_at' => $adjustedAt,
+                    'created_by' => auth()->id(),
                 ]);
             }
-
-            LocationInventoryAdjustment::query()->create([
-                'part_id' => $partId,
-                'location_code' => $locationCode,
-                'qty_before' => $qtyBefore,
-                'qty_after' => $qtyAfter,
-                'qty_change' => $qtyChange,
-                'reason' => $validated['reason'] ?? null,
-                'adjusted_at' => $adjustedAt,
-                'created_by' => auth()->id(),
-            ]);
         });
 
         return redirect()->route('warehouse.stock-adjustments.index')->with('success', 'Stock adjustment saved.');
+    }
+
+    /**
+     * API endpoint to get batches for a specific part and location
+     */
+    public function getBatches(Request $request)
+    {
+        $partId = $request->query('part_id');
+        $locationCode = $request->query('location_code');
+
+        if (!$partId || !$locationCode) {
+            return response()->json([]);
+        }
+
+        $batches = LocationInventory::query()
+            ->where('part_id', $partId)
+            ->where('location_code', strtoupper(trim((string) $locationCode)))
+            ->where('qty_on_hand', '>', 0)
+            ->orderBy('production_date')
+            ->orderBy('batch_no')
+            ->get(['batch_no', 'qty_on_hand', 'production_date']);
+
+        return response()->json($batches);
     }
 }
 

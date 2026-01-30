@@ -11,6 +11,9 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+        <!-- Tom Select -->
+        <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
 	        <!-- Scripts -->
 	        @vite(['resources/css/app.css', 'resources/js/app.js'])
 	        <style>[x-cloak]{display:none !important;}</style>
@@ -21,6 +24,31 @@
 	            select {
 	                text-transform: uppercase;
 	            }
+
+                /* Tom Select Overrides */
+                .ts-wrapper.single .ts-control {
+                    border-radius: 0.75rem !important; /* Matches rounded-xl */
+                    padding: 0.5rem 0.75rem !important;
+                    background-color: white !important;
+                    border: 1px solid #e2e8f0 !important; /* slate-200 */
+                }
+                .ts-wrapper.single.focus .ts-control {
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+                    border-color: #3b82f6 !important;
+                }
+                .ts-dropdown {
+                    border-radius: 0.5rem !important;
+                    margin-top: 4px !important;
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+                    border: 1px solid #e2e8f0 !important;
+                }
+                .ts-dropdown .active {
+                    background-color: #f1f5f9 !important;
+                    color: #1e293b !important;
+                }
+                .ts-control input {
+                    text-transform: uppercase !important;
+                }
 	        </style>
 	    </head>
     <body class="font-sans antialiased bg-slate-50">
@@ -288,6 +316,48 @@
 	        </script>
 	        <script>
 	            document.addEventListener('DOMContentLoaded', () => {
+                    // Initialize Tom Select
+                    window.initTomSelect = function(container = document) {
+                        const selects = container instanceof HTMLSelectElement ? [container] : container.querySelectorAll('select:not(.no-search)');
+                        
+                        selects.forEach(el => {
+                            if (el.tomselect || el.classList.contains('tomselected')) return;
+                            if (el.multiple) return; 
+                            
+                            new TomSelect(el, {
+                                create: false,
+                                sortField: {
+                                    field: "text",
+                                    direction: "asc"
+                                },
+                                dropdownParent: 'body',
+                                allowEmptyOption: true,
+                            });
+                        });
+                    };
+
+                    initTomSelect();
+
+                    // Watch for dynamic elements
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'childList') {
+                                mutation.addedNodes.forEach((node) => {
+                                    if (node.nodeType === 1) { 
+                                        if (node.tagName === 'SELECT') initTomSelect(node);
+                                        else node.querySelectorAll('select').forEach(sel => initTomSelect(sel));
+                                    }
+                                });
+
+                                // Sync if options changed in an existing tomselect
+                                if (mutation.target.tagName === 'SELECT' && mutation.target.tomselect) {
+                                    mutation.target.tomselect.sync();
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+
 	                // Global loading function
 	                window.showLoading = function(title = 'Processing...') {
 	                    Swal.fire({
@@ -321,5 +391,6 @@
                     @endif
 	            });
 	        </script>
+            <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 	    </body>
 	</html>

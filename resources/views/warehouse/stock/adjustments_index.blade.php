@@ -71,6 +71,7 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">When</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch No</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Before</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">After</th>
@@ -87,6 +88,13 @@
                                         {{ $adj->adjusted_at?->format('Y-m-d H:i') ?? $adj->created_at?->format('Y-m-d H:i') ?? '-' }}
                                     </td>
                                     <td class="px-4 py-3 font-mono font-semibold text-slate-900">{{ $adj->location_code }}</td>
+                                    <td class="px-4 py-3 font-mono text-sm text-slate-700">
+                                        @if($adj->batch_no)
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">{{ $adj->batch_no }}</span>
+                                        @else
+                                            <span class="text-slate-400 text-xs">(All Batches)</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3">
                                         <div class="font-semibold text-slate-900">{{ $adj->part?->part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $adj->part?->part_name_gci ?? ($adj->part?->part_name_vendor ?? '') }}</div>
@@ -101,7 +109,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-12 text-center text-slate-500">No adjustments.</td>
+                                <td colspan="9" class="px-6 py-12 text-center text-slate-500">No adjustments.</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -12,6 +12,7 @@ class LocationInventoryAdjustment extends Model
     protected $fillable = [
         'part_id',
         'location_code',
+        'batch_no',
         'qty_before',
         'qty_after',
         'qty_change',
