@@ -55,6 +55,22 @@
                     </div>
                 </div>
 
+                <form action="{{ route('inventory.locations.print-range') }}" method="GET" target="_blank" class="flex flex-wrap items-end gap-3">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Start</label>
+                        <input name="start" value="{{ request('start') }}" class="mt-1 rounded-xl border-slate-200 uppercase px-3 py-2" placeholder="A-001">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">End</label>
+                        <input name="end" value="{{ request('end') }}" class="mt-1 rounded-xl border-slate-200 uppercase px-3 py-2" placeholder="A-050">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Limit</label>
+                        <input type="number" name="limit" min="1" max="50" value="{{ request('limit', 20) }}" class="mt-1 w-20 rounded-xl border-slate-200 px-3 py-2">
+                    </div>
+                    <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Print Range</button>
+                </form>
+
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
                     <table class="min-w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
@@ -182,4 +198,3 @@
         </script>
     </div>
 </x-app-layout>
-

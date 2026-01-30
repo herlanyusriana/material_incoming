@@ -130,4 +130,48 @@ class WarehouseLocationController extends Controller
 
         return view('inventory.location_qr', compact('location', 'qrSvg', 'payload'));
     }
+
+    public function printRange(Request $request)
+    {
+        $validated = $request->validate([
+            'start' => ['nullable', 'string', 'max:50'],
+            'end' => ['nullable', 'string', 'max:50'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $start = strtoupper(trim((string) ($validated['start'] ?? '')));
+        $end = strtoupper(trim((string) ($validated['end'] ?? '')));
+        $limit = max(1, min(50, (int) ($validated['limit'] ?? 20)));
+
+        $query = WarehouseLocation::query();
+        if ($start !== '' && $end !== '') {
+            if ($start <= $end) {
+                $query->whereBetween('location_code', [$start, $end]);
+            } else {
+                $query->whereBetween('location_code', [$end, $start]);
+            }
+        } elseif ($start !== '') {
+            $query->where('location_code', '>=', $start);
+        } elseif ($end !== '') {
+            $query->where('location_code', '<=', $end);
+        }
+
+        $locations = $query->orderBy('location_code')->limit($limit)->get();
+
+        $cards = $locations->map(function (WarehouseLocation $location) {
+            $payload = trim((string) ($location->qr_payload ?? ''));
+            if ($payload === '') {
+                $payload = WarehouseLocation::buildPayload($location->location_code, $location->class, $location->zone);
+            }
+            return [
+                'location' => $location,
+                'payload' => $payload,
+                'qrSvg' => QrSvg::make($payload, 260, 0),
+            ];
+        })->all();
+
+        return view('inventory.location_qr_batch', [
+            'cards' => $cards,
+        ]);
+    }
 }

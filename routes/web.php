@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventory/locations', [WarehouseLocationController::class, 'store'])->name('inventory.locations.store');
     Route::get('/inventory/locations/export', [WarehouseLocationController::class, 'export'])->name('inventory.locations.export');
     Route::post('/inventory/locations/import', [WarehouseLocationController::class, 'import'])->name('inventory.locations.import');
+    Route::get('/inventory/locations/print-range', [WarehouseLocationController::class, 'printRange'])->name('inventory.locations.print-range');
     Route::get('/inventory/locations/{location}/print', [WarehouseLocationController::class, 'printQr'])->name('inventory.locations.print');
     Route::put('/inventory/locations/{location}', [WarehouseLocationController::class, 'update'])->name('inventory.locations.update');
     Route::delete('/inventory/locations/{location}', [WarehouseLocationController::class, 'destroy'])->name('inventory.locations.destroy');
