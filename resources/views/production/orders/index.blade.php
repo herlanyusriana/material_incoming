@@ -39,6 +39,44 @@
                     New Production Order
                 </a>
             </div>
+
+            <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600">Month</label>
+                        <input type="month" name="month" value="{{ $month ?? '' }}" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600">Date From</label>
+                        <input type="date" name="date_from" value="{{ $dateFrom ?? '' }}" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600">Date To</label>
+                        <input type="date" name="date_to" value="{{ $dateTo ?? '' }}" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600">Status</label>
+                        @php($statuses = ['draft','planned','kanban_released','resource_hold','material_hold','released','in_production','completed','cancelled'])
+                        <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                            <option value="">All</option>
+                            @foreach($statuses as $s)
+                                <option value="{{ $s }}" @selected(($status ?? '') === $s)>{{ strtoupper(str_replace('_',' ', $s)) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600">Search</label>
+                        <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="MO number / part no / model" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                        @if(!empty($gciPartId))
+                            <input type="hidden" name="gci_part_id" value="{{ (int) $gciPartId }}">
+                        @endif
+                    </div>
+                    <div class="md:col-span-6 flex justify-end gap-2">
+                        <a href="{{ route('production.orders.index') }}" class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
+                        <button class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800">Apply</button>
+                    </div>
+                </div>
+            </form>
     
             <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
                 <table class="w-full text-sm text-left">

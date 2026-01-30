@@ -13,15 +13,53 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductionOrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = ProductionOrder::with('part')->latest()->paginate(20);
-        return view('production.orders.index', compact('orders'));
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $month = $request->query('month');
+        $status = strtolower(trim((string) $request->query('status', '')));
+        $q = trim((string) $request->query('q', ''));
+        $gciPartId = (int) $request->query('gci_part_id', 0);
+
+        if ($month && preg_match('/^\\d{4}-\\d{2}$/', (string) $month)) {
+            try {
+                $from = now()->parse($month . '-01')->startOfMonth();
+                $to = $from->copy()->endOfMonth();
+                $dateFrom = $dateFrom ?: $from->toDateString();
+                $dateTo = $dateTo ?: $to->toDateString();
+            } catch (\Throwable) {
+            }
+        }
+
+        $query = ProductionOrder::query()
+            ->with('part')
+            ->when($gciPartId > 0, fn ($qr) => $qr->where('gci_part_id', $gciPartId))
+            ->when($status !== '', fn ($qr) => $qr->where('status', $status))
+            ->when($dateFrom || $dateTo, function ($qr) use ($dateFrom, $dateTo) {
+                $from = $dateFrom ? $dateFrom : '1900-01-01';
+                $to = $dateTo ? $dateTo : '2999-12-31';
+                $qr->whereBetween('plan_date', [$from, $to]);
+            })
+            ->when($q !== '', function ($qr) use ($q) {
+                $s = strtoupper($q);
+                $qr->where('production_order_number', 'like', '%' . $s . '%')
+                    ->orWhereHas('part', function ($qp) use ($s) {
+                        $qp->where('part_no', 'like', '%' . $s . '%')
+                            ->orWhere('part_name', 'like', '%' . $s . '%')
+                            ->orWhere('model', 'like', '%' . $s . '%');
+                    });
+            })
+            ->latest();
+
+        $orders = $query->paginate(20)->withQueryString();
+
+        return view('production.orders.index', compact('orders', 'dateFrom', 'dateTo', 'month', 'status', 'q', 'gciPartId'));
     }
 
     public function create()
     {
-        $parts = GciPart::where('classification', 'FG')->orWhere('classification', 'WIP')->get();
+        $parts = GciPart::whereIn('classification', ['FG', 'WIP', 'RM'])->get();
         return view('production.orders.create', compact('parts'));
     }
 

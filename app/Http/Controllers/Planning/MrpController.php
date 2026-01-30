@@ -566,7 +566,7 @@ class MrpController extends Controller
 
         $allowedPartIds = \App\Models\GciPart::query()
             ->whereIn('id', $planRows->pluck('part_id')->all())
-            ->whereIn('classification', ['FG', 'WIP'])
+            ->whereIn('classification', ['FG', 'WIP', 'RM'])
             ->pluck('id')
             ->flip();
 

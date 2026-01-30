@@ -268,6 +268,10 @@
                                     class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                                 </div>
 
+                                <a href="{{ route('warehouse.production-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('warehouse.production-load.*'), $subInactive => !request()->routeIs('warehouse.production-load.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('warehouse.production-load.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('warehouse.production-load.*')])></span>
+                                    <span class="flex-1">Production Load</span>
+                                </a>
                                 <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                     <span class="flex-1">Production Orders</span>
@@ -849,6 +853,10 @@
                                 class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                             </div>
 
+                            <a href="{{ route('warehouse.production-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('warehouse.production-load.*'), $subInactive => !request()->routeIs('warehouse.production-load.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('warehouse.production-load.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('warehouse.production-load.*')])></span>
+                                <span class="flex-1">Production Load</span>
+                            </a>
                             <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                 <span class="flex-1">Production Orders</span>

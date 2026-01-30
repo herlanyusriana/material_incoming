@@ -4,6 +4,7 @@
     $modeLabel = $modeLabel ?? 'MRP';
     $showPoAction = (bool) ($showPoAction ?? false);
     $showIncoming = (bool) ($showIncoming ?? true);
+    $month = $month ?? null;
 @endphp
 
 <div class="flex items-center justify-between gap-3">
@@ -57,6 +58,11 @@
                                 <td rowspan="4" class="sticky left-8 z-10 {{ $bgClass }} px-2 py-1 text-xs border-r border-slate-200 font-mono text-indigo-700 font-bold whitespace-nowrap">
                                     <div class="flex items-center gap-2">
                                         <span>{{ $part->part_no }}</span>
+                                        <a href="{{ route('production.orders.index', array_filter(['gci_part_id' => $part->id, 'month' => $month])) }}"
+                                           class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold hover:bg-slate-200"
+                                           title="Open Production Orders for this part">
+                                            MO
+                                        </a>
                                         @if(!empty($row['has_purchase']) && empty($row['has_production']))
                                             <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">BUY</span>
                                         @elseif(!empty($row['has_production']) && empty($row['has_purchase']))
