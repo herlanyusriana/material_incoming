@@ -19,6 +19,15 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
     public int $rowCount = 0;
     public int $skippedRows = 0;
 
+    /** @var array<string, true> */
+    public array $missingFgParts = [];
+
+    /** @var array<string, true> */
+    public array $missingComponentParts = [];
+
+    /** @var array<string, true> */
+    public array $missingWipParts = [];
+
     private function normalizeMakeOrBuy(?string $value): string
     {
         if ($value === null) {
@@ -127,7 +136,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
 
         $fg = $this->getGciPart($fgPartNo);
         if (!$fg) {
-            throw new \Exception("FG Part No [{$fgPartNo}] belum terdaftar di GCI Part.");
+            $this->missingFgParts[$fgPartNo] = true;
+            $this->skippedRows++;
+            return null;
         }
 
         // Removed FG classification check as Part model does not support it
@@ -202,12 +213,28 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'material_spec' => $materialSpec ? trim($materialSpec) : null,
             'material_name' => $materialName ? trim($materialName) : null,
             'special' => $special ? trim($special) : null,
-            'component_part_id' => $rmPartNo ? $this->getGciPart($rmPartNo)?->id : null,
+            'component_part_id' => null,
             'component_part_no' => $rmPartNo,
             'make_or_buy' => $makeOrBuy,
             'usage_qty' => $usageQty ?? 1,
             'consumption_uom' => $consumptionUom,
         ];
+
+        if ($rmPartNo) {
+            $rm = $this->getGciPart($rmPartNo);
+            if ($rm) {
+                $payload['component_part_id'] = $rm->id;
+            } else {
+                $this->missingComponentParts[$rmPartNo] = true;
+            }
+        }
+
+        if ($wipPartNo) {
+            $wip = $this->getGciPart($wipPartNo);
+            if (!$wip) {
+                $this->missingWipParts[$wipPartNo] = true;
+            }
+        }
 
         // Prefer updating by line_no when it is provided.
         // This keeps stable bom_item_id values so existing substitute relations are preserved.

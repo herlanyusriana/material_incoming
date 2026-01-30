@@ -150,6 +150,21 @@ class BomController extends Controller
             if ($skipped > 0) {
                 $msg .= " {$skipped} rows skipped (empty or missing part numbers).";
             }
+
+            $missingFg = array_keys($import->missingFgParts ?? []);
+            $missingComp = array_keys($import->missingComponentParts ?? []);
+            $missingWip = array_keys($import->missingWipParts ?? []);
+            if (!empty($missingComp) || !empty($missingWip) || !empty($missingFg)) {
+                $parts = array_values(array_unique(array_filter(array_merge($missingFg, $missingComp, $missingWip))));
+                $preview = implode(', ', array_slice($parts, 0, 15));
+                $more = count($parts) > 15 ? (' … +' . (count($parts) - 15) . ' more') : '';
+                $msg .= " Missing parts in GCI master: {$preview}{$more}.";
+            }
+
+            if (!empty($missingFg)) {
+                return back()->with('error', $msg);
+            }
+
             return back()->with('success', $msg);
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
@@ -188,7 +203,18 @@ class BomController extends Controller
             }
 
             $count = $import->rowCount;
-            return back()->with('success', "Substitutes imported successfully. {$count} rows processed.");
+            $msg = "Substitutes imported successfully. {$count} rows processed.";
+            $missing = array_values(array_unique(array_filter(array_merge(
+                array_keys($import->missingFgParts ?? []),
+                array_keys($import->missingComponentParts ?? []),
+                array_keys($import->missingSubstituteParts ?? []),
+            ))));
+            if (!empty($missing)) {
+                $preview = implode(', ', array_slice($missing, 0, 15));
+                $more = count($missing) > 15 ? (' … +' . (count($missing) - 15) . ' more') : '';
+                $msg .= " Missing parts in GCI master: {$preview}{$more}.";
+            }
+            return back()->with('success', $msg);
         } catch (\Exception $e) {
              if ($e instanceof ValidationException) {
                 $failures = collect($e->failures());
@@ -224,7 +250,17 @@ class BomController extends Controller
                 return back()->with('error', "Import mapping selesai tapi ada {$failures->count()} baris gagal. {$preview}");
             }
 
-            return back()->with('success', "Substitute mapping imported successfully. {$import->rowCount} rows processed.");
+            $msg = "Substitute mapping imported successfully. {$import->rowCount} rows processed.";
+            $missing = array_values(array_unique(array_filter(array_merge(
+                array_keys($import->missingComponentParts ?? []),
+                array_keys($import->missingSubstituteParts ?? []),
+            ))));
+            if (!empty($missing)) {
+                $preview = implode(', ', array_slice($missing, 0, 15));
+                $more = count($missing) > 15 ? (' … +' . (count($missing) - 15) . ' more') : '';
+                $msg .= " Missing parts in GCI master: {$preview}{$more}.";
+            }
+            return back()->with('success', $msg);
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
                 $failures = collect($e->failures());

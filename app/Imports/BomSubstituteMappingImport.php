@@ -15,6 +15,10 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
     public int $rowCount = 0;
     protected array $failures = [];
     protected array $seenKeys = [];
+    /** @var array<string, true> */
+    public array $missingComponentParts = [];
+    /** @var array<string, true> */
+    public array $missingSubstituteParts = [];
     /** @var list<string> */
     private array $stripChars;
 
@@ -105,12 +109,16 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             }
 
             if (!$subPart) {
+                $this->missingSubstituteParts[$subPartNo] = true;
                 $this->addFailure($rowIndex, "Substitute part not found: {$subPartNo}");
                 continue;
             }
 
             $componentPart = $this->findGciPartByPartNo($componentPartNo);
             $componentPartId = $componentPart ? (int) $componentPart->id : 0;
+            if ($componentPartId <= 0) {
+                $this->missingComponentParts[$componentPartNo] = true;
+            }
 
             $bomItems = BomItem::query()
                 ->when($componentPartId > 0, function ($q) use ($componentPartId) {

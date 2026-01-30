@@ -16,6 +16,12 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
     public int $rowCount = 0;
     protected array $failures = [];
     protected array $seenKeys = [];
+    /** @var array<string, true> */
+    public array $missingFgParts = [];
+    /** @var array<string, true> */
+    public array $missingComponentParts = [];
+    /** @var array<string, true> */
+    public array $missingSubstituteParts = [];
     /** @var list<string> */
     private array $stripChars;
 
@@ -122,6 +128,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             }
 
             if (!$fgPart) {
+                $this->missingFgParts[$fgPartNo] = true;
                 $this->addFailure($rowIndex, "FG Part not found: $fgPartNo");
                 continue;
             }
@@ -151,6 +158,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             }
 
             if (!$bomItem) {
+                $this->missingComponentParts[$componentPartNo] = true;
                 $this->addFailure($rowIndex, "BOM line not found for component: $componentPartNo in BOM $fgPartNo");
                 continue;
             }
@@ -166,6 +174,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 ]);
             }
             if (!$subPart) {
+                $this->missingSubstituteParts[$subPartNo] = true;
                 $this->addFailure($rowIndex, "Substitute Part not found: $subPartNo");
                 continue;
             }
