@@ -45,8 +45,8 @@
 
         .label-container {
             background: white;
-            width: 110mm;
-            height: 75mm;
+            width: 150mm;
+            height: 100mm;
             border: 2px solid #333;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             overflow: hidden;
@@ -56,62 +56,62 @@
 
         .header {
             background: linear-gradient(to right, #e8f4f8, #ffffff);
-            padding: 8px 12px;
+            padding: 10mm 15mm;
             border-bottom: 2px solid #333;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 20mm;
+            height: 30mm;
         }
 
-        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
 
         .logo {
-            width: 35px;
-            height: 35px;
-            border: 2px solid #4a90e2;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #4a90e2;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 24px;
             color: #4a90e2;
             background: white;
         }
 
         .header-title {
-            font-size: 20px;
+            font-size: 32px;
             font-weight: bold;
             color: #4a90e2;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
         }
 
         .header-month {
-            width: 45px;
-            height: 45px;
+            width: 60px;
+            height: 60px;
             background: linear-gradient(135deg, #e91e63, #f48fb1);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 24px;
-            border-radius: 4px;
+            font-size: 32px;
+            border-radius: 6px;
         }
 
         .content { display: flex; flex: 1; overflow: hidden; }
-        .left-section { width: 70mm; border-right: 2px solid #333; display: flex; flex-direction: column; overflow: hidden; }
-        .right-section { width: 40mm; border-left: none; display: flex; flex-direction: column; }
+        .left-section { width: 90mm; border-right: 2px solid #333; display: flex; flex-direction: column; overflow: hidden; }
+        .right-section { width: 60mm; border-left: none; display: flex; flex-direction: column; }
 
         .qr-box {
             background: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 40mm;
+            height: 50mm;
             border-bottom: 2px solid #333;
-            padding: 3mm;
+            padding: 5mm;
             width: 100%;
         }
 
@@ -125,23 +125,23 @@
         .form-row:last-child { border-bottom: none; }
 
         .field-name {
-            width: 25mm;
-            padding: 1mm 2mm;
+            width: 35mm;
+            padding: 2mm 5mm;
             font-weight: 600;
             background: #e8f4f8;
             border-right: 1px solid #333;
-            font-size: 9pt;
+            font-size: 11pt;
             display: flex;
             align-items: center;
         }
 
         .colon {
-            width: 4mm;
-            padding: 1mm 0;
+            width: 6mm;
+            padding: 2mm 0;
             text-align: center;
             border-right: 1px solid #333;
             background: #f9f9f9;
-            font-size: 9pt;
+            font-size: 11pt;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -149,8 +149,9 @@
 
         .field-value { 
             flex: 1; 
-            padding: 1mm 2mm; 
-            font-size: 10pt; 
+            padding: 2mm 5mm; 
+            font-size: 12pt; 
+            font-weight: 600;
             display: flex; 
             flex-direction: column; 
             justify-content: center;
@@ -158,17 +159,18 @@
             white-space: nowrap;
             text-overflow: ellipsis;
         }
+
         .iqc-section { flex: 1; display: flex; flex-direction: column; }
-        .iqc-title { text-align: center; padding: 4px; font-weight: bold; background: #f0f0f0; border-bottom: 1px solid #333; font-size: 10px; }
+        .iqc-title { text-align: center; padding: 6px; font-weight: bold; background: #f0f0f0; border-bottom: 1px solid #333; font-size: 12px; }
         .stamp-section { display: flex; flex: 1; }
-        .stamp-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #666; }
+        .stamp-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #666; }
         .stamp-box:first-child { border-right: 2px solid #333; }
 
         .print-btn { margin-top: 12px; text-align: right; }
         .print-btn button { background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
         @page {
-            size: 110mm 75mm;
+            size: 150mm 100mm;
             margin: 0;
         }
 
