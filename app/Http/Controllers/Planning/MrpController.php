@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
+use App\Models\CustomerPartComponent;
 use App\Models\Forecast;
 use App\Models\GciInventory;
 use App\Models\MrpProductionPlan;
@@ -350,6 +351,40 @@ class MrpController extends Controller
         $parts = \App\Models\GciPart::whereIn('id', $partIds)->get()->keyBy('id');
         $inventories = GciInventory::whereIn('gci_part_id', $partIds)->get()->keyBy('gci_part_id');
 
+        // Customer Part Mapping (LINE / CASE) for each GCI part.
+        $mappingByPartId = [];
+        if ($partIds->isNotEmpty()) {
+            $rawMappings = CustomerPartComponent::query()
+                ->join('customer_parts as cp', 'cp.id', '=', 'customer_part_components.customer_part_id')
+                ->whereIn('customer_part_components.gci_part_id', $partIds->all())
+                ->where('cp.status', 'active')
+                ->get([
+                    'customer_part_components.gci_part_id as gci_part_id',
+                    'cp.line as line',
+                    'cp.case_name as case_name',
+                ]);
+
+            foreach ($rawMappings as $m) {
+                $pid = (int) ($m->gci_part_id ?? 0);
+                if ($pid <= 0) {
+                    continue;
+                }
+
+                $line = trim((string) ($m->line ?? ''));
+                $case = trim((string) ($m->case_name ?? ''));
+
+                if (!isset($mappingByPartId[$pid])) {
+                    $mappingByPartId[$pid] = ['lines' => [], 'cases' => []];
+                }
+                if ($line !== '') {
+                    $mappingByPartId[$pid]['lines'][$line] = true;
+                }
+                if ($case !== '') {
+                    $mappingByPartId[$pid]['cases'][$case] = true;
+                }
+            }
+        }
+
         foreach ($partIds as $partId) {
             $part = $parts[$partId] ?? null;
             if (!$part)
@@ -410,6 +445,10 @@ class MrpController extends Controller
                 $runningStock = $endDayStock;
             }
 
+            $mapping = $mappingByPartId[(int) $partId] ?? null;
+            $mappedLines = $mapping ? implode(', ', array_keys($mapping['lines'] ?? [])) : '';
+            $mappedCases = $mapping ? implode(', ', array_keys($mapping['cases'] ?? [])) : '';
+
             $rowData = [
                 'part' => $part,
                 'initial_stock' => $startStock,
@@ -423,6 +462,8 @@ class MrpController extends Controller
                 'monthly_demand' => $monthlyDemand,
                 'monthly_planned' => $monthlyPlanned,
                 'days' => $days,
+                'mapped_line' => $mappedLines,
+                'mapped_case' => $mappedCases,
             ];
 
             $mrpData[] = $rowData;

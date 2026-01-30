@@ -1,5 +1,5 @@
 @php
-    /** @var array<int, array{part:\App\Models\GciPart, initial_stock:float|int, days:array<string,array<string,mixed>>, has_purchase?:bool, has_production?:bool}> $mrpRows */
+    /** @var array<int, array{part:\App\Models\GciPart, initial_stock:float|int, days:array<string,array<string,mixed>>, mapped_line?:string, mapped_case?:string, has_purchase?:bool, has_production?:bool}> $mrpRows */
     $mrpRows = $mrpRows ?? [];
     $modeLabel = $modeLabel ?? 'MRP';
     $showPoAction = (bool) ($showPoAction ?? false);
@@ -75,6 +75,23 @@
                                 <td rowspan="4" class="sticky left-40 z-10 {{ $bgClass }} px-2 py-1 text-[11px] border-r border-slate-200 text-slate-700">
                                     <div class="font-semibold">{{ $part->part_name ?? '-' }}</div>
                                     <div class="text-[10px] text-slate-500">{{ $part->model ?? '-' }}</div>
+                                    @php
+                                        $mappedLine = trim((string) ($row['mapped_line'] ?? ''));
+                                        $mappedCase = trim((string) ($row['mapped_case'] ?? ''));
+                                    @endphp
+                                    @if($mappedLine !== '' || $mappedCase !== '')
+                                        <div class="mt-1 text-[10px] text-slate-600">
+                                            @if($mappedLine !== '')
+                                                <span class="font-semibold text-slate-500">LINE:</span>
+                                                <span class="font-bold text-slate-700">{{ $mappedLine }}</span>
+                                            @endif
+                                            @if($mappedCase !== '')
+                                                <span class="text-slate-300 mx-1">•</span>
+                                                <span class="font-semibold text-slate-500">CASE:</span>
+                                                <span class="font-bold text-slate-700">{{ $mappedCase }}</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-rose-800 border-r border-slate-200">Outgoing</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs text-slate-400 border-r-2 border-slate-300">-</td>
