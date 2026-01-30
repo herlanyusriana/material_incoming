@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GciPart;
+use App\Support\QrSvg;
 use Illuminate\Http\Request;
 use Picqer\Barcode\BarcodeGeneratorPNG;
 
@@ -18,8 +19,18 @@ class BarcodeLabelController extends Controller
         
         // Generate barcode image (Code 128)
         $barcodeImage = base64_encode($generator->getBarcode($barcode, $generator::TYPE_CODE_128));
+
+        $payload = [
+            'type' => 'GCI_PART_LABEL',
+            'gci_part_id' => (int) $part->id,
+            'part_no' => (string) ($part->part_no ?? ''),
+            'barcode' => (string) $barcode,
+            'classification' => (string) ($part->classification ?? ''),
+        ];
+        $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: (string) $barcode;
+        $qrSvg = QrSvg::make($payloadString, 160, 0);
         
-        return view('warehouse.labels.part_label', compact('part', 'barcodeImage', 'barcode'));
+        return view('warehouse.labels.part_label', compact('part', 'barcodeImage', 'barcode', 'qrSvg'));
     }
 
     /**
@@ -39,10 +50,19 @@ class BarcodeLabelController extends Controller
 
         foreach ($parts as $part) {
             $barcode = $part->generateBarcode();
+            $payload = [
+                'type' => 'GCI_PART_LABEL',
+                'gci_part_id' => (int) $part->id,
+                'part_no' => (string) ($part->part_no ?? ''),
+                'barcode' => (string) $barcode,
+                'classification' => (string) ($part->classification ?? ''),
+            ];
+            $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: (string) $barcode;
             $labels[] = [
                 'part' => $part,
                 'barcode' => $barcode,
                 'barcodeImage' => base64_encode($generator->getBarcode($barcode, $generator::TYPE_CODE_128)),
+                'qrSvg' => QrSvg::make($payloadString, 160, 0),
             ];
         }
 

@@ -6,6 +6,7 @@ use App\Models\BinTransfer;
 use App\Models\LocationInventory;
 use App\Models\Part;
 use App\Models\WarehouseLocation;
+use App\Support\QrSvg;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -229,7 +230,7 @@ class BinTransferController extends Controller
 
         $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
 
-        $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(160)->margin(0)->generate($payloadString);
+        $qrSvg = QrSvg::make($payloadString, 160, 0);
 
         return view('warehouse.bin-transfers.label', compact('binTransfer', 'qrSvg', 'warehouseLocation'));
     }
