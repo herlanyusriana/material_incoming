@@ -694,7 +694,7 @@ class ReceiveController extends Controller
 
         $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
 
-        $qrSvg = QrSvg::make($payloadString, 160, 0);
+        $qrSvg = QrSvg::make($payloadString, 400, 0);
 
         return view('receives.label', compact('receive', 'qrSvg', 'monthNumber', 'warehouseLocation'));
     }

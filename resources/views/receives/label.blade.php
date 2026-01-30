@@ -101,20 +101,25 @@
         }
 
         .content { display: flex; flex: 1; overflow: hidden; }
-        .left-section { flex: 1; border-right: 2px solid #333; display: flex; flex-direction: column; }
-        .right-section { width: 40mm; display: flex; flex-direction: column; }
+        .left-section { width: 70mm; border-right: 2px solid #333; display: flex; flex-direction: column; overflow: hidden; }
+        .right-section { width: 40mm; border-left: none; display: flex; flex-direction: column; }
 
         .qr-box {
             background: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 35mm;
+            height: 40mm;
             border-bottom: 2px solid #333;
-            padding: 2mm;
+            padding: 3mm;
+            width: 100%;
         }
 
-        .qr-box svg { width: 100%; height: 100%; display: block; }
+        .qr-box svg { 
+            width: 100% !important; 
+            height: 100% !important; 
+            display: block; 
+        }
 
         .form-row { display: flex; border-bottom: 1px solid #333; flex: 1; min-height: 0; }
         .form-row:last-child { border-bottom: none; }
