@@ -895,7 +895,7 @@ class MrpController extends Controller
 
     public function generatePo(Request $request)
     {
-        // Expecting: items array [part_id => qty]
+        // Expecting: items array [gci_part_id => qty]
         $items = $request->input('items', []);
 
         if (empty($items)) {
@@ -908,8 +908,38 @@ class MrpController extends Controller
         // Constraint: We only support Local PO creation for now.
         // We need to fetch parts to check vendors.
 
-        $partIds = array_keys($items);
-        $parts = \App\Models\Part::with('vendor')->whereIn('id', $partIds)->get();
+        $gciPartIds = array_map('intval', array_keys($items));
+        $gciParts = \App\Models\GciPart::query()
+            ->whereIn('id', $gciPartIds)
+            ->get(['id', 'part_no']);
+
+        $gciById = $gciParts->keyBy('id');
+        $gciIdByNo = $gciParts
+            ->filter(fn ($p) => (string) ($p->part_no ?? '') !== '')
+            ->mapWithKeys(fn ($p) => [strtoupper(trim((string) $p->part_no)) => (int) $p->id])
+            ->all();
+        $partNos = $gciParts->pluck('part_no')->filter()->unique()->values()->all();
+
+        // Bridge to Incoming `parts` by part_no (we intentionally keep BOM/Planning in gci_parts only).
+        $parts = \App\Models\Part::with('vendor')
+            ->whereIn('part_no', $partNos)
+            ->get();
+
+        $partsByNo = $parts->keyBy(fn ($p) => strtoupper(trim((string) $p->part_no)));
+
+        $missing = [];
+        foreach ($gciPartIds as $gciId) {
+            $pno = strtoupper(trim((string) ($gciById[$gciId]?->part_no ?? '')));
+            if ($pno === '' || !isset($partsByNo[$pno])) {
+                $missing[] = $pno !== '' ? $pno : ('ID:' . $gciId);
+            }
+        }
+        $missing = array_values(array_unique(array_filter($missing)));
+        if (!empty($missing)) {
+            $preview = implode(', ', array_slice($missing, 0, 10));
+            $more = count($missing) > 10 ? (' … +' . (count($missing) - 10) . ' more') : '';
+            return back()->with('error', "Selected items are not registered in Incoming Part master (parts): {$preview}{$more}. Create Part master first (matching part_no).");
+        }
 
         $nonLocalParts = $parts->filter(fn($p) => strtolower($p->vendor->vendor_type ?? '') !== 'local');
 
@@ -918,9 +948,19 @@ class MrpController extends Controller
         }
 
         // Group by Vendor to create multiple POs if needed
-        $grouped = $parts->groupBy('vendor_id');
+        // Only include selected parts, map from selected GCI ids -> incoming Part rows.
+        $selectedIncomingParts = collect($gciPartIds)
+            ->map(function (int $gciId) use ($gciById, $partsByNo) {
+                $pno = strtoupper(trim((string) ($gciById[$gciId]?->part_no ?? '')));
+                return $pno !== '' ? ($partsByNo[$pno] ?? null) : null;
+            })
+            ->filter()
+            ->unique('id')
+            ->values();
 
-        DB::transaction(function () use ($grouped, $items) {
+        $grouped = $selectedIncomingParts->groupBy('vendor_id');
+
+        DB::transaction(function () use ($grouped, $items, $gciIdByNo) {
             foreach ($grouped as $vendorId => $vendorParts) {
                 // Create Arrival (PO)
                 $poNo = 'PO-MRP-' . now()->format('ymdHis') . '-' . $vendorId;
@@ -935,7 +975,9 @@ class MrpController extends Controller
                 ]);
 
                 foreach ($vendorParts as $part) {
-                    $qty = (int) ($items[$part->id] ?? 0);
+                    $pno = strtoupper(trim((string) $part->part_no));
+                    $gciId = (int) ($gciIdByNo[$pno] ?? 0);
+                    $qty = (int) ($items[$gciId] ?? 0);
                     if ($qty <= 0)
                         continue;
 
