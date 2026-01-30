@@ -27,7 +27,7 @@
         .title { font-size: 28px; font-weight: 800; letter-spacing: 1px; text-align: center; }
         .subtitle { margin-top: 6px; font-size: 12px; text-align: center; color: #334155; }
         .qr { margin: 16px auto 10px; width: 280px; height: 280px; padding: 10px; border: none; border-radius: 10px; }
-        .qr svg { width: 378px; height: 264px; display: block; }
+        .qr svg { width: 100%; height: 100%; display: block; }
         .btn { margin-top: 12px; text-align: right; }
         .btn button { background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 700; }
         @media print {
