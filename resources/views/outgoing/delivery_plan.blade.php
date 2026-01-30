@@ -46,28 +46,68 @@
 
     <div class="space-y-6">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-black text-slate-900">Delivery Plan</h1>
-                    <p class="mt-1 text-sm text-slate-600">Sheet view (by delivery class + sequence).</p>
+	            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+	                <div>
+	                    <h1 class="text-2xl md:text-3xl font-black text-slate-900">Delivery Plan</h1>
+	                    <p class="mt-1 text-sm text-slate-600">Sheet view (by delivery class + JIG / UPH).</p>
+	                </div>
+
+	                <form method="GET" action="{{ route('outgoing.delivery-plan') }}" class="flex flex-wrap items-end gap-2">
+	                    <div>
+	                        <div class="text-xs font-semibold text-slate-500 mb-1">Date</div>
+	                        <input type="date" name="date" value="{{ $selectedDate }}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+	                    </div>
+                        <div>
+                            <div class="text-xs font-semibold text-slate-500 mb-1">UPH NR1</div>
+                            <input type="number" step="0.01" min="0" name="uph_nr1" value="{{ (float) ($uphNr1 ?? 60) }}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 w-28 text-right">
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-slate-500 mb-1">UPH NR2</div>
+                            <input type="number" step="0.01" min="0" name="uph_nr2" value="{{ (float) ($uphNr2 ?? 60) }}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 w-28 text-right">
+                        </div>
+	                    <button class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View</button>
+	                </form>
+	            </div>
+	        </div>
+
+        @if(!empty($totalsByLine) && count($totalsByLine) > 0)
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                <div class="text-sm font-bold text-slate-900">Summary by Line</div>
+                <div class="mt-3 overflow-x-auto">
+                    <table class="min-w-full text-xs divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr class="text-[11px] uppercase tracking-wider text-slate-600">
+                                <th class="px-3 py-2 text-left font-bold">Line</th>
+                                <th class="px-3 py-2 text-right font-bold">Balance</th>
+                                <th class="px-3 py-2 text-right font-bold">UPH</th>
+                                <th class="px-3 py-2 text-right font-bold">Hours</th>
+                                <th class="px-3 py-2 text-right font-bold">JIG NR1</th>
+                                <th class="px-3 py-2 text-right font-bold">JIG NR2</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach($totalsByLine as $t)
+                                <tr>
+                                    <td class="px-3 py-2 font-bold text-slate-900">{{ $t->line_type ?? 'UNKNOWN' }}</td>
+                                    <td class="px-3 py-2 text-right font-bold text-slate-900">{{ number_format((float) ($t->balance ?? 0), 0) }}</td>
+                                    <td class="px-3 py-2 text-right text-slate-700">{{ number_format((float) ($t->uph ?? 0), 2) }}</td>
+                                    <td class="px-3 py-2 text-right text-slate-700">{{ number_format((float) ($t->hours ?? 0), 2) }}</td>
+                                    <td class="px-3 py-2 text-right text-slate-700">{{ (int) ($t->jig_nr1 ?? 0) }}</td>
+                                    <td class="px-3 py-2 text-right text-slate-700">{{ (int) ($t->jig_nr2 ?? 0) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-
-                <form method="GET" action="{{ route('outgoing.delivery-plan') }}" class="flex items-end gap-2">
-                    <div>
-                        <div class="text-xs font-semibold text-slate-500 mb-1">Date</div>
-                        <input type="date" name="date" value="{{ $selectedDate }}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-                    </div>
-                    <button class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View</button>
-                </form>
-            </div>
-        </div>
-
-        @if(($autoMappedRowCount ?? 0) > 0)
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                Auto-mapped <span class="font-bold">{{ (int) $autoMappedRowCount }}</span> row(s) ke FG berdasarkan Customer Part Mapping / Product Mapping.
-                <span class="text-emerald-800">Cek kembali mapping-nya kalau ada yang tidak sesuai.</span>
             </div>
         @endif
+
+	        @if(($autoMappedRowCount ?? 0) > 0)
+	            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+	                Auto-mapped <span class="font-bold">{{ (int) $autoMappedRowCount }}</span> row(s) ke FG berdasarkan Customer Part Mapping / Product Mapping.
+	                <span class="text-emerald-800">Cek kembali mapping-nya kalau ada yang tidak sesuai.</span>
+	            </div>
+	        @endif
 
         @if(!empty($unmappedRows) && count($unmappedRows) > 0)
             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -124,37 +164,24 @@
 	                            <th rowspan="2" class="px-2 py-2 h-10 text-center font-bold text-slate-700 border-r border-slate-200 w-[90px] sticky-l left-[528px]">Std Pack</th>
                             <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[90px] sticky-l left-[618px]">Plan</th>
                             <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[130px] sticky-l left-[708px]">Stock at Customer</th>
-                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[90px] sticky-l left-[838px]">Balance</th>
-                            <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-[110px] sticky-l left-[928px]">Duedate</th>
-                            <th colspan="{{ count($sequences) }}" class="px-2 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Sequence</th>
-                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 w-[90px] sticky-r right-[110px] border-l border-slate-200">Remain</th>
-	                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 w-[110px] sticky-r right-0 border-l border-slate-200">Action</th>
-                        </tr>
-                        <tr>
-                            @foreach($sequences as $seq)
-                                <th class="px-2 py-1 h-8 text-center font-bold text-slate-700 border-r border-slate-200 w-10">{{ $seq }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @php($no = 0)
-                        @forelse(($groups ?? []) as $class => $rows)
-                            <tr class="bg-slate-100">
-                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-0 bg-group"></td>
-                                <td class="px-2 py-2 font-black text-slate-800 border-r border-slate-200 sticky-l left-12 bg-group" colspan="1">{{ $class }}</td>
-	                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[168px] bg-group" colspan="4"></td>
-                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[708px] bg-group"></td>
-                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[838px] bg-group"></td>
-                                <td class="px-2 py-2 border-r border-slate-200 sticky-l left-[928px] bg-group"></td>
-                                @foreach($sequences as $seq)
-                                    <td class="px-2 py-2 border-r border-slate-200"></td>
-                                @endforeach
-                                <td class="px-2 py-2 sticky-r right-[110px] bg-group border-l border-slate-200"></td>
-	                                <td class="px-2 py-2 sticky-r right-0 bg-group border-l border-slate-200"></td>
-                            </tr>
-                            @foreach($rows as $r)
-                                @php($no++)
-                                <tr class="hover:bg-slate-50">
+	                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[90px] sticky-l left-[838px]">Balance</th>
+	                            <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-[110px] sticky-l left-[928px]">Duedate</th>
+                                <th rowspan="2" class="px-2 py-2 h-10 text-left font-bold text-slate-700 border-r border-slate-200 w-[90px]">Line</th>
+                                <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[90px]">UPH</th>
+                                <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 border-r border-slate-200 w-[90px]">Hours</th>
+	                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 w-[90px] sticky-r right-[110px] border-l border-slate-200">JIG</th>
+		                            <th rowspan="2" class="px-2 py-2 h-10 text-right font-bold text-slate-700 w-[110px] sticky-r right-0 border-l border-slate-200">Action</th>
+	                        </tr>
+	                    </thead>
+	                    <tbody class="divide-y divide-slate-100">
+	                        @php($no = 0)
+	                        @forelse(($groups ?? []) as $class => $rows)
+	                            <tr class="bg-slate-100">
+	                                <td class="px-2 py-2 font-black text-slate-800 bg-group" colspan="14">{{ $class }}</td>
+	                            </tr>
+	                            @foreach($rows as $r)
+	                                @php($no++)
+	                                <tr class="hover:bg-slate-50">
                                     <td class="px-2 py-2 border-r border-slate-200 text-slate-600 font-semibold sticky-l left-0">{{ $no }}</td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-12">{{ $r->delivery_class }}</td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[168px] font-semibold">
@@ -180,23 +207,23 @@
                                             JIG NR1: {{ (int) ($r->jig_nr1 ?? 0) }} • NR2: {{ (int) ($r->jig_nr2 ?? 0) }}
                                         </div>
                                     </td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[928px]">
-                                        <div>{{ $r->due_date?->format('Y-m-d') }}</div>
-                                        @if(!empty($r->auto_mapped))
-                                            <div class="mt-1 inline-flex items-center rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                                                AUTO-MAPPED
-                                            </div>
-                                        @endif
-                                    </td>
-                                    @foreach($sequences as $seq)
-                                        @php($v = (float) (($r->per_seq[$seq] ?? 0) ?: 0))
-                                        <td class="px-2 py-2 border-r border-slate-200 text-center {{ $v > 0 ? 'font-bold text-slate-900' : 'text-slate-400' }}">
-                                            {{ $v > 0 ? number_format($v, 0) : '' }}
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[928px]">
+	                                        <div>{{ $r->due_date?->format('Y-m-d') }}</div>
+	                                        @if(!empty($r->auto_mapped))
+	                                            <div class="mt-1 inline-flex items-center rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+	                                                AUTO-MAPPED
+	                                            </div>
+	                                        @endif
+	                                    </td>
+                                        <td class="px-2 py-2 border-r border-slate-200 text-slate-700 font-bold">
+                                            <div>{{ $r->line_type ?? 'UNKNOWN' }}</div>
+                                            <div class="text-[10px] text-slate-500">{{ $r->production_lines ?? '-' }}</div>
                                         </td>
-                                    @endforeach
-                                    <td class="px-2 py-2 text-right font-bold text-slate-900 sticky-r right-[110px] border-l border-slate-200">{{ number_format((float) $r->remain, 0) }}</td>
-	                                    <td class="px-2 py-2 text-right sticky-r right-0 border-l border-slate-200">
-	                                        <button
+                                        <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700">{{ number_format((float) ($r->uph ?? 0), 2) }}</td>
+                                        <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700">{{ number_format((float) ($r->hours ?? 0), 2) }}</td>
+	                                    <td class="px-2 py-2 text-right font-bold text-slate-900 sticky-r right-[110px] border-l border-slate-200">{{ (int) ($r->jigs ?? 0) }}</td>
+		                                    <td class="px-2 py-2 text-right sticky-r right-0 border-l border-slate-200">
+		                                        <button
 	                                            type="button"
 	                                            class="rounded-lg bg-indigo-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
 	                                            onclick="openCreateSoModal(this)"
@@ -210,16 +237,16 @@
 	                                        >
 	                                            Create SO
 	                                        </button>
-	                                    </td>
-	                                </tr>
-	                            @endforeach
-	                        @empty
-	                            <tr>
-	                                <td colspan="{{ 11 + count($sequences) }}" class="px-6 py-12 text-center text-slate-500 italic">
-	                                    No data for selected date.
-	                                </td>
-	                            </tr>
-	                        @endforelse
+		                                    </td>
+		                                </tr>
+		                            @endforeach
+		                        @empty
+		                            <tr>
+		                                <td colspan="14" class="px-6 py-12 text-center text-slate-500 italic">
+		                                    No data for selected date.
+		                                </td>
+		                            </tr>
+		                        @endforelse
 	                    </tbody>
 	                </table>
 	            </div>

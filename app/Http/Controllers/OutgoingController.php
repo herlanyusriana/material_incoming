@@ -756,7 +756,10 @@ class OutgoingController extends Controller
     public function deliveryPlan()
     {
         $date = $this->parseDate(request('date')) ?? now()->startOfDay();
-        $sequences = range(1, 13);
+        $uphNr1 = (float) request('uph_nr1', 0);
+        $uphNr2 = (float) request('uph_nr2', 0);
+        $uphNr1 = $uphNr1 > 0 ? $uphNr1 : 60.0;
+        $uphNr2 = $uphNr2 > 0 ? $uphNr2 : 60.0;
 
         // Best-effort: backfill missing gci_part_id for rows that have demand on this date,
         // using customer part mapping / FG mapping. This makes Delivery Plan show more rows automatically.
@@ -862,13 +865,13 @@ class OutgoingController extends Controller
                     $k = $period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
                     return [$k => $rec];
                 })
-                ->all();
+            ->all();
         }
 
         $rowsByPart = $cells
             ->filter(fn($c) => $c->row?->gciPart)
             ->groupBy(fn($c) => (int) $c->row->gci_part_id)
-            ->map(function ($group) use ($sequences, $stockMap, $period, $day) {
+            ->map(function ($group) use ($stockMap, $period, $day, $uphNr1, $uphNr2) {
                 $first = $group->first();
                 $gciPart = $first->row->gciPart;
 
@@ -880,23 +883,7 @@ class OutgoingController extends Controller
                 $trolleyType = $gciPart?->standardPacking?->trolley_type;
                 $partModel = $gciPart?->model;
 
-                $perSeqGross = [];
-                foreach ($sequences as $seq) {
-                    $perSeqGross[$seq] = 0.0;
-                }
-                $extraGross = 0.0;
-
-                foreach ($group as $cell) {
-                    $seq = $cell->seq !== null && $cell->seq !== '' ? (int) $cell->seq : 9999;
-                    $qty = (float) ($cell->remaining_qty ?? 0);
-                    if (in_array($seq, $sequences, true)) {
-                        $perSeqGross[$seq] += $qty;
-                    } else {
-                        $extraGross += $qty;
-                    }
-                }
-
-                $planTotal = array_sum($perSeqGross) + $extraGross;
+                $planTotal = (float) $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
 
                 $stock = 0.0;
                 if ($customerId > 0 && $partId > 0 && $day >= 1 && $day <= 31) {
@@ -907,25 +894,7 @@ class OutgoingController extends Controller
                     }
                 }
 
-                // Allocate stock to latest sequence first, then extra.
-                $remainingStock = $stock;
-                $perSeqNet = $perSeqGross;
-                foreach (array_reverse($sequences) as $seq) {
-                    if ($remainingStock <= 0) {
-                        break;
-                    }
-                    $take = min($perSeqNet[$seq], $remainingStock);
-                    $perSeqNet[$seq] -= $take;
-                    $remainingStock -= $take;
-                }
-                if ($remainingStock > 0 && $extraGross > 0) {
-                    $take = min($extraGross, $remainingStock);
-                    $extraGross -= $take;
-                    $remainingStock -= $take;
-                }
-
-                $remain = $extraGross;
-                $balance = max(0, (array_sum($perSeqNet) + $extraGross));
+                $balance = max(0, $planTotal - $stock);
 
                 $productionLines = $group
                     ->map(fn($c) => (string) ($c->row?->production_line ?? ''))
@@ -935,8 +904,23 @@ class OutgoingController extends Controller
                     ->values()
                     ->implode(', ');
 
+                $linesUpper = strtoupper($productionLines);
+                $hasNr1 = str_contains($linesUpper, 'NR1');
+                $hasNr2 = str_contains($linesUpper, 'NR2');
+                $lineType = $hasNr1 && !$hasNr2 ? 'NR1' : ($hasNr2 && !$hasNr1 ? 'NR2' : ($hasNr1 && $hasNr2 ? 'MIX' : 'UNKNOWN'));
+
                 $jigNr1 = $balance > 0 ? (int) ceil($balance / 10) : 0; // NR1: 10 pcs per jig
                 $jigNr2 = $balance > 0 ? (int) ceil($balance / 9) : 0;  // NR2: 9 pcs per jig
+
+                $uph = $lineType === 'NR2' ? $uphNr2 : $uphNr1;
+                $hours = $uph > 0 ? ($balance / $uph) : 0.0;
+                $jigs = $lineType === 'NR2' ? $jigNr2 : $jigNr1;
+                if ($lineType === 'MIX' || $lineType === 'UNKNOWN') {
+                    // Keep both visible in UI; default to NR1 for computed totals.
+                    $uph = $uphNr1;
+                    $hours = $uph > 0 ? ($balance / $uph) : 0.0;
+                    $jigs = $jigNr1;
+                }
 
                 $sourceRowIds = $group
                     ->pluck('row_id')
@@ -961,6 +945,7 @@ class OutgoingController extends Controller
                     'part_name' => $gciPart?->part_name ?? '-',
                     'part_no' => $gciPart?->part_no ?? '-',
                     'production_lines' => $productionLines !== '' ? $productionLines : '-',
+                    'line_type' => $lineType,
                     'std_pack_qty' => $stdPackQty,
                     'std_pack_uom' => $stdPackUom,
                     'trolley_type' => $trolleyType,
@@ -969,10 +954,13 @@ class OutgoingController extends Controller
                     'stock_at_customer' => $stock,
                     'balance' => $balance,
                     'due_date' => $first->plan_date,
-                    'per_seq' => $perSeqNet,
-                    'remain' => $remain,
                     'jig_nr1' => $jigNr1,
                     'jig_nr2' => $jigNr2,
+                    'uph_nr1' => $uphNr1,
+                    'uph_nr2' => $uphNr2,
+                    'uph' => $uph,
+                    'hours' => $hours,
+                    'jigs' => $jigs,
                     'auto_mapped' => $autoMapped,
                     'source_row_ids' => $sourceRowIds,
                 ];
@@ -981,36 +969,37 @@ class OutgoingController extends Controller
             ->sortBy(fn($r) => $r->delivery_class)
             ->values();
 
+        $totalsByLine = $rowsByPart
+            ->groupBy(fn($r) => (string) ($r->line_type ?? 'UNKNOWN'))
+            ->map(function ($group) {
+                $balance = (float) $group->sum(fn($r) => (float) ($r->balance ?? 0));
+                $jigNr1 = (int) ceil($balance / 10);
+                $jigNr2 = (int) ceil($balance / 9);
+                $uph = (float) ($group->first()?->uph ?? 0);
+                $hours = $uph > 0 ? ($balance / $uph) : 0.0;
+                return (object) [
+                    'line_type' => (string) ($group->first()?->line_type ?? 'UNKNOWN'),
+                    'balance' => $balance,
+                    'jig_nr1' => $jigNr1,
+                    'jig_nr2' => $jigNr2,
+                    'uph' => $uph,
+                    'hours' => $hours,
+                ];
+            })
+            ->values();
+
         $unmappedRows = $cells
             ->filter(fn($c) => !$c->row?->gciPart)
             ->groupBy(fn($c) => (int) $c->row_id)
-            ->map(function ($group) use ($sequences) {
+            ->map(function ($group) {
                 $first = $group->first();
                 $row = $first?->row;
-
-                $perSeq = [];
-                foreach ($sequences as $seq) {
-                    $perSeq[$seq] = 0.0;
-                }
-                $extra = 0.0;
-
-                foreach ($group as $cell) {
-                    $seq = $cell->seq !== null && $cell->seq !== '' ? (int) $cell->seq : 9999;
-                    $qty = (float) ($cell->remaining_qty ?? 0);
-                    if (in_array($seq, $sequences, true)) {
-                        $perSeq[$seq] += $qty;
-                    } else {
-                        $extra += $qty;
-                    }
-                }
 
                 return (object) [
                     'row_id' => (int) ($row?->id ?? 0),
                     'production_line' => (string) ($row?->production_line ?? '-'),
                     'part_no' => (string) ($row?->part_no ?? '-'),
-                    'total_qty' => array_sum($perSeq) + $extra,
-                    'per_seq' => $perSeq,
-                    'extra_qty' => $extra,
+                    'total_qty' => (float) $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0)),
                 ];
             })
             ->values();
@@ -1041,13 +1030,15 @@ class OutgoingController extends Controller
 
         return view('outgoing.delivery_plan', [
             'selectedDate' => $date->toDateString(),
-            'sequences' => $sequences,
             'groups' => $groups,
             'plans' => $plans,
             'trucks' => $trucks,
             'drivers' => $drivers,
             'autoMappedRowCount' => count($autoMappedRowIds),
             'unmappedRows' => $unmappedRows,
+            'uphNr1' => $uphNr1,
+            'uphNr2' => $uphNr2,
+            'totalsByLine' => $totalsByLine,
         ]);
     }
 
