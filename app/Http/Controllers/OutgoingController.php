@@ -969,25 +969,6 @@ class OutgoingController extends Controller
             ->sortBy(fn($r) => $r->delivery_class)
             ->values();
 
-        $totalsByLine = $rowsByPart
-            ->groupBy(fn($r) => (string) ($r->line_type ?? 'UNKNOWN'))
-            ->map(function ($group) {
-                $balance = (float) $group->sum(fn($r) => (float) ($r->balance ?? 0));
-                $jigNr1 = (int) ceil($balance / 10);
-                $jigNr2 = (int) ceil($balance / 9);
-                $uph = (float) ($group->first()?->uph ?? 0);
-                $hours = $uph > 0 ? ($balance / $uph) : 0.0;
-                return (object) [
-                    'line_type' => (string) ($group->first()?->line_type ?? 'UNKNOWN'),
-                    'balance' => $balance,
-                    'jig_nr1' => $jigNr1,
-                    'jig_nr2' => $jigNr2,
-                    'uph' => $uph,
-                    'hours' => $hours,
-                ];
-            })
-            ->values();
-
         $unmappedRows = $cells
             ->filter(fn($c) => !$c->row?->gciPart)
             ->groupBy(fn($c) => (int) $c->row_id)
@@ -1024,7 +1005,63 @@ class OutgoingController extends Controller
 
         foreach ($rowsByPart as $r) {
             $r->assignment = $assignmentMap[(int) ($r->gci_part_id ?? 0)] ?? null;
+
+            $assignment = $r->assignment;
+            $hasOverrides = false;
+            if ($assignment) {
+                $hasOverrides = ($assignment->line_type_override !== null)
+                    || ($assignment->jig_capacity_nr1_override !== null)
+                    || ($assignment->jig_capacity_nr2_override !== null)
+                    || ($assignment->uph_nr1_override !== null)
+                    || ($assignment->uph_nr2_override !== null)
+                    || ($assignment->notes !== null && trim((string) $assignment->notes) !== '');
+            }
+            $r->has_overrides = $hasOverrides;
+
+            $lineType = (string) ($assignment?->line_type_override ?? $r->line_type ?? 'UNKNOWN');
+            $capNr1 = (int) ($assignment?->jig_capacity_nr1_override ?? 10);
+            $capNr2 = (int) ($assignment?->jig_capacity_nr2_override ?? 9);
+            $rowUphNr1 = (float) ($assignment?->uph_nr1_override ?? $r->uph_nr1 ?? $uphNr1);
+            $rowUphNr2 = (float) ($assignment?->uph_nr2_override ?? $r->uph_nr2 ?? $uphNr2);
+
+            $balance = (float) ($r->balance ?? 0);
+            $jigNr1 = ($balance > 0 && $capNr1 > 0) ? (int) ceil($balance / $capNr1) : 0;
+            $jigNr2 = ($balance > 0 && $capNr2 > 0) ? (int) ceil($balance / $capNr2) : 0;
+
+            $uph = $lineType === 'NR2' ? $rowUphNr2 : $rowUphNr1;
+            $jigs = $lineType === 'NR2' ? $jigNr2 : $jigNr1;
+            if ($lineType === 'MIX' || $lineType === 'UNKNOWN') {
+                $uph = $rowUphNr1;
+                $jigs = $jigNr1;
+            }
+            $hours = $uph > 0 ? ($balance / $uph) : 0.0;
+
+            $r->line_type = $lineType;
+            $r->jig_capacity_nr1 = $capNr1;
+            $r->jig_capacity_nr2 = $capNr2;
+            $r->uph_nr1 = $rowUphNr1;
+            $r->uph_nr2 = $rowUphNr2;
+            $r->jig_nr1 = $jigNr1;
+            $r->jig_nr2 = $jigNr2;
+            $r->uph = $uph;
+            $r->hours = $hours;
+            $r->jigs = $jigs;
         }
+
+        $totalsByLine = $rowsByPart
+            ->groupBy(fn($r) => (string) ($r->line_type ?? 'UNKNOWN'))
+            ->map(function ($group) {
+                return (object) [
+                    'line_type' => (string) ($group->first()?->line_type ?? 'UNKNOWN'),
+                    'balance' => (float) $group->sum(fn($r) => (float) ($r->balance ?? 0)),
+                    'uph' => (float) ($group->first()?->uph ?? 0),
+                    'hours' => (float) $group->sum(fn($r) => (float) ($r->hours ?? 0)),
+                    'jig_nr1' => (int) $group->sum(fn($r) => (int) ($r->jig_nr1 ?? 0)),
+                    'jig_nr2' => (int) $group->sum(fn($r) => (int) ($r->jig_nr2 ?? 0)),
+                    'jigs' => (int) $group->sum(fn($r) => (int) ($r->jigs ?? 0)),
+                ];
+            })
+            ->values();
 
         $groups = $rowsByPart->groupBy('delivery_class')->all();
 
@@ -1111,6 +1148,47 @@ class OutgoingController extends Controller
         ]);
 
         return back()->with('success', 'Trip resources updated.');
+    }
+
+    public function updateDeliveryPlanOverrides(Request $request)
+    {
+        $validated = $request->validate([
+            'plan_date' => ['required', 'date'],
+            'gci_part_id' => ['required', 'integer', 'exists:gci_parts,id'],
+            'line_type_override' => ['nullable', 'string', 'in:NR1,NR2,MIX,UNKNOWN'],
+            'jig_capacity_nr1_override' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'jig_capacity_nr2_override' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'uph_nr1_override' => ['nullable', 'numeric', 'min:0.01', 'max:100000'],
+            'uph_nr2_override' => ['nullable', 'numeric', 'min:0.01', 'max:100000'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $date = Carbon::parse($validated['plan_date'])->startOfDay()->toDateString();
+        $partId = (int) $validated['gci_part_id'];
+
+        $toNullIfBlank = fn($v) => ($v === '' || $v === null) ? null : $v;
+
+        DB::transaction(function () use ($date, $partId, $validated, $toNullIfBlank) {
+            $assignment = DeliveryPlanRequirementAssignment::query()->firstOrNew([
+                'plan_date' => $date,
+                'gci_part_id' => $partId,
+            ]);
+
+            if (!$assignment->exists) {
+                $assignment->status = 'pending';
+            }
+
+            $assignment->line_type_override = $toNullIfBlank($validated['line_type_override'] ?? null);
+            $assignment->jig_capacity_nr1_override = $toNullIfBlank($validated['jig_capacity_nr1_override'] ?? null);
+            $assignment->jig_capacity_nr2_override = $toNullIfBlank($validated['jig_capacity_nr2_override'] ?? null);
+            $assignment->uph_nr1_override = $toNullIfBlank($validated['uph_nr1_override'] ?? null);
+            $assignment->uph_nr2_override = $toNullIfBlank($validated['uph_nr2_override'] ?? null);
+            $assignment->notes = $toNullIfBlank($validated['notes'] ?? null);
+
+            $assignment->save();
+        });
+
+        return back()->with('success', 'Overrides updated.');
     }
 
     public function assignSoToPlan(Request $request)

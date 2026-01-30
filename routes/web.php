@@ -180,6 +180,7 @@ Route::middleware('auth')->group(function () {
 
 	        Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
 	        Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
+	        Route::post('/delivery-plan/update-overrides', [OutgoingController::class, 'updateDeliveryPlanOverrides'])->name('delivery-plan.update-overrides');
 	        Route::post('/delivery-plan/assign-items', [OutgoingController::class, 'assignDeliveryPlanItems'])->name('delivery-plan.assign-items');
 	        Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
 	        Route::post('/delivery-plan/{plan}/assign-resources', [OutgoingController::class, 'assignDeliveryPlanResources'])->name('delivery-plan.assign-resources');

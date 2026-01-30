@@ -201,12 +201,19 @@
                                     </td>
                                     <td class="px-2 py-2 border-r border-slate-200 text-right font-bold text-slate-900 sticky-l left-[618px]">{{ number_format((float) $r->plan_total, 0) }}</td>
 	                                    <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700 sticky-l left-[708px]">{{ (float) $r->stock_at_customer > 0 ? number_format((float) $r->stock_at_customer, 0) : '-' }}</td>
-                                    <td class="px-2 py-2 border-r border-slate-200 text-right sticky-l left-[838px]">
-                                        <div class="font-bold text-slate-900">{{ number_format((float) $r->balance, 0) }}</div>
-                                        <div class="text-[10px] font-semibold text-slate-500">
-                                            JIG NR1: {{ (int) ($r->jig_nr1 ?? 0) }} • NR2: {{ (int) ($r->jig_nr2 ?? 0) }}
-                                        </div>
-                                    </td>
+	                                    <td class="px-2 py-2 border-r border-slate-200 text-right sticky-l left-[838px]">
+	                                        <div class="font-bold text-slate-900">{{ number_format((float) $r->balance, 0) }}</div>
+	                                        <div class="text-[10px] font-semibold text-slate-500">
+	                                            JIG NR1: {{ (int) ($r->jig_nr1 ?? 0) }} (cap {{ (int) ($r->jig_capacity_nr1 ?? 10) }})
+	                                            •
+	                                            NR2: {{ (int) ($r->jig_nr2 ?? 0) }} (cap {{ (int) ($r->jig_capacity_nr2 ?? 9) }})
+	                                        </div>
+	                                        @if(!empty($r->has_overrides))
+	                                            <div class="mt-1 inline-flex items-center rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+	                                                OVERRIDE
+	                                            </div>
+	                                        @endif
+	                                    </td>
 	                                    <td class="px-2 py-2 border-r border-slate-200 text-slate-700 sticky-l left-[928px]">
 	                                        <div>{{ $r->due_date?->format('Y-m-d') }}</div>
 	                                        @if(!empty($r->auto_mapped))
@@ -222,23 +229,48 @@
                                         <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700">{{ number_format((float) ($r->uph ?? 0), 2) }}</td>
                                         <td class="px-2 py-2 border-r border-slate-200 text-right text-slate-700">{{ number_format((float) ($r->hours ?? 0), 2) }}</td>
 	                                    <td class="px-2 py-2 text-right font-bold text-slate-900 sticky-r right-[110px] border-l border-slate-200">{{ (int) ($r->jigs ?? 0) }}</td>
-		                                    <td class="px-2 py-2 text-right sticky-r right-0 border-l border-slate-200">
-		                                        <button
-	                                            type="button"
-	                                            class="rounded-lg bg-indigo-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
-	                                            onclick="openCreateSoModal(this)"
-	                                            data-date="{{ $selectedDate }}"
-	                                            data-customer-id="{{ (int) ($r->customer_id ?? 0) }}"
-	                                            data-gci-part-id="{{ (int) ($r->gci_part_id ?? 0) }}"
-	                                            data-part-no="{{ $r->part_no }}"
-	                                            data-part-name="{{ $r->part_name }}"
-	                                            data-balance="{{ (float) ($r->balance ?? 0) }}"
-	                                            @disabled(((int) ($r->customer_id ?? 0)) <= 0 || ((int) ($r->gci_part_id ?? 0)) <= 0)
-	                                        >
-	                                            Create SO
-	                                        </button>
-		                                    </td>
-		                                </tr>
+			                                    <td class="px-2 py-2 text-right sticky-r right-0 border-l border-slate-200">
+			                                        <div class="flex flex-col gap-2 items-end">
+				                                        <button
+			                                            type="button"
+			                                            class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-700 hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+			                                            onclick="openOverrideModal(this)"
+			                                            data-date="{{ $selectedDate }}"
+			                                            data-gci-part-id="{{ (int) ($r->gci_part_id ?? 0) }}"
+			                                            data-part-no="{{ $r->part_no }}"
+			                                            data-part-name="{{ $r->part_name }}"
+			                                            data-line-type="{{ $r->line_type ?? 'UNKNOWN' }}"
+			                                            data-cap-nr1="{{ (int) ($r->jig_capacity_nr1 ?? 10) }}"
+			                                            data-cap-nr2="{{ (int) ($r->jig_capacity_nr2 ?? 9) }}"
+			                                            data-uph-nr1="{{ (float) ($r->uph_nr1 ?? 0) }}"
+			                                            data-uph-nr2="{{ (float) ($r->uph_nr2 ?? 0) }}"
+			                                            data-ov-line-type="{{ (string) ($r->assignment?->line_type_override ?? '') }}"
+			                                            data-ov-cap-nr1="{{ (string) ($r->assignment?->jig_capacity_nr1_override ?? '') }}"
+			                                            data-ov-cap-nr2="{{ (string) ($r->assignment?->jig_capacity_nr2_override ?? '') }}"
+			                                            data-ov-uph-nr1="{{ (string) ($r->assignment?->uph_nr1_override ?? '') }}"
+			                                            data-ov-uph-nr2="{{ (string) ($r->assignment?->uph_nr2_override ?? '') }}"
+			                                            data-ov-notes="{{ (string) ($r->assignment?->notes ?? '') }}"
+			                                            @disabled(((int) ($r->gci_part_id ?? 0)) <= 0)
+			                                        >
+			                                            Edit
+			                                        </button>
+				                                        <button
+			                                            type="button"
+			                                            class="rounded-lg bg-indigo-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+			                                            onclick="openCreateSoModal(this)"
+			                                            data-date="{{ $selectedDate }}"
+			                                            data-customer-id="{{ (int) ($r->customer_id ?? 0) }}"
+			                                            data-gci-part-id="{{ (int) ($r->gci_part_id ?? 0) }}"
+			                                            data-part-no="{{ $r->part_no }}"
+			                                            data-part-name="{{ $r->part_name }}"
+			                                            data-balance="{{ (float) ($r->balance ?? 0) }}"
+			                                            @disabled(((int) ($r->customer_id ?? 0)) <= 0 || ((int) ($r->gci_part_id ?? 0)) <= 0)
+			                                        >
+			                                            Create SO
+			                                        </button>
+			                                        </div>
+			                                    </td>
+			                                </tr>
 		                            @endforeach
 		                        @empty
 		                            <tr>
@@ -293,6 +325,92 @@
 	        </div>
 	    </div>
 
+	    <div id="overrideModal" class="hidden fixed inset-0 z-50">
+	        <div class="absolute inset-0 bg-slate-900/40" onclick="closeOverrideModal()"></div>
+	        <div class="absolute inset-x-0 top-12 mx-auto w-full max-w-xl px-4">
+	            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+	                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+	                    <div>
+	                        <div class="font-black text-slate-900">Edit Delivery Plan Row</div>
+	                        <div class="mt-1 text-xs text-slate-600">
+	                            <span class="font-mono font-bold" id="ov_part_no"></span>
+	                            <span class="text-slate-400">•</span>
+	                            <span id="ov_part_name"></span>
+	                        </div>
+	                    </div>
+	                    <button type="button" class="text-slate-500 hover:text-slate-900" onclick="closeOverrideModal()">✕</button>
+	                </div>
+
+	                <form id="overrideForm" method="POST" action="{{ route('outgoing.delivery-plan.update-overrides') }}" class="p-6 space-y-4">
+	                    @csrf
+	                    <input type="hidden" name="plan_date" id="ov_date">
+	                    <input type="hidden" name="gci_part_id" id="ov_gci_part_id">
+
+	                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+	                        <div class="font-bold text-slate-900">Current</div>
+	                        <div class="mt-1" id="ov_current_summary"></div>
+	                    </div>
+
+	                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+	                        <div>
+	                            <div class="text-xs font-semibold text-slate-500 mb-1">Line Type Override</div>
+	                            <select name="line_type_override" id="ov_line_type" class="w-full rounded-lg border-slate-300 text-sm">
+	                                <option value="">(Auto)</option>
+	                                <option value="NR1">NR1</option>
+	                                <option value="NR2">NR2</option>
+	                                <option value="MIX">MIX</option>
+	                                <option value="UNKNOWN">UNKNOWN</option>
+	                            </select>
+	                        </div>
+
+	                        <div>
+	                            <div class="text-xs font-semibold text-slate-500 mb-1">Notes</div>
+	                            <input type="text" maxlength="255" name="notes" id="ov_notes" class="w-full rounded-lg border-slate-300 text-sm" placeholder="Optional note">
+	                        </div>
+	                    </div>
+
+	                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+	                        <div class="rounded-xl border border-slate-200 p-4">
+	                            <div class="text-xs font-bold text-slate-700">NR1</div>
+	                            <div class="mt-3 grid grid-cols-2 gap-3">
+	                                <div>
+	                                    <div class="text-xs font-semibold text-slate-500 mb-1">JIG Capacity</div>
+	                                    <input type="number" min="1" step="1" name="jig_capacity_nr1_override" id="ov_cap_nr1" class="w-full rounded-lg border-slate-300 text-sm text-right" placeholder="(Auto)">
+	                                </div>
+	                                <div>
+	                                    <div class="text-xs font-semibold text-slate-500 mb-1">UPH</div>
+	                                    <input type="number" min="0.01" step="0.01" name="uph_nr1_override" id="ov_uph_nr1" class="w-full rounded-lg border-slate-300 text-sm text-right" placeholder="(Auto)">
+	                                </div>
+	                            </div>
+	                        </div>
+
+	                        <div class="rounded-xl border border-slate-200 p-4">
+	                            <div class="text-xs font-bold text-slate-700">NR2</div>
+	                            <div class="mt-3 grid grid-cols-2 gap-3">
+	                                <div>
+	                                    <div class="text-xs font-semibold text-slate-500 mb-1">JIG Capacity</div>
+	                                    <input type="number" min="1" step="1" name="jig_capacity_nr2_override" id="ov_cap_nr2" class="w-full rounded-lg border-slate-300 text-sm text-right" placeholder="(Auto)">
+	                                </div>
+	                                <div>
+	                                    <div class="text-xs font-semibold text-slate-500 mb-1">UPH</div>
+	                                    <input type="number" min="0.01" step="0.01" name="uph_nr2_override" id="ov_uph_nr2" class="w-full rounded-lg border-slate-300 text-sm text-right" placeholder="(Auto)">
+	                                </div>
+	                            </div>
+	                        </div>
+	                    </div>
+
+	                    <div class="flex items-center justify-between gap-2 pt-2">
+	                        <button type="button" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50" onclick="resetOverrideForm()">Reset Overrides</button>
+	                        <div class="flex gap-2">
+	                            <button type="button" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50" onclick="closeOverrideModal()">Cancel</button>
+	                            <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">Save</button>
+	                        </div>
+	                    </div>
+	                </form>
+	            </div>
+	        </div>
+	    </div>
+
 	    <script>
 	        function openCreateSoModal(btn) {
 	            const date = btn.dataset.date || '';
@@ -317,6 +435,57 @@
 
 	        function closeCreateSoModal() {
 	            document.getElementById('createSoModal').classList.add('hidden');
+	        }
+
+	        function openOverrideModal(btn) {
+	            const date = btn.dataset.date || '';
+	            const gciPartId = btn.dataset.gciPartId || '';
+	            const partNo = btn.dataset.partNo || '';
+	            const partName = btn.dataset.partName || '';
+
+	            const lineType = btn.dataset.lineType || 'UNKNOWN';
+	            const capNr1 = btn.dataset.capNr1 || '10';
+	            const capNr2 = btn.dataset.capNr2 || '9';
+	            const uphNr1 = btn.dataset.uphNr1 || '';
+	            const uphNr2 = btn.dataset.uphNr2 || '';
+
+	            const ovLineType = btn.dataset.ovLineType || '';
+	            const ovCapNr1 = btn.dataset.ovCapNr1 || '';
+	            const ovCapNr2 = btn.dataset.ovCapNr2 || '';
+	            const ovUphNr1 = btn.dataset.ovUphNr1 || '';
+	            const ovUphNr2 = btn.dataset.ovUphNr2 || '';
+	            const ovNotes = btn.dataset.ovNotes || '';
+
+	            document.getElementById('ov_date').value = date;
+	            document.getElementById('ov_gci_part_id').value = gciPartId;
+	            document.getElementById('ov_part_no').textContent = partNo;
+	            document.getElementById('ov_part_name').textContent = partName;
+
+	            document.getElementById('ov_current_summary').textContent =
+	                `Line: ${lineType} | Cap NR1: ${capNr1} | Cap NR2: ${capNr2} | UPH NR1: ${uphNr1} | UPH NR2: ${uphNr2}`;
+
+	            document.getElementById('ov_line_type').value = ovLineType;
+	            document.getElementById('ov_cap_nr1').value = ovCapNr1;
+	            document.getElementById('ov_cap_nr2').value = ovCapNr2;
+	            document.getElementById('ov_uph_nr1').value = ovUphNr1;
+	            document.getElementById('ov_uph_nr2').value = ovUphNr2;
+	            document.getElementById('ov_notes').value = ovNotes;
+
+	            document.getElementById('overrideModal').classList.remove('hidden');
+	            setTimeout(() => document.getElementById('ov_line_type').focus(), 0);
+	        }
+
+	        function closeOverrideModal() {
+	            document.getElementById('overrideModal').classList.add('hidden');
+	        }
+
+	        function resetOverrideForm() {
+	            document.getElementById('ov_line_type').value = '';
+	            document.getElementById('ov_cap_nr1').value = '';
+	            document.getElementById('ov_cap_nr2').value = '';
+	            document.getElementById('ov_uph_nr1').value = '';
+	            document.getElementById('ov_uph_nr2').value = '';
+	            document.getElementById('ov_notes').value = '';
 	        }
 	    </script>
 @endsection
