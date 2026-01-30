@@ -6,7 +6,7 @@
     <title>Bin Transfer Label - {{ $binTransfer->id }}</title>
     <style>
         @page {
-            size: 100mm 80mm;
+            size: 100mm 75mm;
             margin: 0;
         }
         
@@ -19,7 +19,7 @@
         body {
             font-family: 'Arial', sans-serif;
             width: 100mm;
-            height: 80mm;
+            height: 75mm;
             padding: 3mm;
             display: flex;
             flex-direction: column;
@@ -116,8 +116,8 @@
         }
         
         .qr-code {
-            width: 48mm;
-            height: 48mm;
+            width: 44mm;
+            height: 44mm;
             display: flex;
             align-items: center;
             justify-content: center;

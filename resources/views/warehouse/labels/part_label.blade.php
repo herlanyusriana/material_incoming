@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Part Label - {{ $part->part_no }}</title>
     <style>
-        @page { size: 100mm 80mm; margin: 0; }
+        @page { size: 100mm 75mm; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             width: 100mm;
-            height: 80mm;
+            height: 75mm;
             padding: 3mm;
             font-family: Arial, sans-serif;
         }
@@ -17,11 +17,11 @@
             width: 100%;
             height: 100%;
             border: 2px solid #000;
-            padding: 3mm;
+            padding: 2.5mm;
             display: grid;
-            grid-template-columns: 1fr 44mm;
+            grid-template-columns: 1fr 40mm;
             grid-template-rows: auto 1fr auto;
-            gap: 2.5mm;
+            gap: 2mm;
         }
         .title {
             grid-column: 1 / -1;
@@ -30,7 +30,7 @@
             justify-content: space-between;
             gap: 3mm;
             border-bottom: 1px solid #000;
-            padding-bottom: 2mm;
+            padding-bottom: 1.5mm;
         }
         .part-no { font-size: 16pt; font-weight: 900; letter-spacing: 0.2mm; }
         .class {
@@ -55,7 +55,7 @@
         }
         .barcode-img {
             width: 100%;
-            height: 18mm;
+            height: 16mm;
             object-fit: contain;
             display: block;
         }
@@ -70,21 +70,21 @@
             grid-column: 2 / 3;
             grid-row: 2 / 4;
             border-left: 1px solid #000;
-            padding-left: 2.5mm;
+            padding-left: 2mm;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1.5mm;
+            gap: 1mm;
         }
         .qr-box {
-            width: 40mm;
-            height: 40mm;
+            width: 36mm;
+            height: 36mm;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .qr-box svg { width: 40mm; height: 40mm; display: block; }
+        .qr-box svg { width: 36mm; height: 36mm; display: block; }
         .qr-caption { font-size: 7pt; color: #555; text-align: center; }
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -119,4 +119,3 @@
     </script>
 </body>
 </html>
-
