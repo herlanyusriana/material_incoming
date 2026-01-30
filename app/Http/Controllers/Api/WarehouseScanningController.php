@@ -21,7 +21,17 @@ class WarehouseScanningController extends Controller
             'tag_no' => 'required|string',
         ]);
 
-        $tagNo = strtoupper(trim($request->tag_no));
+        $tagNo = trim($request->tag_no);
+
+        // Handle JSON payload from QR scans
+        if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
+            $decoded = json_decode($tagNo, true);
+            if (isset($decoded['tag'])) {
+                $tagNo = $decoded['tag'];
+            }
+        }
+
+        $tagNo = strtoupper(trim($tagNo));
 
         $receive = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
             ->where('tag', $tagNo)
@@ -55,8 +65,27 @@ class WarehouseScanningController extends Controller
             'location_code' => 'required|string|exists:warehouse_locations,location_code',
         ]);
 
-        $tagNo = strtoupper(trim($request->tag_no));
-        $locationCode = strtoupper(trim($request->location_code));
+        $tagNo = trim($request->tag_no);
+        $locationCode = trim($request->location_code);
+
+        // Handle JSON payload from QR scans for tag
+        if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
+            $decoded = json_decode($tagNo, true);
+            if (isset($decoded['tag'])) {
+                $tagNo = $decoded['tag'];
+            }
+        }
+
+        // Handle JSON payload from QR scans for location
+        if (str_starts_with($locationCode, '{') && str_ends_with($locationCode, '}')) {
+            $decoded = json_decode($locationCode, true);
+            if (isset($decoded['location_code'])) {
+                $locationCode = $decoded['location_code'];
+            }
+        }
+
+        $tagNo = strtoupper(trim($tagNo));
+        $locationCode = strtoupper(trim($locationCode));
 
         $receive = Receive::where('tag', $tagNo)->first();
 
