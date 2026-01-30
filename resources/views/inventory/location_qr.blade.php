@@ -19,7 +19,6 @@
         .subtitle { margin-top: 6px; font-size: 12px; text-align: center; color: #334155; }
         .qr { margin: 16px auto 10px; width: 280px; height: 280px; padding: 10px; border: 2px solid #e2e8f0; border-radius: 10px; }
         .qr svg { width: 100%; height: 100%; display: block; }
-        .payload { margin-top: 10px; padding: 10px; border: 1px solid #e2e8f0; background: #f8fafc; font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-word; border-radius: 8px; }
         .btn { margin-top: 12px; text-align: right; }
         .btn button { background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 700; }
         @media print {
@@ -36,9 +35,7 @@
             <div class="subtitle">{{ $subtitle }}</div>
         @endif
         <div class="qr">{!! $qrSvg ?? '' !!}</div>
-        <div class="payload">{{ $payload ?? '' }}</div>
         <div class="btn"><button onclick="window.print()">Print</button></div>
     </div>
 </body>
 </html>
-
