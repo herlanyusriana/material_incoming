@@ -7,7 +7,7 @@
     <title>Part Label - {{ $part->part_no }}</title>
     <style>
         @page {
-            size: 80mm 60mm;
+            size: 100mm 75mm;
             margin: 0;
         }
 
@@ -17,17 +17,20 @@
             box-sizing: border-box;
         }
 
+        html,
         body {
-            width: 80mm;
-            height: 60mm;
+            width: 100mm;
+            height: 75mm;
+            margin: 0;
             padding: 0;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background: #fff;
+            overflow: hidden;
         }
 
         .label-container {
-            width: 100%;
-            height: 100%;
+            width: 100mm;
+            height: 75mm;
             padding: 3mm;
         }
 
@@ -35,90 +38,57 @@
             width: 100%;
             height: 100%;
             border: 2px solid #000;
-            border-radius: 4px;
-            padding: 3mm;
+            border-radius: 3px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            overflow: hidden;
         }
 
         /* Header Section */
         .header {
+            flex-shrink: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #000;
-            padding-bottom: 2mm;
-            margin-bottom: 2mm;
+            padding: 3mm 4mm;
+            background: #fff;
         }
 
         .part-no {
-            font-size: 16pt;
+            font-size: 20pt;
             font-weight: 900;
             letter-spacing: -0.5px;
+            color: #000;
         }
 
         .class-badge {
-            font-size: 10pt;
+            font-size: 12pt;
             font-weight: 800;
             color: #000;
             border: 2px solid #000;
-            padding: 1mm 3mm;
+            padding: 1.5mm 4mm;
             border-radius: 4mm;
-            min-width: 12mm;
+            min-width: 16mm;
             text-align: center;
         }
 
-        /* Middle Section: Meta + QR */
-        .middle {
-            display: flex;
-            flex: 1;
-            gap: 2mm;
-            overflow: hidden;
-        }
-
-        .meta {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 2mm;
-            padding-top: 1mm;
-        }
-
-        .field {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .field-label {
-            font-size: 7pt;
-            color: #555;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 0.5mm;
-        }
-
-        .field-value {
-            font-size: 9pt;
-            font-weight: 700;
-            line-height: 1.1;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
+        /* QR Section */
         .qr-section {
-            width: 28mm;
+            flex: 1;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
+            padding: 2mm;
+            background: #fff;
         }
 
         .qr-box {
-            width: 28mm;
-            height: 28mm;
+            width: 38mm;
+            height: 38mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .qr-box svg {
@@ -126,41 +96,56 @@
             height: 100%;
         }
 
-        /* Footer: Barcode 1D */
-        .footer {
-            margin-top: 2mm;
+        /* Metadata Section */
+        .meta {
+            flex-shrink: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2mm 4mm;
+            border-top: 1px solid #ccc;
+            padding: 3mm 4mm;
+            background: #f8f8f8;
+        }
+
+        .field {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            border-top: 1px dotted #ccc;
-            padding-top: 2mm;
+            gap: 0.3mm;
+            min-width: 0;
         }
 
-        .barcode-img {
-            width: 100%;
-            max-width: 60mm;
-            /* Limit width to keep it scanable */
-            height: 10mm;
-            object-fit: fill;
-            /* Ensure lines are crisp */
+        .field-label {
+            font-size: 7pt;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.2px;
         }
 
-        .barcode-text {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 8pt;
-            margin-top: 1mm;
+        .field-value {
+            font-size: 9pt;
             font-weight: 600;
-            letter-spacing: 1px;
+            line-height: 1.2;
+            color: #000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         @media print {
+
+            html,
             body {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
             .label {
-                border: 2px solid #000;
+                border: 2px solid #000 !important;
+            }
+
+            .meta {
+                background: #f8f8f8 !important;
             }
         }
     </style>
@@ -175,35 +160,21 @@
                 <div class="class-badge">{{ strtoupper((string) ($part->classification ?? '')) }}</div>
             </div>
 
-            <!-- Content -->
-            <div class="middle">
-                <div class="meta">
-                    <div class="field">
-                        <div class="field-label">Part Name</div>
-                        <div class="field-value">{{ $part->part_name ?: '-' }}</div>
-                    </div>
-                    <div class="field">
-                        <div class="field-label">Model</div>
-                        <div class="field-value">{{ $part->model ?: '-' }}</div>
-                    </div>
-                    @if($part->customer)
-                        <div class="field">
-                            <div class="field-label">Customer</div>
-                            <div class="field-value" style="font-size: 8pt;">{{ Str::limit($part->customer->name, 15) }}
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                <div class="qr-section">
-                    <div class="qr-box">{!! $qrSvg !!}</div>
-                </div>
+            <!-- QR Code -->
+            <div class="qr-section">
+                <div class="qr-box">{!! $qrSvg !!}</div>
             </div>
 
-            <!-- Footer -->
-            <div class="footer">
-                <img class="barcode-img" src="data:image/png;base64,{{ $barcodeImage }}" alt="Barcode">
-                <div class="barcode-text">{{ $barcode }}</div>
+            <!-- Metadata -->
+            <div class="meta">
+                <div class="field">
+                    <div class="field-label">Part Name</div>
+                    <div class="field-value">{{ Str::limit($part->part_name ?: '-', 30) }}</div>
+                </div>
+                <div class="field">
+                    <div class="field-label">Model</div>
+                    <div class="field-value">{{ Str::limit($part->model ?: '-', 25) }}</div>
+                </div>
             </div>
         </div>
     </div>

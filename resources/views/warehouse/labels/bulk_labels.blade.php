@@ -1,182 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulk Part Labels</title>
     <style>
-        @page { size: 80mm 60mm; margin: 0; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; }
-        .page { 
-            page-break-after: always; 
-            width: 80mm;
-            height: 60mm;
+        @page {
+            size: 100mm 75mm;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #fff;
+        }
+
+        .page {
+            page-break-after: always;
+            width: 100mm;
+            height: 75mm;
             padding: 3mm;
         }
-        .page:last-child { page-break-after: auto; }
-        
+
+        .page:last-child {
+            page-break-after: auto;
+        }
+
         .label {
             width: 100%;
             height: 100%;
             border: 2px solid #000;
-            border-radius: 4px;
-            padding: 3mm;
+            border-radius: 3px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            overflow: hidden;
         }
-        
+
         /* Header Section */
         .header {
+            flex-shrink: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #000;
-            padding-bottom: 2mm;
-            margin-bottom: 2mm;
+            padding: 3mm 4mm;
+            background: #fff;
         }
+
         .part-no {
-            font-size: 16pt;
+            font-size: 20pt;
             font-weight: 900;
             letter-spacing: -0.5px;
+            color: #000;
         }
+
         .class-badge {
-            font-size: 10pt;
+            font-size: 12pt;
             font-weight: 800;
             color: #000;
             border: 2px solid #000;
-            padding: 1mm 3mm;
+            padding: 1.5mm 4mm;
             border-radius: 4mm;
-            min-width: 12mm;
+            min-width: 16mm;
             text-align: center;
         }
 
-        /* Middle Section: Meta + QR */
-        .middle {
-            display: flex;
-            flex: 1;
-            gap: 2mm;
-            overflow: hidden;
-        }
-        .meta {
+        /* QR Section */
+        .qr-section {
             flex: 1;
             display: flex;
-            flex-direction: column;
-            gap: 2mm;
-            padding-top: 1mm;
-        }
-        .field {
-            display: flex;
-            flex-direction: column;
-        }
-        .field-label {
-            font-size: 7pt;
-            color: #555;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 0.5mm;
-        }
-        .field-value {
-            font-size: 9pt;
-            font-weight: 700;
-            line-height: 1.1;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            align-items: center;
+            justify-content: center;
+            padding: 2mm;
+            background: #fff;
         }
 
-        .qr-section {
-            width: 28mm;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-        }
         .qr-box {
-            width: 28mm;
-            height: 28mm;
+            width: 38mm;
+            height: 38mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         .qr-box svg {
             width: 100%;
             height: 100%;
         }
 
-        /* Footer: Barcode 1D */
-        .footer {
-            margin-top: 2mm;
+        /* Metadata Section */
+        .meta {
+            flex-shrink: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2mm 4mm;
+            border-top: 1px solid #ccc;
+            padding: 3mm 4mm;
+            background: #f8f8f8;
+        }
+
+        .field {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            border-top: 1px dotted #ccc;
-            padding-top: 2mm;
+            gap: 0.3mm;
+            min-width: 0;
         }
-        .barcode-img {
-            width: 100%;
-            max-width: 60mm; 
-            height: 10mm;
-            object-fit: fill; 
+
+        .field-label {
+            font-size: 7pt;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.2px;
         }
-        .barcode-text {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 8pt;
-            margin-top: 1mm;
+
+        .field-value {
+            font-size: 9pt;
             font-weight: 600;
-            letter-spacing: 1px;
+            line-height: 1.2;
+            color: #000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            html,
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .label {
+                border: 2px solid #000 !important;
+            }
+
+            .meta {
+                background: #f8f8f8 !important;
+            }
         }
     </style>
 </head>
+
 <body>
     @foreach($labels as $label)
-        @php($part = $label['part'])
-        <div class="page">
-            <div class="label">
-                <!-- Header -->
-                <div class="header">
-                    <div class="part-no">{{ $part->part_no }}</div>
-                    <div class="class-badge">{{ strtoupper((string) ($part->classification ?? '')) }}</div>
+    @php($part = $label['part'])
+    <div class="page">
+        <div class="label">
+            <!-- Header -->
+            <div class="header">
+                <div class="part-no">{{ $part->part_no }}</div>
+                <div class="class-badge">{{ strtoupper((string) ($part->classification ?? '')) }}</div>
+            </div>
+
+            <!-- QR Code -->
+            <div class="qr-section">
+                <div class="qr-box">{!! $label['qrSvg'] ?? '' !!}</div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="meta">
+                <div class="field">
+                    <div class="field-label">Part Name</div>
+                    <div class="field-value">{{ Str::limit($part->part_name ?: '-', 30) }}</div>
                 </div>
-
-                <!-- Content -->
-                <div class="middle">
-                    <div class="meta">
-                        <div class="field">
-                            <div class="field-label">Part Name</div>
-                            <div class="field-value">{{ $part->part_name ?: '-' }}</div>
-                        </div>
-                        <div class="field">
-                            <div class="field-label">Model</div>
-                            <div class="field-value">{{ $part->model ?: '-' }}</div>
-                        </div>
-                        @if($part->customer)
-                        <div class="field">
-                            <div class="field-label">Customer</div>
-                            <div class="field-value" style="font-size: 8pt;">{{ Str::limit($part->customer->name, 15) }}</div>
-                        </div>
-                        @endif
-                    </div>
-
-                    <div class="qr-section">
-                        <div class="qr-box">{!! $label['qrSvg'] ?? '' !!}</div>
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="footer">
-                    <img class="barcode-img" src="data:image/png;base64,{{ $label['barcodeImage'] }}" alt="Barcode">
-                    <div class="barcode-text">{{ $label['barcode'] }}</div>
+                <div class="field">
+                    <div class="field-label">Model</div>
+                    <div class="field-value">{{ Str::limit($part->model ?: '-', 25) }}</div>
                 </div>
             </div>
         </div>
+    </div>
     @endforeach
 
     <script>
         window.onload = function () { window.print(); };
     </script>
 </body>
+
 </html>
