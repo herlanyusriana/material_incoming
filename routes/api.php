@@ -27,4 +27,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/warehouse/tag-info', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'getTagInfo']);
     Route::post('/warehouse/putaway', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'putaway']);
     Route::get('/warehouse/locations', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'getLocations']);
+
+    // Stock Opname API
+    Route::prefix('so')->group(function () {
+        Route::get('/sessions/active', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'activeSessions']);
+        Route::post('/scan-part', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'scanPart']);
+        Route::post('/scan-location', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'scanLocation']);
+        Route::post('/submit-count', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'submitCount']);
+    });
 });

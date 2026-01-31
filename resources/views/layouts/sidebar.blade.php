@@ -544,6 +544,14 @@
                             </svg>
                             <span class="ml-3 flex-1">Stock Adjustments</span>
                         </a>
+                        <a href="{{ route('warehouse.stock-opname.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-opname.*'), $navInactive => !request()->routeIs('warehouse.stock-opname.*')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            <span class="ml-3 flex-1">Stock Opname</span>
+                        </a>
                         <a href="{{ route('warehouse.stock.reconcile') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.reconcile'), $navInactive => !request()->routeIs('warehouse.stock.reconcile')]) @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1142,6 +1150,14 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 20h16" />
                         </svg>
                         <span class="ml-3 flex-1">Stock Adjustments</span>
+                    </a>
+                    <a href="{{ route('warehouse.stock-opname.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-opname.*'), $navInactive => !request()->routeIs('warehouse.stock-opname.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <span class="ml-3 flex-1">Stock Opname</span>
                     </a>
                     <a href="{{ route('warehouse.stock.reconcile') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.reconcile'), $navInactive => !request()->routeIs('warehouse.stock.reconcile')])>
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"

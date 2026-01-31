@@ -315,6 +315,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/labels', [App\Http\Controllers\BarcodeLabelController::class, 'index'])->name('labels.index');
         Route::get('/labels/part/{part}', [App\Http\Controllers\BarcodeLabelController::class, 'printPartLabel'])->name('labels.part');
         Route::post('/labels/bulk', [App\Http\Controllers\BarcodeLabelController::class, 'printBulkLabels'])->name('labels.bulk');
+
+        // Stock Opname
+        Route::resource('stock-opname', \App\Http\Controllers\StockOpnameController::class);
+        Route::post('stock-opname/{session}/close', [\App\Http\Controllers\StockOpnameController::class, 'close'])->name('stock-opname.close');
+        Route::post('stock-opname/{session}/adjust', [\App\Http\Controllers\StockOpnameController::class, 'adjust'])->name('stock-opname.adjust');
     });
 
     Route::prefix('production')->name('production.')->group(function () {
