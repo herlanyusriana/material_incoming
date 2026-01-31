@@ -21,7 +21,7 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background: #fff;
         }
 
@@ -29,7 +29,7 @@
             page-break-after: always;
             width: 100mm;
             height: 75mm;
-            padding: 3mm;
+            padding: 4mm;
         }
 
         .page:last-child {
@@ -39,40 +39,45 @@
         .label {
             width: 100%;
             height: 100%;
-            border: 2px solid #000;
-            border-radius: 3px;
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 4mm;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5mm 6mm;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
         /* Header Section */
         .header {
-            flex-shrink: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #000;
-            padding: 3mm 4mm;
-            background: #fff;
+            text-align: center;
+        }
+
+        .label-title {
+            font-size: 7pt;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 2mm;
         }
 
         .part-no {
             font-size: 20pt;
-            font-weight: 900;
+            font-weight: 800;
+            color: #1f2937;
             letter-spacing: -0.5px;
-            color: #000;
+            line-height: 1;
         }
 
-        .class-badge {
-            font-size: 12pt;
-            font-weight: 800;
-            color: #000;
-            border: 2px solid #000;
-            padding: 1.5mm 4mm;
-            border-radius: 4mm;
-            min-width: 16mm;
-            text-align: center;
+        .model {
+            font-size: 10pt;
+            font-weight: 600;
+            color: #6366f1;
+            margin-top: 1.5mm;
+            letter-spacing: 0.5px;
         }
 
         /* QR Section */
@@ -81,16 +86,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2mm;
-            background: #fff;
+            padding: 2mm 0;
         }
 
         .qr-box {
-            width: 38mm;
-            height: 38mm;
+            width: 42mm;
+            height: 42mm;
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 3mm;
+            padding: 2mm;
+            background: #fff;
         }
 
         .qr-box svg {
@@ -98,40 +106,20 @@
             height: 100%;
         }
 
-        /* Metadata Section */
-        .meta {
-            flex-shrink: 0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2mm 4mm;
-            border-top: 1px solid #ccc;
-            padding: 3mm 4mm;
-            background: #f8f8f8;
+        /* Footer Section */
+        .footer {
+            text-align: center;
         }
 
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3mm;
-            min-width: 0;
+        .part-name-label {
+            font-size: 8pt;
+            color: #6b7280;
         }
 
-        .field-label {
-            font-size: 7pt;
-            color: #666;
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.2px;
-        }
-
-        .field-value {
+        .part-name-value {
             font-size: 9pt;
-            font-weight: 600;
-            line-height: 1.2;
-            color: #000;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-weight: 700;
+            color: #374151;
         }
 
         @media print {
@@ -143,11 +131,8 @@
             }
 
             .label {
-                border: 2px solid #000 !important;
-            }
-
-            .meta {
-                background: #f8f8f8 !important;
+                box-shadow: none;
+                border: 1px solid #e5e5e5;
             }
         }
     </style>
@@ -160,8 +145,9 @@
         <div class="label">
             <!-- Header -->
             <div class="header">
+                <div class="label-title">Part Number</div>
                 <div class="part-no">{{ $part->part_no }}</div>
-                <div class="class-badge">{{ strtoupper((string) ($part->classification ?? '')) }}</div>
+                <div class="model">{{ $part->model ?: strtoupper($part->classification ?? '') }}</div>
             </div>
 
             <!-- QR Code -->
@@ -169,16 +155,10 @@
                 <div class="qr-box">{!! $label['qrSvg'] ?? '' !!}</div>
             </div>
 
-            <!-- Metadata -->
-            <div class="meta">
-                <div class="field">
-                    <div class="field-label">Part Name</div>
-                    <div class="field-value">{{ Str::limit($part->part_name ?: '-', 30) }}</div>
-                </div>
-                <div class="field">
-                    <div class="field-label">Model</div>
-                    <div class="field-value">{{ Str::limit($part->model ?: '-', 25) }}</div>
-                </div>
+            <!-- Footer -->
+            <div class="footer">
+                <span class="part-name-label">Part Name:</span>
+                <span class="part-name-value">{{ Str::limit($part->part_name ?: '-', 35) }}</span>
             </div>
         </div>
     </div>
