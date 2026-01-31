@@ -17,7 +17,8 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
@@ -105,57 +106,42 @@
             height: 100% !important;
         }
 
-        /* Bottom Section */
-        .footer {
-            width: 100%;
-            text-align: center;
-            border-top: 1px dashed #000;
-            padding-top: 2mm;
-            margin-top: 1mm;
-        }
 
-        .part-name {
-            font-size: 11pt;
-            font-weight: bold;
-            color: #000;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
 
         @media print {
-            body { -webkit-print-color-adjust: exact; }
-            .label-inner { border: 2px solid #000 !important; }
+            body {
+                -webkit-print-color-adjust: exact;
+            }
+
+            .label-inner {
+                border: 2px solid #000 !important;
+            }
         }
     </style>
 </head>
 
 <body>
     @foreach($labels as $label)
-        @php($part = $label['part'])
-        <div class="page">
-            <div class="label-inner">
-                <!-- Header -->
-                <div class="header">
-                    <p class="title-small">Part Number</p>
-                    <h1 class="part-no">{{ $part->part_no }}</h1>
-                    <p class="model-name">{{ $part->model ?: strtoupper($part->classification ?? '-') }}</p>
-                </div>
+    @php($part = $label['part'])
+    <div class="page">
+        <div class="label-inner">
+            <!-- Header -->
+            <div class="header">
+                <p class="title-small">Part Number</p>
+                <h1 class="part-no">{{ $part->part_no }}</h1>
+                <p class="model-name">{{ $part->model ?: strtoupper($part->classification ?? '-') }}</p>
+            </div>
 
-                <!-- QR Code -->
-                <div class="qr-container">
-                    <div class="qr-box">
-                        {!! $label['qrSvg'] ?? '' !!}
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="footer">
-                    <span class="part-name">Part Name: {{ $part->part_name ?: '-' }}</span>
+            <!-- QR Code -->
+            <div class="qr-container">
+                <div class="qr-box">
+                    {!! $label['qrSvg'] ?? '' !!}
                 </div>
             </div>
+
+
         </div>
+    </div>
     @endforeach
 
     <script>

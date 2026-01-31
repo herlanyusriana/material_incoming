@@ -106,24 +106,7 @@
             height: 100% !important;
         }
 
-        /* Bottom Section */
-        .footer {
-            width: 100%;
-            text-align: center;
-            border-top: 1px dashed #000;
-            padding-top: 2mm;
-            margin-top: 1mm;
-        }
 
-        .part-name {
-            font-size: 11pt;
-            font-weight: bold;
-            color: #000;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
 
         @media print {
             body {
@@ -154,10 +137,7 @@
                 </div>
             </div>
 
-            <!-- Footer -->
-            <div class="footer">
-                <span class="part-name">Part Name: {{ $part->part_name ?: '-' }}</span>
-            </div>
+
         </div>
     </div>
 
