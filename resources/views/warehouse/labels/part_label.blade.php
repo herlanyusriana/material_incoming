@@ -91,14 +91,16 @@
         }
 
         .qr-box {
-            width: 35mm;
-            height: 35mm;
-            padding: 1mm;
-            border: 1px solid #ccc;
-            border-radius: 2mm;
+            width: 42mm;
+            height: 42mm;
+            padding: 0;
+            border: none;
+            border-radius: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-top: 2mm; /* Give some space from top header */
+            margin-bottom: 2mm; /* Give space from bottom footer */
         }
 
         .qr-box svg {
@@ -138,14 +140,14 @@
             </div>
 
             <!-- Footer / Extra Info -->
-            <div style="position: absolute; bottom: 4mm; right: 6mm; text-align: right;">
-                <p style="font-size: 7pt; font-weight: bold; color: #666; text-transform: uppercase;">Batch No</p>
-                <p style="font-size: 11pt; font-weight: 900;">{{ $batch ?: '---' }}</p>
+            <div style="position: absolute; bottom: 2mm; right: 6mm; text-align: right;">
+                <p style="font-size: 7pt; font-weight: bold; color: #555; text-transform: uppercase; margin-bottom: 0.2mm;">Batch No</p>
+                <p style="font-size: 11pt; font-weight: 900; line-height: 1;">{{ $batch ?: '---' }}</p>
             </div>
 
-            <div style="position: absolute; bottom: 4mm; left: 6mm; text-align: left;">
-                <p style="font-size: 7pt; font-weight: bold; color: #666; text-transform: uppercase;">Model</p>
-                <p style="font-size: 8pt; font-weight: bold;">{{ $part->model ?: '-' }}</p>
+            <div style="position: absolute; bottom: 2mm; left: 6mm; text-align: left;">
+                <p style="font-size: 7pt; font-weight: bold; color: #555; text-transform: uppercase; margin-bottom: 0.2mm;">Model</p>
+                <p style="font-size: 9pt; font-weight: 900; line-height: 1;">{{ $part->model ?: '-' }}</p>
             </div>
 
 
