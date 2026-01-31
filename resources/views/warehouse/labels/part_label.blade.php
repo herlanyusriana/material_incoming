@@ -144,8 +144,8 @@
             </div>
 
             <div style="position: absolute; bottom: 4mm; left: 6mm; text-align: left;">
-                <p style="font-size: 7pt; font-weight: bold; color: #666; text-transform: uppercase;">Generated At</p>
-                <p style="font-size: 8pt; font-weight: bold;">{{ date('Y-m-d H:i') }}</p>
+                <p style="font-size: 7pt; font-weight: bold; color: #666; text-transform: uppercase;">Model</p>
+                <p style="font-size: 8pt; font-weight: bold;">{{ $part->model ?: '-' }}</p>
             </div>
 
 
