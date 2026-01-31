@@ -63,11 +63,12 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
         foreach ($rows as $index => $row) {
             $rowIndex = $index + 2; // header row = 1
 
-            $row = $row->mapWithKeys(fn ($item, $key) => [strtolower(trim((string) $key)) => $item]);
+            $row = $row->mapWithKeys(fn($item, $key) => [strtolower(trim((string) $key)) => $item]);
 
             $validator = Validator::make($row->toArray(), [
                 'component_part_no' => ['required', 'string'],
                 'substitute_part_no' => ['required', 'string'],
+                'substitute_part_name' => ['nullable', 'string', 'max:255'],
                 'supplier' => ['nullable', 'string', 'max:255'],
                 'ratio' => ['nullable', 'numeric', 'min:0.0001'],
                 'priority' => ['nullable', 'integer', 'min:1'],
@@ -99,13 +100,19 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             $finalNotes = trim(implode(' | ', array_values(array_filter([$supplier !== '' ? $supplier : null, $notes !== '' ? $notes : null]))));
 
             $subPart = $this->findGciPartByPartNo($subPartNo);
-            if (!$subPart && $this->autoCreateParts) {
-                $subPart = GciPart::query()->create([
-                    'part_no' => $subPartNo,
-                    'part_name' => 'AUTO-CREATED (SUBSTITUTE)',
-                    'classification' => 'RM',
-                    'status' => 'active',
-                ]);
+            if ($this->autoCreateParts) {
+                if (!$subPart) {
+                    $subPart = GciPart::query()->create([
+                        'part_no' => $subPartNo,
+                        'part_name' => $row['substitute_part_name'] ?: 'AUTO-CREATED (SUBSTITUTE)',
+                        'classification' => 'RM',
+                        'status' => 'active',
+                    ]);
+                } elseif (!empty($row['substitute_part_name'])) {
+                    $subPart->update([
+                        'part_name' => $row['substitute_part_name']
+                    ]);
+                }
             }
 
             if (!$subPart) {

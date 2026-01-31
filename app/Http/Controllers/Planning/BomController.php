@@ -40,7 +40,7 @@ class BomController extends Controller
             ->whereIn('classification', ['FG', 'WIP'])
             ->orderBy('part_no')
             ->get();
-        
+
         $uoms = Uom::query()
             ->where('is_active', true)
             ->orderBy('category')
@@ -49,7 +49,7 @@ class BomController extends Controller
 
         $boms = Bom::query()
             ->with(['part', 'items.wipPart', 'items.componentPart', 'items.wipUom', 'items.consumptionUom', 'items.substitutes.part'])
-            ->when($gciPartId, fn ($q) => $q->where('part_id', $gciPartId))
+            ->when($gciPartId, fn($q) => $q->where('part_id', $gciPartId))
             ->when($q !== '', function ($query) use ($q) {
                 $query->whereHas('part', function ($sub) use ($q) {
                     $sub->where('part_no', 'like', '%' . $q . '%')
@@ -78,7 +78,7 @@ class BomController extends Controller
                 ->with(['customerPart.customer'])
                 ->where('gci_part_id', $bom->part_id)
                 ->get()
-                ->map(fn ($comp) => [
+                ->map(fn($comp) => [
                     'customer_part_no' => $comp->customerPart->customer_part_no,
                     'customer_part_name' => $comp->customerPart->customer_part_name,
                     'customer_name' => $comp->customerPart->customer->name ?? '-',
@@ -114,6 +114,12 @@ class BomController extends Controller
         return view('planning.boms.where_used', compact('recentParts'));
     }
 
+    public function exportSubstitutes()
+    {
+        $filename = 'bom_substitutes_' . now()->format('Y-m-d_His') . '.xlsx';
+        return Excel::download(new \App\Exports\BomSubstitutesExport(), $filename);
+    }
+
     public function export(Request $request)
     {
         $gciPartId = $request->query('gci_part_id');
@@ -138,7 +144,7 @@ class BomController extends Controller
             if ($failures->isNotEmpty()) {
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
 
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal. {$preview}");
@@ -171,7 +177,7 @@ class BomController extends Controller
                 $failures = collect($e->failures());
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
 
                 return back()->with('error', "Import failed: {$preview}");
@@ -196,7 +202,7 @@ class BomController extends Controller
             if ($failures->isNotEmpty()) {
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
 
                 return back()->with('error', "Import substitutes selesai tapi ada {$failures->count()} baris gagal. {$preview}");
@@ -216,11 +222,11 @@ class BomController extends Controller
             }
             return back()->with('success', $msg);
         } catch (\Exception $e) {
-             if ($e instanceof ValidationException) {
+            if ($e instanceof ValidationException) {
                 $failures = collect($e->failures());
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
 
                 return back()->with('error', "Import failed: {$preview}");
@@ -244,7 +250,7 @@ class BomController extends Controller
             if ($failures->isNotEmpty()) {
                 $preview = $failures
                     ->take(10)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
 
                 return back()->with('error', "Import mapping selesai tapi ada {$failures->count()} baris gagal. {$preview}");
@@ -266,7 +272,7 @@ class BomController extends Controller
                 $failures = collect($e->failures());
                 $preview = $failures
                     ->take(10)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
 
                 return back()->with('error', "Import failed: {$preview}");
@@ -281,12 +287,12 @@ class BomController extends Controller
             public function array(): array
             {
                 return [
-                    ['FG-001', 'COMP-001', 'SUB-001', 1, 1, 'active', 'Optional note'], // Example row
+                    ['FG-001', 'COMP-001', 'SUB-001', 'SUBSTITUTE PART NAME', 1, 1, 'active', 'Optional note'], // Example row
                 ];
             }
             public function headings(): array
             {
-                return ['fg_part_no', 'component_part_no', 'substitute_part_no', 'ratio', 'priority', 'status', 'notes'];
+                return ['fg_part_no', 'component_part_no', 'substitute_part_no', 'substitute_part_name', 'ratio', 'priority', 'status', 'notes'];
             }
         }, 'template_substitutes.xlsx');
     }
@@ -298,12 +304,12 @@ class BomController extends Controller
             {
                 return [
                     // Example row: component (RM) -> substitute (RM), optional supplier + notes
-                    ['5040JA3071C', 'KJPGICBOMG65S', 'PT. POSCO - INDONESIA JAKARTA PROCESSING CENTER', 1, 1, 'active', 'from incoming mapping'],
+                    ['5040JA3071C', 'KJPGICBOMG65S', 'PART NAME HERE', 'PT. POSCO - INDONESIA JAKARTA PROCESSING CENTER', 1, 1, 'active', 'from incoming mapping'],
                 ];
             }
             public function headings(): array
             {
-                return ['component_part_no', 'substitute_part_no', 'supplier', 'ratio', 'priority', 'status', 'notes'];
+                return ['component_part_no', 'substitute_part_no', 'substitute_part_name', 'supplier', 'ratio', 'priority', 'status', 'notes'];
             }
         }, 'template_substitute_mapping.xlsx');
     }
@@ -327,7 +333,7 @@ class BomController extends Controller
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'part_id' => [
                 'nullable',
-                Rule::exists('gci_parts', 'id')->where(fn ($q) => $q->where('classification', 'FG')),
+                Rule::exists('gci_parts', 'id')->where(fn($q) => $q->where('classification', 'FG')),
                 Rule::unique('boms', 'part_id')->ignore($bom->id),
             ],
         ]);
@@ -555,7 +561,7 @@ class BomController extends Controller
                 ->with(['customer', 'components.part.bom'])
                 ->where(function ($query) use ($searchQuery) {
                     $query->where('customer_part_no', 'like', '%' . $searchQuery . '%')
-                          ->orWhere('customer_part_name', 'like', '%' . $searchQuery . '%');
+                        ->orWhere('customer_part_name', 'like', '%' . $searchQuery . '%');
                 })
                 ->first();
 
@@ -564,7 +570,7 @@ class BomController extends Controller
             }
 
             $customerPartComponents = $customerPart->components;
-            
+
             // If customer part has only one FG component, auto-select it
             if ($customerPartComponents->count() === 1) {
                 $component = $customerPartComponents->first();
@@ -580,7 +586,7 @@ class BomController extends Controller
                 ->with('bom')
                 ->where(function ($query) use ($searchQuery) {
                     $query->where('part_no', 'like', '%' . $searchQuery . '%')
-                          ->orWhere('part_name', 'like', '%' . $searchQuery . '%');
+                        ->orWhere('part_name', 'like', '%' . $searchQuery . '%');
                 })
                 ->first();
 
@@ -615,14 +621,14 @@ class BomController extends Controller
         }
 
         $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
-        
+
         $explosion = $bom->explode($quantity);
         $materials = $bom->getTotalMaterialRequirements($quantity);
 
         return view('planning.boms.explosion', compact(
-            'bom', 
-            'explosion', 
-            'materials', 
+            'bom',
+            'explosion',
+            'materials',
             'quantity',
             'searchMode',
             'searchQuery',

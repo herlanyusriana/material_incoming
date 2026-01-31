@@ -237,6 +237,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/boms/export', [PlanningBomController::class, 'export'])->name('boms.export');
         Route::post('/boms/import', [PlanningBomController::class, 'import'])->name('boms.import');
         Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
+        Route::get('/boms/substitutes/export', [PlanningBomController::class, 'exportSubstitutes'])->name('boms.substitutes.export');
         Route::post('/boms/substitutes/import', [PlanningBomController::class, 'importSubstitutes'])->name('boms.substitutes.import');
         Route::post('/boms/substitutes/import-mapping', [PlanningBomController::class, 'importSubstitutesMapping'])->name('boms.substitutes.import-mapping');
         Route::get('/boms/substitutes/template', [PlanningBomController::class, 'downloadSubstituteTemplate'])->name('boms.substitutes.template');

@@ -68,12 +68,13 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             $rowIndex = $index + 2; // Assuming header is row 1
 
             // normalize keys
-            $row = $row->mapWithKeys(fn ($item, $key) => [strtolower(trim((string) $key)) => $item]);
+            $row = $row->mapWithKeys(fn($item, $key) => [strtolower(trim((string) $key)) => $item]);
 
             $validator = Validator::make($row->toArray(), [
                 'fg_part_no' => ['required', 'string'],
                 'component_part_no' => ['required', 'string'],
                 'substitute_part_no' => ['required', 'string'],
+                'substitute_part_name' => ['nullable', 'string', 'max:255'],
                 'ratio' => ['nullable', 'numeric', 'min:0.0001'],
                 'priority' => ['nullable', 'integer', 'min:1'],
                 'status' => ['nullable', 'in:active,inactive'],
@@ -143,7 +144,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 ->where('bom_id', $bom->id)
                 ->where(function ($q) use ($componentPartNo) {
                     $q->whereRaw($this->normalizedExprSql('component_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]))
-                        ->orWhereHas('componentPart', fn ($sq) => $sq->whereRaw($this->normalizedExprSql('part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo])))
+                        ->orWhereHas('componentPart', fn($sq) => $sq->whereRaw($this->normalizedExprSql('part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo])))
                         ->orWhereRaw($this->normalizedExprSql('wip_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]));
                 })
                 ->first();
@@ -165,13 +166,20 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
 
             // 4. Find Substitute Part
             $subPart = $this->findGciPartByPartNo($subPartNo);
-            if (!$subPart && $this->autoCreateParts) {
-                $subPart = GciPart::query()->create([
-                    'part_no' => $subPartNo,
-                    'part_name' => 'AUTO-CREATED (SUBSTITUTE)',
-                    'classification' => 'RM',
-                    'status' => 'active',
-                ]);
+            if ($this->autoCreateParts) {
+                if (!$subPart) {
+                    $subPart = GciPart::query()->create([
+                        'customer_id' => $fgPart ? $fgPart->customer_id : null,
+                        'part_no' => $subPartNo,
+                        'part_name' => $row['substitute_part_name'] ?: 'AUTO-CREATED (SUBSTITUTE)',
+                        'classification' => 'RM',
+                        'status' => 'active',
+                    ]);
+                } elseif (!empty($row['substitute_part_name'])) {
+                    $subPart->update([
+                        'part_name' => $row['substitute_part_name']
+                    ]);
+                }
             }
             if (!$subPart) {
                 $this->missingSubstituteParts[$subPartNo] = true;

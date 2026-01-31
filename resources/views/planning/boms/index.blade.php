@@ -84,14 +84,21 @@
 	                        >
 	                            Import
 	                        </button>
-                            <button
-                                type="button"
+                            <a
+                                href="{{ route('planning.boms.substitutes.export') }}"
                                 class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-600"
-                                @click="openImportSubstitute()"
-                                title="Import Substitutes via Excel"
+                                title="Export Substitutes to Excel"
                             >
-                                Imp. Subst.
-                            </button>
+                                Exp. Subst.
+                            </a>
+	                        <button
+	                            type="button"
+	                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-600"
+	                            @click="openImportSubstitute()"
+	                            title="Import Substitutes via Excel"
+	                        >
+	                            Imp. Subst.
+	                        </button>
 		                        <a
 		                            href="{{ route('outgoing.product-mapping') }}#where-used"
 		                            class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold"
