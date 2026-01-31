@@ -149,11 +149,17 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         );
 
         $rmPartNo = $this->normalizeUpper($this->firstNonEmpty($row, [
-            'rm_part_no', 'rm_part_number', 'rm_partno', 'rm_part_no.',
-            'component_part_no', 'component_part_number', 'component_part',
-            'part_no', 'part_number'
+            'rm_part_no',
+            'rm_part_number',
+            'rm_partno',
+            'rm_part_no.',
+            'component_part_no',
+            'component_part_number',
+            'component_part',
+            'part_no',
+            'part_number'
         ]));
-        
+
         $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
 
         $processName = $this->firstNonEmpty($row, ['process_name']);
@@ -220,20 +226,34 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'consumption_uom' => $consumptionUom,
         ];
 
-        if ($rmPartNo) {
-            $rm = $this->getGciPart($rmPartNo);
-            if ($rm) {
-                $payload['component_part_id'] = $rm->id;
-            } else {
-                $this->missingComponentParts[$rmPartNo] = true;
-            }
-        }
-
         if ($wipPartNo) {
             $wip = $this->getGciPart($wipPartNo);
             if (!$wip) {
-                $this->missingWipParts[$wipPartNo] = true;
+                // Auto-create missing WIP part
+                $wip = GciPart::create([
+                    'customer_id' => $fg->customer_id,
+                    'part_no' => $wipPartNo,
+                    'part_name' => $wipPartName ?: ($processName ?: 'AUTO-CREATED WIP'),
+                    'classification' => 'WIP',
+                    'status' => 'active',
+                ]);
             }
+            $payload['wip_part_id'] = $wip->id;
+        }
+
+        if ($rmPartNo) {
+            $rm = $this->getGciPart($rmPartNo);
+            if (!$rm) {
+                // Auto-create missing RM part
+                $rm = GciPart::create([
+                    'customer_id' => $fg->customer_id,
+                    'part_no' => $rmPartNo,
+                    'part_name' => $materialName ?: 'AUTO-CREATED RM',
+                    'classification' => 'RM',
+                    'status' => 'active',
+                ]);
+            }
+            $payload['component_part_id'] = $rm->id;
         }
 
         // Prefer updating by line_no when it is provided.
