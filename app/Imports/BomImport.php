@@ -227,32 +227,28 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         ];
 
         if ($wipPartNo) {
-            $wip = $this->getGciPart($wipPartNo);
-            if (!$wip) {
-                // Auto-create missing WIP part
-                $wip = GciPart::create([
+            $wip = GciPart::firstOrCreate(
+                ['part_no' => $wipPartNo],
+                [
                     'customer_id' => $fg->customer_id,
-                    'part_no' => $wipPartNo,
                     'part_name' => $wipPartName ?: ($processName ?: 'AUTO-CREATED WIP'),
                     'classification' => 'WIP',
                     'status' => 'active',
-                ]);
-            }
+                ]
+            );
             $payload['wip_part_id'] = $wip->id;
         }
 
         if ($rmPartNo) {
-            $rm = $this->getGciPart($rmPartNo);
-            if (!$rm) {
-                // Auto-create missing RM part
-                $rm = GciPart::create([
+            $rm = GciPart::firstOrCreate(
+                ['part_no' => $rmPartNo],
+                [
                     'customer_id' => $fg->customer_id,
-                    'part_no' => $rmPartNo,
                     'part_name' => $materialName ?: 'AUTO-CREATED RM',
                     'classification' => 'RM',
                     'status' => 'active',
-                ]);
-            }
+                ]
+            );
             $payload['component_part_id'] = $rm->id;
         }
 
