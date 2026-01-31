@@ -320,6 +320,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('stock-opname', \App\Http\Controllers\StockOpnameController::class);
         Route::post('stock-opname/{session}/close', [\App\Http\Controllers\StockOpnameController::class, 'close'])->name('stock-opname.close');
         Route::post('stock-opname/{session}/adjust', [\App\Http\Controllers\StockOpnameController::class, 'adjust'])->name('stock-opname.adjust');
+
+        // Trollies
+        Route::resource('trollies', \App\Http\Controllers\TrollyController::class);
+        Route::get('trollies/{trolly}/print', [\App\Http\Controllers\TrollyController::class, 'printQr'])->name('trollies.print');
     });
 
     Route::prefix('production')->name('production.')->group(function () {
