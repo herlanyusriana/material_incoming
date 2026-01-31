@@ -205,7 +205,21 @@
                                     <td class="px-6 py-4">
                                         <div class="font-mono font-bold text-slate-800">{{ $loc->location_code }}</div>
                                     </td>
-                                    <td class="px-6 py-4 font-mono text-slate-600">{{ $loc->class ?? '-' }}</td>
+                                    <td class="px-6 py-4 font-mono text-slate-600">
+                                        @if(strtoupper($loc->class) === 'TROLLY')
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                                TROLLY
+                                            </span>
+                                        @else
+                                            {{ $loc->class ?? '-' }}
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 font-mono text-slate-600">{{ $loc->zone ?? '-' }}</td>
                                     <td class="px-6 py-4">
                                         <span
@@ -302,7 +316,8 @@
                         <div>
                             <label class="text-sm font-semibold text-slate-700">Class</label>
                             <input type="text" name="class" class="mt-1 w-full rounded-xl border-slate-200 uppercase"
-                                placeholder="A" x-model="form.class">
+                                placeholder="A or TROLLY" x-model="form.class">
+                            <p class="text-[10px] text-slate-400 mt-1 italic">Type 'TROLLY' for mobile storage.</p>
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-slate-700">Zone</label>
