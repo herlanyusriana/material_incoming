@@ -1,116 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Part Label - {{ $part->part_no }}</title>
     <style>
-        @page { size: 80mm 60mm; margin: 0; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @page {
+            size: 80mm 60mm;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             width: 80mm;
             height: 60mm;
-            padding: 2mm;
-            font-family: Arial, sans-serif;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #fff;
         }
+
+        .label-container {
+            width: 100%;
+            height: 100%;
+            padding: 3mm;
+        }
+
         .label {
             width: 100%;
             height: 100%;
             border: 2px solid #000;
-            padding: 2mm;
-            display: grid;
-            grid-template-columns: 1fr 32mm;
-            grid-template-rows: auto 1fr auto;
-            gap: 1.5mm;
-        }
-        .title {
-            grid-column: 1 / -1;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 2mm;
-            border-bottom: 1px solid #000;
-            padding-bottom: 1mm;
-        }
-        .part-no { font-size: 14pt; font-weight: 900; letter-spacing: 0.2mm; }
-        .class {
-            font-size: 8pt;
-            font-weight: 800;
-            padding: 0.5mm 1.5mm;
-            border: 1px solid #000;
-        }
-        .meta {
-            grid-column: 1 / 2;
+            border-radius: 4px;
+            padding: 3mm;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
-            gap: 1mm;
+            justify-content: space-between;
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 2mm;
+            margin-bottom: 2mm;
+        }
+
+        .part-no {
+            font-size: 16pt;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+        }
+
+        .class-badge {
+            font-size: 10pt;
+            font-weight: 800;
+            color: #000;
+            border: 2px solid #000;
+            padding: 1mm 3mm;
+            border-radius: 4mm;
+            min-width: 12mm;
+            text-align: center;
+        }
+
+        /* Middle Section: Meta + QR */
+        .middle {
+            display: flex;
+            flex: 1;
+            gap: 2mm;
             overflow: hidden;
         }
-        .name { font-size: 9pt; font-weight: 700; line-height: 1.2; }
-        .model { font-size: 8pt; color: #444; }
-        .barcode-wrap {
-            grid-column: 1 / 2;
-            align-self: end;
+
+        .meta {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2mm;
+            padding-top: 1mm;
         }
-        .barcode-img {
-            width: 100%;
-            height: 16mm;
-            object-fit: contain;
-            display: block;
+
+        .field {
+            display: flex;
+            flex-direction: column;
         }
-        .barcode-text {
-            margin-top: 1mm;
+
+        .field-label {
+            font-size: 7pt;
+            color: #555;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.5mm;
+        }
+
+        .field-value {
             font-size: 9pt;
-            font-weight: 800;
-            text-align: center;
-            letter-spacing: 0.3mm;
+            font-weight: 700;
+            line-height: 1.1;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
-        .qr {
-            grid-column: 2 / 3;
-            grid-row: 2 / 4;
-            border-left: 1px solid #000;
-            padding-left: 2mm;
+
+        .qr-section {
+            width: 28mm;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 1mm;
+            justify-content: flex-start;
         }
+
         .qr-box {
-            width: 36mm;
-            height: 36mm;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 28mm;
+            height: 28mm;
         }
-        .qr-box svg { width: 36mm; height: 36mm; display: block; }
-        .qr-caption { font-size: 7pt; color: #555; text-align: center; }
+
+        .qr-box svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Footer: Barcode 1D */
+        .footer {
+            margin-top: 2mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-top: 1px dotted #ccc;
+            padding-top: 2mm;
+        }
+
+        .barcode-img {
+            width: 100%;
+            max-width: 60mm;
+            /* Limit width to keep it scanable */
+            height: 10mm;
+            object-fit: fill;
+            /* Ensure lines are crisp */
+        }
+
+        .barcode-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 8pt;
+            margin-top: 1mm;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
         @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .label {
+                border: 2px solid #000;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="label">
-        <div class="title">
-            <div class="part-no">{{ $part->part_no }}</div>
-            <div class="class">{{ strtoupper((string) ($part->classification ?? '')) }}</div>
-        </div>
+    <div class="label-container">
+        <div class="label">
+            <!-- Header -->
+            <div class="header">
+                <div class="part-no">{{ $part->part_no }}</div>
+                <div class="class-badge">{{ strtoupper((string) ($part->classification ?? '')) }}</div>
+            </div>
 
-        <div class="meta">
-            <div class="name">{{ $part->part_name ?: '-' }}</div>
-            <div class="model">{{ $part->model ?: '-' }}</div>
-        </div>
+            <!-- Content -->
+            <div class="middle">
+                <div class="meta">
+                    <div class="field">
+                        <div class="field-label">Part Name</div>
+                        <div class="field-value">{{ $part->part_name ?: '-' }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Model</div>
+                        <div class="field-value">{{ $part->model ?: '-' }}</div>
+                    </div>
+                    @if($part->customer)
+                        <div class="field">
+                            <div class="field-label">Customer</div>
+                            <div class="field-value" style="font-size: 8pt;">{{ Str::limit($part->customer->name, 15) }}
+                            </div>
+                        </div>
+                    @endif
+                </div>
 
-        <div class="barcode-wrap">
-            <img class="barcode-img" src="data:image/png;base64,{{ $barcodeImage }}" alt="Barcode">
-            <div class="barcode-text">{{ $barcode }}</div>
-        </div>
+                <div class="qr-section">
+                    <div class="qr-box">{!! $qrSvg !!}</div>
+                </div>
+            </div>
 
-        <div class="qr">
-            <div class="qr-box">{!! $qrSvg !!}</div>
-            <div class="qr-caption">Scan for part info</div>
+            <!-- Footer -->
+            <div class="footer">
+                <img class="barcode-img" src="data:image/png;base64,{{ $barcodeImage }}" alt="Barcode">
+                <div class="barcode-text">{{ $barcode }}</div>
+            </div>
         </div>
     </div>
 
@@ -118,4 +212,5 @@
         window.onload = function () { window.print(); };
     </script>
 </body>
+
 </html>

@@ -215,6 +215,7 @@
                     </div>
 
                     <div>
+                        <label class="text-sm font-semibold text-slate-700">Customer Part Name</label>
                         <input type="text" name="customer_part_name" x-model="form.customer_part_name"
                             class="mt-1 w-full rounded-xl border-slate-200">
                     </div>
@@ -240,6 +241,28 @@
                             <option value="inactive">Inactive</option>
                         </select>
                     </div>
+
+                    <template x-if="mode === 'create'">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Link to GCI Part (Optional)</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-sm font-semibold text-slate-700">GCI Part</label>
+                                    <select id="create-part-select" name="gci_part_id" class="mt-1 w-full rounded-xl border-slate-200">
+                                        <option value="">Select GCI Part...</option>
+                                        @foreach ($parts as $p)
+                                            <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-semibold text-slate-700">Usage Quantity</label>
+                                    <input type="number" step="any" min="0" name="usage_qty" placeholder="1.0"
+                                        class="mt-1 w-full rounded-xl border-slate-200">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
 
                     <div class="flex items-center justify-end gap-2 pt-2">
                         <button type="button"
@@ -397,6 +420,7 @@
                     importOpen: false,
                     compModalOpen: false,
                     ts: null,
+                    createTs: null,
                     mode: 'create',
                     formAction: @js(route('planning.customer-parts.store')),
                     form: { id: null, customer_id: '', customer_part_no: '', customer_part_name: '', line: '', case_name: '', status: 'active' },
@@ -421,6 +445,14 @@
                             this.ts = new TomSelect('#part-select', {
                                 create: false,
                                 placeholder: 'Search Part GCI...',
+                                allowEmptyOption: true,
+                                controlInput: null,
+                                dropdownParent: 'body'
+                            });
+
+                            this.createTs = new TomSelect('#create-part-select', {
+                                create: false,
+                                placeholder: 'Search Part GCI to link...',
                                 allowEmptyOption: true,
                                 controlInput: null,
                                 dropdownParent: 'body'

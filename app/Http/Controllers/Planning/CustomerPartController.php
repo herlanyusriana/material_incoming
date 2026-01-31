@@ -10,6 +10,8 @@ use App\Models\CustomerPart;
 use App\Models\CustomerPartComponent;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -99,6 +101,8 @@ class CustomerPartController extends Controller
             'line' => ['nullable', 'string', 'max:255'],
             'case_name' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'gci_part_id' => ['nullable', Rule::exists('gci_parts', 'id')],
+            'usage_qty' => ['nullable', 'numeric', 'min:0.0001'],
         ]);
 
         $partNoRaw = str_replace("\u{00A0}", ' ', (string) $validated['customer_part_no']);
@@ -108,7 +112,17 @@ class CustomerPartController extends Controller
         $validated['line'] = $validated['line'] ? trim($validated['line']) : null;
         $validated['case_name'] = $validated['case_name'] ? trim($validated['case_name']) : null;
 
-        CustomerPart::create($validated);
+        DB::transaction(function () use ($validated) {
+            $customerPart = CustomerPart::create(Arr::except($validated, ['gci_part_id', 'usage_qty']));
+
+            if (!empty($validated['gci_part_id']) && !empty($validated['usage_qty'])) {
+                CustomerPartComponent::create([
+                    'customer_part_id' => $customerPart->id,
+                    'gci_part_id' => $validated['gci_part_id'],
+                    'qty_per_unit' => $validated['usage_qty'],
+                ]);
+            }
+        });
 
         return back()->with('success', 'Customer part created.');
     }

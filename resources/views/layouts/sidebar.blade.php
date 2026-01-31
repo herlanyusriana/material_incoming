@@ -482,6 +482,14 @@
                             </svg>
                             <span class="ml-3 flex-1">Logistics Dashboard</span>
                         </a>
+                        <a href="{{ route('warehouse.labels.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.labels.*'), $navInactive => !request()->routeIs('warehouse.labels.*')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4z" />
+                            </svg>
+                            <span class="ml-3 flex-1">Barcode Labels</span>
+                        </a>
                         <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])
                             @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
@@ -1074,6 +1082,14 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l3 8 4-16 3 8h5" />
                         </svg>
                         <span class="ml-3 flex-1">Logistics Dashboard</span>
+                    </a>
+                    <a href="{{ route('warehouse.labels.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.labels.*'), $navInactive => !request()->routeIs('warehouse.labels.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4z" />
+                        </svg>
+                        <span class="ml-3 flex-1">Barcode Labels</span>
                     </a>
                     <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])>
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
