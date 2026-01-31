@@ -7,13 +7,8 @@
         <!-- Search and Filter -->
         <div class="bg-white border rounded-xl shadow-sm p-6">
             <form method="GET" class="flex gap-4">
-                <input 
-                    type="text" 
-                    name="q" 
-                    value="{{ request('q') }}" 
-                    placeholder="Search part no or name..."
-                    class="flex-1 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <input type="text" name="q" value="{{ request('q') }}" placeholder="Search part no or name..."
+                    class="flex-1 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
                 <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                     Search
                 </button>
@@ -24,11 +19,20 @@
         <form method="POST" action="{{ route('warehouse.labels.bulk') }}" target="_blank">
             @csrf
             <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b bg-slate-50 flex justify-between items-center">
+                <div class="px-6 py-4 border-b bg-slate-50 flex justify-between items-center gap-4">
                     <h3 class="font-semibold text-slate-900">Select Parts to Print</h3>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                        Print Selected Labels
-                    </button>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <label for="global-batch" class="text-xs font-bold text-slate-500 uppercase">Batch
+                                No:</label>
+                            <input type="text" id="global-batch" name="batch" placeholder="e.g. B260131"
+                                class="w-32 px-3 py-1.5 text-sm rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+                        </div>
+                        <button type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow-sm">
+                            Print Selected Labels
+                        </button>
+                    </div>
                 </div>
 
                 <table class="w-full text-sm">
@@ -48,31 +52,24 @@
                         @forelse($parts as $part)
                             <tr class="hover:bg-slate-50">
                                 <td class="px-6 py-4">
-                                    <input 
-                                        type="checkbox" 
-                                        name="part_ids[]" 
-                                        value="{{ $part->id }}" 
-                                        class="part-checkbox rounded border-slate-300"
-                                    >
+                                    <input type="checkbox" name="part_ids[]" value="{{ $part->id }}"
+                                        class="part-checkbox rounded border-slate-300">
                                 </td>
                                 <td class="px-6 py-4 font-medium text-slate-900">{{ $part->part_no }}</td>
                                 <td class="px-6 py-4 font-mono text-xs text-slate-600">{{ $part->generateBarcode() }}</td>
                                 <td class="px-6 py-4 text-slate-600">{{ $part->part_name }}</td>
                                 <td class="px-6 py-4">
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                        {{ $part->classification === 'FG' ? 'bg-green-100 text-green-700' : '' }}
-                                        {{ $part->classification === 'WIP' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                                        {{ $part->classification === 'RM' ? 'bg-blue-100 text-blue-700' : '' }}
-                                    ">
+                                            {{ $part->classification === 'FG' ? 'bg-green-100 text-green-700' : '' }}
+                                            {{ $part->classification === 'WIP' ? 'bg-yellow-100 text-yellow-700' : '' }}
+                                            {{ $part->classification === 'RM' ? 'bg-blue-100 text-blue-700' : '' }}
+                                        ">
                                         {{ $part->classification }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <a 
-                                        href="{{ route('warehouse.labels.part', $part) }}" 
-                                        target="_blank"
-                                        class="text-indigo-600 hover:text-indigo-900 font-medium text-xs uppercase"
-                                    >
+                                    <a href="{{ route('warehouse.labels.part', $part) }}" target="_blank"
+                                        class="text-indigo-600 hover:text-indigo-900 font-medium text-xs uppercase">
                                         Print Single
                                     </a>
                                 </td>
@@ -99,6 +96,18 @@
         document.getElementById('select-all').addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('.part-checkbox');
             checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // Add batch to single print links
+        document.querySelectorAll('a[href*="/labels/part/"]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const batch = document.getElementById('global-batch').value;
+                if (batch) {
+                    const url = new URL(this.href);
+                    url.searchParams.set('batch', batch);
+                    this.href = url.toString();
+                }
+            });
         });
     </script>
 </x-app-layout>

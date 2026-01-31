@@ -137,6 +137,17 @@
                 </div>
             </div>
 
+            <!-- Footer / Extra Info -->
+            <div style="position: absolute; bottom: 4mm; right: 6mm; text-align: right;">
+                <p style="font-size: 7pt; font-weight: bold; color: #666; text-transform: uppercase;">Batch No</p>
+                <p style="font-size: 11pt; font-weight: 900;">{{ $batch ?: '---' }}</p>
+            </div>
+
+            <div style="position: absolute; bottom: 4mm; left: 6mm; text-align: left;">
+                <p style="font-size: 7pt; font-weight: bold; color: #666; text-transform: uppercase;">Generated At</p>
+                <p style="font-size: 8pt; font-weight: bold;">{{ date('Y-m-d H:i') }}</p>
+            </div>
+
 
         </div>
     </div>
