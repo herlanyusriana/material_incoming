@@ -26,9 +26,9 @@ class WarehouseLocationController extends Controller
                         ->orWhere('qr_payload', 'like', '%' . $search . '%');
                 });
             })
-            ->when($class !== '', fn ($q) => $q->where('class', strtoupper($class)))
-            ->when($zone !== '', fn ($q) => $q->where('zone', strtoupper($zone)))
-            ->when($status !== '', fn ($q) => $q->where('status', strtoupper($status)))
+            ->when($class !== '', fn($q) => $q->where('class', strtoupper($class)))
+            ->when($zone !== '', fn($q) => $q->where('zone', strtoupper($zone)))
+            ->when($status !== '', fn($q) => $q->where('status', strtoupper($status)))
             ->orderBy('location_code')
             ->paginate(25)
             ->withQueryString();
@@ -129,6 +129,11 @@ class WarehouseLocationController extends Controller
         $qrSvg = QrSvg::make($payload, 260, 0);
 
         return view('inventory.location_qr', compact('location', 'qrSvg', 'payload'));
+    }
+
+    public function printMap()
+    {
+        return view('inventory.location_map_print');
     }
 
     public function printRange(Request $request)

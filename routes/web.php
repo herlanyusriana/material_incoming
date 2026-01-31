@@ -88,14 +88,14 @@ Route::middleware('auth')->group(function () {
     Route::put('/local-pos/{arrival}', [LocalPoController::class, 'update'])->name('local-pos.update');
     Route::delete('/local-pos/{arrival}', [LocalPoController::class, 'destroy'])->name('local-pos.destroy');
 
-	    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
-	    Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
-	    Route::get('/inventory/gci', [GciInventoryController::class, 'index'])->name('inventory.gci.index');
-	    Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-	    Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
-	    Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
-	    Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
-	    Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
+    Route::get('/inventory/gci', [GciInventoryController::class, 'index'])->name('inventory.gci.index');
+    Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
+    Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+    Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
+    Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
+    Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
     // Inventory Transfers (Bridge between Logistics and Production)
     Route::get('/inventory/transfers', [\App\Http\Controllers\InventoryTransferController::class, 'index'])->name('inventory.transfers.index');
@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventory/locations', [WarehouseLocationController::class, 'store'])->name('inventory.locations.store');
     Route::get('/inventory/locations/export', [WarehouseLocationController::class, 'export'])->name('inventory.locations.export');
     Route::post('/inventory/locations/import', [WarehouseLocationController::class, 'import'])->name('inventory.locations.import');
+    Route::get('/inventory/locations/print-map', [WarehouseLocationController::class, 'printMap'])->name('inventory.locations.print-map');
     Route::get('/inventory/locations/print-range', [WarehouseLocationController::class, 'printRange'])->name('inventory.locations.print-range');
     Route::get('/inventory/locations/{location}/print', [WarehouseLocationController::class, 'printQr'])->name('inventory.locations.print');
     Route::put('/inventory/locations/{location}', [WarehouseLocationController::class, 'update'])->name('inventory.locations.update');
@@ -153,12 +154,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/daily-planning/template', [OutgoingController::class, 'dailyPlanningTemplate'])->name('daily-planning.template');
         Route::post('/daily-planning/import', [OutgoingController::class, 'dailyPlanningImport'])->name('daily-planning.import');
         Route::get('/daily-planning/{plan}/export', [OutgoingController::class, 'dailyPlanningExport'])->name('daily-planning.export');
-	        Route::get('/customer-po', [OutgoingController::class, 'customerPo'])->name('customer-po');
-	        Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
-	        Route::get('/where-used', [OutgoingController::class, 'whereUsed'])->name('where-used');
-	        Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
-	        Route::post('/delivery-requirements/generate-so', [OutgoingController::class, 'generateSo'])->name('generate-so');
-	        Route::post('/delivery-requirements/generate-so-bulk', [OutgoingController::class, 'generateSoBulk'])->name('generate-so-bulk');
+        Route::get('/customer-po', [OutgoingController::class, 'customerPo'])->name('customer-po');
+        Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
+        Route::get('/where-used', [OutgoingController::class, 'whereUsed'])->name('where-used');
+        Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
+        Route::post('/delivery-requirements/generate-so', [OutgoingController::class, 'generateSo'])->name('generate-so');
+        Route::post('/delivery-requirements/generate-so-bulk', [OutgoingController::class, 'generateSoBulk'])->name('generate-so-bulk');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
         Route::get('/stock-at-customers/template', [OutgoingController::class, 'stockAtCustomersTemplate'])->name('stock-at-customers.template');
         Route::get('/stock-at-customers/export', [OutgoingController::class, 'stockAtCustomersExport'])->name('stock-at-customers.export');
@@ -180,12 +181,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/drivers/export', [\App\Http\Controllers\Outgoing\DriverController::class, 'export'])->name('drivers.export');
         Route::post('/drivers/import', [\App\Http\Controllers\Outgoing\DriverController::class, 'import'])->name('drivers.import');
 
-	        Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
-	        Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
-	        Route::post('/delivery-plan/update-overrides', [OutgoingController::class, 'updateDeliveryPlanOverrides'])->name('delivery-plan.update-overrides');
-	        Route::post('/delivery-plan/assign-items', [OutgoingController::class, 'assignDeliveryPlanItems'])->name('delivery-plan.assign-items');
-	        Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
-	        Route::post('/delivery-plan/{plan}/assign-resources', [OutgoingController::class, 'assignDeliveryPlanResources'])->name('delivery-plan.assign-resources');
+        Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
+        Route::post('/delivery-plan', [OutgoingController::class, 'storeDeliveryPlan'])->name('delivery-plan.store');
+        Route::post('/delivery-plan/update-overrides', [OutgoingController::class, 'updateDeliveryPlanOverrides'])->name('delivery-plan.update-overrides');
+        Route::post('/delivery-plan/assign-items', [OutgoingController::class, 'assignDeliveryPlanItems'])->name('delivery-plan.assign-items');
+        Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
+        Route::post('/delivery-plan/{plan}/assign-resources', [OutgoingController::class, 'assignDeliveryPlanResources'])->name('delivery-plan.assign-resources');
 
         Route::get('sales-orders/{sales_order}', [SalesOrderController::class, 'show'])->name('sales-orders.show');
         Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');
