@@ -39,13 +39,36 @@
                     @endif
                 </form>
 
-                <button @click="openCreate()"
-                    class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add New Trolly
-                </button>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <a href="{{ route('warehouse.trollies.export') }}"
+                        class="flex-1 sm:flex-none px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Export
+                    </a>
+                    <form action="{{ route('warehouse.trollies.import') }}" method="POST" enctype="multipart/form-data"
+                        class="flex-1 sm:flex-none">
+                        @csrf
+                        <label
+                            class="cursor-pointer px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Import
+                            <input type="file" name="file" class="hidden" onchange="this.form.submit()">
+                        </label>
+                    </form>
+                    <button @click="openCreate()"
+                        class="flex-1 sm:flex-none px-5 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add
+                    </button>
+                </div>
             </div>
 
             <!-- Table Card -->

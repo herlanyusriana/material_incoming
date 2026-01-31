@@ -82,6 +82,23 @@ class TrollyController extends Controller
         return back()->with('success', 'Trolly deleted.');
     }
 
+    public function export()
+    {
+        $filename = 'trollies_' . date('Y-m-d_His') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\TrolliesExport(), $filename);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\TrolliesImport(), $request->file('file'));
+
+        return back()->with('success', 'Trollies imported successfully.');
+    }
+
     public function printQr(Trolly $trolly)
     {
         $payload = $trolly->qr_payload;
