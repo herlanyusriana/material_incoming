@@ -331,6 +331,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('production')->name('production.')->group(function () {
+        // Production Orders
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');
         Route::post('/orders/{order}/check-material', [\App\Http\Controllers\ProductionOrderController::class, 'checkMaterial'])->name('orders.check-material');
@@ -338,6 +339,50 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/{order}/finish', [\App\Http\Controllers\ProductionOrderController::class, 'finishProduction'])->name('orders.finish');
         Route::post('/orders/{order}/kanban-update', [\App\Http\Controllers\ProductionOrderController::class, 'kanbanUpdate'])->name('orders.kanban-update');
 
+        // Work Order & Kanban Release
+        Route::get('/work-orders', [\App\Http\Controllers\Production\WorkOrderController::class, 'index'])->name('work-orders.index');
+        Route::get('/work-orders/{order}', [\App\Http\Controllers\Production\WorkOrderController::class, 'show'])->name('work-orders.show');
+        Route::post('/work-orders/{order}/release', [\App\Http\Controllers\Production\WorkOrderController::class, 'releaseKanban'])->name('work-orders.release');
+        Route::post('/work-orders/bulk-release', [\App\Http\Controllers\Production\WorkOrderController::class, 'bulkRelease'])->name('work-orders.bulk-release');
+
+        // Material Availability
+        Route::get('/material-availability', [\App\Http\Controllers\Production\MaterialAvailabilityController::class, 'index'])->name('material-availability.index');
+        Route::get('/material-availability/{order}', [\App\Http\Controllers\Production\MaterialAvailabilityController::class, 'show'])->name('material-availability.show');
+        Route::post('/material-availability/{order}/check', [\App\Http\Controllers\Production\MaterialAvailabilityController::class, 'check'])->name('material-availability.check');
+
+        // Start Production
+        Route::get('/start-production', [\App\Http\Controllers\Production\StartProductionController::class, 'index'])->name('start-production.index');
+        Route::get('/start-production/{order}', [\App\Http\Controllers\Production\StartProductionController::class, 'show'])->name('start-production.show');
+        Route::post('/start-production/{order}/start', [\App\Http\Controllers\Production\StartProductionController::class, 'start'])->name('start-production.start');
+
+        // QC Inspection (First Article)
+        Route::get('/qc-inspection', [\App\Http\Controllers\Production\QcInspectionController::class, 'index'])->name('qc-inspection.index');
+        Route::get('/qc-inspection/{inspection}', [\App\Http\Controllers\Production\QcInspectionController::class, 'show'])->name('qc-inspection.show');
+        Route::put('/qc-inspection/{inspection}', [\App\Http\Controllers\Production\QcInspectionController::class, 'update'])->name('qc-inspection.update');
+
+        // Mass Production
+        Route::get('/mass-production', [\App\Http\Controllers\Production\MassProductionController::class, 'index'])->name('mass-production.index');
+        Route::get('/mass-production/{order}', [\App\Http\Controllers\Production\MassProductionController::class, 'show'])->name('mass-production.show');
+        Route::post('/mass-production/{order}/update-progress', [\App\Http\Controllers\Production\MassProductionController::class, 'updateProgress'])->name('mass-production.update-progress');
+        Route::post('/mass-production/{order}/request-inspection', [\App\Http\Controllers\Production\MassProductionController::class, 'requestInProcessInspection'])->name('mass-production.request-inspection');
+
+        // In-Process Inspection
+        Route::get('/in-process-inspection', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'index'])->name('in-process-inspection.index');
+        Route::get('/in-process-inspection/{inspection}', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'show'])->name('in-process-inspection.show');
+        Route::put('/in-process-inspection/{inspection}', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'update'])->name('in-process-inspection.update');
+
+        // Finish Production
+        Route::get('/finish-production', [\App\Http\Controllers\Production\FinishProductionController::class, 'index'])->name('finish-production.index');
+        Route::get('/finish-production/{order}', [\App\Http\Controllers\Production\FinishProductionController::class, 'show'])->name('finish-production.show');
+        Route::post('/finish-production/{order}/finish', [\App\Http\Controllers\Production\FinishProductionController::class, 'finish'])->name('finish-production.finish');
+
+        // Final Inspection & Kanban Update
+        Route::get('/final-inspection', [\App\Http\Controllers\Production\FinalInspectionController::class, 'index'])->name('final-inspection.index');
+        Route::get('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'show'])->name('final-inspection.show');
+        Route::put('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'update'])->name('final-inspection.update');
+        Route::post('/final-inspection/{order}/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanUpdate'])->name('final-inspection.kanban-update');
+
+        // Legacy inspection routes
         Route::post('/orders/{order}/inspections', [\App\Http\Controllers\ProductionInspectionController::class, 'store'])->name('inspections.store');
         Route::put('/inspections/{inspection}', [\App\Http\Controllers\ProductionInspectionController::class, 'update'])->name('inspections.update');
     });

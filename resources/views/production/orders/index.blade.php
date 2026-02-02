@@ -56,7 +56,9 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600">Status</label>
-                        @php($statuses = ['draft','planned','kanban_released','resource_hold','material_hold','released','in_production','completed','cancelled'])
+                        @php
+                            $statuses = ['draft','planned','kanban_released','resource_hold','material_hold','released','in_production','completed','cancelled'];
+                        @endphp
                         <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                             <option value="">All</option>
                             @foreach($statuses as $s)
