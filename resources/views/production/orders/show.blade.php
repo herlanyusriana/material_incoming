@@ -43,8 +43,27 @@
                             <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100">{{ strtoupper($order->status) }}</span>
                         </dd>
                     </div>
-                </dl>
-            </div>
+                    </dl>
+                </div>
+
+                @if($order->mrp_generated)
+                    <div class="bg-slate-50 border rounded-lg p-4 space-y-2 mt-3 text-sm">
+                        <div class="text-xs uppercase tracking-wider text-slate-500">MRP Source</div>
+                        <div class="text-sm text-slate-700">
+                            <span class="font-semibold">Period:</span>
+                            {{ $order->mrp_period ?? '—' }}
+                        </div>
+                        <div class="text-sm text-slate-700">
+                            <span class="font-semibold">Run at:</span>
+                            {{ $order->mrpRun?->run_at?->format('d M Y H:i') ?? 'Pending' }}
+                        </div>
+                        <div>
+                            <a href="{{ route('planning.mrp.history', ['period' => $order->mrp_period]) }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                                Lihat riwayat MRP
+                            </a>
+                        </div>
+                    </div>
+                @endif
 
             <!-- Workflow Actions -->
             <div class="bg-white border rounded-lg shadow-sm p-6">

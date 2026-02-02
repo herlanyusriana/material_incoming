@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\MrpRun;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -37,5 +38,10 @@ class ProductionOrder extends Model
     public function getIsStartedAttribute()
     {
         return $this->status !== 'planned' && $this->status !== 'material_hold';
+    }
+
+    public function mrpRun()
+    {
+        return $this->belongsTo(MrpRun::class, 'mrp_run_id');
     }
 }

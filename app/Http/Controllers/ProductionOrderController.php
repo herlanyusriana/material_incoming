@@ -94,7 +94,7 @@ class ProductionOrderController extends Controller
 
     public function show(Request $request, ProductionOrder $order)
     {
-        $order->load(['part', 'inspections.inspector', 'creator']);
+        $order->load(['part', 'inspections.inspector', 'creator', 'mrpRun']);
         
         if ($request->ajax()) {
             return view('production.orders.partials.detail_content', compact('order'));

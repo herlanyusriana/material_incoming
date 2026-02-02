@@ -642,6 +642,9 @@ class MrpController extends Controller
                         'plan_date' => $planDate,
                         'qty_planned' => $qtyPlanned,
                         'workflow_stage' => $existing->workflow_stage ?: 'planned',
+                        'mrp_run_id' => $run->id,
+                        'mrp_period' => $run->period,
+                        'mrp_generated' => true,
                     ]);
                     $updated++;
                 }
@@ -655,6 +658,9 @@ class MrpController extends Controller
                 'qty_planned' => $qtyPlanned,
                 'status' => 'planned',
                 'workflow_stage' => 'planned',
+                'mrp_run_id' => $run->id,
+                'mrp_period' => $run->period,
+                'mrp_generated' => true,
                 'qty_actual' => 0,
                 'created_by' => $userId,
             ]);
