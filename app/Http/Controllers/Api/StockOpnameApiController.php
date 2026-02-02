@@ -35,9 +35,27 @@ class StockOpnameApiController extends Controller
     {
         $request->validate(['barcode' => 'required|string']);
 
-        $part = GciPart::where('barcode', $request->barcode)
-            ->orWhere('part_no', $request->barcode)
-            ->first();
+        $barcode = trim($request->barcode);
+
+        // Handle JSON payload from QR scans
+        if (str_starts_with($barcode, '{') && str_ends_with($barcode, '}')) {
+            $decoded = json_decode($barcode, true);
+            if (isset($decoded['part_no'])) {
+                $barcode = $decoded['part_no'];
+            } elseif (isset($decoded['tag'])) {
+                // If they scanned a tag, find the part associated with that tag
+                $receive = \App\Models\Receive::with('arrivalItem.part')->where('tag', $decoded['tag'])->first();
+                if ($receive && $receive->arrivalItem && $receive->arrivalItem->part) {
+                    $part = $receive->arrivalItem->part;
+                }
+            }
+        }
+
+        if (!isset($part)) {
+            $part = GciPart::where('barcode', $barcode)
+                ->orWhere('part_no', $barcode)
+                ->first();
+        }
 
         if (!$part) {
             return response()->json([
@@ -65,7 +83,19 @@ class StockOpnameApiController extends Controller
     {
         $request->validate(['location_code' => 'required|string']);
 
-        $location = WarehouseLocation::where('location_code', $request->location_code)->first();
+        $locationCode = trim($request->location_code);
+
+        // Handle JSON payload from QR scans
+        if (str_starts_with($locationCode, '{') && str_ends_with($locationCode, '}')) {
+            $decoded = json_decode($locationCode, true);
+            if (isset($decoded['location_code'])) {
+                $locationCode = $decoded['location_code'];
+            } elseif (isset($decoded['code'])) {
+                $locationCode = $decoded['code'];
+            }
+        }
+
+        $location = WarehouseLocation::where('location_code', $locationCode)->first();
 
         if (!$location) {
             return response()->json([

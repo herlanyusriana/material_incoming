@@ -87,7 +87,7 @@ class WarehouseScanningController extends Controller
         $tagNo = strtoupper(trim($tagNo));
         $locationCode = strtoupper(trim($locationCode));
 
-        $receive = Receive::where('tag', $tagNo)->first();
+        $receive = Receive::with('arrivalItem')->where('tag', $tagNo)->first();
 
         if (!$receive) {
             return response()->json(['message' => 'Tag not found'], 404);
