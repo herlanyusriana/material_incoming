@@ -40,14 +40,19 @@ class StockOpnameApiController extends Controller
         // Handle JSON payload from QR scans
         if (str_starts_with($barcode, '{') && str_ends_with($barcode, '}')) {
             $decoded = json_decode($barcode, true);
-            if (isset($decoded['part_no'])) {
+            if (isset($decoded['gci_part_id'])) {
+                $part = GciPart::find($decoded['gci_part_id']);
+            } elseif (isset($decoded['part_no'])) {
                 $barcode = $decoded['part_no'];
             } elseif (isset($decoded['tag'])) {
                 // If they scanned a tag, find the part associated with that tag
                 $receive = \App\Models\Receive::with('arrivalItem.part')->where('tag', $decoded['tag'])->first();
                 if ($receive && $receive->arrivalItem && $receive->arrivalItem->part) {
-                    $part = $receive->arrivalItem->part;
+                    // Try to find matching GciPart by part_no
+                    $part = GciPart::where('part_no', $receive->arrivalItem->part->part_no)->first();
                 }
+            } elseif (isset($decoded['barcode'])) {
+                $barcode = $decoded['barcode'];
             }
         }
 
@@ -90,6 +95,8 @@ class StockOpnameApiController extends Controller
             $decoded = json_decode($locationCode, true);
             if (isset($decoded['location_code'])) {
                 $locationCode = $decoded['location_code'];
+            } elseif (isset($decoded['location'])) {
+                $locationCode = $decoded['location'];
             } elseif (isset($decoded['code'])) {
                 $locationCode = $decoded['code'];
             }

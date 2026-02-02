@@ -1,0 +1,224 @@
+1:@php
+18:@endphp
+22:    @click="mobileSidebarOpen = false"></div>
+42:                @click="mobileSidebarOpen = false" aria-label="Close sidebar" title="Close sidebar">
+52:                <a href="{{ route('dashboard') }}" @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard')]) @click="mobileSidebarOpen = false">
+62:            @can('manage_planning')
+69:                                <div @class([$navLinkBase, $navActive => $vendorsActive, $navInactive => !$vendorsActive])>
+94:                                <a href="{{ route('vendors.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('vendors.create'), $subInactive => !request()->routeIs('vendors.create')]) @click="mobileSidebarOpen = false">
+95:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('vendors.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('vendors.create')])></span>
+98:                                <a href="{{ route('vendors.index') }}" @class([
+102:                                ]) @click="mobileSidebarOpen = false">
+103:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('vendors.index') || request()->routeIs('vendors.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('vendors.index') || request()->routeIs('vendors.edit'))])></span>
+111:                                <div @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive])>
+132:                                <a href="{{ route('parts.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('parts.create'), $subInactive => !request()->routeIs('parts.create')])
+133:                                    @click="mobileSidebarOpen = false">
+134:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('parts.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('parts.create')])></span>
+137:                                <a href="{{ route('parts.index') }}" @class([
+142:                                    @click="mobileSidebarOpen = false">
+143:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('parts.index') || request()->routeIs('parts.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('parts.index') || request()->routeIs('parts.edit'))])></span>
+149:                        <a href="{{ route('truckings.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*')])
+150:                            @click="mobileSidebarOpen = false">
+164:            @endcan
+166:            @can('view_planning')
+172:                                <div @class([$navLinkBase, $navActive => request()->routeIs('planning.*'), $navInactive => !request()->routeIs('planning.*')])>
+191:                                <a href="{{ route('planning.customers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customers.*'), $subInactive => !request()->routeIs('planning.customers.*')]) @click="mobileSidebarOpen = false">
+192:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customers.*')])></span>
+195:                                <a href="{{ route('planning.fg-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.fg-parts.*'), $subInactive => !request()->routeIs('planning.fg-parts.*')]) @click="mobileSidebarOpen = false">
+196:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.fg-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.fg-parts.*')])></span>
+199:                                <a href="{{ route('planning.wip-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')]) @click="mobileSidebarOpen = false">
+200:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.wip-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.wip-parts.*')])></span>
+203:                                <a href="{{ route('planning.rm-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.rm-parts.*'), $subInactive => !request()->routeIs('planning.rm-parts.*')]) @click="mobileSidebarOpen = false">
+204:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.rm-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.rm-parts.*')])></span>
+207:                                <a href="{{ route('planning.customer-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')]) @click="mobileSidebarOpen = false">
+208:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>
+211:                                <a href="{{ route('planning.planning-imports.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.planning-imports.*'), $subInactive => !request()->routeIs('planning.planning-imports.*')]) @click="mobileSidebarOpen = false">
+212:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.planning-imports.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.planning-imports.*')])></span>
+215:                                <a href="{{ route('planning.customer-pos.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-pos.*'), $subInactive => !request()->routeIs('planning.customer-pos.*')]) @click="mobileSidebarOpen = false">
+216:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-pos.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-pos.*')])></span>
+219:                                <a href="{{ route('planning.forecasts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.forecasts.*'), $subInactive => !request()->routeIs('planning.forecasts.*')]) @click="mobileSidebarOpen = false">
+220:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.forecasts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.forecasts.*')])></span>
+223:                                <a href="{{ route('planning.mps.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mps.*'), $subInactive => !request()->routeIs('planning.mps.*')]) @click="mobileSidebarOpen = false">
+224:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
+227:                                <a href="{{ route('planning.boms.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.index'), $subInactive => !request()->routeIs('planning.boms.index')]) @click="mobileSidebarOpen = false">
+228:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.index')])></span>
+231:                                <a href="{{ route('planning.boms.explosion-search') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.explosion*'), $subInactive => !request()->routeIs('planning.boms.explosion*')]) @click="mobileSidebarOpen = false">
+232:                                    <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('planning.boms.explosion*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('planning.boms.explosion*')])></span>
+235:                                <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
+236:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
+243:            @endcan
+245:            @php
+247:            @endphp
+248:            @can('view_production')
+255:                                <div @class([$navLinkBase, $navActive => $productionActive, $navInactive => !$productionActive])>
+274:                                <a href="{{ route('warehouse.production-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('warehouse.production-load.*'), $subInactive => !request()->routeIs('warehouse.production-load.*')]) @click="mobileSidebarOpen = false">
+275:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('warehouse.production-load.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('warehouse.production-load.*')])></span>
+278:                                <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')]) @click="mobileSidebarOpen = false">
+279:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
+286:            @endcan
+288:            @can('manage_incoming')
+292:                        <a href="{{ route('departures.create') }}" @class([$navLinkBase, $navActive => request()->routeIs('departures.create'), $navInactive => !request()->routeIs('departures.create')]) @click="mobileSidebarOpen = false">
+300:                        <a href="{{ route('departures.index') }}" @class([
+305:                            @click="mobileSidebarOpen = false">
+313:                        <a href="{{ route('local-pos.create') }}" @class([$navLinkBase, $navActive => request()->routeIs('local-pos.create'), $navInactive => !request()->routeIs('local-pos.create')])
+314:                            @click="mobileSidebarOpen = false">
+324:                        <a href="{{ route('local-pos.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('local-pos.*') && !request()->routeIs('local-pos.create'), $navInactive => !(request()->routeIs('local-pos.*') && !request()->routeIs('local-pos.create'))])
+325:                            @click="mobileSidebarOpen = false">
+333:                        <a href="{{ route('receives.index') }}" @class([
+338:                            @click="mobileSidebarOpen = false">
+347:                        <a href="{{ route('receives.completed') }}" @class([
+351:                        ]) @click="mobileSidebarOpen = false">
+362:            @endcan
+364:            @can('manage_outgoing')
+369:                            <div @class([$navLinkBase, $navActive => $outgoingModuleActive, $navInactive => !$outgoingModuleActive])>
+391:                                <a href="{{ route('outgoing.daily-planning') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.daily-planning'), $subInactive => !request()->routeIs('outgoing.daily-planning')]) @click="mobileSidebarOpen = false">
+392:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.daily-planning'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.daily-planning')])></span>
+396:                                <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])
+397:                                    @click="mobileSidebarOpen = false">
+398:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
+401:                                <a href="{{ route('outgoing.stock-at-customers') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.stock-at-customers'), $subInactive => !request()->routeIs('outgoing.stock-at-customers')]) @click="mobileSidebarOpen = false">
+402:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.stock-at-customers'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.stock-at-customers')])></span>
+405:                                <a href="{{ route('outgoing.trucks.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.trucks.*'), $subInactive => !request()->routeIs('outgoing.trucks.*')]) @click="mobileSidebarOpen = false">
+406:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.trucks.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.trucks.*')])></span>
+409:                                <a href="{{ route('outgoing.drivers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.drivers.*'), $subInactive => !request()->routeIs('outgoing.drivers.*')]) @click="mobileSidebarOpen = false">
+410:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.drivers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.drivers.*')])></span>
+413:                                <a href="{{ route('outgoing.delivery-plan') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-plan'), $subInactive => !request()->routeIs('outgoing.delivery-plan')]) @click="mobileSidebarOpen = false">
+414:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-plan'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-plan')])></span>
+417:                                <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')]) @click="mobileSidebarOpen = false">
+418:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
+421:                                <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')])
+422:                                    @click="mobileSidebarOpen = false">
+423:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
+430:            @endcan
+432:            @can('manage_inventory')
+436:                        <a href="{{ route('inventory.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.index'), $navInactive => !request()->routeIs('inventory.index')])
+437:                            @click="mobileSidebarOpen = false">
+446:                        <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')]) @click="mobileSidebarOpen = false">
+453:                        <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')]) @click="mobileSidebarOpen = false">
+462:                        <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])
+463:                            @click="mobileSidebarOpen = false">
+475:            @endcan
+477:            @can('manage_inventory')
+481:                        <a href="{{ route('logistics.dashboard') }}" @class([$navLinkBase, $navActive => $logisticsActive, $navInactive => !$logisticsActive]) @click="mobileSidebarOpen = false">
+488:                        <a href="{{ route('warehouse.labels.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.labels.*'), $navInactive => !request()->routeIs('warehouse.labels.*')]) @click="mobileSidebarOpen = false">
+496:                        <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])
+497:                            @click="mobileSidebarOpen = false">
+505:                        <a href="{{ route('warehouse.putaway.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.putaway.*'), $navInactive => !request()->routeIs('warehouse.putaway.*')]) @click="mobileSidebarOpen = false">
+512:                        <a href="{{ route('inventory.locations.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*')]) @click="mobileSidebarOpen = false">
+522:                        <a href="{{ route('warehouse.trollies.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.trollies.*'), $navInactive => !request()->routeIs('warehouse.trollies.*')]) @click="mobileSidebarOpen = false">
+530:                        <a href="{{ route('warehouse.bin-transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.bin-transfers.*'), $navInactive => !request()->routeIs('warehouse.bin-transfers.*')]) @click="mobileSidebarOpen = false">
+541:                        <a href="{{ route('warehouse.stock.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.*'), $navInactive => !request()->routeIs('warehouse.stock.*')]) @click="mobileSidebarOpen = false">
+549:                        <a href="{{ route('warehouse.stock-adjustments.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-adjustments.*'), $navInactive => !request()->routeIs('warehouse.stock-adjustments.*')]) @click="mobileSidebarOpen = false">
+558:                        <a href="{{ route('warehouse.stock-opname.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-opname.*'), $navInactive => !request()->routeIs('warehouse.stock-opname.*')]) @click="mobileSidebarOpen = false">
+566:                        <a href="{{ route('warehouse.stock.reconcile') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.reconcile'), $navInactive => !request()->routeIs('warehouse.stock.reconcile')]) @click="mobileSidebarOpen = false">
+577:            @endcan
+582:                @click="mobileSidebarOpen = false">
+597:    :class="sidebarCollapsed ? 'w-20' : 'w-72'" @mouseenter="expandSidebar()" @mouseleave="collapseSidebar()"
+598:    @click="if ($event.target.closest('a')) collapseSidebar()">
+615:            <a href="{{ route('dashboard') }}" title="Dashboard" @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard')])
+625:        @can('manage_planning')
+631:                        @class([$navLinkBase, $navActive => $vendorsActive, $navInactive => !$vendorsActive])
+646:                            <div @class([$navLinkBase, $navActive => $vendorsActive, $navInactive => !$vendorsActive])
+671:                                <a href="{{ route('vendors.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('vendors.create'), $subInactive => !request()->routeIs('vendors.create')])>
+672:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('vendors.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('vendors.create')])></span>
+675:                                <a href="{{ route('vendors.index') }}" @class([
+680:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('vendors.index') || request()->routeIs('vendors.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('vendors.index') || request()->routeIs('vendors.edit'))])></span>
+688:                        @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive])
+702:                            <div @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive])
+725:                                <a href="{{ route('parts.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('parts.create'), $subInactive => !request()->routeIs('parts.create')])>
+726:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('parts.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('parts.create')])></span>
+729:                                <a href="{{ route('parts.index') }}" @class([
+734:                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('parts.index') || request()->routeIs('parts.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('parts.index') || request()->routeIs('parts.edit'))])></span>
+741:                    <a href="{{ route('truckings.index') }}" title="Truckings" @class([$navLinkBase, $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*')])
+754:        @endcan
+756:        @can('view_planning')
+765:                        <div @class([$navLinkBase, $navActive => request()->routeIs('planning.*'), $navInactive => !request()->routeIs('planning.*')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+786:                            <a href="{{ route('planning.customers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customers.*'), $subInactive => !request()->routeIs('planning.customers.*')])>
+787:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customers.*')])></span>
+790:                            <a href="{{ route('planning.fg-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.fg-parts.*'), $subInactive => !request()->routeIs('planning.fg-parts.*')])>
+791:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.fg-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.fg-parts.*')])></span>
+794:                            <a href="{{ route('planning.wip-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.wip-parts.*'), $subInactive => !request()->routeIs('planning.wip-parts.*')])>
+795:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.wip-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.wip-parts.*')])></span>
+798:                            <a href="{{ route('planning.rm-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.rm-parts.*'), $subInactive => !request()->routeIs('planning.rm-parts.*')])>
+799:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.rm-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.rm-parts.*')])></span>
+802:                            <a href="{{ route('planning.customer-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')])>
+803:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>
+806:                            <a href="{{ route('planning.planning-imports.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.planning-imports.*'), $subInactive => !request()->routeIs('planning.planning-imports.*')])>
+807:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.planning-imports.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.planning-imports.*')])></span>
+810:                            <a href="{{ route('planning.customer-pos.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-pos.*'), $subInactive => !request()->routeIs('planning.customer-pos.*')])>
+811:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-pos.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-pos.*')])></span>
+814:                            <a href="{{ route('planning.forecasts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.forecasts.*'), $subInactive => !request()->routeIs('planning.forecasts.*')])>
+815:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.forecasts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.forecasts.*')])></span>
+818:                            <a href="{{ route('planning.mps.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mps.*'), $subInactive => !request()->routeIs('planning.mps.*')])>
+819:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
+822:                            <a href="{{ route('planning.boms.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.*'), $subInactive => !request()->routeIs('planning.boms.*')])>
+823:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.*')])></span>
+826:                            <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
+827:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
+834:        @endcan
+836:        @can('view_production')
+845:                        <div @class([$navLinkBase, $navActive => $productionActive, $navInactive => !$productionActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+866:                            <a href="{{ route('warehouse.production-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('warehouse.production-load.*'), $subInactive => !request()->routeIs('warehouse.production-load.*')])>
+867:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('warehouse.production-load.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('warehouse.production-load.*')])></span>
+870:                            <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])>
+871:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
+878:        @endcan
+880:        @can('manage_incoming')
+889:                        <div @class([$navLinkBase, $navActive => $incomingModuleActive, $navInactive => !$incomingModuleActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+909:                            <a href="{{ route('departures.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('departures.create'), $subInactive => !request()->routeIs('departures.create')])>
+910:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('departures.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('departures.create')])></span>
+913:                            <a href="{{ route('departures.index') }}" @class([
+918:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'))])></span>
+921:                            <a href="{{ route('local-pos.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('local-pos.create'), $subInactive => !request()->routeIs('local-pos.create')])>
+922:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('local-pos.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('local-pos.create')])></span>
+925:                            <a href="{{ route('local-pos.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('local-pos.index'), $subInactive => !request()->routeIs('local-pos.index')])>
+926:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('local-pos.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('local-pos.index')])></span>
+929:                            <a href="{{ route('receives.index') }}" @class([
+934:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'))])></span>
+937:                            <a href="{{ route('receives.completed') }}" @class([
+942:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'))])></span>
+949:        @endcan
+951:        @can('manage_outgoing')
+960:                        <div @class([$navLinkBase, $navActive => $outgoingModuleActive, $navInactive => !$outgoingModuleActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+982:                            <a href="{{ route('outgoing.daily-planning') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.daily-planning'), $subInactive => !request()->routeIs('outgoing.daily-planning')])>
+983:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.daily-planning'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.daily-planning')])></span>
+986:                            <a href="{{ route('outgoing.customer-po') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.customer-po'), $subInactive => !request()->routeIs('outgoing.customer-po')])>
+987:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po')])></span>
+990:                            <a href="{{ route('outgoing.product-mapping') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')])>
+991:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.product-mapping')])></span>
+994:                            <a href="{{ route('outgoing.product-mapping') }}#where-used" @class([$subLinkBase, $subActive => false, $subInactive => true])>
+995:                                <span @class([$subDotBase, 'bg-emerald-600'])></span>
+998:                            <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])>
+999:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
+1002:                            <a href="{{ route('outgoing.stock-at-customers') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.stock-at-customers'), $subInactive => !request()->routeIs('outgoing.stock-at-customers')])>
+1003:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.stock-at-customers'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.stock-at-customers')])></span>
+1006:                            <a href="{{ route('outgoing.trucks.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.trucks.*'), $subInactive => !request()->routeIs('outgoing.trucks.*')])>
+1007:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.trucks.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.trucks.*')])></span>
+1010:                            <a href="{{ route('outgoing.drivers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.drivers.*'), $subInactive => !request()->routeIs('outgoing.drivers.*')])>
+1011:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.drivers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.drivers.*')])></span>
+1014:                            <a href="{{ route('outgoing.delivery-plan') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-plan'), $subInactive => !request()->routeIs('outgoing.delivery-plan')])>
+1015:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-plan'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-plan')])></span>
+1018:                            <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')])>
+1019:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
+1022:                            <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')])>
+1023:                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
+1030:        @endcan
+1032:        @can('manage_inventory')
+1037:                    <a href="{{ route('inventory.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.index'), $navInactive => !request()->routeIs('inventory.index')])>
+1046:                    <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')])>
+1053:                    <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')])>
+1062:                    <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])>
+1074:        @endcan
+1076:        @can('manage_inventory')
+1081:                    <a href="{{ route('logistics.dashboard') }}" @class([$navLinkBase, $navActive => $logisticsActive, $navInactive => !$logisticsActive])>
+1088:                    <a href="{{ route('warehouse.labels.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.labels.*'), $navInactive => !request()->routeIs('warehouse.labels.*')])>
+1096:                    <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])>
+1104:                    <a href="{{ route('warehouse.putaway.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.putaway.*'), $navInactive => !request()->routeIs('warehouse.putaway.*')])>
+1111:                    <a href="{{ route('inventory.locations.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*')])>
+1120:                    <a href="{{ route('warehouse.trollies.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.trollies.*'), $navInactive => !request()->routeIs('warehouse.trollies.*')])>
+1128:                    <a href="{{ route('warehouse.bin-transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.bin-transfers.*'), $navInactive => !request()->routeIs('warehouse.bin-transfers.*')])>
+1139:                    <a href="{{ route('warehouse.stock.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.*'), $navInactive => !request()->routeIs('warehouse.stock.*')])>
+1147:                    <a href="{{ route('warehouse.stock-adjustments.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-adjustments.*'), $navInactive => !request()->routeIs('warehouse.stock-adjustments.*')])>
+1156:                    <a href="{{ route('warehouse.stock-opname.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-opname.*'), $navInactive => !request()->routeIs('warehouse.stock-opname.*')])>
+1164:                    <a href="{{ route('warehouse.stock.reconcile') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.reconcile'), $navInactive => !request()->routeIs('warehouse.stock.reconcile')])>
+1175:        @endcan

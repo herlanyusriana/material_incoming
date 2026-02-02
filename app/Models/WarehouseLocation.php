@@ -32,7 +32,7 @@ class WarehouseLocation extends Model
     {
         $payload = [
             'type' => 'WAREHOUSE_LOCATION',
-            'location' => strtoupper(trim($locationCode)),
+            'location_code' => strtoupper(trim($locationCode)),
             'class' => self::upperOrNull($class),
             'zone' => self::upperOrNull($zone),
         ];

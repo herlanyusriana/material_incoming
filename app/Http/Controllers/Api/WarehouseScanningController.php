@@ -28,6 +28,10 @@ class WarehouseScanningController extends Controller
             $decoded = json_decode($tagNo, true);
             if (isset($decoded['tag'])) {
                 $tagNo = $decoded['tag'];
+            } elseif (isset($decoded['barcode'])) {
+                $tagNo = $decoded['barcode'];
+            } elseif (isset($decoded['part_no'])) {
+                $tagNo = $decoded['part_no'];
             }
         }
 
@@ -81,6 +85,10 @@ class WarehouseScanningController extends Controller
             $decoded = json_decode($locationCode, true);
             if (isset($decoded['location_code'])) {
                 $locationCode = $decoded['location_code'];
+            } elseif (isset($decoded['location'])) {
+                $locationCode = $decoded['location'];
+            } elseif (isset($decoded['code'])) {
+                $locationCode = $decoded['code'];
             }
         }
 

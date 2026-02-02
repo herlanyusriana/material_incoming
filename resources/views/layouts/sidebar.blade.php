@@ -242,14 +242,17 @@
                 </div>
             @endcan
 
+            @php
+                $productionActive = request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*');
+            @endphp
             @can('view_production')
                 <div>
                     <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Production
                     </div>
                     <div class="space-y-1">
-                        <details class="group" {{ request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*') ? 'open' : '' }}>
-                            <summary class="list-none cursor-pointer">
-                                <div @class([$navLinkBase, $navActive => request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'), $navInactive => !(request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'))])>
+                        <details class="group" {{ $productionActive ? 'open' : '' }}>
+                            <summary class="list-none cursor-pointer" title="Production">
+                                <div @class([$navLinkBase, $navActive => $productionActive, $navInactive => !$productionActive])>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -835,11 +838,11 @@
                 <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
                     x-show="!sidebarCollapsed" x-cloak>Production</div>
 
-                <details class="group" {{ request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*') ? 'open' : '' }}
+                <details class="group" {{ $productionActive ? 'open' : '' }}
                     x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
                     <summary class="list-none cursor-pointer" title="Production"
                         :class="sidebarCollapsed ? 'flex justify-center' : ''">
-                        <div @class([$navLinkBase, $navActive => request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'), $navInactive => !(request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'))]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <div @class([$navLinkBase, $navActive => $productionActive, $navInactive => !$productionActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
