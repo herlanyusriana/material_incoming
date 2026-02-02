@@ -574,18 +574,22 @@
                 .replace(/'/g, '&#039;');
         }
 
-	        function buildPartOptions(vendorId, groupTitle = '', partId = null) {
-	            if (!vendorId) {
-	                return '<option value="">Select vendor first</option>';
-	            }
-	            if (!partsCache[vendorId]) {
-	                return '<option value="">Loading parts...</option>';
-	            }
-            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
-            const sourceList = partsCache[vendorId] || [];
-            const filteredList = normalizedTitle
-                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
-                : sourceList;
+		        function buildPartOptions(vendorId, groupTitle = '', partId = null) {
+		            if (!vendorId) {
+		                return '<option value="">Select vendor first</option>';
+		            }
+		            if (!partsCache[vendorId]) {
+		                return '<option value="">Loading parts...</option>';
+		            }
+	            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+                if (!normalizedTitle) {
+                    // Prevent rendering huge option lists when no group is selected.
+                    return '<option value="">Select material group first</option>';
+                }
+	            const sourceList = partsCache[vendorId] || [];
+	            const filteredList = normalizedTitle
+	                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
+	                : sourceList;
             const options = filteredList
                 .map(p => {
                     const displaySize = (p.size || p.register_no || '').trim();
@@ -599,16 +603,20 @@
 	            return `<option value="">Select Size</option>${options}`;
 	        }
 
-	        function getPartsForGroup(vendorId, groupTitle = '') {
-	            if (!vendorId || !partsCache[vendorId]) {
-	                return [];
-	            }
-	            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
-	            const sourceList = partsCache[vendorId] || [];
-	            return normalizedTitle
-	                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
-	                : sourceList;
-	        }
+		        function getPartsForGroup(vendorId, groupTitle = '') {
+		            if (!vendorId || !partsCache[vendorId]) {
+		                return [];
+		            }
+		            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+                    if (!normalizedTitle) {
+                        // Avoid returning the entire vendor catalog (can freeze the page).
+                        return [];
+                    }
+		            const sourceList = partsCache[vendorId] || [];
+		            return normalizedTitle
+		                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
+		                : sourceList;
+		        }
 
 	        function buildSizeOptionsHtml(vendorId, groupTitle = '') {
 	            const list = getPartsForGroup(vendorId, groupTitle);
@@ -901,11 +909,11 @@
                 refreshGroupPartOptions(groupEl);
 	        }
 
-	        function refreshGroupPartOptions(groupEl) {
-	            const vendorId = vendorIdInput.value;
-	            const groupTitle = getGroupTitle(groupEl);
-	            const rows = groupEl.querySelectorAll('.line-row');
-	            rows.forEach((row) => {
+		        function refreshGroupPartOptions(groupEl) {
+		            const vendorId = vendorIdInput.value;
+		            const groupTitle = getGroupTitle(groupEl);
+		            const rows = groupEl.querySelectorAll('.line-row');
+		            rows.forEach((row) => {
 	                const select = row.querySelector('.part-select');
 	                const sizeInput = row.querySelector('.size-autocomplete');
 	                const datalist = row.querySelector('.size-datalist');
@@ -920,12 +928,12 @@
 	                    select.value = '';
 	                    applyPartDefaults(row, vendorId, '');
 	                }
-	                select.disabled = !vendorId || select.options.length <= 1 || select.options[0].textContent === 'No size for selected group';
-	                if (sizeInput) {
-	                    sizeInput.disabled = !vendorId;
-	                }
-	            });
-	        }
+		                select.disabled = !vendorId || select.options.length <= 1 || select.options[0].textContent === 'No size for selected group';
+		                if (sizeInput) {
+		                    sizeInput.disabled = !vendorId || !String(groupTitle || '').trim();
+		                }
+		            });
+		        }
 
 		        function addRowToGroup(groupEl, existing = null) {
 		            const vendorId = vendorIdInput.value;
