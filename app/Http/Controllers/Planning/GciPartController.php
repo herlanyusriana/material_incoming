@@ -13,6 +13,38 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class GciPartController extends Controller
 {
+    public function search(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $classification = $request->query('classification');
+        $limit = (int) $request->query('limit', 20);
+
+        if (mb_strlen($q) < 2 && !$request->has('all')) {
+            return response()->json([]);
+        }
+
+        $query = GciPart::query()
+            ->select(['id', 'part_no', 'part_name', 'model', 'classification'])
+            ->when($classification, function ($qr) use ($classification) {
+                if (is_array($classification)) {
+                    $qr->whereIn('classification', $classification);
+                } else {
+                    $qr->where('classification', $classification);
+                }
+            })
+            ->when($q !== '', function ($qr) use ($q) {
+                $qr->where(function ($inner) use ($q) {
+                    $inner->where('part_no', 'like', '%' . $q . '%')
+                        ->orWhere('part_name', 'like', '%' . $q . '%')
+                        ->orWhere('model', 'like', '%' . $q . '%');
+                });
+            })
+            ->orderBy('part_no')
+            ->limit($limit);
+
+        return response()->json($query->get());
+    }
+
     public function index(Request $request)
     {
         $status = $request->query('status');

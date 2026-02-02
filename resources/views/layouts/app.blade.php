@@ -65,17 +65,22 @@
 	                    }
 	                },
 	                persistSidebar() {
-	                    localStorage.setItem('sidebarCollapsed', JSON.stringify(this.sidebarCollapsed));
+                        const val = JSON.stringify(this.sidebarCollapsed);
+                        if (localStorage.getItem('sidebarCollapsed') !== val) {
+	                        localStorage.setItem('sidebarCollapsed', val);
+                        }
 	                },
 	                toggleSidebar() {
 	                    this.sidebarCollapsed = !this.sidebarCollapsed;
 	                    this.persistSidebar();
 	                },
 	                collapseSidebar() {
+                        if (this.sidebarCollapsed === true) return;
 	                    this.sidebarCollapsed = true;
 	                    this.persistSidebar();
 	                },
 	                expandSidebar() {
+                        if (this.sidebarCollapsed === false) return;
 	                    this.sidebarCollapsed = false;
 	                    this.persistSidebar();
 	                },
@@ -318,7 +323,7 @@
 	            document.addEventListener('DOMContentLoaded', () => {
                     // Initialize Tom Select
                     window.initTomSelect = function(container = document) {
-                        const selects = container instanceof HTMLSelectElement ? [container] : container.querySelectorAll('select:not(.no-search)');
+                        const selects = container instanceof HTMLSelectElement ? [container] : container.querySelectorAll('select:not(.no-search):not([data-remote])');
                         
                         selects.forEach(el => {
                             if (el.tomselect || el.classList.contains('tomselected')) return;
@@ -336,23 +341,77 @@
                         });
                     };
 
+                    window.initRemoteTomSelect = function(el, url, options = {}) {
+                        if (el.tomselect || el.classList.contains('tomselected')) return;
+                        
+                        const classification = el.dataset.classification || '';
+                        
+                        return new TomSelect(el, {
+                            valueField: options.valueField || 'id',
+                            labelField: options.labelField || 'part_no',
+                            searchField: options.searchField || ['part_no', 'part_name', 'model'],
+                            load: function(query, callback) {
+                                if (!query.length) return callback();
+                                const searchUrl = new URL(url, window.location.origin);
+                                searchUrl.searchParams.append('q', query);
+                                if (classification) searchUrl.searchParams.append('classification', classification);
+                                
+                                fetch(searchUrl)
+                                    .then(response => response.json())
+                                    .then(json => {
+                                        callback(json);
+                                    }).catch(() => {
+                                        callback();
+                                    });
+                            },
+                            render: {
+                                option: function(item, escape) {
+                                    return `<div class="py-2 px-3">
+                                        <div class="font-bold text-slate-900">${escape(item.part_no)}</div>
+                                        <div class="text-xs text-slate-500">${escape(item.part_name || '')} ${item.model ? '&bull; ' + escape(item.model) : ''}</div>
+                                    </div>`;
+                                },
+                                item: function(item, escape) {
+                                    return `<div class="font-medium">${escape(item.part_no)} - ${escape(item.part_name || '')}</div>`;
+                                }
+                            },
+                            dropdownParent: 'body',
+                            placeholder: el.getAttribute('placeholder') || 'Type to search...',
+                            allowEmptyOption: true,
+                        });
+                    };
+
                     initTomSelect();
 
                     // Watch for dynamic elements
+                    // Watch for dynamic elements
                     const observer = new MutationObserver((mutations) => {
+                        let needsInit = false;
+                        let syncSelects = new Set();
+
                         mutations.forEach((mutation) => {
                             if (mutation.type === 'childList') {
                                 mutation.addedNodes.forEach((node) => {
                                     if (node.nodeType === 1) { 
-                                        if (node.tagName === 'SELECT') initTomSelect(node);
-                                        else node.querySelectorAll('select').forEach(sel => initTomSelect(sel));
+                                        if (node.tagName === 'SELECT' || node.querySelector('select')) {
+                                            needsInit = true;
+                                        }
                                     }
                                 });
 
                                 // Sync if options changed in an existing tomselect
                                 if (mutation.target.tagName === 'SELECT' && mutation.target.tomselect) {
-                                    mutation.target.tomselect.sync();
+                                    syncSelects.add(mutation.target);
                                 }
+                            }
+                        });
+
+                        if (needsInit) initTomSelect();
+                        syncSelects.forEach(sel => {
+                            if (sel.tomselect) {
+                                // Debounce sync slightly to avoid loops if something is rapidly changing
+                                clearTimeout(sel._ts_sync_timer);
+                                sel._ts_sync_timer = setTimeout(() => sel.tomselect.sync(), 50);
                             }
                         });
                     });

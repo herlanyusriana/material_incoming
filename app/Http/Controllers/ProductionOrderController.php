@@ -59,8 +59,7 @@ class ProductionOrderController extends Controller
 
     public function create()
     {
-        $parts = GciPart::whereIn('classification', ['FG', 'WIP', 'RM'])->get();
-        return view('production.orders.create', compact('parts'));
+        return view('production.orders.create');
     }
 
     public function store(Request $request)

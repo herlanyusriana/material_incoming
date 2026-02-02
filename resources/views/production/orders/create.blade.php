@@ -15,13 +15,19 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Part (FG/WIP)</label>
-                    <select name="gci_part_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                        <option value="">Select Part</option>
-                        @foreach($parts as $part)
-                            <option value="{{ $part->id }}">{{ $part->part_no }} - {{ $part->part_name }}</option>
-                        @endforeach
-                    </select>
+                    <select id="part_select" name="gci_part_id" data-remote="true" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required></select>
                 </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const sel = document.getElementById('part_select');
+                        if (window.initRemoteTomSelect) {
+                            window.initRemoteTomSelect(sel, "{{ route('gci-parts.search') }}", {
+                                placeholder: 'Search for part number or name...'
+                            });
+                        }
+                    });
+                </script>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
