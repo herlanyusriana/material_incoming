@@ -126,7 +126,7 @@ class WarehouseLocationController extends Controller
             $payload = WarehouseLocation::buildPayload($location->location_code, $location->class, $location->zone);
         }
 
-        $qrSvg = QrSvg::make($payload, 260, 0);
+        $qrSvg = QrSvg::make($payload, 360, 0);
 
         return view('inventory.location_qr', compact('location', 'qrSvg', 'payload'));
     }
@@ -171,7 +171,7 @@ class WarehouseLocationController extends Controller
             return [
                 'location' => $location,
                 'payload' => $payload,
-                'qrSvg' => QrSvg::make($payload, 260, 0),
+                'qrSvg' => QrSvg::make($payload, 360, 0),
             ];
         })->all();
 

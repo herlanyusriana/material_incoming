@@ -30,7 +30,7 @@ class BarcodeLabelController extends Controller
             'classification' => (string) ($part->classification ?? ''),
         ];
         $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: (string) $barcode;
-        $qrSvg = QrSvg::make($payloadString, 160, 0);
+        $qrSvg = QrSvg::make($payloadString, 320, 0);
 
         return view('warehouse.labels.part_label', compact('part', 'barcodeImage', 'barcode', 'qrSvg', 'batch'));
     }
@@ -69,7 +69,7 @@ class BarcodeLabelController extends Controller
                 'barcode' => $barcode,
                 'batch' => $batch,
                 'barcodeImage' => base64_encode($generator->getBarcode($barcode, $generator::TYPE_CODE_128)),
-                'qrSvg' => QrSvg::make($payloadString, 160, 0),
+                'qrSvg' => QrSvg::make($payloadString, 320, 0),
             ];
         }
 

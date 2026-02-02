@@ -140,6 +140,13 @@
                 </div>
             </div>
 
+            <!-- Code128 Barcode -->
+            <div style="width: 100%; text-align: center; margin-top: 2mm;">
+                <img src="data:image/png;base64,{{ $barcodeImage }}" 
+                     style="max-width: 80mm; height: auto; image-rendering: crisp-edges;" 
+                     alt="Barcode">
+            </div>
+
             <!-- Footer / Extra Info -->
             <div style="position: absolute; bottom: 2mm; right: 6mm; text-align: right;">
                 <p
