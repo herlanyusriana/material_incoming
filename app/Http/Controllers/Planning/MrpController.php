@@ -574,6 +574,7 @@ class MrpController extends Controller
     private function syncProductionOrdersFromMrpRun(MrpRun $run, string $planDate, ?int $userId): array
     {
         $periodKey = preg_replace('/[^0-9A-Za-z]/', '', (string) $run->period);
+        $hasQtyRejected = Schema::hasColumn('production_orders', 'qty_rejected');
 
         $qtyCols = [];
         if (Schema::hasColumn('mrp_production_plans', 'planned_order_rec')) {
@@ -637,7 +638,7 @@ class MrpController extends Controller
 
             if ($existing) {
                 if (in_array((string) $existing->status, ['draft', 'planned'], true)) {
-                    $existing->update([
+                    $updatePayload = [
                         'gci_part_id' => $partId,
                         'plan_date' => $planDate,
                         'qty_planned' => $qtyPlanned,
@@ -645,13 +646,18 @@ class MrpController extends Controller
                         'mrp_run_id' => $run->id,
                         'mrp_period' => $run->period,
                         'mrp_generated' => true,
-                    ]);
+                    ];
+                    // Some environments use qty_rejected instead of qty_ng and may not have a DB default.
+                    if ($hasQtyRejected) {
+                        $updatePayload['qty_rejected'] = (float) ($existing->qty_rejected ?? 0);
+                    }
+                    $existing->update($updatePayload);
                     $updated++;
                 }
                 continue;
             }
 
-            ProductionOrder::create([
+            $createPayload = [
                 'production_order_number' => $orderNo,
                 'gci_part_id' => $partId,
                 'plan_date' => $planDate,
@@ -663,7 +669,13 @@ class MrpController extends Controller
                 'mrp_generated' => true,
                 'qty_actual' => 0,
                 'created_by' => $userId,
-            ]);
+            ];
+            // Some environments use qty_rejected instead of qty_ng and may not have a DB default.
+            if ($hasQtyRejected) {
+                $createPayload['qty_rejected'] = 0;
+            }
+
+            ProductionOrder::create($createPayload);
 
             $created++;
         }
