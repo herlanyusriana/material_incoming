@@ -34,7 +34,7 @@
                 </div>
                 <div>
                     <div class="text-sm font-semibold text-slate-900 leading-5">Geum Cheon Indo</div>
-                    <div class="text-xs text-slate-500">Material incoming</div>
+                    <div class="text-xs text-slate-500">Smart Application System</div>
                 </div>
             </div>
             <button type="button"
