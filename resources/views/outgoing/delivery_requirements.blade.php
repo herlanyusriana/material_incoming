@@ -36,6 +36,13 @@
                         View
                     </button>
                 </form>
+                
+                @if(isset($sortBy))
+                    <div class="text-xs text-slate-500">
+                        Sorted by: <span class="font-semibold text-slate-700">{{ ucfirst($sortBy) }}</span>
+                        ({{ $sortDir === 'asc' ? '↑ Ascending' : '↓ Descending' }})
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -49,16 +56,49 @@
                 <table class="w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
+                                @php
+                                    $sortDir = $sortDir ?? 'asc';
+                                    $sortBy = $sortBy ?? 'date';
+                                    $makeSort = function($column) use ($sortBy, $sortDir, $dateFrom, $dateTo) {
+                                        $newDir = ($sortBy === $column && $sortDir === 'asc') ? 'desc' : 'asc';
+                                        return route('outgoing.delivery-requirements', [
+                                            'date_from' => $dateFrom->toDateString(),
+                                            'date_to' => $dateTo->toDateString(),
+                                            'sort_by' => $column,
+                                            'sort_dir' => $newDir
+                                        ]);
+                                    };
+                                    $sortIcon = function($column) use ($sortBy, $sortDir) {
+                                        if ($sortBy !== $column) return '↕';
+                                        return $sortDir === 'asc' ? '↑' : '↓';
+                                    };
+                                @endphp
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">#</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Del Class</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Trolley</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Seq</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Part Details</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <a href="{{ $makeSort('date') }}" class="text-slate-500 hover:text-slate-700">
+                                        Date {!! $sortIcon('date') !!}
+                                    </a>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <a href="{{ $makeSort('customer') }}" class="text-slate-500 hover:text-slate-700">
+                                        Customer {!! $sortIcon('customer') !!}
+                                    </a>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <a href="{{ $makeSort('sequence') }}" class="text-slate-500 hover:text-slate-700">
+                                        Seq {!! $sortIcon('sequence') !!}
+                                    </a>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <a href="{{ $makeSort('part') }}" class="text-slate-500 hover:text-slate-700">
+                                        Part Details {!! $sortIcon('part') !!}
+                                    </a>
+                                </th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Total Qty</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Std Packing</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Load (Packs)</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Delivery Pack Qty</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -79,7 +119,16 @@
                                         <div class="text-[10px] text-slate-500 font-bold uppercase">{{ $req->customer->code ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3 font-mono text-sm text-center">
-                                        {{ $req->sequence ?? '-' }}
+                                        @if(isset($req->sequences_consolidated) && count($req->sequences_consolidated) > 1)
+                                            <span class="inline-flex items-center gap-1">
+                                                <span class="font-bold">{{ $req->sequence }}</span>
+                                                <span class="text-[10px] text-slate-500" title="Consolidated from sequences: {{ implode(', ', $req->sequences_consolidated) }}">
+                                                    ({{ count($req->sequences_consolidated) }}×)
+                                                </span>
+                                            </span>
+                                        @else
+                                            {{ $req->sequence ?? '-' }}
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="text-slate-600 font-medium">{{ $req->gci_part->part_name ?? '-' }}</div>
@@ -98,7 +147,10 @@
                                         {{ number_format($req->packing_std) }} {{ $req->uom }}
                                     </td>
                                     <td class="px-4 py-3 text-right font-bold text-indigo-700">
-                                        {{ number_format($req->packing_load) }} Packs
+                                        <div>{{ number_format($req->delivery_pack_qty ?? $req->total_qty) }} {{ $req->uom }}</div>
+                                        <div class="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                            {{ number_format($req->packing_load ?? 0) }} Packs × {{ number_format($req->packing_std) }}
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

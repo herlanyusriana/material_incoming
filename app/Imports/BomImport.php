@@ -231,7 +231,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
                 ['part_no' => $wipPartNo],
                 [
                     'customer_id' => $fg->customer_id,
-                    'part_name' => $wipPartName ?: ($processName ?: 'AUTO-CREATED WIP'),
+                    'part_name' => $wipPartName ?: ($processName ?: $wipPartNo),
                     'classification' => 'WIP',
                     'status' => 'active',
                 ]
@@ -244,7 +244,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
                 ['part_no' => $rmPartNo],
                 [
                     'customer_id' => $fg->customer_id,
-                    'part_name' => $materialName ?: 'AUTO-CREATED RM',
+                    'part_name' => $materialName ?: $rmPartNo,
                     'classification' => 'RM',
                     'status' => 'active',
                 ]

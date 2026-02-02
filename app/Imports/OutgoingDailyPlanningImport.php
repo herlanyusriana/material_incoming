@@ -233,7 +233,7 @@ class OutgoingDailyPlanningImport implements ToCollection
                             // Auto-create GCI Part as fallback
                             $gciPart = GciPart::create([
                                 'part_no' => $partNo,
-                                'part_name' => 'AUTO-CREATED IMPORT',
+                                'part_name' => $partNo,
                                 'classification' => 'FG',
                                 'status' => 'active',
                             ]);
@@ -247,7 +247,7 @@ class OutgoingDailyPlanningImport implements ToCollection
                         // Auto-create GCI Part
                         $gciPart = GciPart::create([
                             'part_no' => $partNo,
-                            'part_name' => 'AUTO-CREATED IMPORT',
+                            'part_name' => $partNo,
                             'classification' => 'FG',
                             'status' => 'active',
                         ]);

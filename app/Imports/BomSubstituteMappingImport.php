@@ -102,9 +102,10 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             $subPart = $this->findGciPartByPartNo($subPartNo);
             if ($this->autoCreateParts) {
                 if (!$subPart) {
+                    // BUGFIX: Use part_no as fallback instead of generic 'AUTO-CREATED (SUBSTITUTE)'
                     $subPart = GciPart::query()->create([
                         'part_no' => $subPartNo,
-                        'part_name' => $row['substitute_part_name'] ?: 'AUTO-CREATED (SUBSTITUTE)',
+                        'part_name' => !empty($row['substitute_part_name']) ? $row['substitute_part_name'] : $subPartNo,
                         'classification' => 'RM',
                         'status' => 'active',
                     ]);

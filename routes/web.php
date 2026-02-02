@@ -90,6 +90,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
+    Route::get('/inventory/receives/search', [InventoryController::class, 'searchReceives'])->name('inventory.receives.search');
     Route::get('/inventory/gci', [GciInventoryController::class, 'index'])->name('inventory.gci.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');

@@ -18,15 +18,23 @@
 
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="flex flex-wrap items-end justify-between gap-3">
-                    <form method="GET" class="flex flex-wrap items-end gap-3">
-                        <div>
-                            <label class="text-xs font-semibold text-slate-600">Part</label>
-                            <select name="part_id" class="mt-1 rounded-xl border-slate-200">
-                                <option value="">All</option>
-                                @foreach ($parts as $p)
-                                    <option value="{{ $p->id }}" @selected((string) $partId === (string) $p->id)>{{ $p->part_no }} — {{ $p->part_name_gci }}</option>
-                                @endforeach
-                            </select>
+                    <form method="GET" class="flex flex-wrap items-end gap-3" id="filterForm">
+                        <!-- Live Search with Autocomplete -->
+                        <div class="relative" style="min-width: 300px;">
+                            <label class="text-xs font-semibold text-slate-600">Search</label>
+                            <input 
+                                type="text" 
+                                id="searchInput"
+                                name="search"
+                                value="{{ request('search', '') }}"
+                                placeholder="Part No, Name, Tag, or Invoice..."
+                                class="mt-1 rounded-xl border-slate-200 w-full"
+                                autocomplete="off"
+                            >
+                            <!-- Suggestions Dropdown -->
+                            <div id="suggestions" class="absolute z-10 hidden w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                <!-- Populated by JavaScript -->
+                            </div>
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Status</label>
@@ -36,7 +44,10 @@
                                 <option value="reject" @selected($qcStatus === 'reject')>No Good</option>
                             </select>
                         </div>
-                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        @if(request('search') || request('qc_status'))
+                            <a href="{{ route('inventory.receives') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">Clear</a>
+                        @endif
                     </form>
 
                     <a href="{{ route('inventory.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">
@@ -126,4 +137,101 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (function() {
+            const searchInput = document.getElementById('searchInput');
+            const suggestionsBox = document.getElementById('suggestions');
+            let debounceTimer;
+            let currentFocus = -1;
+
+            // Debounced search
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    suggestionsBox.classList.add('hidden');
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`{{ route('inventory.receives.search') }}?q=${encodeURIComponent(query)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.length === 0) {
+                                suggestionsBox.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">No results found</div>';
+                                suggestionsBox.classList.remove('hidden');
+                                return;
+                            }
+
+                            suggestionsBox.innerHTML = data.map((item, idx) => `
+                                <div class="suggestion-item px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0" data-index="${idx}">
+                                    <div class="font-semibold text-sm text-slate-900">${item.part_no}</div>
+                                    <div class="text-xs text-slate-600">${item.part_name}</div>
+                                    <div class="text-xs text-slate-500 mt-1">
+                                        <span class="font-mono">${item.tag}</span> • 
+                                        <span>${item.invoice_no}</span> • 
+                                        <span class="font-mono">${item.location_code}</span>
+                                    </div>
+                                </div>
+                            `).join('');
+                            
+                            suggestionsBox.classList.remove('hidden');
+                            currentFocus = -1;
+
+                            // Click handlers
+                            document.querySelectorAll('.suggestion-item').forEach(el => {
+                                el.addEventListener('click', function() {
+                                    const idx = parseInt(this.dataset.index);
+                                    const selected = data[idx];
+                                    searchInput.value = selected.part_no;
+                                    suggestionsBox.classList.add('hidden');
+                                    document.getElementById('filterForm').submit();
+                                });
+                            });
+                        })
+                        .catch(err => console.error('Search error:', err));
+                }, 300);
+            });
+
+            // Keyboard navigation
+            searchInput.addEventListener('keydown', function(e) {
+                const items = suggestionsBox.querySelectorAll('.suggestion-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentFocus++;
+                    if (currentFocus >= items.length) currentFocus = 0;
+                    setActive(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentFocus--;
+                    if (currentFocus < 0) currentFocus = items.length - 1;
+                    setActive(items);
+                } else if (e.key === 'Enter' && currentFocus > -1) {
+                    e.preventDefault();
+                    items[currentFocus].click();
+                }
+            });
+
+            function setActive(items) {
+                items.forEach((item, idx) => {
+                    if (idx === currentFocus) {
+                        item.classList.add('bg-slate-100');
+                    } else {
+                        item.classList.remove('bg-slate-100');
+                    }
+                });
+            }
+
+            // Close suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                    suggestionsBox.classList.add('hidden');
+                }
+            });
+        })();
+    </script>
 </x-app-layout>

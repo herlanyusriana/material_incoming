@@ -299,6 +299,16 @@ class OutgoingController extends Controller
             [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
         }
 
+        // Sorting parameters
+        $sortBy = $request->query('sort_by', 'date'); // date, customer, part, sequence
+        $sortDir = $request->query('sort_dir', 'asc'); // asc, desc
+        if (!in_array($sortBy, ['date', 'customer', 'part', 'sequence'], true)) {
+            $sortBy = 'date';
+        }
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'asc';
+        }
+
         // Best-effort: backfill missing gci_part_id for rows that have demand in this date range.
         $rowIdsNeedingFix = OutgoingDailyPlanCell::query()
             ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
@@ -412,23 +422,32 @@ class OutgoingController extends Controller
             return (float) ($rec->{'day_' . $day} ?? 0);
         };
 
+        // Consolidate: Group by Date + Customer + Part (ignore sequence for true consolidation)
         $lines = $cells->groupBy(function ($cell) {
-            // Group key: Date|Part|Seq
-            // Keep seq in the key so aggregated requirements don't "inherit" the wrong sequence
-            // when the same part appears under different seq in Daily Planning.
             $date = $cell->plan_date->format('Y-m-d');
-            $partKey = $cell->row->gci_part_id
-                ? ('gci:' . $cell->row->gci_part_id)
-                : ('raw:' . (string) ($cell->row->part_no ?? ''));
-
-            $seq = $cell->seq !== null && $cell->seq !== '' ? (int) $cell->seq : 9999;
-            return "{$date}|{$partKey}|seq:{$seq}";
+            $custId = (int) ($cell->row?->gciPart?->customer_id ?? 0);
+            $partId = (int) ($cell->row?->gci_part_id ?? 0);
+            return "{$date}|cust:{$custId}|part:{$partId}";
         })->map(function ($group) {
             $first = $group->first();
-
             $gciPart = $first->row->gciPart ?? null;
 
-            $sequence = $first->seq !== null && $first->seq !== '' ? (int) $first->seq : 9999;
+            // Collect all unique sequences from consolidated cells
+            $sequences = $group
+                ->map(fn($c) => $c->seq !== null && $c->seq !== '' ? (int) $c->seq : null)
+                ->filter(fn($s) => $s !== null)
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+            $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+
+            $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+            $packingQty = (float) ($gciPart?->standardPacking?->packing_qty ?? 1) ?: 1;
+            
+            // Calculate delivery packing standard quantity (rounded up to full packs)
+            $packsNeeded = ceil($grossQty / $packingQty);
+            $deliveryPackQty = $packsNeeded * $packingQty;
 
             return (object) [
                 'date' => $first->plan_date,
@@ -436,10 +455,13 @@ class OutgoingController extends Controller
                 'gci_part' => $gciPart,
                 'customer_part_no' => $first->row->part_no,
                 'unmapped' => $gciPart === null,
-                'gross_qty' => $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0)),
-                'sequence' => $sequence,
-                'packing_std' => ($gciPart?->standardPacking?->packing_qty ?? 1) ?: 1,
+                'gross_qty' => $grossQty,
+                'sequence' => $primarySequence,
+                'sequences_consolidated' => $sequences, // All sequences consolidated
+                'packing_std' => $packingQty,
                 'uom' => $gciPart?->standardPacking?->uom ?? 'PCS',
+                'delivery_pack_qty' => $deliveryPackQty, // Delivery packing standard quantity
+                'packs_needed' => $packsNeeded,
                 'source_row_ids' => $group->pluck('row_id')->unique()->values(),
             ];
         })->filter()->values();
@@ -479,29 +501,68 @@ class OutgoingController extends Controller
                     $r->stock_used = $used;
                     $r->total_qty = max(0, $gross - $used);
 
+                    // Recalculate delivery pack qty after stock deduction
                     $packQty = (float) ($r->packing_std ?? 1);
                     $packQty = $packQty > 0 ? $packQty : 1;
-                    $r->packing_load = $packQty > 0 ? (int) ceil(((float) $r->total_qty) / $packQty) : 0;
+                    $r->packing_load = (int) ceil(((float) $r->total_qty) / $packQty);
+                    $r->delivery_pack_qty = $r->packing_load * $packQty;
                 }
 
                 return $sorted;
             })
             ->filter(fn($r) => (float) ($r->total_qty ?? 0) > 0)
-            ->sort(function ($a, $b) {
-                // Sort by Date then Sequence
-                if ($a->date->ne($b->date)) {
-                    return $a->date->gt($b->date) ? 1 : -1;
+            ->sort(function ($a, $b) use ($sortBy, $sortDir) {
+                $result = 0;
+                
+                switch ($sortBy) {
+                    case 'customer':
+                        $result = strcmp(
+                            (string) ($a->customer?->name ?? ''),
+                            (string) ($b->customer?->name ?? '')
+                        );
+                        break;
+                    case 'part':
+                        $result = strcmp(
+                            (string) ($a->gci_part?->part_no ?? ''),
+                            (string) ($b->gci_part?->part_no ?? '')
+                        );
+                        break;
+                    case 'sequence':
+                        $result = ($a->sequence ?? 9999) <=> ($b->sequence ?? 9999);
+                        break;
+                    case 'date':
+                    default:
+                        if ($a->date->ne($b->date)) {
+                            $result = $a->date->gt($b->date) ? 1 : -1;
+                        }
+                        break;
                 }
-                $seqCmp = ($a->sequence ?? 9999) <=> ($b->sequence ?? 9999);
-                if ($seqCmp !== 0) {
-                    return $seqCmp;
+                
+                // Apply sort direction
+                if ($sortDir === 'desc') {
+                    $result = -$result;
+                }
+                
+                // Secondary sort by date if primary sort is not date
+                if ($result === 0 && $sortBy !== 'date') {
+                    if ($a->date->ne($b->date)) {
+                        return $a->date->gt($b->date) ? 1 : -1;
+                    }
+                }
+                
+                // Tertiary sort by sequence as default
+                if ($result === 0) {
+                    $seqCmp = ($a->sequence ?? 9999) <=> ($b->sequence ?? 9999);
+                    if ($seqCmp !== 0) {
+                        return $seqCmp;
+                    }
                 }
 
-                return strcmp((string) ($a->gci_part?->part_no ?? ''), (string) ($b->gci_part?->part_no ?? ''));
+                return $result;
             })
             ->values();
 
-        return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo'));
+        return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo', 'sortBy', 'sortDir'));
     }
 
     public function generateSoBulk(Request $request)
@@ -1373,9 +1434,10 @@ class OutgoingController extends Controller
             return (int) $gciPart->id;
         }
 
+        // Second: try customer part mapping (removed status filter to read all mappings)
         $customerPart = CustomerPart::query()
             ->where('customer_part_no', $partNo)
-            ->where('status', 'active')
+            // BUGFIX: Removed ->where('status', 'active') to allow all customer parts
             ->with([
                 'components.part' => function ($q) {
                     $q->where('classification', 'FG');
@@ -1397,7 +1459,7 @@ class OutgoingController extends Controller
 
         $created = GciPart::create([
             'part_no' => $partNo,
-            'part_name' => 'AUTO-CREATED (DAILY PLAN)',
+            'part_name' => $partNo,
             'classification' => 'FG',
             'status' => 'active',
         ]);

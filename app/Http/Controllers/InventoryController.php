@@ -35,6 +35,7 @@ class InventoryController extends Controller
     {
         $partId = $request->query('part_id');
         $qcStatus = $request->query('qc_status');
+        $search = trim((string) $request->query('search', ''));
 
         $parts = Part::query()->orderBy('part_no')->get();
 
@@ -42,6 +43,19 @@ class InventoryController extends Controller
             ->with(['arrivalItem.part', 'arrivalItem.arrival'])
             ->when($partId, fn ($q) => $q->whereHas('arrivalItem', fn ($qq) => $qq->where('part_id', $partId)))
             ->when($qcStatus, fn ($q) => $q->where('qc_status', $qcStatus))
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('tag', 'like', '%' . $search . '%')
+                        ->orWhereHas('arrivalItem', function ($qqq) use ($search) {
+                            $qqq->where('invoice_no', 'like', '%' . $search . '%')
+                                ->orWhereHas('part', function ($qqqq) use ($search) {
+                                    $qqqq->where('part_no', 'like', '%' . $search . '%')
+                                        ->orWhere('part_name_gci', 'like', '%' . $search . '%')
+                                        ->orWhere('part_name_vendor', 'like', '%' . $search . '%');
+                                });
+                        });
+                });
+            })
             ->latest()
             ->paginate(25)
             ->withQueryString();
@@ -113,5 +127,45 @@ class InventoryController extends Controller
         Excel::import(new InventoryImport(), $validated['file']);
 
         return back()->with('success', 'Inventory imported.');
+    }
+
+    public function searchReceives(Request $request)
+    {
+        $query = trim((string) $request->query('q', ''));
+        
+        if ($query === '') {
+            return response()->json([]);
+        }
+
+        $receives = Receive::query()
+            ->with(['arrivalItem.part', 'arrivalItem.arrival'])
+            ->where(function ($q) use ($query) {
+                $q->where('tag', 'like', '%' . $query . '%')
+                    ->orWhereHas('arrivalItem', function ($qq) use ($query) {
+                        $qq->where('invoice_no', 'like', '%' . $query . '%')
+                            ->orWhereHas('part', function ($qqq) use ($query) {
+                                $qqq->where('part_no', 'like', '%' . $query . '%')
+                                    ->orWhere('part_name_gci', 'like', '%' . $query . '%')
+                                    ->orWhere('part_name_vendor', 'like', '%' . $query . '%');
+                            });
+                    });
+            })
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(function ($receive) {
+                $part = $receive->arrivalItem?->part;
+                $arrival = $receive->arrivalItem?->arrival;
+                return [
+                    'id' => $receive->id,
+                    'tag' => $receive->tag,
+                    'part_no' => $part?->part_no ?? '-',
+                    'part_name' => $part?->part_name_gci ?? $part?->part_name_vendor ?? '-',
+                    'invoice_no' => $arrival?->invoice_no ?? '-',
+                    'location_code' => $receive->location_code ?? '-',
+                ];
+            });
+
+        return response()->json($receives);
     }
 }
