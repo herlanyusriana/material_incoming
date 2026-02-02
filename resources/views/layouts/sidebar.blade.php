@@ -281,21 +281,20 @@
                                 </a>
                             </div>
                         </details>
-
-                        <div class="mt-4 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-[11px] text-slate-500">
-                            <div class="mb-1 font-semibold text-[10px] uppercase tracking-wider text-slate-400">Production Flow</div>
-                            <ol class="list-decimal list-inside space-y-0.5 text-[12px] text-slate-600">
-                                <li>Production Orders</li>
-                                <li>Work Order &amp; Kanban Release</li>
-                                <li>Material Availability</li>
-                                <li>Start Production</li>
-                                <li>QC Inspection</li>
-                                <li>Mass Production</li>
-                                <li>In-Process Inspection</li>
-                                <li>Finish Production</li>
-                                <li>Final Inspection → Kanban Update &amp; Inventory</li>
-                            </ol>
-                        </div>
+                    </div>
+                    <div class="mt-4 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-[11px] text-slate-500">
+                        <div class="mb-1 font-semibold text-[10px] uppercase tracking-wider text-slate-400">Production Flow</div>
+                        <ol class="list-decimal list-inside space-y-0.5 text-[12px] text-slate-600">
+                            <li>Production Orders</li>
+                            <li>Work Order &amp; Kanban Release</li>
+                            <li>Material Availability</li>
+                            <li>Start Production</li>
+                            <li>QC Inspection</li>
+                            <li>Mass Production</li>
+                            <li>In-Process Inspection</li>
+                            <li>Finish Production</li>
+                            <li>Final Inspection → Kanban Update &amp; Inventory</li>
+                        </ol>
                     </div>
                 </div>
             @endcan
