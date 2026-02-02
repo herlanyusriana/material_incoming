@@ -9,9 +9,45 @@ use App\Imports\PartsImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class PartController extends Controller
 {
+    public function search(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $limit = (int) $request->query('limit', 20);
+        if ($limit < 5) {
+            $limit = 5;
+        }
+        if ($limit > 50) {
+            $limit = 50;
+        }
+
+        // Avoid returning huge datasets (and freezing the UI) when user hasn't typed a query.
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $inStock = $request->boolean('in_stock');
+
+        $query = Part::query()
+            ->select(['id', 'part_no', 'register_no', 'part_name_gci', 'part_name_vendor'])
+            ->when($inStock, function ($qr) {
+                $qr->whereHas('locationInventory', fn ($q) => $q->where('qty_on_hand', '>', 0));
+            })
+            ->where(function ($qr) use ($q) {
+                $qr->where('part_no', 'like', '%' . $q . '%')
+                    ->orWhere('register_no', 'like', '%' . $q . '%')
+                    ->orWhere('part_name_gci', 'like', '%' . $q . '%')
+                    ->orWhere('part_name_vendor', 'like', '%' . $q . '%');
+            })
+            ->orderBy('part_no')
+            ->limit($limit);
+
+        return response()->json($query->get());
+    }
+
     public function index(Request $request)
     {
         $vendorId = $request->query('vendor_id');
@@ -196,13 +232,73 @@ class PartController extends Controller
         return redirect()->route('parts.index')->with('status', 'Part deleted.');
     }
 
-    public function byVendor(Vendor $vendor)
+    public function byVendor(Request $request, Vendor $vendor)
     {
-        $parts = Part::where('vendor_id', $vendor->id)
-            ->where('status', 'active')
-            ->orderBy('part_no')
-            ->get(['id', 'part_no', 'register_no', 'part_name_vendor', 'part_name_gci']);
+        $mode = strtolower(trim((string) $request->query('mode', 'parts')));
+        $q = trim((string) $request->query('q', ''));
+        $groupTitle = trim((string) $request->query('group_title', ''));
+        $limit = (int) $request->query('limit', 200);
+        if ($limit < 10) {
+            $limit = 10;
+        }
+        if ($limit > 500) {
+            $limit = 500;
+        }
 
+        if ($mode === 'names') {
+            $base = Part::query()
+                ->where('vendor_id', $vendor->id)
+                ->whereNotNull('part_name_vendor')
+                ->whereRaw("TRIM(part_name_vendor) <> ''")
+                ->when($q !== '', function ($qr) use ($q) {
+                    $qr->where('part_name_vendor', 'like', '%' . $q . '%');
+                })
+                ->select(DB::raw('TRIM(part_name_vendor) as part_name_vendor'))
+                ->distinct()
+                ->orderBy(DB::raw('TRIM(part_name_vendor)'));
+
+            $total = (clone $base)->count();
+            $names = (clone $base)->limit($limit)->pluck('part_name_vendor')->all();
+
+            return response()->json([
+                'names' => $names,
+                'total' => $total,
+                'limit' => $limit,
+                'truncated' => $total > $limit,
+            ]);
+        }
+
+        $base = Part::query()
+            ->where('vendor_id', $vendor->id)
+            ->where('status', 'active')
+            ->when($groupTitle !== '', function ($qr) use ($groupTitle) {
+                // Case-insensitive exact match by normalized title.
+                $qr->whereRaw('UPPER(TRIM(part_name_vendor)) = UPPER(?)', [$groupTitle]);
+            })
+            ->when($q !== '', function ($qr) use ($q) {
+                $qr->where(function ($inner) use ($q) {
+                    $inner->where('part_no', 'like', '%' . $q . '%')
+                        ->orWhere('register_no', 'like', '%' . $q . '%')
+                        ->orWhere('part_name_vendor', 'like', '%' . $q . '%')
+                        ->orWhere('part_name_gci', 'like', '%' . $q . '%');
+                });
+            })
+            ->orderBy('part_no')
+            ->select(['id', 'part_no', 'register_no', 'part_name_vendor', 'part_name_gci']);
+
+        $total = (clone $base)->count();
+        $parts = (clone $base)->limit($limit)->get();
+
+        if ($request->boolean('meta')) {
+            return response()->json([
+                'parts' => $parts,
+                'total' => $total,
+                'limit' => $limit,
+                'truncated' => $total > $limit,
+            ]);
+        }
+
+        // Backward-compat: keep returning a plain array for existing pages.
         return response()->json($parts);
     }
 }
