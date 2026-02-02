@@ -606,9 +606,10 @@ class MrpController extends Controller
             return ['created' => 0, 'updated' => 0];
         }
 
+        // Production orders generated from MRP should only be for finished goods (FG).
         $allowedPartIds = \App\Models\GciPart::query()
             ->whereIn('id', $planRows->pluck('part_id')->all())
-            ->whereIn('classification', ['FG', 'WIP', 'RM'])
+            ->whereIn('classification', ['FG'])
             ->pluck('id')
             ->flip();
 
