@@ -23,7 +23,9 @@ class BomSubstitutesExport implements FromCollection, WithHeadings, WithMapping,
     {
         return [
             'fg_part_no',
+            'fg_part_name',
             'component_part_no',
+            'component_part_name',
             'substitute_part_no',
             'substitute_part_name',
             'ratio',
@@ -38,10 +40,14 @@ class BomSubstitutesExport implements FromCollection, WithHeadings, WithMapping,
         $item = $sub->bomItem;
         $componentPartNo = $item->component_part_no ?: ($item->componentPart?->part_no ?? '');
         $fgPartNo = $item->bom?->part?->part_no ?? '';
+        $fgPartName = $item->bom?->part?->part_name ?? '';
+        $componentPartName = $item->componentPart?->part_name ?? '';
 
         return [
             $fgPartNo,
+            $fgPartName,
             $componentPartNo,
+            $componentPartName,
             $sub->part?->part_no ?? '',
             $sub->part?->part_name ?? '',
             $sub->ratio,
@@ -62,13 +68,15 @@ class BomSubstitutesExport implements FromCollection, WithHeadings, WithMapping,
     {
         return [
             'A' => 20,
-            'B' => 20,
+            'B' => 30,
             'C' => 20,
             'D' => 30,
-            'E' => 10,
-            'F' => 10,
+            'E' => 20,
+            'F' => 30,
             'G' => 10,
-            'H' => 30,
+            'H' => 10,
+            'I' => 10,
+            'J' => 30,
         ];
     }
 }

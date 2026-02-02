@@ -474,7 +474,7 @@
                                 <div>Upload Excel dengan kolom:</div>
                                 <a href="{{ route('planning.boms.substitutes.template') }}" class="text-xs text-blue-600 hover:text-blue-800 underline font-semibold">Download Template</a>
                             </div>
-                            <div class="font-mono text-xs bg-slate-100 p-2 rounded">fg_part_no, component_part_no, substitute_part_no, ratio, priority, status</div>
+	                            <div class="font-mono text-xs bg-slate-100 p-2 rounded">fg_part_no, fg_part_name, component_part_no, component_part_name, substitute_part_no, substitute_part_name, ratio, priority, status</div>
                             <div class="text-xs text-slate-500">Pastikan FG Part No dan Component Part No sesuai untuk mencocokan BOM line yang tepat.</div>
                         </div>
 
@@ -485,11 +485,11 @@
 
                         <div class="flex items-center gap-2">
                             <input type="hidden" name="auto_create_parts" value="0">
-                            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                                <input type="checkbox" name="auto_create_parts" value="1" class="rounded border-slate-300" checked>
-                                Auto-create missing substitute part
-                            </label>
-                        </div>
+	                            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+	                                <input type="checkbox" name="auto_create_parts" value="1" class="rounded border-slate-300">
+	                                Auto-create missing substitute part (optional)
+	                            </label>
+	                        </div>
 
                         <div class="flex justify-end gap-2 pt-2">
                             <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="closeImportSubstitute()">Cancel</button>
@@ -507,17 +507,17 @@
                                     <div>Upload Excel mapping:</div>
                                     <a href="{{ route('planning.boms.substitutes.template-mapping') }}" class="text-xs text-blue-600 hover:text-blue-800 underline font-semibold">Download Template</a>
                                 </div>
-                                <div class="font-mono text-xs bg-slate-100 p-2 rounded">component_part_no, substitute_part_no, supplier, ratio, priority, status</div>
-                                <div class="text-xs text-slate-500">Akan diterapkan ke semua BOM line yang memakai `component_part_no`. Part substitute akan di-auto-create ke GCI Parts (RM) jika belum ada.</div>
-                            </div>
+	                                <div class="font-mono text-xs bg-slate-100 p-2 rounded">component_part_no, component_part_name, substitute_part_no, substitute_part_name, supplier, ratio, priority, status</div>
+	                                <div class="text-xs text-slate-500">Akan diterapkan ke semua BOM line yang memakai `component_part_no`. Disarankan matikan auto-create agar tidak membuat part baru tanpa kontrol.</div>
+	                            </div>
 
                             <div class="flex items-center gap-2">
                                 <input type="hidden" name="auto_create_parts" value="0">
-                                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                                    <input type="checkbox" name="auto_create_parts" value="1" class="rounded border-slate-300" checked>
-                                    Auto-create missing substitute part
-                                </label>
-                            </div>
+	                                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+	                                    <input type="checkbox" name="auto_create_parts" value="1" class="rounded border-slate-300">
+	                                    Auto-create missing substitute part (optional)
+	                                </label>
+	                            </div>
 
                             <div>
                                 <label class="text-sm font-semibold text-slate-700">File</label>

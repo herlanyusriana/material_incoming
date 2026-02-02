@@ -72,7 +72,9 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
 
             $validator = Validator::make($row->toArray(), [
                 'fg_part_no' => ['required', 'string'],
+                'fg_part_name' => ['nullable', 'string', 'max:255'],
                 'component_part_no' => ['required', 'string'],
+                'component_part_name' => ['nullable', 'string', 'max:255'],
                 'substitute_part_no' => ['required', 'string'],
                 'substitute_part_name' => ['nullable', 'string', 'max:255'],
                 'ratio' => ['nullable', 'numeric', 'min:0.0001'],
@@ -133,6 +135,12 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 $this->addFailure($rowIndex, "FG Part not found: $fgPartNo");
                 continue;
             }
+            if (!empty($row['fg_part_name'])) {
+                $fgName = trim((string) $row['fg_part_name']);
+                if ($fgName !== '' && $fgPart->part_name !== $fgName) {
+                    $fgPart->update(['part_name' => $fgName]);
+                }
+            }
             if (!$bom) {
                 $this->addFailure($rowIndex, "BOM not found for FG: $fgPartNo");
                 continue;
@@ -163,6 +171,15 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 $this->addFailure($rowIndex, "BOM line not found for component: $componentPartNo in BOM $fgPartNo");
                 continue;
             }
+            if (!empty($row['component_part_name'])) {
+                $compName = trim((string) $row['component_part_name']);
+                if ($compName !== '') {
+                    $componentPart = $this->findGciPartByPartNo($componentPartNo);
+                    if ($componentPart && $componentPart->part_name !== $compName) {
+                        $componentPart->update(['part_name' => $compName]);
+                    }
+                }
+            }
 
             // 4. Find Substitute Part
             $subPart = $this->findGciPartByPartNo($subPartNo);
@@ -176,10 +193,13 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                         'classification' => 'RM',
                         'status' => 'active',
                     ]);
-                } elseif (!empty($row['substitute_part_name'])) {
-                    $subPart->update([
-                        'part_name' => $row['substitute_part_name']
-                    ]);
+                }
+            }
+            // If substitute exists, always allow updating its name from import (even when auto-create is OFF).
+            if ($subPart && !empty($row['substitute_part_name'])) {
+                $subName = trim((string) $row['substitute_part_name']);
+                if ($subName !== '' && $subPart->part_name !== $subName) {
+                    $subPart->update(['part_name' => $subName]);
                 }
             }
             if (!$subPart) {

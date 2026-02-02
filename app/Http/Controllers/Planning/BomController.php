@@ -195,7 +195,8 @@ class BomController extends Controller
         ]);
 
         try {
-            $import = new BomSubstituteImport((bool) ($validated['auto_create_parts'] ?? true));
+            // Default OFF: avoid creating new parts from import by accident.
+            $import = new BomSubstituteImport((bool) ($validated['auto_create_parts'] ?? false));
             Excel::import($import, $validated['file']);
 
             $failures = collect($import->failures());
@@ -243,7 +244,8 @@ class BomController extends Controller
         ]);
 
         try {
-            $import = new BomSubstituteMappingImport((bool) ($validated['auto_create_parts'] ?? true));
+            // Default OFF: avoid creating new parts from import by accident.
+            $import = new BomSubstituteMappingImport((bool) ($validated['auto_create_parts'] ?? false));
             Excel::import($import, $validated['file']);
 
             $failures = collect($import->failures());
@@ -287,12 +289,24 @@ class BomController extends Controller
             public function array(): array
             {
                 return [
-                    ['FG-001', 'COMP-001', 'SUB-001', 'SUBSTITUTE PART NAME', 1, 1, 'active', 'Optional note'], // Example row
+                    // Example row
+                    ['FG-001', 'FG PART NAME', 'COMP-001', 'COMPONENT PART NAME', 'SUB-001', 'SUBSTITUTE PART NAME', 1, 1, 'active', 'Optional note'],
                 ];
             }
             public function headings(): array
             {
-                return ['fg_part_no', 'component_part_no', 'substitute_part_no', 'substitute_part_name', 'ratio', 'priority', 'status', 'notes'];
+                return [
+                    'fg_part_no',
+                    'fg_part_name',
+                    'component_part_no',
+                    'component_part_name',
+                    'substitute_part_no',
+                    'substitute_part_name',
+                    'ratio',
+                    'priority',
+                    'status',
+                    'notes',
+                ];
             }
         }, 'template_substitutes.xlsx');
     }
@@ -304,12 +318,22 @@ class BomController extends Controller
             {
                 return [
                     // Example row: component (RM) -> substitute (RM), optional supplier + notes
-                    ['5040JA3071C', 'KJPGICBOMG65S', 'PART NAME HERE', 'PT. POSCO - INDONESIA JAKARTA PROCESSING CENTER', 1, 1, 'active', 'from incoming mapping'],
+                    ['5040JA3071C', 'COMPONENT NAME HERE', 'KJPGICBOMG65S', 'SUBSTITUTE NAME HERE', 'PT. POSCO - INDONESIA JAKARTA PROCESSING CENTER', 1, 1, 'active', 'from incoming mapping'],
                 ];
             }
             public function headings(): array
             {
-                return ['component_part_no', 'substitute_part_no', 'substitute_part_name', 'supplier', 'ratio', 'priority', 'status', 'notes'];
+                return [
+                    'component_part_no',
+                    'component_part_name',
+                    'substitute_part_no',
+                    'substitute_part_name',
+                    'supplier',
+                    'ratio',
+                    'priority',
+                    'status',
+                    'notes',
+                ];
             }
         }, 'template_substitute_mapping.xlsx');
     }

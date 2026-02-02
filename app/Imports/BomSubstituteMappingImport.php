@@ -67,6 +67,7 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
 
             $validator = Validator::make($row->toArray(), [
                 'component_part_no' => ['required', 'string'],
+                'component_part_name' => ['nullable', 'string', 'max:255'],
                 'substitute_part_no' => ['required', 'string'],
                 'substitute_part_name' => ['nullable', 'string', 'max:255'],
                 'supplier' => ['nullable', 'string', 'max:255'],
@@ -109,10 +110,13 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
                         'classification' => 'RM',
                         'status' => 'active',
                     ]);
-                } elseif (!empty($row['substitute_part_name'])) {
-                    $subPart->update([
-                        'part_name' => $row['substitute_part_name']
-                    ]);
+                }
+            }
+            // If substitute exists, always allow updating its name from import (even when auto-create is OFF).
+            if ($subPart && !empty($row['substitute_part_name'])) {
+                $subName = trim((string) $row['substitute_part_name']);
+                if ($subName !== '' && $subPart->part_name !== $subName) {
+                    $subPart->update(['part_name' => $subName]);
                 }
             }
 
@@ -126,6 +130,12 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             $componentPartId = $componentPart ? (int) $componentPart->id : 0;
             if ($componentPartId <= 0) {
                 $this->missingComponentParts[$componentPartNo] = true;
+            }
+            if ($componentPart && !empty($row['component_part_name'])) {
+                $compName = trim((string) $row['component_part_name']);
+                if ($compName !== '' && $componentPart->part_name !== $compName) {
+                    $componentPart->update(['part_name' => $compName]);
+                }
             }
 
             $bomItems = BomItem::query()

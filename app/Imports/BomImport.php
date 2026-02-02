@@ -28,6 +28,10 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
     /** @var array<string, true> */
     public array $missingWipParts = [];
 
+    public function __construct(private readonly bool $autoCreateParts = false)
+    {
+    }
+
     private function normalizeMakeOrBuy(?string $value): string
     {
         if ($value === null) {
@@ -227,29 +231,41 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         ];
 
         if ($wipPartNo) {
-            $wip = GciPart::firstOrCreate(
-                ['part_no' => $wipPartNo],
-                [
-                    'customer_id' => $fg->customer_id,
-                    'part_name' => $wipPartName ?: ($processName ?: $wipPartNo),
-                    'classification' => 'WIP',
-                    'status' => 'active',
-                ]
-            );
-            $payload['wip_part_id'] = $wip->id;
+            $wip = $this->getGciPart($wipPartNo);
+            if (!$wip) {
+                $this->missingWipParts[$wipPartNo] = true;
+                if ($this->autoCreateParts) {
+                    $wip = GciPart::query()->create([
+                        'customer_id' => $fg->customer_id,
+                        'part_no' => $wipPartNo,
+                        'part_name' => $wipPartName ?: ($processName ?: $wipPartNo),
+                        'classification' => 'WIP',
+                        'status' => 'active',
+                    ]);
+                }
+            }
+            if ($wip) {
+                $payload['wip_part_id'] = $wip->id;
+            }
         }
 
         if ($rmPartNo) {
-            $rm = GciPart::firstOrCreate(
-                ['part_no' => $rmPartNo],
-                [
-                    'customer_id' => $fg->customer_id,
-                    'part_name' => $materialName ?: $rmPartNo,
-                    'classification' => 'RM',
-                    'status' => 'active',
-                ]
-            );
-            $payload['component_part_id'] = $rm->id;
+            $rm = $this->getGciPart($rmPartNo);
+            if (!$rm) {
+                $this->missingComponentParts[$rmPartNo] = true;
+                if ($this->autoCreateParts) {
+                    $rm = GciPart::query()->create([
+                        'customer_id' => $fg->customer_id,
+                        'part_no' => $rmPartNo,
+                        'part_name' => $materialName ?: $rmPartNo,
+                        'classification' => 'RM',
+                        'status' => 'active',
+                    ]);
+                }
+            }
+            if ($rm) {
+                $payload['component_part_id'] = $rm->id;
+            }
         }
 
         // Prefer updating by line_no when it is provided.
