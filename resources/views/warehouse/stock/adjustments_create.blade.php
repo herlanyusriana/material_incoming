@@ -145,6 +145,30 @@
         const currentQtyValue = document.getElementById('current-qty-value');
         const fromLocationSelect = document.getElementById('from_location_code');
         const fromBatchSelect = document.getElementById('from_batch_no');
+        let batchAbort = null;
+        let fromBatchAbort = null;
+        let batchDebounce = null;
+        let fromBatchDebounce = null;
+
+        function normalizeBatchesPayload(payload) {
+            // Backward-compatible: accept array or {batches: [...], total, truncated}
+            if (Array.isArray(payload)) {
+                return { batches: payload, total: payload.length, limit: payload.length, truncated: false };
+            }
+            const batches = Array.isArray(payload?.batches) ? payload.batches : [];
+            return {
+                batches,
+                total: Number(payload?.total ?? batches.length),
+                limit: Number(payload?.limit ?? batches.length),
+                truncated: Boolean(payload?.truncated ?? false),
+            };
+        }
+
+        async function fetchBatches(partId, locationCode, signal) {
+            const res = await fetch(`{{ route('warehouse.stock-adjustments.get-batches') }}?part_id=${partId}&location_code=${encodeURIComponent(locationCode)}&limit=200`, { signal });
+            const json = await res.json();
+            return normalizeBatchesPayload(json);
+        }
 
         function loadBatches() {
             const partId = partSelect.value;
@@ -155,15 +179,31 @@
                 return;
             }
 
-            fetch(`{{ route('warehouse.stock-adjustments.get-batches') }}?part_id=${partId}&location_code=${encodeURIComponent(locationCode)}`)
-                .then(res => res.json())
-                .then(batches => {
+            if (batchDebounce) clearTimeout(batchDebounce);
+            batchDebounce = setTimeout(() => {
+                if (batchAbort) batchAbort.abort();
+                batchAbort = new AbortController();
+
+                batchSelect.innerHTML = '<option value="">Loading batches...</option>';
+                batchContainer.style.display = 'block';
+                batchCurrentQty.style.display = 'none';
+
+                fetchBatches(partId, locationCode, batchAbort.signal)
+                .then(({ batches, total, truncated }) => {
                     batchSelect.innerHTML = '<option value="">-- All Batches (Total Qty) --</option>';
                     
                     if (batches.length === 0) {
                         batchContainer.style.display = 'none';
                         batchCurrentQty.style.display = 'none';
                         return;
+                    }
+
+                    if (truncated) {
+                        const info = document.createElement('option');
+                        info.disabled = true;
+                        info.value = '';
+                        info.textContent = `Showing first ${batches.length} of ${total} batches (refine location/part)`;
+                        batchSelect.appendChild(info);
                     }
 
                     batches.forEach(batch => {
@@ -179,9 +219,11 @@
                     batchContainer.style.display = 'block';
                 })
                 .catch(err => {
+                    if (err?.name === 'AbortError') return;
                     console.error('Error loading batches:', err);
                     batchContainer.style.display = 'none';
                 });
+            }, 200);
         }
 
         function updateCurrentQty() {
@@ -206,10 +248,23 @@
                 return;
             }
 
-            fetch(`{{ route('warehouse.stock-adjustments.get-batches') }}?part_id=${partId}&location_code=${encodeURIComponent(locationCode)}`)
-                .then(res => res.json())
-                .then(batches => {
+            if (fromBatchDebounce) clearTimeout(fromBatchDebounce);
+            fromBatchDebounce = setTimeout(() => {
+                if (fromBatchAbort) fromBatchAbort.abort();
+                fromBatchAbort = new AbortController();
+
+                fromBatchSelect.innerHTML = '<option value="">Loading batches...</option>';
+
+                fetchBatches(partId, locationCode, fromBatchAbort.signal)
+                .then(({ batches, total, truncated }) => {
                     fromBatchSelect.innerHTML = '<option value="">-- select batch --</option>';
+                    if (truncated) {
+                        const info = document.createElement('option');
+                        info.disabled = true;
+                        info.value = '';
+                        info.textContent = `Showing first ${batches.length} of ${total} batches (refine location/part)`;
+                        fromBatchSelect.appendChild(info);
+                    }
                     batches.forEach(batch => {
                         const option = document.createElement('option');
                         option.value = batch.batch_no || '';
@@ -220,8 +275,10 @@
                     });
                 })
                 .catch(err => {
+                    if (err?.name === 'AbortError') return;
                     console.error('Error loading from batches:', err);
                 });
+            }, 200);
         }
 
         if (fromLocationSelect) {

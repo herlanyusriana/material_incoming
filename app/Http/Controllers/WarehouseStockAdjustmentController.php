@@ -346,19 +346,36 @@ class WarehouseStockAdjustmentController extends Controller
     {
         $partId = $request->query('part_id');
         $locationCode = $request->query('location_code');
+        $limit = (int) $request->query('limit', 200);
+        if ($limit < 10) {
+            $limit = 10;
+        }
+        if ($limit > 500) {
+            $limit = 500;
+        }
 
         if (!$partId || !$locationCode) {
             return response()->json([]);
         }
 
-        $batches = LocationInventory::query()
+        $base = LocationInventory::query()
             ->where('part_id', $partId)
             ->where('location_code', strtoupper(trim((string) $locationCode)))
             ->where('qty_on_hand', '>', 0)
             ->orderBy('production_date')
-            ->orderBy('batch_no')
+            ->orderBy('batch_no');
+
+        $total = (clone $base)->count();
+
+        $batches = $base
+            ->limit($limit)
             ->get(['batch_no', 'qty_on_hand', 'production_date']);
 
-        return response()->json($batches);
+        return response()->json([
+            'batches' => $batches,
+            'total' => $total,
+            'limit' => $limit,
+            'truncated' => $total > $limit,
+        ]);
     }
 }
