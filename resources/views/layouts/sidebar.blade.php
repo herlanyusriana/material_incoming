@@ -247,9 +247,9 @@
                     <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Production
                     </div>
                     <div class="space-y-1">
-                        <details class="group" {{ request()->routeIs('production.*') ? 'open' : '' }}>
+                        <details class="group" {{ request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*') ? 'open' : '' }}>
                             <summary class="list-none cursor-pointer">
-                                <div @class([$navLinkBase, $navActive => request()->routeIs('production.*'), $navInactive => !request()->routeIs('production.*')])>
+                                <div @class([$navLinkBase, $navActive => request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'), $navInactive => !(request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'))])>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -569,23 +569,6 @@
                             </svg>
                             <span class="ml-3 flex-1">Reconcile Stock</span>
                         </a>
-                        <a href="{{ route('warehouse.production-load.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.production-load.*'), $navInactive => !request()->routeIs('warehouse.production-load.*')]) @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h10M4 17h16" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 11l3 3-3 3" />
-                            </svg>
-                            <span class="ml-3 flex-1">Production Load</span>
-                        </a>
-                        <a href="{{ route('production.orders.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('production.orders.*'), $navInactive => !request()->routeIs('production.orders.*')]) @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6h10M10 12h10M10 18h10" />
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M4 6h2v2H4V6Zm0 6h2v2H4v-2Zm0 6h2v2H4v-2Z" />
-                            </svg>
-                            <span class="ml-3 flex-1">Production Orders</span>
-                        </a>
                     </div>
                 </div>
             @endcan
@@ -852,11 +835,11 @@
                 <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
                     x-show="!sidebarCollapsed" x-cloak>Production</div>
 
-                <details class="group" {{ request()->routeIs('production.*') ? 'open' : '' }}
+                <details class="group" {{ request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*') ? 'open' : '' }}
                     x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
                     <summary class="list-none cursor-pointer" title="Production"
                         :class="sidebarCollapsed ? 'flex justify-center' : ''">
-                        <div @class([$navLinkBase, $navActive => request()->routeIs('production.*'), $navInactive => !request()->routeIs('production.*')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <div @class([$navLinkBase, $navActive => request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'), $navInactive => !(request()->routeIs('production.*') || request()->routeIs('warehouse.production-load.*'))]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -1183,23 +1166,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 19l-2-2 2-2" />
                         </svg>
                         <span class="ml-3 flex-1">Reconcile Stock</span>
-                    </a>
-                    <a href="{{ route('warehouse.production-load.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.production-load.*'), $navInactive => !request()->routeIs('warehouse.production-load.*')])>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h10M4 17h16" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11l3 3-3 3" />
-                        </svg>
-                        <span class="ml-3 flex-1">Production Load</span>
-                    </a>
-                    <a href="{{ route('production.orders.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('production.orders.*'), $navInactive => !request()->routeIs('production.orders.*')])>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6h10M10 12h10M10 18h10" />
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M4 6h2v2H4V6Zm0 6h2v2H4v-2Zm0 6h2v2H4v-2Z" />
-                        </svg>
-                        <span class="ml-3 flex-1">Production Orders</span>
                     </a>
                 </div>
             </div>
