@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        Incoming Material Portal
+        Smart Application System Portal
     </x-slot>
 
     <div class="space-y-6">
         <div class="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-blue-500/5 p-6">
             <div class="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h2 class="text-xl font-semibold text-slate-900">Incoming Material</h2>
+                    <h2 class="text-xl font-semibold text-slate-900">Smart Application System</h2>
                     <p class="text-sm text-slate-500">Central hub for departures and receiving activities</p>
                 </div>
                 <span class="px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-blue-50 text-blue-600 rounded-full">Module Overview</span>

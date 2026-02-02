@@ -53,6 +53,7 @@
                                 $part = $row['part'];
                                 $stock = (float) ($row['initial_stock'] ?? 0);
                                 $demand = (float) ($row['demand_total'] ?? 0);
+    
                                 $incoming = (float) ($row['incoming_total'] ?? 0);
                                 $planned = (float) ($row['planned_order_total'] ?? 0);
                                 $endStock = (float) ($row['end_stock'] ?? ($stock + $incoming - $demand));
