@@ -198,6 +198,7 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             }
 
             $payload = [
+                'substitute_part_no' => $subPartNo,
                 'ratio' => $row['ratio'] ?? 1,
                 'priority' => $row['priority'] ?? 1,
                 'status' => $row['status'] ?? 'active',

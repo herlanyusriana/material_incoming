@@ -526,7 +526,8 @@ class BomController extends Controller
                 'substitute_part_id' => (int) $validated['substitute_part_id'],
             ],
             [
-                'ratio' => $validated['ratio'] ?? 1,
+            'substitute_part_no' => \App\Models\GciPart::find($validated['substitute_part_id'])->part_no,
+            'ratio' => $validated['ratio'] ?? 1,
                 'priority' => $validated['priority'] ?? 1,
                 'status' => $validated['status'] ?? 'active',
                 'notes' => $validated['notes'] ? trim((string) $validated['notes']) : null,
