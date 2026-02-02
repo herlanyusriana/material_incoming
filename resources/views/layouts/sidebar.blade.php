@@ -271,13 +271,41 @@
                                     class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                                 </div>
 
-                                <a href="{{ route('warehouse.production-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('warehouse.production-load.*'), $subInactive => !request()->routeIs('warehouse.production-load.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('warehouse.production-load.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('warehouse.production-load.*')])></span>
-                                    <span class="flex-1">Production Load</span>
-                                </a>
-                                <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
+                                <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.index'), $subInactive => !request()->routeIs('production.orders.index')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.index')])></span>
                                     <span class="flex-1">Production Orders</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">Work Order & Kanban Release</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">Material Availability</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">Start Production</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">QC Inspection</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">Mass Production</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">In-Process Inspection</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">Finish Production</span>
+                                </a>
+                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                    <span class="flex-1">Final Inspection → Kanban Update & Inventory</span>
                                 </a>
                             </div>
                         </details>
@@ -877,13 +905,41 @@
                                 class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                             </div>
 
-                            <a href="{{ route('warehouse.production-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('warehouse.production-load.*'), $subInactive => !request()->routeIs('warehouse.production-load.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('warehouse.production-load.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('warehouse.production-load.*')])></span>
-                                <span class="flex-1">Production Load</span>
-                            </a>
-                            <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
+                            <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.index'), $subInactive => !request()->routeIs('production.orders.index')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.index')])></span>
                                 <span class="flex-1">Production Orders</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">Work Order & Kanban Release</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">Material Availability</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">Start Production</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">QC Inspection</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">Mass Production</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">In-Process Inspection</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">Finish Production</span>
+                            </a>
+                            <a href="#" @class([$subLinkBase, $subInactive])>
+                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
+                                <span class="flex-1">Final Inspection → Kanban Update & Inventory</span>
                             </a>
                         </div>
                     </div>
