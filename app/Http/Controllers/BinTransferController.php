@@ -11,6 +11,7 @@ use App\Support\QrSvg;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class BinTransferController extends Controller
@@ -126,15 +127,10 @@ class BinTransferController extends Controller
                 ]);
 
                 // 5. Mirror to Adjustment History so movement is visible in one place.
-                LocationInventoryAdjustment::query()->create([
+                $payload = [
                     'part_id' => $partId,
                     'location_code' => strtoupper(trim((string) $fromLocation)),
                     'batch_no' => null,
-                    'from_location_code' => strtoupper(trim((string) $fromLocation)),
-                    'to_location_code' => strtoupper(trim((string) $toLocation)),
-                    'from_batch_no' => null,
-                    'to_batch_no' => null,
-                    'action_type' => 'transfer',
                     // Keep qty_before/after referencing the FROM side for consistency with existing UI.
                     'qty_before' => (float) $sourceStock,
                     'qty_after' => (float) ($sourceStock - $qty),
@@ -142,7 +138,25 @@ class BinTransferController extends Controller
                     'reason' => trim('Bin transfer ' . $fromLocation . ' → ' . $toLocation . ($validated['notes'] ? (' | ' . $validated['notes']) : '')),
                     'adjusted_at' => $transfer->transfer_date ? \Illuminate\Support\Carbon::parse($transfer->transfer_date) : now(),
                     'created_by' => Auth::id(),
-                ]);
+                ];
+
+                if (Schema::hasColumn('location_inventory_adjustments', 'from_location_code')) {
+                    $payload['from_location_code'] = strtoupper(trim((string) $fromLocation));
+                }
+                if (Schema::hasColumn('location_inventory_adjustments', 'to_location_code')) {
+                    $payload['to_location_code'] = strtoupper(trim((string) $toLocation));
+                }
+                if (Schema::hasColumn('location_inventory_adjustments', 'from_batch_no')) {
+                    $payload['from_batch_no'] = null;
+                }
+                if (Schema::hasColumn('location_inventory_adjustments', 'to_batch_no')) {
+                    $payload['to_batch_no'] = null;
+                }
+                if (Schema::hasColumn('location_inventory_adjustments', 'action_type')) {
+                    $payload['action_type'] = 'transfer';
+                }
+
+                LocationInventoryAdjustment::query()->create($payload);
             });
 
             return redirect()
