@@ -71,33 +71,134 @@
 	        </div>
 
         @if(!empty($totalsByLine) && count($totalsByLine) > 0)
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-                <div class="text-sm font-bold text-slate-900">Summary by Line</div>
-                <div class="mt-3 overflow-x-auto">
-                    <table class="min-w-full text-xs divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
-                            <tr class="text-[11px] uppercase tracking-wider text-slate-600">
-                                <th class="px-3 py-2 text-left font-bold">Line</th>
-                                <th class="px-3 py-2 text-right font-bold">Balance</th>
-                                <th class="px-3 py-2 text-right font-bold">UPH</th>
-                                <th class="px-3 py-2 text-right font-bold">Hours</th>
-                                <th class="px-3 py-2 text-right font-bold">JIG NR1</th>
-                                <th class="px-3 py-2 text-right font-bold">JIG NR2</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach($totalsByLine as $t)
-                                <tr>
-                                    <td class="px-3 py-2 font-bold text-slate-900">{{ $t->line_type ?? 'UNKNOWN' }}</td>
-                                    <td class="px-3 py-2 text-right font-bold text-slate-900">{{ number_format((float) ($t->balance ?? 0), 0) }}</td>
-                                    <td class="px-3 py-2 text-right text-slate-700">{{ number_format((float) ($t->uph ?? 0), 2) }}</td>
-                                    <td class="px-3 py-2 text-right text-slate-700">{{ number_format((float) ($t->hours ?? 0), 2) }}</td>
-                                    <td class="px-3 py-2 text-right text-slate-700">{{ (int) ($t->jig_nr1 ?? 0) }}</td>
-                                    <td class="px-3 py-2 text-right text-slate-700">{{ (int) ($t->jig_nr2 ?? 0) }}</td>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <!-- Summary by Line -->
+                <div class="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-sm font-black text-slate-900 uppercase tracking-wider">Line Capacity Summary</div>
+                        <div class="text-[10px] font-bold text-slate-400">TOTAL UNIT: {{ number_format($totalsByLine->sum('balance')) }}</div>
+                    </div>
+                    <div class="overflow-x-auto overflow-y-auto max-h-[300px]">
+                        <table class="min-w-full text-xs divide-y divide-slate-200">
+                            <thead class="bg-slate-50 sticky top-0">
+                                <tr class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                                    <th class="px-3 py-2 text-left">Line</th>
+                                    <th class="px-3 py-2 text-right">Balance</th>
+                                    <th class="px-3 py-2 text-right">Hours</th>
+                                    <th class="px-3 py-2 text-right">Jigs</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach($totalsByLine as $t)
+                                    <tr>
+                                        <td class="px-3 py-2 font-bold text-slate-900">{{ $t->line_type ?? 'UNKNOWN' }}</td>
+                                        <td class="px-3 py-2 text-right font-bold text-indigo-600">{{ number_format((float) ($t->balance ?? 0), 0) }}</td>
+                                        <td class="px-3 py-2 text-right text-slate-600">{{ number_format((float) ($t->hours ?? 0), 1) }}h</td>
+                                        <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ (int) ($t->jigs ?? 0) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Trip Management -->
+                <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-sm font-black text-slate-900 uppercase tracking-wider">Fleet & Trip Management</div>
+                        <button onclick="document.getElementById('addTripModal').classList.remove('hidden')" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            ADD TRIP
+                        </button>
+                    </div>
+
+                    @if($unassignedSalesOrders->isNotEmpty())
+                        <div class="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="px-2 py-0.5 rounded bg-orange-200 text-orange-700 text-[10px] font-black uppercase">Unassigned Sales Orders</div>
+                                <div class="text-[10px] text-orange-600 font-bold">{{ $unassignedSalesOrders->count() }} Orders Pending Trip Assignment</div>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($unassignedSalesOrders as $so)
+                                    <div class="bg-white border border-orange-200 rounded-lg p-3 shadow-sm flex flex-col gap-2 min-w-[200px]">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <div class="text-[11px] font-black text-slate-900">{{ $so->so_no }}</div>
+                                                <div class="text-[10px] font-bold text-slate-500 uppercase">{{ $so->customer?->name }}</div>
+                                            </div>
+                                            <div class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{{ $so->items->count() }} SKU</div>
+                                        </div>
+                                        <select onchange="assignSoToTrip({{ $so->id }}, this.value)" class="text-[10px] font-bold border-slate-200 rounded-lg w-full bg-slate-50 focus:ring-indigo-500">
+                                            <option value="">Move to Trip...</option>
+                                            @foreach($plans as $p)
+                                                <option value="{{ $p->id }}">Trip #{{ $p->sequence }} ({{ $p->truck?->plate_no ?? 'No Truck' }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @forelse($plans as $plan)
+                            <div class="rounded-xl border border-slate-200 p-4 hover:border-indigo-200 transition-colors bg-slate-50/50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-black text-sm">
+                                            #{{ $plan->sequence }}
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-black text-slate-900">TRIP {{ $plan->sequence }}</div>
+                                            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Status: {{ strtoupper($plan->status) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-1">
+                                         <span class="text-[10px] font-bold text-slate-400">{{ $plan->salesOrders->count() }} SOs Assigned</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
+                                        <div class="text-xs font-semibold text-slate-700">{{ $plan->truck?->plate_no ?? 'No Truck' }} <span class="text-[10px] font-normal text-slate-400">({{ $plan->truck?->type ?? '-' }})</span></div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                        <div class="text-xs font-semibold text-slate-700">{{ $plan->driver?->name ?? 'No Driver' }}</div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 border-t border-slate-100 pt-3">
+                                    <div class="text-[10px] font-black text-slate-400 uppercase mb-2">Attached Orders</div>
+                                    <div class="space-y-1.5">
+                                        @foreach($plan->salesOrders as $so)
+                                            <div class="flex items-center justify-between text-[11px] bg-white p-2 rounded border border-slate-100 shadow-sm">
+                                                <div>
+                                                    <span class="font-bold text-slate-700">{{ $so->customer?->name }}</span>
+                                                    <span class="text-[10px] text-slate-400 ml-1">{{ $so->so_no }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="text-indigo-600 font-bold">{{ number_format($so->items->sum('qty_ordered')) }}</div>
+                                                    <button onclick="assignSoToTrip({{ $so->id }}, null)" class="text-slate-300 hover:text-red-500" title="Remove from Trip">✕</button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                        @if($plan->salesOrders->isEmpty())
+                                            <div class="text-[10px] italic text-slate-400 py-1 text-center">Empty trip. Assign SOs above.</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-slate-200 flex justify-end gap-2">
+                                    <button onclick="openAssignResourcesModal({{ $plan->id }}, {{ $plan->truck_id ?? 'null' }}, {{ $plan->driver_id ?? 'null' }})" class="text-[10px] font-black text-indigo-600 hover:text-indigo-800 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
+                                        EDIT TRIP
+                                    </button>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="md:col-span-2 py-8 text-center text-slate-400 italic text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                No trips scheduled for this date. Click Add Trip to start.
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         @endif
@@ -411,7 +512,128 @@
 	        </div>
 	    </div>
 
+	    <div id="addTripModal" class="hidden fixed inset-0 z-50">
+	        <div class="absolute inset-0 bg-slate-900/40" onclick="document.getElementById('addTripModal').classList.add('hidden')"></div>
+	        <div class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg px-4">
+	            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+	                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+	                    <div class="font-black text-slate-900 uppercase">Add New Trip</div>
+	                    <button type="button" class="text-slate-500 hover:text-slate-900" onclick="document.getElementById('addTripModal').classList.add('hidden')">✕</button>
+	                </div>
+	                <form method="POST" action="{{ route('outgoing.delivery-plan.store') }}" class="p-6 space-y-4">
+	                    @csrf
+	                    <input type="hidden" name="plan_date" value="{{ $selectedDate }}">
+	                    
+	                    <div>
+	                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Select Truck</label>
+	                        <select name="truck_id" class="w-full rounded-xl border-slate-200 text-sm">
+	                            <option value="">-- Choose Truck --</option>
+	                            @foreach($trucks as $truck)
+	                                <option value="{{ $truck->id }}">{{ $truck->plate_no }} ({{ $truck->type }})</option>
+	                            @endforeach
+	                        </select>
+	                    </div>
+
+	                    <div>
+	                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Select Driver</label>
+	                        <select name="driver_id" class="w-full rounded-xl border-slate-200 text-sm">
+	                            <option value="">-- Choose Driver --</option>
+	                            @foreach($drivers as $driver)
+	                                <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+	                            @endforeach
+	                        </select>
+	                    </div>
+
+	                    <div class="flex justify-end gap-2 pt-2">
+	                        <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700" onclick="document.getElementById('addTripModal').classList.add('hidden')">Cancel</button>
+	                        <button class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-slate-200">Create Trip</button>
+	                    </div>
+	                </form>
+	            </div>
+	        </div>
+	    </div>
+
+	    <div id="assignResourcesModal" class="hidden fixed inset-0 z-50">
+	        <div class="absolute inset-0 bg-slate-900/40" onclick="document.getElementById('assignResourcesModal').classList.add('hidden')"></div>
+	        <div class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg px-4">
+	            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+	                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+	                    <div class="font-black text-slate-900 uppercase">Edit Trip Resources</div>
+	                    <button type="button" class="text-slate-500 hover:text-slate-900" onclick="document.getElementById('assignResourcesModal').classList.add('hidden')">✕</button>
+	                </div>
+	                <form id="assignResourcesForm" method="POST" action="" class="p-6 space-y-4">
+	                    @csrf
+	                    @method('POST')
+	                    
+	                    <div>
+	                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Update Truck</label>
+	                        <select name="truck_id" id="ar_truck_id" class="w-full rounded-xl border-slate-200 text-sm">
+	                            <option value="">-- Choose Truck --</option>
+	                            @foreach($trucks as $truck)
+	                                <option value="{{ $truck->id }}">{{ $truck->plate_no }} ({{ $truck->type }})</option>
+	                            @endforeach
+	                        </select>
+	                    </div>
+
+	                    <div>
+	                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Update Driver</label>
+	                        <select name="driver_id" id="ar_driver_id" class="w-full rounded-xl border-slate-200 text-sm">
+	                            <option value="">-- Choose Driver --</option>
+	                            @foreach($drivers as $driver)
+	                                <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+	                            @endforeach
+	                        </select>
+	                    </div>
+
+	                    <div class="flex justify-end gap-2 pt-2">
+	                        <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700" onclick="document.getElementById('assignResourcesModal').classList.add('hidden')">Cancel</button>
+	                        <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-100">Save Changes</button>
+	                    </div>
+	                </form>
+	            </div>
+	        </div>
+	    </div>
+
 	    <script>
+            function assignSoToTrip(soId, planId) {
+                if (planId === "") return;
+                
+                fetch('{{ route("outgoing.delivery-plan.assign-so") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sales_order_id: soId,
+                        delivery_plan_id: planId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error assigning SO: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to assign SO. Please try again.');
+                });
+            }
+
+	        function openAssignResourcesModal(planId, currentTruckId, currentDriverId) {
+	            const form = document.getElementById('assignResourcesForm');
+	            form.action = `/outgoing/delivery-plan/${planId}/assign-resources`;
+	            
+	            document.getElementById('ar_truck_id').value = currentTruckId || '';
+	            document.getElementById('ar_driver_id').value = currentDriverId || '';
+	            
+	            document.getElementById('assignResourcesModal').classList.remove('hidden');
+	        }
+
 	        function openCreateSoModal(btn) {
 	            const date = btn.dataset.date || '';
 	            const customerId = btn.dataset.customerId || '';

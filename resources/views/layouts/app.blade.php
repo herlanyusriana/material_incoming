@@ -323,7 +323,9 @@
 	            document.addEventListener('DOMContentLoaded', () => {
                     // Initialize Tom Select
                     window.initTomSelect = function(container = document) {
-                        const selects = container instanceof HTMLSelectElement ? [container] : container.querySelectorAll('select:not(.no-search):not([data-remote])');
+                        const selects = container instanceof HTMLSelectElement 
+                            ? [container] 
+                            : (container.querySelectorAll ? container.querySelectorAll('select:not(.no-search):not([data-remote])') : []);
                         
                         selects.forEach(el => {
                             if (el.tomselect || el.classList.contains('tomselected')) return;
@@ -335,7 +337,6 @@
                                     field: "text",
                                     direction: "asc"
                                 },
-                                dropdownParent: 'body',
                                 allowEmptyOption: true,
                             });
                         });
@@ -375,7 +376,6 @@
                                     return `<div class="font-medium">${escape(item.part_no)} - ${escape(item.part_name || '')}</div>`;
                                 }
                             },
-                            dropdownParent: 'body',
                             placeholder: el.getAttribute('placeholder') || 'Type to search...',
                             allowEmptyOption: true,
                         });
@@ -384,34 +384,30 @@
                     initTomSelect();
 
                     // Watch for dynamic elements
-                    // Watch for dynamic elements
                     const observer = new MutationObserver((mutations) => {
-                        let needsInit = false;
-                        let syncSelects = new Set();
-
                         mutations.forEach((mutation) => {
                             if (mutation.type === 'childList') {
                                 mutation.addedNodes.forEach((node) => {
-                                    if (node.nodeType === 1) { 
-                                        if (node.tagName === 'SELECT' || node.querySelector('select')) {
-                                            needsInit = true;
+                                    if (node.nodeType === 1) { // ELEMENT_NODE
+                                        if (node.tagName === 'SELECT') {
+                                            initTomSelect(node);
+                                        } else if (node.querySelectorAll) {
+                                            const found = node.querySelectorAll('select:not(.no-search):not([data-remote])');
+                                            if (found.length > 0) {
+                                                initTomSelect(node);
+                                            }
                                         }
                                     }
                                 });
-
-                                // Sync if options changed in an existing tomselect
-                                if (mutation.target.tagName === 'SELECT' && mutation.target.tomselect) {
-                                    syncSelects.add(mutation.target);
-                                }
                             }
-                        });
-
-                        if (needsInit) initTomSelect();
-                        syncSelects.forEach(sel => {
-                            if (sel.tomselect) {
-                                // Debounce sync slightly to avoid loops if something is rapidly changing
+                            
+                            // Sync if options changed in an existing tomselect
+                            if (mutation.target && mutation.target.tagName === 'SELECT' && mutation.target.tomselect) {
+                                const sel = mutation.target;
                                 clearTimeout(sel._ts_sync_timer);
-                                sel._ts_sync_timer = setTimeout(() => sel.tomselect.sync(), 50);
+                                sel._ts_sync_timer = setTimeout(() => {
+                                    if (sel.tomselect) sel.tomselect.sync();
+                                }, 50);
                             }
                         });
                     });

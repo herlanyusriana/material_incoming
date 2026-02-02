@@ -853,9 +853,15 @@ class OutgoingController extends Controller
         }
 
         $plans = DeliveryPlan::query()
-            ->with(['truck', 'driver'])
+            ->with(['truck', 'driver', 'salesOrders.customer', 'salesOrders.items.part'])
             ->whereDate('plan_date', $date)
             ->orderBy('sequence')
+            ->get();
+
+        $unassignedSalesOrders = SalesOrder::query()
+            ->with(['customer', 'items.part'])
+            ->whereDate('so_date', $date)
+            ->whereNull('delivery_plan_id')
             ->get();
 
         $trucks = Truck::query()
@@ -1130,6 +1136,7 @@ class OutgoingController extends Controller
             'selectedDate' => $date->toDateString(),
             'groups' => $groups,
             'plans' => $plans,
+            'unassignedSalesOrders' => $unassignedSalesOrders,
             'trucks' => $trucks,
             'drivers' => $drivers,
             'autoMappedRowCount' => count($autoMappedRowIds),
@@ -1256,13 +1263,23 @@ class OutgoingController extends Controller
     {
         $validated = $request->validate([
             'sales_order_id' => 'required|exists:sales_orders,id',
-            'delivery_plan_id' => 'required|exists:delivery_plans,id',
+            'delivery_plan_id' => 'nullable', // allow unassign
         ]);
 
         $so = SalesOrder::findOrFail($validated['sales_order_id']);
-        $plan = \App\Models\DeliveryPlan::findOrFail($validated['delivery_plan_id']);
 
-        DB::transaction(function () use ($so, $plan) {
+        DB::transaction(function () use ($so, $validated) {
+            if (empty($validated['delivery_plan_id'])) {
+                $so->update([
+                    'delivery_plan_id' => null,
+                    'delivery_stop_id' => null,
+                    'status' => $so->status === 'assigned' ? 'draft' : $so->status,
+                ]);
+                return;
+            }
+
+            $plan = \App\Models\DeliveryPlan::findOrFail($validated['delivery_plan_id']);
+
             // Find or create a stop for this customer in this plan
             $stop = \App\Models\DeliveryStop::firstOrCreate(
                 [
