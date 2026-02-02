@@ -70,10 +70,9 @@ class WarehouseStockAdjustmentController extends Controller
 
     public function create()
     {
-        $parts = Part::orderBy('part_no')->get();
         $locations = WarehouseLocation::query()->where('status', 'ACTIVE')->orderBy('location_code')->get();
 
-        return view('warehouse.stock.adjustments_create', compact('parts', 'locations'));
+        return view('warehouse.stock.adjustments_create', compact('locations'));
     }
 
     public function store(Request $request)

@@ -35,14 +35,16 @@
 
                     <div>
                         <label class="block text-sm font-semibold text-slate-700">Part</label>
-                        <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
-                            <option value="">-- select part --</option>
-                            @foreach($parts as $p)
-                                <option value="{{ $p->id }}" @selected((string) old('part_id') === (string) $p->id)>
-                                    {{ $p->part_no }} — {{ $p->part_name_gci ?? $p->part_name_vendor ?? '' }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <input type="hidden" name="part_id" id="part_id" value="{{ old('part_id') }}" required>
+                        <div class="relative mt-1">
+                            <input type="text" id="part_search" autocomplete="off"
+                                class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="Type part no / name (min 2 chars)">
+                            <div id="part_suggestions"
+                                class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg hidden">
+                            </div>
+                        </div>
+                        <div class="mt-1 text-xs text-slate-500">Cari part supaya tidak load ribuan option (hindari page hang).</div>
                     </div>
 
                     <div x-show="mode === 'adjustment'">
@@ -137,7 +139,9 @@
     </div>
 
     <script>
-        const partSelect = document.querySelector('select[name="part_id"]');
+        const partIdInput = document.getElementById('part_id');
+        const partSearch = document.getElementById('part_search');
+        const partSuggestions = document.getElementById('part_suggestions');
         const locationSelect = document.querySelector('select[name="location_code"]');
         const batchSelect = document.getElementById('batch_no');
         const batchContainer = document.getElementById('batch-selector-container');
@@ -149,6 +153,45 @@
         let fromBatchAbort = null;
         let batchDebounce = null;
         let fromBatchDebounce = null;
+        let partDebounce = null;
+        let partAbort = null;
+
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function renderPartSuggestions(items) {
+            if (!partSuggestions) return;
+            if (!items.length) {
+                partSuggestions.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500 italic">No matches</div>';
+                partSuggestions.classList.remove('hidden');
+                return;
+            }
+            partSuggestions.innerHTML = items.map((p) => {
+                const name = (p.part_name_gci || p.part_name_vendor || '').trim();
+                const reg = (p.register_no || '').trim();
+                const meta = [name, reg].filter(Boolean).join(' • ');
+                return `<button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-50" data-id="${escapeHtml(p.id)}" data-label="${escapeHtml(p.part_no)}" data-meta="${escapeHtml(meta)}">
+                    <div class="font-mono text-xs font-bold text-slate-900">${escapeHtml(p.part_no)}</div>
+                    <div class="text-xs text-slate-600">${escapeHtml(meta)}</div>
+                </button>`;
+            }).join('');
+            partSuggestions.classList.remove('hidden');
+        }
+
+        async function searchParts(q) {
+            if (partAbort) partAbort.abort();
+            partAbort = new AbortController();
+            const url = `{{ route('parts.search') }}?q=${encodeURIComponent(q)}&limit=20`;
+            const res = await fetch(url, { signal: partAbort.signal, headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return [];
+            return await res.json();
+        }
 
         function normalizeBatchesPayload(payload) {
             // Backward-compatible: accept array or {batches: [...], total, truncated}
@@ -171,7 +214,7 @@
         }
 
         function loadBatches() {
-            const partId = partSelect.value;
+            const partId = partIdInput?.value;
             const locationCode = locationSelect.value;
 
             if (!partId || !locationCode) {
@@ -236,12 +279,12 @@
             }
         }
 
-        partSelect.addEventListener('change', loadBatches);
+        partIdInput?.addEventListener('change', loadBatches);
         locationSelect.addEventListener('change', loadBatches);
         batchSelect.addEventListener('change', updateCurrentQty);
 
         function loadFromBatches() {
-            const partId = partSelect.value;
+            const partId = partIdInput?.value;
             const locationCode = fromLocationSelect ? fromLocationSelect.value : '';
 
             if (!partId || !locationCode || !fromBatchSelect) {
@@ -282,8 +325,50 @@
         }
 
         if (fromLocationSelect) {
-            partSelect.addEventListener('change', loadFromBatches);
+            partIdInput?.addEventListener('change', loadFromBatches);
             fromLocationSelect.addEventListener('change', loadFromBatches);
         }
+
+        // Part autocomplete (avoid huge <select> that can freeze the page)
+        partSearch?.addEventListener('input', () => {
+            const q = String(partSearch.value || '').trim();
+            if (partIdInput) partIdInput.value = '';
+            if (q.length < 2) {
+                partSuggestions?.classList.add('hidden');
+                return;
+            }
+            if (partDebounce) clearTimeout(partDebounce);
+            partDebounce = setTimeout(async () => {
+                try {
+                    const items = await searchParts(q);
+                    renderPartSuggestions(Array.isArray(items) ? items : []);
+                } catch (e) {
+                    if (e?.name === 'AbortError') return;
+                    partSuggestions?.classList.add('hidden');
+                }
+            }, 200);
+        });
+
+        partSuggestions?.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-id]');
+            if (!btn) return;
+            if (partIdInput) {
+                partIdInput.value = btn.dataset.id;
+                partIdInput.dispatchEvent(new Event('change'));
+            }
+            const label = btn.dataset.label || '';
+            const meta = btn.dataset.meta || '';
+            partSearch.value = meta ? `${label} — ${meta}` : label;
+            partSuggestions.classList.add('hidden');
+            loadBatches();
+            loadFromBatches();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!partSuggestions || !partSearch) return;
+            if (!partSearch.contains(e.target) && !partSuggestions.contains(e.target)) {
+                partSuggestions.classList.add('hidden');
+            }
+        });
     </script>
 </x-app-layout>

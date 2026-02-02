@@ -253,9 +253,12 @@
 	        </div>
 	    </div>
 	
-	    <script>
-	        const partApiBase = @json(url('/vendors'));
-	        const partsCache = {};
+		    <script>
+		        const partApiBase = @json(url('/vendors'));
+		        const partsCache = {}; // key: `${vendorId}|${normalizedTitle}` -> parts[]
+                const partByIdCache = {}; // vendorId -> { [id]: part }
+                const vendorTitlesCache = {}; // vendorId -> titles[]
+                const pendingGroupFetch = {}; // key -> AbortController
         const vendorsData = @json($vendors->map(fn($v) => ['id' => $v->id, 'name' => $v->vendor_name])->values());
         const hasOldInput = @json(!empty(session()->getOldInput()));
         const draftStorageKey = 'arrival-form-draft';
@@ -574,28 +577,26 @@
                 .replace(/'/g, '&#039;');
         }
 
-		        function buildPartOptions(vendorId, groupTitle = '', partId = null) {
-		            if (!vendorId) {
-		                return '<option value="">Select vendor first</option>';
-		            }
-		            if (!partsCache[vendorId]) {
-		                return '<option value="">Loading parts...</option>';
-		            }
-	            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
-                if (!normalizedTitle) {
-                    // Prevent rendering huge option lists when no group is selected.
-                    return '<option value="">Select material group first</option>';
-                }
-	            const sourceList = partsCache[vendorId] || [];
-	            const filteredList = normalizedTitle
-	                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
-	                : sourceList;
-            const options = filteredList
-                .map(p => {
-                    const displaySize = (p.size || p.register_no || '').trim();
-                    const label = displaySize !== '' ? displaySize : (p.part_name_vendor || p.part_name_gci || p.part_no || '');
-                    return `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(partId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
-                })
+			        function buildPartOptions(vendorId, groupTitle = '', partId = null) {
+			            if (!vendorId) {
+			                return '<option value="">Select vendor first</option>';
+			            }
+		            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+	                if (!normalizedTitle) {
+	                    // Prevent rendering huge option lists when no group is selected.
+	                    return '<option value="">Select material group first</option>';
+	                }
+                    const cacheKey = `${vendorId}|${normalizedTitle}`;
+                    const filteredList = partsCache[cacheKey];
+                    if (!filteredList) {
+                        return '<option value="">Loading parts...</option>';
+                    }
+	            const options = filteredList
+	                .map(p => {
+	                    const displaySize = (p.size || p.register_no || '').trim();
+	                    const label = displaySize !== '' ? displaySize : (p.part_name_vendor || p.part_name_gci || p.part_no || '');
+	                    return `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(partId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+	                })
                 .join('');
             if (!options) {
                 return `<option value="">No size for selected group</option>`;
@@ -603,20 +604,16 @@
 	            return `<option value="">Select Size</option>${options}`;
 	        }
 
-		        function getPartsForGroup(vendorId, groupTitle = '') {
-		            if (!vendorId || !partsCache[vendorId]) {
-		                return [];
-		            }
-		            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
-                    if (!normalizedTitle) {
-                        // Avoid returning the entire vendor catalog (can freeze the page).
-                        return [];
-                    }
-		            const sourceList = partsCache[vendorId] || [];
-		            return normalizedTitle
-		                ? sourceList.filter((p) => String(p.part_name_vendor || '').trim().toLowerCase() === normalizedTitle)
-		                : sourceList;
-		        }
+			        function getPartsForGroup(vendorId, groupTitle = '') {
+			            if (!vendorId) return [];
+			            const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+	                    if (!normalizedTitle) {
+	                        // Avoid returning the entire vendor catalog (can freeze the page).
+	                        return [];
+	                    }
+                        const cacheKey = `${vendorId}|${normalizedTitle}`;
+                        return partsCache[cacheKey] || [];
+			        }
 
 	        function buildSizeOptionsHtml(vendorId, groupTitle = '') {
 	            const list = getPartsForGroup(vendorId, groupTitle);
@@ -651,27 +648,66 @@
 	            }) ?? null;
 	        }
 
-	        function getUniqueMaterialTitles(vendorId) {
-	            if (!vendorId || !partsCache[vendorId]) return [];
-	            return Array.from(new Set(
-	                partsCache[vendorId]
-	                    .map(p => (p.part_name_vendor || '').trim())
-	                    .filter(Boolean)
-	            )).sort((a, b) => a.localeCompare(b));
+		        function getUniqueMaterialTitles(vendorId) {
+		            if (!vendorId) return [];
+                    return vendorTitlesCache[vendorId] || [];
+		        }
+
+	        function buildMaterialTitleOptionsHtml(vendorId) {
+	            if (!vendorId) {
+	                return '<option value="">Pilih vendor dulu</option>';
+	            }
+                if (!vendorTitlesCache[vendorId]) {
+                    return '<option value="">Loading...</option>';
+                }
+	            const titles = getUniqueMaterialTitles(vendorId);
+	            const options = titles.map(title => `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`).join('');
+	            return [
+		                '<option value="">Pilih Jenis Material / Part Name Vendor</option>',
+		                options,
+		                '<option value="__custom__">Lainnya (ketik manual)...</option>',
+		            ].join('');
 	        }
 
-        function buildMaterialTitleOptionsHtml(vendorId) {
-            if (!vendorId || !partsCache[vendorId]) {
-                return vendorId ? '<option value="">Loading...</option>' : '<option value="">Pilih vendor dulu</option>';
+            async function loadVendorTitles(vendorId, force = false) {
+                if (!vendorId) return [];
+                if (!force && vendorTitlesCache[vendorId]) return vendorTitlesCache[vendorId];
+
+                const res = await fetch(`${partApiBase}/${vendorId}/parts?mode=names&limit=500`, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return [];
+                const payload = await res.json();
+                const list = Array.isArray(payload) ? payload : (payload?.names || []);
+                vendorTitlesCache[vendorId] = (Array.isArray(list) ? list : [])
+                    .map((n) => String(n || '').trim())
+                    .filter(Boolean);
+                rebuildMaterialTitleSelects(vendorId);
+                return vendorTitlesCache[vendorId];
             }
-            const titles = getUniqueMaterialTitles(vendorId);
-            const options = titles.map(title => `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`).join('');
-            return [
-	                '<option value="">Pilih Jenis Material / Part Name Vendor</option>',
-	                options,
-	                '<option value="__custom__">Lainnya (ketik manual)...</option>',
-	            ].join('');
-	        }
+
+            async function loadPartsForGroup(vendorId, groupTitle, force = false) {
+                const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+                if (!vendorId || !normalizedTitle) return [];
+                const cacheKey = `${vendorId}|${normalizedTitle}`;
+                if (!force && partsCache[cacheKey]) return partsCache[cacheKey];
+
+                if (pendingGroupFetch[cacheKey]) {
+                    try { pendingGroupFetch[cacheKey].abort(); } catch (e) {}
+                }
+                const controller = new AbortController();
+                pendingGroupFetch[cacheKey] = controller;
+
+                const res = await fetch(`${partApiBase}/${vendorId}/parts?group_title=${encodeURIComponent(normalizedTitle)}&limit=500`, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return [];
+                const payload = await res.json();
+                const list = Array.isArray(payload) ? payload : (payload?.parts || []);
+                const parts = Array.isArray(list) ? list : [];
+
+                partsCache[cacheKey] = parts;
+                if (!partByIdCache[vendorId]) partByIdCache[vendorId] = {};
+                parts.forEach((p) => { if (p && p.id != null) partByIdCache[vendorId][String(p.id)] = p; });
+
+                return parts;
+            }
 
 	        function getGroupTitle(groupEl) {
 	            const select = groupEl.querySelector('.material-title-select');
@@ -873,14 +909,30 @@
             return 'KGM';
         }
 
-        function findPart(vendorId, partId) {
-            const list = partsCache[vendorId] || [];
-            return list.find(p => String(p.id) === String(partId));
-        }
+	        function findPart(vendorId, partId) {
+                const id = String(partId || '');
+                if (!vendorId || !id) return null;
+                const map = partByIdCache[vendorId] || {};
+                return map[id] || null;
+	        }
 
-	        function applyPartDefaults(row, vendorId, partId) {
-	            const partData = findPart(vendorId, partId);
-	            if (!partData) return;
+		        function applyPartDefaults(row, vendorId, partId) {
+		            const partData = findPart(vendorId, partId);
+		            if (!partData) {
+                        const groupEl = row.closest('.material-group');
+                        const title = groupEl ? getGroupTitle(groupEl) : '';
+                        const normalizedTitle = String(title || '').trim().toLowerCase();
+                        if (vendorId && normalizedTitle) {
+                            const cacheKey = `${vendorId}|${normalizedTitle}`;
+                            if (!partsCache[cacheKey] && !pendingGroupFetch[cacheKey]) {
+                                loadPartsForGroup(vendorId, normalizedTitle).then(() => {
+                                    const loaded = findPart(vendorId, partId);
+                                    if (loaded) applyPartDefaults(row, vendorId, partId);
+                                }).catch(() => {});
+                            }
+                        }
+                        return;
+                    }
 	            const sizeInput = row.querySelector('.input-size');
 	            if (sizeInput) sizeInput.value = partData.size || partData.register_no || '';
 	            const partNoInput = row.querySelector('.input-part-no-gci');
@@ -909,11 +961,20 @@
                 refreshGroupPartOptions(groupEl);
 	        }
 
-		        function refreshGroupPartOptions(groupEl) {
-		            const vendorId = vendorIdInput.value;
-		            const groupTitle = getGroupTitle(groupEl);
-		            const rows = groupEl.querySelectorAll('.line-row');
-		            rows.forEach((row) => {
+			        function refreshGroupPartOptions(groupEl) {
+			            const vendorId = vendorIdInput.value;
+			            const groupTitle = getGroupTitle(groupEl);
+                        const normalizedTitle = String(groupTitle || '').trim().toLowerCase();
+                        if (vendorId && normalizedTitle) {
+                            const cacheKey = `${vendorId}|${normalizedTitle}`;
+                            if (!partsCache[cacheKey] && !pendingGroupFetch[cacheKey]) {
+                                loadPartsForGroup(vendorId, normalizedTitle)
+                                    .then(() => refreshGroupPartOptions(groupEl))
+                                    .catch(() => {});
+                            }
+                        }
+			            const rows = groupEl.querySelectorAll('.line-row');
+			            rows.forEach((row) => {
 	                const select = row.querySelector('.part-select');
 	                const sizeInput = row.querySelector('.size-autocomplete');
 	                const datalist = row.querySelector('.size-datalist');
@@ -1262,16 +1323,9 @@
             if (!isRestoringDraft) requestSaveDraft();
         }
 
-		        async function loadParts(vendorId, force = false) {
-		            if (!vendorId) return [];
-		            if (!force && partsCache[vendorId]) return partsCache[vendorId];
-		            const response = await fetch(`${partApiBase}/${vendorId}/parts`);
-		            if (!response.ok) return [];
-		            const data = await response.json();
-		            partsCache[vendorId] = data;
-		            rebuildMaterialTitleSelects(vendorId);
-		            return data;
-		        }
+			        async function loadParts(vendorId, force = false) {
+			            return loadVendorTitles(vendorId, force);
+			        }
 
 		        document.addEventListener('DOMContentLoaded', async () => {
                 installAutoPriceDelegation();

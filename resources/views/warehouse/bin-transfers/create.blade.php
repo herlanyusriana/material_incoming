@@ -30,15 +30,15 @@
                         <label class="block text-sm font-semibold text-slate-700 mb-2">
                             Part <span class="text-red-500">*</span>
                         </label>
-                        <select name="part_id" id="part_id" required
-                            class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">-- Select Part --</option>
-                            @foreach($parts as $part)
-                                <option value="{{ $part->id }}" {{ old('part_id') == $part->id ? 'selected' : '' }}>
-                                    {{ $part->part_no }} - {{ $part->part_name_gci }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <input type="hidden" name="part_id" id="part_id" value="{{ old('part_id') }}" required>
+                        <div class="relative">
+                            <input type="text" id="part_search" autocomplete="off"
+                                class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="Type part no / name (min 2 chars)">
+                            <div id="part_suggestions"
+                                class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg hidden">
+                            </div>
+                        </div>
                         <p class="text-xs text-slate-500 mt-1" id="part-locations-info">Select a part to see available
                             locations</p>
                     </div>
@@ -130,7 +130,9 @@
 
     @push('scripts')
         <script>
-            const partSelect = document.getElementById('part_id');
+            const partSelect = document.getElementById('part_id'); // hidden input
+            const partSearch = document.getElementById('part_search');
+            const partSuggestions = document.getElementById('part_suggestions');
             const fromLocationSelect = document.getElementById('from_location_code');
             const toLocationSelect = document.getElementById('to_location_code');
             const fromStockInfo = document.getElementById('from-stock-info');
@@ -139,6 +141,82 @@
             const qtyInput = document.getElementById('qty');
 
             let availableStock = 0;
+            let partDebounce = null;
+            let partAbort = null;
+
+            function escapeHtml(str) {
+                return String(str ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function renderPartSuggestions(items) {
+                if (!partSuggestions) return;
+                if (!items.length) {
+                    partSuggestions.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500 italic">No matches</div>';
+                    partSuggestions.classList.remove('hidden');
+                    return;
+                }
+                partSuggestions.innerHTML = items.map((p) => {
+                    const name = (p.part_name_gci || p.part_name_vendor || '').trim();
+                    const reg = (p.register_no || '').trim();
+                    const meta = [name, reg].filter(Boolean).join(' • ');
+                    return `<button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-50" data-id="${escapeHtml(p.id)}" data-label="${escapeHtml(p.part_no)}" data-meta="${escapeHtml(meta)}">
+                        <div class="font-mono text-xs font-bold text-slate-900">${escapeHtml(p.part_no)}</div>
+                        <div class="text-xs text-slate-600">${escapeHtml(meta)}</div>
+                    </button>`;
+                }).join('');
+                partSuggestions.classList.remove('hidden');
+            }
+
+            async function searchParts(q) {
+                if (partAbort) partAbort.abort();
+                partAbort = new AbortController();
+                const url = `{{ route('parts.search') }}?q=${encodeURIComponent(q)}&in_stock=1&limit=20`;
+                const res = await fetch(url, { signal: partAbort.signal, headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return [];
+                return await res.json();
+            }
+
+            partSearch?.addEventListener('input', () => {
+                const q = String(partSearch.value || '').trim();
+                partSelect.value = '';
+                if (q.length < 2) {
+                    partSuggestions?.classList.add('hidden');
+                    return;
+                }
+                if (partDebounce) clearTimeout(partDebounce);
+                partDebounce = setTimeout(async () => {
+                    try {
+                        const items = await searchParts(q);
+                        renderPartSuggestions(Array.isArray(items) ? items : []);
+                    } catch (e) {
+                        if (e?.name === 'AbortError') return;
+                        partSuggestions?.classList.add('hidden');
+                    }
+                }, 200);
+            });
+
+            partSuggestions?.addEventListener('click', async (e) => {
+                const btn = e.target.closest('button[data-id]');
+                if (!btn) return;
+                partSelect.value = btn.dataset.id;
+                const label = btn.dataset.label || '';
+                const meta = btn.dataset.meta || '';
+                partSearch.value = meta ? `${label} — ${meta}` : label;
+                partSuggestions.classList.add('hidden');
+                await updateStockInfo();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!partSuggestions || !partSearch) return;
+                if (!partSearch.contains(e.target) && !partSuggestions.contains(e.target)) {
+                    partSuggestions.classList.add('hidden');
+                }
+            });
 
             // Update stock info when part or location changes
             async function updateStockInfo() {

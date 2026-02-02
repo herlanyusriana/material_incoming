@@ -222,10 +222,10 @@
             const vendorPartInput = document.getElementById('part_name_vendor');
             const gciNameInput = document.getElementById('part_name_gci');
 
-            async function loadVendorPartNames(vendorId) {
-                if (!vendorPartSelect) return;
-                vendorPartSelect.disabled = true;
-                vendorPartSelect.innerHTML = '<option value=\"\">Loading...</option>';
+	            async function loadVendorPartNames(vendorId) {
+	                if (!vendorPartSelect) return;
+	                vendorPartSelect.disabled = true;
+	                vendorPartSelect.innerHTML = '<option value=\"\">Loading...</option>';
 
                 if (!vendorId) {
                     vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>';
@@ -233,14 +233,15 @@
                     return;
                 }
 
-                try {
-                    const res = await fetch(`${vendorsPartsBase}/${vendorId}/parts`, { headers: { 'Accept': 'application/json' } });
-                    const parts = await res.json();
-                    const names = Array.from(new Set(
-                        (Array.isArray(parts) ? parts : [])
-                            .map(p => String(p.part_name_vendor || '').trim())
-                            .filter(Boolean)
-                    )).sort((a, b) => a.localeCompare(b));
+	                try {
+	                    const res = await fetch(`${vendorsPartsBase}/${vendorId}/parts?mode=names&limit=500`, { headers: { 'Accept': 'application/json' } });
+	                    const payload = await res.json();
+	                    const list = Array.isArray(payload) ? payload : (payload?.names || []);
+	                    const names = Array.from(new Set(
+	                        (Array.isArray(list) ? list : [])
+	                            .map((n) => String(n || '').trim())
+	                            .filter(Boolean)
+	                    )).sort((a, b) => a.localeCompare(b));
 
                     const current = String(vendorPartInput?.value || '').trim().toUpperCase();
                     vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>' + names.map((n) => {

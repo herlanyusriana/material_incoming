@@ -59,17 +59,14 @@ class BinTransferController extends Controller
      */
     public function create()
     {
-        // Get parts that have stock in any location
-        $parts = Part::whereHas('locationInventory', function ($q) {
-            $q->where('qty_on_hand', '>', 0);
-        })->orderBy('part_no')->get();
-
         // Get active warehouse locations
         $locations = WarehouseLocation::where('status', 'ACTIVE')
             ->orderBy('location_code')
             ->get();
 
-        return view('warehouse.bin-transfers.create', compact('parts', 'locations'));
+        return view('warehouse.bin-transfers.create', [
+            'locations' => $locations,
+        ]);
     }
 
     /**
