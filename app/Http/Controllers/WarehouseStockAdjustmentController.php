@@ -10,6 +10,7 @@ use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class WarehouseStockAdjustmentController extends Controller
@@ -28,16 +29,34 @@ class WarehouseStockAdjustmentController extends Controller
             $perPage = 200;
         }
 
+        $hasMoveFields = Schema::hasColumn('location_inventory_adjustments', 'from_location_code')
+            && Schema::hasColumn('location_inventory_adjustments', 'to_location_code');
+
         $query = LocationInventoryAdjustment::query()
             ->with(['part', 'location', 'creator'])
-            ->when($location !== '', fn ($q) => $q->where('location_code', $location))
-            ->when($search !== '', function ($q) use ($search) {
+            ->when($location !== '', function ($q) use ($location, $hasMoveFields) {
+                if ($hasMoveFields) {
+                    $q->where(function ($qq) use ($location) {
+                        $qq->where('location_code', $location)
+                            ->orWhere('from_location_code', $location)
+                            ->orWhere('to_location_code', $location);
+                    });
+                    return;
+                }
+                $q->where('location_code', $location);
+            })
+            ->when($search !== '', function ($q) use ($search, $hasMoveFields) {
                 $s = strtoupper($search);
                 $q->whereHas('part', function ($qp) use ($s) {
                     $qp->where('part_no', 'like', '%' . $s . '%')
                         ->orWhere('part_name_gci', 'like', '%' . $s . '%')
                         ->orWhere('part_name_vendor', 'like', '%' . $s . '%');
                 })->orWhere('location_code', 'like', '%' . $s . '%');
+
+                if ($hasMoveFields) {
+                    $q->orWhere('from_location_code', 'like', '%' . $s . '%')
+                        ->orWhere('to_location_code', 'like', '%' . $s . '%');
+                }
             })
             ->when($dateFrom, fn ($q) => $q->whereDate('adjusted_at', '>=', $dateFrom))
             ->when($dateTo, fn ($q) => $q->whereDate('adjusted_at', '<=', $dateTo))
@@ -46,7 +65,7 @@ class WarehouseStockAdjustmentController extends Controller
 
         $adjustments = $query->paginate($perPage)->withQueryString();
 
-        return view('warehouse.stock.adjustments_index', compact('adjustments', 'search', 'location', 'dateFrom', 'dateTo', 'perPage'));
+        return view('warehouse.stock.adjustments_index', compact('adjustments', 'search', 'location', 'dateFrom', 'dateTo', 'perPage', 'hasMoveFields'));
     }
 
     public function create()
@@ -137,6 +156,11 @@ class WarehouseStockAdjustmentController extends Controller
                     'part_id' => $partId,
                     'location_code' => $locationCode,
                     'batch_no' => $batchNo,
+                    'from_location_code' => $locationCode,
+                    'to_location_code' => $locationCode,
+                    'from_batch_no' => $batchNo,
+                    'to_batch_no' => $batchNo,
+                    'action_type' => 'adjustment',
                     'qty_before' => $qtyBefore,
                     'qty_after' => $qtyAfter,
                     'qty_change' => $qtyChange,
@@ -195,6 +219,11 @@ class WarehouseStockAdjustmentController extends Controller
                     'part_id' => $partId,
                     'location_code' => $locationCode,
                     'batch_no' => null,
+                    'from_location_code' => $locationCode,
+                    'to_location_code' => $locationCode,
+                    'from_batch_no' => null,
+                    'to_batch_no' => null,
+                    'action_type' => 'adjustment',
                     'qty_before' => $qtyBefore,
                     'qty_after' => $qtyAfter,
                     'qty_change' => $qtyChange,
@@ -231,4 +260,3 @@ class WarehouseStockAdjustmentController extends Controller
         return response()->json($batches);
     }
 }
-

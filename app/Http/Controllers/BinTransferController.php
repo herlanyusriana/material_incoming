@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BinTransfer;
 use App\Models\LocationInventory;
+use App\Models\LocationInventoryAdjustment;
 use App\Models\Part;
 use App\Models\WarehouseLocation;
 use App\Support\QrSvg;
@@ -113,7 +114,7 @@ class BinTransferController extends Controller
                 LocationInventory::updateStock($partId, $toLocation, $qty);
 
                 // 4. Log transfer
-                BinTransfer::create([
+                $transfer = BinTransfer::create([
                     'part_id' => $partId,
                     'from_location_code' => $fromLocation,
                     'to_location_code' => $toLocation,
@@ -122,6 +123,25 @@ class BinTransferController extends Controller
                     'created_by' => Auth::id(),
                     'notes' => $validated['notes'] ?? null,
                     'status' => 'completed',
+                ]);
+
+                // 5. Mirror to Adjustment History so movement is visible in one place.
+                LocationInventoryAdjustment::query()->create([
+                    'part_id' => $partId,
+                    'location_code' => strtoupper(trim((string) $fromLocation)),
+                    'batch_no' => null,
+                    'from_location_code' => strtoupper(trim((string) $fromLocation)),
+                    'to_location_code' => strtoupper(trim((string) $toLocation)),
+                    'from_batch_no' => null,
+                    'to_batch_no' => null,
+                    'action_type' => 'transfer',
+                    // Keep qty_before/after referencing the FROM side for consistency with existing UI.
+                    'qty_before' => (float) $sourceStock,
+                    'qty_after' => (float) ($sourceStock - $qty),
+                    'qty_change' => (float) (0 - $qty),
+                    'reason' => trim('Bin transfer ' . $fromLocation . ' → ' . $toLocation . ($validated['notes'] ? (' | ' . $validated['notes']) : '')),
+                    'adjusted_at' => $transfer->transfer_date ? \Illuminate\Support\Carbon::parse($transfer->transfer_date) : now(),
+                    'created_by' => Auth::id(),
                 ]);
             });
 

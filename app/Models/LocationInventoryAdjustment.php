@@ -13,6 +13,11 @@ class LocationInventoryAdjustment extends Model
         'part_id',
         'location_code',
         'batch_no',
+        'from_location_code',
+        'to_location_code',
+        'from_batch_no',
+        'to_batch_no',
+        'action_type',
         'qty_before',
         'qty_after',
         'qty_change',
@@ -43,4 +48,3 @@ class LocationInventoryAdjustment extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 }
-

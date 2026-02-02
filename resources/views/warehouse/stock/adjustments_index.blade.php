@@ -70,8 +70,8 @@
                         <thead class="bg-slate-50">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">When</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch No</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location (From → To)</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch (From → To)</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Before</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">After</th>
@@ -83,16 +83,28 @@
                         <tbody class="bg-white divide-y divide-slate-200">
                             @forelse($adjustments as $adj)
                                 @php($delta = (float) ($adj->qty_change ?? 0))
+                                @php($fromLoc = $adj->from_location_code ?? $adj->location_code)
+                                @php($toLoc = $adj->to_location_code ?? $adj->location_code)
+                                @php($fromBatch = $adj->from_batch_no ?? $adj->batch_no)
+                                @php($toBatch = $adj->to_batch_no ?? $adj->batch_no)
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3 text-sm text-slate-700">
                                         {{ $adj->adjusted_at?->format('Y-m-d H:i') ?? $adj->created_at?->format('Y-m-d H:i') ?? '-' }}
                                     </td>
-                                    <td class="px-4 py-3 font-mono font-semibold text-slate-900">{{ $adj->location_code }}</td>
+                                    <td class="px-4 py-3 font-mono font-semibold text-slate-900">
+                                        {{ $fromLoc }}
+                                        @if($toLoc && $toLoc !== $fromLoc)
+                                            <span class="mx-1 text-slate-400 font-normal">→</span>
+                                            <span class="text-indigo-700">{{ $toLoc }}</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 font-mono text-sm text-slate-700">
-                                        @if($adj->batch_no)
-                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">{{ $adj->batch_no }}</span>
-                                        @else
-                                            <span class="text-slate-400 text-xs">(All Batches)</span>
+                                        @php($fromLabel = $fromBatch ? $fromBatch : '(All)')
+                                        @php($toLabel = $toBatch ? $toBatch : '(All)')
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">{{ $fromLabel }}</span>
+                                        @if($toLabel !== $fromLabel)
+                                            <span class="mx-1 text-slate-400">→</span>
+                                            <span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded">{{ $toLabel }}</span>
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
@@ -125,4 +137,3 @@
         </div>
     </div>
 </x-app-layout>
-
