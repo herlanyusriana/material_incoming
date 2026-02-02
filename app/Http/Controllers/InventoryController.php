@@ -18,17 +18,25 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $partId = $request->query('part_id');
+        $q = trim((string) $request->query('q', ''));
 
         $parts = Part::query()->orderBy('part_no')->get();
 
         $inventories = Inventory::query()
             ->with('part')
             ->when($partId, fn ($q) => $q->where('part_id', $partId))
+            ->when($q !== '', function ($qr) use ($q) {
+                $qr->whereHas('part', function ($qp) use ($q) {
+                    $qp->where('part_no', 'like', '%' . $q . '%')
+                        ->orWhere('part_name_gci', 'like', '%' . $q . '%')
+                        ->orWhere('register_no', 'like', '%' . $q . '%');
+                });
+            })
             ->orderBy(Part::select('part_no')->whereColumn('parts.id', 'inventories.part_id'))
             ->paginate(25)
             ->withQueryString();
 
-        return view('inventory.index', compact('inventories', 'parts', 'partId'));
+        return view('inventory.index', compact('inventories', 'parts', 'partId', 'q'));
     }
 
     public function receives(Request $request)

@@ -24,11 +24,18 @@
                             <select name="part_id" class="mt-1 rounded-xl border-slate-200">
                                 <option value="">All</option>
                                 @foreach ($parts as $p)
-                                    <option value="{{ $p->id }}" @selected((string) $partId === (string) $p->id)>{{ $p->part_no }} — {{ $p->part_name_gci }}</option>
+                                    <option value="{{ $p->id }}" @selected((string) $partId === (string) $p->id)>{{ $p->part_no }} — {{ $p->part_name_gci }}{{ $p->register_no ? ' (' . $p->register_no . ')' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Table Search</label>
+                            <input type="text" name="q" value="{{ $q ?? '' }}" class="mt-1 rounded-xl border-slate-200" placeholder="Part no / name / model">
+                        </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        @if(!empty($partId) || !empty($q))
+                            <a href="{{ route('inventory.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">Reset</a>
+                        @endif
                     </form>
 
                     <div class="flex flex-wrap items-center gap-2">
@@ -60,7 +67,14 @@
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3">
                                         <div class="font-semibold">{{ $inv->part->part_no ?? '-' }}</div>
-                                        <div class="text-xs text-slate-500">{{ $inv->part->part_name_gci ?? '-' }}</div>
+                                        <div class="text-xs text-slate-500">
+                                            {{ $inv->part->part_name_gci ?? '-' }}
+                                            @if(!empty($inv->part?->register_no))
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                                                    {{ $inv->part->register_no }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $inv->on_hand, 3) }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format((float) $inv->on_order, 3) }}</td>
