@@ -18,12 +18,36 @@
                     <select id="part_select" name="gci_part_id" data-remote="true" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required></select>
                 </div>
 
+
                 <script>
                     document.addEventListener('DOMContentLoaded', () => {
                         const sel = document.getElementById('part_select');
                         if (window.initRemoteTomSelect) {
-                            window.initRemoteTomSelect(sel, "{{ route('gci-parts.search') }}", {
-                                placeholder: 'Search for part number or name...'
+                            const tomSelect = window.initRemoteTomSelect(sel, "{{ route('gci-parts.search') }}", {
+                                placeholder: 'Search for part number or name...',
+                                onChange: function(value) {
+                                    if (!value) return;
+                                    
+                                    // Fetch BOM data for selected part
+                                    fetch(`/api/gci-parts/${value}/bom-info`)
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            if (data.success && data.bom) {
+                                                const processInput = document.querySelector('input[name="process_name"]');
+                                                const machineInput = document.querySelector('input[name="machine_name"]');
+                                                
+                                                if (data.bom.process_name) {
+                                                    processInput.value = data.bom.process_name;
+                                                    processInput.classList.add('bg-green-50');
+                                                }
+                                                if (data.bom.machine_name) {
+                                                    machineInput.value = data.bom.machine_name;
+                                                    machineInput.classList.add('bg-green-50');
+                                                }
+                                            }
+                                        })
+                                        .catch(err => console.error('Failed to fetch BOM info:', err));
+                                }
                             });
                         }
                     });

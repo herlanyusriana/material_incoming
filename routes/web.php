@@ -70,6 +70,7 @@ Route::get('/departures/{departure}/export-detail', [ArrivalController::class, '
 Route::middleware('auth')->group(function () {
     Route::get('/api/parts/search', [\App\Http\Controllers\PartController::class, 'search'])->name('parts.search');
     Route::get('/api/gci-parts/search', [\App\Http\Controllers\Planning\GciPartController::class, 'search'])->name('gci-parts.search');
+    Route::get('/api/gci-parts/{gciPart}/bom-info', [\App\Http\Controllers\Planning\GciPartController::class, 'getBomInfo'])->name('gci-parts.bom-info');
     Route::view('/incoming-material', 'incoming-material.dashboard')->name('incoming-material.dashboard');
     Route::get('/logistics', [LogisticsDashboardController::class, 'index'])->name('logistics.dashboard');
     Route::resource('vendors', VendorController::class)->except(['show']);

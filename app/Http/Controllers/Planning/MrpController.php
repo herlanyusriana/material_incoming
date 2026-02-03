@@ -630,6 +630,22 @@ class MrpController extends Controller
             if ($qtyPlanned <= 0) {
                 continue;
             }
+            
+            // Auto-populate process/machine from BOM
+            $bom = \App\Models\Bom::where('part_id', $partId)->latest()->first();
+            $processName = null;
+            $machineName = null;
+            
+            if ($bom) {
+                // Try to get from first WIP item, otherwise from first item
+                $bomItems = $bom->items()->orderBy('line_no')->get();
+                $targetItem = $bomItems->firstWhere('wip_part_id', '!=', null) ?? $bomItems->first();
+                
+                if ($targetItem) {
+                    $processName = $targetItem->process_name;
+                    $machineName = $targetItem->machine_name;
+                }
+            }
 
             $orderNo = 'MO-MRP-' . $periodKey . '-' . str_pad((string) $partId, 6, '0', STR_PAD_LEFT);
 
@@ -647,6 +663,8 @@ class MrpController extends Controller
                         'mrp_run_id' => $run->id,
                         'mrp_period' => $run->period,
                         'mrp_generated' => true,
+                        'process_name' => $processName,
+                        'machine_name' => $machineName,
                     ];
                     // Some environments use qty_rejected instead of qty_ng and may not have a DB default.
                     if ($hasQtyRejected) {
@@ -670,6 +688,8 @@ class MrpController extends Controller
                 'mrp_generated' => true,
                 'qty_actual' => 0,
                 'created_by' => $userId,
+                'process_name' => $processName,
+                'machine_name' => $machineName,
             ];
             // Some environments use qty_rejected instead of qty_ng and may not have a DB default.
             if ($hasQtyRejected) {

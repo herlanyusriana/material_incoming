@@ -44,6 +44,31 @@ class GciPartController extends Controller
 
         return response()->json($query->get());
     }
+    
+    public function getBomInfo(GciPart $gciPart)
+    {
+        $bom = \App\Models\Bom::where('part_id', $gciPart->id)->latest()->first();
+        
+        if (!$bom) {
+            return response()->json(['success' => false, 'message' => 'No BOM found']);
+        }
+        
+        // Try to get from first WIP item, otherwise from first item
+        $bomItems = $bom->items()->orderBy('line_no')->get();
+        $targetItem = $bomItems->firstWhere('wip_part_id', '!=', null) ?? $bomItems->first();
+        
+        if (!$targetItem) {
+            return response()->json(['success' => false, 'message' => 'No BOM items found']);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'bom' => [
+                'process_name' => $targetItem->process_name,
+                'machine_name' => $targetItem->machine_name,
+            ]
+        ]);
+    }
 
     public function index(Request $request)
     {
