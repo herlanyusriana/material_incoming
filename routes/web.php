@@ -24,6 +24,8 @@ use App\Http\Controllers\Planning\CustomerPoController as PlanningCustomerPoCont
 use App\Http\Controllers\Planning\ForecastController as PlanningForecastController;
 use App\Http\Controllers\Planning\MpsController as PlanningMpsController;
 use App\Http\Controllers\Planning\MrpController as PlanningMrpController;
+use App\Http\Controllers\Purchasing\PurchaseRequestController;
+use App\Http\Controllers\Purchasing\PurchaseOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -387,8 +389,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/final-inspection/{order}/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanUpdate'])->name('final-inspection.kanban-update');
 
         // Legacy inspection routes
-        Route::post('/orders/{order}/inspections', [\App\Http\Controllers\ProductionInspectionController::class, 'store'])->name('inspections.store');
-        Route::put('/inspections/{inspection}', [\App\Http\Controllers\ProductionInspectionController::class, 'update'])->name('inspections.update');
+        Route::post('/inspections/{inspection}', [\App\Http\Controllers\ProductionInspectionController::class, 'update'])->name('inspections.update');
+    });
+
+    Route::prefix('purchasing')->name('purchasing.')->group(function () {
+        Route::get('/purchase-requests/from-mrp', [PurchaseRequestController::class, 'createFromMrp'])->name('purchase-requests.create-from-mrp');
+        Route::post('/purchase-requests/{purchase_request}/approve', [PurchaseRequestController::class, 'approve'])->name('purchase-requests.approve');
+        Route::post('/purchase-requests/{purchase_request}/convert', [PurchaseRequestController::class, 'convertToPo'])->name('purchase-requests.convert');
+        Route::resource('purchase-requests', PurchaseRequestController::class);
+
+        Route::post('/purchase-orders/{purchase_order}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
+        Route::post('/purchase-orders/{purchase_order}/release', [PurchaseOrderController::class, 'release'])->name('purchase-orders.release');
+        Route::get('/purchase-orders/{purchase_order}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print');
+        Route::resource('purchase-orders', PurchaseOrderController::class);
     });
 });
 
