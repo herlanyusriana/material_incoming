@@ -5,10 +5,11 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-black text-slate-900">Delivery Requirements</h1>
-                    <p class="mt-1 text-sm text-slate-600">
-                        Aggregated delivery requirements based on Daily Planning.
-                    </p>
+                    <h1 class="text-2xl md:text-3xl font-black text-slate-900">Delivery Requirement</h1>
+                    <div class="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                        <span class="font-bold uppercase tracking-wider text-slate-400">Periode:</span>
+                        <span class="font-bold text-slate-900">{{ $dateFrom->format('d M Y') }} - {{ $dateTo->format('d M Y') }}</span>
+                    </div>
                 </div>
             </div>
 
@@ -36,13 +37,6 @@
                         View
                     </button>
                 </form>
-                
-                @if(isset($sortBy))
-                    <div class="text-xs text-slate-500">
-                        Sorted by: <span class="font-semibold text-slate-700">{{ ucfirst($sortBy) }}</span>
-                        ({{ $sortDir === 'asc' ? '↑ Ascending' : '↓ Descending' }})
-                    </div>
-                @endif
             </div>
         </div>
 
@@ -60,60 +54,32 @@
                         $displayRequirements = collect($requirements)
                             ->filter(fn ($r) => $r->customer && $r->gci_part)
                             ->values();
+                        
+                        $lastCustomer = null;
                     @endphp
-                    <table class="w-full text-sm divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
-                            <tr>
+                    <table class="w-full text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b-2 border-slate-900">
                                 <th class="px-4 py-3 text-left w-10">
                                     <input type="checkbox" id="selectAll" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" onclick="toggleAll(this)">
                                 </th>
-                                @php
-                                    $sortDir = $sortDir ?? 'asc';
-                                    $sortBy = $sortBy ?? 'date';
-                                    $makeSort = function($column) use ($sortBy, $sortDir, $dateFrom, $dateTo) {
-                                        $newDir = ($sortBy === $column && $sortDir === 'asc') ? 'desc' : 'asc';
-                                        return route('outgoing.delivery-requirements', [
-                                            'date_from' => $dateFrom->toDateString(),
-                                            'date_to' => $dateTo->toDateString(),
-                                            'sort_by' => $column,
-                                            'sort_dir' => $newDir
-                                        ]);
-                                    };
-                                    $sortIcon = function($column) use ($sortBy, $sortDir) {
-                                        if ($sortBy !== $column) return '↕';
-                                        return $sortDir === 'asc' ? '↑' : '↓';
-                                    };
-                                @endphp
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">#</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Del Class</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                    <a href="{{ $makeSort('date') }}" class="text-slate-500 hover:text-slate-700">
-                                        Date {!! $sortIcon('date') !!}
-                                    </a>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Customer Name</th>
+                                <th class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">FG's Category</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">FG Part Name</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">FG Part No.</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Project Name</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Customer Stock</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Customer Daily Plan</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    Delivery Requirement
+                                    <div class="lowercase text-[9px] font-normal text-slate-500 mt-0.5">if (Daily Plan - Cust Stock) < 0 &rarr; 0</div>
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                    <a href="{{ $makeSort('customer') }}" class="text-slate-500 hover:text-slate-700">
-                                        Customer {!! $sortIcon('customer') !!}
-                                    </a>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                    <a href="{{ $makeSort('sequence') }}" class="text-slate-500 hover:text-slate-700">
-                                        Seq {!! $sortIcon('sequence') !!}
-                                    </a>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                    <a href="{{ $makeSort('part') }}" class="text-slate-500 hover:text-slate-700">
-                                        Part Details {!! $sortIcon('part') !!}
-                                    </a>
-                                </th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Total Qty</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Delivery Pack Qty</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
+                        <tbody class="bg-white">
                             @forelse ($displayRequirements as $idx => $req)
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-4 py-3">
+                                <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                                    <td class="px-4 py-3 text-center border-x border-slate-100">
                                         <input type="checkbox" name="selected[]" value="{{ $idx }}" class="row-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                         <input type="hidden" name="lines[{{ $idx }}][date]" value="{{ $req->date->toDateString() }}">
                                         <input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $req->customer->id }}">
@@ -123,59 +89,68 @@
                                             <input type="hidden" name="lines[{{ $idx }}][row_ids][]" value="{{ $rid }}">
                                         @endforeach
                                     </td>
-                                    <td class="px-4 py-3 text-slate-500 font-semibold">{{ $idx + 1 }}</td>
-                                    <td class="px-4 py-3">
-                                        <div class="text-slate-700 font-bold">{{ $req->gci_part?->standardPacking?->delivery_class ?? '-' }}</div>
-                                        <div class="text-[10px] text-slate-500 uppercase font-bold">{{ $req->gci_part?->standardPacking?->trolley_type ?? '-' }}</div>
-                                    </td>
-                                    <td class="px-4 py-3 font-semibold text-slate-700">
-                                        {{ $req->date->format('d M Y') }}
-                                    </td>
-                                    <td class="px-4 py-3 text-slate-900 font-bold">
-                                        {{ $req->customer->name }}
-                                    </td>
-                                    <td class="px-4 py-3 font-mono text-sm text-center">
-                                        @if(isset($req->sequences_consolidated) && count($req->sequences_consolidated) > 1)
-                                            <span class="inline-flex items-center gap-1">
-                                                <span class="font-bold">{{ $req->sequence }}</span>
-                                                <span class="text-[10px] text-slate-500" title="Consolidated from sequences: {{ implode(', ', $req->sequences_consolidated) }}">
-                                                    ({{ count($req->sequences_consolidated) }}×)
-                                                </span>
-                                            </span>
-                                        @else
-                                            {{ $req->sequence ?? '-' }}
+                                    
+                                    <td class="px-4 py-3 font-bold text-slate-900 border-x border-slate-100">
+                                        @if($lastCustomer !== $req->customer->id)
+                                            {{ $req->customer->name }}
+                                            @php $lastCustomer = $req->customer->id; @endphp
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <div class="text-slate-600 font-medium">{{ $req->gci_part->part_name ?? '-' }}</div>
-                                        <div class="text-xs text-indigo-600 font-mono">{{ $req->gci_part->part_no }}</div>
+                                    
+                                    <td class="px-3 py-3 text-center font-bold text-slate-700 border-x border-slate-100">
+                                        {{ $req->gci_part?->standardPacking?->delivery_class ?: '-' }}
                                     </td>
-                                    <td class="px-4 py-3 text-right font-bold text-slate-900">
-                                        {{ number_format($req->total_qty) }}
-                                        @if(($req->stock_at_customer ?? 0) > 0 || ($req->stock_used ?? 0) > 0)
-                                            <div class="mt-0.5 text-[10px] font-semibold text-slate-500">
-                                                Gross {{ number_format($req->gross_qty ?? 0) }} • Stock@Cust {{ number_format($req->stock_at_customer ?? 0) }} • Used {{ number_format($req->stock_used ?? 0) }}
+                                    
+                                    <td class="px-4 py-3 text-slate-700 border-x border-slate-100">
+                                        {{ $req->gci_part->part_name ?? '-' }}
+                                    </td>
+                                    
+                                    <td class="px-4 py-3 font-mono text-indigo-600 font-bold border-x border-slate-100">
+                                        {{ $req->gci_part->part_no }}
+                                    </td>
+                                    
+                                    <td class="px-4 py-3 text-slate-600 border-x border-slate-100">
+                                        {{ $req->gci_part->model ?: '-' }}
+                                    </td>
+                                    
+                                    <td class="px-4 py-3 text-right font-medium text-slate-500 border-x border-slate-100">
+                                        {{ number_format($req->stock_at_customer ?? 0) }}
+                                    </td>
+                                    
+                                    <td class="px-4 py-3 text-right font-bold text-slate-900 border-x border-slate-100">
+                                        {{ number_format($req->gross_qty ?? 0) }}
+                                    </td>
+                                    
+                                    <td class="px-4 py-3 text-right border-x border-slate-100">
+                                        <div class="font-bold text-indigo-700">{{ number_format($req->total_qty) }}</div>
+                                        @if(($req->delivery_pack_qty ?? $req->total_qty) > $req->total_qty)
+                                            <div class="text-[10px] text-slate-400 font-semibold">
+                                                Pack: {{ number_format($req->delivery_pack_qty) }}
                                             </div>
                                         @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-right font-bold text-indigo-700">
-                                        <div>{{ number_format($req->delivery_pack_qty ?? $req->total_qty) }} {{ $req->uom }}</div>
-                                        <div class="text-[10px] text-slate-500 font-semibold mt-0.5">
-                                            {{ number_format($req->packing_load ?? 0) }} Packs × {{ number_format($req->packing_std) }}
-                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-6 py-12 text-center text-slate-500">
+                                    <td colspan="9" class="px-6 py-20 text-center text-slate-500 bg-white">
                                         <div class="flex flex-col items-center">
-                                            <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                            <p class="font-medium text-slate-900">No delivery requirements found.</p>
+                                            <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                            <p class="text-lg font-bold text-slate-400 uppercase tracking-widest">No delivery requirements found</p>
                                         </div>
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
+                        @if($displayRequirements->isNotEmpty())
+                            <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-900">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-4 text-right uppercase text-xs tracking-widest text-slate-500">Totals</td>
+                                    <td class="px-4 py-4 text-right text-slate-500">{{ number_format($displayRequirements->sum('stock_at_customer')) }}</td>
+                                    <td class="px-4 py-4 text-right text-slate-900">{{ number_format($displayRequirements->sum('gross_qty')) }}</td>
+                                    <td class="px-4 py-4 text-right text-indigo-700">{{ number_format($displayRequirements->sum('total_qty')) }}</td>
+                                </tr>
+                            </tfoot>
+                        @endif
                     </table>
                 </div>
             </div>
@@ -188,7 +163,4 @@
             checkboxes.forEach(c => c.checked = el.checked);
         }
     </script>
-@endsection
-    </div>
-
 @endsection
