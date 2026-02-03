@@ -38,6 +38,7 @@
                                 @foreach($parts as $part)
                                     <option value="{{ $part->id }}" 
                                             data-stock="{{ $part->inventory->on_hand ?? 0 }}"
+                                            data-partno="{{ strtoupper(trim($part->part_no)) }}"
                                             {{ old('part_id') == $part->id ? 'selected' : '' }}>
                                         {{ $part->part_no }} - {{ $part->part_name_gci }} 
                                         (Stock: {{ formatNumber($part->inventory->on_hand ?? 0) }})
@@ -53,11 +54,14 @@
                                 To: Production Part <span class="text-red-500">*</span>
                             </label>
                             <select name="gci_part_id" 
+                                    id="gci_part_id"
                                     required
                                     class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">-- Select GCI Part --</option>
                                 @foreach($gciParts as $gciPart)
-                                    <option value="{{ $gciPart->id }}" {{ old('gci_part_id') == $gciPart->id ? 'selected' : '' }}>
+                                    <option value="{{ $gciPart->id }}" 
+                                            data-partno="{{ strtoupper(trim($gciPart->part_no)) }}"
+                                            {{ old('gci_part_id') == $gciPart->id ? 'selected' : '' }}>
                                         {{ $gciPart->part_no }} - {{ $gciPart->part_name }}
                                         @if($gciPart->classification)
                                             [{{ $gciPart->classification }}]
@@ -65,7 +69,12 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <p class="text-xs text-slate-500 mt-1">💡 Tip: Match part_no for auto-mapping</p>
+                            <p class="text-xs text-amber-600 mt-1 font-semibold" id="part-match-warning" style="display: none;">
+                                ⚠️ Warning: Part numbers don't match!
+                            </p>
+                            <p class="text-xs text-green-600 mt-1 font-semibold" id="part-match-success" style="display: none;">
+                                ✓ Part numbers match
+                            </p>
                         </div>
                     </div>
 
@@ -117,7 +126,41 @@
             const selected = this.options[this.selectedIndex];
             const stock = selected.getAttribute('data-stock') || 0;
             document.getElementById('available-stock').textContent = `Available stock: ${stock}`;
+            
+            // Check part number match
+            checkPartMatch();
         });
+        
+        // Check part number matching when production part changes
+        document.getElementById('gci_part_id').addEventListener('change', function() {
+            checkPartMatch();
+        });
+        
+        function checkPartMatch() {
+            const logisticsPart = document.getElementById('part_id');
+            const productionPart = document.getElementById('gci_part_id');
+            const warningEl = document.getElementById('part-match-warning');
+            const successEl = document.getElementById('part-match-success');
+            
+            const logisticsSelected = logisticsPart.options[logisticsPart.selectedIndex];
+            const productionSelected = productionPart.options[productionPart.selectedIndex];
+            
+            const logisticsPartNo = logisticsSelected?.getAttribute('data-partno') || '';
+            const productionPartNo = productionSelected?.getAttribute('data-partno') || '';
+            
+            // Hide both messages initially
+            warningEl.style.display = 'none';
+            successEl.style.display = 'none';
+            
+            // Only check if both are selected
+            if (logisticsPartNo && productionPartNo) {
+                if (logisticsPartNo === productionPartNo) {
+                    successEl.style.display = 'block';
+                } else {
+                    warningEl.style.display = 'block';
+                }
+            }
+        }
     </script>
     @endpush
 </x-app-layout>

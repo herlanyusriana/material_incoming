@@ -42,26 +42,58 @@ class MaterialAvailabilityController extends Controller
             return back()->with('error', 'No BOM found for this part.');
         }
 
-        $bomItems = $bom->items()->with('componentPart')->get();
+        $bomItems = $bom->items()->with(['componentPart', 'substitutes.part'])->get();
         $materials = [];
         $allAvailable = true;
 
         foreach ($bomItems as $item) {
             $requiredQty = $item->usage_qty * $order->qty_planned;
-            $currentStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
             
-            $isAvailable = $currentStock >= $requiredQty;
-            if (!$isAvailable) {
+            // Get stock from primary part
+            $primaryStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
+            
+            // Get stock from substitute parts
+            $substituteStock = 0;
+            $substituteDetails = [];
+            if ($item->substitutes && $item->substitutes->count() > 0) {
+                foreach ($item->substitutes as $substitute) {
+                    $subStock = GciInventory::where('gci_part_id', $substitute->substitute_part_id)->sum('on_hand');
+                    $substituteStock += $subStock;
+                    if ($subStock > 0) {
+                        $substituteDetails[] = [
+                            'part_no' => $substitute->part?->part_no ?? 'Unknown',
+                            'part_name' => $substitute->part?->part_name ?? 'Unknown',
+                            'stock' => $subStock,
+                        ];
+                    }
+                }
+            }
+            
+            // Total available stock = primary + substitutes
+            $totalStock = $primaryStock + $substituteStock;
+            
+            // Only check shortage for BUY items
+            $makeOrBuy = strtoupper(trim($item->make_or_buy ?? ''));
+            $isBuyItem = in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE']);
+            
+            $isAvailable = $totalStock >= $requiredQty;
+            
+            // Only mark as unavailable if it's a BUY item AND stock is insufficient
+            if ($isBuyItem && !$isAvailable) {
                 $allAvailable = false;
             }
             
             $materials[] = [
                 'part_no' => $item->componentPart?->part_no ?? 'Unknown',
                 'part_name' => $item->componentPart?->part_name ?? 'Unknown',
+                'make_or_buy' => $makeOrBuy ?: 'N/A',
                 'required' => $requiredQty,
-                'available' => $currentStock,
-                'shortage' => max(0, $requiredQty - $currentStock),
-                'status' => $isAvailable ? 'available' : 'shortage',
+                'primary_stock' => $primaryStock,
+                'substitute_stock' => $substituteStock,
+                'available' => $totalStock,
+                'shortage' => $isBuyItem ? max(0, $requiredQty - $totalStock) : 0,
+                'status' => !$isBuyItem ? 'N/A' : ($isAvailable ? 'available' : 'shortage'),
+                'substitutes' => $substituteDetails,
             ];
         }
         
@@ -102,19 +134,49 @@ class MaterialAvailabilityController extends Controller
         
         $materials = [];
         if ($bom) {
-            $bomItems = $bom->items()->with('componentPart')->get();
+            $bomItems = $bom->items()->with(['componentPart', 'substitutes.part'])->get();
             foreach ($bomItems as $item) {
                 $requiredQty = $item->usage_qty * $order->qty_planned;
-                $currentStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
+                
+                // Get stock from primary part
+                $primaryStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
+                
+                // Get stock from substitute parts
+                $substituteStock = 0;
+                $substituteDetails = [];
+                if ($item->substitutes && $item->substitutes->count() > 0) {
+                    foreach ($item->substitutes as $substitute) {
+                        $subStock = GciInventory::where('gci_part_id', $substitute->substitute_part_id)->sum('on_hand');
+                        $substituteStock += $subStock;
+                        if ($subStock > 0) {
+                            $substituteDetails[] = [
+                                'part_no' => $substitute->part?->part_no ?? 'Unknown',
+                                'part_name' => $substitute->part?->part_name ?? 'Unknown',
+                                'stock' => $subStock,
+                            ];
+                        }
+                    }
+                }
+                
+                // Total available stock = primary + substitutes
+                $totalStock = $primaryStock + $substituteStock;
+                
+                // Only check shortage for BUY items
+                $makeOrBuy = strtoupper(trim($item->make_or_buy ?? ''));
+                $isBuyItem = in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE']);
                 
                 $materials[] = [
                     'part_no' => $item->componentPart?->part_no ?? 'Unknown',
                     'part_name' => $item->componentPart?->part_name ?? 'Unknown',
                     'uom' => $item->componentPart?->uom ?? 'PCS',
+                    'make_or_buy' => $makeOrBuy ?: 'N/A',
                     'required' => $requiredQty,
-                    'available' => $currentStock,
-                    'shortage' => max(0, $requiredQty - $currentStock),
-                    'status' => $currentStock >= $requiredQty ? 'available' : 'shortage',
+                    'primary_stock' => $primaryStock,
+                    'substitute_stock' => $substituteStock,
+                    'available' => $totalStock,
+                    'shortage' => $isBuyItem ? max(0, $requiredQty - $totalStock) : 0,
+                    'status' => !$isBuyItem ? 'N/A' : ($totalStock >= $requiredQty ? 'available' : 'shortage'),
+                    'substitutes' => $substituteDetails,
                 ];
             }
         }

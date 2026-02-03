@@ -34,9 +34,12 @@
                         <tr>
                             <th class="px-4 py-3 text-left">Part No</th>
                             <th class="px-4 py-3 text-left">Part Name</th>
+                            <th class="px-4 py-3 text-center">Type</th>
                             <th class="px-4 py-3 text-center">UOM</th>
                             <th class="px-4 py-3 text-right">Required</th>
-                            <th class="px-4 py-3 text-right">Available</th>
+                            <th class="px-4 py-3 text-right">Primary Stock</th>
+                            <th class="px-4 py-3 text-right">Sub Stock</th>
+                            <th class="px-4 py-3 text-right">Total Available</th>
                             <th class="px-4 py-3 text-right">Shortage</th>
                             <th class="px-4 py-3 text-center">Status</th>
                         </tr>
@@ -46,14 +49,34 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-medium">{{ $material['part_no'] }}</td>
                                 <td class="px-4 py-3">{{ $material['part_name'] }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    @if($material['make_or_buy'] === 'BUY' || $material['make_or_buy'] === 'B' || $material['make_or_buy'] === 'PURCHASE')
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">BUY</span>
+                                    @elseif($material['make_or_buy'] === 'MAKE' || $material['make_or_buy'] === 'M')
+                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-semibold">MAKE</span>
+                                    @elseif(in_array($material['make_or_buy'], ['FREE_ISSUE', 'FI', 'FREE ISSUE']))
+                                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">FREE</span>
+                                    @else
+                                        <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs">{{ $material['make_or_buy'] }}</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-center">{{ $material['uom'] }}</td>
                                 <td class="px-4 py-3 text-right font-mono">{{ number_format($material['required'], 2) }}</td>
+                                <td class="px-4 py-3 text-right font-mono">{{ number_format($material['primary_stock'], 2) }}</td>
+                                <td class="px-4 py-3 text-right font-mono {{ $material['substitute_stock'] > 0 ? 'text-blue-600 font-semibold' : 'text-slate-400' }}">
+                                    {{ number_format($material['substitute_stock'], 2) }}
+                                    @if($material['substitute_stock'] > 0 && !empty($material['substitutes']))
+                                        <span class="text-xs" title="{{ collect($material['substitutes'])->pluck('part_no')->join(', ') }}">ℹ️</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-right font-mono">{{ number_format($material['available'], 2) }}</td>
                                 <td class="px-4 py-3 text-right font-mono {{ $material['shortage'] > 0 ? 'text-red-600 font-bold' : '' }}">
                                     {{ number_format($material['shortage'], 2) }}
                                 </td>
                                 <td class="px-4 py-3 text-center">
-                                    @if($material['status'] === 'available')
+                                    @if($material['status'] === 'N/A')
+                                        <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">N/A</span>
+                                    @elseif($material['status'] === 'available')
                                         <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">✓ OK</span>
                                     @else
                                         <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">✗ SHORTAGE</span>

@@ -59,6 +59,18 @@ class InventoryTransferController extends Controller
                 $gciPartId = $validated['gci_part_id'];
                 $qty = (float) $validated['qty'];
 
+                // BLOCKADE: Validate part_no matches
+                $logisticsPart = Part::find($partId);
+                $productionPart = GciPart::find($gciPartId);
+                
+                if (!$logisticsPart || !$productionPart) {
+                    throw new \Exception('Part not found.');
+                }
+                
+                if (strtoupper(trim($logisticsPart->part_no)) !== strtoupper(trim($productionPart->part_no))) {
+                    throw new \Exception('Transfer blocked: Part numbers must match. Logistics: ' . $logisticsPart->part_no . ' ≠ Production: ' . $productionPart->part_no);
+                }
+
                 // 1. Check source inventory
                 $sourceInv = Inventory::where('part_id', $partId)->lockForUpdate()->first();
                 if (!$sourceInv || $sourceInv->on_hand < $qty) {
