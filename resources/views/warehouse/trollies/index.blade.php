@@ -48,6 +48,14 @@
                         </svg>
                         Export
                     </a>
+                    <button @click="openRange()"
+                        class="flex-1 sm:flex-none px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 4v1m6 11h2m-6 0h-2v4h-4v-4H8m1-5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V19a2 2 0 01-2 2h-5a2 2 0 01-2-2V8a2 2 0 012-2z" />
+                        </svg>
+                        Print Range
+                    </button>
                     <form action="{{ route('warehouse.trollies.import') }}" method="POST" enctype="multipart/form-data"
                         class="flex-1 sm:flex-none">
                         @csrf
@@ -226,6 +234,58 @@
                     </div>
                 </form>
             </div>
+        <!-- Range Modal -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4"
+            x-show="rangeModalOpen" x-cloak x-transition>
+            <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 class="text-lg font-bold text-slate-900">Print Range Labels</h3>
+                    <button @click="rangeModalOpen = false"
+                        class="p-2 text-slate-400 hover:text-slate-600 transition-colors">✕</button>
+                </div>
+
+                <form action="{{ route('warehouse.trollies.print-range') }}" method="GET" target="_blank"
+                    class="p-6 space-y-4" @submit="rangeModalOpen = false">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start
+                                Code</label>
+                            <input type="text" name="start"
+                                class="w-full rounded-xl border-slate-200 uppercase placeholder:text-slate-300 font-bold focus:ring-indigo-500"
+                                placeholder="TRL-001">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End
+                                Code</label>
+                            <input type="text" name="end"
+                                class="w-full rounded-xl border-slate-200 uppercase placeholder:text-slate-300 font-bold focus:ring-indigo-500"
+                                placeholder="TRL-010">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Limit
+                            (Max 100)</label>
+                        <input type="number" name="limit" value="50" min="1" max="100"
+                            class="w-full rounded-xl border-slate-200 font-bold focus:ring-indigo-500">
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" @click="rangeModalOpen = false"
+                            class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="flex-1 px-4 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 shadow-lg transition-all flex items-center justify-center gap-2">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Print Range
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -233,6 +293,7 @@
         function trollyPage() {
             return {
                 modalOpen: false,
+                rangeModalOpen: false,
                 mode: 'create',
                 formAction: @js(route('warehouse.trollies.store')),
                 form: { id: null, code: '', type: '', kind: '', status: 'ACTIVE' },
@@ -253,6 +314,9 @@
                         status: t.status ?? 'ACTIVE',
                     };
                     this.modalOpen = true;
+                },
+                openRange() {
+                    this.rangeModalOpen = true;
                 },
                 close() { this.modalOpen = false; }
             }

@@ -109,4 +109,45 @@ class TrollyController extends Controller
 
         return view('warehouse.trollies.print_qr', compact('trolly', 'qrSvg'));
     }
+
+    public function printRange(Request $request)
+    {
+        $validated = $request->validate([
+            'start' => ['nullable', 'string', 'max:50'],
+            'end' => ['nullable', 'string', 'max:50'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $start = strtoupper(trim((string) ($validated['start'] ?? '')));
+        $end = strtoupper(trim((string) ($validated['end'] ?? '')));
+        $limit = max(1, min(100, (int) ($validated['limit'] ?? 50)));
+
+        $query = Trolly::query();
+        if ($start !== '' && $end !== '') {
+            if ($start <= $end) {
+                $query->whereBetween('code', [$start, $end]);
+            } else {
+                $query->whereBetween('code', [$end, $start]);
+            }
+        } elseif ($start !== '') {
+            $query->where('code', '>=', $start);
+        } elseif ($end !== '') {
+            $query->where('code', '<=', $end);
+        }
+
+        $trollies = $query->orderBy('code')->limit($limit)->get();
+
+        $labels = $trollies->map(function (Trolly $trolly) {
+            $payload = $trolly->qr_payload;
+            if (!$payload) {
+                $payload = Trolly::buildPayload($trolly->code, $trolly->type, $trolly->kind);
+            }
+            return [
+                'trolly' => $trolly,
+                'qrSvg' => QrSvg::make($payload, 260, 0),
+            ];
+        });
+
+        return view('warehouse.trollies.print_batch', compact('labels'));
+    }
 }
