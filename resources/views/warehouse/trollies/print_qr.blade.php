@@ -146,7 +146,6 @@
             <!-- Header -->
             <div class="header">
                 <h1>{{ $trolly->code }}</h1>
-                <p>Warehouse Transport Unit</p>
             </div>
 
             <!-- QR Code Container -->
