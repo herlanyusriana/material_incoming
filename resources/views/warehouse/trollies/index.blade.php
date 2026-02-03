@@ -234,6 +234,8 @@
                     </div>
                 </form>
             </div>
+        </div>
+
         <!-- Range Modal -->
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4"
             x-show="rangeModalOpen" x-cloak x-transition>

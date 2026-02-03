@@ -329,8 +329,8 @@ Route::middleware('auth')->group(function () {
         // Trollies
         Route::get('trollies/export', [\App\Http\Controllers\TrollyController::class, 'export'])->name('trollies.export');
         Route::post('trollies/import', [\App\Http\Controllers\TrollyController::class, 'import'])->name('trollies.import');
-        Route::resource('trollies', \App\Http\Controllers\TrollyController::class);
         Route::get('trollies/print-range', [\App\Http\Controllers\TrollyController::class, 'printRange'])->name('trollies.print-range');
+        Route::resource('trollies', \App\Http\Controllers\TrollyController::class);
         Route::get('trollies/{trolly}/print', [\App\Http\Controllers\TrollyController::class, 'printQr'])->name('trollies.print');
     });
 
