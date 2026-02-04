@@ -37,6 +37,24 @@ class StockOpnameApiController extends Controller
 
         $barcode = trim($request->barcode);
 
+        // Handle composite Receive Label (Invoice|Tag)
+        if (str_contains($barcode, '|')) {
+            $parts = explode('|', $barcode, 2);
+            $invoice = trim($parts[0]);
+            $tag = trim($parts[1]);
+
+            $receive = \App\Models\Receive::with('arrivalItem.part')
+                ->where('tag', $tag)
+                ->whereHas('arrivalItem.arrival', fn($q) => $q->where('invoice_no', $invoice))
+                ->latest()
+                ->first();
+
+            if ($receive && $receive->arrivalItem && $receive->arrivalItem->part) {
+                // Return the Part associated with this Tag
+                $part = GciPart::where('part_no', $receive->arrivalItem->part->part_no)->first();
+            }
+        }
+
         // Handle JSON payload from QR scans
         if (str_starts_with($barcode, '{') && str_ends_with($barcode, '}')) {
             $decoded = json_decode($barcode, true);
