@@ -79,7 +79,7 @@ class WarehouseScanningController extends Controller
     {
         $request->validate([
             'tag_no' => 'required|string',
-            'location_code' => 'required|string|exists:warehouse_locations,location_code',
+            'location_code' => 'required|string',
         ]);
 
         $tagNo = trim($request->tag_no);
@@ -107,6 +107,10 @@ class WarehouseScanningController extends Controller
 
         $tagNo = strtoupper(trim($tagNo));
         $locationCode = strtoupper(trim($locationCode));
+
+        if (!WarehouseLocation::where('location_code', $locationCode)->exists()) {
+            return response()->json(['message' => "Location invalid: $locationCode"], 422);
+        }
 
         // Handle composite key (Invoice|Tag)
         $invoiceNo = null;
