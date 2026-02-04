@@ -188,7 +188,7 @@ class ReceiveController extends Controller
             ->latest()
             ->paginate(25);
 
-        $remainingQtyTotal = $arrival->items->sum(function ($item) {
+        $remainingQtyTotal = collect($arrival->items)->sum(function ($item) {
             $received = $item->receives->sum('qty');
             return max(0, $item->qty_goods - $received);
         });

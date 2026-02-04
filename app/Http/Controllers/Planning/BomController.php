@@ -10,6 +10,9 @@ use App\Models\BomItem;
 use App\Models\BomItemSubstitute;
 use App\Imports\BomSubstituteImport;
 use App\Imports\BomSubstituteMappingImport;
+use App\Models\CustomerPart;
+use App\Models\CustomerPartComponent;
+use App\Exports\BomSubstitutesExport;
 use App\Models\GciPart;
 use App\Models\Uom;
 use Illuminate\Http\Request;
@@ -74,7 +77,7 @@ class BomController extends Controller
 
         // For each BOM (FG part), find customer products that use it
         $results = $boms->map(function ($bom) {
-            $customerProducts = \App\Models\CustomerPartComponent::query()
+            $customerProducts = CustomerPartComponent::query()
                 ->with(['customerPart.customer'])
                 ->where('gci_part_id', $bom->part_id)
                 ->get()
@@ -105,7 +108,7 @@ class BomController extends Controller
     public function showWhereUsed()
     {
         // Get some recent RM parts for quick search
-        $recentParts = \App\Models\GciPart::query()
+        $recentParts = GciPart::query()
             ->where('classification', 'RM')
             ->orderBy('updated_at', 'desc')
             ->limit(5)
@@ -117,7 +120,7 @@ class BomController extends Controller
     public function exportSubstitutes()
     {
         $filename = 'bom_substitutes_' . now()->format('Y-m-d_His') . '.xlsx';
-        return Excel::download(new \App\Exports\BomSubstitutesExport(), $filename);
+        return Excel::download(new BomSubstitutesExport(), $filename);
     }
 
     public function export(Request $request)
@@ -550,8 +553,8 @@ class BomController extends Controller
                 'substitute_part_id' => (int) $validated['substitute_part_id'],
             ],
             [
-            'substitute_part_no' => \App\Models\GciPart::find($validated['substitute_part_id'])->part_no,
-            'ratio' => $validated['ratio'] ?? 1,
+                'substitute_part_no' => GciPart::find($validated['substitute_part_id'])->part_no,
+                'ratio' => $validated['ratio'] ?? 1,
                 'priority' => $validated['priority'] ?? 1,
                 'status' => $validated['status'] ?? 'active',
                 'notes' => $validated['notes'] ? trim((string) $validated['notes']) : null,
@@ -582,7 +585,7 @@ class BomController extends Controller
 
         // If searching by customer part
         if ($searchMode === 'customer' && $searchQuery) {
-            $customerPart = \App\Models\CustomerPart::query()
+            $customerPart = CustomerPart::query()
                 ->with(['customer', 'components.part.bom'])
                 ->where(function ($query) use ($searchQuery) {
                     $query->where('customer_part_no', 'like', '%' . $searchQuery . '%')
@@ -607,7 +610,7 @@ class BomController extends Controller
 
         // If searching by FG part
         if ($searchMode === 'fg' && $searchQuery && !$bom) {
-            $fgPart = \App\Models\GciPart::query()
+            $fgPart = GciPart::query()
                 ->with('bom')
                 ->where(function ($query) use ($searchQuery) {
                     $query->where('part_no', 'like', '%' . $searchQuery . '%')
