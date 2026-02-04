@@ -544,17 +544,7 @@
                             </svg>
                             <span class="ml-3 flex-1">Inventory Transfers</span>
                         </a>
-                        <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])
-                            @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
-                            </svg>
-                            <span class="ml-3 flex-1">GCI Inventory</span>
-                        </a>
+                        {{-- GCI Inventory hidden --}}
                     </div>
                 </div>
             @endcan
@@ -1197,16 +1187,7 @@
                         </svg>
                         <span class="ml-3 flex-1">Inventory Transfers</span>
                     </a>
-                    <a href="{{ route('inventory.gci.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.gci.*'), $navInactive => !request()->routeIs('inventory.gci.*')])>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
-                        </svg>
-                        <span class="ml-3 flex-1">GCI Inventory</span>
-                    </a>
+                    {{-- GCI Inventory hidden --}}
                 </div>
             </div>
         @endcan
