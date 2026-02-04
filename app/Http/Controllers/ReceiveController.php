@@ -35,7 +35,7 @@ class ReceiveController extends Controller
 
         // Require container inspections (when containers exist)
         if (!$isLocal && $arrival->containers && $arrival->containers->isNotEmpty()) {
-            $hasMissingInspection = $arrival->containers->contains(fn ($c) => !$c->inspection);
+            $hasMissingInspection = $arrival->containers->contains(fn($c) => !$c->inspection);
             if ($hasMissingInspection) {
                 return true;
             }
@@ -44,8 +44,8 @@ class ReceiveController extends Controller
         // Require TAG filled for all receive rows (non-local only).
         if (!$isLocal) {
             $hasMissingTag = $arrival->items
-                ->flatMap(fn ($i) => $i->receives ?? collect())
-                ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
+                ->flatMap(fn($i) => $i->receives ?? collect())
+                ->contains(fn($r) => !is_string($r->tag) || trim($r->tag) === '');
             if ($hasMissingTag) {
                 return true;
             }
@@ -65,8 +65,8 @@ class ReceiveController extends Controller
     {
         $incomingTags = collect($tags)
             ->pluck('tag')
-            ->filter(fn ($tag) => is_string($tag) && trim($tag) !== '')
-            ->map(fn ($tag) => strtoupper(trim($tag)))
+            ->filter(fn($tag) => is_string($tag) && trim($tag) !== '')
+            ->map(fn($tag) => strtoupper(trim($tag)))
             ->values();
 
         if ($incomingTags->isEmpty()) {
@@ -75,7 +75,7 @@ class ReceiveController extends Controller
 
         $duplicatesInRequest = $incomingTags
             ->countBy()
-            ->filter(fn ($count) => $count > 1)
+            ->filter(fn($count) => $count > 1)
             ->keys()
             ->values();
 
@@ -87,9 +87,9 @@ class ReceiveController extends Controller
 
         $existingTags = $arrivalItem->receives()
             ->whereIn('tag', $incomingTags->all())
-            ->when($ignoreReceiveId, fn ($q) => $q->where('id', '!=', $ignoreReceiveId))
+            ->when($ignoreReceiveId, fn($q) => $q->where('id', '!=', $ignoreReceiveId))
             ->pluck('tag')
-            ->map(fn ($tag) => strtoupper(trim((string) $tag)))
+            ->map(fn($tag) => strtoupper(trim((string) $tag)))
             ->unique()
             ->values();
 
@@ -157,10 +157,10 @@ class ReceiveController extends Controller
             ->pluck('total', 'qc_status');
 
         $topVendors = Receive::select(
-                'vendors.vendor_name',
-                DB::raw('COUNT(receives.id) as total_receives'),
-                DB::raw('SUM(receives.qty) as total_qty')
-            )
+            'vendors.vendor_name',
+            DB::raw('COUNT(receives.id) as total_receives'),
+            DB::raw('SUM(receives.qty) as total_qty')
+        )
             ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
             ->join('arrivals', 'arrival_items.arrival_id', '=', 'arrivals.id')
             ->join('vendors', 'arrivals.vendor_id', '=', 'vendors.id')
@@ -184,7 +184,7 @@ class ReceiveController extends Controller
         $arrival->load(['vendor', 'items.receives', 'containers.inspection']);
 
         $receives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
-            ->whereHas('arrivalItem', fn ($q) => $q->where('arrival_id', $arrival->id))
+            ->whereHas('arrivalItem', fn($q) => $q->where('arrival_id', $arrival->id))
             ->latest()
             ->paginate(25);
 
@@ -197,10 +197,10 @@ class ReceiveController extends Controller
             return ($item->qty_goods - $received) > 0;
         })->count();
         $hasMissingInspection = ($arrival->containers ?? collect())->isNotEmpty()
-            && ($arrival->containers ?? collect())->contains(fn ($c) => !$c->inspection);
+            && ($arrival->containers ?? collect())->contains(fn($c) => !$c->inspection);
         $hasMissingTag = $arrival->items
-            ->flatMap(fn ($i) => $i->receives ?? collect())
-            ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
+            ->flatMap(fn($i) => $i->receives ?? collect())
+            ->contains(fn($r) => !is_string($r->tag) || trim($r->tag) === '');
 
         $hasPending = ($pendingItemsCount > 0) || $hasMissingInspection || $hasMissingTag;
 
@@ -258,7 +258,7 @@ class ReceiveController extends Controller
                     : null;
                 return $item;
             })
-            ->filter(fn ($item) => $item->remaining_qty > 0)
+            ->filter(fn($item) => $item->remaining_qty > 0)
             ->values();
 
         if ($pendingItems->isEmpty()) {
@@ -479,22 +479,24 @@ class ReceiveController extends Controller
                     continue;
                 }
                 $itemsInput[$itemId] = [
-                    'tags' => [[
-                        'tag' => null,
-                        'qty' => $qty,
-                        'bundle_qty' => (int) ($summary['bundle_qty'] ?? 0),
-                        'bundle_unit' => $summary['bundle_unit'] ?? null,
-                        'location_code' => $summary['location_code'] ?? null,
-                        'net_weight' => $summary['net_weight'] ?? null,
-                        'gross_weight' => $summary['gross_weight'] ?? null,
-                        'qty_unit' => $summary['qty_unit'] ?? null,
-                        'qc_status' => $summary['qc_status'] ?? 'pass',
-                    ]],
+                    'tags' => [
+                        [
+                            'tag' => null,
+                            'qty' => $qty,
+                            'bundle_qty' => (int) ($summary['bundle_qty'] ?? 0),
+                            'bundle_unit' => $summary['bundle_unit'] ?? null,
+                            'location_code' => $summary['location_code'] ?? null,
+                            'net_weight' => $summary['net_weight'] ?? null,
+                            'gross_weight' => $summary['gross_weight'] ?? null,
+                            'qty_unit' => $summary['qty_unit'] ?? null,
+                            'qc_status' => $summary['qc_status'] ?? 'pass',
+                        ]
+                    ],
                 ];
             }
         } else {
             $itemsInput = collect($validated['items'])
-                ->filter(fn ($item) => !empty($item['tags']))
+                ->filter(fn($item) => !empty($item['tags']))
                 ->all();
         }
 
@@ -673,26 +675,8 @@ class ReceiveController extends Controller
             $warehouseLocation = WarehouseLocation::query()->where('location_code', $locCode)->first();
         }
 
-        $payload = [
-            'type' => 'RECEIVE_LABEL',
-            'receive_id' => $receive->id,
-            'invoice_no' => (string) ($arrival?->invoice_no ?? ''),
-            'arrival_no' => (string) ($arrival?->arrival_no ?? ''),
-            'vendor' => (string) ($arrival?->vendor?->vendor_name ?? ''),
-            'part_no' => (string) ($part?->part_no ?? ''),
-            'tag' => (string) ($receive->tag ?? ''),
-            'location' => (string) ($receive->location_code ?? ''),
-            'warehouse' => [
-                'location_code' => (string) ($warehouseLocation?->location_code ?? ''),
-                'class' => (string) ($warehouseLocation?->class ?? ''),
-                'zone' => (string) ($warehouseLocation?->zone ?? ''),
-            ],
-            'qty' => (float) ($receive->qty ?? 0),
-            'uom' => (string) ($receive->qty_unit ?? ''),
-            'received_at' => $receivedAt->format('Y-m-d H:i:s'),
-        ];
-
-        $payloadString = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
+        // Use simplified payload (Just the TAG) for compatibility with standard barcode scanners/inputs
+        $payloadString = (string) ($receive->tag ?? $receive->id);
 
         $qrSvg = QrSvg::make($payloadString, 400, 0);
 
@@ -790,19 +774,7 @@ class ReceiveController extends Controller
 
         $delta = $newContribution - $oldContribution;
 
-        DB::transaction(function () use (
-            $receive,
-            $arrivalItem,
-            $goodsUnit,
-            $validated,
-            $tag,
-            $locationCode,
-            $oldLocationCode,
-            $oldContribution,
-            $newContribution,
-            $receiveAt,
-            $delta
-        ) {
+        DB::transaction(function () use ($receive, $arrivalItem, $goodsUnit, $validated, $tag, $locationCode, $oldLocationCode, $oldContribution, $newContribution, $receiveAt, $delta) {
             $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
                 ? strtoupper(trim((string) $validated['truck_no']))
                 : null;
