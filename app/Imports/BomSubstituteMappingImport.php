@@ -178,7 +178,9 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
                 ];
 
                 if ($existing->count() === 1) {
-                    $existing->first()->update($payload);
+                    /** @var BomItemSubstitute $sub */
+                    $sub = $existing->first();
+                    $sub->update($payload);
                 } else {
                     BomItemSubstitute::query()->create(array_merge(
                         [

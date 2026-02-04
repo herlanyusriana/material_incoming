@@ -14,21 +14,6 @@ final class QrSvg
         }
 
         try {
-            // endroid/qr-code v4/v5 style (Builder::create()).
-            if (class_exists(\Endroid\QrCode\Builder\Builder::class) && method_exists(\Endroid\QrCode\Builder\Builder::class, 'create')) {
-                return \Endroid\QrCode\Builder\Builder::create()
-                    ->writer(new \Endroid\QrCode\Writer\SvgWriter())
-                    ->writerOptions([])
-                    ->data($data)
-                    ->encoding(new \Endroid\QrCode\Encoding\Encoding('UTF-8'))
-                    ->errorCorrectionLevel(new \Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow())
-                    ->size($size)
-                    ->margin($margin)
-                    ->build()
-                    ->getString();
-            }
-
-            // endroid/qr-code v6 style (new Builder()->build()).
             if (class_exists(\Endroid\QrCode\Builder\Builder::class)) {
                 $builder = new \Endroid\QrCode\Builder\Builder();
                 $result = $builder->build(
