@@ -18,7 +18,10 @@ final class QrSvg
             if (class_exists(\Endroid\QrCode\Builder\Builder::class) && method_exists(\Endroid\QrCode\Builder\Builder::class, 'create')) {
                 return \Endroid\QrCode\Builder\Builder::create()
                     ->writer(new \Endroid\QrCode\Writer\SvgWriter())
+                    ->writerOptions([])
                     ->data($data)
+                    ->encoding(new \Endroid\QrCode\Encoding\Encoding('UTF-8'))
+                    ->errorCorrectionLevel(new \Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow())
                     ->size($size)
                     ->margin($margin)
                     ->build()
@@ -28,7 +31,16 @@ final class QrSvg
             // endroid/qr-code v6 style (new Builder()->build()).
             if (class_exists(\Endroid\QrCode\Builder\Builder::class)) {
                 $builder = new \Endroid\QrCode\Builder\Builder();
-                $result = $builder->build(new \Endroid\QrCode\Writer\SvgWriter(), null, null, $data, null, null, $size, $margin);
+                $result = $builder->build(
+                    writer: new \Endroid\QrCode\Writer\SvgWriter(),
+                    writerOptions: [],
+                    validateResult: false,
+                    data: $data,
+                    encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
+                    errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::Low,
+                    size: $size,
+                    margin: $margin
+                );
 
                 return $result->getString();
             }
