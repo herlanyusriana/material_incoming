@@ -981,7 +981,7 @@
         </div>
     </div>
 
-    <div class="page-break"></div>
+
 
     <div class="page-box packing-list">
         <div class="title">PACKING LIST</div>
