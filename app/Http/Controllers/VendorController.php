@@ -20,14 +20,14 @@ class VendorController extends Controller
             ->when($search, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('vendor_name', 'like', "%{$search}%")
-                    ->orWhere('country_code', 'like', "%{$search}%")
-                    ->orWhere('contact_person', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
+                        ->orWhere('country_code', 'like', "%{$search}%")
+                        ->orWhere('contact_person', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%");
                 });
             })
-            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($status, fn($query) => $query->where('status', $status))
             ->select([
                 'id',
                 'vendor_name',
@@ -95,6 +95,7 @@ class VendorController extends Controller
         }
         unset($data['signature']);
 
+        $data['vendor_name'] = trim($data['vendor_name']);
         Vendor::create($data);
 
         return redirect()->route('vendors.index')->with('status', 'Vendor created.');
@@ -131,6 +132,7 @@ class VendorController extends Controller
         }
         unset($data['signature']);
 
+        $data['vendor_name'] = trim($data['vendor_name']);
         $vendor->update($data);
 
         return redirect()->route('vendors.index')->with('status', 'Vendor updated.');
