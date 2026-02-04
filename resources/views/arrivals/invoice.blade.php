@@ -96,7 +96,7 @@
 
         .packing-items-table td,
         .packing-items-table th {
-            padding: 6px;
+            padding: 4px;
             font-size: 12px;
             vertical-align: top;
         }
@@ -210,7 +210,7 @@
         }
 
         .footer-section {
-            margin-top: 15px;
+            margin-top: 8px;
             position: relative;
         }
 
@@ -270,9 +270,9 @@
         /* Packing list should match commercial invoice font scale. */
         .page-box.packing-list {
             font-family: Arial, sans-serif;
-            font-size: 14px;
+            font-size: 12px; /* Reduced from 14px to fit page */
             line-height: 1.25;
-            margin: 30px;
+            margin: 15px; /* Reduced margin */
             border: none;
             width: auto;
         }
@@ -1264,7 +1264,7 @@
                     <tr>
                         <td style="border:none; padding:0; width:70%;">&nbsp;</td>
                         <td style="border:none; padding:0; width:30%; text-align:right; vertical-align:top;">
-                            <div style="margin-top:35px;">
+                            <div style="margin-top:10px;">
                                 <div class="ci-original-stamp" style="transform: rotate(-6deg);">ORIGINAL</div>
                             </div>
 
