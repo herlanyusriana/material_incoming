@@ -275,7 +275,6 @@
             margin: 30px;
             border: none;
             width: auto;
-            page-break-before: always;
         }
 
         .page-box.packing-list .title {
@@ -982,7 +981,7 @@
     </div>
 
 
-
+    <div class="page-break"></div>
     <div class="page-box packing-list">
         <div class="title">PACKING LIST</div>
         <div class="packing-content-wrapper">
