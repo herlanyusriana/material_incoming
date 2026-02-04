@@ -23,6 +23,8 @@ class WarehouseScanningController extends Controller
 
         $tagNo = trim($request->tag_no);
 
+        $filterPartNo = null;
+
         // Handle JSON payload from QR scans
         if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
             $decoded = json_decode($tagNo, true);
@@ -30,8 +32,13 @@ class WarehouseScanningController extends Controller
                 $tagNo = $decoded['tag'];
             } elseif (isset($decoded['barcode'])) {
                 $tagNo = $decoded['barcode'];
-            } elseif (isset($decoded['part_no'])) {
+            } elseif (isset($decoded['part_no']) && !isset($decoded['tag'])) {
+                // If only part_no exists and acts as tag
                 $tagNo = $decoded['part_no'];
+            }
+
+            if (isset($decoded['part_no'])) {
+                $filterPartNo = $decoded['part_no'];
             }
         }
 
@@ -47,6 +54,10 @@ class WarehouseScanningController extends Controller
 
         $query = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
             ->where('tag', $tagNo);
+
+        if ($filterPartNo) {
+            $query->whereHas('arrivalItem.part', fn($q) => $q->where('part_no', $filterPartNo));
+        }
 
         if ($invoiceNo && $invoiceNo !== '-') {
             $query->whereHas('arrivalItem.arrival', fn($q) => $q->where('invoice_no', $invoiceNo));
@@ -85,11 +96,16 @@ class WarehouseScanningController extends Controller
         $tagNo = trim($request->tag_no);
         $locationCode = trim($request->location_code);
 
+        $filterPartNo = null;
+
         // Handle JSON payload from QR scans for tag
         if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
             $decoded = json_decode($tagNo, true);
             if (isset($decoded['tag'])) {
                 $tagNo = $decoded['tag'];
+            }
+            if (isset($decoded['part_no'])) {
+                $filterPartNo = $decoded['part_no'];
             }
         }
 
@@ -122,6 +138,10 @@ class WarehouseScanningController extends Controller
 
         $query = Receive::with('arrivalItem')->where('tag', $tagNo);
 
+        if ($filterPartNo) {
+            $query->whereHas('arrivalItem.part', fn($q) => $q->where('part_no', $filterPartNo));
+        }
+
         if ($invoiceNo && $invoiceNo !== '-') {
             $query->whereHas('arrivalItem.arrival', fn($q) => $q->where('invoice_no', $invoiceNo));
         }
@@ -129,7 +149,7 @@ class WarehouseScanningController extends Controller
         $receive = $query->latest()->first();
 
         if (!$receive) {
-            return response()->json(['message' => 'Tag not found'], 404);
+            return response()->json(['message' => 'Tag not found for putaway'], 404);
         }
 
         if ($receive->qc_status !== 'pass') {
