@@ -56,6 +56,9 @@ return [
         // Material Incoming / Warehouse
         'manage_incoming',     // Scan arrival, print QR
 
+        // Purchasing
+        'manage_purchasing',
+
         // Master Data
         'manage_users',
         'manage_parts',

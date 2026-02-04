@@ -4,6 +4,7 @@
     $vendorsActive = request()->routeIs('vendors.*');
     $partsActive = request()->routeIs('parts.*');
     $logisticsActive = request()->routeIs('logistics.*');
+    $purchasingActive = request()->routeIs('purchasing.*');
 
     $navLinkBase = 'group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200';
     $navIconBase = 'h-5 w-5 shrink-0';
@@ -235,6 +236,48 @@
                                 <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
                                     <span class="flex-1">MRP</span>
+                                </a>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            @endcan
+
+            @can('manage_purchasing')
+                <div>
+                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Purchasing
+                    </div>
+                    <div class="space-y-1">
+                        <details class="group" {{ $purchasingActive ? 'open' : '' }}>
+                            <summary class="list-none cursor-pointer">
+                                <div @class([$navLinkBase, $navActive => $purchasingActive, $navInactive => !$purchasingActive])>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                    </svg>
+                                    <span class="ml-3 flex-1">Purchasing</span>
+                                    <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </div>
+                            </summary>
+                            <div class="relative mt-2 ml-4 pl-4 space-y-1">
+                                <div
+                                    class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                                </div>
+
+                                <a href="{{ route('purchasing.purchase-requests.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('purchasing.purchase-requests.*'), $subInactive => !request()->routeIs('purchasing.purchase-requests.*')])
+                                    @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('purchasing.purchase-requests.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('purchasing.purchase-requests.*')])></span>
+                                    <span class="flex-1">Purchase Requests</span>
+                                </a>
+                                <a href="{{ route('purchasing.purchase-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('purchasing.purchase-orders.*'), $subInactive => !request()->routeIs('purchasing.purchase-orders.*')])
+                                    @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('purchasing.purchase-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('purchasing.purchase-orders.*')])></span>
+                                    <span class="flex-1">Purchase Orders</span>
                                 </a>
                             </div>
                         </details>
@@ -868,6 +911,51 @@
                             <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
                                 <span class="flex-1">MRP</span>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        @endcan
+
+        @can('manage_purchasing')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Purchasing</div>
+
+                <details class="group" {{ $purchasingActive ? 'open' : '' }}
+                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <summary class="list-none cursor-pointer" title="Purchasing"
+                        :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                        <div @class([$navLinkBase, $navActive => $purchasingActive, $navInactive => !$purchasingActive])
+                            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Purchasing</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                        <div class="relative ml-4 pl-4 space-y-1">
+                            <div
+                                class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                            </div>
+
+                            <a href="{{ route('purchasing.purchase-requests.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('purchasing.purchase-requests.*'), $subInactive => !request()->routeIs('purchasing.purchase-requests.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('purchasing.purchase-requests.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('purchasing.purchase-requests.*')])></span>
+                                <span class="flex-1">Purchase Requests</span>
+                            </a>
+                            <a href="{{ route('purchasing.purchase-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('purchasing.purchase-orders.*'), $subInactive => !request()->routeIs('purchasing.purchase-orders.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('purchasing.purchase-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('purchasing.purchase-orders.*')])></span>
+                                <span class="flex-1">Purchase Orders</span>
                             </a>
                         </div>
                     </div>
