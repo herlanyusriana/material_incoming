@@ -675,8 +675,10 @@ class ReceiveController extends Controller
             $warehouseLocation = WarehouseLocation::query()->where('location_code', $locCode)->first();
         }
 
-        // Use simplified payload (Just the TAG) for compatibility with standard barcode scanners/inputs
-        $payloadString = (string) ($receive->tag ?? $receive->id);
+        // Use Invoice + Tag for uniqueness as requested by user
+        $invoiceNo = (string) ($arrival?->invoice_no ?? '-');
+        $tagVal = (string) ($receive->tag ?? $receive->id);
+        $payloadString = $invoiceNo . '|' . $tagVal;
 
         $qrSvg = QrSvg::make($payloadString, 400, 0);
 

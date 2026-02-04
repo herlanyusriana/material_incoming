@@ -167,7 +167,6 @@
             padding: 2mm 5mm;
             font-weight: 700;
             background: #eee;
-            border-right: 1px solid #000;
             font-size: 11pt;
             display: flex;
             align-items: center;
@@ -177,7 +176,6 @@
             width: 6mm;
             padding: 2mm 0;
             text-align: center;
-            border-right: 1px solid #000;
             background: #fff;
             font-size: 11pt;
             display: flex;
@@ -188,8 +186,8 @@
 
         .field-value {
             flex: 1;
-            padding: 2mm 5mm;
-            font-size: 12pt;
+            padding: 2mm 2mm;
+            font-size: 10pt;
             font-weight: 700;
             color: #000;
             display: flex;

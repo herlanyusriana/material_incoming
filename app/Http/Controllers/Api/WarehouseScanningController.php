@@ -37,9 +37,22 @@ class WarehouseScanningController extends Controller
 
         $tagNo = strtoupper(trim($tagNo));
 
-        $receive = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
-            ->where('tag', $tagNo)
-            ->first();
+        // Handle composite key (Invoice|Tag)
+        $invoiceNo = null;
+        if (str_contains($tagNo, '|')) {
+            $parts = explode('|', $tagNo, 2);
+            $invoiceNo = trim($parts[0]);
+            $tagNo = trim($parts[1]);
+        }
+
+        $query = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+            ->where('tag', $tagNo);
+
+        if ($invoiceNo && $invoiceNo !== '-') {
+            $query->whereHas('arrivalItem.arrival', fn($q) => $q->where('invoice_no', $invoiceNo));
+        }
+
+        $receive = $query->latest()->first();
 
         if (!$receive) {
             return response()->json([
@@ -51,7 +64,7 @@ class WarehouseScanningController extends Controller
             'tag_no' => $receive->tag,
             'part_no' => $receive->arrivalItem->part->part_no,
             'part_name' => $receive->arrivalItem->part->part_name_gci ?? $receive->arrivalItem->part->part_name_vendor,
-            'qty' => (float)$receive->qty,
+            'qty' => (float) $receive->qty,
             'uom' => $receive->qty_unit,
             'current_location' => $receive->location_code,
             'vendor' => $receive->arrivalItem->arrival->vendor->vendor_name,
@@ -95,7 +108,21 @@ class WarehouseScanningController extends Controller
         $tagNo = strtoupper(trim($tagNo));
         $locationCode = strtoupper(trim($locationCode));
 
-        $receive = Receive::with('arrivalItem')->where('tag', $tagNo)->first();
+        // Handle composite key (Invoice|Tag)
+        $invoiceNo = null;
+        if (str_contains($tagNo, '|')) {
+            $parts = explode('|', $tagNo, 2);
+            $invoiceNo = trim($parts[0]);
+            $tagNo = trim($parts[1]);
+        }
+
+        $query = Receive::with('arrivalItem')->where('tag', $tagNo);
+
+        if ($invoiceNo && $invoiceNo !== '-') {
+            $query->whereHas('arrivalItem.arrival', fn($q) => $q->where('invoice_no', $invoiceNo));
+        }
+
+        $receive = $query->latest()->first();
 
         if (!$receive) {
             return response()->json(['message' => 'Tag not found'], 404);
@@ -118,8 +145,8 @@ class WarehouseScanningController extends Controller
 
             // 2. Adjust LocationInventory
             $partId = $receive->arrivalItem->part_id;
-            $qty = (float)$receive->qty;
-            
+            $qty = (float) $receive->qty;
+
             // If it was already at another warehouse location, subtract from there
             if ($oldLocation) {
                 try {
