@@ -1607,16 +1607,9 @@ class OutgoingController extends Controller
             return null;
         }
 
-        // 1. Direct GCI Part lookup
-        $gciPart = GciPart::query()
-            ->where('part_no', $partNo)
-            ->where('classification', 'FG')
-            ->first();
-        if ($gciPart) {
-            return (int) $gciPart->id;
-        }
-
-        // 2. Try customer part mapping
+        // 1. Try customer part mapping FIRST (Priority)
+        // This ensures that if a mapping exists (e.g. CUST-01 -> INT-01), we use INT-01,
+        // even if a dummy part "CUST-01" accidentally exists in gci_parts table.
         $customerPart = CustomerPart::query()
             ->where('customer_part_no', $partNo)
             ->with([
@@ -1637,6 +1630,23 @@ class OutgoingController extends Controller
                 return (int) $fgComponent->gci_part_id;
             }
 
+            // If Mapping exists but no Component link:
+            // Check if there is already a matching GCI part to link to, before creating new one
+            $existingGci = GciPart::query()
+                ->where('part_no', $partNo)
+                ->where('classification', 'FG')
+                ->first();
+
+            if ($existingGci) {
+                // Link it!
+                CustomerPartComponent::create([
+                    'customer_part_id' => $customerPart->id,
+                    'gci_part_id' => $existingGci->id,
+                    'qty_per_unit' => 1.0,
+                ]);
+                return (int) $existingGci->id;
+            }
+
             // Fallback: Link to a NEW GciPart belonging to the SAME customer
             $newGciPart = GciPart::create([
                 'customer_id' => $customerPart->customer_id,
@@ -1655,10 +1665,19 @@ class OutgoingController extends Controller
             return (int) $newGciPart->id;
         }
 
+        // 2. Direct GCI Part lookup (Secondary)
+        $gciPart = GciPart::query()
+            ->where('part_no', $partNo)
+            ->where('classification', 'FG')
+            ->first();
+        if ($gciPart) {
+            return (int) $gciPart->id;
+        }
+
         // 3. Last resort
         $created = GciPart::create([
             'part_no' => $partNo,
-            'part_name' => $partNo,
+            'part_name' => 'AUTO-CREATED IMPORT', // Marked clearly
             'classification' => 'FG',
             'status' => 'active',
         ]);
