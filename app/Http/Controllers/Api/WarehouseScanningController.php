@@ -73,6 +73,7 @@ class WarehouseScanningController extends Controller
 
         return response()->json([
             'tag_no' => $receive->tag,
+            'gci_part_id' => $receive->arrivalItem->part->gci_part_id,
             'part_no' => $receive->arrivalItem->part->part_no,
             'part_name' => $receive->arrivalItem->part->part_name_gci ?? $receive->arrivalItem->part->part_name_vendor,
             'qty' => (float) $receive->qty,

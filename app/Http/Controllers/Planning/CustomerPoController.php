@@ -57,11 +57,14 @@ class CustomerPoController extends Controller
                 [
                     'customer_id' => ['required', Rule::exists('customers', 'id')],
                     'po_no' => ['nullable', 'string', 'max:100'],
+                    'po_date' => ['nullable', 'date'],
+                    'delivery_date' => ['nullable', 'date'],
                     'status' => ['required', Rule::in(['open', 'closed'])],
                     'notes' => ['nullable', 'string'],
                     'items' => ['required', 'array', 'min:1'],
                     'items.*.part_id' => ['required', Rule::exists('gci_parts', 'id')],
                     'items.*.qty' => ['required', 'numeric', 'min:0'],
+                    'items.*.price' => ['nullable', 'numeric', 'min:0'],
                 ],
             ));
 
@@ -70,14 +73,20 @@ class CustomerPoController extends Controller
             $notes = $validated['notes'] ? trim($validated['notes']) : null;
 
             foreach ($validated['items'] as $item) {
+                $qty = (float) $item['qty'];
+                $price = (float) ($item['price'] ?? 0);
                 CustomerPo::create([
                     'po_no' => $poNo,
                     'customer_id' => $customerId,
                     'part_id' => (int) $item['part_id'],
-                    'period' => $validated['period'] ?? $validated['minggu'] ?? null,
-                    'qty' => $item['qty'],
+                    'period' => $validated['period'] ?? null,
+                    'qty' => $qty,
+                    'price' => $price,
+                    'amount' => $qty * $price,
                     'status' => $validated['status'],
                     'notes' => $notes,
+                    'po_date' => $validated['po_date'] ?? null,
+                    'delivery_date' => $validated['delivery_date'] ?? null,
                 ]);
             }
 
@@ -91,19 +100,28 @@ class CustomerPoController extends Controller
                 'po_no' => ['nullable', 'string', 'max:100'],
                 'part_id' => ['required', Rule::exists('gci_parts', 'id')],
                 'qty' => ['required', 'numeric', 'min:0'],
+                'price' => ['nullable', 'numeric', 'min:0'],
+                'po_date' => ['nullable', 'date'],
+                'delivery_date' => ['nullable', 'date'],
                 'status' => ['required', Rule::in(['open', 'closed'])],
                 'notes' => ['nullable', 'string'],
             ],
         ));
 
+        $qty = (float) $validated['qty'];
+        $price = (float) ($validated['price'] ?? 0);
         CustomerPo::create([
             'po_no' => $validated['po_no'] ? trim($validated['po_no']) : null,
             'customer_id' => (int) $validated['customer_id'],
             'part_id' => (int) $validated['part_id'],
-            'period' => $validated['period'] ?? $validated['minggu'] ?? null,
-            'qty' => $validated['qty'],
+            'period' => $validated['period'] ?? null,
+            'qty' => $qty,
+            'price' => $price,
+            'amount' => $qty * $price,
             'status' => $validated['status'],
             'notes' => $validated['notes'] ? trim($validated['notes']) : null,
+            'po_date' => $validated['po_date'] ?? null,
+            'delivery_date' => $validated['delivery_date'] ?? null,
         ]);
 
         return back()->with('success', 'Customer PO created.');
@@ -114,15 +132,24 @@ class CustomerPoController extends Controller
         $validated = $request->validate([
             'po_no' => ['nullable', 'string', 'max:100'],
             'qty' => ['required', 'numeric', 'min:0'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'po_date' => ['nullable', 'date'],
+            'delivery_date' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['open', 'closed'])],
             'notes' => ['nullable', 'string'],
         ]);
 
+        $qty = (float) $validated['qty'];
+        $price = (float) ($validated['price'] ?? 0);
         $customerPo->update([
             'po_no' => $validated['po_no'] ? trim($validated['po_no']) : null,
-            'qty' => $validated['qty'],
+            'qty' => $qty,
+            'price' => $price,
+            'amount' => $qty * $price,
             'status' => $validated['status'],
             'notes' => $validated['notes'] ? trim($validated['notes']) : null,
+            'po_date' => $validated['po_date'] ?? null,
+            'delivery_date' => $validated['delivery_date'] ?? null,
         ]);
 
         return back()->with('success', 'Customer PO updated.');

@@ -8,7 +8,8 @@
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div class="text-sm font-semibold text-slate-900">Flow Outgoing</div>
                 <div class="mt-1 text-sm text-slate-600">
-                    Customer Daily Planning → Customer PO → Customer Product Mapping → Delivery Requirements → GCI Inventory &amp; Stock at Customers → Delivery Plan &amp; Arrangement
+                    Customer Daily Planning → Customer PO (Reference) → Customer Product Mapping → Delivery Requirements
+                    → PO Outgoing (Sales Order) → Delivery Plan &amp; Arrangement → Delivery Notes (Surat Jalan)
                 </div>
             </div>
 

@@ -35,13 +35,14 @@ class PurchaseRequestController extends Controller
             'items.*.part_id' => 'required|exists:gci_parts,id',
             'items.*.qty' => 'required|numeric|min:0.0001',
             'items.*.required_date' => 'nullable|date',
+            'items.*.selected' => 'nullable',
         ]);
 
         try {
             DB::beginTransaction();
 
             $prNumber = 'PR-' . strtoupper(Str::random(8));
-            
+
             $purchaseRequest = PurchaseRequest::create([
                 'pr_number' => $prNumber,
                 'requester_id' => auth()->id(),
@@ -52,13 +53,14 @@ class PurchaseRequestController extends Controller
             $totalAmount = 0;
             $hasItems = false;
             foreach ($validated['items'] as $item) {
-                if (!isset($item['selected']) || $item['selected'] != '1') continue;
-                
+                if (!isset($item['selected']) || $item['selected'] != '1')
+                    continue;
+
                 $hasItems = true;
                 // Get price from Part model if available, or just use 0 for now
-                $unitPrice = 0; 
+                $unitPrice = 0;
                 $subtotal = $unitPrice * $item['qty'];
-                
+
                 PurchaseRequestItem::create([
                     'purchase_request_id' => $purchaseRequest->id,
                     'part_id' => $item['part_id'],
@@ -67,7 +69,7 @@ class PurchaseRequestController extends Controller
                     'subtotal' => $subtotal,
                     'required_date' => $item['required_date'],
                 ]);
-                
+
                 $totalAmount += $subtotal;
             }
 

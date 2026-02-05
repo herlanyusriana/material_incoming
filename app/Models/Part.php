@@ -18,6 +18,7 @@ class Part extends Model
         'hs_code',
         'quality_inspection',
         'vendor_id',
+        'gci_part_id',
         'status',
         'price',
         'uom',

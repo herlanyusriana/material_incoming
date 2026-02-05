@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Outgoing;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\FgInventory;
+use App\Models\GciPart;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
@@ -14,11 +16,149 @@ use Illuminate\Support\Str;
 
 class SalesOrderController extends Controller
 {
+    public function index(Request $request)
+    {
+        $q = $request->query('q');
+        $customerId = $request->query('customer_id');
+
+        $orders = SalesOrder::with(['customer', 'items'])
+            ->when($q, function ($query) use ($q) {
+                $query->where('so_no', 'like', "%{$q}%");
+            })
+            ->when($customerId, function ($query) use ($customerId) {
+                $query->where('customer_id', $customerId);
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        $customers = Customer::orderBy('name')->get();
+
+        return view('outgoing.sales_orders.index', compact('orders', 'customers', 'q', 'customerId'));
+    }
+
+    public function create()
+    {
+        $customers = Customer::orderBy('name')->get();
+        $parts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
+
+        return view('outgoing.sales_orders.create', compact('customers', 'parts'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'so_no' => 'required|string|max:100|unique:sales_orders,so_no',
+            'customer_id' => 'required|exists:customers,id',
+            'so_date' => 'required|date',
+            'notes' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.part_id' => 'required|exists:gci_parts,id',
+            'items.*.qty' => 'required|numeric|min:0.0001',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $so = SalesOrder::create([
+                'so_no' => $validated['so_no'],
+                'customer_id' => $validated['customer_id'],
+                'so_date' => $validated['so_date'],
+                'status' => 'draft',
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => auth()->id(),
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                SalesOrderItem::create([
+                    'sales_order_id' => $so->id,
+                    'gci_part_id' => $item['part_id'],
+                    'qty_ordered' => $item['qty'],
+                    'qty_shipped' => 0,
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->route('outgoing.sales-orders.index')->with('success', 'Sales Order created.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
     public function show(SalesOrder $salesOrder)
     {
-        $salesOrder->loadMissing(['customer', 'items.part.standardPacking', 'plan', 'stop']);
+        $salesOrder->loadMissing(['customer', 'items.part.standardPacking', 'plan', 'stop', 'deliveryNotes']);
 
         return view('outgoing.sales_orders.show', compact('salesOrder'));
+    }
+
+    public function edit(SalesOrder $salesOrder)
+    {
+        if ($salesOrder->status !== 'draft') {
+            return back()->with('error', 'Only draft SO can be edited.');
+        }
+
+        $salesOrder->load('items');
+        $customers = Customer::orderBy('name')->get();
+        $parts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
+
+        return view('outgoing.sales_orders.edit', compact('salesOrder', 'customers', 'parts'));
+    }
+
+    public function update(Request $request, SalesOrder $salesOrder)
+    {
+        if ($salesOrder->status !== 'draft') {
+            return back()->with('error', 'Only draft SO can be updated.');
+        }
+
+        $validated = $request->validate([
+            'so_no' => 'required|string|max:100|unique:sales_orders,so_no,' . $salesOrder->id,
+            'customer_id' => 'required|exists:customers,id',
+            'so_date' => 'required|date',
+            'notes' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.part_id' => 'required|exists:gci_parts,id',
+            'items.*.qty' => 'required|numeric|min:0.0001',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $salesOrder->update([
+                'so_no' => $validated['so_no'],
+                'customer_id' => $validated['customer_id'],
+                'so_date' => $validated['so_date'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $salesOrder->items()->delete();
+
+            foreach ($validated['items'] as $item) {
+                SalesOrderItem::create([
+                    'sales_order_id' => $salesOrder->id,
+                    'gci_part_id' => $item['part_id'],
+                    'qty_ordered' => $item['qty'],
+                    'qty_shipped' => 0,
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->route('outgoing.sales-orders.index')->with('success', 'Sales Order updated.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(SalesOrder $salesOrder)
+    {
+        if ($salesOrder->status !== 'draft') {
+            return back()->with('error', 'Only draft SO can be deleted.');
+        }
+
+        $salesOrder->delete();
+        return redirect()->route('outgoing.sales-orders.index')->with('success', 'Sales Order deleted.');
     }
 
     public function ship(Request $request, SalesOrder $salesOrder)
@@ -39,7 +179,7 @@ class SalesOrderController extends Controller
                 $qty = (float) ($v['qty'] ?? 0);
                 return [(int) $k => $qty];
             })
-            ->filter(fn ($qty, $id) => $id > 0 && $qty > 0);
+            ->filter(fn($qty, $id) => $id > 0 && $qty > 0);
 
         if ($qtyByItemId->isEmpty()) {
             return back()->with('error', 'No quantities to ship.');

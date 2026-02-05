@@ -59,8 +59,10 @@
                                 <th class="px-4 py-3 text-left font-semibold">Customer</th>
                                 <th class="px-4 py-3 text-left font-semibold">PO No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part GCI</th>
-                                <th class="px-4 py-3 text-left font-semibold">Period</th>
+                                <th class="px-4 py-3 text-left font-semibold">Delivery Date</th>
                                 <th class="px-4 py-3 text-right font-semibold">Qty</th>
+                                <th class="px-4 py-3 text-right font-semibold">Price</th>
+                                <th class="px-4 py-3 text-right font-semibold">Amount</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Actions</th>
                             </tr>
@@ -77,9 +79,16 @@
                                         <div class="font-semibold">{{ $o->part->part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $o->part->part_name ?? '-' }}</div>
                                     </td>
-                                    <td class="px-4 py-3 font-mono text-xs">{{ $o->period }}</td>
+                                    <td class="px-4 py-3 font-mono text-xs">
+                                        {{ $o->delivery_date?->format('d/m/Y') ?? $o->period }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">
                                         {{ number_format((float) $o->qty, 3) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs">
+                                        {{ number_format((float) $o->price, 2) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs font-bold text-indigo-600">
+                                        {{ number_format((float) $o->amount, 2) }}
                                     </td>
                                     <td class="px-4 py-3">
                                         <span
@@ -143,10 +152,22 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div>
-                                <label class="text-sm font-semibold text-slate-700">PO No</label>
-                                <input name="po_no" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.po_no"
-                                    placeholder="e.g. PO-12345">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-sm font-semibold text-slate-700">PO No</label>
+                                    <input name="po_no" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="form.po_no" placeholder="e.g. PO-12345">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-semibold text-slate-700">PO Date</label>
+                                    <input type="date" name="po_date" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="form.po_date">
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="text-sm font-semibold text-slate-700">Delivery Date</label>
+                                <input type="date" name="delivery_date" class="mt-1 w-full rounded-xl border-slate-200"
+                                    x-model="form.delivery_date">
                             </div>
                             <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                                 <div class="flex items-center justify-between gap-3">
@@ -174,7 +195,7 @@
                                             </button>
                                         </div>
 
-                                        <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                        <div class="mt-3 grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
                                             <div class="md:col-span-3">
                                                 <label class="text-xs font-semibold text-slate-600">Part GCI</label>
                                                 <select class="mt-1 w-full rounded-xl border-slate-200"
@@ -193,6 +214,13 @@
                                                 <input type="number" step="0.001" min="0"
                                                     class="mt-1 w-full rounded-xl border-slate-200" x-model="it.qty"
                                                     :name="`items[${idx}][qty]`" required>
+                                            </div>
+
+                                            <div class="md:col-span-2">
+                                                <label class="text-xs font-semibold text-slate-600">Price</label>
+                                                <input type="number" step="0.01" min="0"
+                                                    class="mt-1 w-full rounded-xl border-slate-200" x-model="it.price"
+                                                    :name="`items[${idx}][price]`">
                                             </div>
                                         </div>
                                     </div>
@@ -225,11 +253,29 @@
                         </div>
                     </template>
 
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Qty</label>
-                        <input type="number" step="0.001" min="0" name="qty"
-                            class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.qty"
-                            x-show="mode === 'edit'">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div x-show="mode === 'edit'">
+                            <label class="text-sm font-semibold text-slate-700">Qty</label>
+                            <input type="number" step="0.001" min="0" name="qty"
+                                class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.qty">
+                        </div>
+                        <div x-show="mode === 'edit'">
+                            <label class="text-sm font-semibold text-slate-700">Price</label>
+                            <input type="number" step="0.01" min="0" name="price"
+                                class="mt-1 w-full rounded-xl border-slate-200" x-model="form.price">
+                        </div>
+                    </div>
+                    <div x-show="mode === 'edit'" class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">PO Date</label>
+                            <input type="date" name="po_date" class="mt-1 w-full rounded-xl border-slate-200"
+                                x-model="form.po_date">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Delivery Date</label>
+                            <input type="date" name="delivery_date" class="mt-1 w-full rounded-xl border-slate-200"
+                                x-model="form.delivery_date">
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
@@ -266,8 +312,11 @@
                         period: @js($period ?? $defaultPeriod ?? now()->format('Y-m')),
                         customer_id: '',
                         po_no: '',
+                        po_date: '',
+                        delivery_date: '',
                         part_id: '',
                         qty: '0',
+                        price: '0',
                         status: 'open',
                         notes: '',
                         items: [],
@@ -277,6 +326,7 @@
                             _key: Date.now().toString() + Math.random().toString(16).slice(2),
                             part_id: '',
                             qty: '0',
+                            price: '0',
                         };
                     },
                     addItem() {
@@ -294,8 +344,11 @@
                             period: @js($defaultPeriod ?? now()->format('Y-m')),
                             customer_id: '',
                             po_no: '',
+                            po_date: '',
+                            delivery_date: '',
                             part_id: '',
                             qty: '0',
+                            price: '0',
                             status: 'open',
                             notes: '',
                             items: [this._newItem()],
@@ -308,6 +361,9 @@
                         this.form = {
                             id: o.id,
                             qty: o.qty,
+                            price: o.price,
+                            po_date: o.po_date ? o.po_date.substring(0, 10) : '',
+                            delivery_date: o.delivery_date ? o.delivery_date.substring(0, 10) : '',
                             status: o.status,
                             notes: o.notes ?? '',
                         };

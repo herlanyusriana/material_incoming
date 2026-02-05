@@ -194,7 +194,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/delivery-plan/assign-so', [OutgoingController::class, 'assignSoToPlan'])->name('delivery-plan.assign-so');
         Route::post('/delivery-plan/{plan}/assign-resources', [OutgoingController::class, 'assignDeliveryPlanResources'])->name('delivery-plan.assign-resources');
 
-        Route::get('sales-orders/{sales_order}', [SalesOrderController::class, 'show'])->name('sales-orders.show');
+        Route::resource('sales-orders', SalesOrderController::class);
         Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');
 
         Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);

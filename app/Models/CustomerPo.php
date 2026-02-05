@@ -15,10 +15,19 @@ class CustomerPo extends Model
         'po_no',
         'customer_id',
         'part_id',
-        'period',  // Renamed from minggu
+        'period',
         'qty',
+        'price',
+        'amount',
         'status',
         'notes',
+        'po_date',
+        'delivery_date',
+    ];
+
+    protected $casts = [
+        'po_date' => 'date',
+        'delivery_date' => 'date',
     ];
 
     public function customer()

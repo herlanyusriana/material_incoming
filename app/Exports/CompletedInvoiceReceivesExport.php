@@ -33,10 +33,14 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
     public function collection()
     {
         return Receive::query()
+            ->select('receives.*')
+            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->join('parts', 'arrival_items.part_id', '=', 'parts.id')
             ->with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
-            ->whereHas('arrivalItem', fn ($q) => $q->where('arrival_id', $this->arrival->id))
-            ->orderBy('arrival_item_id')
-            ->orderBy('created_at')
+            ->where('arrival_items.arrival_id', $this->arrival->id)
+            ->orderBy('parts.part_no', 'asc')
+            ->orderByRaw('LENGTH(receives.tag) ASC')
+            ->orderBy('receives.tag', 'asc')
             ->get();
     }
 

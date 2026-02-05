@@ -183,10 +183,16 @@ class ReceiveController extends Controller
     {
         $arrival->load(['vendor', 'items.receives', 'containers.inspection']);
 
-        $receives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
-            ->whereHas('arrivalItem', fn($q) => $q->where('arrival_id', $arrival->id))
-            ->orderBy('tag', 'asc') // Improvement: Sort by Tag as requested
-            ->paginate(50); // Increased pagination size for better visibility
+        $receives = Receive::query()
+            ->select('receives.*')
+            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->join('parts', 'arrival_items.part_id', '=', 'parts.id')
+            ->with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+            ->where('arrival_items.arrival_id', $arrival->id)
+            ->orderBy('parts.part_no', 'asc')
+            ->orderByRaw('LENGTH(receives.tag) ASC')
+            ->orderBy('receives.tag', 'asc')
+            ->paginate(50);
 
         $remainingQtyTotal = collect($arrival->items)->sum(function ($item) {
             $received = $item->receives->sum('qty');

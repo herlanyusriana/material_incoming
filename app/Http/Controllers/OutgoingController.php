@@ -56,71 +56,93 @@ class OutgoingController extends Controller
         }
         if (!$plan) {
             $plan = OutgoingDailyPlan::query()
-                ->whereDate('date_from', $dateFrom->toDateString())
-                ->whereDate('date_to', $dateTo->toDateString())
+                ->whereDate('date_from', '<=', $dateFrom->toDateString())
+                ->whereDate('date_to', '>=', $dateTo->toDateString())
                 ->latest('id')
                 ->first();
         }
 
-        if ($plan) {
-            // Ensure properties are Carbon instances (Model casting should handle this, but for IDE safety)
-            $dateFrom = $plan->date_from instanceof Carbon ? $plan->date_from->copy() : Carbon::parse($plan->date_from);
-            $dateTo = $plan->date_to instanceof Carbon ? $plan->date_to->copy() : Carbon::parse($plan->date_to);
-        }
-
         $days = $this->daysBetween($dateFrom, $dateTo);
 
-        $rows = collect();
+        // Base rows on FG parts for a "static" list that's always visible
+        $rows = GciPart::query()
+            ->where('classification', 'FG')
+            ->where('status', 'active')
+            ->with([
+                'standardPacking',
+            ])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('part_no', 'like', '%' . $search . '%')
+                        ->orWhere('part_name', 'like', '%' . $search . '%');
+                });
+            })
+            ->orderBy('part_no')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        // If we have a plan, map the rows to include existing cell data
+        $planRowsMap = collect();
+        if ($plan) {
+            $planRowsMap = $plan->rows()
+                ->with([
+                    'cells' => function ($query) use ($dateFrom, $dateTo) {
+                        $query->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
+                    }
+                ])
+                ->get()
+                ->groupBy('gci_part_id');
+        }
+
+        // Transform results to match the view's expectations
+        $rows->getCollection()->transform(function ($part) use ($planRowsMap, $plan) {
+            $existingRows = $planRowsMap->get($part->id);
+            if ($existingRows && $existingRows->isNotEmpty()) {
+                // Use the first matching row from the plan
+                return $existingRows->first();
+            }
+
+            // Create a virtual row
+            return (object) [
+                'id' => 'vpart_' . $part->id, // Virtual ID prefix
+                'plan_id' => $plan?->id,
+                'production_line' => '-',
+                'part_no' => $part->part_no,
+                'gci_part_id' => $part->id,
+                'gciPart' => $part,
+                'cells' => collect(),
+            ];
+        });
+
         $totalsByDate = [];
         foreach ($days as $d) {
             $totalsByDate[$d->format('Y-m-d')] = 0;
         }
 
         if ($plan) {
-            $totals = OutgoingDailyPlanCell::query()
-                ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
-                ->where('r.plan_id', $plan->id)
-                ->whereBetween('outgoing_daily_plan_cells.plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
-                ->selectRaw('outgoing_daily_plan_cells.plan_date as plan_date, SUM(COALESCE(outgoing_daily_plan_cells.qty, 0)) as total_qty')
-                ->groupBy('outgoing_daily_plan_cells.plan_date')
-                ->pluck('total_qty', 'plan_date')
-                ->all();
+            $planTotals = OutgoingDailyPlanCell::query()
+                ->whereIn('row_id', $plan->rows()->pluck('id'))
+                ->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->selectRaw('plan_date, SUM(qty) as total')
+                ->groupBy('plan_date')
+                ->get()
+                ->pluck('total', 'plan_date');
 
-            foreach ($totals as $k => $totalQty) {
-                if (isset($totalsByDate[$k])) {
-                    $totalsByDate[$k] = (int) $totalQty;
-                }
+            foreach ($planTotals as $dateStr => $total) {
+                $totalsByDate[$dateStr] = (int) $total;
             }
-
-            $rows = $plan->rows()
-                ->with([
-                    'gciPart.standardPacking',
-                    'cells' => function ($query) use ($dateFrom, $dateTo) {
-                        $query
-                            ->select(['id', 'row_id', 'plan_date', 'seq', 'qty'])
-                            ->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
-                    },
-                ])
-                ->when($search !== '', function ($query) use ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('production_line', 'like', '%' . $search . '%')
-                            ->orWhere('part_no', 'like', '%' . $search . '%');
-                    });
-                })
-                ->paginate($perPage)
-                ->withQueryString();
         }
 
-        return view('outgoing.daily_planning', [
-            'plan' => $plan,
-            'rows' => $rows,
-            'days' => $days,
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'totalsByDate' => $totalsByDate,
-            'search' => $search,
-            'perPage' => $perPage,
-        ]);
+        return view('outgoing.daily_planning', compact(
+            'plan',
+            'rows',
+            'days',
+            'dateFrom',
+            'dateTo',
+            'planId',
+            'search',
+            'totalsByDate'
+        ));
     }
 
     public function dailyPlanningTemplate(Request $request)
@@ -349,7 +371,6 @@ class OutgoingController extends Controller
             ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
             ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('plan_date', '<=', $dateTo->format('Y-m-d'))
-            ->where('qty', '>', 0)
             ->get();
 
         $fulfilledMap = DeliveryRequirementFulfillment::query()
@@ -429,18 +450,29 @@ class OutgoingController extends Controller
             return (float) ($rec->{'day_' . $day} ?? 0);
         };
 
-        // Consolidate: Group by Date + Customer + Part (ignore sequence for true consolidation)
-        $lines = $cells->groupBy(function ($cell) {
-            $date = $cell->plan_date->format('Y-m-d');
-            $custId = (int) ($cell->row?->gciPart?->customer_id ?? 0);
-            $partId = (int) ($cell->row?->gci_part_id ?? 0);
-            return "{$date}|cust:{$custId}|part:{$partId}";
-        })->map(function ($group) {
-            $first = $group->first();
-            $gciPart = $first->row->gciPart ?? null;
+        // NEW: Get all active FG Parts to ensure a static list
+        $fgParts = GciPart::query()
+            ->where('classification', 'FG')
+            ->where('status', 'active')
+            ->with(['customer', 'standardPacking'])
+            ->get();
 
-            // Collect all unique sequences from consolidated cells
-            $sequences = $group
+        // Map cells by Part ID for merging
+        $cellsByPart = $cells->groupBy(fn($c) => (int) ($c->row?->gci_part_id ?? 0));
+
+        // Consolidate: Ensure every FG Part has at least one entry per date in target range if demand exists, 
+        // OR a single entry for the whole period if no demand exists (to keep list static).
+        // Actually, the simplest static list is one row per FG Part for the selected period.
+
+        $lines = $fgParts->map(function ($gciPart) use ($cellsByPart, $dateFrom) {
+            $partId = (int) $gciPart->id;
+            $partCells = $cellsByPart->get($partId, collect());
+
+            $grossQty = $partCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+            $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+
+            // Collect all unique sequences
+            $sequences = $partCells
                 ->map(fn($c) => $c->seq !== null && $c->seq !== '' ? (int) $c->seq : null)
                 ->filter(fn($s) => $s !== null)
                 ->unique()
@@ -449,29 +481,51 @@ class OutgoingController extends Controller
                 ->all();
             $primarySequence = !empty($sequences) ? min($sequences) : 9999;
 
-            $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-            $packingQty = (float) ($gciPart?->standardPacking?->packing_qty ?? 1) ?: 1;
-
-            // Calculate delivery packing standard quantity (rounded up to full packs)
             $packsNeeded = ceil($grossQty / $packingQty);
             $deliveryPackQty = $packsNeeded * $packingQty;
 
             return (object) [
-                'date' => $first->plan_date,
-                'customer' => $gciPart?->customer ?? null,
+                'date' => $dateFrom, // Base date for the period entry
+                'customer' => $gciPart->customer,
                 'gci_part' => $gciPart,
-                'customer_part_no' => $first->row->part_no,
-                'unmapped' => $gciPart === null,
+                'customer_part_no' => $gciPart->part_no,
+                'unmapped' => false,
                 'gross_qty' => $grossQty,
                 'sequence' => $primarySequence,
-                'sequences_consolidated' => $sequences, // All sequences consolidated
+                'sequences_consolidated' => $sequences,
                 'packing_std' => $packingQty,
-                'uom' => $gciPart?->standardPacking?->uom ?? 'PCS',
-                'delivery_pack_qty' => $deliveryPackQty, // Delivery packing standard quantity
+                'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
+                'delivery_pack_qty' => $deliveryPackQty,
                 'packs_needed' => $packsNeeded,
-                'source_row_ids' => $group->pluck('row_id')->unique()->values(),
+                'source_row_ids' => $partCells->pluck('row_id')->unique()->values()->all(),
             ];
-        })->filter()->values();
+        })->values();
+
+        // Also add "unmapped" parts from cells that weren't caught in fgParts
+        $fgPartIds = $fgParts->pluck('id')->all();
+        $unmappedLines = $cells->filter(function ($c) use ($fgPartIds) {
+            return !in_array($c->row?->gci_part_id, $fgPartIds);
+        })->groupBy(fn($c) => "{$c->row?->part_no}")->map(function ($group) use ($dateFrom) {
+            $first = $group->first();
+            $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+            return (object) [
+                'date' => $dateFrom,
+                'customer' => null,
+                'gci_part' => null,
+                'customer_part_no' => $first->row?->part_no,
+                'unmapped' => true,
+                'gross_qty' => $grossQty,
+                'sequence' => 9999,
+                'sequences_consolidated' => [],
+                'packing_std' => 1,
+                'uom' => 'PCS',
+                'delivery_pack_qty' => $grossQty,
+                'packs_needed' => 1,
+                'source_row_ids' => $group->pluck('row_id')->unique()->values()->all(),
+            ];
+        });
+
+        $lines = $lines->concat($unmappedLines->values());
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
         $requirements = $lines
@@ -517,7 +571,7 @@ class OutgoingController extends Controller
 
                 return $sorted;
             })
-            ->filter(fn($r) => (float) ($r->total_qty ?? 0) > 0)
+            ->values()
             ->sort(function ($a, $b) use ($sortBy, $sortDir) {
                 $result = 0;
 
@@ -1370,23 +1424,65 @@ class OutgoingController extends Controller
     public function updateCell(Request $request)
     {
         $validated = $request->validate([
-            'row_id' => 'required|exists:outgoing_daily_plan_rows,id',
+            'row_id' => 'required|string', // Changed to string to support vpart_ prefix
             'date' => 'required|date',
             'field' => 'required|in:seq,qty',
             'value' => 'nullable',
         ]);
 
         $rowId = $validated['row_id'];
-        $date = $validated['date'];
+        $date = Carbon::parse($validated['date']);
         $field = $validated['field'];
         $value = $validated['value'];
 
+        $actualRowId = null;
+
+        if (str_starts_with($rowId, 'vpart_')) {
+            $partId = (int) str_replace('vpart_', '', $rowId);
+
+            // Find or create a plan that covers this date
+            // We'll create weekly plans by default if none exist
+            $startOfWeek = $date->copy()->startOfWeek();
+            $endOfWeek = $date->copy()->endOfWeek();
+
+            $plan = OutgoingDailyPlan::firstOrCreate(
+                [
+                    'date_from' => $startOfWeek->toDateString(),
+                    'date_to' => $endOfWeek->toDateString(),
+                ],
+                [
+                    'created_by' => auth()->id(),
+                ]
+            );
+
+            // Find or create the row
+            $part = GciPart::findOrFail($partId);
+            $row = OutgoingDailyPlanRow::firstOrCreate(
+                [
+                    'plan_id' => $plan->id,
+                    'gci_part_id' => $part->id,
+                ],
+                [
+                    'row_no' => (int) ($plan->rows()->max('row_no') ?? 0) + 1,
+                    'production_line' => '-',
+                    'part_no' => $part->part_no,
+                ]
+            );
+            $actualRowId = $row->id;
+        } else {
+            $actualRowId = (int) $rowId;
+        }
+
         $cell = OutgoingDailyPlanCell::updateOrCreate(
-            ['row_id' => $rowId, 'plan_date' => $date],
+            ['row_id' => $actualRowId, 'plan_date' => $date->toDateString()],
             [$field => $value]
         );
 
-        return response()->json(['success' => true, 'cell' => $cell]);
+        return response()->json([
+            'success' => true,
+            'cell' => $cell,
+            'new_row_id' => $actualRowId // Returning this so frontend can update if needed
+        ]);
     }
 
     public function createPlan(Request $request)

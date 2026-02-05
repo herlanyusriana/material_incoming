@@ -99,30 +99,17 @@
                 <table class="w-full text-sm divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
-                            <th rowspan="2"
+                            <th
                                 class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">
                                 Line</th>
-                            <th rowspan="2"
+                            <th
                                 class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-32 z-10 bg-slate-50">
                                 Part No</th>
-                            <th rowspan="2"
-                                class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-20 border-r border-slate-200 bg-slate-50">
-                                Std Pack</th>
                             @foreach ($days as $d)
-                                <th colspan="2"
-                                    class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[120px]">
+                                <th
+                                    class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[80px]">
                                     {{ $d->format('D, d M') }}
                                 </th>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            @foreach ($days as $d)
-                                <th
-                                    class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-100">
-                                    Seq</th>
-                                <th
-                                    class="px-2 py-1 text-center text-[10px] font-semibold text-slate-400 uppercase border-r border-slate-200">
-                                    Qty</th>
                             @endforeach
                         </tr>
                     </thead>
@@ -145,35 +132,23 @@
                                     class="px-4 py-3 font-mono text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-32 z-10 border-r border-slate-100">
                                     {{ $row->part_no }}
                                 </td>
-                                <td class="px-4 py-3 text-center font-bold text-slate-500 border-r border-slate-100">
-                                    {{ $row->gciPart?->standardPacking?->packing_qty ?? '-' }}
-                                    <span
-                                        class="text-[10px] font-normal text-slate-400">{{ $row->gciPart?->standardPacking?->uom ?? '' }}</span>
-                                </td>
                                 @foreach ($days as $d)
                                     @php
                                         $key = $d->format('Y-m-d');
                                         $cell = $cellMap->get($key);
-                                        $seq = $cell?->seq;
                                         $qty = $cell?->qty;
                                     @endphp
-                                    <td class="p-0 border-r border-slate-100 relative">
-                                        <input type="number"
-                                            class="w-full h-full border-0 bg-transparent text-center text-xs focus:ring-1 focus:ring-indigo-500 p-2 placeholder-slate-200"
-                                            value="{{ $seq }}" placeholder="-"
-                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'seq', $event.target.value)">
-                                    </td>
-                                    <td class="p-0 border-r border-slate-200 relative bg-slate-50/50">
+                                    <td class="p-0 border-r border-slate-200 relative">
                                         <input type="number"
                                             class="w-full h-full border-0 bg-transparent text-center text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-indigo-500 p-2 placeholder-slate-200"
                                             value="{{ $qty }}" placeholder="0"
-                                            @change="updateCell({{ $row->id }}, '{{ $key }}', 'qty', $event.target.value)">
+                                            @change="updateCell('{{ $row->id }}', '{{ $key }}', 'qty', $event.target.value)">
                                     </td>
                                 @endforeach
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 3 + (count($days) * 2) }}" class="px-6 py-12 text-center text-slate-500">
+                                <td colspan="{{ 2 + count($days) }}" class="px-6 py-12 text-center text-slate-500">
                                     @if($plan)
                                         <div class="flex flex-col items-center">
                                             <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor"
@@ -192,10 +167,9 @@
                             </tr>
                         @endforelse
                     </tbody>
-                    <!-- Footer for Totals -->
                     <tfoot class="bg-slate-50 font-bold sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
                         <tr>
-                            <td colspan="3"
+                            <td colspan="2"
                                 class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider border-r border-slate-200 sticky left-0 z-20 bg-slate-50">
                                 Daily Total
                             </td>
@@ -204,7 +178,6 @@
                                     $k = $d->format('Y-m-d');
                                     $t = $totalsByDate[$k] ?? 0;
                                 @endphp
-                                <td colspan="1" class="border-r border-slate-100"></td> <!-- Skip Seq Col -->
                                 <td
                                     class="px-2 py-2 text-center text-xs text-indigo-700 border-r border-slate-200 bg-indigo-50/50">
                                     {{ number_format($t) }}

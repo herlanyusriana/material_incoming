@@ -1143,6 +1143,10 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-plan'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-plan')])></span>
                                 <span class="flex-1">Delivery Plan &amp; Arrangement</span>
                             </a>
+                            <a href="{{ route('outgoing.sales-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.sales-orders.*'), $subInactive => !request()->routeIs('outgoing.sales-orders.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.sales-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.sales-orders.*')])></span>
+                                <span class="flex-1 font-bold text-slate-800">PO Outgoing (Sales Orders)</span>
+                            </a>
                             <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
                                 <span class="flex-1 text-indigo-600 font-bold">Delivery Notes (Surat Jalan)</span>
