@@ -28,6 +28,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class OutgoingController extends Controller
 {
@@ -670,6 +671,21 @@ class OutgoingController extends Controller
                 return $result;
             })
             ->values();
+
+        // Pagination Logic
+        $page = $request->query('page', 1);
+        $perPage = 50;
+        $total = $requirements->count();
+
+        $paginatedItems = $requirements->forPage($page, $perPage);
+
+        $requirements = new LengthAwarePaginator(
+            $paginatedItems,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo', 'sortBy', 'sortDir'));
     }

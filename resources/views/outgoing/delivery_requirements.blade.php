@@ -47,7 +47,7 @@
                 </div>
                 <div class="overflow-x-auto">
                     @php
-                        $displayRequirements = collect($requirements)->values();
+                        $displayRequirements = $requirements;
 
                         $lastCustomer = null;
                     @endphp
@@ -193,6 +193,11 @@
                         @endif
                     </table>
                 </div>
+                @if($requirements->hasPages())
+                    <div class="px-6 py-4 border-t border-slate-100">
+                        {{ $requirements->links() }}
+                    </div>
+                @endif
             </div>
         </form>
     </div>
