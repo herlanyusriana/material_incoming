@@ -87,6 +87,10 @@ class OutgoingController extends Controller
                             });
                     });
                 })
+                ->whereHas('cells', function ($query) use ($dateFrom, $dateTo) {
+                    $query->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                        ->where('qty', '>', 0);
+                })
                 ->paginate($perPage)
                 ->withQueryString();
         } else {
