@@ -512,6 +512,10 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
                                     <span class="flex-1">Standard Packing</span>
                                 </a>
+                                <a href="{{ route('outgoing.input-jig') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.input-jig*'), $subInactive => !request()->routeIs('outgoing.input-jig*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-yellow-500' => request()->routeIs('outgoing.input-jig*'), 'bg-slate-300 group-hover:bg-yellow-400' => !request()->routeIs('outgoing.input-jig*')])></span>
+                                    <span class="flex-1">Input JIG Capacity</span>
+                                </a>
                             </div>
                         </div>
                     </details>

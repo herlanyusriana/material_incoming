@@ -169,7 +169,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
         Route::get('/stock-at-customers/template', [OutgoingController::class, 'stockAtCustomersTemplate'])->name('stock-at-customers.template');
         Route::get('/stock-at-customers/export', [OutgoingController::class, 'stockAtCustomersExport'])->name('stock-at-customers.export');
-        Route::post('/stock-at-customers/import', [OutgoingController::class, 'stockAtCustomersImport'])->name('stock-at-customers.import');
+        Route::get('/stock-at-customers/import', [OutgoingController::class, 'stockAtCustomersImport'])->name('stock-at-customers.import');
+
+        // Input JIG Routes
+        Route::get('/input-jig', [\App\Http\Controllers\OutgoingJigController::class, 'index'])->name('input-jig');
+        Route::post('/input-jig', [\App\Http\Controllers\OutgoingJigController::class, 'storeRow'])->name('input-jig.store');
+        Route::post('/input-jig/{setting}/uph', [\App\Http\Controllers\OutgoingJigController::class, 'updateUph'])->name('input-jig.uph');
+        Route::post('/input-jig/{setting}/plan', [\App\Http\Controllers\OutgoingJigController::class, 'updatePlan'])->name('input-jig.plan');
+        Route::delete('/input-jig/{setting}', [\App\Http\Controllers\OutgoingJigController::class, 'deleteRow'])->name('input-jig.delete');
 
         Route::get('/trucks', [\App\Http\Controllers\Outgoing\TruckController::class, 'index'])->name('trucks.index');
         Route::post('/trucks', [\App\Http\Controllers\Outgoing\TruckController::class, 'store'])->name('trucks.store');
