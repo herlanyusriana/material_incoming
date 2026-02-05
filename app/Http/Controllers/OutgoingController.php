@@ -445,72 +445,75 @@ class OutgoingController extends Controller
         // Map cells by Part ID for merging
         $cellsByPart = $cells->groupBy(fn($c) => (int) ($c->row?->gci_part_id ?? 0));
 
-        // Consolidate: Ensure every FG Part has at least one entry per date in target range if demand exists, 
-        // OR a single entry for the whole period if no demand exists (to keep list static).
-        // Actually, the simplest static list is one row per FG Part for the selected period.
+        $days = $this->daysBetween($dateFrom, $dateTo);
+        $lines = collect();
 
-        $lines = $fgParts->map(function ($gciPart) use ($cellsByPart, $dateFrom) {
-            $partId = (int) $gciPart->id;
-            $partCells = $cellsByPart->get($partId, collect());
+        foreach ($days as $day) {
+            $dateStr = $day->toDateString();
+            $dayCells = $cells->filter(fn($c) => $c->plan_date->toDateString() === $dateStr);
+            $dayCellsByPart = $dayCells->groupBy(fn($c) => (int) ($c->row?->gci_part_id ?? 0));
 
-            $grossQty = $partCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-            $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+            foreach ($fgParts as $gciPart) {
+                $partId = (int) $gciPart->id;
+                $partDayCells = $dayCellsByPart->get($partId, collect());
+                $grossQty = $partDayCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
 
-            // Collect all unique sequences
-            $sequences = $partCells
-                ->map(fn($c) => $c->seq !== null && $c->seq !== '' ? (int) $c->seq : null)
-                ->filter(fn($s) => $s !== null)
-                ->unique()
-                ->sort()
-                ->values()
-                ->all();
-            $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+                if ($grossQty <= 0) {
+                    continue; // Skip part with no demand on this day (No value hide)
+                }
 
-            $packsNeeded = ceil($grossQty / $packingQty);
-            $deliveryPackQty = $packsNeeded * $packingQty;
+                $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+                $sequences = $partDayCells
+                    ->map(fn($c) => $c->seq !== null && $c->seq !== '' ? (int) $c->seq : null)
+                    ->filter(fn($s) => $s !== null)
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all();
+                $primarySequence = !empty($sequences) ? min($sequences) : 9999;
 
-            return (object) [
-                'date' => $dateFrom, // Base date for the period entry
-                'customer' => $gciPart->customer,
-                'gci_part' => $gciPart,
-                'customer_part_no' => $gciPart->part_no,
-                'unmapped' => false,
-                'gross_qty' => $grossQty,
-                'sequence' => $primarySequence,
-                'sequences_consolidated' => $sequences,
-                'packing_std' => $packingQty,
-                'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
-                'delivery_pack_qty' => $deliveryPackQty,
-                'packs_needed' => $packsNeeded,
-                'source_row_ids' => $partCells->pluck('row_id')->unique()->values()->all(),
-            ];
-        })->values();
+                $lines->push((object) [
+                    'date' => $day->copy(),
+                    'customer' => $gciPart->customer,
+                    'gci_part' => $gciPart,
+                    'customer_part_no' => $gciPart->part_no,
+                    'unmapped' => false,
+                    'gross_qty' => $grossQty,
+                    'sequence' => $primarySequence,
+                    'sequences_consolidated' => $sequences,
+                    'packing_std' => $packingQty,
+                    'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
+                    'source_row_ids' => $partDayCells->pluck('row_id')->unique()->values()->all(),
+                ]);
+            }
 
-        // Also add "unmapped" parts from cells that weren't caught in fgParts
-        $fgPartIds = $fgParts->pluck('id')->all();
-        $unmappedLines = $cells->filter(function ($c) use ($fgPartIds) {
-            return !in_array($c->row?->gci_part_id, $fgPartIds);
-        })->groupBy(fn($c) => "{$c->row?->part_no}")->map(function ($group) use ($dateFrom) {
-            $first = $group->first();
-            $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-            return (object) [
-                'date' => $dateFrom,
-                'customer' => null,
-                'gci_part' => null,
-                'customer_part_no' => $first->row?->part_no,
-                'unmapped' => true,
-                'gross_qty' => $grossQty,
-                'sequence' => 9999,
-                'sequences_consolidated' => [],
-                'packing_std' => 1,
-                'uom' => 'PCS',
-                'delivery_pack_qty' => $grossQty,
-                'packs_needed' => 1,
-                'source_row_ids' => $group->pluck('row_id')->unique()->values()->all(),
-            ];
-        });
+            // Handle unmapped parts that have demand on this day
+            $fgPartIdsInDay = $fgParts->pluck('id')->all();
+            $unmappedDayCells = $dayCells->filter(function ($c) use ($fgPartIdsInDay) {
+                return !in_array($c->row?->gci_part_id, $fgPartIdsInDay);
+            });
+            $unmappedDayGroups = $unmappedDayCells->groupBy(fn($c) => "{$c->row?->part_no}");
 
-        $lines = $lines->concat($unmappedLines->values());
+            foreach ($unmappedDayGroups as $pNo => $group) {
+                $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+                if ($grossQty <= 0)
+                    continue;
+
+                $lines->push((object) [
+                    'date' => $day->copy(),
+                    'customer' => null,
+                    'gci_part' => null,
+                    'customer_part_no' => $pNo,
+                    'unmapped' => true,
+                    'gross_qty' => $grossQty,
+                    'sequence' => 9999,
+                    'sequences_consolidated' => [],
+                    'packing_std' => 1,
+                    'uom' => 'PCS',
+                    'source_row_ids' => $group->pluck('row_id')->unique()->values()->all(),
+                ]);
+            }
+        }
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
         $requirements = $lines
