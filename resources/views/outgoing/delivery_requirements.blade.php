@@ -61,31 +61,34 @@
                                 </th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Customer Name</th>
-                                <th
-                                    class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    FG's Category</th>
+                                    Delivery Date</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    FG Part Name</th>
+                                    Customer Name</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    Cust. Part No.</th>
+                                <th
+                                    class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    Category</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    FG Part Tag</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
                                     FG Part No.</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Project Name</th>
+                                    Project</th>
                                 <th
                                     class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Customer Stock</th>
+                                    Cust. Stock</th>
                                 <th
                                     class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Customer Daily Plan</th>
+                                    Daily Plan</th>
                                 <th
                                     class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Delivery Requirement
-                                    <div class="lowercase text-[9px] font-normal text-slate-500 mt-0.5">if (Daily Plan -
-                                        Cust Stock) < 0 &rarr; 0</div>
-                                </th>
+                                    Requirement</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
@@ -107,26 +110,32 @@
                                         @endforeach
                                     </td>
 
-                                    <td class="px-4 py-3 font-bold text-slate-900 border-x border-slate-100">
-                                        @if($lastCustomer !== ($req->customer?->id ?? 0))
-                                            {{ $req->customer?->name ?? 'Unmapped' }}
-                                            @php $lastCustomer = $req->customer?->id ?? 0; @endphp
-                                        @endif
+                                    <td class="px-4 py-3 text-xs font-bold text-slate-600 border-x border-slate-100">
+                                        {{ $req->date->format('d/m/Y') }}
                                     </td>
 
-                                    <td class="px-3 py-3 text-center font-bold text-slate-700 border-x border-slate-100">
+                                    <td class="px-4 py-3 text-xs font-bold text-slate-900 border-x border-slate-100">
+                                        {{ $req->customer?->name ?? 'Unmapped' }}
+                                    </td>
+
+                                    <td class="px-4 py-3 font-mono text-xs text-indigo-700 font-bold border-x border-slate-100">
+                                        {{ $req->customer_part_no }}
+                                    </td>
+
+                                    <td
+                                        class="px-3 py-3 text-center text-xs font-bold text-slate-700 border-x border-slate-100">
                                         {{ $req->gci_part?->standardPacking?->delivery_class ?: '-' }}
                                     </td>
 
-                                    <td class="px-4 py-3 text-slate-700 border-x border-slate-100">
+                                    <td class="px-4 py-3 text-xs text-slate-700 border-x border-slate-100">
                                         {{ $req->gci_part?->part_name ?? '-' }}
                                     </td>
 
-                                    <td class="px-4 py-3 font-mono text-indigo-600 font-bold border-x border-slate-100">
-                                        {{ $req->gci_part?->part_no ?? $req->customer_part_no }}
+                                    <td class="px-4 py-3 font-mono text-xs text-slate-500 border-x border-slate-100">
+                                        {{ $req->gci_part?->part_no ?? '-' }}
                                     </td>
 
-                                    <td class="px-4 py-3 text-slate-600 border-x border-slate-100">
+                                    <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">
                                         {{ $req->gci_part?->model ?: '-' }}
                                     </td>
 
@@ -149,7 +158,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-6 py-20 text-center text-slate-500 bg-white">
+                                    <td colspan="11" class="px-6 py-20 text-center text-slate-500 bg-white">
                                         <div class="flex flex-col items-center">
                                             <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
@@ -167,15 +176,18 @@
                         @if($displayRequirements->isNotEmpty())
                             <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-900">
                                 <tr>
-                                    <td colspan="6"
+                                    <td colspan="8"
                                         class="px-4 py-4 text-right uppercase text-xs tracking-widest text-slate-500">Totals
                                     </td>
                                     <td class="px-4 py-4 text-right text-slate-500">
-                                        {{ number_format($displayRequirements->sum('stock_at_customer')) }}</td>
+                                        {{ number_format($displayRequirements->sum('stock_at_customer')) }}
+                                    </td>
                                     <td class="px-4 py-4 text-right text-slate-900">
-                                        {{ number_format($displayRequirements->sum('gross_qty')) }}</td>
+                                        {{ number_format($displayRequirements->sum('gross_qty')) }}
+                                    </td>
                                     <td class="px-4 py-4 text-right text-indigo-700">
-                                        {{ number_format($displayRequirements->sum('total_qty')) }}</td>
+                                        {{ number_format($displayRequirements->sum('total_qty')) }}
+                                    </td>
                                 </tr>
                             </tfoot>
                         @endif

@@ -503,6 +503,10 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
                                     <span class="flex-1 text-indigo-600 font-bold">Delivery Notes (Surat Jalan)</span>
                                 </a>
+                                <a href="{{ route('outgoing.product-mapping') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('outgoing.product-mapping')])></span>
+                                    <span class="flex-1 font-bold text-emerald-700">🔍 Product & Where-Used</span>
+                                </a>
                                 <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')])
                                     @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
@@ -1150,6 +1154,10 @@
                             <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
                                 <span class="flex-1 text-indigo-600 font-bold">Delivery Notes (Surat Jalan)</span>
+                            </a>
+                            <a href="{{ route('outgoing.product-mapping') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.product-mapping'), $subInactive => !request()->routeIs('outgoing.product-mapping')])>
+                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('outgoing.product-mapping'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('outgoing.product-mapping')])></span>
+                                <span class="flex-1 font-bold text-emerald-700">🔍 Product & Where-Used Mapping</span>
                             </a>
                             <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>

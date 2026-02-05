@@ -219,7 +219,6 @@ class OutgoingDailyPlanningImport implements ToCollection
                 // Try customer part mapping first as requested ("harus customer part")
                 $customerPart = \App\Models\CustomerPart::query()
                     ->where('customer_part_no', $partNo)
-                    ->where('status', 'active')
                     ->first();
 
                 if ($customerPart) {

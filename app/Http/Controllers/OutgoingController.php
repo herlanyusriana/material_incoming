@@ -12,6 +12,7 @@ use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDailyPlanRow;
 use App\Models\CustomerPart;
+use App\Models\CustomerPartComponent;
 use App\Models\DeliveryRequirementFulfillment;
 use App\Models\DeliveryPlanRequirementAssignment;
 use App\Models\GciPart;
@@ -41,7 +42,7 @@ class OutgoingController extends Controller
         }
 
         $search = trim((string) request('search', ''));
-        $perPage = (int) request('per_page', 50);
+        $perPage = (int) request('per_page', 100);
         if ($perPage < 10) {
             $perPage = 10;
         }
@@ -220,10 +221,9 @@ class OutgoingController extends Controller
     public function productMapping()
     {
         $recentParts = GciPart::query()
-            ->where('classification', 'RM')
+            ->where('classification', 'FG')
             ->orderBy('updated_at', 'desc')
-            ->limit(5)
-            ->get();
+            ->paginate(50);
 
         return view('outgoing.product_mapping', compact('recentParts'));
     }
@@ -459,7 +459,7 @@ class OutgoingController extends Controller
                 $grossQty = $partDayCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
 
                 if ($grossQty <= 0) {
-                    continue; // Skip part with no demand on this day (No value hide)
+                    // continue; // Skip part with no demand on this day (No value hide) -> User requested STATIC list based on FG parts
                 }
 
                 $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
@@ -472,11 +472,26 @@ class OutgoingController extends Controller
                     ->all();
                 $primarySequence = !empty($sequences) ? min($sequences) : 9999;
 
+                $sourcePartNo = $partDayCells->first()?->row?->part_no;
+                // If not in row, check if mapped to a customer part
+                if (!$sourcePartNo && $gciPart->id) {
+                    $mapping = \App\Models\CustomerPart::whereHas('components', function ($q) use ($gciPart) {
+                        $q->where('gci_part_id', $gciPart->id);
+                    })
+                        ->with(['components' => fn($q) => $q->where('gci_part_id', $gciPart->id)])
+                        ->latest() // Get the most recent mapping if multiple exist
+                        ->first();
+
+                    if ($mapping) {
+                        $sourcePartNo = $mapping->customer_part_no;
+                    }
+                }
+
                 $lines->push((object) [
                     'date' => $day->copy(),
                     'customer' => $gciPart->customer,
                     'gci_part' => $gciPart,
-                    'customer_part_no' => $gciPart->part_no,
+                    'customer_part_no' => $sourcePartNo ?? $gciPart->part_no,
                     'unmapped' => false,
                     'gross_qty' => $grossQty,
                     'sequence' => $primarySequence,
@@ -516,48 +531,87 @@ class OutgoingController extends Controller
         }
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
+        // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
         $requirements = $lines
             ->groupBy(function ($r) {
                 $date = $r->date?->format('Y-m-d') ?? '';
                 $custId = (int) ($r->customer?->id ?? 0);
-                $partId = (int) ($r->gci_part?->id ?? 0);
-                return "{$date}|cust:{$custId}|part:{$partId}";
+                // Group by Customer Part No instead of GCI Part ID to sum duplicates
+                $custPart = trim((string) ($r->customer_part_no ?? ''));
+                return "{$date}|cust:{$custId}|cp:{$custPart}";
             })
             ->flatMap(function ($group) use ($getStockAtCustomer) {
                 /** @var \Illuminate\Support\Collection $group */
                 $first = $group->first();
-                $date = $first->date;
-                $custId = (int) ($first->customer?->id ?? 0);
-                $partId = (int) ($first->gci_part?->id ?? 0);
 
-                $stockTotal = 0.0;
-                if ($date && $custId > 0 && $partId > 0) {
-                    $stockTotal = $getStockAtCustomer($date, $custId, $partId);
-                }
+                // If there's only one item, process as before to preserve exact object
+                if ($group->count() === 1) {
+                    $r = $first;
+                    $date = $r->date;
+                    $custId = (int) ($r->customer?->id ?? 0);
+                    $partId = (int) ($r->gci_part?->id ?? 0);
 
-                $remainingStock = $stockTotal;
+                    $stockTotal = 0.0;
+                    if ($date && $custId > 0 && $partId > 0) {
+                        $stockTotal = $getStockAtCustomer($date, $custId, $partId);
+                    }
 
-                $sorted = $group->sortByDesc(fn($r) => (int) ($r->sequence ?? 9999))->values();
-                foreach ($sorted as $r) {
                     $gross = (float) ($r->gross_qty ?? 0);
+                    // Stock logic for single item
                     $used = 0.0;
-                    if ($remainingStock > 0 && $gross > 0) {
-                        $used = min($gross, $remainingStock);
-                        $remainingStock -= $used;
+                    if ($stockTotal > 0 && $gross > 0) {
+                        $used = min($gross, $stockTotal);
                     }
 
                     $r->stock_at_customer = $stockTotal;
                     $r->stock_used = $used;
                     $r->total_qty = max(0, $gross - $used);
 
-                    // Recalculate delivery pack qty after stock deduction
+                    // Recalculate packing
                     $packQty = (float) ($r->packing_std ?? 1);
                     $packQty = $packQty > 0 ? $packQty : 1;
                     $r->packing_load = (int) ceil(((float) $r->total_qty) / $packQty);
                     $r->delivery_pack_qty = $r->packing_load * $packQty;
+
+                    return collect([$r]);
                 }
 
-                return $sorted;
+                // If multiple parts map to same Customer Part, merge them
+                $merged = clone $first;
+
+                // Sum gross qty
+                $grossQtyTotal = $group->sum(fn($r) => (float) ($r->gross_qty ?? 0));
+
+                // Sum stock from ALL GCI parts involved
+                $stockTotal = 0.0;
+                $uniquePartIds = $group->map(fn($r) => (int) ($r->gci_part?->id ?? 0))->filter()->unique();
+                if ($first->date && $first->customer?->id) {
+                    foreach ($uniquePartIds as $pid) {
+                        $stockTotal += $getStockAtCustomer($first->date, $first->customer->id, $pid);
+                    }
+                }
+
+                // Merge source row IDs
+                $merged->source_row_ids = $group->pluck('source_row_ids')->flatten()->unique()->values()->all();
+
+                // Apply stock deduction to total
+                $used = 0.0;
+                if ($stockTotal > 0 && $grossQtyTotal > 0) {
+                    $used = min($grossQtyTotal, $stockTotal);
+                }
+
+                $merged->gross_qty = $grossQtyTotal;
+                $merged->stock_at_customer = $stockTotal;
+                $merged->stock_used = $used;
+                $merged->total_qty = max(0, $grossQtyTotal - $used);
+
+                // Recalculate packing
+                $packQty = (float) ($merged->packing_std ?? 1);
+                $packQty = $packQty > 0 ? $packQty : 1;
+                $merged->packing_load = (int) ceil(((float) $merged->total_qty) / $packQty);
+                $merged->delivery_pack_qty = $merged->packing_load * $packQty;
+
+                return collect([$merged]);
             })
             ->values()
             ->sort(function ($a, $b) use ($sortBy, $sortDir) {
@@ -1547,6 +1601,7 @@ class OutgoingController extends Controller
             return null;
         }
 
+        // 1. Direct GCI Part lookup
         $gciPart = GciPart::query()
             ->where('part_no', $partNo)
             ->where('classification', 'FG')
@@ -1555,11 +1610,11 @@ class OutgoingController extends Controller
             return (int) $gciPart->id;
         }
 
-        // Second: try customer part mapping (removed status filter to read all mappings)
+        // 2. Try customer part mapping
         $customerPart = CustomerPart::query()
             ->where('customer_part_no', $partNo)
-            // BUGFIX: Removed ->where('status', 'active') to allow all customer parts
             ->with([
+                'customer',
                 'components.part' => function ($q) {
                     $q->where('classification', 'FG');
                 }
@@ -1567,24 +1622,40 @@ class OutgoingController extends Controller
             ->first();
 
         if ($customerPart) {
-            $fgComponents = $customerPart->components
+            $fgComponent = $customerPart->components
                 ->filter(fn($c) => $c->part && $c->part->classification === 'FG' && $c->gci_part_id)
                 ->sortByDesc(fn($c) => (float) ($c->qty_per_unit ?? 0))
-                ->values();
+                ->first();
 
-            $first = $fgComponents->first();
-            if ($first && $first->gci_part_id) {
-                return (int) $first->gci_part_id;
+            if ($fgComponent) {
+                return (int) $fgComponent->gci_part_id;
             }
+
+            // Fallback: Link to a NEW GciPart belonging to the SAME customer
+            $newGciPart = GciPart::create([
+                'customer_id' => $customerPart->customer_id,
+                'part_no' => $partNo,
+                'part_name' => $customerPart->customer_part_name ?? $partNo,
+                'classification' => 'FG',
+                'status' => 'active',
+            ]);
+
+            CustomerPartComponent::create([
+                'customer_part_id' => $customerPart->id,
+                'gci_part_id' => $newGciPart->id,
+                'qty_per_unit' => 1.0,
+            ]);
+
+            return (int) $newGciPart->id;
         }
 
+        // 3. Last resort
         $created = GciPart::create([
             'part_no' => $partNo,
             'part_name' => $partNo,
             'classification' => 'FG',
             'status' => 'active',
         ]);
-
         return (int) $created->id;
     }
 }

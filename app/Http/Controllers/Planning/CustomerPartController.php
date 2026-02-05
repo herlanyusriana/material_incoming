@@ -38,7 +38,7 @@ class CustomerPartController extends Controller
             })
             ->orderBy(Customer::select('code')->whereColumn('customers.id', 'customer_parts.customer_id'))
             ->orderBy('customer_part_no')
-            ->paginate(20)
+            ->paginate(100)
             ->withQueryString();
 
         return view('planning.customer_parts.index', compact('customers', 'parts', 'customerParts', 'customerId', 'search'));
