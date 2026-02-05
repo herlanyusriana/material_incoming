@@ -118,6 +118,11 @@ class OutgoingController extends Controller
             }
         }
 
+        $unmappedCount = 0;
+        if ($plan) {
+            $unmappedCount = $plan->rows()->whereNull('gci_part_id')->count();
+        }
+
         return view('outgoing.daily_planning', compact(
             'plan',
             'rows',
@@ -126,7 +131,8 @@ class OutgoingController extends Controller
             'dateTo',
             'planId',
             'search',
-            'totalsByDate'
+            'totalsByDate',
+            'unmappedCount'
         ));
     }
 

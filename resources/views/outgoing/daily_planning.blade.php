@@ -61,6 +61,34 @@
                 </div>
             </div>
 
+            @if(isset($unmappedCount) && $unmappedCount > 0)
+                <div class="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-bold text-yellow-800">Unmapped Parts Detected</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>There are <span class="font-bold">{{ $unmappedCount }}</span> parts in this plan that are not
+                                    mapped to any GCI Part. These parts will not appear in Delivery Requirements correctly until
+                                    mapped.</p>
+                                <p class="mt-2">
+                                    <a href="{{ route('outgoing.product-mapping') }}"
+                                        class="font-bold text-yellow-800 underline hover:text-yellow-900">
+                                        Go to Product Mapping to resolve this &rarr;
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="mt-6 flex flex-wrap gap-4 items-end border-t border-slate-100 pt-6">
                 <form action="{{ route('outgoing.daily-planning') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
