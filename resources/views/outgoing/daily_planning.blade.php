@@ -19,6 +19,10 @@
                         <div class="mt-1 text-sm text-slate-600">
                             @if($plan)
                                 Plan #{{ $plan->id }} • {{ $dateFrom->format('d M Y') }} - {{ $dateTo->format('d M Y') }}
+                                <span
+                                    class="ml-2 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100 italic">
+                                    Last Update: {{ $plan->updated_at->format('d M Y H:i') }}
+                                </span>
                             @else
                                 Viewing Period: {{ $dateFrom->format('d M Y') }} - {{ $dateTo->format('d M Y') }}
                             @endif

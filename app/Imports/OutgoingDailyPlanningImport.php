@@ -49,7 +49,17 @@ class OutgoingDailyPlanningImport implements ToCollection
             return [$date, strtolower($m['kind'])];
         }
 
+        if (preg_match('/^(?<d>\d{1,2})[-\/ ](?<m>\d{1,2})[-\/ ](?<y>\d{4})\s+(?<kind>seq|qty)$/i', $v, $m)) {
+            $date = sprintf('%04d-%02d-%02d', (int) $m['y'], (int) $m['m'], (int) $m['d']);
+            return [$date, strtolower($m['kind'])];
+        }
+
         if (preg_match('/^(?<kind>seq|qty)\s+(?<y>\d{4})[-\/ ](?<m>\d{1,2})[-\/ ](?<d>\d{1,2})$/i', $v, $m)) {
+            $date = sprintf('%04d-%02d-%02d', (int) $m['y'], (int) $m['m'], (int) $m['d']);
+            return [$date, strtolower($m['kind'])];
+        }
+
+        if (preg_match('/^(?<kind>seq|qty)\s+(?<d>\d{1,2})[-\/ ](?<m>\d{1,2})[-\/ ](?<y>\d{4})$/i', $v, $m)) {
             $date = sprintf('%04d-%02d-%02d', (int) $m['y'], (int) $m['m'], (int) $m['d']);
             return [$date, strtolower($m['kind'])];
         }
@@ -129,7 +139,7 @@ class OutgoingDailyPlanningImport implements ToCollection
                 continue;
             }
 
-            $candidateHeaders = array_map(fn ($v) => trim((string) $v), $this->rowValues($candidate));
+            $candidateHeaders = array_map(fn($v) => trim((string) $v), $this->rowValues($candidate));
             $candidateIdx = [];
             foreach ($candidateHeaders as $idx => $h) {
                 $key = $this->norm($h);
@@ -156,8 +166,8 @@ class OutgoingDailyPlanningImport implements ToCollection
 
         if ($headerRow === null || $productionLineIdx === null || $partNoIdx === null) {
             $first = $rows->first();
-            $firstHeaders = $first ? array_map(fn ($v) => trim((string) $v), $this->rowValues($first)) : [];
-            $preview = array_slice(array_filter($firstHeaders, fn ($v) => (string) $v !== ''), 0, 12);
+            $firstHeaders = $first ? array_map(fn($v) => trim((string) $v), $this->rowValues($first)) : [];
+            $preview = array_slice(array_filter($firstHeaders, fn($v) => (string) $v !== ''), 0, 12);
             $this->failures[] =
                 "Header kolom 'production_line/LINE' atau 'part_no/Part No' tidak ditemukan. " .
                 "Saran: download template Daily Planning. " .
@@ -195,7 +205,7 @@ class OutgoingDailyPlanningImport implements ToCollection
             $rowNo = $this->parseIntOrNull($noIdx !== null ? ($arr[$noIdx] ?? null) : null);
 
             // Use logical row number (2 for header + index + 1)
-            $excelRow = $index + 2; 
+            $excelRow = $index + 2;
 
             if ($productionLine === '' && $partNo === '') {
                 continue;
@@ -204,14 +214,14 @@ class OutgoingDailyPlanningImport implements ToCollection
             // Resolve part_no to a GCI Part ID (FG only)
             // First try direct GCI Part lookup, then customer part mapping
             $gciPartId = null;
-            
+
             if ($partNo !== '') {
                 // Try direct GCI Part lookup (FG only)
                 $gciPart = GciPart::query()
                     ->where('part_no', $partNo)
                     ->where('classification', 'FG')
                     ->first();
-                
+
                 if ($gciPart) {
                     $gciPartId = $gciPart->id;
                 } else {
@@ -219,16 +229,19 @@ class OutgoingDailyPlanningImport implements ToCollection
                     $customerPart = \App\Models\CustomerPart::query()
                         ->where('customer_part_no', $partNo)
                         ->where('status', 'active')
-                        ->with(['components.part' => function($q) {
-                            $q->where('classification', 'FG');
-                        }])
+                        ->with([
+                            'components.part' => function ($q) {
+                                $q->where('classification', 'FG');
+                            }
+                        ])
                         ->first();
-                    
+
                     if ($customerPart) {
-                        $fgComponents = $customerPart->components->filter(fn($c) => 
+                        $fgComponents = $customerPart->components->filter(
+                            fn($c) =>
                             $c->part && $c->part->classification === 'FG'
                         );
-                        
+
                         if ($fgComponents->isEmpty()) {
                             // Auto-create GCI Part as fallback
                             $gciPart = GciPart::create([

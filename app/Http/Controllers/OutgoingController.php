@@ -55,11 +55,17 @@ class OutgoingController extends Controller
             $plan = OutgoingDailyPlan::query()->whereKey($planId)->first();
         }
         if (!$plan) {
+            // Find an overlapping plan
             $plan = OutgoingDailyPlan::query()
-                ->whereDate('date_from', '<=', $dateFrom->toDateString())
-                ->whereDate('date_to', '>=', $dateTo->toDateString())
+                ->whereDate('date_from', '<=', $dateTo->toDateString())
+                ->whereDate('date_to', '>=', $dateFrom->toDateString())
                 ->latest('id')
                 ->first();
+        }
+
+        if (!$plan) {
+            // Fallback: search any plan at all to show SOMETHING
+            $plan = OutgoingDailyPlan::query()->latest('id')->first();
         }
 
         $days = $this->daysBetween($dateFrom, $dateTo);
@@ -1477,6 +1483,12 @@ class OutgoingController extends Controller
             ['row_id' => $actualRowId, 'plan_date' => $date->toDateString()],
             [$field => $value]
         );
+
+        // Touch the plan so last update time is visible
+        $planId = OutgoingDailyPlanRow::where('id', $actualRowId)->value('plan_id');
+        if ($planId) {
+            OutgoingDailyPlan::where('id', $planId)->update(['updated_at' => now()]);
+        }
 
         return response()->json([
             'success' => true,
