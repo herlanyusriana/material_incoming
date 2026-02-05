@@ -143,26 +143,36 @@ class StockOpnameApiController extends Controller
         $request->validate([
             'session_id' => 'required|exists:stock_opname_sessions,id',
             'location_code' => 'required|string',
-            'gci_part_id' => 'required|exists:gci_parts,id',
+            'gci_part_id' => 'nullable|exists:gci_parts,id',
+            'barcode_raw' => 'nullable|string',
             'qty' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
+
+        if (!$request->gci_part_id && !$request->barcode_raw) {
+            return response()->json(['success' => false, 'message' => 'Must provide Part ID or Raw Barcode'], 400);
+        }
 
         $session = StockOpnameSession::find($request->session_id);
         if ($session->status !== 'OPEN') {
             return response()->json(['success' => false, 'message' => 'Session is not OPEN'], 400);
         }
 
-        // Get current system qty (from FgInventory for now)
-        $systemQty = FgInventory::where('gci_part_id', $request->gci_part_id)
-            ->value('qty_on_hand') ?? 0;
+        // --- Blind Count Logic ---
+        $systemQty = 0;
+        if ($request->gci_part_id) {
+            $systemQty = \App\Models\LocationInventory::where('gci_part_id', $request->gci_part_id)
+                ->where('location_code', strtoupper($request->location_code))
+                ->sum('qty_on_hand');
+        }
 
-        // Use updateOrCreate if we want to overwrite existing count for the same item in the same location
+        // Use updateOrCreate to store/update the count for this session
         $item = StockOpnameItem::updateOrCreate(
             [
                 'session_id' => $request->session_id,
                 'location_code' => strtoupper($request->location_code),
                 'gci_part_id' => $request->gci_part_id,
+                'barcode_raw' => $request->barcode_raw, // Unique record if unknown part
             ],
             [
                 'system_qty' => $systemQty,
@@ -175,7 +185,7 @@ class StockOpnameApiController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Result saved',
+            'message' => 'Result saved. ' . ($request->gci_part_id ? 'System qty was ' . number_format($systemQty, 2) : 'Blind record saved.'),
             'data' => $item
         ]);
     }

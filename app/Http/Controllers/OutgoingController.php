@@ -32,7 +32,9 @@ class OutgoingController extends Controller
 {
     public function dailyPlanning()
     {
+        /** @var \Carbon\Carbon $dateFrom */
         $dateFrom = $this->parseDate(request('date_from')) ?? now()->startOfDay();
+        /** @var \Carbon\Carbon $dateTo */
         $dateTo = $this->parseDate(request('date_to')) ?? now()->addDays(4)->startOfDay();
         if ($dateTo->lt($dateFrom)) {
             [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
@@ -61,8 +63,9 @@ class OutgoingController extends Controller
         }
 
         if ($plan) {
-            $dateFrom = $plan->date_from->copy();
-            $dateTo = $plan->date_to->copy();
+            // Ensure properties are Carbon instances (Model casting should handle this, but for IDE safety)
+            $dateFrom = $plan->date_from instanceof Carbon ? $plan->date_from->copy() : Carbon::parse($plan->date_from);
+            $dateTo = $plan->date_to instanceof Carbon ? $plan->date_to->copy() : Carbon::parse($plan->date_to);
         }
 
         $days = $this->daysBetween($dateFrom, $dateTo);
@@ -134,7 +137,11 @@ class OutgoingController extends Controller
 
     public function dailyPlanningExport(OutgoingDailyPlan $plan)
     {
-        $filename = 'daily_planning_' . $plan->date_from->format('Ymd') . '_' . $plan->date_to->format('Ymd') . '.xlsx';
+        /** @var \Carbon\Carbon $dateFrom */
+        $dateFrom = $plan->date_from;
+        /** @var \Carbon\Carbon $dateTo */
+        $dateTo = $plan->date_to;
+        $filename = 'daily_planning_' . $dateFrom->format('Ymd') . '_' . $dateTo->format('Ymd') . '.xlsx';
         return Excel::download(new OutgoingDailyPlanningExport($plan->loadMissing('rows.cells')), $filename);
     }
 
@@ -205,7 +212,7 @@ class OutgoingController extends Controller
 
     public function productMapping()
     {
-        $recentParts = \App\Models\GciPart::query()
+        $recentParts = GciPart::query()
             ->where('classification', 'RM')
             ->orderBy('updated_at', 'desc')
             ->limit(5)
@@ -444,7 +451,7 @@ class OutgoingController extends Controller
 
             $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
             $packingQty = (float) ($gciPart?->standardPacking?->packing_qty ?? 1) ?: 1;
-            
+
             // Calculate delivery packing standard quantity (rounded up to full packs)
             $packsNeeded = ceil($grossQty / $packingQty);
             $deliveryPackQty = $packsNeeded * $packingQty;
@@ -513,7 +520,7 @@ class OutgoingController extends Controller
             ->filter(fn($r) => (float) ($r->total_qty ?? 0) > 0)
             ->sort(function ($a, $b) use ($sortBy, $sortDir) {
                 $result = 0;
-                
+
                 switch ($sortBy) {
                     case 'customer':
                         $result = strcmp(
@@ -537,19 +544,19 @@ class OutgoingController extends Controller
                         }
                         break;
                 }
-                
+
                 // Apply sort direction
                 if ($sortDir === 'desc') {
                     $result = -$result;
                 }
-                
+
                 // Secondary sort by date if primary sort is not date
                 if ($result === 0 && $sortBy !== 'date') {
                     if ($a->date->ne($b->date)) {
                         return $a->date->gt($b->date) ? 1 : -1;
                     }
                 }
-                
+
                 // Tertiary sort by sequence as default
                 if ($result === 0) {
                     $seqCmp = ($a->sequence ?? 9999) <=> ($b->sequence ?? 9999);
@@ -604,14 +611,14 @@ class OutgoingController extends Controller
                 $soNo = null;
                 for ($attempt = 0; $attempt < 5; $attempt++) {
                     $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
-                    if (!\App\Models\SalesOrder::query()->where('so_no', $candidate)->exists()) {
+                    if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
                         $soNo = $candidate;
                         break;
                     }
                 }
                 $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
 
-                $so = \App\Models\SalesOrder::create([
+                $so = SalesOrder::create([
                     'so_no' => $soNo,
                     'customer_id' => (int) $customerId,
                     'so_date' => $planDate,
@@ -628,7 +635,7 @@ class OutgoingController extends Controller
                     if ($qty <= 0) {
                         continue;
                     }
-                    \App\Models\SalesOrderItem::create([
+                    SalesOrderItem::create([
                         'sales_order_id' => $so->id,
                         'gci_part_id' => (int) $partId,
                         'qty_ordered' => $qty,
@@ -649,7 +656,7 @@ class OutgoingController extends Controller
                 return;
             }
 
-            $cells = \App\Models\OutgoingDailyPlanCell::query()
+            $cells = OutgoingDailyPlanCell::query()
                 ->whereIn('row_id', $rowIds->all())
                 ->whereDate('plan_date', $planDate)
                 ->get(['row_id', 'qty', 'plan_date']);
@@ -754,7 +761,8 @@ class OutgoingController extends Controller
         $daysInMonth = CarbonImmutable::parse($period . '-01')->daysInMonth;
         $filename = 'stock_at_customers_template_' . $period . '.xlsx';
 
-        return Excel::download(new class ($period, $daysInMonth) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+        return Excel::download(
+            new class ($period, $daysInMonth) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
             public function __construct(private readonly string $period, private readonly int $daysInMonth)
             {
             }
@@ -776,7 +784,9 @@ class OutgoingController extends Controller
                 }
                 return $base;
             }
-        }, $filename);
+            },
+            $filename
+        );
     }
 
     public function stockAtCustomersExport(Request $request)
@@ -932,7 +942,7 @@ class OutgoingController extends Controller
                     $k = $period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
                     return [$k => $rec];
                 })
-            ->all();
+                ->all();
         }
 
         $rowsByPart = $cells
@@ -978,7 +988,7 @@ class OutgoingController extends Controller
 
                 $jigNr1 = $balance > 0 ? (int) ceil($balance / 10) : 0; // NR1: 10 pcs per jig
                 $jigNr2 = $balance > 0 ? (int) ceil($balance / 9) : 0;  // NR2: 9 pcs per jig
-
+    
                 $uph = $lineType === 'NR2' ? $uphNr2 : $uphNr1;
                 $hours = $uph > 0 ? ($balance / $uph) : 0.0;
                 $jigs = $lineType === 'NR2' ? $jigNr2 : $jigNr1;
@@ -1004,7 +1014,7 @@ class OutgoingController extends Controller
                         break;
                     }
                 }
-    
+
                 return (object) [
                     'gci_part_id' => $partId,
                     'customer_id' => $customerId,
@@ -1165,8 +1175,12 @@ class OutgoingController extends Controller
             $plan = null;
             if (!empty($validated['delivery_plan_id'])) {
                 $plan = DeliveryPlan::query()->whereKey((int) $validated['delivery_plan_id'])->first();
-                if ($plan && $plan->plan_date?->toDateString() !== $date->toDateString()) {
-                    abort(422, 'Trip date mismatch.');
+                if ($plan) {
+                    /** @var \Carbon\Carbon $planDate */
+                    $planDate = $plan->plan_date;
+                    if ($planDate->toDateString() !== $date->toDateString()) {
+                        abort(422, 'Trip date mismatch.');
+                    }
                 }
             }
 
@@ -1278,7 +1292,7 @@ class OutgoingController extends Controller
                 return;
             }
 
-            $plan = \App\Models\DeliveryPlan::findOrFail($validated['delivery_plan_id']);
+            $plan = DeliveryPlan::findOrFail($validated['delivery_plan_id']);
 
             // Find or create a stop for this customer in this plan
             $stop = \App\Models\DeliveryStop::firstOrCreate(
@@ -1311,9 +1325,9 @@ class OutgoingController extends Controller
         ]);
 
         // Auto-generate sequence: Get max sequence for the day + 1
-        $maxSeq = \App\Models\DeliveryPlan::whereDate('plan_date', $validated['plan_date'])->max('sequence') ?? 0;
+        $maxSeq = DeliveryPlan::whereDate('plan_date', $validated['plan_date'])->max('sequence') ?? 0;
 
-        $plan = \App\Models\DeliveryPlan::create([
+        $plan = DeliveryPlan::create([
             'plan_date' => $validated['plan_date'],
             'sequence' => $maxSeq + 1,
             'truck_id' => $validated['truck_id'] ?? null,

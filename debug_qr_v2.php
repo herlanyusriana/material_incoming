@@ -7,14 +7,14 @@ if (class_exists(\Endroid\QrCode\Builder\Builder::class)) {
     $r = new ReflectionMethod(\Endroid\QrCode\Builder\Builder::class, 'build');
     foreach ($r->getParameters() as $i => $p) {
         $t = $p->getType();
-        echo "Arg $i: " . $p->getName() . " (" . ($t ? $t->getName() : 'no-type') . ")\n";
+        echo "Arg $i: " . $p->getName() . " (" . ($t instanceof \ReflectionNamedType ? $t->getName() : (string) $t) . ")\n";
     }
 }
 
 echo "\nListing ErrorCorrectionLevel classes:\n";
 // Try to find the file path for ErrorCorrectionLevelInterface
-if (interface_exists(\Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelInterface::class)) {
-    $r = new ReflectionClass(\Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelInterface::class);
+if (interface_exists('\Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelInterface')) {
+    $r = new ReflectionClass('\Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelInterface');
     $dir = dirname($r->getFileName());
     echo "Dir: $dir\n";
     foreach (glob($dir . '/*.php') as $f) {

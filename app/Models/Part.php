@@ -99,4 +99,12 @@ class Part extends Model
     {
         return $this->hasMany(BinTransfer::class);
     }
+
+    /**
+     * Get the Internal Master Part (GCI Part) associated with this Vendor Part
+     */
+    public function gciPart()
+    {
+        return $this->belongsTo(GciPart::class);
+    }
 }

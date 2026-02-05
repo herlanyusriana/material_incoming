@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Part;
+use App\Models\GciPart;
 use App\Models\Vendor;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -93,13 +94,19 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
 
         // Resolving Part Number aliases
         $partNoResolved = $this->firstNonEmpty($data, [
-            'part_no', 'part_number',
-            'gci_part_no', 'gci_part_number',
-            'item_no', 'item_number',
-            'material_no', 'material_number',
-            'product_no', 'product_number',
+            'part_no',
+            'part_number',
+            'gci_part_no',
+            'gci_part_number',
+            'item_no',
+            'item_number',
+            'material_no',
+            'material_number',
+            'product_no',
+            'product_number',
             'part',
-            'code', 'item_code'
+            'code',
+            'item_code'
         ]);
 
         if ($partNoResolved !== null) {
@@ -195,7 +202,7 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             if (in_array($flag, ['YES', 'Y', '1', 'TRUE'], true)) {
                 $qualityInspection = 1;
             } else {
-                 $qualityInspection = 0;
+                $qualityInspection = 0;
             }
         }
 
@@ -246,15 +253,15 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
 
         if (array_key_exists('status', $row)) {
             $statusRaw = $this->firstNonEmpty($row, ['status']);
-            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : null; 
+            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : null;
             if ($status) {
-                 if (!in_array($status, ['active', 'inactive'], true)) {
+                if (!in_array($status, ['active', 'inactive'], true)) {
                     $status = 'active';
                 }
                 $part->status = $status;
             }
         } else {
-             $part->status = 'active';
+            $part->status = 'active';
         }
 
         if (!$part->register_no || trim((string) $part->register_no) === '') {
@@ -266,6 +273,30 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
         if (!$part->part_name_gci || trim((string) $part->part_name_gci) === '') {
             $part->part_name_gci = $part->part_name_vendor ?: $partNo;
         }
+
+        // --- Logic to Link to GCI Part (The Bridge) ---
+        $gciPart = null;
+
+        // 1. Try matching by Part Code (Exact)
+        $gciPart = GciPart::where('part_no', $partNo)->first();
+
+        // 2. Try matching by GCI Name (Exact)
+        if (!$gciPart && $part->part_name_gci) {
+            $gciPart = GciPart::where('part_name', $part->part_name_gci)->first();
+        }
+
+        // 3. If not found, create new GCI Part (Auto-Master)
+        if (!$gciPart) {
+            $gciPart = GciPart::create([
+                'part_no' => $partNo, // Use Vendor Part No as Internal Code (initially)
+                'part_name' => $part->part_name_gci,
+                'classification' => 'RM', // Default to Raw Material
+                'status' => 'active',
+            ]);
+        }
+
+        $part->gci_part_id = $gciPart->id;
+        // ----------------------------------------------
         $part->save();
     }
 

@@ -217,7 +217,7 @@
 
             @if($plan)
                 <div class="border-t border-slate-200 p-4 bg-slate-50">
-                    @if(method_exists($rows, 'links'))
+                    @if($rows instanceof \Illuminate\Pagination\AbstractPaginator)
                         <div class="mb-3">
                             {{ $rows->onEachSide(1)->links() }}
                         </div>

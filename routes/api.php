@@ -35,4 +35,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/scan-location', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'scanLocation']);
         Route::post('/submit-count', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'submitCount']);
     });
+
+    // Inventory View & Transfers
+    Route::prefix('inventory')->group(function () {
+        Route::get('/search', [\App\Http\Controllers\Api\InventoryApiController::class, 'search']);
+        Route::post('/transfer', [\App\Http\Controllers\Api\InventoryApiController::class, 'transfer']);
+    });
 });

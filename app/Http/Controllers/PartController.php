@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Part;
+use App\Models\GciPart;
 use App\Models\Vendor;
 use App\Exports\PartsExport;
 use App\Imports\PartsImport;
@@ -34,7 +35,7 @@ class PartController extends Controller
         $query = Part::query()
             ->select(['id', 'part_no', 'register_no', 'part_name_gci', 'part_name_vendor'])
             ->when($inStock, function ($qr) {
-                $qr->whereHas('locationInventory', fn ($q) => $q->where('qty_on_hand', '>', 0));
+                $qr->whereHas('locationInventory', fn($q) => $q->where('qty_on_hand', '>', 0));
             })
             ->where(function ($qr) use ($q) {
                 $qr->where('part_no', 'like', '%' . $q . '%')
@@ -55,7 +56,7 @@ class PartController extends Controller
         $search = $request->query('q');
 
         $parts = Part::with('vendor')
-            ->when($vendorId, fn ($query) => $query->where('vendor_id', $vendorId))
+            ->when($vendorId, fn($query) => $query->where('vendor_id', $vendorId))
             ->when($search, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('part_no', 'like', "%{$search}%")
@@ -64,7 +65,7 @@ class PartController extends Controller
                         ->orWhere('part_name_gci', 'like', "%{$search}%");
                 });
             })
-            ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
+            ->when($statusFilter, fn($query) => $query->where('status', $statusFilter))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -123,13 +124,13 @@ class PartController extends Controller
                 \Illuminate\Support\Facades\Storage::delete($filePath);
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
                 return back()->with('error', "Import selesai tapi ada {$failures->count()} baris gagal.{$dupMsg} Details: {$preview}");
             }
 
             $createdVendors = $import->createdVendors();
-            
+
             // Delete temp file on success
             \Illuminate\Support\Facades\Storage::delete($filePath);
 
@@ -145,16 +146,18 @@ class PartController extends Controller
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
                 // Keep file logic if reusable? Complexity. Let's delete for now on validation error.
-                if (isset($filePath)) \Illuminate\Support\Facades\Storage::delete($filePath);
+                if (isset($filePath))
+                    \Illuminate\Support\Facades\Storage::delete($filePath);
 
                 $failures = collect($e->failures());
                 $preview = $failures
                     ->take(5)
-                    ->map(fn ($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
+                    ->map(fn($f) => "Row {$f->row()}: " . implode(' | ', $f->errors()))
                     ->implode(' ; ');
                 return back()->with('error', "Import failed: {$preview}");
             }
-            if (isset($filePath)) \Illuminate\Support\Facades\Storage::delete($filePath);
+            if (isset($filePath))
+                \Illuminate\Support\Facades\Storage::delete($filePath);
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
@@ -192,6 +195,25 @@ class PartController extends Controller
                     ->with('duplicate_warning', "Part number '{$validated['part_no']}' already exists. Do you want to proceed creating a duplicate?");
             }
         }
+
+        // --- Logic to Link to GCI Part (The Bridge) ---
+        $gciPart = GciPart::where('part_no', $validated['part_no'])->first();
+
+        if (!$gciPart && !empty($validated['part_name_gci'])) {
+            $gciPart = GciPart::where('part_name', $validated['part_name_gci'])->first();
+        }
+
+        if (!$gciPart) {
+            $gciPart = GciPart::create([
+                'part_no' => $validated['part_no'],
+                'part_name' => $validated['part_name_gci'],
+                'classification' => 'RM',
+                'status' => 'active',
+            ]);
+        }
+
+        $validated['gci_part_id'] = $gciPart->id;
+        // ----------------------------------------------
 
         Part::create($validated);
 

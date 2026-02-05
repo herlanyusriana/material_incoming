@@ -185,8 +185,8 @@ class ReceiveController extends Controller
 
         $receives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
             ->whereHas('arrivalItem', fn($q) => $q->where('arrival_id', $arrival->id))
-            ->latest()
-            ->paginate(25);
+            ->orderBy('tag', 'asc') // Improvement: Sort by Tag as requested
+            ->paginate(50); // Increased pagination size for better visibility
 
         $remainingQtyTotal = collect($arrival->items)->sum(function ($item) {
             $received = $item->receives->sum('qty');
@@ -324,6 +324,31 @@ class ReceiveController extends Controller
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
             ? strtoupper(trim((string) $validated['truck_no']))
             : null;
+
+        // --- BOM Validation (Strict) ---
+        if ($partId) {
+            $part = \App\Models\Part::with('gciPart')->find($partId);
+            $gciPart = $part?->gciPart;
+
+            if (!$gciPart) {
+                // If not even linked to master, it's definitely not in BOM (unless partId IS master, but we use Vendor Part ID here)
+                // But auto-linking should have handled this?
+                // For now, if no GCI link, we can't validate BOM.
+                // Should we block? User said: "barang yg belom ada di BOM ... di block".
+                // If it has no internal ID, it's an orphan vendor part.
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'tags' => "Part ini ({$part->part_no}) belum terdaftar di GCI Master Part. Harap hubungi Engineering/Admin.",
+                ]);
+            }
+
+            // Check if GCI Part is used in any BOM
+            if (!$gciPart->componentUsages()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'tags' => "Part ini ({$gciPart->part_no} / {$part->part_no}) BELUM TERDAFTAR di Bill of Material (BOM) manapun. Receiving DITOLAK.",
+                ]);
+            }
+        }
+        // -------------------------------
 
         DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
             $locationAdds = [];
@@ -547,6 +572,25 @@ class ReceiveController extends Controller
                 $arrivalItem = $arrival->items->firstWhere('id', $itemId);
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
 
+                // --- BOM Validation (Strict) ---
+                $partId = (int) $arrivalItem->part_id;
+                if ($partId) {
+                    $part = \App\Models\Part::with('gciPart')->find($partId);
+                    $gciPart = $part?->gciPart;
+
+                    if (!$gciPart) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            "items.$itemId.tags" => "Part ini ({$part->part_no}) belum terdaftar di GCI Master Part.",
+                        ]);
+                    }
+                    if (!$gciPart->componentUsages()->exists()) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            "items.$itemId.tags" => "Part ini ({$gciPart->part_no}) BELUM TERDAFTAR di BOM manapun. Receiving DITOLAK.",
+                        ]);
+                    }
+                }
+                // -------------------------------
+
                 foreach ($itemData['tags'] as $tagData) {
                     if (strtoupper($tagData['qty_unit'] ?? '') !== $goodsUnit) {
                         throw new HttpResponseException(back()->withInput()->withErrors([
@@ -675,10 +719,17 @@ class ReceiveController extends Controller
             $warehouseLocation = WarehouseLocation::query()->where('location_code', $locCode)->first();
         }
 
-        // Use Invoice + Tag for uniqueness as requested by user
-        $invoiceNo = (string) ($arrival?->invoice_no ?? '-');
-        $tagVal = (string) ($receive->tag ?? $receive->id);
-        $payloadString = $invoiceNo . '|' . $tagVal;
+        // Update QR Payload to JSON (Unified Standard)
+        // This ensures the App receives Part No and GCI No for accurate inventory tracking.
+        $payload = [
+            'tag' => (string) ($receive->tag ?? $receive->id),
+            'part_no' => (string) ($part?->part_no ?? ''),
+            'gci_part_no' => (string) ($part?->gciPart?->part_no ?? ''), // The Bridge
+            'qty' => (float) $receive->qty,
+            'invoice' => (string) ($arrival?->invoice_no ?? '-'),
+        ];
+
+        $payloadString = json_encode($payload);
 
         $qrSvg = QrSvg::make($payloadString, 400, 0);
 

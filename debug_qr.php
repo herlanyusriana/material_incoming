@@ -11,7 +11,7 @@ try {
     echo "Builder::build parameters:\n";
     foreach ($r->getParameters() as $p) {
         $type = $p->getType();
-        echo $p->getName() . ': ' . ($type ? $type->getName() : 'none') . "\n";
+        echo $p->getName() . ': ' . ($type instanceof \ReflectionNamedType ? $type->getName() : (string) $type) . "\n";
     }
 
     echo "\nErrorCorrectionLevelLow exists: " . (class_exists(\Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow::class) ? 'YES' : 'NO') . "\n";

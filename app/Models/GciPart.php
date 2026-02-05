@@ -40,21 +40,21 @@ class GciPart extends Model
     protected function partNo(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => self::upperOrNull($value),
+            set: fn($value) => self::upperOrNull($value),
         );
     }
 
     protected function partName(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => $value === null ? null : trim((string) $value),
+            set: fn($value) => $value === null ? null : trim((string) $value),
         );
     }
 
     protected function model(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => $value === null ? null : trim((string) $value),
+            set: fn($value) => $value === null ? null : trim((string) $value),
         );
     }
 
@@ -108,5 +108,18 @@ class GciPart extends Model
                 $part->barcode = $part->part_no;
             }
         });
+    }
+
+    /**
+     * Get BOM items where this part is used as a component.
+     */
+    public function componentUsages()
+    {
+        return $this->hasMany(BomItem::class, 'component_part_id');
+    }
+
+    public function vendorParts()
+    {
+        return $this->hasMany(Part::class);
     }
 }
