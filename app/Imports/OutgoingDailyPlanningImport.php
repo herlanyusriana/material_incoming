@@ -211,53 +211,41 @@ class OutgoingDailyPlanningImport implements ToCollection
                 continue;
             }
 
-            // Resolve part_no to a GCI Part ID (FG only)
-            // First try direct GCI Part lookup, then customer part mapping
+            // Resolve part_no to a Customer Part ID or GCI Part ID (FG only)
             $gciPartId = null;
+            $customerPartId = null;
 
             if ($partNo !== '') {
-                // Try direct GCI Part lookup (FG only)
-                $gciPart = GciPart::query()
-                    ->where('part_no', $partNo)
-                    ->where('classification', 'FG')
+                // Try customer part mapping first as requested ("harus customer part")
+                $customerPart = \App\Models\CustomerPart::query()
+                    ->where('customer_part_no', $partNo)
+                    ->where('status', 'active')
                     ->first();
 
-                if ($gciPart) {
-                    $gciPartId = $gciPart->id;
-                } else {
-                    // Try customer part mapping lookup
-                    $customerPart = \App\Models\CustomerPart::query()
-                        ->where('customer_part_no', $partNo)
-                        ->where('status', 'active')
-                        ->with([
-                            'components.part' => function ($q) {
-                                $q->where('classification', 'FG');
-                            }
-                        ])
+                if ($customerPart) {
+                    $customerPartId = $customerPart->id;
+                    // Also find the GCI part if mapped
+                    $fgComponent = \App\Models\CustomerPartComponent::query()
+                        ->where('customer_part_id', $customerPart->id)
+                        ->whereHas('part', function ($q) {
+                            $q->where('classification', 'FG');
+                        })
                         ->first();
 
-                    if ($customerPart) {
-                        $fgComponents = $customerPart->components->filter(
-                            fn($c) =>
-                            $c->part && $c->part->classification === 'FG'
-                        );
+                    if ($fgComponent) {
+                        $gciPartId = $fgComponent->gci_part_id;
+                    }
+                } else {
+                    // Try direct GCI Part lookup (FG only)
+                    $gciPart = GciPart::query()
+                        ->where('part_no', $partNo)
+                        ->where('classification', 'FG')
+                        ->first();
 
-                        if ($fgComponents->isEmpty()) {
-                            // Auto-create GCI Part as fallback
-                            $gciPart = GciPart::create([
-                                'part_no' => $partNo,
-                                'part_name' => $partNo,
-                                'classification' => 'FG',
-                                'status' => 'active',
-                            ]);
-                            $gciPartId = $gciPart->id;
-                            $this->createdParts[] = $partNo . " (Fallback from CustomerPart)";
-                        } else {
-                            // Use the first FG component
-                            $gciPartId = $fgComponents->first()->gci_part_id;
-                        }
+                    if ($gciPart) {
+                        $gciPartId = $gciPart->id;
                     } else {
-                        // Auto-create GCI Part
+                        // Auto-create Customer Part and GCI Part as fallback
                         $gciPart = GciPart::create([
                             'part_no' => $partNo,
                             'part_name' => $partNo,
@@ -265,7 +253,22 @@ class OutgoingDailyPlanningImport implements ToCollection
                             'status' => 'active',
                         ]);
                         $gciPartId = $gciPart->id;
-                        $this->createdParts[] = $partNo;
+
+                        $customerPart = \App\Models\CustomerPart::create([
+                            'customer_part_no' => $partNo,
+                            'customer_part_name' => $partNo,
+                            'status' => 'active',
+                        ]);
+                        $customerPartId = $customerPart->id;
+
+                        // Link them
+                        \App\Models\CustomerPartComponent::create([
+                            'customer_part_id' => $customerPartId,
+                            'gci_part_id' => $gciPartId,
+                            'qty_per_unit' => 1,
+                        ]);
+
+                        $this->createdParts[] = $partNo . " (New Customer & GCI Part)";
                     }
                 }
             }
@@ -284,6 +287,7 @@ class OutgoingDailyPlanningImport implements ToCollection
                 'row_no' => $rowNo,
                 'production_line' => $productionLine,
                 'part_no' => $partNo,
+                'customer_part_id' => $customerPartId,
                 'gci_part_id' => $gciPartId,
                 'cells' => $cells,
             ];

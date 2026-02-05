@@ -70,55 +70,29 @@ class OutgoingController extends Controller
 
         $days = $this->daysBetween($dateFrom, $dateTo);
 
-        // Base rows on FG parts for a "static" list that's always visible
-        $rows = GciPart::query()
-            ->where('classification', 'FG')
-            ->where('status', 'active')
-            ->with([
-                'standardPacking',
-            ])
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('part_no', 'like', '%' . $search . '%')
-                        ->orWhere('part_name', 'like', '%' . $search . '%');
-                });
-            })
-            ->orderBy('part_no')
-            ->paginate($perPage)
-            ->withQueryString();
-
-        // If we have a plan, map the rows to include existing cell data
-        $planRowsMap = collect();
+        // Fetch rows based on the plan
         if ($plan) {
-            $planRowsMap = $plan->rows()
+            $rows = $plan->rows()
                 ->with([
+                    'gciPart.standardPacking',
                     'cells' => function ($query) use ($dateFrom, $dateTo) {
                         $query->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
                     }
                 ])
-                ->get()
-                ->groupBy('gci_part_id');
+                ->when($search !== '', function ($query) use ($search) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('part_no', 'like', '%' . $search . '%')
+                            ->orWhereHas('gciPart', function ($sq) use ($search) {
+                                $sq->where('part_name', 'like', '%' . $search . '%');
+                            });
+                    });
+                })
+                ->paginate($perPage)
+                ->withQueryString();
+        } else {
+            // Empty paginator if no plan
+            $rows = new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
         }
-
-        // Transform results to match the view's expectations
-        $rows->getCollection()->transform(function ($part) use ($planRowsMap, $plan) {
-            $existingRows = $planRowsMap->get($part->id);
-            if ($existingRows && $existingRows->isNotEmpty()) {
-                // Use the first matching row from the plan
-                return $existingRows->first();
-            }
-
-            // Create a virtual row
-            return (object) [
-                'id' => 'vpart_' . $part->id, // Virtual ID prefix
-                'plan_id' => $plan?->id,
-                'production_line' => '-',
-                'part_no' => $part->part_no,
-                'gci_part_id' => $part->id,
-                'gciPart' => $part,
-                'cells' => collect(),
-            ];
-        });
 
         $totalsByDate = [];
         foreach ($days as $d) {
@@ -212,6 +186,7 @@ class OutgoingController extends Controller
                     'production_line' => $row['production_line'],
                     'part_no' => $row['part_no'],
                     'gci_part_id' => $row['gci_part_id'],
+                    'customer_part_id' => $row['customer_part_id'] ?? null,
                 ]);
 
                 foreach ($row['cells'] as $date => $cell) {
