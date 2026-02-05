@@ -149,7 +149,10 @@ class OutgoingDailyPlanningImport implements ToCollection
             }
 
             $candProductionLineIdx = $candidateIdx['production line'] ?? $candidateIdx['line'] ?? $candidateIdx['productionline'] ?? null;
-            $candPartNoIdx = $candidateIdx['part no'] ?? $candidateIdx['part number'] ?? $candidateIdx['part'] ?? $candidateIdx['partno'] ?? null;
+
+            // New Priority: 'customer part no' > 'part no'
+            $candPartNoIdx = $candidateIdx['customer part no'] ?? $candidateIdx['part no'] ?? $candidateIdx['part number'] ?? $candidateIdx['part'] ?? $candidateIdx['partno'] ?? null;
+
             $candNoIdx = $candidateIdx['no'] ?? $candidateIdx['number'] ?? $candidateIdx['#'] ?? $candidateIdx['no '] ?? null;
 
             if ($candProductionLineIdx !== null && $candPartNoIdx !== null) {
