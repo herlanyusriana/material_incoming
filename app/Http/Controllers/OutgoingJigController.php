@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\OutgoingJigSetting;
 use App\Models\OutgoingJigPlan;
-use App\Models\Customer;
+use App\Models\CustomerPart;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -35,31 +35,34 @@ class OutgoingJigController extends Controller
         // Fetch settings with plans in range
         $settings = OutgoingJigSetting::query()
             ->with([
-                'customer',
+                'customerPart',
                 'plans' => function ($q) use ($dateFrom, $dateTo) {
                     $q->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
                 }
             ])
             ->orderBy('line')
-            // ->orderBy('project_name') // Removed as column is dropped. 
             ->get()
-            ->sortBy(fn($s) => $s->line . $s->customer?->name); // Sort by line then customer name
+            ->sortBy(fn($s) => $s->line . $s->customerPart?->customer_part_name);
 
-        $customers = Customer::query()->orderBy('name')->get();
+        $customerParts = CustomerPart::query()
+            ->select('id', 'customer_part_no', 'customer_part_name')
+            ->orderBy('customer_part_name')
+            ->orderBy('customer_part_no')
+            ->get();
 
-        return view('outgoing.input_jig', compact('settings', 'days', 'dateFrom', 'dateTo', 'customers'));
+        return view('outgoing.input_jig', compact('settings', 'days', 'dateFrom', 'dateTo', 'customerParts'));
     }
 
     public function storeRow(Request $request)
     {
         $request->validate([
             'line' => 'required|string',
-            'customer_id' => 'required|exists:customers,id',
+            'customer_part_id' => 'required|exists:customer_parts,id',
         ]);
 
         OutgoingJigSetting::firstOrCreate([
             'line' => strtoupper(trim($request->line)),
-            'customer_id' => $request->customer_id,
+            'customer_part_id' => $request->customer_part_id,
         ]);
 
         return back()->with('success', 'Row added successfully');

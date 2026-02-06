@@ -11,13 +11,13 @@ class OutgoingJigSetting extends Model
 
     protected $fillable = [
         'line',
-        'customer_id',
+        'customer_part_id',
         'uph',
     ];
 
-    public function customer()
+    public function customerPart()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(CustomerPart::class);
     }
 
     public function plans(): HasMany
