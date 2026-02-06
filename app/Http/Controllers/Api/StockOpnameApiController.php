@@ -147,6 +147,7 @@ class StockOpnameApiController extends Controller
             'barcode_raw' => 'nullable|string',
             'qty' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
+            'batch' => 'nullable|string',
         ]);
 
         if (!$request->gci_part_id && !$request->barcode_raw) {
@@ -161,9 +162,14 @@ class StockOpnameApiController extends Controller
         // --- Blind Count Logic ---
         $systemQty = 0;
         if ($request->gci_part_id) {
-            $systemQty = \App\Models\LocationInventory::where('gci_part_id', $request->gci_part_id)
-                ->where('location_code', strtoupper($request->location_code))
-                ->sum('qty_on_hand');
+            $query = \App\Models\LocationInventory::where('gci_part_id', $request->gci_part_id)
+                ->where('location_code', strtoupper($request->location_code));
+
+            if ($request->batch) {
+                $query->where('batch_no', strtoupper($request->batch));
+            }
+
+            $systemQty = $query->sum('qty_on_hand');
         }
 
         // Use updateOrCreate to store/update the count for this session
@@ -172,6 +178,7 @@ class StockOpnameApiController extends Controller
                 'session_id' => $request->session_id,
                 'location_code' => strtoupper($request->location_code),
                 'gci_part_id' => $request->gci_part_id,
+                'batch' => $request->batch ? strtoupper($request->batch) : null,
                 'barcode_raw' => $request->barcode_raw, // Unique record if unknown part
             ],
             [

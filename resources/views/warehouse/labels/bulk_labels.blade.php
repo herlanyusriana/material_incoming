@@ -91,8 +91,8 @@
         }
 
         .qr-box {
-            width: 42mm;
-            height: 42mm;
+            width: 34mm;
+            height: 34mm;
             padding: 0;
             border: none;
             border-radius: 0;
@@ -131,7 +131,7 @@
             <div class="header">
                 <p class="title-small">Part Number</p>
                 <h1 class="part-no">{{ $part->part_no }}</h1>
-                <p class="model-name">{{ $part->model ?: strtoupper($part->classification ?? '-') }}</p>
+                <p class="model-name">{{ $part->part_name }}</p>
             </div>
 
             <!-- QR Code -->

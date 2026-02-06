@@ -13,6 +13,7 @@ class StockOpnameItem extends Model
         'session_id',
         'location_code',
         'gci_part_id',
+        'batch',
         'system_qty',
         'counted_qty',
         'counted_by',

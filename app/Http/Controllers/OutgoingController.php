@@ -316,7 +316,7 @@ class OutgoingController extends Controller
     public function deliveryRequirements(Request $request)
     {
         $dateFrom = $this->parseDate($request->query('date_from')) ?? now()->startOfDay();
-        $dateTo = $this->parseDate($request->query('date_to')) ?? now()->addDays(6)->startOfDay();
+        $dateTo = $this->parseDate($request->query('date_to')) ?? now()->startOfDay();
         if ($dateTo->lt($dateFrom)) {
             [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
         }

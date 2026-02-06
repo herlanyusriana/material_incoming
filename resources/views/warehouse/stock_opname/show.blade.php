@@ -145,6 +145,11 @@
                                 <div class="flex flex-col">
                                     <span class="font-bold text-slate-900">{{ $item->part?->part_no }}</span>
                                     <span class="text-xs text-slate-500 line-clamp-1">{{ $item->part?->part_name }}</span>
+                                    @if($item->batch)
+                                        <span class="text-[10px] text-slate-500 mt-1">
+                                            Batch: <span class="font-mono font-bold text-slate-700">{{ $item->batch }}</span>
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-center font-medium text-slate-600">
