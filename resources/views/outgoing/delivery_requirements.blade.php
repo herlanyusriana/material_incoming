@@ -58,9 +58,7 @@
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
                                     Delivery Date</th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Customer Name</th>
+
                                 <th
                                     class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
                                     Category</th>
@@ -107,9 +105,7 @@
                                         {{ $req->date->format('d/m/Y') }}
                                     </td>
 
-                                    <td class="px-4 py-3 text-xs font-bold text-slate-900 border-x border-slate-100">
-                                        {{ $req->customer?->name ?? 'Unmapped' }}
-                                    </td>
+
 
                                     <td
                                         class="px-3 py-3 text-center text-xs font-bold text-slate-700 border-x border-slate-100">

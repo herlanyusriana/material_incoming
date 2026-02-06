@@ -510,6 +510,7 @@ class OutgoingController extends Controller
                 ]);
             }
 
+            /*
             // Handle unmapped parts that have demand on this day
             $fgPartIdsInDay = $fgParts->pluck('id')->all();
             $unmappedDayCells = $dayCells->filter(function ($c) use ($fgPartIdsInDay) {
@@ -536,6 +537,7 @@ class OutgoingController extends Controller
                     'source_row_ids' => $group->pluck('row_id')->unique()->values()->all(),
                 ]);
             }
+            */
         }
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).

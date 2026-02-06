@@ -62,7 +62,7 @@
             </div>
 
             @if(isset($unmappedCount) && $unmappedCount > 0)
-                <div class="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                <div class="mt-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4" x-data="{ showDetails: false }">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -71,18 +71,83 @@
                                     clip-rule="evenodd" />
                             </svg>
                         </div>
-                        <div class="ml-3">
+                        <div class="ml-3 flex-1">
                             <h3 class="text-sm font-bold text-yellow-800">Unmapped Parts Detected</h3>
                             <div class="mt-2 text-sm text-yellow-700">
                                 <p>There are <span class="font-bold">{{ $unmappedCount }}</span> parts in this plan that are not
                                     mapped to any GCI Part. These parts will not appear in Delivery Requirements correctly until
                                     mapped.</p>
-                                <p class="mt-2">
+                                <div class="mt-3 flex gap-3">
+                                    <button @click="showDetails = true"
+                                        class="font-bold text-yellow-800 underline hover:text-yellow-900">
+                                        View Detail Unmapped Parts
+                                    </button>
+                                    <span class="text-yellow-400">|</span>
                                     <a href="{{ route('outgoing.product-mapping') }}"
                                         class="font-bold text-yellow-800 underline hover:text-yellow-900">
                                         Go to Product Mapping to resolve this &rarr;
                                     </a>
-                                </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal for Unmapped Details -->
+                    <div x-show="showDetails" class="fixed inset-0 z-50 flex items-center justify-center p-4" x-cloak>
+                        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="showDetails = false"></div>
+                        <div
+                            class="relative w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[80vh]">
+                            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-yellow-50">
+                                <h3 class="text-lg font-bold text-yellow-900">Unmapped Parts List</h3>
+                                <button @click="showDetails = false" class="text-slate-400 hover:text-slate-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="p-6 overflow-y-auto">
+                                <p class="text-sm text-slate-500 mb-4">The following parts were found in the uploaded plan but
+                                    do not match any GCI FG Part (or mapped customer part).</p>
+                                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                    <table class="min-w-full divide-y divide-slate-200">
+                                        <thead class="bg-slate-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Part
+                                                    No (from Excel)</th>
+                                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Line
+                                                </th>
+                                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">
+                                                    Total Qty Plan</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-slate-100">
+                                            @php
+                                                // Calculate unmapped details on the fly mostly to avoid controller bloat,
+                                                // or we can pass it from controller. Since we only have access to $plan here:
+                                                $unmappedRows = $plan ? $plan->rows()->whereNull('gci_part_id')->with('cells')->get() : collect();
+                                            @endphp
+                                            @foreach($unmappedRows as $uRow)
+                                                @php
+                                                    $sumQty = $uRow->cells->sum('qty');
+                                                    if ($sumQty <= 0)
+                                                        continue;
+                                                @endphp
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="px-4 py-3 font-mono text-sm font-bold text-slate-700">
+                                                        {{ $uRow->part_no }}</td>
+                                                    <td class="px-4 py-3 text-sm text-slate-600">{{ $uRow->production_line }}</td>
+                                                    <td class="px-4 py-3 text-sm text-right font-medium text-slate-900">
+                                                        {{ number_format($sumQty) }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                                <button @click="showDetails = false"
+                                    class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">Close</button>
                             </div>
                         </div>
                     </div>
