@@ -7,9 +7,8 @@
                 <div>
                     <h1 class="text-2xl md:text-3xl font-black text-slate-900">Delivery Requirement</h1>
                     <div class="mt-2 flex items-center gap-2 text-sm text-slate-600">
-                        <span class="font-bold uppercase tracking-wider text-slate-400">Periode:</span>
-                        <span class="font-bold text-slate-900">{{ $dateFrom->format('d M Y') }} -
-                            {{ $dateTo->format('d M Y') }}</span>
+                        <span class="font-bold uppercase tracking-wider text-slate-400">Delivery Date:</span>
+                        <span class="font-bold text-slate-900">{{ $dateFrom->format('d M Y') }}</span>
                     </div>
                 </div>
             </div>
@@ -18,14 +17,11 @@
                 <form action="{{ route('outgoing.delivery-requirements') }}" method="GET"
                     class="flex flex-wrap items-end gap-3">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Date</label>
                         <input type="date" name="date_from" value="{{ $dateFrom->toDateString() }}"
+                            onchange="document.getElementById('date_to').value = this.value"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
-                        <input type="date" name="date_to" value="{{ $dateTo->toDateString() }}"
-                            class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                        <input type="hidden" name="date_to" id="date_to" value="{{ $dateFrom->toDateString() }}">
                     </div>
                     <button type="submit"
                         class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">
