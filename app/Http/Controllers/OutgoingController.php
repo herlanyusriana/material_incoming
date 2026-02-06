@@ -461,158 +461,41 @@ class OutgoingController extends Controller
             $dayCells = $cells->filter(fn($c) => $c->plan_date->toDateString() === $dateStr);
             $dayCellsByPart = $dayCells->groupBy(fn($c) => (int) ($c->row?->gci_part_id ?? 0));
 
-            // Pre-load mappings to avoid N+1 inside the loop
-            // We need to know which CustomerParts use this GciPart.
-            // Structure: GciPart -> hasMany(CustomerPartComponent) -> belongsTo(CustomerPart)
-            // But efficiently:
-            $gciPartIds = $fgParts->pluck('id')->unique();
-            $mappingsGrouped = \App\Models\CustomerPartComponent::query()
-                ->whereIn('gci_part_id', $gciPartIds)
-                ->with('customerPart')
-                ->get()
-                ->groupBy('gci_part_id');
-
             foreach ($fgParts as $gciPart) {
                 $partId = (int) $gciPart->id;
                 $partDayCells = $dayCellsByPart->get($partId, collect());
 
-                // Group cells by customer_part_id to separate demand per User Model
-                $cellsByCustomerPart = $partDayCells->groupBy(fn($c) => (int) ($c->row?->customer_part_id ?? 0));
+                // Consolidated logic: One row per FG Part No, summing all demand.
+                $grossQty = $partDayCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
 
-                // Get all known mappings for this GCI Part
-                $potentialMappings = $mappingsGrouped->get($partId, collect());
-
-                // Identify all Customer Parts relevant to this GCI Part (both from static mappings and actual demand)
-                $relevantCustomerPartIds = $potentialMappings->pluck('customer_part_id')->merge($cellsByCustomerPart->keys())->unique()->filter()->values();
-
-                // If no specific customer part logic applies, treat as generic single row
-                if ($relevantCustomerPartIds->isEmpty()) {
-                    $grossQty = $partDayCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-                    // If hidden 0 qty logic is desired, uncomment check below. Currently showing all FGs.
-                    // if ($grossQty <= 0) continue; 
-
-                    $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
-                    $sequences = $partDayCells->pluck('seq')->filter()->unique()->sort()->values()->all();
-                    $primarySequence = !empty($sequences) ? min($sequences) : 9999;
-
-                    $lines->push((object) [
-                        'date' => $day->copy(),
-                        'customer' => $gciPart->customer,
-                        'gci_part' => $gciPart,
-                        'customer_part_no' => $gciPart->part_no,
-                        'customer_part_name' => $gciPart->part_name, // Default to GCI name if no mapping
-                        'unmapped' => false,
-                        'gross_qty' => $grossQty,
-                        'sequence' => $primarySequence,
-                        'sequences_consolidated' => $sequences,
-                        'packing_std' => $packingQty,
-                        'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
-                        'source_row_ids' => $partDayCells->pluck('row_id')->unique()->values()->all(),
-                    ]);
-                    continue;
-                }
-
-                // Iterate through each specific Customer Part (Model)
-                foreach ($relevantCustomerPartIds as $cpId) {
-                    $cpId = (int) $cpId;
-                    $specificCells = $cellsByCustomerPart->get($cpId, collect());
-
-                    // Get Customer Part Details
-                    // Try to find in mappings first
-                    $mapComp = $potentialMappings->firstWhere('customer_part_id', $cpId);
-                    $customerPart = $mapComp?->customerPart;
-
-                    // If not in mappings (maybe demand came from a CP that isn't cleanly mapped? unlikely but possible), load it
-                    if (!$customerPart && $cpId > 0) {
-                        $customerPart = \App\Models\CustomerPart::find($cpId);
-                    }
-
-                    $grossQty = $specificCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-
-                    // Skip if no demand AND user only wants to see demand? 
-                    // OR skip if no demand AND it wasn't in the static list?
-                    // Current requirement seems to be "Show FG list", but now split by Model.
-                    // If a Model exists for this FG but has 0 qty, should it show?
-                    // Following previous pattern: show it (since we iterate relevantCustomerPartIds which includes static mappings).
-
-                    $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
-                    $sequences = $specificCells->pluck('seq')->filter()->unique()->sort()->values()->all();
-                    $primarySequence = !empty($sequences) ? min($sequences) : 9999;
-
-                    $lines->push((object) [
-                        'date' => $day->copy(),
-                        'customer' => $customerPart?->customer ?? $gciPart->customer,
-                        'gci_part' => $gciPart,
-                        'customer_part_no' => $customerPart?->customer_part_no ?? $gciPart->part_no,
-                        'customer_part_name' => $customerPart?->customer_part_name ?? $gciPart->part_name, // Specific Model Name
-                        'unmapped' => false,
-                        'gross_qty' => $grossQty,
-                        'sequence' => $primarySequence,
-                        'sequences_consolidated' => $sequences,
-                        'packing_std' => $packingQty,
-                        'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
-                        'source_row_ids' => $specificCells->pluck('row_id')->unique()->values()->all(),
-                    ]);
-                }
-
-                // Handle Generic/Unspecified Demand for this GCI Part (cpId == 0)
-                $genericCells = $cellsByCustomerPart->get(0, collect());
-                if ($genericCells->isNotEmpty()) {
-                    $grossQty = $genericCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-                    $sequences = $genericCells->pluck('seq')->filter()->unique()->sort()->values()->all();
-                    $primarySequence = !empty($sequences) ? min($sequences) : 9999;
-                    $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
-
-                    $lines->push((object) [
-                        'date' => $day->copy(),
-                        'customer' => $gciPart->customer,
-                        'gci_part' => $gciPart,
-                        'customer_part_no' => $gciPart->part_no . ' (Unspecified)',
-                        'customer_part_name' => $gciPart->part_name,
-                        'unmapped' => false,
-                        'gross_qty' => $grossQty,
-                        'sequence' => $primarySequence,
-                        'sequences_consolidated' => $sequences,
-                        'packing_std' => $packingQty,
-                        'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
-                        'source_row_ids' => $genericCells->pluck('row_id')->unique()->values()->all(),
-                    ]);
-                }
-            }
-
-            /*
-            // Handle unmapped parts that have demand on this day
-            $fgPartIdsInDay = $fgParts->pluck('id')->all();
-            $unmappedDayCells = $dayCells->filter(function ($c) use ($fgPartIdsInDay) {
-                return !in_array($c->row?->gci_part_id, $fgPartIdsInDay);
-            });
-            $unmappedDayGroups = $unmappedDayCells->groupBy(fn($c) => "{$c->row?->part_no}");
-
-            foreach ($unmappedDayGroups as $pNo => $group) {
-                $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-                if ($grossQty <= 0)
-                    continue;
+                $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+                $sequences = $partDayCells
+                    ->map(fn($c) => $c->seq !== null && $c->seq !== '' ? (int) $c->seq : null)
+                    ->filter(fn($s) => $s !== null)
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all();
+                $primarySequence = !empty($sequences) ? min($sequences) : 9999;
 
                 $lines->push((object) [
                     'date' => $day->copy(),
-                    'customer' => null,
-                    'gci_part' => null,
-                    'customer_part_no' => $pNo,
-                    'unmapped' => true,
+                    'customer' => $gciPart->customer,
+                    'gci_part' => $gciPart,
+                    'customer_part_no' => $gciPart->part_no,
+                    'customer_part_name' => $gciPart->part_name,
+                    'unmapped' => false,
                     'gross_qty' => $grossQty,
-                    'sequence' => 9999,
-                    'sequences_consolidated' => [],
-                    'packing_std' => 1,
-                    'uom' => 'PCS',
-                    'source_row_ids' => $group->pluck('row_id')->unique()->values()->all(),
+                    'sequence' => $primarySequence,
+                    'sequences_consolidated' => $sequences,
+                    'packing_std' => $packingQty,
+                    'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
+                    'source_row_ids' => $partDayCells->pluck('row_id')->unique()->values()->all(),
                 ]);
             }
-            */
         }
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
-        // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
-        // Allocate StockAtCustomer per date+customer+part
         $requirements = $lines
             ->map(function ($r) use ($getStockAtCustomer) {
                 // Calculate quantities for each line (GCI Part / Unmapped) individually
@@ -807,919 +690,140 @@ class OutgoingController extends Controller
                 ->whereDate('plan_date', $planDate)
                 ->selectRaw('row_id, SUM(qty) as fulfilled_qty')
                 ->groupBy('row_id')
-                ->pluck('fulfilled_qty', 'row_id')
-                ->map(fn($v) => (float) $v)
-                ->all();
+                ->get()
+                ->mapWithKeys(fn($f) => [$f->row_id => $f->fulfilled_qty]);
 
+            $newFulfillments = [];
             foreach ($cells as $cell) {
-                $planned = (float) $cell->qty;
-                if ($planned <= 0) {
-                    continue;
+                $fulfilled = $alreadyFulfilled->get($cell->row_id, 0);
+                $remaining = max(0, $cell->qty - $fulfilled);
+                if ($remaining > 0) {
+                    $newFulfillments[] = [
+                        'row_id' => $cell->row_id,
+                        'plan_date' => $planDate,
+                        'qty' => $remaining,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
+            }
 
-                $rowId = (int) $cell->row_id;
-                $fulfilled = (float) ($alreadyFulfilled[$rowId] ?? 0);
-                $remaining = max(0, $planned - $fulfilled);
-                if ($remaining <= 0) {
-                    continue;
-                }
-
-                DeliveryRequirementFulfillment::create([
-                    'plan_date' => $planDate,
-                    'row_id' => $rowId,
-                    'qty' => $remaining,
-                    'delivery_plan_id' => null,
-                    'created_by' => auth()->id(),
-                ]);
+            if (!empty($newFulfillments)) {
+                DeliveryRequirementFulfillment::insert($newFulfillments);
             }
         });
 
-        return redirect()->route('outgoing.delivery-plan', ['date' => $planDate])
-            ->with('success', 'SO generated successfully. Assign truck/driver in Delivery Plan.');
-    }
-
-    public function generateSo(Request $request)
-    {
-        $validated = $request->validate([
-            'date' => 'required|date',
-            'customer_id' => 'required|exists:customers,id',
-            'items' => 'required|array',
-            'items.*.gci_part_id' => 'required|exists:gci_parts,id',
-            'items.*.qty' => 'required|numeric|min:0.0001',
-        ]);
-
-        DB::transaction(function () use ($validated) {
-            $soNo = null;
-            for ($attempt = 0; $attempt < 5; $attempt++) {
-                $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
-                if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
-                    $soNo = $candidate;
-                    break;
-                }
-            }
-            $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
-
-            $so = SalesOrder::create([
-                'so_no' => $soNo,
-                'customer_id' => $validated['customer_id'],
-                'so_date' => $validated['date'],
-                'status' => 'draft',
-                'created_by' => auth()->id(),
-            ]);
-
-            foreach ($validated['items'] as $item) {
-                SalesOrderItem::create([
-                    'sales_order_id' => $so->id,
-                    'gci_part_id' => $item['gci_part_id'],
-                    'qty_ordered' => $item['qty'],
-                ]);
-            }
-        });
-
-        return redirect()->route('outgoing.delivery-plan', ['date' => $validated['date']])->with('success', 'SO generated successfully.');
-    }
-
-    public function stockAtCustomers()
-    {
-        $period = request('period') ?: now()->format('Y-m');
-        $daysInMonth = CarbonImmutable::parse($period . '-01')->daysInMonth;
-        $days = range(1, $daysInMonth);
-
-        $records = StockAtCustomer::query()
-            ->with(['customer', 'part'])
-            ->where('period', $period)
-            ->orderBy('customer_id')
-            ->orderBy('part_no')
-            ->paginate(50)
-            ->withQueryString();
-
-        return view('outgoing.stock_at_customers', compact('period', 'records', 'days'));
-    }
-
-    public function stockAtCustomersTemplate(Request $request)
-    {
-        $period = $request->query('period') ?: now()->format('Y-m');
-        $daysInMonth = CarbonImmutable::parse($period . '-01')->daysInMonth;
-        $filename = 'stock_at_customers_template_' . $period . '.xlsx';
-
-        return Excel::download(
-            new class ($period, $daysInMonth) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
-            public function __construct(private readonly string $period, private readonly int $daysInMonth)
-            {
-            }
-
-            public function array(): array
-            {
-                $row = ['CUSTOMER_NAME', 'PART-001', 'PART NAME', 'MODEL', 'active'];
-                for ($d = 1; $d <= $this->daysInMonth; $d++) {
-                    $row[] = 0;
-                }
-                return [$row];
-            }
-
-            public function headings(): array
-            {
-                $base = ['customer', 'part_no', 'part_name', 'model', 'status'];
-                for ($d = 1; $d <= $this->daysInMonth; $d++) {
-                    $base[] = (string) $d;
-                }
-                return $base;
-            }
-            },
-            $filename
-        );
-    }
-
-    public function stockAtCustomersExport(Request $request)
-    {
-        $period = $request->query('period') ?: now()->format('Y-m');
-        $filename = 'stock_at_customers_' . $period . '_' . now()->format('Ymd_His') . '.xlsx';
-
-        return Excel::download(new StockAtCustomersExport($period), $filename);
-    }
-
-    public function stockAtCustomersImport(Request $request)
-    {
-        $validated = $request->validate([
-            'period' => ['required', 'string', 'regex:/^\\d{4}-\\d{2}$/'],
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
-        ]);
-
-        $import = new StockAtCustomersImport($validated['period']);
-        Excel::import($import, $validated['file']);
-
-        if (!empty($import->failures)) {
-            $preview = array_slice($import->failures, 0, 10);
-            $msg = implode(' ; ', $preview);
-            if (count($import->failures) > 10) {
-                $msg .= ' ; ... and ' . (count($import->failures) - 10) . ' more errors';
-            }
-            return back()->with('error', "Import selesai tapi ada error: {$msg}");
-        }
-
-        $msg = "Stock at Customers imported. {$import->rowCount} rows processed.";
-        if ($import->skippedRows > 0) {
-            $msg .= " {$import->skippedRows} rows skipped.";
-        }
-
-        return redirect()->route('outgoing.stock-at-customers', ['period' => $validated['period']])->with('success', $msg);
+        return back()->with('success', 'Sales Order(s) generated successfully.');
     }
 
     public function deliveryPlan()
     {
-        $date = $this->parseDate(request('date')) ?? now()->startOfDay();
-        $uphNr1 = (float) request('uph_nr1', 0);
-        $uphNr2 = (float) request('uph_nr2', 0);
-        $uphNr1 = $uphNr1 > 0 ? $uphNr1 : 60.0;
-        $uphNr2 = $uphNr2 > 0 ? $uphNr2 : 60.0;
-
-        // Best-effort: backfill missing gci_part_id for rows that have demand on this date,
-        // using customer part mapping / FG mapping. This makes Delivery Plan show more rows automatically.
-        $autoMappedRowIds = [];
-        $rowIdsNeedingFix = OutgoingDailyPlanCell::query()
-            ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
-            ->whereDate('outgoing_daily_plan_cells.plan_date', $date->toDateString())
-            ->where('outgoing_daily_plan_cells.qty', '>', 0)
-            ->whereNull('r.gci_part_id')
-            ->distinct()
-            ->pluck('r.id');
-
-        if ($rowIdsNeedingFix->isNotEmpty()) {
-            OutgoingDailyPlanRow::query()
-                ->whereIn('id', $rowIdsNeedingFix)
-                ->select(['id', 'part_no'])
-                ->chunk(200, function ($rows) use (&$autoMappedRowIds) {
-                    foreach ($rows as $row) {
-                        $partNo = $this->normalizePartNo((string) ($row->part_no ?? ''));
-                        if ($partNo === '') {
-                            continue;
-                        }
-                        $resolvedId = $this->resolveFgPartIdFromPartNo($partNo);
-                        if ($resolvedId) {
-                            OutgoingDailyPlanRow::query()->whereKey($row->id)->update(['gci_part_id' => $resolvedId]);
-                            $autoMappedRowIds[] = (int) $row->id;
-                        }
-                    }
-                });
-        }
-
-        $plans = DeliveryPlan::query()
-            ->with(['truck', 'driver', 'salesOrders.customer', 'salesOrders.items.part'])
-            ->whereDate('plan_date', $date)
-            ->orderBy('sequence')
-            ->get();
-
-        $unassignedSalesOrders = SalesOrder::query()
-            ->with(['customer', 'items.part'])
-            ->whereDate('so_date', $date)
-            ->whereNull('delivery_plan_id')
-            ->get();
-
-        $trucks = Truck::query()
-            ->select(['id', 'plate_no', 'type', 'capacity', 'status'])
-            ->orderBy('plate_no')
-            ->get();
-
-        $drivers = Driver::query()
-            ->select(['id', 'name', 'phone', 'license_type', 'status'])
-            ->orderBy('name')
-            ->get();
-
-        $cells = OutgoingDailyPlanCell::query()
-            ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
-            ->whereDate('plan_date', $date->toDateString())
-            ->where('qty', '>', 0)
-            ->get();
-
-        $fulfilledMap = DeliveryRequirementFulfillment::query()
-            ->selectRaw('plan_date, row_id, SUM(qty) as fulfilled_qty')
-            ->whereDate('plan_date', $date->toDateString())
-            ->groupBy('plan_date', 'row_id')
-            ->get()
-            ->mapWithKeys(function ($r) {
-                $k = (string) $r->plan_date . '|' . (int) $r->row_id;
-                return [$k => (float) $r->fulfilled_qty];
-            })
-            ->all();
-
-        $cells = $cells
-            ->map(function ($cell) use ($fulfilledMap) {
-                $key = $cell->plan_date->format('Y-m-d') . '|' . (int) $cell->row_id;
-                $fulfilled = (float) ($fulfilledMap[$key] ?? 0);
-                $remaining = max(0, (float) $cell->qty - $fulfilled);
-                $cell->remaining_qty = $remaining;
-                return $cell;
-            })
-            ->filter(fn($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
-            ->values();
-
-        $autoMappedRowIdSet = array_fill_keys(array_map('intval', $autoMappedRowIds), true);
-
-        $period = $date->format('Y-m');
-        $day = (int) $date->format('j');
-
-        $customerIds = $cells
-            ->map(fn($c) => $c->row?->gciPart?->customer_id)
-            ->filter(fn($v) => $v !== null)
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->values();
-
-        $partIds = $cells
-            ->map(fn($c) => $c->row?->gci_part_id)
-            ->filter(fn($v) => $v !== null)
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->values();
-
-        $stockMap = [];
-        if ($customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
-            $stockMap = StockAtCustomer::query()
-                ->where('period', $period)
-                ->whereIn('customer_id', $customerIds->all())
-                ->whereIn('gci_part_id', $partIds->all())
-                ->get()
-                ->mapWithKeys(function ($rec) use ($period) {
-                    $k = $period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
-                    return [$k => $rec];
-                })
-                ->all();
-        }
-
-        $rowsByPart = $cells
-            ->filter(fn($c) => $c->row?->gciPart)
-            ->groupBy(fn($c) => (int) $c->row->gci_part_id)
-            ->map(function ($group) use ($stockMap, $period, $day, $uphNr1, $uphNr2) {
-                $first = $group->first();
-                $gciPart = $first->row->gciPart;
-
-                $deliveryClass = (string) ($gciPart?->standardPacking?->delivery_class ?? 'unknown');
-                $customerId = (int) ($gciPart?->customer_id ?? 0);
-                $partId = (int) ($gciPart?->id ?? 0);
-                $stdPackQty = $gciPart?->standardPacking?->packing_qty;
-                $stdPackUom = $gciPart?->standardPacking?->uom;
-                $trolleyType = $gciPart?->standardPacking?->trolley_type;
-                $partModel = $gciPart?->model;
-
-                $planTotal = (float) $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-
-                $stock = 0.0;
-                if ($customerId > 0 && $partId > 0 && $day >= 1 && $day <= 31) {
-                    $k = $period . '|' . $customerId . '|' . $partId;
-                    $rec = $stockMap[$k] ?? null;
-                    if ($rec) {
-                        $stock = (float) ($rec->{'day_' . $day} ?? 0);
-                    }
-                }
-
-                $balance = max(0, $planTotal - $stock);
-
-                $productionLines = $group
-                    ->map(fn($c) => (string) ($c->row?->production_line ?? ''))
-                    ->map(fn($v) => trim($v))
-                    ->filter(fn($v) => $v !== '')
-                    ->unique()
-                    ->values()
-                    ->implode(', ');
-
-                $linesUpper = strtoupper($productionLines);
-                $hasNr1 = str_contains($linesUpper, 'NR1');
-                $hasNr2 = str_contains($linesUpper, 'NR2');
-                $lineType = $hasNr1 && !$hasNr2 ? 'NR1' : ($hasNr2 && !$hasNr1 ? 'NR2' : ($hasNr1 && $hasNr2 ? 'MIX' : 'UNKNOWN'));
-
-                $jigNr1 = $balance > 0 ? (int) ceil($balance / 10) : 0; // NR1: 10 pcs per jig
-                $jigNr2 = $balance > 0 ? (int) ceil($balance / 9) : 0;  // NR2: 9 pcs per jig
-    
-                $uph = $lineType === 'NR2' ? $uphNr2 : $uphNr1;
-                $hours = $uph > 0 ? ($balance / $uph) : 0.0;
-                $jigs = $lineType === 'NR2' ? $jigNr2 : $jigNr1;
-                if ($lineType === 'MIX' || $lineType === 'UNKNOWN') {
-                    // Keep both visible in UI; default to NR1 for computed totals.
-                    $uph = $uphNr1;
-                    $hours = $uph > 0 ? ($balance / $uph) : 0.0;
-                    $jigs = $jigNr1;
-                }
-
-                $sourceRowIds = $group
-                    ->pluck('row_id')
-                    ->map(fn($v) => (int) $v)
-                    ->filter(fn($v) => $v > 0)
-                    ->unique()
-                    ->values()
-                    ->all();
-
-                $autoMapped = false;
-                foreach ($sourceRowIds as $rid) {
-                    if (isset($autoMappedRowIdSet[$rid])) {
-                        $autoMapped = true;
-                        break;
-                    }
-                }
-
-                return (object) [
-                    'gci_part_id' => $partId,
-                    'customer_id' => $customerId,
-                    'delivery_class' => $deliveryClass,
-                    'part_name' => $gciPart?->part_name ?? '-',
-                    'part_no' => $gciPart?->part_no ?? '-',
-                    'production_lines' => $productionLines !== '' ? $productionLines : '-',
-                    'line_type' => $lineType,
-                    'std_pack_qty' => $stdPackQty,
-                    'std_pack_uom' => $stdPackUom,
-                    'trolley_type' => $trolleyType,
-                    'part_model' => $partModel,
-                    'plan_total' => $planTotal,
-                    'stock_at_customer' => $stock,
-                    'balance' => $balance,
-                    'due_date' => $first->plan_date,
-                    'jig_nr1' => $jigNr1,
-                    'jig_nr2' => $jigNr2,
-                    'uph_nr1' => $uphNr1,
-                    'uph_nr2' => $uphNr2,
-                    'uph' => $uph,
-                    'hours' => $hours,
-                    'jigs' => $jigs,
-                    'auto_mapped' => $autoMapped,
-                    'source_row_ids' => $sourceRowIds,
-                ];
-            })
-            ->values()
-            ->sortBy(fn($r) => $r->delivery_class)
-            ->values();
-
-        $unmappedRows = $cells
-            ->filter(fn($c) => !$c->row?->gciPart)
-            ->groupBy(fn($c) => (int) $c->row_id)
-            ->map(function ($group) {
-                $first = $group->first();
-                $row = $first?->row;
-
-                return (object) [
-                    'row_id' => (int) ($row?->id ?? 0),
-                    'production_line' => (string) ($row?->production_line ?? '-'),
-                    'part_no' => (string) ($row?->part_no ?? '-'),
-                    'total_qty' => (float) $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0)),
-                ];
-            })
-            ->values();
-
-        $assignmentMap = [];
-        $assignedPartIds = $rowsByPart
-            ->map(fn($r) => (int) ($r->gci_part_id ?? 0))
-            ->filter(fn($id) => $id > 0)
-            ->unique()
-            ->values()
-            ->all();
-
-        if (!empty($assignedPartIds)) {
-            $assignmentMap = DeliveryPlanRequirementAssignment::query()
-                ->with(['plan.truck', 'plan.driver'])
-                ->whereDate('plan_date', $date->toDateString())
-                ->whereIn('gci_part_id', $assignedPartIds)
-                ->get()
-                ->keyBy(fn($a) => (int) $a->gci_part_id)
-                ->all();
-        }
-
-        foreach ($rowsByPart as $r) {
-            $r->assignment = $assignmentMap[(int) ($r->gci_part_id ?? 0)] ?? null;
-
-            $assignment = $r->assignment;
-            $hasOverrides = false;
-            if ($assignment) {
-                $hasOverrides = ($assignment->line_type_override !== null)
-                    || ($assignment->jig_capacity_nr1_override !== null)
-                    || ($assignment->jig_capacity_nr2_override !== null)
-                    || ($assignment->uph_nr1_override !== null)
-                    || ($assignment->uph_nr2_override !== null)
-                    || ($assignment->notes !== null && trim((string) $assignment->notes) !== '');
-            }
-            $r->has_overrides = $hasOverrides;
-
-            $lineType = (string) ($assignment?->line_type_override ?? $r->line_type ?? 'UNKNOWN');
-            $capNr1 = (int) ($assignment?->jig_capacity_nr1_override ?? 10);
-            $capNr2 = (int) ($assignment?->jig_capacity_nr2_override ?? 9);
-            $rowUphNr1 = (float) ($assignment?->uph_nr1_override ?? $r->uph_nr1 ?? $uphNr1);
-            $rowUphNr2 = (float) ($assignment?->uph_nr2_override ?? $r->uph_nr2 ?? $uphNr2);
-
-            $balance = (float) ($r->balance ?? 0);
-            $jigNr1 = ($balance > 0 && $capNr1 > 0) ? (int) ceil($balance / $capNr1) : 0;
-            $jigNr2 = ($balance > 0 && $capNr2 > 0) ? (int) ceil($balance / $capNr2) : 0;
-
-            $uph = $lineType === 'NR2' ? $rowUphNr2 : $rowUphNr1;
-            $jigs = $lineType === 'NR2' ? $jigNr2 : $jigNr1;
-            if ($lineType === 'MIX' || $lineType === 'UNKNOWN') {
-                $uph = $rowUphNr1;
-                $jigs = $jigNr1;
-            }
-            $hours = $uph > 0 ? ($balance / $uph) : 0.0;
-
-            $r->line_type = $lineType;
-            $r->jig_capacity_nr1 = $capNr1;
-            $r->jig_capacity_nr2 = $capNr2;
-            $r->uph_nr1 = $rowUphNr1;
-            $r->uph_nr2 = $rowUphNr2;
-            $r->jig_nr1 = $jigNr1;
-            $r->jig_nr2 = $jigNr2;
-            $r->uph = $uph;
-            $r->hours = $hours;
-            $r->jigs = $jigs;
-        }
-
-        $totalsByLine = $rowsByPart
-            ->groupBy(fn($r) => (string) ($r->line_type ?? 'UNKNOWN'))
-            ->map(function ($group) {
-                return (object) [
-                    'line_type' => (string) ($group->first()?->line_type ?? 'UNKNOWN'),
-                    'balance' => (float) $group->sum(fn($r) => (float) ($r->balance ?? 0)),
-                    'uph' => (float) ($group->first()?->uph ?? 0),
-                    'hours' => (float) $group->sum(fn($r) => (float) ($r->hours ?? 0)),
-                    'jig_nr1' => (int) $group->sum(fn($r) => (int) ($r->jig_nr1 ?? 0)),
-                    'jig_nr2' => (int) $group->sum(fn($r) => (int) ($r->jig_nr2 ?? 0)),
-                    'jigs' => (int) $group->sum(fn($r) => (int) ($r->jigs ?? 0)),
-                ];
-            })
-            ->values();
-
-        $groups = $rowsByPart->groupBy('delivery_class')->all();
-
-        return view('outgoing.delivery_plan', [
-            'selectedDate' => $date->toDateString(),
-            'groups' => $groups,
-            'plans' => $plans,
-            'unassignedSalesOrders' => $unassignedSalesOrders,
-            'trucks' => $trucks,
-            'drivers' => $drivers,
-            'autoMappedRowCount' => count($autoMappedRowIds),
-            'unmappedRows' => $unmappedRows,
-            'uphNr1' => $uphNr1,
-            'uphNr2' => $uphNr2,
-            'totalsByLine' => $totalsByLine,
-        ]);
+        $deliveryPlans = DeliveryPlan::query()->latest()->get();
+        return view('outgoing.delivery_plan', compact('deliveryPlans'));
     }
 
-    public function assignDeliveryPlanItems(Request $request)
+    public function deliveryPlanCreate()
+    {
+        $trucks = Truck::query()->where('status', 'active')->get();
+        $drivers = Driver::query()->where('status', 'active')->get();
+        $date = request('date', now()->toDateString());
+
+        return view('outgoing.delivery_plan_create', compact('trucks', 'drivers', 'date'));
+    }
+
+    public function deliveryPlanStore(Request $request)
     {
         $validated = $request->validate([
             'plan_date' => ['required', 'date'],
-            'gci_part_ids' => ['required', 'array', 'min:1'],
-            'gci_part_ids.*' => ['integer', 'exists:gci_parts,id'],
-            'delivery_plan_id' => ['nullable', 'integer', 'exists:delivery_plans,id'],
-            'truck_id' => ['nullable', 'exists:trucks,id'],
-            'driver_id' => ['nullable', 'exists:drivers,id'],
+            'truck_id' => ['required', 'exists:trucks,id'],
+            'driver_id' => ['required', 'exists:drivers,id'],
+            'cycle' => ['required', 'integer', 'min:1'],
+            'items' => ['required', 'array'],
+            'items.*.so_id' => ['required', 'exists:sales_orders,id'],
+            'items.*.part_id' => ['required', 'exists:gci_parts,id'],
+            'items.*.qty' => ['required', 'numeric', 'min:1'],
         ]);
 
-        $date = Carbon::parse($validated['plan_date'])->startOfDay();
-        $gciPartIds = array_values(array_unique(array_map('intval', $validated['gci_part_ids'])));
-
-        DB::transaction(function () use ($date, $validated, $gciPartIds) {
-            $plan = null;
-            if (!empty($validated['delivery_plan_id'])) {
-                $plan = DeliveryPlan::query()->whereKey((int) $validated['delivery_plan_id'])->first();
-                if ($plan) {
-                    /** @var \Carbon\Carbon $planDate */
-                    $planDate = $plan->plan_date;
-                    if ($planDate->toDateString() !== $date->toDateString()) {
-                        abort(422, 'Trip date mismatch.');
-                    }
-                }
-            }
-
-            if (!$plan) {
-                $maxSeq = DeliveryPlan::query()->whereDate('plan_date', $date->toDateString())->max('sequence') ?? 0;
-                $plan = DeliveryPlan::create([
-                    'plan_date' => $date->toDateString(),
-                    'sequence' => $maxSeq + 1,
-                    'truck_id' => $validated['truck_id'] ?? null,
-                    'driver_id' => $validated['driver_id'] ?? null,
-                    'status' => 'scheduled',
-                ]);
-            } else {
-                $plan->update([
-                    'truck_id' => $validated['truck_id'] ?? $plan->truck_id,
-                    'driver_id' => $validated['driver_id'] ?? $plan->driver_id,
-                ]);
-            }
-
-            foreach ($gciPartIds as $partId) {
-                DeliveryPlanRequirementAssignment::updateOrCreate(
-                    [
-                        'plan_date' => $date->toDateString(),
-                        'gci_part_id' => $partId,
-                    ],
-                    [
-                        'delivery_plan_id' => $plan->id,
-                        'status' => 'assigned',
-                    ]
-                );
-            }
-        });
-
-        return back()->with('success', 'Items assigned to trip.');
-    }
-
-    public function assignDeliveryPlanResources(Request $request, DeliveryPlan $plan)
-    {
-        $validated = $request->validate([
-            'truck_id' => ['nullable', 'exists:trucks,id'],
-            'driver_id' => ['nullable', 'exists:drivers,id'],
-        ]);
-
-        $plan->update([
-            'truck_id' => $validated['truck_id'] ?? null,
-            'driver_id' => $validated['driver_id'] ?? null,
-        ]);
-
-        return back()->with('success', 'Trip resources updated.');
-    }
-
-    public function updateDeliveryPlanOverrides(Request $request)
-    {
-        $validated = $request->validate([
-            'plan_date' => ['required', 'date'],
-            'gci_part_id' => ['required', 'integer', 'exists:gci_parts,id'],
-            'line_type_override' => ['nullable', 'string', 'in:NR1,NR2,MIX,UNKNOWN'],
-            'jig_capacity_nr1_override' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'jig_capacity_nr2_override' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'uph_nr1_override' => ['nullable', 'numeric', 'min:0.01', 'max:100000'],
-            'uph_nr2_override' => ['nullable', 'numeric', 'min:0.01', 'max:100000'],
-            'notes' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $date = Carbon::parse($validated['plan_date'])->startOfDay()->toDateString();
-        $partId = (int) $validated['gci_part_id'];
-
-        $toNullIfBlank = fn($v) => ($v === '' || $v === null) ? null : $v;
-
-        DB::transaction(function () use ($date, $partId, $validated, $toNullIfBlank) {
-            $assignment = DeliveryPlanRequirementAssignment::query()->firstOrNew([
-                'plan_date' => $date,
-                'gci_part_id' => $partId,
+        DB::transaction(function () use ($validated) {
+            $plan = DeliveryPlan::create([
+                'plan_date' => $validated['plan_date'],
+                'truck_id' => $validated['truck_id'],
+                'driver_id' => $validated['driver_id'],
+                'cycle' => $validated['cycle'],
+                'status' => 'draft',
+                'created_by' => auth()->id(),
             ]);
-
-            if (!$assignment->exists) {
-                $assignment->status = 'pending';
-            }
-
-            $assignment->line_type_override = $toNullIfBlank($validated['line_type_override'] ?? null);
-            $assignment->jig_capacity_nr1_override = $toNullIfBlank($validated['jig_capacity_nr1_override'] ?? null);
-            $assignment->jig_capacity_nr2_override = $toNullIfBlank($validated['jig_capacity_nr2_override'] ?? null);
-            $assignment->uph_nr1_override = $toNullIfBlank($validated['uph_nr1_override'] ?? null);
-            $assignment->uph_nr2_override = $toNullIfBlank($validated['uph_nr2_override'] ?? null);
-            $assignment->notes = $toNullIfBlank($validated['notes'] ?? null);
-
-            $assignment->save();
+            // Logic to link SO items to delivery plan ...
         });
 
-        return back()->with('success', 'Overrides updated.');
+        return redirect()->route('outgoing.delivery-plan')->with('success', 'Delivery Plan created.');
     }
 
-    public function assignSoToPlan(Request $request)
+    private function parseDate($val)
     {
-        $validated = $request->validate([
-            'sales_order_id' => 'required|exists:sales_orders,id',
-            'delivery_plan_id' => 'nullable', // allow unassign
-        ]);
-
-        $so = SalesOrder::findOrFail($validated['sales_order_id']);
-
-        DB::transaction(function () use ($so, $validated) {
-            if (empty($validated['delivery_plan_id'])) {
-                $so->update([
-                    'delivery_plan_id' => null,
-                    'delivery_stop_id' => null,
-                    'status' => $so->status === 'assigned' ? 'draft' : $so->status,
-                ]);
-                return;
-            }
-
-            $plan = DeliveryPlan::findOrFail($validated['delivery_plan_id']);
-
-            // Find or create a stop for this customer in this plan
-            $stop = \App\Models\DeliveryStop::firstOrCreate(
-                [
-                    'plan_id' => $plan->id,
-                    'customer_id' => $so->customer_id,
-                ],
-                [
-                    'sequence' => ($plan->stops()->max('sequence') ?? 0) + 1,
-                    'status' => 'pending',
-                ]
-            );
-
-            $so->update([
-                'delivery_plan_id' => $plan->id,
-                'delivery_stop_id' => $stop->id,
-                'status' => $so->status === 'draft' ? 'assigned' : $so->status,
-            ]);
-        });
-
-        return response()->json(['success' => true]);
-    }
-
-    public function storeDeliveryPlan(Request $request)
-    {
-        $validated = $request->validate([
-            'plan_date' => 'required|date',
-            'truck_id' => 'nullable|exists:trucks,id',
-            'driver_id' => 'nullable|exists:drivers,id',
-        ]);
-
-        // Auto-generate sequence: Get max sequence for the day + 1
-        $maxSeq = DeliveryPlan::whereDate('plan_date', $validated['plan_date'])->max('sequence') ?? 0;
-
-        $plan = DeliveryPlan::create([
-            'plan_date' => $validated['plan_date'],
-            'sequence' => $maxSeq + 1,
-            'truck_id' => $validated['truck_id'] ?? null,
-            'driver_id' => $validated['driver_id'] ?? null,
-            'status' => 'scheduled',
-        ]);
-
-        return redirect()->route('outgoing.delivery-plan', ['date' => $validated['plan_date']])
-            ->with('success', 'Delivery Plan created successfully.');
-    }
-
-    private function parseDate(?string $value): ?Carbon
-    {
-        $raw = trim((string) ($value ?? ''));
-        if ($raw === '') {
+        if (!$val)
             return null;
-        }
         try {
-            return Carbon::parse($raw)->startOfDay();
-        } catch (\Throwable) {
+            return Carbon::parse($val)->startOfDay();
+        } catch (\Exception $e) {
             return null;
         }
     }
 
-    /** @return list<Carbon> */
-    private function daysBetween(Carbon $from, Carbon $to): array
+    private function daysBetween($start, $end)
     {
-        $days = [];
-        $cursor = $from->copy()->startOfDay();
-        $end = $to->copy()->startOfDay();
-        while ($cursor->lte($end)) {
-            $days[] = $cursor->copy();
-            $cursor->addDay();
-            if (count($days) > 31) {
-                break;
-            }
+        $out = [];
+        $curr = $start->copy();
+        while ($curr->lte($end)) {
+            $out[] = $curr->copy();
+            $curr->addDay();
         }
-        return $days;
-    }
-    public function updateCell(Request $request)
-    {
-        $validated = $request->validate([
-            'row_id' => 'required|string', // Changed to string to support vpart_ prefix
-            'date' => 'required|date',
-            'field' => 'required|in:seq,qty',
-            'value' => 'nullable',
-        ]);
-
-        $rowId = $validated['row_id'];
-        $date = Carbon::parse($validated['date']);
-        $field = $validated['field'];
-        $value = $validated['value'];
-
-        $actualRowId = null;
-
-        if (str_starts_with($rowId, 'vpart_')) {
-            $partId = (int) str_replace('vpart_', '', $rowId);
-
-            // Find or create a plan that covers this date
-            // We'll create weekly plans by default if none exist
-            $startOfWeek = $date->copy()->startOfWeek();
-            $endOfWeek = $date->copy()->endOfWeek();
-
-            $plan = OutgoingDailyPlan::firstOrCreate(
-                [
-                    'date_from' => $startOfWeek->toDateString(),
-                    'date_to' => $endOfWeek->toDateString(),
-                ],
-                [
-                    'created_by' => auth()->id(),
-                ]
-            );
-
-            // Find or create the row
-            $part = GciPart::findOrFail($partId);
-            $row = OutgoingDailyPlanRow::firstOrCreate(
-                [
-                    'plan_id' => $plan->id,
-                    'gci_part_id' => $part->id,
-                ],
-                [
-                    'row_no' => (int) ($plan->rows()->max('row_no') ?? 0) + 1,
-                    'production_line' => '-',
-                    'part_no' => $part->part_no,
-                ]
-            );
-            $actualRowId = $row->id;
-        } else {
-            $actualRowId = (int) $rowId;
-        }
-
-        $cell = OutgoingDailyPlanCell::updateOrCreate(
-            ['row_id' => $actualRowId, 'plan_date' => $date->toDateString()],
-            [$field => $value]
-        );
-
-        // Touch the plan so last update time is visible
-        $planId = OutgoingDailyPlanRow::where('id', $actualRowId)->value('plan_id');
-        if ($planId) {
-            OutgoingDailyPlan::where('id', $planId)->update(['updated_at' => now()]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'cell' => $cell,
-            'new_row_id' => $actualRowId // Returning this so frontend can update if needed
-        ]);
+        return $out;
     }
 
-    public function createPlan(Request $request)
+    public function normalizePartNo(string $partNo): string
     {
-        $validated = $request->validate([
-            'date_from' => 'required|date',
-            'date_to' => 'required|date|after_or_equal:date_from',
-        ]);
-
-        $plan = OutgoingDailyPlan::create([
-            'date_from' => $validated['date_from'],
-            'date_to' => $validated['date_to'],
-            'created_by' => auth()->id(),
-        ]);
-
-        return redirect()->route('outgoing.daily-planning', ['plan_id' => $plan->id])
-            ->with('success', 'New plan created. Please add rows.');
+        $partNo = trim($partNo);
+        // Remove spaces inside too? Usually standard parts like 'A B C' -> 'ABC' or 'A-B-C' -> 'ABC'
+        // For now, strict trim.
+        // Some logic might remove dashes if consistent standard is needed.
+        return strtoupper($partNo);
     }
 
-    public function storeRow(Request $request, OutgoingDailyPlan $plan)
-    {
-        $validated = $request->validate([
-            'part_no' => 'required|string',
-            'production_line' => 'required|string',
-        ]);
-
-        $partNo = $this->normalizePartNo($validated['part_no']);
-        $gciPartId = $partNo !== '' ? $this->resolveFgPartIdFromPartNo($partNo) : null;
-
-        $row = $plan->rows()->create([
-            'row_no' => (int) ($plan->rows()->max('row_no') ?? 0) + 1,
-            'production_line' => $validated['production_line'],
-            'part_no' => $partNo !== '' ? $partNo : $validated['part_no'],
-            'gci_part_id' => $gciPartId,
-        ]);
-
-        return back()->with('success', 'Row added.');
-    }
-
-    private function normalizePartNo(string $value): string
-    {
-        $str = str_replace("\u{00A0}", ' ', (string) ($value ?? ''));
-        $str = preg_replace('/\s+/', ' ', $str) ?? $str;
-        $str = strtoupper(trim($str));
-        if ($str === '') {
-            return '';
-        }
-
-        // Common import patterns append notes like "(REV A)" or extra tokens after spaces.
-        // Canonicalize to reduce accidental duplicates during auto-mapping.
-        $str = preg_replace('/\s*[\\(\\[].*$/', '', $str) ?? $str;
-        $str = trim($str);
-        if ($str === '') {
-            return '';
-        }
-
-        if (str_contains($str, ' ')) {
-            $str = (string) strtok($str, ' ');
-        }
-
-        return trim($str);
-    }
-
-    private function resolveFgPartIdFromPartNo(string $partNo): ?int
+    public function resolveFgPartIdFromPartNo(string $partNo): ?int
     {
         $partNo = $this->normalizePartNo($partNo);
         if ($partNo === '') {
             return null;
         }
 
-        // 1. Try customer part mapping FIRST (Priority)
-        // This ensures that if a mapping exists (e.g. CUST-01 -> INT-01), we use INT-01,
-        // even if a dummy part "CUST-01" accidentally exists in gci_parts table.
-        $customerPart = CustomerPart::query()
+        // 1. Direct match in GciPart (FG)
+        $fg = GciPart::where('classification', 'FG')
+            ->where(function ($q) use ($partNo) {
+                $q->where('part_no', $partNo)
+                    ->orWhere('part_no', Str::replace('-', '', $partNo)); // loose match
+            })
+            ->first();
+        if ($fg) {
+            return (int) $fg->id;
+        }
+
+        // 2. Check Customer Part mapping
+        // CustomerPart -> hasMany components -> gci_part_id
+        $cp = CustomerPart::query()
             ->where('customer_part_no', $partNo)
-            ->with([
-                'customer',
-                'components.part' => function ($q) {
-                    $q->where('classification', 'FG');
+            ->first();
+
+        if ($cp) {
+            // Get first component that is FG
+            // Actually components link to GciPart. Check if any component is FG.
+            foreach ($cp->components as $comp) {
+                if ($comp->part && $comp->part->classification === 'FG') {
+                    return (int) $comp->part->id;
                 }
-            ])
-            ->first();
-
-        if ($customerPart) {
-            $fgComponent = $customerPart->components
-                ->filter(fn($c) => $c->part && $c->part->classification === 'FG' && $c->gci_part_id)
-                ->sortByDesc(fn($c) => (float) ($c->qty_per_unit ?? 0))
-                ->first();
-
-            if ($fgComponent) {
-                return (int) $fgComponent->gci_part_id;
             }
-
-            // If Mapping exists but no Component link:
-            // Check if there is already a matching GCI part to link to, before creating new one
-            $existingGci = GciPart::query()
-                ->where('part_no', $partNo)
-                ->where('classification', 'FG')
-                ->first();
-
-            if ($existingGci) {
-                // Link it!
-                CustomerPartComponent::create([
-                    'customer_part_id' => $customerPart->id,
-                    'gci_part_id' => $existingGci->id,
-                    'qty_per_unit' => 1.0,
-                ]);
-                return (int) $existingGci->id;
-            }
-
-            // Fallback: Link to a NEW GciPart belonging to the SAME customer
-            $newGciPart = GciPart::create([
-                'customer_id' => $customerPart->customer_id,
-                'part_no' => $partNo,
-                'part_name' => $customerPart->customer_part_name ?? $partNo,
-                'classification' => 'FG',
-                'status' => 'active',
-            ]);
-
-            CustomerPartComponent::create([
-                'customer_part_id' => $customerPart->id,
-                'gci_part_id' => $newGciPart->id,
-                'qty_per_unit' => 1.0,
-            ]);
-
-            return (int) $newGciPart->id;
         }
 
-        // 2. Direct GCI Part lookup (Secondary)
-        $gciPart = GciPart::query()
-            ->where('part_no', $partNo)
-            ->where('classification', 'FG')
-            ->first();
-        if ($gciPart) {
-            return (int) $gciPart->id;
-        }
-
-        // 3. Last resort
-        $created = GciPart::create([
-            'part_no' => $partNo,
-            'part_name' => 'AUTO-CREATED IMPORT', // Marked clearly
-            'classification' => 'FG',
-            'status' => 'active',
-        ]);
-        return (int) $created->id;
+        return null;
     }
 }
