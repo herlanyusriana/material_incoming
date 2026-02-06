@@ -77,6 +77,7 @@ class OutgoingController extends Controller
             $rows = $plan->rows()
                 ->with([
                     'gciPart.standardPacking',
+                    'customerPart',
                     'cells' => function ($query) use ($dateFrom, $dateTo) {
                         $query->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
                     }
