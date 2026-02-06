@@ -113,11 +113,15 @@
                                     </td>
 
                                     <td class="px-4 py-3 text-xs text-slate-700 border-x border-slate-100">
-                                        {{ $req->gci_part?->part_name ?? '-' }}
+                                        {{ $req->customer_part_name ?? '-' }}
+                                        @if($req->unmapped ?? false)
+                                            <span
+                                                class="ml-1 text-[10px] font-bold text-red-600 bg-red-100 px-1 py-0.5 rounded">UNMAPPED</span>
+                                        @endif
                                     </td>
 
                                     <td class="px-4 py-3 font-mono text-xs text-slate-500 border-x border-slate-100">
-                                        {{ $req->gci_part?->part_no ?? '-' }}
+                                        {{ $req->customer_part_no ?? '-' }}
                                     </td>
 
                                     <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">

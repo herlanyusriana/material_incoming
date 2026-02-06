@@ -493,6 +493,43 @@ class OutgoingController extends Controller
                     'source_row_ids' => $partDayCells->pluck('row_id')->unique()->values()->all(),
                 ]);
             }
+
+            // Handle unmapped parts that have demand on this day
+            // This catches parts that are either NULL in gci_part_id OR are pointing to an ID that is not in our $fgParts list (e.g. inactive or non-FG)
+            $fgPartIdsInDay = $fgParts->pluck('id')->map(fn($id) => (int) $id)->all();
+
+            $unmappedDayCells = $dayCells->filter(function ($c) use ($fgPartIdsInDay) {
+                $pId = (int) ($c->row?->gci_part_id ?? 0);
+                return !in_array($pId, $fgPartIdsInDay);
+            });
+
+            $unmappedDayGroups = $unmappedDayCells->groupBy(fn($c) => (string) ($c->row?->part_no ?? 'UNKNOWN'));
+
+            foreach ($unmappedDayGroups as $pNo => $group) {
+                $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+
+                // Show only if there is actual remaining demand
+                if ($grossQty <= 0.0001)
+                    continue;
+
+                $sequences = $group->pluck('seq')->filter()->unique()->sort()->values()->all();
+                $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+
+                $lines->push((object) [
+                    'date' => $day->copy(),
+                    'customer' => null, // No known customer
+                    'gci_part' => null, // No known GCI Part
+                    'customer_part_no' => $pNo,
+                    'customer_part_name' => 'UNMAPPED / UNKNOWN',
+                    'unmapped' => true,
+                    'gross_qty' => $grossQty,
+                    'sequence' => $primarySequence,
+                    'sequences_consolidated' => $sequences,
+                    'packing_std' => 1,
+                    'uom' => 'PCS',
+                    'source_row_ids' => $group->pluck('row_id')->unique()->values()->all(),
+                ]);
+            }
         }
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
@@ -797,7 +834,21 @@ class OutgoingController extends Controller
             return null;
         }
 
-        // 1. Direct match in GciPart (FG)
+        // 1. Check Customer Part mapping (Prioritize Mapping as requested)
+        $cp = CustomerPart::query()
+            ->where('customer_part_no', $partNo)
+            ->first();
+
+        if ($cp) {
+            // Get first component that is FG
+            foreach ($cp->components as $comp) {
+                if ($comp->part && $comp->part->classification === 'FG') {
+                    return (int) $comp->part->id;
+                }
+            }
+        }
+
+        // 2. Direct match in GciPart (FG)
         $fg = GciPart::where('classification', 'FG')
             ->where(function ($q) use ($partNo) {
                 $q->where('part_no', $partNo)
@@ -806,22 +857,6 @@ class OutgoingController extends Controller
             ->first();
         if ($fg) {
             return (int) $fg->id;
-        }
-
-        // 2. Check Customer Part mapping
-        // CustomerPart -> hasMany components -> gci_part_id
-        $cp = CustomerPart::query()
-            ->where('customer_part_no', $partNo)
-            ->first();
-
-        if ($cp) {
-            // Get first component that is FG
-            // Actually components link to GciPart. Check if any component is FG.
-            foreach ($cp->components as $comp) {
-                if ($comp->part && $comp->part->classification === 'FG') {
-                    return (int) $comp->part->id;
-                }
-            }
         }
 
         return null;
