@@ -119,14 +119,63 @@
                                     (Auto)
                                 </td>
                                 <td class="p-2 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">
-                                    <select name="customer_part_id" class="w-full text-xs rounded border-slate-300" required>
-                                        <option value="" disabled selected>Select Part</option>
-                                        @foreach($customerParts as $p)
-                                            <option value="{{ $p->id }}">
-                                                {{ $p->customer_part_name }} ({{ $p->customer_part_no }})
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <div x-data="{
+                                        open: false,
+                                        search: '',
+                                        selectedId: '',
+                                        selectedName: '',
+                                        options: [
+                                            @foreach($customerParts as $p)
+                                            {
+                                                id: '{{ $p->id }}',
+                                                name: `{{ $p->customer_part_name ?? '' }} {{ $p->case_name ? '- ' . $p->case_name : '' }}`
+                                            },
+                                            @endforeach
+                                        ],
+                                        get filteredOptions() {
+                                            if (this.search === '') return this.options;
+                                            return this.options.filter(option => option.name.toLowerCase().includes(this.search.toLowerCase()));
+                                        },
+                                        select(option) {
+                                            this.selectedId = option.id;
+                                            this.selectedName = option.name;
+                                            this.open = false;
+                                            this.search = '';
+                                        }
+                                    }" class="relative w-full">
+                                        <input type="hidden" name="customer_part_id" x-model="selectedId" required>
+                                        
+                                        <div @click="open = !open" 
+                                             class="w-full text-xs rounded border border-slate-300 bg-white px-2 py-1.5 flex justify-between items-center cursor-pointer min-h-[28px]">
+                                            <span x-text="selectedName || 'Select Part'" :class="{'text-slate-400': !selectedName, 'text-slate-900': selectedName}" class="truncate block max-w-[150px]"></span>
+                                            <svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+
+                                        <div x-show="open" @click.away="open = false" 
+                                             class="absolute z-50 mt-1 w-[300px] bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto left-0"
+                                             style="min-width: 100%;"
+                                             x-cloak>
+                                            <div class="sticky top-0 bg-white p-2 border-b border-slate-100">
+                                                <input x-model="search" type="text" 
+                                                       class="w-full text-xs rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" 
+                                                       placeholder="Search...">
+                                            </div>
+                                            <ul class="py-1">
+                                                <template x-for="option in filteredOptions" :key="option.id">
+                                                    <li @click="select(option)" 
+                                                        class="px-3 py-2 text-xs hover:bg-slate-100 cursor-pointer text-slate-700 truncate"
+                                                        :class="{'bg-indigo-50 text-indigo-700': selectedId == option.id}"
+                                                        x-text="option.name">
+                                                    </li>
+                                                </template>
+                                                <li x-show="filteredOptions.length === 0" class="px-3 py-2 text-xs text-slate-400 text-center">
+                                                    No results found
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td colspan="{{ count($days) + 1 }}" class="p-2 bg-slate-50">
                                     <button class="px-3 py-1 bg-slate-800 text-white text-xs font-bold rounded hover:bg-slate-900">+ Add Row</button>

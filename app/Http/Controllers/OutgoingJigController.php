@@ -45,7 +45,7 @@ class OutgoingJigController extends Controller
             ->sortBy(fn($s) => $s->line . $s->customerPart?->customer_part_name);
 
         $customerParts = CustomerPart::query()
-            ->select('id', 'customer_part_no', 'customer_part_name')
+            ->select('id', 'customer_part_no', 'customer_part_name', 'case_name')
             ->orderBy('customer_part_name')
             ->orderBy('customer_part_no')
             ->get();
