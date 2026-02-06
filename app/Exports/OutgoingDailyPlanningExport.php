@@ -17,7 +17,7 @@ class OutgoingDailyPlanningExport implements FromArray, WithHeadings, WithStyles
 
     public function headings(): array
     {
-        $headings = ['No', 'LINE', 'PART NO'];
+        $headings = ['No', 'LINE', 'CUSTOMER PART NAME', 'CUSTOMER PART NO'];
         foreach ($this->days() as $d) {
             $date = $d->format('Y-m-d');
             $headings[] = "{$date} Seq";
@@ -30,16 +30,23 @@ class OutgoingDailyPlanningExport implements FromArray, WithHeadings, WithStyles
     public function array(): array
     {
         $days = $this->days();
-        $rows = $this->plan->rows()->with('cells')->get();
+        $rows = $this->plan->rows()->with(['cells', 'customerPart'])->get();
 
         $out = [];
         foreach ($rows as $row) {
-            $cellsByDate = $row->cells->keyBy(fn ($c) => $c->plan_date->format('Y-m-d'));
+            $cellsByDate = $row->cells->keyBy(fn($c) => $c->plan_date->format('Y-m-d'));
+
+            $partName = $row->customerPart->customer_part_name ?? $row->part_name ?? '';
+            // Append case name if exists
+            if (!empty($row->customerPart->case_name)) {
+                $partName .= ' ' . $row->customerPart->case_name;
+            }
 
             $line = [
                 $row->row_no,
                 $row->production_line,
-                $row->part_no,
+                $partName,
+                $row->customerPart->customer_part_no ?? $row->part_no,
             ];
             foreach ($days as $d) {
                 $key = $d->format('Y-m-d');

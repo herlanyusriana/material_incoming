@@ -135,11 +135,11 @@
                                 class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">
                                 Line</th>
                             <th
-                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">
-                                Customer Part No</th>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-64 border-r border-slate-200 sticky left-72 z-10 bg-slate-50">
+                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-64 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">
                                 Customer Part Name</th>
+                            <th
+                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-88 z-10 bg-slate-50">
+                                Customer Part No</th>
                             @foreach ($days as $index => $d)
                                 <th
                                     class="px-2 py-2 text-center text-xs font-bold text-slate-700 border-r border-slate-200 min-w-[80px]">
@@ -166,15 +166,15 @@
                                     {{ $row->production_line }}
                                 </td>
                                 <td
-                                    class="px-4 py-3 font-mono text-xs font-bold text-indigo-700 bg-white group-hover:bg-slate-50 sticky left-24 z-10 border-r border-slate-100">
-                                    {{ $row->customerPart->customer_part_no ?? $row->part_no }}
-                                </td>
-                                <td
-                                    class="px-4 py-3 text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-72 z-10 border-r border-slate-100">
+                                    class="px-4 py-3 text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-24 z-10 border-r border-slate-100">
                                     {{ $row->customerPart->customer_part_name ?? $row->part_name ?? '-' }}
                                     @if(isset($row->customerPart->case_name))
                                         <div class="text-[10px] text-slate-400 font-mono">{{ $row->customerPart->case_name }}</div>
                                     @endif
+                                </td>
+                                <td
+                                    class="px-4 py-3 font-mono text-xs font-bold text-indigo-700 bg-white group-hover:bg-slate-50 sticky left-88 z-10 border-r border-slate-100">
+                                    {{ $row->customerPart->customer_part_no ?? $row->part_no }}
                                 </td>
                                 @foreach ($days as $d)
                                     @php
