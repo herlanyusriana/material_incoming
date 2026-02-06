@@ -61,61 +61,8 @@
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
                                     Customer Name</th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Cust. Part No.</th>
-                                <th
-                                    class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Category</th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    FG Part Tag</th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    FG Part No.</th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Customer Name</th>
-                                <th
-                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Cust. Stock</th>
-                                <th
-                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Daily Plan</th>
-                                <th
-                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Requirement</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white">
-                            @forelse ($displayRequirements as $idx => $req)
-                                <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                                    <td class="px-4 py-3 text-center border-x border-slate-100">
-                                        <input type="checkbox" name="selected[]" value="{{ $idx }}"
-                                            class="row-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                        <input type="hidden" name="lines[{{ $idx }}][date]"
-                                            value="{{ $req->date->toDateString() }}">
-                                        <input type="hidden" name="lines[{{ $idx }}][customer_id]"
-                                            value="{{ $req->customer?->id }}">
-                                        <input type="hidden" name="lines[{{ $idx }}][gci_part_id]"
-                                            value="{{ $req->gci_part?->id }}">
-                                        <input type="hidden" name="lines[{{ $idx }}][qty]"
-                                            value="{{ $req->delivery_pack_qty ?? $req->total_qty }}">
-                                        @foreach($req->source_row_ids as $rid)
-                                            <input type="hidden" name="lines[{{ $idx }}][row_ids][]" value="{{ $rid }}">
-                                        @endforeach
-                                    </td>
-
-                                    <td class="px-4 py-3 text-xs font-bold text-slate-600 border-x border-slate-100">
-                                        {{ $req->date->format('d/m/Y') }}
-                                    </td>
-
                                     <td class="px-4 py-3 text-xs font-bold text-slate-900 border-x border-slate-100">
                                         {{ $req->customer?->name ?? 'Unmapped' }}
-                                    </td>
-
-                                    <td class="px-4 py-3 font-mono text-xs text-indigo-700 font-bold border-x border-slate-100">
-                                        {{ $req->customer_part_no }}
                                     </td>
 
                                     <td
