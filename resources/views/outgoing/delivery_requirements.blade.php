@@ -121,7 +121,7 @@
                                     </td>
 
                                     <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">
-                                        {{ $req->customer_part_name ?? '-' }}
+                                        {{ $req->gci_part?->model ?? '-' }}
                                     </td>
 
                                     <td class="px-4 py-3 text-right font-medium text-slate-500 border-x border-slate-100">
