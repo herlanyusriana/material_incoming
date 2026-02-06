@@ -70,7 +70,7 @@
                                     FG Part No.</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Customer Part Name</th>
+                                    Model</th>
                                 <th
                                     class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
                                     Cust. Stock</th>
