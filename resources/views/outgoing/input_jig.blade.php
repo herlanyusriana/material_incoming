@@ -124,6 +124,9 @@
                                         search: '',
                                         selectedId: '',
                                         selectedName: '',
+                                        top: 0,
+                                        left: 0,
+                                        width: 0,
                                         options: [
                                             @foreach($customerParts as $p)
                                             {
@@ -136,16 +139,33 @@
                                             if (this.search === '') return this.options;
                                             return this.options.filter(option => option.name.toLowerCase().includes(this.search.toLowerCase()));
                                         },
+                                        init() {
+                                            this.$watch('open', value => {
+                                                if (value) {
+                                                    const rect = this.$refs.trigger.getBoundingClientRect();
+                                                    this.top = rect.bottom;
+                                                    this.left = rect.left;
+                                                    this.width = rect.width;
+                                                    
+                                                    // Adjust if falls off screen
+                                                    if (window.innerHeight - this.top < 240) {
+                                                         this.top = rect.top - 240; // Flip up
+                                                    }
+                                                }
+                                            });
+                                        },
                                         select(option) {
                                             this.selectedId = option.id;
                                             this.selectedName = option.name;
                                             this.open = false;
                                             this.search = '';
                                         }
-                                    }" class="relative w-full">
+                                    }" class="relative w-full"
+                                      @scroll.window="open = false" 
+                                      @resize.window="open = false">
                                         <input type="hidden" name="customer_part_id" x-model="selectedId" required>
                                         
-                                        <div @click="open = !open" 
+                                        <div x-ref="trigger" @click="open = !open" 
                                              class="w-full text-xs rounded border border-slate-300 bg-white px-2 py-1.5 flex justify-between items-center cursor-pointer min-h-[28px]">
                                             <span x-text="selectedName || 'Select Part'" :class="{'text-slate-400': !selectedName, 'text-slate-900': selectedName}" class="truncate block max-w-[150px]"></span>
                                             <svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -154,8 +174,8 @@
                                         </div>
 
                                         <div x-show="open" @click.away="open = false" 
-                                             class="absolute z-50 mt-1 w-[300px] bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto left-0"
-                                             style="min-width: 100%;"
+                                             class="fixed z-[9999] bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                                             :style="`top: ${top}px; left: ${left}px; width: ${Math.max(width, 300)}px;`"
                                              x-cloak>
                                             <div class="sticky top-0 bg-white p-2 border-b border-slate-100">
                                                 <input x-model="search" type="text" 
