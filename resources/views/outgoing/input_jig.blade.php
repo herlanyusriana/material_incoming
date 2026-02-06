@@ -46,7 +46,7 @@
                         <tr>
                             <th class="px-4 py-3 text-left font-bold text-slate-700 w-24 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">Line</th>
                             <th class="px-2 py-3 text-center font-bold text-slate-700 bg-yellow-100 w-20 border-r border-slate-200">UpH</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700 w-48 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">Project Name</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 w-48 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">Customer Name</th>
                             @foreach ($days as $index => $d)
                                 <th class="px-2 py-2 text-center font-bold text-slate-700 bg-yellow-100 border-r border-slate-200 min-w-[80px]">
                                     <div class="text-[10px] text-slate-500 font-normal">H{!! $index > 0 ? '+' . $index : '' !!}</div>
@@ -82,8 +82,7 @@
                                         class="w-full h-full border-0 bg-transparent text-center font-bold text-slate-900 focus:ring-1 focus:ring-indigo-500 p-2"
                                         @change="updateUph('{{ $item->id }}', $event.target.value)">
                                 </td>
-                                <td class="px-4 py-3 text-slate-600 bg-white group-hover:bg-slate-50 border-r border-slate-100 sticky left-24 z-10">
-                                    {{ $item->project_name }}
+                                    {{ $item->customer->name ?? '-' }}
                                 </td>
                                 @foreach ($days as $d)
                                     @php
@@ -119,7 +118,12 @@
                                     (Auto)
                                 </td>
                                 <td class="p-2 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">
-                                    <input type="text" name="project_name" placeholder="Project Name" class="w-full text-xs rounded border-slate-300" required>
+                                    <select name="customer_id" class="w-full text-xs rounded border-slate-300" required>
+                                        <option value="" disabled selected>Select Customer</option>
+                                        @foreach($customers as $c)
+                                            <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </td>
                                 <td colspan="{{ count($days) + 1 }}" class="p-2 bg-slate-50">
                                     <button class="px-3 py-1 bg-slate-800 text-white text-xs font-bold rounded hover:bg-slate-900">+ Add Row</button>

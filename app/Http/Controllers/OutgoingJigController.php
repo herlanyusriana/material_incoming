@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\OutgoingJigSetting;
 use App\Models\OutgoingJigPlan;
+use App\Models\Customer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -34,27 +35,31 @@ class OutgoingJigController extends Controller
         // Fetch settings with plans in range
         $settings = OutgoingJigSetting::query()
             ->with([
+                'customer',
                 'plans' => function ($q) use ($dateFrom, $dateTo) {
                     $q->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
                 }
             ])
             ->orderBy('line')
-            ->orderBy('project_name')
-            ->get();
+            // ->orderBy('project_name') // Removed as column is dropped. 
+            ->get()
+            ->sortBy(fn($s) => $s->line . $s->customer?->name); // Sort by line then customer name
 
-        return view('outgoing.input_jig', compact('settings', 'days', 'dateFrom', 'dateTo'));
+        $customers = Customer::query()->orderBy('name')->get();
+
+        return view('outgoing.input_jig', compact('settings', 'days', 'dateFrom', 'dateTo', 'customers'));
     }
 
     public function storeRow(Request $request)
     {
         $request->validate([
             'line' => 'required|string',
-            'project_name' => 'required|string',
+            'customer_id' => 'required|exists:customers,id',
         ]);
 
         OutgoingJigSetting::firstOrCreate([
             'line' => strtoupper(trim($request->line)),
-            'project_name' => trim($request->project_name),
+            'customer_id' => $request->customer_id,
         ]);
 
         return back()->with('success', 'Row added successfully');
