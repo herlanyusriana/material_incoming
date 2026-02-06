@@ -598,11 +598,11 @@
         }
     @endphp
     @php
-        $totalBundles = $arrival->items->sum(fn($i) => (float) ($i->qty_bundle ?? 0));
-        $totalQtyGoods = $arrival->items->sum(fn($i) => (float) ($i->qty_goods ?? 0));
-        $totalNett = $arrival->items->sum(fn($i) => (float) ($i->weight_nett ?? 0));
-        $totalGross = $arrival->items->sum(fn($i) => (float) ($i->weight_gross ?? 0));
-        $totalAmount = $arrival->items->sum(fn($i) => (float) ($i->total_price ?? 0));
+        $totalBundles = $arrival->items->map(fn($i) => (float) ($i->qty_bundle ?? 0))->sum();
+        $totalQtyGoods = $arrival->items->map(fn($i) => (float) ($i->qty_goods ?? 0))->sum();
+        $totalNett = $arrival->items->map(fn($i) => (float) ($i->weight_nett ?? 0))->sum();
+        $totalGross = $arrival->items->map(fn($i) => (float) ($i->weight_gross ?? 0))->sum();
+        $totalAmount = $arrival->items->map(fn($i) => (float) ($i->total_price ?? 0))->sum();
         // 1. Calculate unique HS codes from individual parts for maximum accuracy
         $derivedHsCodes = $arrival->items
             ->pluck('part.hs_code')
@@ -620,19 +620,19 @@
         $hasBundleData = $arrival->items->contains(function ($item) {
             return ($item->qty_bundle ?? 0) > 0;
         });
-        $marksNoEnd = (int) $arrival->items->sum(fn($i) => (int) ($i->qty_bundle ?? 0));
+        $marksNoEnd = (int) $arrival->items->map(fn($i) => (int) ($i->qty_bundle ?? 0))->sum();
         if ($marksNoEnd <= 0) {
             $marksNoEnd = $arrival->items->count();
         }
         $bundleTotalDisplay = $hasBundleData
-            ? $arrival->items->sum(fn($i) => (float) ($i->qty_bundle ?? 0))
+            ? $arrival->items->map(fn($i) => (float) ($i->qty_bundle ?? 0))->sum()
             : 0;
-        $bundleUnitDisplay = optional($arrival->items->first(function ($item) {
+        $bundleUnitDisplay = optional($arrival->items->filter(function ($item) {
             return ($item->qty_bundle ?? 0) > 0 && $item->unit_bundle;
-        }))->unit_bundle ?? 'BUNDLE';
-        $goodsUnitDisplay = strtoupper(optional($arrival->items->first(function ($item) {
+        })->first())->unit_bundle ?? 'BUNDLE';
+        $goodsUnitDisplay = strtoupper(optional($arrival->items->filter(function ($item) {
             return !empty($item->unit_goods);
-        }))->unit_goods ?? 'PCS');
+        })->first())->unit_goods ?? 'PCS');
         $weightUnitDisplay = strtoupper(optional($arrival->items->first())->unit_weight ?? 'KGM');
 
         $weightOnlyGoodsUnits = ['KGM', 'KG'];
@@ -680,7 +680,7 @@
                                         <div class="ci-invoice-number">{{ $arrival->invoice_no }}</div>
                                     </td>
                                     <td style="border:none; padding:0; text-align:right; font-size:11px;">
-                                        {{ $arrival->invoice_date ? $arrival->invoice_date->format('d.M.Y') : '' }}
+                                        {{ $arrival->invoice_date ? \Carbon\Carbon::parse($arrival->invoice_date)->format('d.M.Y') : '' }}
                                     </td>
                                 </tr>
                             </table>
@@ -765,7 +765,7 @@
                                     <td style="border:none; padding:0; width:50%; vertical-align:top;">
                                         <div class="ci-section-title">7. SAILING ON OR ABOUT</div>
                                         <div style="margin-top:10px; font-weight:bold;">
-                                            {{ $arrival->ETD ? $arrival->ETD->format('d-M-y') : '' }}</div>
+                                            {{ $arrival->ETD ? \Carbon\Carbon::parse($arrival->ETD)->format('d-M-y') : '' }}</div>
                                     </td>
                                 </tr>
                             </table>
@@ -1002,7 +1002,7 @@
                                 <td style="border:none; padding:0; font-weight:bold; font-size:14px;">
                                     {{ $arrival->invoice_no }}</td>
                                 <td style="border:none; padding:0; text-align:right;">
-                                    {{ $arrival->invoice_date ? $arrival->invoice_date->format('d.M.Y') : '' }}</td>
+                                    {{ $arrival->invoice_date ? \Carbon\Carbon::parse($arrival->invoice_date)->format('d.M.Y') : '' }}</td>
                             </tr>
                         </table>
                     </td>
@@ -1072,7 +1072,7 @@
                                 </td>
                                 <td style="border:none; padding:0; width:50%;">
                                     <span class="section-label">7.SAILING ON OR ABOUT</span><br><br>
-                                    <strong>&nbsp;&nbsp;{{ $arrival->ETD ? $arrival->ETD->format('d-M-y') : '' }}</strong>
+                                    <strong>&nbsp;&nbsp;{{ $arrival->ETD ? \Carbon\Carbon::parse($arrival->ETD)->format('d-M-y') : '' }}</strong>
                                 </td>
                             </tr>
                         </table>

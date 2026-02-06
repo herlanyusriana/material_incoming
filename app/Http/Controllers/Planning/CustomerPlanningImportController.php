@@ -121,7 +121,7 @@ class CustomerPlanningImportController extends Controller
 
         if (!$importer->format) {
             $found = collect($importer->detectedHeaders ?? [])
-                ->filter(fn ($h) => trim((string) $h) !== '')
+                ->filter(fn($h) => trim((string) $h) !== '')
                 ->take(12)
                 ->implode(', ');
             $suffix = $found !== '' ? " Headers ditemukan: {$found}" : '';
@@ -237,7 +237,7 @@ class CustomerPlanningImportController extends Controller
                     if ($qty <= 0) {
                         continue;
                     }
-                    foreach ($weekMap[$monthHeader] as $wm) {
+                    foreach ($weekMap->get($monthHeader) as $wm) {
                         $minggu = $wm['minggu'];
                         $alloc = $qty * (float) $wm['ratio'];
                         $key = $customerPartNo . '|' . $minggu;

@@ -216,12 +216,15 @@
                             <tbody class="divide-y divide-slate-100">
                                 @forelse(($parts ?? []) as $p)
                                     <tr class="hover:bg-slate-50">
-                                        <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_no }}</td>
-                                        <td class="px-4 py-3 text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->part_name }}</td>
-                                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{{ $p->model }}</td>
+                                        <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{{ optional($p)->part_no }}</td>
+                                        <td class="px-4 py-3 text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{{ optional($p)->part_name }}</td>
+                                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{{ optional($p)->model }}</td>
                                         
                                         @if($viewMode === 'calendar')
-                                            @php $byPeriod = $p->mps->keyBy('period'); @endphp
+                                            @php
+                                                $mps = optional($p)->mps ?? collect();
+                                                $byPeriod = $mps->keyBy('period');
+                                            @endphp
                                             @foreach($weeksValue as $w)
                                                 @php $cell = $byPeriod->get($w); @endphp
                                                 <td class="px-4 py-3 text-center">
@@ -240,7 +243,7 @@
                                                             <button
                                                                 type="button"
                                                                 class="inline-flex flex-1 min-w-0 items-center justify-center px-3 py-1 rounded-full text-xs font-semibold {{ $cell->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' }}"
-                                                                @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
+                                                                @click="openCell(@js(['part_id' => optional($p)->id, 'part_no' => optional($p)->part_no, 'part_name' => optional($p)->part_name, 'period' => $w, 'planned_qty' => $cell->planned_qty, 'status' => $cell->status]))"
                                                             >
                                                                 {{ formatNumber($cell->planned_qty) }}
                                                             </button>
@@ -249,7 +252,7 @@
                                                         <button
                                                             type="button"
                                                             class="inline-flex items-center justify-center w-full h-8 rounded-full border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300"
-                                                            @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $w, 'planned_qty' => 0, 'status' => 'draft']))"
+                                                            @click="openCell(@js(['part_id' => optional($p)->id, 'part_no' => optional($p)->part_no, 'part_name' => optional($p)->part_name, 'period' => $w, 'planned_qty' => 0, 'status' => 'draft']))"
                                                         >
                                                             +
                                                         </button>
@@ -260,11 +263,12 @@
                                             <!-- Monthly -->
                                             @foreach($months as $m)
                                         @php
-                                            $byPeriod = $p->mps->keyBy('period');
+                                            $mps = optional($p)->mps ?? collect();
+                                            $byPeriod = $mps->keyBy('period');
                                             $monthlyCell = $byPeriod->get($m);
                                             $weeksForMonth = $monthWeeksMapValue[$m] ?? [];
-                                            $monthSum = $monthlyCell ? (float) $monthlyCell->planned_qty : (float) $p->mps->whereIn('period', $weeksForMonth)->sum('planned_qty');
-                                            $hasDraftInMonth = $p->mps
+                                            $monthSum = $monthlyCell ? (float) $monthlyCell->planned_qty : (float) $mps->whereIn('period', $weeksForMonth)->sum('planned_qty');
+                                            $hasDraftInMonth = $mps
                                                 ->whereIn('period', array_merge([$m], $weeksForMonth))
                                                 ->where('status', '!=', 'approved')
                                                 ->isNotEmpty();
@@ -275,7 +279,7 @@
                                                     <input
                                                         type="checkbox"
                                                         name="approve_keys[]"
-                                                        value="{{ $p->id }}|{{ $m }}"
+                                                        value="{{ optional($p)->id }}|{{ $m }}"
                                                         form="approve-month-form"
                                                         class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                                                         title="Select to approve month"
@@ -284,7 +288,7 @@
                                                 <button
                                                     type="button"
                                                     class="inline-flex flex-1 min-w-0 items-center justify-center px-3 py-1 rounded-full text-xs font-semibold {{ ($monthlyCell && $monthlyCell->status === 'approved') ? 'bg-emerald-100 text-emerald-800' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50' }}"
-                                                    @click="openCell(@js(['part_id' => $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'period' => $m, 'planned_qty' => $monthSum, 'status' => $monthlyCell?->status ?? 'draft']))"
+                                                    @click="openCell(@js(['part_id' => optional($p)->id, 'part_no' => optional($p)->part_no, 'part_name' => optional($p)->part_name, 'period' => $m, 'planned_qty' => $monthSum, 'status' => $monthlyCell?->status ?? 'draft']))"
                                                     title="Click to set monthly plan"
                                                 >
                                                     {{ formatNumber($monthSum) }}
@@ -380,7 +384,7 @@
                             </tbody>
                         </table>
                         
-                        @if($rows instanceof \Illuminate\Contracts\Pagination\Paginator)
+                        @if($rows instanceof \Illuminate\Pagination\LengthAwarePaginator)
                             <div class="p-4 border-t border-slate-200">
                                 {{ $rows->links() }}
                             </div>

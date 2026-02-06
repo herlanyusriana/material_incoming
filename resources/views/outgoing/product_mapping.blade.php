@@ -44,9 +44,9 @@
             <div class="mt-4 flex flex-wrap gap-2">
                 <span class="text-xs text-slate-500 font-semibold">Quick search:</span>
                 @foreach(($recentParts ?? []) as $part)
-                    <button type="button" @click="searchQuery = '{{ $part->part_no }}'; search()"
+                    <button type="button" @click="searchQuery = '{{ optional($part)->part_no }}'; search()"
                         class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
-                        {{ $part->part_no }}
+                        {{ optional($part)->part_no }}
                     </button>
                 @endforeach
             </div>
