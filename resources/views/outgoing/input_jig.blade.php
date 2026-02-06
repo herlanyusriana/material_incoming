@@ -82,6 +82,7 @@
                                         class="w-full h-full border-0 bg-transparent text-center font-bold text-slate-900 focus:ring-1 focus:ring-indigo-500 p-2"
                                         @change="updateUph('{{ $item->id }}', $event.target.value)">
                                 </td>
+                                <td class="px-4 py-3 text-slate-600 bg-white group-hover:bg-slate-50 border-r border-slate-100 sticky left-24 z-10">
                                     {{ $item->customerPart->customer_part_name ?? '-' }}
                                     <div class="text-[10px] text-slate-400 font-mono">{{ $item->customerPart->customer_part_no ?? '' }}</div>
                                 </td>
