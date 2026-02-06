@@ -461,53 +461,123 @@ class OutgoingController extends Controller
             $dayCells = $cells->filter(fn($c) => $c->plan_date->toDateString() === $dateStr);
             $dayCellsByPart = $dayCells->groupBy(fn($c) => (int) ($c->row?->gci_part_id ?? 0));
 
+            // Pre-load mappings to avoid N+1 inside the loop
+            // We need to know which CustomerParts use this GciPart.
+            // Structure: GciPart -> hasMany(CustomerPartComponent) -> belongsTo(CustomerPart)
+            // But efficiently:
+            $gciPartIds = $fgParts->pluck('id')->unique();
+            $mappingsGrouped = \App\Models\CustomerPartComponent::query()
+                ->whereIn('gci_part_id', $gciPartIds)
+                ->with('customerPart')
+                ->get()
+                ->groupBy('gci_part_id');
+
             foreach ($fgParts as $gciPart) {
                 $partId = (int) $gciPart->id;
                 $partDayCells = $dayCellsByPart->get($partId, collect());
-                $grossQty = $partDayCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
 
-                if ($grossQty <= 0) {
-                    // continue; // Skip part with no demand on this day (No value hide) -> User requested STATIC list based on FG parts
+                // Group cells by customer_part_id to separate demand per User Model
+                $cellsByCustomerPart = $partDayCells->groupBy(fn($c) => (int) ($c->row?->customer_part_id ?? 0));
+
+                // Get all known mappings for this GCI Part
+                $potentialMappings = $mappingsGrouped->get($partId, collect());
+
+                // Identify all Customer Parts relevant to this GCI Part (both from static mappings and actual demand)
+                $relevantCustomerPartIds = $potentialMappings->pluck('customer_part_id')->merge($cellsByCustomerPart->keys())->unique()->filter()->values();
+
+                // If no specific customer part logic applies, treat as generic single row
+                if ($relevantCustomerPartIds->isEmpty()) {
+                    $grossQty = $partDayCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+                    // If hidden 0 qty logic is desired, uncomment check below. Currently showing all FGs.
+                    // if ($grossQty <= 0) continue; 
+
+                    $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+                    $sequences = $partDayCells->pluck('seq')->filter()->unique()->sort()->values()->all();
+                    $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+
+                    $lines->push((object) [
+                        'date' => $day->copy(),
+                        'customer' => $gciPart->customer,
+                        'gci_part' => $gciPart,
+                        'customer_part_no' => $gciPart->part_no,
+                        'customer_part_name' => $gciPart->part_name, // Default to GCI name if no mapping
+                        'unmapped' => false,
+                        'gross_qty' => $grossQty,
+                        'sequence' => $primarySequence,
+                        'sequences_consolidated' => $sequences,
+                        'packing_std' => $packingQty,
+                        'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
+                        'source_row_ids' => $partDayCells->pluck('row_id')->unique()->values()->all(),
+                    ]);
+                    continue;
                 }
 
-                $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
-                $sequences = $partDayCells
-                    ->map(fn($c) => $c->seq !== null && $c->seq !== '' ? (int) $c->seq : null)
-                    ->filter(fn($s) => $s !== null)
-                    ->unique()
-                    ->sort()
-                    ->values()
-                    ->all();
-                $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+                // Iterate through each specific Customer Part (Model)
+                foreach ($relevantCustomerPartIds as $cpId) {
+                    $cpId = (int) $cpId;
+                    $specificCells = $cellsByCustomerPart->get($cpId, collect());
 
-                $sourcePartNo = $partDayCells->first()?->row?->part_no;
-                // If not in row, check if mapped to a customer part
-                if (!$sourcePartNo && $gciPart->id) {
-                    $mapping = \App\Models\CustomerPart::whereHas('components', function ($q) use ($gciPart) {
-                        $q->where('gci_part_id', $gciPart->id);
-                    })
-                        ->with(['components' => fn($q) => $q->where('gci_part_id', $gciPart->id)])
-                        ->latest() // Get the most recent mapping if multiple exist
-                        ->first();
+                    // Get Customer Part Details
+                    // Try to find in mappings first
+                    $mapComp = $potentialMappings->firstWhere('customer_part_id', $cpId);
+                    $customerPart = $mapComp?->customerPart;
 
-                    if ($mapping) {
-                        $sourcePartNo = $mapping->customer_part_no;
+                    // If not in mappings (maybe demand came from a CP that isn't cleanly mapped? unlikely but possible), load it
+                    if (!$customerPart && $cpId > 0) {
+                        $customerPart = \App\Models\CustomerPart::find($cpId);
                     }
+
+                    $grossQty = $specificCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+
+                    // Skip if no demand AND user only wants to see demand? 
+                    // OR skip if no demand AND it wasn't in the static list?
+                    // Current requirement seems to be "Show FG list", but now split by Model.
+                    // If a Model exists for this FG but has 0 qty, should it show?
+                    // Following previous pattern: show it (since we iterate relevantCustomerPartIds which includes static mappings).
+
+                    $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+                    $sequences = $specificCells->pluck('seq')->filter()->unique()->sort()->values()->all();
+                    $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+
+                    $lines->push((object) [
+                        'date' => $day->copy(),
+                        'customer' => $customerPart?->customer ?? $gciPart->customer,
+                        'gci_part' => $gciPart,
+                        'customer_part_no' => $customerPart?->customer_part_no ?? $gciPart->part_no,
+                        'customer_part_name' => $customerPart?->customer_part_name ?? $gciPart->part_name, // Specific Model Name
+                        'unmapped' => false,
+                        'gross_qty' => $grossQty,
+                        'sequence' => $primarySequence,
+                        'sequences_consolidated' => $sequences,
+                        'packing_std' => $packingQty,
+                        'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
+                        'source_row_ids' => $specificCells->pluck('row_id')->unique()->values()->all(),
+                    ]);
                 }
 
-                $lines->push((object) [
-                    'date' => $day->copy(),
-                    'customer' => $gciPart->customer,
-                    'gci_part' => $gciPart,
-                    'customer_part_no' => $sourcePartNo ?? $gciPart->part_no,
-                    'unmapped' => false,
-                    'gross_qty' => $grossQty,
-                    'sequence' => $primarySequence,
-                    'sequences_consolidated' => $sequences,
-                    'packing_std' => $packingQty,
-                    'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
-                    'source_row_ids' => $partDayCells->pluck('row_id')->unique()->values()->all(),
-                ]);
+                // Handle Generic/Unspecified Demand for this GCI Part (cpId == 0)
+                $genericCells = $cellsByCustomerPart->get(0, collect());
+                if ($genericCells->isNotEmpty()) {
+                    $grossQty = $genericCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+                    $sequences = $genericCells->pluck('seq')->filter()->unique()->sort()->values()->all();
+                    $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+                    $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+
+                    $lines->push((object) [
+                        'date' => $day->copy(),
+                        'customer' => $gciPart->customer,
+                        'gci_part' => $gciPart,
+                        'customer_part_no' => $gciPart->part_no . ' (Unspecified)',
+                        'customer_part_name' => $gciPart->part_name,
+                        'unmapped' => false,
+                        'gross_qty' => $grossQty,
+                        'sequence' => $primarySequence,
+                        'sequences_consolidated' => $sequences,
+                        'packing_std' => $packingQty,
+                        'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
+                        'source_row_ids' => $genericCells->pluck('row_id')->unique()->values()->all(),
+                    ]);
+                }
             }
 
             /*

@@ -70,7 +70,7 @@
                                     FG Part No.</th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
-                                    Model</th>
+                                    Customer Part Name</th>
                                 <th
                                     class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
                                     Cust. Stock</th>
@@ -121,7 +121,7 @@
                                     </td>
 
                                     <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">
-                                        {{ $req->gci_part?->model ?: '-' }}
+                                        {{ $req->customer_part_name ?? '-' }}
                                     </td>
 
                                     <td class="px-4 py-3 text-right font-medium text-slate-500 border-x border-slate-100">

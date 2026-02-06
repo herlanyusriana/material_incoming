@@ -134,7 +134,7 @@
                                                         continue;
                                                 @endphp
                                                 <tr class="hover:bg-slate-50">
-                                                    <td class="px-4 py-3 font-mono text-sm font-bold text-slate-700">
+                                                    <td class="px-4 py-3 font-mono text-sm font-bold text-red-600">
                                                         {{ $uRow->part_no }}</td>
                                                     <td class="px-4 py-3 text-sm text-slate-600">{{ $uRow->production_line }}</td>
                                                     <td class="px-4 py-3 text-sm text-right font-medium text-slate-900">
