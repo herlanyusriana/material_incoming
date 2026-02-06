@@ -132,16 +132,13 @@
                     <thead class="bg-slate-50">
                         <tr>
                             <th
-                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-40 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">
-                                Customer Name</th>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-slate-200 sticky left-40 z-10 bg-slate-50">
+                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-24 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">
                                 Line</th>
                             <th
-                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-64 z-10 bg-slate-50">
+                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">
                                 Customer Name</th>
                             <th
-                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-96 z-10 bg-slate-50">
+                                class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-56 z-10 bg-slate-50">
                                 Customer Part No</th>
                             @foreach ($days as $index => $d)
                                 <th
@@ -165,19 +162,15 @@
                             @endphp
                             <tr class="hover:bg-slate-50 group">
                                 <td
-                                    class="px-4 py-3 font-semibold text-slate-700 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
-                                    {{ $row->gciPart->customer->name ?? ($row->customerPart->customer->name ?? '-') }}
-                                </td>
-                                <td
-                                    class="px-4 py-3 text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-40 z-10 border-r border-slate-100">
+                                    class="px-4 py-3 text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-0 z-10 border-r border-slate-100">
                                     {{ $row->production_line }}
                                 </td>
-                                <td class="px-4 py-3 text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-64 z-10 border-r border-slate-100 max-w-[150px] truncate"
+                                <td class="px-4 py-3 text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-24 z-10 border-r border-slate-100 max-w-[150px] truncate"
                                     title="{{ $row->gciPart->project_name ?? '-' }}">
                                     {{ $row->gciPart->model ?? '-' }}
                                 </td>
                                 <td
-                                    class="px-4 py-3 font-mono text-xs font-bold text-indigo-700 bg-white group-hover:bg-slate-50 sticky left-96 z-10 border-r border-slate-100">
+                                    class="px-4 py-3 font-mono text-xs font-bold text-indigo-700 bg-white group-hover:bg-slate-50 sticky left-56 z-10 border-r border-slate-100">
                                     {{ $row->customerPart->customer_part_no ?? $row->part_no }}
                                 </td>
                                 @foreach ($days as $d)
@@ -196,7 +189,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 4 + count($days) }}" class="px-6 py-12 text-center text-slate-500">
+                                <td colspan="{{ 3 + count($days) }}" class="px-6 py-12 text-center text-slate-500">
                                     @if($plan)
                                         <div class="flex flex-col items-center">
                                             <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor"
@@ -217,7 +210,7 @@
                     </tbody>
                     <tfoot class="bg-slate-50 font-bold sticky bottom-0 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
                         <tr>
-                            <td colspan="4"
+                            <td colspan="3"
                                 class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider border-r border-slate-200 sticky left-0 z-20 bg-slate-50">
                                 Daily Total
                             </td>

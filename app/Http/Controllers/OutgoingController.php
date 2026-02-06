@@ -539,86 +539,36 @@ class OutgoingController extends Controller
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
+        // Allocate StockAtCustomer per date+customer+part
         $requirements = $lines
-            ->groupBy(function ($r) {
-                $date = $r->date?->format('Y-m-d') ?? '';
+            ->map(function ($r) use ($getStockAtCustomer) {
+                // Calculate quantities for each line (GCI Part / Unmapped) individually
+                $date = $r->date;
                 $custId = (int) ($r->customer?->id ?? 0);
-                // Group by Customer Part No instead of GCI Part ID to sum duplicates
-                $custPart = trim((string) ($r->customer_part_no ?? ''));
-                return "{$date}|cust:{$custId}|cp:{$custPart}";
-            })
-            ->flatMap(function ($group) use ($getStockAtCustomer) {
-                /** @var \Illuminate\Support\Collection $group */
-                $first = $group->first();
+                $partId = (int) ($r->gci_part?->id ?? 0);
 
-                // If there's only one item, process as before to preserve exact object
-                if ($group->count() === 1) {
-                    $r = $first;
-                    $date = $r->date;
-                    $custId = (int) ($r->customer?->id ?? 0);
-                    $partId = (int) ($r->gci_part?->id ?? 0);
-
-                    $stockTotal = 0.0;
-                    if ($date && $custId > 0 && $partId > 0) {
-                        $stockTotal = $getStockAtCustomer($date, $custId, $partId);
-                    }
-
-                    $gross = (float) ($r->gross_qty ?? 0);
-                    // Stock logic for single item
-                    $used = 0.0;
-                    if ($stockTotal > 0 && $gross > 0) {
-                        $used = min($gross, $stockTotal);
-                    }
-
-                    $r->stock_at_customer = $stockTotal;
-                    $r->stock_used = $used;
-                    $r->total_qty = max(0, $gross - $used);
-
-                    // Recalculate packing
-                    $packQty = (float) ($r->packing_std ?? 1);
-                    $packQty = $packQty > 0 ? $packQty : 1;
-                    $r->packing_load = (int) ceil(((float) $r->total_qty) / $packQty);
-                    $r->delivery_pack_qty = $r->packing_load * $packQty;
-
-                    return collect([$r]);
-                }
-
-                // If multiple parts map to same Customer Part, merge them
-                $merged = clone $first;
-
-                // Sum gross qty
-                $grossQtyTotal = $group->sum(fn($r) => (float) ($r->gross_qty ?? 0));
-
-                // Sum stock from ALL GCI parts involved
                 $stockTotal = 0.0;
-                $uniquePartIds = $group->map(fn($r) => (int) ($r->gci_part?->id ?? 0))->filter()->unique();
-                if ($first->date && $first->customer?->id) {
-                    foreach ($uniquePartIds as $pid) {
-                        $stockTotal += $getStockAtCustomer($first->date, $first->customer->id, $pid);
-                    }
+                if ($date && $custId > 0 && $partId > 0) {
+                    $stockTotal = $getStockAtCustomer($date, $custId, $partId);
                 }
 
-                // Merge source row IDs
-                $merged->source_row_ids = $group->pluck('source_row_ids')->flatten()->unique()->values()->all();
-
-                // Apply stock deduction to total
+                $gross = (float) ($r->gross_qty ?? 0);
                 $used = 0.0;
-                if ($stockTotal > 0 && $grossQtyTotal > 0) {
-                    $used = min($grossQtyTotal, $stockTotal);
+                if ($stockTotal > 0 && $gross > 0) {
+                    $used = min($gross, $stockTotal);
                 }
 
-                $merged->gross_qty = $grossQtyTotal;
-                $merged->stock_at_customer = $stockTotal;
-                $merged->stock_used = $used;
-                $merged->total_qty = max(0, $grossQtyTotal - $used);
+                $r->stock_at_customer = $stockTotal;
+                $r->stock_used = $used;
+                $r->total_qty = max(0, $gross - $used);
 
                 // Recalculate packing
-                $packQty = (float) ($merged->packing_std ?? 1);
+                $packQty = (float) ($r->packing_std ?? 1);
                 $packQty = $packQty > 0 ? $packQty : 1;
-                $merged->packing_load = (int) ceil(((float) $merged->total_qty) / $packQty);
-                $merged->delivery_pack_qty = $merged->packing_load * $packQty;
+                $r->packing_load = (int) ceil(((float) $r->total_qty) / $packQty);
+                $r->delivery_pack_qty = $r->packing_load * $packQty;
 
-                return collect([$merged]);
+                return $r;
             })
             ->values()
             ->sort(function ($a, $b) use ($sortBy, $sortDir) {
