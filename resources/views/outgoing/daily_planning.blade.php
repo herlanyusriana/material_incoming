@@ -139,7 +139,7 @@
                                 Line</th>
                             <th
                                 class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200 sticky left-64 z-10 bg-slate-50">
-                                Project Name</th>
+                                Customer Name</th>
                             <th
                                 class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-48 border-r border-slate-200 sticky left-96 z-10 bg-slate-50">
                                 Customer Part No</th>
