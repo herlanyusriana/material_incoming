@@ -247,30 +247,19 @@ class OutgoingDailyPlanningImport implements ToCollection
                     if ($gciPart) {
                         $gciPartId = $gciPart->id;
                     } else {
-                        // Auto-create Customer Part and GCI Part as fallback
-                        $gciPart = GciPart::create([
-                            'part_no' => $partNo,
-                            'part_name' => $partNo,
-                            'classification' => 'FG',
-                            'status' => 'active',
-                        ]);
-                        $gciPartId = $gciPart->id;
+                        if ($gciPart) {
+                            $gciPartId = $gciPart->id;
+                        } else {
+                            // DO NOT Auto-create.
+                            // Leave gciPartId and customerPartId as null.
+                            // Add to "failures" or a specific warning list so user knows it is unmapped.
+                            // The controller will display the `failures` or `createdParts` (we can hijack createdParts for info if we want, or use failures).
+                            // Let's use a new format in createdParts to indicate UNMAPPED status since failures might block the whole import in some logic (though current controller uses failures for hard errors).
 
-                        $customerPart = \App\Models\CustomerPart::create([
-                            'customer_part_no' => $partNo,
-                            'customer_part_name' => $partNo,
-                            'status' => 'active',
-                        ]);
-                        $customerPartId = $customerPart->id;
-
-                        // Link them
-                        \App\Models\CustomerPartComponent::create([
-                            'customer_part_id' => $customerPartId,
-                            'gci_part_id' => $gciPartId,
-                            'qty_per_unit' => 1,
-                        ]);
-
-                        $this->createdParts[] = $partNo . " (New Customer & GCI Part)";
+                            // We'll leave them null. The controller/daily planning page already has logic to show "Unmapped" parts based on null gci_part_id.
+                            // But we also want to explicitly tell them NOW.
+                            $this->createdParts[] = $partNo . " (UNMAPPED - Not found in Customer Parts or GCI Parts)";
+                        }
                     }
                 }
             }

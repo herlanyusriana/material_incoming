@@ -215,7 +215,7 @@ class OutgoingController extends Controller
 
         $msg = 'Daily planning berhasil diimport.';
         if (!empty($import->createdParts)) {
-            $msg .= ' (Info: ' . count($import->createdParts) . ' part baru otomatis didaftarkan: ' . implode(', ', array_slice($import->createdParts, 0, 5)) . (count($import->createdParts) > 5 ? '...' : '') . ')';
+            $msg .= '<br><br><strong>Info Unmapped Parts:</strong> ' . count($import->createdParts) . ' part tidak ter-mapping:<br>' . implode('<br>', array_slice($import->createdParts, 0, 10)) . (count($import->createdParts) > 10 ? '<br>...' : '');
         }
 
         return redirect()->route('outgoing.daily-planning', ['plan_id' => $plan?->id])->with('success', $msg);
