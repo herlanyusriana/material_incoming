@@ -11,6 +11,17 @@
             <form action="{{ route('receives.invoice.store', $arrival) }}" method="POST" enctype="multipart/form-data" class="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 space-y-8" id="receive-form">
                 @csrf
 
+                @if ($errors->any())
+                    <div class="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200">
+                        <div class="font-semibold mb-1">Terjadi Kesalahan:</div>
+                        <ul class="list-disc ml-5 text-sm">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <div class="flex items-center justify-between pb-6 border-b border-slate-200">
                     <div>
                         <h3 class="text-xl font-bold text-slate-900">Receive Multiple Items</h3>
@@ -262,6 +273,7 @@
                                     data-part-no="{{ $item->part->part_no }}"
                                     data-part-name="{{ $item->part->part_name_gci ?? $item->part->part_name_vendor }}"
                                     data-goods-unit="{{ strtoupper($item->unit_goods ?? 'KGM') }}"
+                                    data-old-tags="{{ json_encode(old("items.{$item->id}.tags")) }}"
                                 >
                                     <tr class="tag-row hover:bg-slate-50 transition-colors">
                                         <td class="px-3 py-2 align-top">
@@ -338,41 +350,41 @@
                                     <tbody class="divide-y divide-slate-100 bg-white">
                                         <tr class="hover:bg-slate-50 transition-colors">
                                             <td class="px-3 py-2 align-top">
-                                                <input type="text" name="items[{{ $item->id }}][summary][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
+                                                <input type="text" name="items[{{ $item->id }}][summary][location_code]" value="{{ old("items.{$item->id}.summary.location_code") }}" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
                                             </td>
                                             <td class="px-3 py-2 align-top">
                                                 @php
                                                     $defaultBundleUnit = strtoupper($item->unit_bundle ?? 'PALLET');
                                                 @endphp
                                                 <div class="flex items-center gap-2">
-                                                    <input type="number" name="items[{{ $item->id }}][summary][bundle_qty]" min="0" value="{{ (int) ($item->qty_bundle ?? 0) }}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                    <input type="number" name="items[{{ $item->id }}][summary][bundle_qty]" min="0" value="{{ old("items.{$item->id}.summary.bundle_qty", (int) ($item->qty_bundle ?? 0)) }}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
                                                     <select name="items[{{ $item->id }}][summary][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                                        <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
-                                                        <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
-                                                        <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
-                                                        <option value="BAG" @selected($defaultBundleUnit === 'BAG')>BAG</option>
-                                                        <option value="ROLL" @selected($defaultBundleUnit === 'ROLL')>ROLL</option>
+                                                        <option value="PALLET" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'PALLET')>PALLET</option>
+                                                        <option value="BUNDLE" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BUNDLE')>BUNDLE</option>
+                                                        <option value="BOX" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BOX')>BOX</option>
+                                                        <option value="BAG" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BAG')>BAG</option>
+                                                        <option value="ROLL" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'ROLL')>ROLL</option>
                                                     </select>
                                                 </div>
                                             </td>
                                             <td class="px-3 py-2 align-top">
                                                 @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
                                                 <div class="flex items-center gap-2">
-                                                    <input type="number" name="items[{{ $item->id }}][summary][qty]" min="0" placeholder="0" class="no-tag-qty w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
+                                                    <input type="number" name="items[{{ $item->id }}][summary][qty]" min="0" value="{{ old("items.{$item->id}.summary.qty") }}" placeholder="0" class="no-tag-qty w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
                                                     <input type="hidden" name="items[{{ $item->id }}][summary][qty_unit]" value="{{ $defaultGoodsUnit }}">
                                                     <span class="w-24 text-center text-xs font-semibold text-slate-700">{{ $defaultGoodsUnit }}</span>
                                                 </div>
                                             </td>
                                             <td class="px-3 py-2 align-top">
-                                                <input type="number" name="items[{{ $item->id }}][summary][net_weight]" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                <input type="number" name="items[{{ $item->id }}][summary][net_weight]" value="{{ old("items.{$item->id}.summary.net_weight") }}" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
                                             </td>
                                             <td class="px-3 py-2 align-top">
-                                                <input type="number" name="items[{{ $item->id }}][summary][gross_weight]" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                <input type="number" name="items[{{ $item->id }}][summary][gross_weight]" value="{{ old("items.{$item->id}.summary.gross_weight") }}" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
                                             </td>
                                             <td class="px-3 py-2 align-top">
                                                 <select name="items[{{ $item->id }}][summary][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                                    <option value="pass">Pass</option>
-                                                    <option value="reject">Reject</option>
+                                                    <option value="pass" @selected(old("items.{$item->id}.summary.qc_status") === 'pass')>Pass</option>
+                                                    <option value="reject" @selected(old("items.{$item->id}.summary.qc_status") === 'reject')>Reject</option>
                                                 </select>
                                             </td>
                                         </tr>
@@ -472,43 +484,47 @@
             }
         }
 
-	        function createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit) {
+	        function createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit, values = null) {
+                const v = values || {};
+                const val = (key, def = '') => v[key] !== undefined && v[key] !== null ? v[key] : def;
+                const sel = (key, opt) => val(key) === opt ? 'selected' : '';
+
 	            return `
 	                <td class="px-3 py-2 align-top">
-	                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" value="${val('tag')}" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
 	                </td>
 	                <td class="px-3 py-2 align-top">
-	                    <input type="text" name="items[${itemId}][tags][${idx}][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
+	                    <input type="text" name="items[${itemId}][tags][${idx}][location_code]" value="${val('location_code')}" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
 	                </td>
 	                <td class="px-3 py-2 align-top">
                         <div class="flex items-center gap-2">
-	                        <input type="number" name="items[${itemId}][tags][${idx}][bundle_qty]" min="0" value="0" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                        <input type="number" name="items[${itemId}][tags][${idx}][bundle_qty]" min="0" value="${val('bundle_qty', 0)}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
 	                            <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-	                                <option value="PALLET">PALLET</option>
-	                                <option value="BUNDLE">BUNDLE</option>
-	                                <option value="BOX">BOX</option>
-	                                <option value="BAG">BAG</option>
-	                                <option value="ROLL">ROLL</option>
+	                                <option value="PALLET" ${sel('bundle_unit', 'PALLET')}>PALLET</option>
+	                                <option value="BUNDLE" ${sel('bundle_unit', 'BUNDLE')}>BUNDLE</option>
+	                                <option value="BOX" ${sel('bundle_unit', 'BOX')}>BOX</option>
+	                                <option value="BAG" ${sel('bundle_unit', 'BAG')}>BAG</option>
+	                                <option value="ROLL" ${sel('bundle_unit', 'ROLL')}>ROLL</option>
 	                            </select>
                         </div>
 	                </td>
 		                <td class="px-3 py-2 align-top">
 	                        <div class="flex items-center gap-2">
-		                        <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="1" placeholder="Qty ${goodsUnit}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="${itemId}">
+		                        <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="${val('qty', 1)}" placeholder="Qty ${goodsUnit}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="${itemId}">
 	                            <input type="hidden" name="items[${itemId}][tags][${idx}][qty_unit]" value="${goodsUnit}">
 	                            <span class="w-24 text-center text-xs font-semibold text-slate-700">${goodsUnit}</span>
 	                        </div>
 		                </td>
 	                <td class="px-3 py-2 align-top">
-	                    <input type="number" name="items[${itemId}][tags][${idx}][net_weight]" step="0.01" placeholder="0.00" value="${defaultWeight || ''}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                    <input type="number" name="items[${itemId}][tags][${idx}][net_weight]" step="0.01" placeholder="0.00" value="${val('net_weight', defaultWeight || '')}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
 	                </td>
 	                <td class="px-3 py-2 align-top">
-	                    <input type="number" name="items[${itemId}][tags][${idx}][gross_weight]" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                    <input type="number" name="items[${itemId}][tags][${idx}][gross_weight]" step="0.01" placeholder="0.00" value="${val('gross_weight')}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
 	                </td>
                 <td class="px-3 py-2 align-top">
                     <select name="items[${itemId}][tags][${idx}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                        <option value="pass">Pass</option>
-                        <option value="reject">Reject</option>
+                        <option value="pass" ${sel('qc_status', 'pass')}>Pass</option>
+                        <option value="reject" ${sel('qc_status', 'reject')}>Reject</option>
                     </select>
                 </td>
             `;
@@ -544,27 +560,45 @@
                 const itemId = tbody.dataset.item;
                 const bundleCount = Number(tbody.dataset.bundles || '0');
                 const firstNetWeightInput = tbody.querySelector('input[name$="[net_weight]"], input[name$="[weight]"]');
-                tbody.dataset.defaultWeight = firstNetWeightInput ? firstNetWeightInput.value || '' : '';
+                if (!tbody.dataset.defaultWeight && firstNetWeightInput && firstNetWeightInput.value) {
+                     tbody.dataset.defaultWeight = firstNetWeightInput.value;
+                }
+                const defaultWeight = tbody.dataset.defaultWeight;
 
                 const sizeText = tbody.dataset.size || '';
                 const partNo = tbody.dataset.partNo || '';
                 const partName = tbody.dataset.partName || '';
-                const defaultWeight = tbody.dataset.defaultWeight;
                 const goodsUnit = tbody.dataset.goodsUnit || 'KGM';
+
+                let oldTags = null;
+                try {
+                    if (tbody.dataset.oldTags && tbody.dataset.oldTags !== 'null') {
+                        oldTags = JSON.parse(tbody.dataset.oldTags);
+                    }
+                } catch (e) { }
 
                 tbody.innerHTML = '';
 
-                const rowsToCreate = bundleCount > 0 ? bundleCount : 1;
+                let rowsToCreate = 0;
+                let dataSrc = [];
+
+                if (oldTags && Array.isArray(oldTags) && oldTags.length > 0) {
+                     rowsToCreate = oldTags.length;
+                     dataSrc = oldTags;
+                } else {
+                     rowsToCreate = bundleCount > 0 ? bundleCount : 1;
+                }
 
                 for (let idx = 0; idx < rowsToCreate; idx++) {
                     const row = document.createElement('tr');
                     row.className = 'tag-row hover:bg-slate-50 transition-colors';
-                    row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit);
+                    const val = dataSrc[idx] || null;
+                    row.innerHTML = createTagRowHtml(itemId, idx, sizeText, partNo, partName, defaultWeight, goodsUnit, val);
                     tbody.appendChild(row);
                     bindRowEvents(row, itemId);
                 }
 
-                if (isLocal) {
+                if (isLocal && !oldTags) {
                     tbody.querySelectorAll('input[name*="[tag]"]').forEach((input, i) => {
                         if (input.value && String(input.value).trim() !== '') return;
                         input.value = `${String(itemId).padStart(3, '0')}-${String(i + 1).padStart(3, '0')}`;

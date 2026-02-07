@@ -332,28 +332,28 @@ class ReceiveController extends Controller
             : null;
 
         // --- BOM Validation (Strict) ---
-        if ($partId) {
-            $part = \App\Models\Part::with('gciPart')->find($partId);
-            $gciPart = $part?->gciPart;
+        // if ($partId) {
+        //     $part = \App\Models\Part::with('gciPart')->find($partId);
+        //     $gciPart = $part?->gciPart;
 
-            if (!$gciPart) {
-                // If not even linked to master, it's definitely not in BOM (unless partId IS master, but we use Vendor Part ID here)
-                // But auto-linking should have handled this?
-                // For now, if no GCI link, we can't validate BOM.
-                // Should we block? User said: "barang yg belom ada di BOM ... di block".
-                // If it has no internal ID, it's an orphan vendor part.
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'tags' => "Part ini ({$part->part_no}) belum terdaftar di GCI Master Part. Harap hubungi Engineering/Admin.",
-                ]);
-            }
+        //     if (!$gciPart) {
+        //         // If not even linked to master, it's definitely not in BOM (unless partId IS master, but we use Vendor Part ID here)
+        //         // But auto-linking should have handled this?
+        //         // For now, if no GCI link, we can't validate BOM.
+        //         // Should we block? User said: "barang yg belom ada di BOM ... di block".
+        //         // If it has no internal ID, it's an orphan vendor part.
+        //         throw \Illuminate\Validation\ValidationException::withMessages([
+        //             'tags' => "Part ini ({$part->part_no}) belum terdaftar di GCI Master Part. Harap hubungi Engineering/Admin.",
+        //         ]);
+        //     }
 
-            // Check if GCI Part is used in any BOM
-            if (!$gciPart->componentUsages()->exists()) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'tags' => "Part ini ({$gciPart->part_no} / {$part->part_no}) BELUM TERDAFTAR di Bill of Material (BOM) manapun. Receiving DITOLAK.",
-                ]);
-            }
-        }
+        //     // Check if GCI Part is used in any BOM
+        //     if (!$gciPart->componentUsages()->exists()) {
+        //         throw \Illuminate\Validation\ValidationException::withMessages([
+        //             'tags' => "Part ini ({$gciPart->part_no} / {$part->part_no}) BELUM TERDAFTAR di Bill of Material (BOM) manapun. Receiving DITOLAK.",
+        //         ]);
+        //     }
+        // }
         // -------------------------------
 
         DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
@@ -579,22 +579,22 @@ class ReceiveController extends Controller
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
 
                 // --- BOM Validation (Strict) ---
-                $partId = (int) $arrivalItem->part_id;
-                if ($partId) {
-                    $part = \App\Models\Part::with('gciPart')->find($partId);
-                    $gciPart = $part?->gciPart;
+                // $partId = (int) $arrivalItem->part_id;
+                // if ($partId) {
+                //     $part = \App\Models\Part::with('gciPart')->find($partId);
+                //     $gciPart = $part?->gciPart;
 
-                    if (!$gciPart) {
-                        throw \Illuminate\Validation\ValidationException::withMessages([
-                            "items.$itemId.tags" => "Part ini ({$part->part_no}) belum terdaftar di GCI Master Part.",
-                        ]);
-                    }
-                    if (!$gciPart->componentUsages()->exists()) {
-                        throw \Illuminate\Validation\ValidationException::withMessages([
-                            "items.$itemId.tags" => "Part ini ({$gciPart->part_no}) BELUM TERDAFTAR di BOM manapun. Receiving DITOLAK.",
-                        ]);
-                    }
-                }
+                //     if (!$gciPart) {
+                //         throw \Illuminate\Validation\ValidationException::withMessages([
+                //             "items.$itemId.tags" => "Part ini ({$part->part_no}) belum terdaftar di GCI Master Part.",
+                //         ]);
+                //     }
+                //     if (!$gciPart->componentUsages()->exists()) {
+                //         throw \Illuminate\Validation\ValidationException::withMessages([
+                //             "items.$itemId.tags" => "Part ini ({$gciPart->part_no}) BELUM TERDAFTAR di BOM manapun. Receiving DITOLAK.",
+                //         ]);
+                //     }
+                // }
                 // -------------------------------
 
                 foreach ($itemData['tags'] as $tagData) {
