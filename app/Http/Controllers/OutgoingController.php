@@ -70,6 +70,11 @@ class OutgoingController extends Controller
             $plan = OutgoingDailyPlan::query()->latest('id')->first();
         }
 
+        // SYNC LOGIC: Ensure gci_part_id stays in sync with CustomerPartComponent mappings
+        if ($plan) {
+            $this->syncDailyPlanRowMappings($plan->id, $dateFrom, $dateTo);
+        }
+
         $days = $this->daysBetween($dateFrom, $dateTo);
 
         // Fetch rows based on the plan
@@ -331,33 +336,9 @@ class OutgoingController extends Controller
             $sortDir = 'asc';
         }
 
-        // Best-effort: backfill missing gci_part_id for rows that have demand in this date range.
-        $rowIdsNeedingFix = OutgoingDailyPlanCell::query()
-            ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
-            ->whereDate('outgoing_daily_plan_cells.plan_date', '>=', $dateFrom->format('Y-m-d'))
-            ->whereDate('outgoing_daily_plan_cells.plan_date', '<=', $dateTo->format('Y-m-d'))
-            ->where('outgoing_daily_plan_cells.qty', '>', 0)
-            ->whereNull('r.gci_part_id')
-            ->distinct()
-            ->pluck('r.id');
-
-        if ($rowIdsNeedingFix->isNotEmpty()) {
-            OutgoingDailyPlanRow::query()
-                ->whereIn('id', $rowIdsNeedingFix)
-                ->select(['id', 'part_no'])
-                ->chunk(200, function ($rows) {
-                    foreach ($rows as $row) {
-                        $partNo = $this->normalizePartNo((string) ($row->part_no ?? ''));
-                        if ($partNo === '') {
-                            continue;
-                        }
-                        $resolvedId = $this->resolveFgPartIdFromPartNo($partNo);
-                        if ($resolvedId) {
-                            OutgoingDailyPlanRow::query()->whereKey($row->id)->update(['gci_part_id' => $resolvedId]);
-                        }
-                    }
-                });
-        }
+        // SYNC LOGIC: Re-sync gci_part_id from CustomerPartComponent mapping for ALL rows in this date range.
+        // This ensures that if a user updates the mapping in Planning module, the Daily Plan rows are updated.
+        $this->syncDailyPlanRowMappings(null, $dateFrom, $dateTo);
 
         // Fetch planned cells within range (we will subtract fulfillments below)
         $cells = OutgoingDailyPlanCell::query()
@@ -816,6 +797,82 @@ class OutgoingController extends Controller
             $curr->addDay();
         }
         return $out;
+    }
+
+    /**
+     * Sync gci_part_id from CustomerPartComponent mappings for rows in the given plan and date range.
+     * This ensures that when customer part mappings are updated in Planning module,
+     * the Daily Plan rows are updated accordingly.
+     * 
+     * @param int|null $planId If null, sync all plans
+     */
+    private function syncDailyPlanRowMappings(?int $planId, Carbon $dateFrom, Carbon $dateTo): void
+    {
+        // Step 1: Rows that have a customer_part_id - sync from CustomerPartComponent
+        $rowsWithCustomerPart = OutgoingDailyPlanCell::query()
+            ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
+            ->whereDate('outgoing_daily_plan_cells.plan_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('outgoing_daily_plan_cells.plan_date', '<=', $dateTo->format('Y-m-d'))
+            ->where('outgoing_daily_plan_cells.qty', '>', 0)
+            ->when($planId !== null, fn($q) => $q->where('r.plan_id', $planId))
+            ->whereNotNull('r.customer_part_id')
+            ->distinct()
+            ->select('r.id', 'r.customer_part_id', 'r.gci_part_id')
+            ->get();
+
+        if ($rowsWithCustomerPart->isNotEmpty()) {
+            $customerPartIds = $rowsWithCustomerPart->pluck('customer_part_id')->unique()->filter()->values()->all();
+
+            // Get current FG mappings from CustomerPartComponent
+            $currentMappings = CustomerPartComponent::query()
+                ->whereIn('customer_part_id', $customerPartIds)
+                ->whereHas('part', fn($q) => $q->where('classification', 'FG'))
+                ->get()
+                ->keyBy('customer_part_id');
+
+            foreach ($rowsWithCustomerPart as $row) {
+                $cpId = (int) $row->customer_part_id;
+                $currentMapping = $currentMappings->get($cpId);
+                $expectedGciPartId = $currentMapping ? (int) $currentMapping->gci_part_id : null;
+                $currentGciPartId = $row->gci_part_id ? (int) $row->gci_part_id : null;
+
+                if ($expectedGciPartId !== $currentGciPartId) {
+                    OutgoingDailyPlanRow::query()
+                        ->whereKey($row->id)
+                        ->update(['gci_part_id' => $expectedGciPartId]);
+                }
+            }
+        }
+
+        // Step 2: Rows without customer_part_id but missing gci_part_id - try to resolve from part_no
+        $rowIdsNeedingFix = OutgoingDailyPlanCell::query()
+            ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
+            ->whereDate('outgoing_daily_plan_cells.plan_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('outgoing_daily_plan_cells.plan_date', '<=', $dateTo->format('Y-m-d'))
+            ->where('outgoing_daily_plan_cells.qty', '>', 0)
+            ->when($planId !== null, fn($q) => $q->where('r.plan_id', $planId))
+            ->whereNull('r.gci_part_id')
+            ->whereNull('r.customer_part_id')
+            ->distinct()
+            ->pluck('r.id');
+
+        if ($rowIdsNeedingFix->isNotEmpty()) {
+            OutgoingDailyPlanRow::query()
+                ->whereIn('id', $rowIdsNeedingFix)
+                ->select(['id', 'part_no'])
+                ->chunk(200, function ($rows) {
+                    foreach ($rows as $row) {
+                        $partNo = $this->normalizePartNo((string) ($row->part_no ?? ''));
+                        if ($partNo === '') {
+                            continue;
+                        }
+                        $resolvedId = $this->resolveFgPartIdFromPartNo($partNo);
+                        if ($resolvedId) {
+                            OutgoingDailyPlanRow::query()->whereKey($row->id)->update(['gci_part_id' => $resolvedId]);
+                        }
+                    }
+                });
+        }
     }
 
     public function normalizePartNo(string $partNo): string
