@@ -127,7 +127,14 @@ class OutgoingController extends Controller
 
         $unmappedCount = 0;
         if ($plan) {
-            $unmappedCount = $plan->rows()->whereNull('gci_part_id')->count();
+            // Count only rows with NULL gci_part_id that have demand in the selected date range
+            $unmappedCount = $plan->rows()
+                ->whereNull('gci_part_id')
+                ->whereHas('cells', function ($q) use ($dateFrom, $dateTo) {
+                    $q->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                        ->where('qty', '>', 0);
+                })
+                ->count();
         }
 
         return view('outgoing.daily_planning', compact(

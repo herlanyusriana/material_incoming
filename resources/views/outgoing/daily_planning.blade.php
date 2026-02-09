@@ -115,32 +115,68 @@
                                             <tr>
                                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Part
                                                     No (from Excel)</th>
+                                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Customer Part</th>
                                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Line
                                                 </th>
                                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">
                                                     Total Qty Plan</th>
+                                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">
+                                                    Action</th>
                                             </tr>
                                         </thead>
                                         <tbody class="bg-white divide-y divide-slate-100">
                                             @php
-                                                // Calculate unmapped details on the fly mostly to avoid controller bloat,
-                                                // or we can pass it from controller. Since we only have access to $plan here:
-                                                $unmappedRows = $plan ? $plan->rows()->whereNull('gci_part_id')->with('cells')->get() : collect();
+                                                // Fetch unmapped rows with cells filtered by date range
+                                                $unmappedRows = $plan ? $plan->rows()
+                                                    ->whereNull('gci_part_id')
+                                                    ->with(['customerPart', 'cells' => function ($q) use ($dateFrom, $dateTo) {
+                                                        $q->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
+                                                    }])
+                                                    ->whereHas('cells', function ($q) use ($dateFrom, $dateTo) {
+                                                        $q->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                                                          ->where('qty', '>', 0);
+                                                    })
+                                                    ->get() : collect();
                                             @endphp
-                                            @foreach($unmappedRows as $uRow)
+                                            @forelse($unmappedRows as $uRow)
                                                 @php
                                                     $sumQty = $uRow->cells->sum('qty');
-                                                    if ($sumQty <= 0)
-                                                        continue;
                                                 @endphp
                                                 <tr class="hover:bg-slate-50">
                                                     <td class="px-4 py-3 font-mono text-sm font-bold text-red-600">
                                                         {{ $uRow->part_no }}</td>
+                                                    <td class="px-4 py-3 text-sm text-slate-600">
+                                                        @if($uRow->customerPart)
+                                                            <span class="text-blue-600">{{ $uRow->customerPart->customer_part_no }}</span>
+                                                            <span class="text-xs text-slate-400">(ID: {{ $uRow->customer_part_id }})</span>
+                                                        @else
+                                                            <span class="text-slate-400 italic">Not linked to Customer Part</span>
+                                                        @endif
+                                                    </td>
                                                     <td class="px-4 py-3 text-sm text-slate-600">{{ $uRow->production_line }}</td>
                                                     <td class="px-4 py-3 text-sm text-right font-medium text-slate-900">
                                                         {{ number_format($sumQty) }}</td>
+                                                    <td class="px-4 py-3 text-center">
+                                                        <a href="{{ route('planning.customer-parts.index', ['search' => $uRow->part_no]) }}" 
+                                                           target="_blank"
+                                                           class="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                                            </svg>
+                                                            Map
+                                                        </a>
+                                                    </td>
                                                 </tr>
-                                            @endforeach
+                                            @empty
+                                                <tr>
+                                                    <td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">
+                                                        <svg class="mx-auto h-8 w-8 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                        </svg>
+                                                        No unmapped parts with demand in the selected date range.
+                                                    </td>
+                                                </tr>
+                                            @endforelse
                                         </tbody>
                                     </table>
                                 </div>
