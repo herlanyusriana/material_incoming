@@ -14,16 +14,29 @@
     }
     $warehouseMetaText = $warehouseMeta ? implode(' • ', $warehouseMeta) : null;
     $goodsUnit = strtoupper(trim((string) ($arrivalItem?->unit_goods ?? $receive->qty_unit ?? '')));
-    $qtyGoodsText = number_format((float) ($receive->qty ?? 0), 0) . ' ' . strtoupper((string) ($receive->qty_unit ?? ''));
+    $qtyGoodsText = number_format((float) ($receive->qty ?? 0), 0) . ' ' . $goodsUnit;
     $netWeight = (float) ($receive->net_weight ?? $receive->weight ?? 0);
 
-    $qtyWeightText = $goodsUnit === 'COIL'
+    // Qty / Weight Logic:
+    // Coil: Always show Weight (KGM)
+    // Sheet: Show Weight (KGM) if available, otherwise show Qty (SHEET)
+    // Others: Show Qty
+    $showWeightInMain = $goodsUnit === 'COIL' || ($goodsUnit === 'SHEET' && $netWeight > 0);
+
+    $qtyWeightText = $showWeightInMain
         ? number_format($netWeight, 2) . ' KGM'
         : $qtyGoodsText;
 
-    $qtyCoilText = $goodsUnit === 'COIL'
-        ? number_format((float) ($receive->qty ?? 0), 0) . ' COIL'
-        : '-';
+    $qtySecondaryLabel = match ($goodsUnit) {
+        'SHEET' => 'Qty Sheet',
+        default => 'Qty Coil',
+    };
+
+    $qtySecondaryText = match ($goodsUnit) {
+        'COIL' => number_format((float) ($receive->qty ?? 0), 0) . ' COIL',
+        'SHEET' => number_format((float) ($receive->qty ?? 0), 0) . ' SHEET',
+        default => '-',
+    };
 
     $monthBox = str_pad((string) ($monthNumber ?? (int) optional($receive->ata_date)->format('m')), 2, '0', STR_PAD_LEFT);
 @endphp
@@ -339,9 +352,9 @@
                         <div class="field-value">{{ $qtyWeightText }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Qty Coil</div>
+                        <div class="field-name">{{ $qtySecondaryLabel }}</div>
                         <div class="colon">:</div>
-                        <div class="field-value">{{ $qtyCoilText }}</div>
+                        <div class="field-value">{{ $qtySecondaryText }}</div>
                     </div>
                     <div class="form-row">
                         <div class="field-name">Incoming Date</div>
