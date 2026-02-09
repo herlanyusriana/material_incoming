@@ -16,15 +16,15 @@ class StandardPackingController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->whereHas('part', function($q) use ($search) {
+            $query->whereHas('part', function ($q) use ($search) {
                 $q->where('part_no', 'like', "%{$search}%")
-                  ->orWhere('part_name', 'like', "%{$search}%");
+                    ->orWhere('part_name', 'like', "%{$search}%");
             });
         }
-        
+
         // Filter by Customer
         if ($request->has('customer_id') && $request->customer_id != '') {
-             $query->whereHas('part', function($q) use ($request) {
+            $query->whereHas('part', function ($q) use ($request) {
                 $q->where('customer_id', $request->customer_id);
             });
         }
@@ -49,11 +49,11 @@ class StandardPackingController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-             'gci_part_id' => 'required|exists:gci_parts,id',
-             'delivery_class' => 'nullable|string',
-             'packing_qty' => 'required|numeric|min:0',
-             'uom' => 'nullable|string',
-             'trolley_type' => 'nullable|string',
+            'gci_part_id' => 'required|exists:gci_parts,id',
+            'delivery_class' => 'nullable|string',
+            'packing_qty' => 'required|numeric|min:0',
+            'uom' => 'nullable|string',
+            'trolley_type' => 'nullable|string',
         ]);
 
         \App\Models\StandardPacking::updateOrCreate(
@@ -72,7 +72,7 @@ class StandardPackingController extends Controller
     /**
      * Import Excel
      */
-    public function import(Request $request) 
+    public function import(Request $request)
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
@@ -85,7 +85,7 @@ class StandardPackingController extends Controller
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
-    
+
     public function export()
     {
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StandardPackingExport, 'standard_packings.xlsx');
@@ -117,7 +117,23 @@ class StandardPackingController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $request->validate([
+            'delivery_class' => 'nullable|string|max:50',
+            'packing_qty' => 'required|numeric|min:0.0001',
+            'uom' => 'nullable|string|max:20',
+            'trolley_type' => 'nullable|string|max:50',
+        ]);
+
+        $item = \App\Models\StandardPacking::findOrFail($id);
+
+        $item->update([
+            'delivery_class' => $request->delivery_class ?? 'Main',
+            'packing_qty' => $request->packing_qty,
+            'uom' => $request->uom ?? 'PCS',
+            'trolley_type' => $request->trolley_type,
+        ]);
+
+        return back()->with('success', 'Standard Packing updated successfully.');
     }
 
     /**
