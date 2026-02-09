@@ -106,7 +106,7 @@
         }
 
         .header-title {
-            font-size: 26px;
+            font-size: 22px;
             font-weight: bold;
             color: #000;
             letter-spacing: 2px;
@@ -114,15 +114,15 @@
         }
 
         .header-month {
-            width: 50px;
-            height: 50px;
+            width: 42px;
+            height: 42px;
             background: #000;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 28px;
+            font-size: 24px;
             border-radius: 6px;
         }
 
@@ -180,7 +180,7 @@
             padding: 2mm 5mm;
             font-weight: 700;
             background: #eee;
-            font-size: 11pt;
+            font-size: 9pt;
             display: flex;
             align-items: center;
         }
@@ -190,7 +190,7 @@
             padding: 2mm 0;
             text-align: center;
             background: #fff;
-            font-size: 11pt;
+            font-size: 9pt;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -200,7 +200,7 @@
         .field-value {
             flex: 1;
             padding: 2mm 2mm;
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: 700;
             color: #000;
             display: flex;

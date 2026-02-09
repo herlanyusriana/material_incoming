@@ -306,7 +306,7 @@ class PartController extends Controller
                 });
             })
             ->orderBy('part_no')
-            ->select(['id', 'part_no', 'register_no', 'part_name_vendor', 'part_name_gci']);
+            ->select(['id', 'part_no', 'register_no', 'part_name_vendor', 'part_name_gci', 'uom']);
 
         $total = (clone $base)->count();
         $parts = (clone $base)->limit($limit)->get();
