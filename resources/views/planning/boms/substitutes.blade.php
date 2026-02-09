@@ -28,6 +28,19 @@
                     </svg>
                     Export All
                 </a>
+                <form action="{{ route('planning.boms.substitutes.truncate') }}" method="POST"
+                    onsubmit="return confirm('WARNING: This will delete ALL substitute records. BOM GCI (Main BOM) will NOT be affected. Continue?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-200 hover:bg-red-100 transition-all">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Clear All (Reset)
+                    </button>
+                </form>
                 <div class="relative inline-block text-left" x-data="{ open: false }">
                     <button @click="open = !open" type="button"
                         class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-all">

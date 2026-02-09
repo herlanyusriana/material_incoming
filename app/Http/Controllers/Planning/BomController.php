@@ -142,6 +142,12 @@ class BomController extends Controller
         return view('planning.boms.substitutes', compact('substitutes', 'q'));
     }
 
+    public function truncateSubstitutes()
+    {
+        BomItemSubstitute::query()->delete();
+        return back()->with('success', 'All substitutes have been cleared. You can now re-import with correct data.');
+    }
+
     public function exportSubstitutes()
     {
         $filename = 'bom_substitutes_' . now()->format('Y-m-d_His') . '.xlsx';
