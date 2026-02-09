@@ -229,6 +229,11 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.index')])></span>
                                     <span class="flex-1">BOM GCI</span>
                                 </a>
+                                <a href="{{ route('planning.boms.substitutes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.substitutes.index'), $subInactive => !request()->routeIs('planning.boms.substitutes.index')])
+                                    @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-rose-500' => request()->routeIs('planning.boms.substitutes.index'), 'bg-slate-300 group-hover:bg-rose-400' => !request()->routeIs('planning.boms.substitutes.index')])></span>
+                                    <span class="flex-1">🔗 Substitute Mapping</span>
+                                </a>
                                 <a href="{{ route('planning.boms.explosion-search') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.explosion*'), $subInactive => !request()->routeIs('planning.boms.explosion*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('planning.boms.explosion*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('planning.boms.explosion*')])></span>
                                     <span class="flex-1">🌳 BOM Explosion</span>
@@ -902,9 +907,13 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
                                 <span class="flex-1">MPS</span>
                             </a>
-                            <a href="{{ route('planning.boms.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.*'), $subInactive => !request()->routeIs('planning.boms.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.*')])></span>
+                            <a href="{{ route('planning.boms.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.index'), $subInactive => !request()->routeIs('planning.boms.index')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.index')])></span>
                                 <span class="flex-1">BOM GCI</span>
+                            </a>
+                            <a href="{{ route('planning.boms.substitutes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.substitutes.index'), $subInactive => !request()->routeIs('planning.boms.substitutes.index')])>
+                                <span @class([$subDotBase, 'bg-rose-500' => request()->routeIs('planning.boms.substitutes.index'), 'bg-slate-300 group-hover:bg-rose-400' => !request()->routeIs('planning.boms.substitutes.index')])></span>
+                                <span class="flex-1">🔗 Substitute Mapping</span>
                             </a>
                             <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>

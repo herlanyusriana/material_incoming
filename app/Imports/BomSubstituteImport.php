@@ -185,7 +185,6 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             $subPart = $this->findGciPartByPartNo($subPartNo);
             if ($this->autoCreateParts) {
                 if (!$subPart) {
-                    // BUGFIX: Use part_no as fallback instead of generic 'AUTO-CREATED (SUBSTITUTE)'
                     $subPart = GciPart::query()->create([
                         'customer_id' => $fgPart ? $fgPart->customer_id : null,
                         'part_no' => $subPartNo,
@@ -195,26 +194,21 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                     ]);
                 }
             }
-            // If substitute exists, always allow updating its name from import (even when auto-create is OFF).
-            if ($subPart && !empty($row['substitute_part_name'])) {
-                $subName = trim((string) $row['substitute_part_name']);
-                if ($subName !== '' && $subPart->part_name !== $subName) {
-                    $subPart->update(['part_name' => $subName]);
-                }
-            }
+
             if (!$subPart) {
                 $this->missingSubstituteParts[$subPartNo] = true;
                 $this->addFailure($rowIndex, "Substitute Part not found: $subPartNo");
                 continue;
             }
 
-            // 5. Create/Update Substitute (reject duplicates in DB)
+            // 5. Create Substitute ONLY IF NOT EXISTS (No Auto-Update/Overwrite)
             $existing = BomItemSubstitute::query()
                 ->where('bom_item_id', (int) $bomItem->id)
                 ->where('substitute_part_id', (int) $subPart->id)
-                ->get();
-            if ($existing->count() > 1) {
-                $this->addFailure($rowIndex, "Duplicate substitute records already exist in DB for component {$componentPartNo} / sub {$subPartNo} (FG {$fgPartNo}). Please cleanup duplicates first.");
+                ->exists();
+
+            if ($existing) {
+                // Skip if already exists to protect data integrity
                 continue;
             }
 
@@ -226,17 +220,13 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
                 'notes' => $row['notes'] ?? null,
             ];
 
-            if ($existing->count() === 1) {
-                $existing->first()->update($payload);
-            } else {
-                BomItemSubstitute::query()->create(array_merge(
-                    [
-                        'bom_item_id' => (int) $bomItem->id,
-                        'substitute_part_id' => (int) $subPart->id,
-                    ],
-                    $payload
-                ));
-            }
+            BomItemSubstitute::query()->create(array_merge(
+                [
+                    'bom_item_id' => (int) $bomItem->id,
+                    'substitute_part_id' => (int) $subPart->id,
+                ],
+                $payload
+            ));
 
             $this->rowCount++;
         }

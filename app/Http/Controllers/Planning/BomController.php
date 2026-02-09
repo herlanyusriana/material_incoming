@@ -117,6 +117,31 @@ class BomController extends Controller
         return view('planning.boms.where_used', compact('recentParts'));
     }
 
+    public function substitutes(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $substitutes = BomItemSubstitute::query()
+            ->with(['bomItem.bom.part', 'bomItem.componentPart', 'part'])
+            ->when($q !== '', function ($query) use ($q) {
+                $query->whereHas('bomItem.bom.part', function ($sub) use ($q) {
+                    $sub->where('part_no', 'like', '%' . $q . '%');
+                })
+                    ->orWhereHas('bomItem.componentPart', function ($sub) use ($q) {
+                        $sub->where('part_no', 'like', '%' . $q . '%');
+                    })
+                    ->orWhereHas('part', function ($sub) use ($q) {
+                        $sub->where('part_no', 'like', '%' . $q . '%');
+                    })
+                    ->orWhere('substitute_part_no', 'like', '%' . $q . '%');
+            })
+            ->latest()
+            ->paginate(30)
+            ->withQueryString();
+
+        return view('planning.boms.substitutes', compact('substitutes', 'q'));
+    }
+
     public function exportSubstitutes()
     {
         $filename = 'bom_substitutes_' . now()->format('Y-m-d_His') . '.xlsx';
