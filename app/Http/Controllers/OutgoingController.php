@@ -1044,9 +1044,9 @@ class OutgoingController extends Controller
             // Production rate = sum(jig_qty × UPH) for today
             $productionRate = collect($jigRows)->sum(fn($j) => $j->jig_qty * $j->uph);
 
-            // Finish time = 7:00 + (stock_at_customer + total_trips) / production_rate
-            $finishTime = ($productionRate > 0)
-                ? round(7.0 + ($stockAtCust + $totalTrips) / $productionRate, 2)
+            // Finish time = 7:00 + delivery_requirement / production_rate
+            $finishTime = ($productionRate > 0 && $deliveryReq > 0)
+                ? round(7.0 + $deliveryReq / $productionRate, 2)
                 : null;
 
             // End stock at customer = stock + totalTrips - dailyPlanQty
@@ -1055,11 +1055,12 @@ class OutgoingController extends Controller
             // Production rate H+1 = sum(jig_qty_h1 × UPH)
             $productionRateH1 = collect($jigRows)->sum(fn($j) => $j->jig_qty_h1 * $j->uph);
 
-            // Est. finish time H+1 = 7:00 + (end_stock + delivery_req_h1) / production_rate_h1
-            // (Note: we use delivery_req_h1 as a proxy for delivery since H+1 trips aren't planned yet)
+            // Delivery requirement H+1 = max(0, daily_plan_h1 - end_stock if positive)
             $deliveryReqH1 = max(0, $dailyPlanH1Qty - max(0, $endStock));
-            $estFinishTime = ($productionRateH1 > 0)
-                ? round(7.0 + (max(0, $endStock) + $deliveryReqH1) / $productionRateH1, 2)
+
+            // Est. finish time = 7:00 + delivery_req_h1 / production_rate_h1
+            $estFinishTime = ($productionRateH1 > 0 && $deliveryReqH1 > 0)
+                ? round(7.0 + $deliveryReqH1 / $productionRateH1, 2)
                 : null;
 
             $rows->push((object) [
