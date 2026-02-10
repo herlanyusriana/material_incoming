@@ -231,7 +231,10 @@
 										</td>
 										<td class="px-1 py-2 bg-yellow-50 text-center font-semibold text-amber-700">
 											{{ $row->jigs[0]->uph ?: '-' }}
-											<span class="hidden" id="uph-val-{{ $row->gci_part_id }}">{{ $row->total_uph }}</span>
+											<span class="hidden" id="prod-rate-{{ $row->gci_part_id }}">{{ $row->production_rate }}</span>
+											<span class="hidden" id="del-req-{{ $row->gci_part_id }}">{{ $row->delivery_requirement }}</span>
+											<span class="hidden" id="prod-rate-h1-{{ $row->gci_part_id }}">{{ $row->production_rate_h1 }}</span>
+											<span class="hidden" id="plan-h1-{{ $row->gci_part_id }}">{{ $row->daily_plan_h1 }}</span>
 										</td>
 									@else
 										<td class="px-2 py-2 bg-yellow-50 text-slate-300 italic">-</td>
@@ -282,7 +285,8 @@
 									rowspan="{{ $rowSpan }}" @endif>
 										{{ $row->jig_qty_h1 > 0 ? $row->jig_qty_h1 : '-' }}
 									</td>
-									<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col" @if($rowSpan > 1)
+									<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col"
+										id="estfinish-{{ $row->gci_part_id }}" @if($rowSpan > 1)
 									rowspan="{{ $rowSpan }}" @endif>
 										{{ $row->est_finish_time !== null ? number_format($row->est_finish_time, 2) : '-' }}
 									</td>
@@ -393,25 +397,36 @@
 			const totalEl = document.getElementById(`total-${partId}`);
 			if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
 
-			// Update Finish Time (Total / UPH)
-			const uphValue = parseFloat(document.getElementById(`uph-val-${partId}`)?.textContent) || 0;
+			// Finish Time = 7.00 + delivery_requirement / production_rate (doesn't change with trips)
+			const prodRate = parseFloat(document.getElementById(`prod-rate-${partId}`)?.textContent) || 0;
+			const delReq = parseFloat(document.getElementById(`del-req-${partId}`)?.textContent) || 0;
 			const finishEl = document.getElementById(`finish-${partId}`);
 			if (finishEl) {
-				const finishTime = uphValue > 0 ? (total / uphValue).toFixed(2) : '-';
-				finishEl.textContent = finishTime !== '0.00' ? finishTime : '-';
+				const finishTime = (prodRate > 0 && delReq > 0) ? (7.0 + delReq / prodRate).toFixed(2) : '-';
+				finishEl.textContent = finishTime;
 			}
 
 			// Update End Stock (Stock + Total - Plan)
-			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent) || 0;
-			const dailyPlan = parseFloat(document.getElementById(`plan-val-${partId}`)?.textContent) || 0;
+			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
+			const dailyPlan = parseFloat(document.getElementById(`plan-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const endStockEl = document.getElementById(`endstock-${partId}`);
+			let endStock = stockAtCust + total - dailyPlan;
 			if (endStockEl) {
-				const endStock = stockAtCust + total - dailyPlan;
 				const span = endStockEl.querySelector('span');
 				if (span) {
 					span.textContent = endStock.toLocaleString();
 					span.className = endStock < 0 ? 'text-red-600' : 'text-slate-900';
 				}
+			}
+
+			// Est. Finish Time H+1 = 7.00 + delivery_req_h1 / production_rate_h1
+			const prodRateH1 = parseFloat(document.getElementById(`prod-rate-h1-${partId}`)?.textContent) || 0;
+			const planH1 = parseFloat(document.getElementById(`plan-h1-${partId}`)?.textContent) || 0;
+			const estFinishEl = document.getElementById(`estfinish-${partId}`);
+			if (estFinishEl) {
+				const delReqH1 = Math.max(0, planH1 - Math.max(0, endStock));
+				const estFinish = (prodRateH1 > 0 && delReqH1 > 0) ? (7.0 + delReqH1 / prodRateH1).toFixed(2) : '-';
+				estFinishEl.textContent = estFinish;
 			}
 		}
 	</script>

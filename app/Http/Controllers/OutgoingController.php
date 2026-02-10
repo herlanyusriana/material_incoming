@@ -1041,16 +1041,26 @@ class OutgoingController extends Controller
                 ];
             }
 
-            // Finish time = total / UPH (if UPH > 0)
-            $totalUph = collect($jigRows)->sum('uph');
-            $finishTime = $totalUph > 0 ? round($totalTrips / $totalUph, 2) : null;
+            // Production rate = sum(jig_qty × UPH) for today
+            $productionRate = collect($jigRows)->sum(fn($j) => $j->jig_qty * $j->uph);
+
+            // Finish time = 7:00 + delivery_requirement / production_rate
+            $finishTime = ($productionRate > 0 && $deliveryReq > 0)
+                ? round(7.0 + $deliveryReq / $productionRate, 2)
+                : null;
 
             // End stock at customer = stock + totalTrips - dailyPlanQty
             $endStock = $stockAtCust + $totalTrips - $dailyPlanQty;
 
-            // Estimated finish time for H+1
-            $estFinishTime = ($totalUph > 0 && $dailyPlanH1Qty > 0)
-                ? round($dailyPlanH1Qty / $totalUph, 2)
+            // Production rate H+1 = sum(jig_qty_h1 × UPH)
+            $productionRateH1 = collect($jigRows)->sum(fn($j) => $j->jig_qty_h1 * $j->uph);
+
+            // Delivery requirement H+1 = max(0, daily_plan_h1 - end_stock if positive)
+            $deliveryReqH1 = max(0, $dailyPlanH1Qty - max(0, $endStock));
+
+            // Est. finish time = 7:00 + delivery_req_h1 / production_rate_h1
+            $estFinishTime = ($productionRateH1 > 0 && $deliveryReqH1 > 0)
+                ? round(7.0 + $deliveryReqH1 / $productionRateH1, 2)
                 : null;
 
             $rows->push((object) [
@@ -1063,7 +1073,8 @@ class OutgoingController extends Controller
                 'daily_plan_qty' => $dailyPlanQty,
                 'delivery_requirement' => $deliveryReq,
                 'std_packing' => $stdPackQty,
-                'total_uph' => $totalUph,
+                'production_rate' => $productionRate,
+                'production_rate_h1' => $productionRateH1,
                 'jigs' => $jigRows,
                 'trips' => $trips,
                 'total_trips' => $totalTrips,
@@ -1071,6 +1082,7 @@ class OutgoingController extends Controller
                 'end_stock' => $endStock,
                 'daily_plan_h1' => $dailyPlanH1Qty,
                 'jig_qty_h1' => $totalJigQtyH1,
+                'delivery_req_h1' => $deliveryReqH1,
                 'est_finish_time' => $estFinishTime,
                 'has_line' => $line !== null,
                 'line_id' => $line?->id,
