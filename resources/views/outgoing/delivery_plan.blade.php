@@ -99,18 +99,22 @@
 			.dp-scroll {
 				max-height: 60vh;
 			}
+
 			.dp-table {
 				font-size: 11px;
 			}
+
 			.dp-table th,
 			.dp-table td {
 				padding: 4px 6px !important;
 			}
+
 			.dp-table .s-col {
 				position: sticky;
 				z-index: 30;
 				min-width: 60px;
 			}
+
 			.dp-table thead .s-col {
 				z-index: 40;
 			}
@@ -164,36 +168,37 @@
 			{{-- Main Table Card --}}
 			<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 				<div class="dp-scroll">
-				<table class="dp-table w-full text-xs">
+					<table class="dp-table w-full text-xs">
 						<thead>
 							<tr>
 								{{-- Frozen left columns --}}
-					<th class="px-2 py-3 text-left min-w-[50px] s-col" style="left:0">No</th>
-					<th class="px-2 py-3 text-left min-w-[60px] s-col" style="left:70px">Category</th>
-					<th class="px-2 py-3 text-left min-w-[140px] s-col" style="left:150px">FG Part Name</th>
-					<th class="px-2 py-3 text-left min-w-[100px] s-col" style="left:320px">FG Part No.</th>
-					<th class="px-2 py-3 text-left min-w-[80px] s-col" style="left:450px">Model</th>
+								<th class="px-2 py-3 text-left min-w-[50px] s-col" style="left:0">No</th>
+								<th class="px-2 py-3 text-left min-w-[60px] s-col" style="left:70px">Category</th>
+								<th class="px-2 py-3 text-left min-w-[140px] s-col" style="left:150px">FG Part Name</th>
+								<th class="px-2 py-3 text-left min-w-[100px] s-col" style="left:320px">FG Part No.</th>
+								<th class="px-2 py-3 text-left min-w-[80px] s-col" style="left:450px">Model</th>
 								{{-- Data columns --}}
-					<th class="px-2 py-3 text-right min-w-[80px]">Stock at<br>Customer</th>
-					<th class="px-2 py-3 text-right min-w-[80px]">Daily Plan<br>H</th>
-					<th class="px-2 py-3 text-left min-w-[100px] bg-yellow-50 !text-amber-700">Jig Name</th>
-					<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">Jig<br>Qty H</th>
-					<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">UpH</th>
-					<th class="px-2 py-3 text-right min-w-[80px]">Delivery<br>Req.</th>
-					<th class="px-2 py-3 text-center min-w-[75px]">Std<br>Packing</th>
+								<th class="px-2 py-3 text-right min-w-[80px]">Stock at<br>Customer</th>
+								<th class="px-2 py-3 text-right min-w-[80px]">Daily Plan<br>H</th>
+								<th class="px-2 py-3 text-left min-w-[100px] bg-yellow-50 !text-amber-700">Jig Name</th>
+								<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">Jig<br>Qty H</th>
+								<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">UpH</th>
+								<th class="px-2 py-3 text-right min-w-[80px]">Delivery<br>Req.</th>
+								<th class="px-2 py-3 text-center min-w-[75px]">Std<br>Packing</th>
 								{{-- Trip columns (1-14) --}}
 								@for($t = 1; $t <= 14; $t++)
-								<th class="px-1 py-3 text-center min-w-[50px]" style="background:#dcfce7; color:#166534;">{{ $t }}</th>
-							@endfor
+									<th class="px-1 py-3 text-center min-w-[50px]" style="background:#dcfce7; color:#166534;">
+										{{ $t }}</th>
+								@endfor
 
-							<th class="px-2 py-3 text-right min-w-[75px] calc-col">Total</th>
-							<th class="px-2 py-3 text-right min-w-[75px] calc-col">Finish<br>Time</th>
-							<th class="px-2 py-3 text-right min-w-[80px] calc-col">End Stock<br>@Cust</th>
+								<th class="px-2 py-3 text-right min-w-[75px] calc-col">Total</th>
+								<th class="px-2 py-3 text-right min-w-[75px] calc-col">Finish<br>Time</th>
+								<th class="px-2 py-3 text-right min-w-[80px] calc-col">End Stock<br>@Cust</th>
 
-							{{-- H+1 --}}
-							<th class="px-2 py-3 text-right min-w-[80px] h1-col">Daily Plan<br>H+1</th>
-							<th class="px-2 py-3 text-center min-w-[70px] h1-col">Jig Qty<br>H+1</th>
-							<th class="px-2 py-3 text-right min-w-[75px] h1-col">Est. Finish<br>Time</th>
+								{{-- H+1 --}}
+								<th class="px-2 py-3 text-right min-w-[80px] h1-col">Daily Plan<br>H+1</th>
+								<th class="px-2 py-3 text-center min-w-[70px] h1-col">Jig Qty<br>H+1</th>
+								<th class="px-2 py-3 text-right min-w-[75px] h1-col">Est. Finish<br>Time</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -243,9 +248,12 @@
 										</td>
 										<td class="px-1 py-2 bg-yellow-50 text-center font-semibold text-amber-700">
 											{{ $row->jigs[0]->uph ?: '-' }}
-											<span class="hidden" id="prod-rate-{{ $row->gci_part_id }}">{{ $row->production_rate }}</span>
-											<span class="hidden" id="del-req-{{ $row->gci_part_id }}">{{ $row->delivery_requirement }}</span>
-											<span class="hidden" id="prod-rate-h1-{{ $row->gci_part_id }}">{{ $row->production_rate_h1 }}</span>
+											<span class="hidden"
+												id="prod-rate-{{ $row->gci_part_id }}">{{ $row->production_rate }}</span>
+											<span class="hidden"
+												id="del-req-{{ $row->gci_part_id }}">{{ $row->delivery_requirement }}</span>
+											<span class="hidden"
+												id="prod-rate-h1-{{ $row->gci_part_id }}">{{ $row->production_rate_h1 }}</span>
 											<span class="hidden" id="plan-h1-{{ $row->gci_part_id }}">{{ $row->daily_plan_h1 }}</span>
 										</td>
 									@else
@@ -267,7 +275,7 @@
 									@for($t = 1; $t <= 14; $t++)
 										<td class="p-0 trip-cell" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											<input type="number" min="0" value="{{ $row->trips[$t] ?: '' }}" placeholder=""
-												data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}" onchange="updateTrip(this)">
+												data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}" oninput="updateTrip(this)">
 										</td>
 									@endfor
 
@@ -298,8 +306,7 @@
 										{{ $row->jig_qty_h1 > 0 ? $row->jig_qty_h1 : '-' }}
 									</td>
 									<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col"
-										id="estfinish-{{ $row->gci_part_id }}" @if($rowSpan > 1)
-									rowspan="{{ $rowSpan }}" @endif>
+										id="estfinish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 										{{ $row->est_finish_time !== null ? number_format($row->est_finish_time, 2) : '-' }}
 									</td>
 								</tr>
@@ -321,6 +328,24 @@
 								@endfor
 							@endforeach
 						</tbody>
+						<tfoot class="bg-indigo-50 border-t-2 border-indigo-200">
+							<tr class="font-bold text-indigo-900 uppercase tracking-tight text-[10px]">
+								<td colspan="5" class="px-2 py-3 text-right bg-indigo-100 s-col" style="left:0">Grand Total</td>
+								<td class="px-2 py-3 text-right" id="footer-stock-val">0</td>
+								<td class="px-2 py-3 text-right" id="footer-plan-val">0</td>
+								<td colspan="3" class="bg-indigo-100"></td>
+								<td class="px-2 py-3 text-right" id="footer-del-req">0</td>
+								<td class="bg-indigo-100"></td>
+								{{-- Trip Totals --}}
+								@for($t = 1; $t <= 14; $t++)
+									<td class="px-1 py-3 text-center bg-indigo-100" id="footer-trip-{{ $t }}">0</td>
+								@endfor
+								<td class="px-2 py-3 text-right bg-indigo-100" id="footer-total">0</td>
+								<td colspan="2" class="bg-indigo-100"></td>
+								<td class="px-2 py-3 text-right" id="footer-plan-h1">0</td>
+								<td colspan="2" class="bg-indigo-100"></td>
+							</tr>
+						</tfoot>
 					</table>
 				</div>
 
@@ -356,47 +381,49 @@
 		const UPDATE_URL = '{{ route("outgoing.delivery-plan.update-trip") }}';
 		const DELIVERY_DATE = '{{ $selectedDate->toDateString() }}';
 
+		let updateTimer = {};
+
 		async function updateTrip(input) {
 			const partId = input.dataset.part;
 			const tripNo = input.dataset.trip;
 			const qty = parseInt(input.value) || 0;
 
-			input.style.background = '#fef9c3'; // yellow flash
+			// Immediate UI update
+			recalcRow(partId);
 
-			try {
-				const response = await fetch(UPDATE_URL, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-CSRF-TOKEN': CSRF_TOKEN,
-						'Accept': 'application/json'
-					},
-					body: JSON.stringify({
-						delivery_date: DELIVERY_DATE,
-						gci_part_id: partId,
-						trip_no: tripNo,
-						qty: qty
-					})
-				});
+			// Debounce the backend update to avoid too many requests
+			if (updateTimer[partId + '-' + tripNo]) clearTimeout(updateTimer[partId + '-' + tripNo]);
 
-				const data = await response.json();
+			updateTimer[partId + '-' + tripNo] = setTimeout(async () => {
+				input.style.background = '#fef9c3'; // yellow flash
+				try {
+					const response = await fetch(UPDATE_URL, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-CSRF-TOKEN': CSRF_TOKEN,
+							'Accept': 'application/json'
+						},
+						body: JSON.stringify({
+							delivery_date: DELIVERY_DATE,
+							gci_part_id: partId,
+							trip_no: tripNo,
+							qty: qty
+						})
+					});
 
-				if (data.success) {
-					input.style.background = '#dcfce7'; // green success
-
-					// Recalculate total from all trip inputs for this part
-					recalcRow(partId);
-
-					setTimeout(() => { input.style.background = 'transparent'; }, 800);
-				} else {
-					input.style.background = '#fee2e2'; // red error
-					setTimeout(() => { input.style.background = 'transparent'; }, 1500);
+					const data = await response.json();
+					if (data.success) {
+						input.style.background = '#dcfce7'; // green success
+						setTimeout(() => { input.style.background = 'transparent'; }, 800);
+					} else {
+						input.style.background = '#fee2e2';
+					}
+				} catch (e) {
+					console.error('Failed:', e);
+					input.style.background = '#fee2e2';
 				}
-			} catch (e) {
-				console.error('Failed:', e);
-				input.style.background = '#fee2e2';
-				setTimeout(() => { input.style.background = 'transparent'; }, 1500);
-			}
+			}, 500);
 		}
 
 		function recalcRow(partId) {
@@ -409,20 +436,22 @@
 			const totalEl = document.getElementById(`total-${partId}`);
 			if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
 
-			// Finish Time = 7.00 + delivery_requirement / production_rate (doesn't change with trips)
+			// Formula: 7 + (Stock at Cust + Total Delivery) / Total UPH
 			const prodRate = parseFloat(document.getElementById(`prod-rate-${partId}`)?.textContent) || 0;
-			const delReq = parseFloat(document.getElementById(`del-req-${partId}`)?.textContent) || 0;
+			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const finishEl = document.getElementById(`finish-${partId}`);
+
 			if (finishEl) {
-				const finishTime = (prodRate > 0 && delReq > 0) ? (7.0 + delReq / prodRate).toFixed(2) : '-';
-				finishEl.textContent = finishTime;
+				const totalQuantity = stockAtCust + total;
+				const finishTimeValue = (prodRate > 0) ? (7.0 + totalQuantity / prodRate) : null;
+				finishEl.textContent = finishTimeValue !== null ? finishTimeValue.toFixed(2) : '-';
 			}
 
-			// Update End Stock (Stock + Total - Plan)
-			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
+			// Update End Stock (Stock + Total - Daily Plan)
 			const dailyPlan = parseFloat(document.getElementById(`plan-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const endStockEl = document.getElementById(`endstock-${partId}`);
 			let endStock = stockAtCust + total - dailyPlan;
+
 			if (endStockEl) {
 				const span = endStockEl.querySelector('span');
 				if (span) {
@@ -431,15 +460,71 @@
 				}
 			}
 
-			// Est. Finish Time H+1 = 7.00 + delivery_req_h1 / production_rate_h1
+			// Est. Finish Time H+1 = 7.00 + (max(0, end_stock) + delivery_req_h1) / production_rate_h1
 			const prodRateH1 = parseFloat(document.getElementById(`prod-rate-h1-${partId}`)?.textContent) || 0;
 			const planH1 = parseFloat(document.getElementById(`plan-h1-${partId}`)?.textContent) || 0;
 			const estFinishEl = document.getElementById(`estfinish-${partId}`);
+
 			if (estFinishEl) {
 				const delReqH1 = Math.max(0, planH1 - Math.max(0, endStock));
-				const estFinish = (prodRateH1 > 0 && delReqH1 > 0) ? (7.0 + delReqH1 / prodRateH1).toFixed(2) : '-';
+				const totalH1 = Math.max(0, endStock) + delReqH1;
+				const estFinish = (prodRateH1 > 0) ? (7.0 + totalH1 / prodRateH1).toFixed(2) : '-';
 				estFinishEl.textContent = estFinish;
 			}
+
+			updateGrandTotals();
 		}
+
+		function updateGrandTotals() {
+			// Sum of all visible rows for key columns
+			const columns = [
+				{ id: 'stock-val-', total: 0 },
+				{ id: 'plan-val-', total: 0 },
+				{ id: 'del-req-', total: 0, fromHidden: true },
+				{ id: 'total-', total: 0 },
+				{ id: 'plan-h1-', total: 0, fromHidden: true }
+			];
+
+			// Specific handles for trip columns
+			const tripTotals = Array(15).fill(0);
+
+			// We loop through each FG part row
+			const fgRows = document.querySelectorAll('tr.fg-row');
+			fgRows.forEach(row => {
+				const partId = row.dataset.partId;
+
+				columns.forEach(col => {
+					let el = document.getElementById(col.id + partId);
+					if (el) {
+						let val = parseFloat(el.textContent.replace(/,/g, '')) || 0;
+						col.total += val;
+					}
+				});
+
+				// Trip columns
+				for (let t = 1; t <= 14; t++) {
+					const inp = row.querySelector(`input[data-trip="${t}"]`);
+					if (inp) {
+						tripTotals[t] += parseInt(inp.value) || 0;
+					}
+				}
+			});
+
+			// Update footer cells
+			columns.forEach(col => {
+				const footerEl = document.getElementById('footer-' + col.id.replace(/-$/, ''));
+				if (footerEl) footerEl.textContent = col.total > 0 ? col.total.toLocaleString() : '-';
+			});
+
+			for (let t = 1; t <= 14; t++) {
+				const footerEl = document.getElementById('footer-trip-' + t);
+				if (footerEl) footerEl.textContent = tripTotals[t] > 0 ? tripTotals[t].toLocaleString() : '-';
+			}
+		}
+
+		// Initial run
+		document.addEventListener('DOMContentLoaded', () => {
+			updateGrandTotals();
+		});
 	</script>
 @endsection
