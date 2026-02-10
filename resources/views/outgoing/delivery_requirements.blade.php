@@ -120,8 +120,8 @@
                                         @endif
                                     </td>
 
-                                    <td class="px-4 py-3 font-mono text-xs text-slate-500 border-x border-slate-100">
-                                        {{ $req->customer_part_no ?? '-' }}
+                                    <td class="px-4 py-3 font-mono text-xs font-bold text-slate-700 border-x border-slate-100">
+                                        {{ $req->gci_part?->part_no ?? '-' }}
                                     </td>
 
                                     <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">

@@ -53,23 +53,27 @@ class CustomerPlanningImportController extends Controller
 
             $translated = DB::table('customer_planning_rows as r')
                 ->join('customer_planning_imports as i', 'i.id', '=', 'r.import_id')
-                ->join('customer_parts as cp', function ($join) {
+                ->leftJoin('customer_parts as cp', function ($join) {
                     $join->on('cp.customer_id', '=', 'i.customer_id')
                         ->on('cp.customer_part_no', '=', 'r.customer_part_no');
                 })
-                ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
-                ->join('gci_parts as gp', 'gp.id', '=', 'cpc.gci_part_id')
+                ->leftJoin('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
+                ->leftJoin('gci_parts as gp_mapped', 'gp_mapped.id', '=', 'cpc.gci_part_id')
+                ->leftJoin('gci_parts as gp_direct', 'gp_direct.id', '=', 'r.part_id')
                 ->where('r.import_id', $importId)
+                ->where(function ($q) {
+                    $q->whereNotNull('cpc.gci_part_id')
+                        ->orWhereNotNull('r.part_id');
+                })
                 ->select([
                     'r.id as row_id',
-                    'gp.part_no',
-                    'gp.part_name',
-                    'cpc.qty_per_unit as usage_qty',
+                    DB::raw('COALESCE(gp_mapped.part_no, gp_direct.part_no) as part_no'),
+                    DB::raw('COALESCE(gp_mapped.part_name, gp_direct.part_name) as part_name'),
+                    DB::raw('COALESCE(cpc.qty_per_unit, 1.0) as usage_qty'),
                     'r.qty as customer_qty',
-                    DB::raw('(r.qty * cpc.qty_per_unit) as demand_qty'),
+                    DB::raw('(r.qty * COALESCE(cpc.qty_per_unit, 1.0)) as demand_qty'),
                 ])
                 ->orderBy('r.id')
-                ->orderBy('gp.part_no')
                 ->get();
 
             foreach ($translated as $t) {
@@ -290,17 +294,38 @@ class CustomerPlanningImportController extends Controller
                         ->withCount('components')
                         ->first();
 
-                    if (!$mapping) {
-                        $status = 'unknown_mapping';
-                        $error = 'Customer part not mapped.';
-                    } elseif (($mapping->status ?? 'active') !== 'active') {
-                        $status = 'unknown_mapping';
-                        $error = 'Customer part mapping is inactive.';
-                    } elseif ($mapping->components_count < 1) {
-                        $status = 'unknown_mapping';
-                        $error = 'Customer part has no mapped components.';
-                    } elseif ($mapping->components_count === 1) {
-                        $partId = $mapping->components()->value('gci_part_id');
+                    if ($mapping) {
+                        if (($mapping->status ?? 'active') !== 'active') {
+                            $status = 'unknown_mapping';
+                            $error = 'Customer part mapping is inactive.';
+                        } elseif ($mapping->components_count < 1) {
+                            $status = 'unknown_mapping';
+                            $error = 'Customer part has no mapped components.';
+                        } else {
+                            $status = 'accepted';
+                            if ($mapping->components_count === 1) {
+                                $partId = $mapping->components()->value('gci_part_id');
+                            }
+                        }
+                    } else {
+                        // AUTO-MATCH FALLBACK: Loose match in GCI Parts (FG)
+                        $cleanPartNo = str_replace(['-', ' ', '/', '.', '_'], '', $customerPartNo);
+
+                        $directMatch = \App\Models\GciPart::query()
+                            ->where('classification', 'FG')
+                            ->where(function ($q) use ($customerPartNo, $cleanPartNo) {
+                                $q->where('part_no', $customerPartNo)
+                                    ->orWhere('part_no', str_replace(['-', ' ', '/', '.', '_'], '', $customerPartNo));
+                            })
+                            ->first();
+
+                        if ($directMatch) {
+                            $status = 'accepted';
+                            $partId = $directMatch->id;
+                        } else {
+                            $status = 'unknown_mapping';
+                            $error = 'Customer part not mapped.';
+                        }
                     }
                 }
 

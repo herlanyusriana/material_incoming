@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/scan-part', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'scanPart']);
         Route::post('/scan-location', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'scanLocation']);
         Route::post('/submit-count', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'submitCount']);
+        Route::get('/sessions/{session}/export', [\App\Http\Controllers\Api\StockOpnameApiController::class, 'export']);
     });
 
     // Inventory View & Transfers

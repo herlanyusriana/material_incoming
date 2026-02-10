@@ -215,7 +215,7 @@ class OutgoingDailyPlanningImport implements ToCollection
             }
 
             // Resolve part_no to a Customer Part ID or GCI Part ID (FG only)
-            $gciPartId = null;
+            $gciPartIds = [];  // Changed to array to support multiple components
             $customerPartId = null;
 
             if ($partNo !== '') {
@@ -226,40 +226,42 @@ class OutgoingDailyPlanningImport implements ToCollection
 
                 if ($customerPart) {
                     $customerPartId = $customerPart->id;
-                    // Also find the GCI part if mapped
-                    $fgComponent = \App\Models\CustomerPartComponent::query()
+                    // Get ALL FG components (not just first)
+                    $fgComponents = \App\Models\CustomerPartComponent::query()
                         ->where('customer_part_id', $customerPart->id)
                         ->whereHas('part', function ($q) {
                             $q->where('classification', 'FG');
                         })
-                        ->first();
+                        ->with('part')
+                        ->get();
 
-                    if ($fgComponent) {
-                        $gciPartId = $fgComponent->gci_part_id;
+                    foreach ($fgComponents as $fgComponent) {
+                        $gciPartIds[] = [
+                            'id' => $fgComponent->gci_part_id,
+                            'usage_qty' => (float) ($fgComponent->qty_per_unit ?? 1.0),
+                        ];
                     }
                 } else {
                     // Try direct GCI Part lookup (FG only)
+                    $cleanPartNo = str_replace(['-', ' ', '/', '.', '_'], '', $partNo);
                     $gciPart = GciPart::query()
-                        ->where('part_no', $partNo)
                         ->where('classification', 'FG')
+                        ->where(function ($q) use ($partNo, $cleanPartNo) {
+                            $q->where('part_no', $partNo)
+                                ->orWhere('part_no', $cleanPartNo);
+                        })
                         ->first();
 
                     if ($gciPart) {
-                        $gciPartId = $gciPart->id;
+                        $gciPartIds[] = [
+                            'id' => $gciPart->id,
+                            'usage_qty' => 1.0,
+                        ];
                     } else {
-                        if ($gciPart) {
-                            $gciPartId = $gciPart->id;
-                        } else {
-                            // DO NOT Auto-create.
-                            // Leave gciPartId and customerPartId as null.
-                            // Add to "failures" or a specific warning list so user knows it is unmapped.
-                            // The controller will display the `failures` or `createdParts` (we can hijack createdParts for info if we want, or use failures).
-                            // Let's use a new format in createdParts to indicate UNMAPPED status since failures might block the whole import in some logic (though current controller uses failures for hard errors).
-
-                            // We'll leave them null. The controller/daily planning page already has logic to show "Unmapped" parts based on null gci_part_id.
-                            // But we also want to explicitly tell them NOW.
-                            $this->createdParts[] = $partNo . " (UNMAPPED - Not found in Customer Parts or GCI Parts)";
-                        }
+                        // DO NOT Auto-create.
+                        // Leave gciPartIds empty.
+                        // Add to "unmapped" notification list.
+                        $this->createdParts[] = $partNo . " (UNMAPPED - Not found in Customer Parts or GCI Parts)";
                     }
                 }
             }
@@ -274,14 +276,32 @@ class OutgoingDailyPlanningImport implements ToCollection
                 $cells[$date] = ['seq' => $seq, 'qty' => $qty];
             }
 
-            $this->rows[] = [
-                'row_no' => $rowNo,
-                'production_line' => $productionLine,
-                'part_no' => $partNo,
-                'customer_part_id' => $customerPartId,
-                'gci_part_id' => $gciPartId,
-                'cells' => $cells,
-            ];
+            // Create a row for EACH GCI Part component (explode)
+            if (empty($gciPartIds)) {
+                // No mapping found - create single row with null gci_part_id
+                $this->rows[] = [
+                    'row_no' => $rowNo,
+                    'production_line' => $productionLine,
+                    'part_no' => $partNo,
+                    'customer_part_id' => $customerPartId,
+                    'gci_part_id' => null,
+                    'usage_qty' => 1.0,
+                    'cells' => $cells,
+                ];
+            } else {
+                // Create one row per GCI Part component
+                foreach ($gciPartIds as $gciPartData) {
+                    $this->rows[] = [
+                        'row_no' => $rowNo,
+                        'production_line' => $productionLine,
+                        'part_no' => $partNo,
+                        'customer_part_id' => $customerPartId,
+                        'gci_part_id' => $gciPartData['id'],
+                        'usage_qty' => $gciPartData['usage_qty'],
+                        'cells' => $cells,
+                    ];
+                }
+            }
         }
     }
 

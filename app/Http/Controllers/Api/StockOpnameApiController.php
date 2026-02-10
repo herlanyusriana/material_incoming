@@ -8,6 +8,8 @@ use App\Models\StockOpnameItem;
 use App\Models\GciPart;
 use App\Models\WarehouseLocation;
 use App\Models\FgInventory;
+use App\Exports\StockOpnameExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -194,6 +196,23 @@ class StockOpnameApiController extends Controller
             'success' => true,
             'message' => 'Result saved. ' . ($request->gci_part_id ? 'System qty was ' . number_format($systemQty, 2) : 'Blind record saved.'),
             'data' => $item
+        ]);
+    }
+
+    /**
+     * Export session results to Excel
+     */
+    public function export(StockOpnameSession $session)
+    {
+        $fileName = 'SO_Results_' . $session->session_no . '_' . date('Ymd_His') . '.xlsx';
+        $path = 'exports/so/' . $fileName;
+
+        Excel::store(new StockOpnameExport($session->id), $path, 'public');
+
+        return response()->json([
+            'success' => true,
+            'url' => asset('storage/' . $path),
+            'filename' => $fileName
         ]);
     }
 }

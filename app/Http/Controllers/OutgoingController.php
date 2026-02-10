@@ -431,33 +431,59 @@ class OutgoingController extends Controller
             return (float) ($rec->{'day_' . $day} ?? 0);
         };
 
-        // NEW: Get all active FG Parts to ensure a static list
-        $fgParts = GciPart::query()
-            ->where('classification', 'FG')
-            ->where('status', 'active')
-            ->with(['customer', 'standardPacking'])
-            ->get();
-
-        // Map cells by Part ID for merging
-        $cellsByPart = $cells->groupBy(fn($c) => (int) ($c->row?->gci_part_id ?? 0));
-
+        // Group cells by row_id (each row = unique customer part entry)
+        // This ensures each customer part is shown separately even if they map to same GCI Part
         $days = $this->daysBetween($dateFrom, $dateTo);
         $lines = collect();
 
         foreach ($days as $day) {
             $dateStr = $day->toDateString();
             $dayCells = $cells->filter(fn($c) => $c->plan_date->toDateString() === $dateStr);
-            $dayCellsByPart = $dayCells->groupBy(fn($c) => (int) ($c->row?->gci_part_id ?? 0));
 
-            foreach ($fgParts as $gciPart) {
-                $partId = (int) $gciPart->id;
-                $partDayCells = $dayCellsByPart->get($partId, collect());
+            // Group by row_id to show each customer part separately
+            $dayCellsByRow = $dayCells->groupBy(fn($c) => (int) ($c->row_id ?? 0));
 
-                // Consolidated logic: One row per FG Part No, summing all demand.
-                $grossQty = $partDayCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+            foreach ($dayCellsByRow as $rowId => $rowCells) {
+                $firstCell = $rowCells->first();
+                $row = $firstCell?->row;
+
+                if (!$row) {
+                    continue;
+                }
+
+                $gciPart = $row->gciPart;
+
+                // Skip if GCI Part is not FG or not active
+                if (!$gciPart || $gciPart->classification !== 'FG' || $gciPart->status !== 'active') {
+                    // Handle as unmapped
+                    $grossQty = $rowCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+                    if ($grossQty <= 0.0001)
+                        continue;
+
+                    $sequences = $rowCells->pluck('seq')->filter()->unique()->sort()->values()->all();
+                    $primarySequence = !empty($sequences) ? min($sequences) : 9999;
+
+                    $lines->push((object) [
+                        'date' => $day->copy(),
+                        'customer' => null,
+                        'gci_part' => $gciPart,
+                        'customer_part_no' => $row->part_no ?? 'UNKNOWN',
+                        'customer_part_name' => 'UNMAPPED / INACTIVE',
+                        'unmapped' => true,
+                        'gross_qty' => $grossQty,
+                        'sequence' => $primarySequence,
+                        'sequences_consolidated' => $sequences,
+                        'packing_std' => 1,
+                        'uom' => 'PCS',
+                        'source_row_ids' => [$rowId],
+                    ]);
+                    continue;
+                }
+
+                $grossQty = $rowCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
 
                 $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
-                $sequences = $partDayCells
+                $sequences = $rowCells
                     ->map(fn($c) => $c->seq !== null && $c->seq !== '' ? (int) $c->seq : null)
                     ->filter(fn($s) => $s !== null)
                     ->unique()
@@ -470,7 +496,7 @@ class OutgoingController extends Controller
                     'date' => $day->copy(),
                     'customer' => $gciPart->customer,
                     'gci_part' => $gciPart,
-                    'customer_part_no' => $gciPart->part_no,
+                    'customer_part_no' => $row->part_no ?? $gciPart->part_no,  // Show row's part_no (customer part)
                     'customer_part_name' => $gciPart->part_name,
                     'unmapped' => false,
                     'gross_qty' => $grossQty,
@@ -478,45 +504,30 @@ class OutgoingController extends Controller
                     'sequences_consolidated' => $sequences,
                     'packing_std' => $packingQty,
                     'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
-                    'source_row_ids' => $partDayCells->pluck('row_id')->unique()->values()->all(),
+                    'source_row_ids' => [$rowId],
                 ]);
             }
 
-            // Handle unmapped parts that have demand on this day
-            // This catches parts that are either NULL in gci_part_id OR are pointing to an ID that is not in our $fgParts list (e.g. inactive or non-FG)
-            $fgPartIdsInDay = $fgParts->pluck('id')->map(fn($id) => (int) $id)->all();
-
-            $unmappedDayCells = $dayCells->filter(function ($c) use ($fgPartIdsInDay) {
-                $pId = (int) ($c->row?->gci_part_id ?? 0);
-                return !in_array($pId, $fgPartIdsInDay);
-            });
-
-            $unmappedDayGroups = $unmappedDayCells->groupBy(fn($c) => (string) ($c->row?->part_no ?? 'UNKNOWN'));
-
-            foreach ($unmappedDayGroups as $pNo => $group) {
-                $grossQty = $group->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
-
-                // Show only if there is actual remaining demand
-                if ($grossQty <= 0.0001)
-                    continue;
-
-                $sequences = $group->pluck('seq')->filter()->unique()->sort()->values()->all();
-                $primarySequence = !empty($sequences) ? min($sequences) : 9999;
-
-                $lines->push((object) [
-                    'date' => $day->copy(),
-                    'customer' => null, // No known customer
-                    'gci_part' => null, // No known GCI Part
-                    'customer_part_no' => $pNo,
-                    'customer_part_name' => 'UNMAPPED / UNKNOWN',
-                    'unmapped' => true,
-                    'gross_qty' => $grossQty,
-                    'sequence' => $primarySequence,
-                    'sequences_consolidated' => $sequences,
-                    'packing_std' => 1,
-                    'uom' => 'PCS',
-                    'source_row_ids' => $group->pluck('row_id')->unique()->values()->all(),
-                ]);
+            // Handle cells with no row (orphaned - shouldn't happen but safety check)
+            $orphanedCells = $dayCells->filter(fn($c) => !$c->row);
+            if ($orphanedCells->isNotEmpty()) {
+                $grossQty = $orphanedCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+                if ($grossQty > 0.0001) {
+                    $lines->push((object) [
+                        'date' => $day->copy(),
+                        'customer' => null,
+                        'gci_part' => null,
+                        'customer_part_no' => 'ORPHANED',
+                        'customer_part_name' => 'DATA ERROR',
+                        'unmapped' => true,
+                        'gross_qty' => $grossQty,
+                        'sequence' => 9999,
+                        'sequences_consolidated' => [],
+                        'packing_std' => 1,
+                        'uom' => 'PCS',
+                        'source_row_ids' => $orphanedCells->pluck('row_id')->unique()->values()->all(),
+                    ]);
+                }
             }
         }
 
@@ -553,6 +564,13 @@ class OutgoingController extends Controller
             })
             ->values()
             ->sort(function ($a, $b) use ($sortBy, $sortDir) {
+                // PRIORITY: Items with value (total_qty > 0) come first
+                $aHasValue = ((float) ($a->total_qty ?? 0)) > 0 ? 0 : 1;
+                $bHasValue = ((float) ($b->total_qty ?? 0)) > 0 ? 0 : 1;
+                if ($aHasValue !== $bHasValue) {
+                    return $aHasValue <=> $bHasValue;
+                }
+
                 $result = 0;
 
                 switch ($sortBy) {
@@ -815,7 +833,9 @@ class OutgoingController extends Controller
      */
     private function syncDailyPlanRowMappings(?int $planId, Carbon $dateFrom, Carbon $dateTo): void
     {
-        // Step 1: Rows that have a customer_part_id - sync from CustomerPartComponent
+        // Step 1: Rows that have a customer_part_id BUT NO gci_part_id - sync from CustomerPartComponent
+        // IMPORTANT: We now skip rows that ALREADY have gci_part_id set, because the import
+        // correctly explodes each CustomerPart's components into separate rows with distinct gci_part_ids.
         $rowsWithCustomerPart = OutgoingDailyPlanCell::query()
             ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
             ->whereDate('outgoing_daily_plan_cells.plan_date', '>=', $dateFrom->format('Y-m-d'))
@@ -823,6 +843,7 @@ class OutgoingController extends Controller
             ->where('outgoing_daily_plan_cells.qty', '>', 0)
             ->when($planId !== null, fn($q) => $q->where('r.plan_id', $planId))
             ->whereNotNull('r.customer_part_id')
+            ->whereNull('r.gci_part_id')  // ONLY sync rows that DON'T have gci_part_id yet
             ->distinct()
             ->select('r.id', 'r.customer_part_id', 'r.gci_part_id')
             ->get();
@@ -830,7 +851,7 @@ class OutgoingController extends Controller
         if ($rowsWithCustomerPart->isNotEmpty()) {
             $customerPartIds = $rowsWithCustomerPart->pluck('customer_part_id')->unique()->filter()->values()->all();
 
-            // Get current FG mappings from CustomerPartComponent
+            // Get current FG mappings from CustomerPartComponent (first one only for legacy compatibility)
             $currentMappings = CustomerPartComponent::query()
                 ->whereIn('customer_part_id', $customerPartIds)
                 ->whereHas('part', fn($q) => $q->where('classification', 'FG'))
@@ -841,9 +862,8 @@ class OutgoingController extends Controller
                 $cpId = (int) $row->customer_part_id;
                 $currentMapping = $currentMappings->get($cpId);
                 $expectedGciPartId = $currentMapping ? (int) $currentMapping->gci_part_id : null;
-                $currentGciPartId = $row->gci_part_id ? (int) $row->gci_part_id : null;
 
-                if ($expectedGciPartId !== $currentGciPartId) {
+                if ($expectedGciPartId) {
                     OutgoingDailyPlanRow::query()
                         ->whereKey($row->id)
                         ->update(['gci_part_id' => $expectedGciPartId]);
@@ -916,7 +936,7 @@ class OutgoingController extends Controller
         $fg = GciPart::where('classification', 'FG')
             ->where(function ($q) use ($partNo) {
                 $q->where('part_no', $partNo)
-                    ->orWhere('part_no', Str::replace('-', '', $partNo)); // loose match
+                    ->orWhere('part_no', str_replace(['-', ' ', '/', '.', '_'], '', $partNo)); // loose match
             })
             ->first();
         if ($fg) {

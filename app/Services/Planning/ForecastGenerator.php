@@ -14,16 +14,22 @@ class ForecastGenerator
 
         $planningRows = DB::table('customer_planning_rows as r')
             ->join('customer_planning_imports as i', 'i.id', '=', 'r.import_id')
-            ->join('customer_parts as cp', function ($join) {
+            ->leftJoin('customer_parts as cp', function ($join) {
                 $join->on('cp.customer_id', '=', 'i.customer_id')
                     ->on('cp.customer_part_no', '=', 'r.customer_part_no');
             })
-            ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
-            ->join('gci_parts as gp', 'gp.id', '=', 'cpc.gci_part_id')
+            ->leftJoin('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
             ->where('r.row_status', 'accepted')
             ->where('r.period', $period)
-            ->select('cpc.gci_part_id as part_id', DB::raw('SUM(r.qty * cpc.qty_per_unit) as qty'))
-            ->groupBy('cpc.gci_part_id')
+            ->where(function ($q) {
+                $q->whereNotNull('cpc.gci_part_id')
+                    ->orWhereNotNull('r.part_id');
+            })
+            ->select([
+                DB::raw('COALESCE(cpc.gci_part_id, r.part_id) as part_id'),
+                DB::raw('SUM(r.qty * COALESCE(cpc.qty_per_unit, 1.0)) as qty')
+            ])
+            ->groupBy(DB::raw('COALESCE(cpc.gci_part_id, r.part_id)'))
             ->get();
 
         $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn($v) => (float) $v)->all();
@@ -106,13 +112,17 @@ class ForecastGenerator
             if (!empty($selectedPlanningIds) || !empty($selectedImportIds)) {
                 $query = DB::table('customer_planning_rows as r')
                     ->join('customer_planning_imports as i', 'i.id', '=', 'r.import_id')
-                    ->join('customer_parts as cp', function ($join) {
+                    ->leftJoin('customer_parts as cp', function ($join) {
                         $join->on('cp.customer_id', '=', 'i.customer_id')
                             ->on('cp.customer_part_no', '=', 'r.customer_part_no');
                     })
-                    ->join('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
+                    ->leftJoin('customer_part_components as cpc', 'cpc.customer_part_id', '=', 'cp.id')
                     ->where('r.period', $w)
-                    ->where('r.row_status', 'accepted');
+                    ->where('r.row_status', 'accepted')
+                    ->where(function ($q) {
+                        $q->whereNotNull('cpc.gci_part_id')
+                            ->orWhereNotNull('r.part_id');
+                    });
 
                 if (!empty($selectedPlanningIds) && !empty($selectedImportIds)) {
                     $query->where(function ($q) use ($selectedPlanningIds, $selectedImportIds) {
@@ -125,8 +135,11 @@ class ForecastGenerator
                     $query->whereIn('r.import_id', $selectedImportIds);
                 }
 
-                $planningRows = $query->select('cpc.gci_part_id as part_id', DB::raw('SUM(r.qty * cpc.qty_per_unit) as qty'))
-                    ->groupBy('cpc.gci_part_id')
+                $planningRows = $query->select([
+                    DB::raw('COALESCE(cpc.gci_part_id, r.part_id) as part_id'),
+                    DB::raw('SUM(r.qty * COALESCE(cpc.qty_per_unit, 1.0)) as qty')
+                ])
+                    ->groupBy(DB::raw('COALESCE(cpc.gci_part_id, r.part_id)'))
                     ->get();
 
                 $planningByPart = $planningRows->pluck('qty', 'part_id')->map(fn($v) => (float) $v)->all();

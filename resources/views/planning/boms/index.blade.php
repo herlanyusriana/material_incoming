@@ -114,7 +114,8 @@
                             <option value="">All Part GCI</option>
                             @foreach ($fgParts as $p)
                                 <option value="{{ $p->id }}" @selected((string) ($gciPartId ?? '') === (string) $p->id)>
-                                    {{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+                                    {{ $p->part_no }} — {{ $p->part_name ?? '-' }}
+                                </option>
                             @endforeach
                         </select>
 
@@ -369,6 +370,7 @@
                                                         'special' => $item->special,
                                                         'component_part_id' => $item->component_part_id,
                                                         'component_part_no' => $item->component_part_no,
+                                                        'incoming_part_id' => $item->incoming_part_id,
                                                         'make_or_buy' => $item->make_or_buy,
                                                         'usage_qty' => $item->usage_qty,
                                                         'consumption_uom' => $item->consumption_uom,
@@ -419,6 +421,7 @@
                                                 'special' => null,
                                                 'component_part_id' => null,
                                                 'component_part_no' => null,
+                                                'incoming_part_id' => null,
                                                 'make_or_buy' => 'buy',
                                                 'usage_qty' => 1,
                                                 'consumption_uom' => null,
@@ -893,6 +896,7 @@
                         wip_uom_id: '',
                         scrap_factor: 0,
                         yield_factor: 1,
+
                     },
                     openCreate() { this.modalOpen = true; },
                     closeCreate() { this.modalOpen = false; },
@@ -955,6 +959,7 @@
                             wip_uom_id: payload.wip_uom_id ?? '',
                             scrap_factor: payload.scrap_factor ?? 0,
                             yield_factor: payload.yield_factor ?? 1,
+
                         };
                         this.lineModalOpen = true;
                     },

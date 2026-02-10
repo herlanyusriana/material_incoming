@@ -73,7 +73,7 @@ class BomItem extends Model
         $base = (float) $this->usage_qty;
         $yield = (float) ($this->yield_factor ?: 1);
         $scrap = (float) ($this->scrap_factor ?: 0);
-        
+
         return ($base / $yield) * (1 + $scrap);
     }
 }

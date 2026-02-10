@@ -1,0 +1,54 @@
+========================================
+PLANNING MODULE QA TEST
+========================================
+
+1. CUSTOMERS
+   Total: 2
+   Active: 2
+   With code: 2
+
+2. GCI PARTS
+   Total: 110
+   By classification:
+     - FG: 110
+     - RM: 0
+     - WIP: 0
+     - Other: 0
+   Active: 108
+   Parts without part_no: 0 ⚠️
+
+3. CUSTOMER PARTS (Product Mapping)
+   Total: 629
+   With components: 629
+   Without components: 0 ⚠️
+   Avg components per part: 6.77
+
+4. CUSTOMER PART COMPONENTS
+   Total: 4259
+   Orphaned (no GCI Part): 0 ⚠️
+
+5. BILL OF MATERIALS (BOM)
+   Total BOM items: 3
+   Orphaned entries: 3 ⚠️
+   Unique BOMs: 2
+
+6. DAILY PLANS
+   Total plans: 1
+   Total rows: 22
+   Rows without GCI Part: 0 ⚠️
+   Total cells: 22
+
+========================================
+DATA INTEGRITY CHECKS
+========================================
+
+   - MJB64309701 appears 2 times
+   - MJS65339804 appears 2 times
+   - 4980JA3016F appears 2 times
+⚠️ ISSUES FOUND:
+   - Duplicate GCI Part numbers: 16
+   - BOM items with invalid component_part_id: 3
+
+========================================
+QA TEST COMPLETE
+========================================
