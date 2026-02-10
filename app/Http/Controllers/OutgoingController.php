@@ -6,6 +6,9 @@ use App\Exports\OutgoingDailyPlanningExport;
 use App\Exports\OutgoingDailyPlanningTemplateExport;
 use App\Exports\StockAtCustomersExport;
 use App\Imports\StockAtCustomersImport;
+use App\Models\OutgoingDeliveryPlanningLine;
+use App\Models\OutgoingJigSetting;
+use App\Models\StandardPacking;
 use App\Imports\OutgoingDailyPlanningImport;
 use App\Models\StockAtCustomer;
 use App\Models\OutgoingDailyPlan;
@@ -886,47 +889,229 @@ class OutgoingController extends Controller
         return back()->with('success', 'Sales Order(s) generated successfully.');
     }
 
-    public function deliveryPlan()
+    public function deliveryPlan(Request $request)
     {
-        $deliveryPlans = DeliveryPlan::query()->latest()->get();
-        return view('outgoing.delivery_plan', compact('deliveryPlans'));
+        $selectedDate = $this->parseDate($request->query('date')) ?? now()->startOfDay();
+        $dateStr = $selectedDate->toDateString();
+
+        // Next day for H+1 columns
+        $nextDate = $selectedDate->copy()->addDay();
+        $nextDateStr = $nextDate->toDateString();
+
+        // SYNC LOGIC: Re-sync gci_part_id from CustomerPartComponent mapping for ALL rows in these dates.
+        $this->syncDailyPlanRowMappings(null, $selectedDate, $nextDate);
+
+        // ── 1. Daily Plan data for today (H) ──
+        $planCells = OutgoingDailyPlanCell::query()
+            ->with(['row'])
+            ->whereDate('plan_date', $dateStr)
+            ->where('qty', '>', 0)
+            ->get();
+
+        // Group by gci_part_id → sum qty
+        $dailyPlanMap = []; // gci_part_id => total qty
+        foreach ($planCells as $cell) {
+            $gciPartId = (int) ($cell->row->gci_part_id ?? 0);
+            if ($gciPartId <= 0)
+                continue;
+            $dailyPlanMap[$gciPartId] = ($dailyPlanMap[$gciPartId] ?? 0) + (int) $cell->qty;
+        }
+
+        // ── 2. Daily Plan data for H+1 ──
+        $planCellsH1 = OutgoingDailyPlanCell::query()
+            ->with(['row'])
+            ->whereDate('plan_date', $nextDateStr)
+            ->where('qty', '>', 0)
+            ->get();
+
+        $dailyPlanH1Map = [];
+        foreach ($planCellsH1 as $cell) {
+            $gciPartId = (int) ($cell->row->gci_part_id ?? 0);
+            if ($gciPartId <= 0)
+                continue;
+            $dailyPlanH1Map[$gciPartId] = ($dailyPlanH1Map[$gciPartId] ?? 0) + (int) $cell->qty;
+        }
+
+        // ── 3. Collect all relevant GCI Part IDs ──
+        $allPartIds = collect(array_keys($dailyPlanMap))
+            ->merge(array_keys($dailyPlanH1Map))
+            ->unique()
+            ->values();
+
+        // Also include parts that already have delivery planning lines for this date
+        $existingLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)->get();
+        $allPartIds = $allPartIds->merge($existingLines->pluck('gci_part_id'))->unique()->values();
+
+        if ($allPartIds->isEmpty()) {
+            return view('outgoing.delivery_plan', [
+                'selectedDate' => $selectedDate,
+                'rows' => collect(),
+            ]);
+        }
+
+        // ── 4. Load FG Part master data ──
+        $parts = GciPart::whereIn('id', $allPartIds)
+            ->where('classification', 'FG')
+            ->get()
+            ->keyBy('id');
+
+        // Filter to only FG parts
+        $allPartIds = $allPartIds->filter(fn($id) => $parts->has($id))->values();
+
+        // ── 5. Stock at Customer ──
+        $period = $selectedDate->format('Y-m');
+        $dayCol = 'day_' . (int) $selectedDate->format('j');
+
+        $stockMap = StockAtCustomer::where('period', $period)
+            ->whereIn('gci_part_id', $allPartIds)
+            ->get()
+            ->groupBy('gci_part_id')
+            ->map(fn($recs) => $recs->sum(fn($r) => (float) ($r->{$dayCol} ?? 0)));
+
+        // ── 6. Standard Packing ──
+        $stdPackMap = StandardPacking::whereIn('gci_part_id', $allPartIds)
+            ->where('status', 'active')
+            ->get()
+            ->keyBy('gci_part_id');
+
+        // ── 7. JIG Settings (grouped by gci_part_id via customer part mapping) ──
+        $jigSettings = OutgoingJigSetting::with([
+            'customerPart.components.part',
+            'plans' => function ($q) use ($dateStr, $nextDateStr) {
+                $q->whereIn('plan_date', [$dateStr, $nextDateStr]);
+            }
+        ])->get();
+
+        // Map jig to gci_part_id through customer part components
+        $jigsByPart = []; // gci_part_id => [jig settings]
+        foreach ($jigSettings as $jig) {
+            $cp = $jig->customerPart;
+            if (!$cp)
+                continue;
+            foreach ($cp->components ?? [] as $comp) {
+                if ($comp->part && $comp->part->classification === 'FG') {
+                    $partId = (int) $comp->gci_part_id;
+                    $jigsByPart[$partId][] = $jig;
+                }
+            }
+        }
+
+        // ── 8. Existing delivery planning lines (trip data) ──
+        $deliveryLines = $existingLines->keyBy('gci_part_id');
+
+        // ── 9. Build display rows ──
+        $rows = collect();
+        foreach ($allPartIds as $partId) {
+            $part = $parts->get($partId);
+            if (!$part)
+                continue;
+
+            $stockAtCust = (int) ($stockMap->get($partId) ?? 0);
+            $dailyPlanQty = (int) ($dailyPlanMap[$partId] ?? 0);
+            $dailyPlanH1Qty = (int) ($dailyPlanH1Map[$partId] ?? 0);
+            $stdPack = $stdPackMap->get($partId);
+            $stdPackQty = $stdPack ? (int) $stdPack->packing_qty : 0;
+
+            $deliveryReq = max(0, $dailyPlanQty - $stockAtCust);
+
+            // Trip data
+            $line = $deliveryLines->get($partId);
+            $trips = [];
+            $totalTrips = 0;
+            for ($t = 1; $t <= 14; $t++) {
+                $val = $line ? (int) $line->{"trip_{$t}"} : 0;
+                $trips[$t] = $val;
+                $totalTrips += $val;
+            }
+
+            // Jig info for this part
+            $partJigs = $jigsByPart[$partId] ?? [];
+            $jigRows = [];
+            $totalJigQtyH1 = 0;
+            foreach ($partJigs as $jig) {
+                $plans = $jig->plans->keyBy(fn($p) => $p->plan_date->format('Y-m-d'));
+                $jigQtyH = (int) ($plans->get($dateStr)?->jig_qty ?? 0);
+                $jigQtyH1 = (int) ($plans->get($nextDateStr)?->jig_qty ?? 0);
+                $totalJigQtyH1 += $jigQtyH1;
+                $jigRows[] = (object) [
+                    'jig_name' => $jig->customerPart?->customer_part_name ?? $jig->customerPart?->customer_part_no ?? '-',
+                    'jig_qty' => $jigQtyH,
+                    'uph' => (int) $jig->uph,
+                    'jig_qty_h1' => $jigQtyH1,
+                ];
+            }
+
+            // Finish time = total / UPH (if UPH > 0)
+            $totalUph = collect($jigRows)->sum('uph');
+            $finishTime = $totalUph > 0 ? round($totalTrips / $totalUph, 2) : null;
+
+            // End stock at customer = stock + totalTrips - dailyPlanQty
+            $endStock = $stockAtCust + $totalTrips - $dailyPlanQty;
+
+            // Estimated finish time for H+1
+            $estFinishTime = ($totalUph > 0 && $dailyPlanH1Qty > 0)
+                ? round($dailyPlanH1Qty / $totalUph, 2)
+                : null;
+
+            $rows->push((object) [
+                'gci_part_id' => $partId,
+                'category' => $part->classification ?? 'Main',
+                'fg_part_name' => $part->part_name ?? '-',
+                'fg_part_no' => $part->part_no ?? '-',
+                'model' => $part->model ?? '-',
+                'stock_at_customer' => $stockAtCust,
+                'daily_plan_qty' => $dailyPlanQty,
+                'delivery_requirement' => $deliveryReq,
+                'std_packing' => $stdPackQty,
+                'total_uph' => $totalUph,
+                'jigs' => $jigRows,
+                'trips' => $trips,
+                'total_trips' => $totalTrips,
+                'finish_time' => $finishTime,
+                'end_stock' => $endStock,
+                'daily_plan_h1' => $dailyPlanH1Qty,
+                'jig_qty_h1' => $totalJigQtyH1,
+                'est_finish_time' => $estFinishTime,
+                'has_line' => $line !== null,
+                'line_id' => $line?->id,
+            ]);
+        }
+
+        // Sort by category then part name
+        $rows = $rows->sortBy([['category', 'asc'], ['fg_part_name', 'asc']])->values();
+
+        return view('outgoing.delivery_plan', [
+            'selectedDate' => $selectedDate,
+            'rows' => $rows,
+        ]);
     }
 
-    public function deliveryPlanCreate()
+    /**
+     * AJAX: Update a single trip cell value.
+     */
+    public function updateDeliveryPlanTrip(Request $request)
     {
-        $trucks = Truck::query()->where('status', 'active')->get();
-        $drivers = Driver::query()->where('status', 'active')->get();
-        $date = request('date', now()->toDateString());
-
-        return view('outgoing.delivery_plan_create', compact('trucks', 'drivers', 'date'));
-    }
-
-    public function deliveryPlanStore(Request $request)
-    {
-        $validated = $request->validate([
-            'plan_date' => ['required', 'date'],
-            'truck_id' => ['required', 'exists:trucks,id'],
-            'driver_id' => ['required', 'exists:drivers,id'],
-            'cycle' => ['required', 'integer', 'min:1'],
-            'items' => ['required', 'array'],
-            'items.*.so_id' => ['required', 'exists:sales_orders,id'],
-            'items.*.part_id' => ['required', 'exists:gci_parts,id'],
-            'items.*.qty' => ['required', 'numeric', 'min:1'],
+        $request->validate([
+            'delivery_date' => 'required|date',
+            'gci_part_id' => 'required|integer|exists:gci_parts,id',
+            'trip_no' => 'required|integer|min:1|max:14',
+            'qty' => 'required|integer|min:0',
         ]);
 
-        DB::transaction(function () use ($validated) {
-            $plan = DeliveryPlan::create([
-                'plan_date' => $validated['plan_date'],
-                'truck_id' => $validated['truck_id'],
-                'driver_id' => $validated['driver_id'],
-                'cycle' => $validated['cycle'],
-                'status' => 'draft',
-                'created_by' => auth()->id(),
-            ]);
-            // Logic to link SO items to delivery plan ...
-        });
+        $line = OutgoingDeliveryPlanningLine::updateOrCreate(
+            [
+                'delivery_date' => $request->delivery_date,
+                'gci_part_id' => $request->gci_part_id,
+            ],
+            [
+                'trip_' . $request->trip_no => $request->qty,
+            ]
+        );
 
-        return redirect()->route('outgoing.delivery-plan')->with('success', 'Delivery Plan created.');
+        return response()->json([
+            'success' => true,
+            'total' => $line->total_trips,
+        ]);
     }
 
     private function parseDate($val)
