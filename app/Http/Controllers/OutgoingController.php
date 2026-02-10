@@ -1126,6 +1126,68 @@ class OutgoingController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────
+    // Stock at Customers
+    // ──────────────────────────────────────────────
+
+    public function stockAtCustomers(Request $request)
+    {
+        $period = $request->input('period', now()->format('Y-m'));
+        $date = CarbonImmutable::parse($period . '-01');
+        $days = range(1, $date->daysInMonth);
+
+        $records = StockAtCustomer::query()
+            ->with(['customer', 'part'])
+            ->where('period', $period)
+            ->orderBy('customer_id')
+            ->orderBy('part_no')
+            ->paginate(50)
+            ->appends(['period' => $period]);
+
+        return view('outgoing.stock_at_customers', compact('period', 'days', 'records'));
+    }
+
+    public function stockAtCustomersTemplate(Request $request)
+    {
+        $period = $request->input('period', now()->format('Y-m'));
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new StockAtCustomersExport($period),
+            "stock_at_customers_template_{$period}.xlsx"
+        );
+    }
+
+    public function stockAtCustomersExport(Request $request)
+    {
+        $period = $request->input('period', now()->format('Y-m'));
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new StockAtCustomersExport($period),
+            "stock_at_customers_{$period}.xlsx"
+        );
+    }
+
+    public function stockAtCustomersImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv',
+            'period' => 'required|date_format:Y-m',
+        ]);
+
+        $import = new StockAtCustomersImport($request->period);
+        \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+
+        $msg = "Imported {$import->rowCount} rows.";
+        if ($import->skippedRows > 0) {
+            $msg .= " Skipped {$import->skippedRows} empty rows.";
+        }
+
+        if (!empty($import->failures)) {
+            $msg .= '<br>' . implode('<br>', array_slice($import->failures, 0, 10));
+            return back()->with('error', $msg);
+        }
+
+        return back()->with('success', $msg);
+    }
+
     private function parseDate($val)
     {
         if (!$val)
