@@ -323,7 +323,7 @@
 									</td>
 									<td class="px-2 py-2 text-right font-semibold text-slate-700 calc-col"
 										id="finish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->finish_time !== null ? number_format($row->finish_time, 2) : '-' }}
+										{{ $row->finish_time ?? '-' }}
 									</td>
 									<td class="px-2 py-2 text-right font-bold calc-col" id="endstock-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 										@if($row->end_stock < 0)
@@ -342,7 +342,7 @@
 									</td>
 									<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col"
 										id="estfinish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->est_finish_time !== null ? number_format($row->est_finish_time, 2) : '-' }}
+										{{ $row->est_finish_time ?? '-' }}
 									</td>
 								</tr>
 
@@ -480,14 +480,21 @@
 			const totalEl = document.getElementById(`total-${partId}`);
 			if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
 
-			// Finish Time = 7.00 + (stock_at_cust + total_trips) / production_rate
+			// Finish Time = 07:00 + delivery_requirement / production_rate (format HH:MM)
 			const prodRate = parseFloat(document.getElementById(`prod-rate-${partId}`)?.textContent) || 0;
+			const delReq = parseFloat(document.getElementById(`del-req-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const finishEl = document.getElementById(`finish-${partId}`);
 			if (finishEl) {
-				const numerator = stockAtCust + total;
-				const finishTime = (prodRate > 0 && numerator > 0) ? (7.0 + numerator / prodRate).toFixed(2) : '-';
-				finishEl.textContent = finishTime;
+				if (prodRate > 0 && delReq > 0) {
+					const decimal = 7.0 + delReq / prodRate;
+					const h = Math.floor(decimal);
+					let m = Math.round((decimal - h) * 60);
+					if (m === 60) { h++; m = 0; }
+					finishEl.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+				} else {
+					finishEl.textContent = '-';
+				}
 			}
 
 			// Update End Stock (Stock + Total - Plan)
@@ -502,14 +509,21 @@
 				}
 			}
 
-			// Est. Finish Time H+1 = 7.00 + delivery_req_h1 / production_rate_h1
+			// Est. Finish Time H+1 = 07:00 + delivery_req_h1 / production_rate_h1 (format HH:MM)
 			const prodRateH1 = parseFloat(document.getElementById(`prod-rate-h1-${partId}`)?.textContent) || 0;
 			const planH1 = parseFloat(document.getElementById(`plan-h1-${partId}`)?.textContent) || 0;
 			const estFinishEl = document.getElementById(`estfinish-${partId}`);
 			if (estFinishEl) {
 				const delReqH1 = Math.max(0, planH1 - Math.max(0, endStock));
-				const estFinish = (prodRateH1 > 0 && delReqH1 > 0) ? (7.0 + delReqH1 / prodRateH1).toFixed(2) : '-';
-				estFinishEl.textContent = estFinish;
+				if (prodRateH1 > 0 && delReqH1 > 0) {
+					const decimal = 7.0 + delReqH1 / prodRateH1;
+					const h = Math.floor(decimal);
+					let m = Math.round((decimal - h) * 60);
+					if (m === 60) { h++; m = 0; }
+					estFinishEl.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+				} else {
+					estFinishEl.textContent = '-';
+				}
 			}
 		}
 	</script>

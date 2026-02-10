@@ -1044,10 +1044,16 @@ class OutgoingController extends Controller
             // Production rate = sum(jig_qty × UPH) for today
             $productionRate = collect($jigRows)->sum(fn($j) => $j->jig_qty * $j->uph);
 
-            // Finish time = 7:00 + (stock_at_customer + total_trips) / production_rate
-            $finishTime = ($productionRate > 0 && ($stockAtCust + $totalTrips) > 0)
-                ? round(7.0 + ($stockAtCust + $totalTrips) / $productionRate, 2)
-                : null;
+            // Finish time = 07:00 + delivery_requirement / production_rate (format HH:MM)
+            if ($productionRate > 0 && $deliveryReq > 0) {
+                $decimalHours = 7.0 + $deliveryReq / $productionRate;
+                $hours = (int) floor($decimalHours);
+                $minutes = (int) round(($decimalHours - $hours) * 60);
+                if ($minutes === 60) { $hours++; $minutes = 0; }
+                $finishTime = sprintf('%02d:%02d', $hours, $minutes);
+            } else {
+                $finishTime = null;
+            }
 
             // End stock at customer = stock + totalTrips - dailyPlanQty
             $endStock = $stockAtCust + $totalTrips - $dailyPlanQty;
@@ -1058,10 +1064,16 @@ class OutgoingController extends Controller
             // Delivery requirement H+1 = max(0, daily_plan_h1 - end_stock if positive)
             $deliveryReqH1 = max(0, $dailyPlanH1Qty - max(0, $endStock));
 
-            // Est. finish time = 7:00 + delivery_req_h1 / production_rate_h1
-            $estFinishTime = ($productionRateH1 > 0 && $deliveryReqH1 > 0)
-                ? round(7.0 + $deliveryReqH1 / $productionRateH1, 2)
-                : null;
+            // Est. finish time H+1 = 07:00 + delivery_req_h1 / production_rate_h1 (format HH:MM)
+            if ($productionRateH1 > 0 && $deliveryReqH1 > 0) {
+                $decimalHours = 7.0 + $deliveryReqH1 / $productionRateH1;
+                $hours = (int) floor($decimalHours);
+                $minutes = (int) round(($decimalHours - $hours) * 60);
+                if ($minutes === 60) { $hours++; $minutes = 0; }
+                $estFinishTime = sprintf('%02d:%02d', $hours, $minutes);
+            } else {
+                $estFinishTime = null;
+            }
 
             $rows->push((object) [
                 'gci_part_id' => $partId,
