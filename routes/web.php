@@ -164,6 +164,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/product-mapping', [OutgoingController::class, 'productMapping'])->name('product-mapping');
         Route::get('/where-used', [OutgoingController::class, 'whereUsed'])->name('where-used');
         Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
+        Route::get('/delivery-requirements/export', [OutgoingController::class, 'deliveryRequirementsExport'])->name('delivery-requirements.export');
         Route::post('/delivery-requirements/generate-so', [OutgoingController::class, 'generateSo'])->name('generate-so');
         Route::post('/delivery-requirements/generate-so-bulk', [OutgoingController::class, 'generateSoBulk'])->name('generate-so-bulk');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');

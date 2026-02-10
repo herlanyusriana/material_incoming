@@ -14,6 +14,7 @@ use App\Models\CustomerPart;
 use App\Models\CustomerPartComponent;
 use App\Exports\BomSubstitutesExport;
 use App\Models\GciPart;
+use App\Models\Part;
 use App\Models\Uom;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -44,6 +45,12 @@ class BomController extends Controller
             ->orderBy('part_no')
             ->get();
 
+        // Incoming parts (vendor parts) for linking RM in BOM
+        $incomingParts = Part::query()
+            ->with('vendor')
+            ->orderBy('part_no')
+            ->get();
+
         $uoms = Uom::query()
             ->where('is_active', true)
             ->orderBy('category')
@@ -51,7 +58,7 @@ class BomController extends Controller
             ->get();
 
         $boms = Bom::query()
-            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.wipUom', 'items.consumptionUom', 'items.substitutes.part'])
+            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.incomingPart.vendor', 'items.wipUom', 'items.consumptionUom', 'items.substitutes.part', 'items.substitutes.incomingPart.vendor'])
             ->when($gciPartId, fn($q) => $q->where('part_id', $gciPartId))
             ->when($q !== '', function ($query) use ($q) {
                 $query->whereHas('part', function ($sub) use ($q) {
@@ -63,7 +70,7 @@ class BomController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'uoms', 'gciPartId', 'q'));
+        return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'incomingParts', 'uoms', 'gciPartId', 'q'));
     }
 
     public function whereUsed(Request $request)
@@ -426,6 +433,7 @@ class BomController extends Controller
             'bom_item_id' => ['nullable', 'integer'],
             'component_part_id' => ['nullable', Rule::exists('gci_parts', 'id')],
             'component_part_no' => ['nullable', 'string', 'max:100'],
+            'incoming_part_id' => ['nullable', Rule::exists('parts', 'id')],
             'make_or_buy' => ['nullable', Rule::in(['make', 'buy', 'free_issue'])],
             'usage_qty' => ['required', 'numeric', 'min:0'],
             'consumption_uom' => ['nullable', 'string', 'max:20'],
@@ -502,6 +510,8 @@ class BomController extends Controller
             ]);
         }
 
+        $incomingPartId = isset($validated['incoming_part_id']) ? (int) ($validated['incoming_part_id'] ?? 0) : 0;
+
         $payload = [
             'usage_qty' => $validated['usage_qty'],
             'consumption_uom' => $consumptionUomCode,
@@ -523,6 +533,7 @@ class BomController extends Controller
             'yield_factor' => $validated['yield_factor'] ?? 1,
             'consumption_uom_id' => $consumptionUomId > 0 ? $consumptionUomId : null,
             'wip_uom_id' => $wipUomId > 0 ? $wipUomId : null,
+            'incoming_part_id' => $incomingPartId > 0 ? $incomingPartId : null,
         ];
 
         $bomItemId = isset($validated['bom_item_id']) ? (int) $validated['bom_item_id'] : null;
@@ -572,11 +583,14 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'substitute_part_id' => ['required', Rule::exists('gci_parts', 'id')],
+            'incoming_part_id' => ['nullable', Rule::exists('parts', 'id')],
             'ratio' => ['nullable', 'numeric', 'min:0.0001'],
             'priority' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $incomingPartId = isset($validated['incoming_part_id']) ? (int) ($validated['incoming_part_id'] ?? 0) : 0;
 
         BomItemSubstitute::updateOrCreate(
             [
@@ -585,6 +599,7 @@ class BomController extends Controller
             ],
             [
                 'substitute_part_no' => GciPart::find($validated['substitute_part_id'])->part_no,
+                'incoming_part_id' => $incomingPartId > 0 ? $incomingPartId : null,
                 'ratio' => $validated['ratio'] ?? 1,
                 'priority' => $validated['priority'] ?? 1,
                 'status' => $validated['status'] ?? 'active',

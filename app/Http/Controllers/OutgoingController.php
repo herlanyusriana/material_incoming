@@ -639,6 +639,133 @@ class OutgoingController extends Controller
         return view('outgoing.delivery_requirements', compact('requirements', 'dateFrom', 'dateTo', 'sortBy', 'sortDir'));
     }
 
+    public function deliveryRequirementsExport(Request $request)
+    {
+        $dateFrom = $this->parseDate($request->query('date_from')) ?? now()->startOfDay();
+        $dateTo = $this->parseDate($request->query('date_to')) ?? now()->startOfDay();
+        if ($dateTo->lt($dateFrom)) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        // Re-sync mappings
+        $this->syncDailyPlanRowMappings(null, $dateFrom, $dateTo);
+
+        // Build requirements using same logic as deliveryRequirements (without pagination)
+        $cells = OutgoingDailyPlanCell::query()
+            ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
+            ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('plan_date', '<=', $dateTo->format('Y-m-d'))
+            ->get();
+
+        $fulfilledMap = DeliveryRequirementFulfillment::query()
+            ->selectRaw('plan_date, row_id, SUM(qty) as fulfilled_qty')
+            ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('plan_date', '<=', $dateTo->format('Y-m-d'))
+            ->groupBy('plan_date', 'row_id')
+            ->get()
+            ->mapWithKeys(function ($r) {
+                return [(string) $r->plan_date . '|' . (int) $r->row_id => (float) $r->fulfilled_qty];
+            })
+            ->all();
+
+        $cells = $cells
+            ->map(function ($cell) use ($fulfilledMap) {
+                $key = $cell->plan_date->format('Y-m-d') . '|' . (int) $cell->row_id;
+                $cell->remaining_qty = max(0, (float) $cell->qty - (float) ($fulfilledMap[$key] ?? 0));
+                return $cell;
+            })
+            ->filter(fn($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
+            ->values();
+
+        // Stock at customer map
+        $periods = $cells->pluck('plan_date')->filter()->map(fn($d) => $d->format('Y-m'))->unique()->values();
+        $customerIds = $cells->map(fn($c) => $c->row?->gciPart?->customer_id)->filter()->map(fn($v) => (int) $v)->unique()->values();
+        $partIds = $cells->map(fn($c) => $c->row?->gci_part_id)->filter()->map(fn($v) => (int) $v)->unique()->values();
+
+        $stockMap = [];
+        if ($periods->isNotEmpty() && $customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
+            $stockMap = StockAtCustomer::query()
+                ->whereIn('period', $periods->all())
+                ->whereIn('customer_id', $customerIds->all())
+                ->whereIn('gci_part_id', $partIds->all())
+                ->get()
+                ->mapWithKeys(fn($rec) => [(string) $rec->period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id => $rec])
+                ->all();
+        }
+
+        $getStock = function (Carbon $date, int $custId, int $partId) use ($stockMap): float {
+            $k = $date->format('Y-m') . '|' . $custId . '|' . $partId;
+            $rec = $stockMap[$k] ?? null;
+            if (!$rec)
+                return 0.0;
+            $day = (int) $date->format('j');
+            return ($day >= 1 && $day <= 31) ? (float) ($rec->{'day_' . $day} ?? 0) : 0.0;
+        };
+
+        $days = $this->daysBetween($dateFrom, $dateTo);
+        $lines = collect();
+
+        foreach ($days as $day) {
+            $dateStr = $day->toDateString();
+            $dayCells = $cells->filter(fn($c) => $c->plan_date->toDateString() === $dateStr);
+            $dayCellsByRow = $dayCells->groupBy(fn($c) => (int) ($c->row_id ?? 0));
+
+            foreach ($dayCellsByRow as $rowId => $rowCells) {
+                $row = $rowCells->first()?->row;
+                if (!$row)
+                    continue;
+
+                $gciPart = $row->gciPart;
+                $grossQty = $rowCells->sum(fn($c) => (float) ($c->remaining_qty ?? 0));
+                if ($grossQty <= 0.0001)
+                    continue;
+
+                if (!$gciPart || $gciPart->classification !== 'FG' || $gciPart->status !== 'active') {
+                    $lines->push((object) [
+                        'date' => $day->copy(),
+                        'customer' => null,
+                        'gci_part' => $gciPart,
+                        'customer_part_name' => 'UNMAPPED / INACTIVE',
+                        'unmapped' => true,
+                        'gross_qty' => $grossQty,
+                        'source_row_ids' => [$rowId],
+                    ]);
+                    continue;
+                }
+
+                $lines->push((object) [
+                    'date' => $day->copy(),
+                    'customer' => $gciPart->customer,
+                    'gci_part' => $gciPart,
+                    'customer_part_name' => $gciPart->part_name,
+                    'unmapped' => false,
+                    'gross_qty' => $grossQty,
+                    'packing_std' => (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1,
+                    'source_row_ids' => [$rowId],
+                ]);
+            }
+        }
+
+        $requirements = $lines->map(function ($r) use ($getStock) {
+            $custId = (int) ($r->customer?->id ?? 0);
+            $partId = (int) ($r->gci_part?->id ?? 0);
+            $stockTotal = ($r->date && $custId > 0 && $partId > 0) ? $getStock($r->date, $custId, $partId) : 0.0;
+            $gross = (float) ($r->gross_qty ?? 0);
+            $used = ($stockTotal > 0 && $gross > 0) ? min($gross, $stockTotal) : 0.0;
+            $r->stock_at_customer = $stockTotal;
+            $r->total_qty = max(0, $gross - $used);
+            return $r;
+        })->sortBy(fn($r) => [$r->date?->toDateString(), $r->gci_part?->part_no ?? ''])->values();
+
+        $dateLabel = $dateFrom->format('d_M_Y');
+        $filename = 'delivery_requirements_' . $dateFrom->format('Ymd') . '.xlsx';
+
+        return Excel::download(
+            new \App\Exports\DeliveryRequirementsExport($requirements, $dateLabel),
+            $filename
+        );
+    }
+
     public function generateSoBulk(Request $request)
     {
         $validated = $request->validate([

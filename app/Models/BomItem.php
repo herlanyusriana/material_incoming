@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\GciPart;
+use App\Models\Part;
 
 class BomItem extends Model
 {
@@ -14,6 +15,7 @@ class BomItem extends Model
         'bom_id',
         'component_part_id',
         'component_part_no',
+        'incoming_part_id',
         'usage_qty',
         'scrap_factor',
         'yield_factor',
@@ -48,6 +50,14 @@ class BomItem extends Model
     public function componentPart()
     {
         return $this->belongsTo(GciPart::class, 'component_part_id');
+    }
+
+    /**
+     * Get the Incoming Part (vendor part) linked to this RM component.
+     */
+    public function incomingPart()
+    {
+        return $this->belongsTo(Part::class, 'incoming_part_id');
     }
 
     public function substitutes()

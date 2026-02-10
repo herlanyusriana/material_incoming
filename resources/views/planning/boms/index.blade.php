@@ -4,21 +4,35 @@
     </x-slot>
 
     <div class="py-6" x-data="planningBoms()">
-        <div class="max-w-screen-2xl mx-auto px-2 sm:px-4 lg:px-6 space-y-6">
+        <div class="max-w-screen-2xl mx-auto px-2 sm:px-4 lg:px-6 space-y-5">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-                    {{ session('success') }}
+                <div
+                    class="rounded-xl bg-emerald-50 border border-emerald-200/60 px-5 py-3.5 text-sm text-emerald-800 flex items-center gap-3 shadow-sm animate-fade-in">
+                    <span
+                        class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </span>
+                    <span class="font-medium">{{ session('success') }}</span>
                 </div>
             @endif
             @if (session('error'))
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
-                    {{ session('error') }}
+                <div
+                    class="rounded-xl bg-red-50 border border-red-200/60 px-5 py-3.5 text-sm text-red-800 flex items-center gap-3 shadow-sm">
+                    <span
+                        class="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">✕</span>
+                    <span class="font-medium">{{ session('error') }}</span>
                 </div>
             @endif
             @if ($errors->any())
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
-                    <div class="font-semibold">Validation error</div>
-                    <ul class="mt-1 list-disc pl-5 space-y-0.5">
+                <div class="rounded-xl bg-red-50 border border-red-200/60 px-5 py-3.5 text-sm text-red-800 shadow-sm">
+                    <div class="font-semibold flex items-center gap-2">
+                        <span
+                            class="w-5 h-5 rounded-full bg-red-200 flex items-center justify-center text-red-700 text-xs">!</span>
+                        Validation error
+                    </div>
+                    <ul class="mt-1.5 list-disc pl-5 space-y-0.5 text-red-700">
                         @foreach ($errors->all() as $message)
                             <li>{{ $message }}</li>
                         @endforeach
@@ -27,6 +41,22 @@
             @endif
 
             <style>
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-8px);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .animate-fade-in {
+                    animation: fade-in 0.4s ease-out;
+                }
+
                 .bom-table {
                     border-collapse: separate;
                     border-spacing: 0;
@@ -34,17 +64,24 @@
 
                 .bom-table th,
                 .bom-table td {
-                    border: 1px solid #e2e8f0;
+                    border-bottom: 1px solid #e2e8f0;
+                    border-right: 1px solid #f1f5f9;
                 }
 
                 .bom-table th {
-                    background-color: #f8fafc;
+                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                    color: #cbd5e1;
                     position: sticky;
                     top: 0;
                     z-index: 20;
+                    letter-spacing: 0.05em;
                 }
 
-                /* Sticky left columns for better context */
+                .bom-table th:first-child {
+                    border-radius: 0;
+                }
+
+                /* Sticky left columns */
                 .sticky-col-1 {
                     position: sticky;
                     left: 0;
@@ -75,92 +112,200 @@
 
                 .th-sticky {
                     z-index: 40 !important;
-                    background-color: #f1f5f9 !important;
+                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
                 }
 
                 .parent-row {
-                    background-color: #ffffff;
+                    background: linear-gradient(90deg, #f8fafc 0%, #ffffff 40%);
+                    border-left: 3px solid #6366f1;
+                    transition: all 0.15s ease;
                 }
 
                 .parent-row:hover {
-                    background-color: #f1f5f9;
+                    background: linear-gradient(90deg, #eef2ff 0%, #f8fafc 40%);
+                    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.08);
                 }
 
                 .child-row {
-                    background-color: #fdfdfd;
+                    background-color: #ffffff;
+                    border-left: 3px solid transparent;
+                    transition: all 0.12s ease;
                 }
 
                 .child-row:hover {
-                    background-color: #f8fafc;
+                    background-color: #fafbff;
+                    border-left-color: #a5b4fc;
                 }
 
                 .font-mono-compact {
-                    font-family: ui-monospace, monospace;
+                    font-family: 'JetBrains Mono', ui-monospace, monospace;
                     font-size: 11px;
                     letter-spacing: -0.025em;
                 }
+
+                .btn-toolbar {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.375rem;
+                    padding: 0.5rem 0.875rem;
+                    border-radius: 0.75rem;
+                    font-size: 0.8125rem;
+                    font-weight: 600;
+                    transition: all 0.15s ease;
+                    white-space: nowrap;
+                }
+
+                .btn-toolbar:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                }
+
+                .btn-toolbar:active {
+                    transform: translateY(0);
+                }
+
+                .btn-toolbar-ghost {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    color: #475569;
+                }
+
+                .btn-toolbar-ghost:hover {
+                    background: #f8fafc;
+                    border-color: #cbd5e1;
+                }
+
+                /* Table action buttons */
+                .action-btn {
+                    width: 28px;
+                    height: 28px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 8px;
+                    border: 1px solid #e2e8f0;
+                    font-size: 11px;
+                    background: white;
+                    transition: all 0.12s ease;
+                    cursor: pointer;
+                }
+
+                .action-btn:hover {
+                    transform: scale(1.08);
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+                }
             </style>
 
-            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-4 space-y-5">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <form method="GET" class="flex flex-wrap items-center gap-2">
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
-                            <input name="q" value="{{ $q ?? '' }}" class="rounded-xl border-slate-200 pl-10"
-                                placeholder="Search BOM...">
+            {{-- Hero Header --}}
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 shadow-lg border border-indigo-900/30">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/20 backdrop-blur flex items-center justify-center">
+                            <svg class="w-7 h-7 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
                         </div>
-
-                        <select name="gci_part_id" class="rounded-xl border-slate-200">
-                            <option value="">All Part GCI</option>
-                            @foreach ($fgParts as $p)
-                                <option value="{{ $p->id }}" @selected((string) ($gciPartId ?? '') === (string) $p->id)>
-                                    {{ $p->part_no }} — {{ $p->part_name ?? '-' }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
-                    </form>
-
+                        <div>
+                            <h1 class="text-xl font-bold text-white tracking-tight">Bill of Materials</h1>
+                            <p class="text-sm text-indigo-300/80 mt-0.5">BOM GCI • Manage component structures</p>
+                        </div>
+                    </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('planning.boms.export', request()->query()) }}"
-                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold">
-                            Export
-                        </a>
-                        <button type="button"
-                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
-                            @click="openImport()">
-                            Import
-                        </button>
-                        <a href="{{ route('planning.boms.substitutes.export') }}"
-                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-600"
-                            title="Export Substitutes to Excel">
-                            Exp. Subst.
-                        </a>
-                        <button type="button"
-                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-bold text-slate-600"
-                            @click="openImportSubstitute()" title="Import Substitutes via Excel">
-                            Imp. Subst.
-                        </button>
-                        <a href="{{ route('outgoing.product-mapping') }}#where-used"
-                            class="px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold">
-                            🔍 Where-Used
-                        </a>
-                        <a href="{{ route('planning.boms.explosion-search') }}"
-                            class="px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 font-semibold">
-                            🌳 Explosion
-                        </a>
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
-                            @click="openCreate()">
-                            + Add BOM
-                        </button>
+                        <div class="flex items-center gap-1.5 bg-white/5 backdrop-blur rounded-xl px-3 py-2 border border-white/10">
+                            <span class="text-xs text-indigo-300 font-medium">Total BOMs</span>
+                            <span class="text-sm font-black text-white">{{ $boms->total() }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white shadow-lg border border-slate-200/80 rounded-2xl overflow-hidden">
+                {{-- Toolbar --}}
+                <div class="p-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        {{-- Search & Filter --}}
+                        <form method="GET" class="flex flex-wrap items-center gap-2">
+                            <div class="relative">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                <input name="q" value="{{ $q ?? '' }}" class="rounded-xl border-slate-200 pl-10 text-sm bg-white shadow-sm focus:border-indigo-400 focus:ring-indigo-400"
+                                    placeholder="Search BOM...">
+                            </div>
+
+                            <select name="gci_part_id" class="rounded-xl border-slate-200 text-sm bg-white shadow-sm">
+                                <option value="">All Part GCI</option>
+                                @foreach ($fgParts as $p)
+                                    <option value="{{ $p->id }}" @selected((string) ($gciPartId ?? '') === (string) $p->id)>
+                                        {{ $p->part_no }} — {{ $p->part_name ?? '-' }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <button class="btn-toolbar bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                                Filter
+                            </button>
+                        </form>
+
+                        {{-- Action Buttons --}}
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            {{-- Import / Export group --}}
+                            <div class="flex items-center bg-slate-50 rounded-xl p-0.5 border border-slate-200/60">
+                                <a href="{{ route('planning.boms.export', request()->query()) }}"
+                                    class="btn-toolbar btn-toolbar-ghost border-0 text-xs">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Export
+                                </a>
+                                <div class="w-px h-5 bg-slate-200"></div>
+                                <button type="button"
+                                    class="btn-toolbar btn-toolbar-ghost border-0 text-xs"
+                                    @click="openImport()">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    Import
+                                </button>
+                            </div>
+
+                            {{-- Substitute group --}}
+                            <div class="flex items-center bg-orange-50 rounded-xl p-0.5 border border-orange-200/60">
+                                <a href="{{ route('planning.boms.substitutes.export') }}"
+                                    class="btn-toolbar border-0 text-xs text-orange-700 hover:bg-orange-100"
+                                    title="Export Substitutes to Excel">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Exp. Subst.
+                                </a>
+                                <div class="w-px h-5 bg-orange-200"></div>
+                                <button type="button"
+                                    class="btn-toolbar border-0 text-xs text-orange-700 hover:bg-orange-100"
+                                    @click="openImportSubstitute()" title="Import Substitutes via Excel">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    Imp. Subst.
+                                </button>
+                            </div>
+
+                            {{-- Tools --}}
+                            <a href="{{ route('outgoing.product-mapping') }}#where-used"
+                                class="btn-toolbar bg-emerald-50 border border-emerald-200/60 text-emerald-700 hover:bg-emerald-100 text-xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                Where-Used
+                            </a>
+                            <a href="{{ route('planning.boms.explosion-search') }}"
+                                class="btn-toolbar bg-blue-50 border border-blue-200/60 text-blue-700 hover:bg-blue-100 text-xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z"/></svg>
+                                Explosion
+                            </a>
+
+                            {{-- Primary CTA --}}
+                            <button class="btn-toolbar bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 text-xs"
+                                @click="openCreate()">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Add BOM
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="overflow-auto border border-slate-200 rounded-xl max-h-[700px]">
+                {{-- Table --}}
+                <div class="overflow-auto max-h-[700px]">
                     <table class="bom-table min-w-[2000px] w-full text-base">
                         <thead>
-                            <tr class="text-slate-700 text-[11px] uppercase tracking-tight">
+                            <tr class="text-[11px] uppercase tracking-tight">
                                 <th class="px-2 py-3 text-left font-bold sticky-col-1 th-sticky w-12">No</th>
                                 <th class="px-2 py-3 text-left font-bold sticky-col-2 th-sticky w-48">FG Name</th>
                                 <th class="px-2 py-3 text-left font-bold sticky-col-3 th-sticky w-24">FG Model</th>
@@ -176,6 +321,7 @@
                                 <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Material Name</th>
                                 <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Special</th>
                                 <th class="px-2 py-2 text-left font-bold whitespace-nowrap">RM Part No.</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Incoming Part</th>
                                 <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Make/Buy</th>
                                 <th class="px-2 py-2 text-right font-bold whitespace-nowrap">Consump.</th>
                                 <th class="px-2 py-2 text-left font-bold whitespace-nowrap">UOM_RM</th>
@@ -216,7 +362,7 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="px-2 py-3 bg-slate-50/30" colspan="14">
+                                    <td class="px-2 py-3 bg-slate-50/30" colspan="15">
                                         <div class="flex items-center gap-2">
                                             <span
                                                 class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700' }}">
@@ -237,11 +383,11 @@
                                                 <input type="hidden" name="status"
                                                     value="{{ $bom->status === 'active' ? 'inactive' : 'active' }}">
                                                 <button type="submit"
-                                                    class="w-7 h-7 rounded border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-[10px]"
+                                                    class="action-btn hover:bg-slate-100"
                                                     title="Toggle status">✎</button>
                                             </form>
                                             <button type="button"
-                                                class="w-7 h-7 rounded border border-slate-300 hover:bg-indigo-50 text-indigo-700 flex items-center justify-center text-[10px]"
+                                                class="action-btn hover:bg-indigo-50 text-indigo-700"
                                                 title="Change FG" @click="openChangeFg(@js([
                                                     'action' => route('planning.boms.update', $bom),
                                                     'part_id' => $bom->part_id,
@@ -252,7 +398,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"
-                                                    class="w-7 h-7 rounded border border-slate-300 hover:bg-red-50 text-red-600 flex items-center justify-center text-[10px]"
+                                                    class="action-btn hover:bg-red-50 text-red-600"
                                                     title="Delete">🗑</button>
                                             </form>
                                         </div>
@@ -299,6 +445,21 @@
                                             {{ $item->special ?? '' }}</td>
                                         <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">
                                             {{ $rmNo }}</td>
+                                        <td class="px-2 py-1.5 whitespace-nowrap text-xs">
+                                            @if($item->incomingPart)
+                                                <div class="font-mono-compact font-bold text-teal-700">
+                                                    {{ $item->incomingPart->part_no }}
+                                                </div>
+                                                <div class="text-[10px] text-slate-500 truncate max-w-[150px]" title="{{ $item->incomingPart->vendor?->name ?? '' }}">
+                                                    {{ $item->incomingPart->part_name_gci ?: ($item->incomingPart->part_name_vendor ?? '') }}
+                                                    @if($item->incomingPart->vendor)
+                                                        <span class="text-slate-400">· {{ $item->incomingPart->vendor->name }}</span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="text-slate-300">—</span>
+                                            @endif
+                                        </td>
                                         <td class="px-2 py-1.5 text-center whitespace-nowrap">
                                             @php $mob = strtolower((string) ($item->make_or_buy ?? 'buy')); @endphp
                                             <span
@@ -317,7 +478,7 @@
                                             class="px-2 py-1.5 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
                                             <div class="flex items-center justify-center gap-1">
                                                 <button type="button"
-                                                    class="relative h-7 px-2 rounded border border-slate-300 hover:bg-orange-50 text-orange-700 flex items-center justify-center text-[10px] gap-1 font-semibold"
+                                                    class="relative h-7 px-2 rounded-lg border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-orange-700 flex items-center justify-center text-[10px] gap-1 font-semibold transition-all"
                                                     title="Manage Substitutes" @click="openSubstitutePanel(@js([
                                                         'bom_item_id' => $item->id,
                                                         'action' => route('planning.bom-items.substitutes.store', $item),
@@ -334,6 +495,8 @@
                                                             'id' => $s->id,
                                                             'part_no' => $s->part?->part_no,
                                                             'part_name' => $s->part?->part_name,
+                                                            'incoming_part_no' => $s->incomingPart?->part_no,
+                                                            'incoming_part_label' => $s->incomingPart ? ($s->incomingPart->part_no . ($s->incomingPart->vendor ? ' [' . $s->incomingPart->vendor->name . ']' : '')) : null,
                                                             'ratio' => $s->ratio,
                                                             'priority' => $s->priority,
                                                             'status' => $s->status,
@@ -350,7 +513,7 @@
                                                     @endif
                                                 </button>
                                                 <button type="button"
-                                                    class="w-7 h-7 rounded border border-slate-300 hover:bg-slate-100 flex items-center justify-center text-[10px]"
+                                                    class="action-btn hover:bg-slate-100"
                                                     title="Edit" @click="openLineModal(@js([
                                                         'mode' => 'edit',
                                                         'action' => route('planning.boms.items.store', $bom),
@@ -386,7 +549,7 @@
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
-                                                        class="w-7 h-7 rounded border border-slate-300 hover:bg-red-50 text-red-600 flex items-center justify-center text-[10px]"
+                                                        class="action-btn hover:bg-red-50 text-red-600"
                                                         title="Delete">🗑</button>
                                                 </form>
                                             </div>
@@ -394,15 +557,15 @@
                                     </tr>
                                 @empty
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="19" class="px-3 py-4 text-center text-slate-500">No BOM lines</td>
+                                        <td colspan="20" class="px-3 py-4 text-center text-slate-500">No BOM lines</td>
                                     </tr>
                                 @endforelse
 
                                 {{-- Add line row --}}
                                 <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                    <td colspan="19" class="px-3 py-3">
+                                    <td colspan="20" class="px-3 py-3">
                                         <button type="button"
-                                            class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold" @click="openLineModal(@js([
+                                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 text-white font-semibold text-sm shadow-sm hover:shadow-md transition-all" @click="openLineModal(@js([
                                                 'mode' => 'create',
                                                 'action' => route('planning.boms.items.store', $bom),
                                                 'bom_item_id' => null,
@@ -426,26 +589,29 @@
                                                 'usage_qty' => 1,
                                                 'consumption_uom' => null,
                                             ]))">
-                                            + Add Line
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                            Add Line
                                         </button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="19" class="px-4 py-8 text-center text-slate-500">No BOM</td>
+                                    <td colspan="20" class="px-4 py-8 text-center text-slate-500">No BOM</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
 
-                <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                    <span class="font-semibold">Tip:</span> Expand dulu, lalu klik <span class="font-semibold">+ Add
-                        Line</span> untuk nambah BOM line. Edit/delete pakai icon di kanan.
-                </div>
-
-                <div class="mt-2">
-                    {{ $boms->links() }}
+                {{-- Footer --}}
+                <div class="p-4 border-t border-slate-100 bg-gradient-to-b from-white to-slate-50/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div class="flex items-start gap-2.5 text-sm text-slate-600 bg-blue-50/80 rounded-xl px-4 py-3 border border-blue-100/60">
+                            <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Expand BOM lalu klik <span class="font-semibold text-slate-800">+ Add Line</span> untuk tambah komponen. Edit/delete via icon di kolom Actions.</span>
+                        </div>
+                        <div>{{ $boms->links() }}</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -453,9 +619,14 @@
         {{-- Create BOM modal --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
             x-show="modalOpen" x-cloak @keydown.escape.window="closeCreate()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900">Add BOM</div>
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200/60">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </div>
+                        <div class="text-sm font-semibold text-slate-900">Add BOM</div>
+                    </div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="closeCreate()">✕</button>
                 </div>
@@ -492,9 +663,14 @@
         {{-- Import BOM modal --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
             x-show="importOpen" x-cloak @keydown.escape.window="closeImport()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900">Import BOM (Excel)</div>
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200/60">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        </div>
+                        <div class="text-sm font-semibold text-slate-900">Import BOM (Excel)</div>
+                    </div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="closeImport()">✕</button>
                 </div>
@@ -530,9 +706,14 @@
         {{-- Import Substitute Modal --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
             x-show="importSubstituteOpen" x-cloak @keydown.escape.window="closeImportSubstitute()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900">Import Substitutes (Excel)</div>
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200/60">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-white">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        </div>
+                        <div class="text-sm font-semibold text-slate-900">Import Substitutes (Excel)</div>
+                    </div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="closeImportSubstitute()">✕</button>
                 </div>
@@ -652,10 +833,15 @@
         {{-- Line modal --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
             x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
-            <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900"
-                        x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
+            <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200/60">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </div>
+                        <div class="text-sm font-semibold text-slate-900"
+                            x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
+                    </div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="closeLineModal()">✕</button>
                 </div>
@@ -804,6 +990,23 @@
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1">Incoming Part (Vendor / RM)</label>
+                            <select name="incoming_part_id" class="w-full rounded-xl border-slate-200 bg-slate-50"
+                                x-model="lineForm.incoming_part_id">
+                                <option value="">(No incoming part linked)</option>
+                                @foreach(($incomingParts ?? []) as $ip)
+                                    <option value="{{ $ip->id }}">
+                                        {{ $ip->part_no }} — {{ $ip->part_name_gci ?: ($ip->part_name_vendor ?? '-') }}
+                                        @if($ip->vendor) [{{ $ip->vendor->name }}] @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="text-[10px] text-slate-500 mt-0.5">Link RM ke Part Incoming yang terdaftar di receiving.</div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                         <div>
                             <label class="text-xs font-semibold text-slate-600">UOM (Consumption)</label>
@@ -888,6 +1091,7 @@
                         special: '',
                         component_part_id: '',
                         component_part_no: '',
+                        incoming_part_id: '',
                         make_or_buy: 'buy',
                         usage_qty: '1',
                         consumption_uom: '',
@@ -951,6 +1155,7 @@
                             special: payload.special ?? '',
                             component_part_id: payload.component_part_id ?? '',
                             component_part_no: payload.component_part_no ?? '',
+                            incoming_part_id: payload.incoming_part_id ?? '',
                             make_or_buy: payload.make_or_buy ?? 'buy',
                             usage_qty: payload.usage_qty ?? '1',
                             consumption_uom: payload.consumption_uom ?? '',
@@ -971,11 +1176,16 @@
         {{-- Change FG modal --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
             x-show="changeFgOpen" x-cloak @keydown.escape.window="closeChangeFg()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200/60">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
                     <div>
-                        <div class="text-sm font-semibold text-slate-900">Change FG for BOM</div>
-                        <div class="text-xs text-slate-500" x-text="changeFgForm.current_label"></div>
+                        <div class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                            </div>
+                            Change FG for BOM
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1" x-text="changeFgForm.current_label"></div>
                     </div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="closeChangeFg()">✕</button>
@@ -1061,6 +1271,7 @@
                                 <thead class="bg-slate-50">
                                     <tr class="text-slate-600 uppercase tracking-wider">
                                         <th class="px-3 py-2 text-left font-semibold">Part</th>
+                                        <th class="px-3 py-2 text-left font-semibold">Incoming</th>
                                         <th class="px-3 py-2 text-right font-semibold">Ratio</th>
                                         <th class="px-3 py-2 text-right font-semibold">Prio</th>
                                         <th class="px-3 py-2 text-left font-semibold">Status</th>
@@ -1070,7 +1281,7 @@
                                 <tbody class="divide-y divide-slate-100">
                                     <template x-if="(substituteForm.substitutes || []).length === 0">
                                         <tr>
-                                            <td colspan="5" class="px-3 py-4 text-center text-slate-500">No substitutes
+                                            <td colspan="6" class="px-3 py-4 text-center text-slate-500">No substitutes
                                             </td>
                                         </tr>
                                     </template>
@@ -1081,6 +1292,17 @@
                                                     x-text="s.part_no || '-'"></div>
                                                 <div class="text-slate-500 truncate" x-text="s.part_name || ''"></div>
                                                 <div class="text-slate-400 truncate" x-text="s.notes || ''"></div>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <template x-if="s.incoming_part_no">
+                                                    <div>
+                                                        <div class="font-mono text-[10px] font-bold text-teal-700" x-text="s.incoming_part_no"></div>
+                                                        <div class="text-[9px] text-slate-400 truncate" x-text="s.incoming_part_label || ''"></div>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!s.incoming_part_no">
+                                                    <span class="text-slate-300">—</span>
+                                                </template>
                                             </td>
                                             <td class="px-3 py-2 text-right font-mono" x-text="s.ratio"></td>
                                             <td class="px-3 py-2 text-right font-mono" x-text="s.priority"></td>
@@ -1123,6 +1345,19 @@
                                             {{ optional($p)->part_name ?? '-' }}</option>
                                     @endforeach
                                 </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">Incoming Part (Vendor)</label>
+                                <select name="incoming_part_id" class="mt-1 w-full rounded-xl border-slate-200">
+                                    <option value="">(No incoming part linked)</option>
+                                    @foreach(($incomingParts ?? []) as $ip)
+                                        <option value="{{ $ip->id }}">
+                                            {{ $ip->part_no }} — {{ $ip->part_name_gci ?: ($ip->part_name_vendor ?? '-') }}
+                                            @if($ip->vendor) [{{ $ip->vendor->name }}] @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="text-[10px] text-slate-500 mt-0.5">Link substitute ke Part Incoming.</div>
                             </div>
                             <div class="grid grid-cols-3 gap-2">
                                 <div>
