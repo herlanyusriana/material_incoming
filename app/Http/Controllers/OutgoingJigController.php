@@ -60,10 +60,22 @@ class OutgoingJigController extends Controller
             'customer_part_id' => 'required|exists:customer_parts,id',
         ]);
 
-        OutgoingJigSetting::firstOrCreate([
-            'line' => strtoupper(trim($request->line)),
-            'customer_part_id' => $request->customer_part_id,
-        ]);
+        $line = strtoupper(trim($request->line));
+
+        // Auto-fill UPH from existing settings on the same line
+        $defaultUph = OutgoingJigSetting::where('line', $line)
+            ->where('uph', '>', 0)
+            ->value('uph') ?? 0;
+
+        OutgoingJigSetting::firstOrCreate(
+            [
+                'line' => $line,
+                'customer_part_id' => $request->customer_part_id,
+            ],
+            [
+                'uph' => $defaultUph,
+            ]
+        );
 
         return back()->with('success', 'Row added successfully');
     }
@@ -71,7 +83,11 @@ class OutgoingJigController extends Controller
     public function updateUph(Request $request, OutgoingJigSetting $setting)
     {
         $request->validate(['uph' => 'required|integer|min:0']);
-        $setting->update(['uph' => $request->uph]);
+
+        // Update all items in the same line (UPH is per-line)
+        OutgoingJigSetting::where('line', $setting->line)
+            ->update(['uph' => $request->uph]);
+
         return response()->json(['success' => true]);
     }
 

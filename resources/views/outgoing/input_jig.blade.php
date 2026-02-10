@@ -77,10 +77,11 @@
                                     {{ $isNewLine ? $item->line : '' }}
                                 </td>
                                 <td class="p-0 border-r border-slate-200 bg-yellow-50">
-                                    <input type="number" 
-                                        value="{{ $item->uph }}" 
-                                        class="w-full h-full border-0 bg-transparent text-center font-bold text-slate-900 focus:ring-1 focus:ring-indigo-500 p-2"
-                                        @change="updateUph('{{ $item->id }}', $event.target.value)">
+                                    <input type="number"
+                                        value="{{ $item->uph }}"
+                                        data-line="{{ $item->line }}"
+                                        class="uph-input w-full h-full border-0 bg-transparent text-center font-bold text-slate-900 focus:ring-1 focus:ring-indigo-500 p-2"
+                                        @change="updateUph('{{ $item->id }}', $event.target.value, '{{ $item->line }}')">
                                 </td>
                                 <td class="px-4 py-3 text-slate-600 bg-white group-hover:bg-slate-50 border-r border-slate-100 sticky left-24 z-10">
                                     {{ $item->customerPart->customer_part_name ?? '-' }}
@@ -212,9 +213,13 @@
     <script>
         function inputJig() {
             return {
-                async updateUph(id, value) {
+                async updateUph(id, value, line) {
                     try {
                         await axios.post(`/outgoing/input-jig/${id}/uph`, { uph: value });
+                        // Sync all UPH inputs on the same line visually
+                        document.querySelectorAll(`.uph-input[data-line="${line}"]`).forEach(inp => {
+                            inp.value = value;
+                        });
                     } catch (e) {
                         alert('Failed to update UPH');
                     }
