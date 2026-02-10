@@ -68,10 +68,17 @@
 			border: 0;
 			background: transparent;
 			text-align: center;
-			font-weight: 600;
+			font-weight: 700;
 			color: #334155;
-			padding: 6px 2px;
+			padding: 8px 4px;
 			font-size: 12px;
+			-moz-appearance: textfield;
+		}
+
+		.trip-cell input::-webkit-outer-spin-button,
+		.trip-cell input::-webkit-inner-spin-button {
+			-webkit-appearance: none;
+			margin: 0;
 		}
 
 		.trip-cell input:focus {
@@ -83,6 +90,7 @@
 
 		.trip-cell {
 			background: #f0fdf4;
+			min-width: 62px;
 		}
 
 		/* H+1 columns */
@@ -179,11 +187,12 @@
 					<th class="px-2 py-3 text-left min-w-[100px] bg-yellow-50 !text-amber-700">Jig Name</th>
 					<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">Jig<br>Qty H</th>
 					<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">UpH</th>
+					<th class="px-2 py-3 text-right min-w-[70px] bg-yellow-50 !text-amber-700">Total<br>UpH</th>
 					<th class="px-2 py-3 text-right min-w-[80px]">Delivery<br>Req.</th>
 					<th class="px-2 py-3 text-center min-w-[75px]">Std<br>Packing</th>
 								{{-- Trip columns (1-14) --}}
 								@for($t = 1; $t <= 14; $t++)
-								<th class="px-1 py-3 text-center min-w-[50px]" style="background:#dcfce7; color:#166534;">{{ $t }}</th>
+								<th class="px-1 py-3 text-center min-w-[62px]" style="background:#dcfce7; color:#166534;">{{ $t }}</th>
 							@endfor
 
 							<th class="px-2 py-3 text-right min-w-[75px] calc-col">Total</th>
@@ -248,10 +257,14 @@
 											<span class="hidden" id="prod-rate-h1-{{ $row->gci_part_id }}">{{ $row->production_rate_h1 }}</span>
 											<span class="hidden" id="plan-h1-{{ $row->gci_part_id }}">{{ $row->daily_plan_h1 }}</span>
 										</td>
+										<td class="px-2 py-2 bg-yellow-50 text-right font-bold text-amber-900" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->production_rate > 0 ? number_format($row->production_rate) : '-' }}
+										</td>
 									@else
 										<td class="px-2 py-2 bg-yellow-50 text-slate-300 italic">-</td>
 										<td class="px-1 py-2 bg-yellow-50 text-center text-slate-300">-</td>
 										<td class="px-1 py-2 bg-yellow-50 text-center text-slate-300">-</td>
+										<td class="px-2 py-2 bg-yellow-50 text-right text-slate-300">-</td>
 									@endif
 
 									<td class="px-2 py-2 text-right font-bold text-slate-900" @if($rowSpan > 1)
@@ -267,7 +280,8 @@
 									@for($t = 1; $t <= 14; $t++)
 										<td class="p-0 trip-cell" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											<input type="number" min="0" value="{{ $row->trips[$t] ?: '' }}" placeholder=""
-												data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}" onchange="updateTrip(this)">
+												data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}"
+												oninput="recalcRow(this.dataset.part)" onchange="updateTrip(this)">
 										</td>
 									@endfor
 
@@ -409,17 +423,17 @@
 			const totalEl = document.getElementById(`total-${partId}`);
 			if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
 
-			// Finish Time = 7.00 + delivery_requirement / production_rate (doesn't change with trips)
+			// Finish Time = 7.00 + (stock_at_cust + total_trips) / production_rate
 			const prodRate = parseFloat(document.getElementById(`prod-rate-${partId}`)?.textContent) || 0;
-			const delReq = parseFloat(document.getElementById(`del-req-${partId}`)?.textContent) || 0;
+			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const finishEl = document.getElementById(`finish-${partId}`);
 			if (finishEl) {
-				const finishTime = (prodRate > 0 && delReq > 0) ? (7.0 + delReq / prodRate).toFixed(2) : '-';
+				const numerator = stockAtCust + total;
+				const finishTime = (prodRate > 0 && numerator > 0) ? (7.0 + numerator / prodRate).toFixed(2) : '-';
 				finishEl.textContent = finishTime;
 			}
 
 			// Update End Stock (Stock + Total - Plan)
-			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const dailyPlan = parseFloat(document.getElementById(`plan-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
 			const endStockEl = document.getElementById(`endstock-${partId}`);
 			let endStock = stockAtCust + total - dailyPlan;

@@ -1044,9 +1044,9 @@ class OutgoingController extends Controller
             // Production rate = sum(jig_qty × UPH) for today
             $productionRate = collect($jigRows)->sum(fn($j) => $j->jig_qty * $j->uph);
 
-            // Finish time = 7:00 + delivery_requirement / production_rate
-            $finishTime = ($productionRate > 0 && $deliveryReq > 0)
-                ? round(7.0 + $deliveryReq / $productionRate, 2)
+            // Finish time = 7:00 + (stock_at_customer + total_trips) / production_rate
+            $finishTime = ($productionRate > 0 && ($stockAtCust + $totalTrips) > 0)
+                ? round(7.0 + ($stockAtCust + $totalTrips) / $productionRate, 2)
                 : null;
 
             // End stock at customer = stock + totalTrips - dailyPlanQty

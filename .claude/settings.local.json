@@ -4,7 +4,11 @@
       "Bash(php artisan migrate:*)",
       "Read(//c/**)",
       "Bash(git -C \"c:\\\\Users\\\\herla\\\\dev\\\\material_incoming\" diff)",
-      "Bash(git -C \"c:\\\\Users\\\\herla\\\\dev\\\\material_incoming\" commit -m \"$\\(cat <<''EOF''\nfeat: Implement Stock at Customers CRUD and fix UPH default migration\n\n- Add stockAtCustomers\\(\\), stockAtCustomersTemplate\\(\\), stockAtCustomersExport\\(\\),\n  stockAtCustomersImport\\(\\) methods to OutgoingController\n- Fix import route from GET to POST for file upload support\n- Add migration to set default UPH values \\(NR1=10, NR2=9\\) for existing jig settings\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git -C \"c:\\\\Users\\\\herla\\\\dev\\\\material_incoming\" commit -m \"$\\(cat <<''EOF''\nfeat: Implement Stock at Customers CRUD and fix UPH default migration\n\n- Add stockAtCustomers\\(\\), stockAtCustomersTemplate\\(\\), stockAtCustomersExport\\(\\),\n  stockAtCustomersImport\\(\\) methods to OutgoingController\n- Fix import route from GET to POST for file upload support\n- Add migration to set default UPH values \\(NR1=10, NR2=9\\) for existing jig settings\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(powershell -Command:*)",
+      "Bash(ForEach-Object { '{0:X2}' -f [int]$_ } \")",
+      "Bash(python3:*)",
+      "Bash(python -c:*)"
     ]
   }
 }
