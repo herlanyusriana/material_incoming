@@ -94,15 +94,15 @@
                 </div>
             </div>
 
-            <div class="overflow-auto">
-                <table class="min-w-max w-full text-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border-collapse">
                     <thead class="sticky top-0 bg-slate-50 border-b border-slate-200">
                         <tr>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Name</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Phone</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">License</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Status</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Action</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[150px]">Name</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[130px]">Phone</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[150px]">License</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[100px]">Status</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700 min-w-[100px]">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -111,14 +111,14 @@
                                 <form method="POST" action="{{ route('outgoing.drivers.update', $driver) }}">
                                     @csrf
                                     @method('PUT')
-                                    <td class="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">
-                                        <input name="name" value="{{ $driver->name }}" class="w-48 rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                                    <td class="px-4 py-3 font-semibold text-slate-900">
+                                        <input name="name" value="{{ $driver->name }}" class="w-full rounded-lg border border-slate-200 px-2 py-1 text-sm">
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input name="phone" value="{{ $driver->phone }}" class="w-40 rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                                        <input name="phone" value="{{ $driver->phone }}" class="w-full rounded-lg border border-slate-200 px-2 py-1 text-sm">
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input name="license_type" value="{{ $driver->license_type }}" class="w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                                        <input name="license_type" value="{{ $driver->license_type }}" class="w-full rounded-lg border border-slate-200 px-2 py-1 text-sm">
                                     </td>
                                     <td class="px-4 py-3">
                                         <select name="status" class="rounded-lg border border-slate-200 px-2 py-1 text-sm bg-white">

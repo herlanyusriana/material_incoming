@@ -96,9 +96,23 @@
 		}
 
 		@media (max-width: 768px) {
+			.dp-scroll {
+				max-height: 60vh;
+			}
+			.dp-table {
+				font-size: 11px;
+			}
+			.dp-table th,
+			.dp-table td {
+				padding: 4px 6px !important;
+			}
 			.dp-table .s-col {
-				position: static !important;
-				z-index: auto !important;
+				position: sticky;
+				z-index: 30;
+				min-width: 60px;
+			}
+			.dp-table thead .s-col {
+				z-index: 40;
 			}
 		}
 	</style>
@@ -150,38 +164,36 @@
 			{{-- Main Table Card --}}
 			<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 				<div class="dp-scroll">
-					<table class="dp-table min-w-max w-full text-xs">
+				<table class="dp-table w-full text-xs">
 						<thead>
 							<tr>
 								{{-- Frozen left columns --}}
-								<th class="px-2 py-3 text-left w-16 s-col" style="left:0">No</th>
-								<th class="px-2 py-3 text-left w-20 s-col" style="left:64px">Category</th>
-								<th class="px-2 py-3 text-left w-44 s-col" style="left:144px">FG Part Name</th>
-								<th class="px-2 py-3 text-left w-36 s-col" style="left:320px">FG Part No.</th>
-								<th class="px-2 py-3 text-left w-28 s-col" style="left:464px">Model</th>
-
+					<th class="px-2 py-3 text-left min-w-[50px] s-col" style="left:0">No</th>
+					<th class="px-2 py-3 text-left min-w-[60px] s-col" style="left:70px">Category</th>
+					<th class="px-2 py-3 text-left min-w-[140px] s-col" style="left:150px">FG Part Name</th>
+					<th class="px-2 py-3 text-left min-w-[100px] s-col" style="left:320px">FG Part No.</th>
+					<th class="px-2 py-3 text-left min-w-[80px] s-col" style="left:450px">Model</th>
 								{{-- Data columns --}}
-								<th class="px-2 py-3 text-right w-24">Stock at<br>Customer</th>
-								<th class="px-2 py-3 text-right w-24">Daily Plan<br>H</th>
-								<th class="px-2 py-3 text-left w-32 bg-yellow-50 !text-amber-700">Jig Name</th>
-								<th class="px-2 py-3 text-center w-16 bg-yellow-50 !text-amber-700">Jig<br>Qty H</th>
-								<th class="px-2 py-3 text-center w-16 bg-yellow-50 !text-amber-700">UpH</th>
-								<th class="px-2 py-3 text-right w-24">Delivery<br>Req.</th>
-								<th class="px-2 py-3 text-center w-20">Std<br>Packing</th>
-
+					<th class="px-2 py-3 text-right min-w-[80px]">Stock at<br>Customer</th>
+					<th class="px-2 py-3 text-right min-w-[80px]">Daily Plan<br>H</th>
+					<th class="px-2 py-3 text-left min-w-[100px] bg-yellow-50 !text-amber-700">Jig Name</th>
+					<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">Jig<br>Qty H</th>
+					<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">UpH</th>
+					<th class="px-2 py-3 text-right min-w-[80px]">Delivery<br>Req.</th>
+					<th class="px-2 py-3 text-center min-w-[75px]">Std<br>Packing</th>
 								{{-- Trip columns (1-14) --}}
 								@for($t = 1; $t <= 14; $t++)
-									<th class="px-1 py-3 text-center w-16" style="background:#dcfce7; color:#166534;">{{ $t }}</th>
-								@endfor
+								<th class="px-1 py-3 text-center min-w-[50px]" style="background:#dcfce7; color:#166534;">{{ $t }}</th>
+							@endfor
 
-								<th class="px-2 py-3 text-right w-20 calc-col">Total</th>
-								<th class="px-2 py-3 text-right w-20 calc-col">Finish<br>Time</th>
-								<th class="px-2 py-3 text-right w-24 calc-col">End Stock<br>@Cust</th>
+							<th class="px-2 py-3 text-right min-w-[75px] calc-col">Total</th>
+							<th class="px-2 py-3 text-right min-w-[75px] calc-col">Finish<br>Time</th>
+							<th class="px-2 py-3 text-right min-w-[80px] calc-col">End Stock<br>@Cust</th>
 
-								{{-- H+1 --}}
-								<th class="px-2 py-3 text-right w-24 h1-col">Daily Plan<br>H+1</th>
-								<th class="px-2 py-3 text-center w-20 h1-col">Jig Qty<br>H+1</th>
-								<th class="px-2 py-3 text-right w-20 h1-col">Est. Finish<br>Time</th>
+							{{-- H+1 --}}
+							<th class="px-2 py-3 text-right min-w-[80px] h1-col">Daily Plan<br>H+1</th>
+							<th class="px-2 py-3 text-center min-w-[70px] h1-col">Jig Qty<br>H+1</th>
+							<th class="px-2 py-3 text-right min-w-[75px] h1-col">Est. Finish<br>Time</th>
 							</tr>
 						</thead>
 						<tbody>

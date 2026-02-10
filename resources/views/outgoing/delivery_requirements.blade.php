@@ -58,35 +58,35 @@
                     <table class="w-full text-sm border-collapse">
                         <thead>
                             <tr class="bg-slate-50 border-b-2 border-slate-900">
-                                <th class="px-4 py-3 text-left w-10">
+                                <th class="px-4 py-3 text-left min-w-[40px]">
                                     <input type="checkbox" id="selectAll"
                                         class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                         onclick="toggleAll(this)">
                                 </th>
                                 <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[100px]">
                                     Delivery Date</th>
 
                                 <th
-                                    class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[80px]">
                                     Category</th>
                                 <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[100px]">
                                     FG Part Tag</th>
                                 <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                     FG Part No.</th>
                                 <th
-                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[80px]">
                                     Model</th>
                                 <th
-                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                     Cust. Stock</th>
                                 <th
-                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                     Daily Plan</th>
                                 <th
-                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">
+                                    class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                     Requirement</th>
                             </tr>
                         </thead>

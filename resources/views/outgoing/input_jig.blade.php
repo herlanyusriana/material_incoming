@@ -44,16 +44,16 @@
                 <table class="w-full text-sm divide-y divide-slate-200 border-collapse">
                     <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700 w-24 border-r border-slate-200 sticky left-0 z-10 bg-slate-50">Line</th>
-                            <th class="px-2 py-3 text-center font-bold text-slate-700 bg-yellow-100 w-20 border-r border-slate-200">UpH</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700 w-48 border-r border-slate-200 sticky left-24 z-10 bg-slate-50">Customer Part Name</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[80px] border-r border-slate-200 sticky left-0 z-10 bg-slate-50">Line</th>
+                            <th class="px-2 py-3 text-center font-bold text-slate-700 bg-yellow-100 min-w-[60px] border-r border-slate-200">UpH</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[150px] border-r border-slate-200 sticky left-20 z-10 bg-slate-50">Customer Part Name</th>
                             @foreach ($days as $index => $d)
                                 <th class="px-2 py-2 text-center font-bold text-slate-700 bg-yellow-100 border-r border-slate-200 min-w-[80px]">
                                     <div class="text-[10px] text-slate-500 font-normal">H{!! $index > 0 ? '+' . $index : '' !!}</div>
                                     <div>{{ $d->format('d/m') }}</div>
                                 </th>
                             @endforeach
-                            <th class="px-2 py-2 w-10"></th>
+                            <th class="px-2 py-2 min-w-[40px]"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">

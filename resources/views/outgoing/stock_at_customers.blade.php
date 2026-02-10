@@ -82,17 +82,17 @@
                 </div>
             </div>
 
-            <div class="overflow-auto">
-                <table class="min-w-max w-full text-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border-collapse">
                     <thead class="sticky top-0 bg-slate-50 border-b border-slate-200">
                         <tr>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Customer</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Part No</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Part Name</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Model</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Status</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[120px]">Customer</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[90px]">Part No</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[140px]">Part Name</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[100px]">Model</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[80px]">Status</th>
                             @foreach($days as $d)
-                                <th class="px-3 py-3 text-right font-bold text-slate-700 w-16">{{ $d }}</th>
+                                <th class="px-3 py-3 text-right font-bold text-slate-700 min-w-[60px]">{{ $d }}</th>
                             @endforeach
                         </tr>
                     </thead>
