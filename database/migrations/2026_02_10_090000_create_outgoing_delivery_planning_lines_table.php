@@ -31,7 +31,7 @@ return new class extends Migration {
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->unique(['delivery_date', 'gci_part_id']);
+            $table->unique(['delivery_date', 'gci_part_id'], 'odpl_date_part_unique');
         });
     }
 
