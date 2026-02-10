@@ -949,9 +949,10 @@ class OutgoingController extends Controller
             ]);
         }
 
-        // ── 4. Load FG Part master data ──
+        // ── 4. Load FG Part master data (only active FG parts) ──
         $parts = GciPart::whereIn('id', $allPartIds)
             ->where('classification', 'FG')
+            ->where('status', 'active')
             ->get()
             ->keyBy('id');
 
@@ -1075,9 +1076,23 @@ class OutgoingController extends Controller
                 $estFinishTime = null;
             }
 
+            // Determine product group from part_name
+            $partName = strtolower($part->part_name ?? '');
+            if (str_contains($partName, 'base') || str_contains($partName, 'compressor base')) {
+                $category = 'Base Comp';
+            } elseif (str_contains($partName, 'plate')) {
+                $category = 'Plate Rear';
+            } elseif (str_contains($partName, 'reinforce')) {
+                $category = 'Reinforce';
+            } elseif (str_contains($partName, 'tray')) {
+                $category = 'Tray Drip';
+            } else {
+                $category = 'Small Part';
+            }
+
             $rows->push((object) [
                 'gci_part_id' => $partId,
-                'category' => $part->classification ?? 'Main',
+                'category' => $category,
                 'fg_part_name' => $part->part_name ?? '-',
                 'fg_part_no' => $part->part_no ?? '-',
                 'model' => $part->model ?? '-',
@@ -1101,8 +1116,12 @@ class OutgoingController extends Controller
             ]);
         }
 
-        // Sort by category then part name
-        $rows = $rows->sortBy([['category', 'asc'], ['fg_part_name', 'asc']])->values();
+        // Sort by fixed category order, then part name
+        $categoryOrder = ['Base Comp' => 1, 'Plate Rear' => 2, 'Reinforce' => 3, 'Tray Drip' => 4, 'Small Part' => 5];
+        $rows = $rows->sortBy([
+            fn($a, $b) => ($categoryOrder[$a->category] ?? 99) <=> ($categoryOrder[$b->category] ?? 99),
+            ['fg_part_name', 'asc'],
+        ])->values();
 
         return view('outgoing.delivery_plan', [
             'selectedDate' => $selectedDate,
