@@ -149,8 +149,7 @@ class OutgoingPoController extends Controller
         }
 
         // Also search GCI Parts directly
-        $gciParts = GciPart::where('classification', 'FG')
-            ->where('status', 'active')
+        $gciParts = GciPart::where('status', 'active')
             ->where(function ($q) use ($term) {
                 $q->where('part_name', 'like', "%{$term}%")
                     ->orWhere('part_no', 'like', "%{$term}%");

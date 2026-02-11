@@ -77,7 +77,7 @@
             </div>
 
             {{-- PO Items --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 mt-6">
                 <div class="p-4 border-b border-slate-100 flex items-center justify-between">
                     <div class="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-amber-500"></span>
@@ -92,7 +92,7 @@
                     </button>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="overflow-visible"> {{-- Container for table that allows dropdown to overflow --}}
                     <table class="w-full text-xs" id="itemsTable">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
@@ -126,7 +126,7 @@
                                 </th>
                             </tr>
                         </thead>
-                        <tbody id="itemsBody">
+                        <tbody id="itemsBody" style="min-height: 200px;">
                             {{-- rows added by JS --}}
                         </tbody>
                     </table>
@@ -179,10 +179,11 @@
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            z-index: 50;
-            max-height: 220px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            max-height: 250px;
             overflow-y: auto;
+            min-width: 250px;
         }
 
         .search-dropdown .dd-item {
@@ -266,45 +267,45 @@
             const deliveryDate = data?.delivery_date || '';
 
             tr.innerHTML = `
-                    <td class="px-3 py-2 text-center text-slate-500 font-semibold row-no">${rowCount}</td>
-                    <td class="px-3 py-2 bg-amber-50/30 relative">
-                        <input type="text" name="items[${rowCount}][vendor_part_name]" value="${vendorPartName}" required
-                            class="item-input vendor-input" placeholder="Search vendor part..."
-                            oninput="searchPart(this, ${rowCount})" onfocus="searchPart(this, ${rowCount})"
-                            autocomplete="off" id="vendor-${rowCount}">
-                        <input type="hidden" name="items[${rowCount}][gci_part_id]" value="${gciPartId}" id="gci-${rowCount}">
-                        <div id="dd-${rowCount}" class="search-dropdown hidden"></div>
-                    </td>
-                    <td class="px-3 py-2">
-                        <input type="text" value="${partName}" readonly class="item-input readonly" id="partname-${rowCount}" tabindex="-1">
-                    </td>
-                    <td class="px-3 py-2">
-                        <input type="text" value="${model}" readonly class="item-input readonly" id="model-${rowCount}" tabindex="-1">
-                    </td>
-                    <td class="px-3 py-2">
-                        <input type="text" value="${partNo}" readonly class="item-input readonly" id="partno-${rowCount}" tabindex="-1">
-                    </td>
-                    <td class="px-3 py-2">
-                        <input type="number" name="items[${rowCount}][qty]" value="${qty}" min="1" required
-                            class="item-input item-input-num" placeholder="0">
-                    </td>
-                    <td class="px-3 py-2">
-                        <input type="number" name="items[${rowCount}][price]" value="${price}" min="0" step="0.01" required
-                            class="item-input item-input-num" placeholder="0">
-                    </td>
-                    <td class="px-3 py-2">
-                        <input type="date" name="items[${rowCount}][delivery_date]" value="${deliveryDate}" required
-                            class="item-input text-center">
-                    </td>
-                    <td class="px-3 py-2 text-center">
-                        <button type="button" onclick="removeRow(${rowCount})"
-                            class="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors flex items-center justify-center mx-auto">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </td>
-                `;
+                            <td class="px-3 py-2 text-center text-slate-500 font-semibold row-no">${rowCount}</td>
+                            <td class="px-3 py-2 bg-amber-50/30 relative">
+                                <input type="text" name="items[${rowCount}][vendor_part_name]" value="${vendorPartName}" required
+                                    class="item-input vendor-input" placeholder="Search vendor part..."
+                                    oninput="searchPart(this, ${rowCount})" onfocus="searchPart(this, ${rowCount})"
+                                    autocomplete="off" id="vendor-${rowCount}">
+                                <input type="hidden" name="items[${rowCount}][gci_part_id]" value="${gciPartId}" id="gci-${rowCount}">
+                                <div id="dd-${rowCount}" class="search-dropdown hidden"></div>
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="text" value="${partName}" readonly class="item-input readonly" id="partname-${rowCount}" tabindex="-1">
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="text" value="${model}" readonly class="item-input readonly" id="model-${rowCount}" tabindex="-1">
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="text" value="${partNo}" readonly class="item-input readonly" id="partno-${rowCount}" tabindex="-1">
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="number" name="items[${rowCount}][qty]" value="${qty}" min="1" required
+                                    class="item-input item-input-num" placeholder="0">
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="number" name="items[${rowCount}][price]" value="${price}" min="0" step="0.01" required
+                                    class="item-input item-input-num" placeholder="0">
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="date" name="items[${rowCount}][delivery_date]" value="${deliveryDate}" required
+                                    class="item-input text-center">
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <button type="button" onclick="removeRow(${rowCount})"
+                                    class="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors flex items-center justify-center mx-auto">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </td>
+                        `;
             tbody.appendChild(tr);
             renumberRows();
         }
@@ -352,13 +353,13 @@
                     }
 
                     dd.innerHTML = results.map(r => `
-                            <div class="dd-item" onclick="selectPart(${rowId}, ${JSON.stringify(r).replace(/"/g, '&quot;')})">
-                                <div class="font-bold text-xs text-amber-800">${r.vendor_part_name}</div>
-                                <div class="text-[10px] text-slate-500 mt-0.5">
-                                    ${r.part_no} • ${r.part_name} • ${r.model}
-                                </div>
-                            </div>
-                        `).join('');
+                                    <div class="dd-item" onclick="selectPart(${rowId}, ${JSON.stringify(r).replace(/"/g, '&quot;')})">
+                                        <div class="font-bold text-xs text-amber-800">${r.vendor_part_name}</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">
+                                            ${r.part_no} • ${r.part_name} • ${r.model}
+                                        </div>
+                                    </div>
+                                `).join('');
                     dd.classList.remove('hidden');
                 } catch (e) {
                     console.error(e);
