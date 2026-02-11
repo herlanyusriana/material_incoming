@@ -226,11 +226,16 @@
 			{{-- Main Table Card --}}
 			<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 				<div class="dp-scroll">
-					<table class="dp-table w-full text-xs">
-						<thead>
-							<tr>
-								<th class="px-1 py-3 text-center min-w-[36px] s-col" style="left:0"></th>
-								<th class="px-2 py-3 text-left min-w-[44px] s-col" style="left:36px">No</th>
+					<form id="soForm" method="POST" action="{{ route('outgoing.delivery-plan.generate-so') }}">
+						@csrf
+						<table class="dp-table w-full text-xs">
+							<thead>
+								<tr>
+									<th class="px-1 py-3 text-center min-w-[36px] s-col" style="left:0">
+										<input type="checkbox" id="selectAll" class="rounded border-slate-300 cursor-pointer" 
+											onchange="document.querySelectorAll('input[name=\\'selected[]\\']').forEach(cb => cb.checked = this.checked)">
+									</th>
+									<th class="px-2 py-3 text-left min-w-[44px] s-col" style="left:36px">No</th>
 								<th class="px-2 py-3 text-left min-w-[70px] s-col" style="left:80px">Category</th>
 								<th class="px-2 py-3 text-left min-w-[160px] s-col" style="left:150px">FG Part Name</th>
 								<th class="px-2 py-3 text-left min-w-[110px] s-col" style="left:310px">FG Part No.</th>
@@ -263,10 +268,12 @@
 							<tbody x-data="{ open: false }">
 								{{-- Main FG row --}}
 								<tr class="fg-row" data-part-id="{{ $row->gci_part_id }}">
-									{{-- Expand button --}}
+									{{-- Select checkbox + expand button --}}
 									<td class="px-1 py-2 text-center s-col" style="left:0" @if($rowSpan > 1)
 									rowspan="{{ $rowSpan }}" @endif>
-										<button @click="open = !open" class="expand-btn" title="Toggle trip inputs">
+										<div class="flex items-center justify-center gap-1">
+											<input type="checkbox" name="selected[]" value="{{ $no - 1 }}" class="rounded border-slate-300 cursor-pointer">
+											<button @click="open = !open" class="expand-btn" title="Toggle trip inputs">
 											<svg class="w-4 h-4 text-slate-500 transition-transform duration-200"
 												:class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor"
 												viewBox="0 0 24 24">
@@ -274,6 +281,7 @@
 													d="M9 5l7 7-7 7" />
 											</svg>
 										</button>
+										</div>
 									</td>
 									<td class="px-2 py-2 text-slate-500 font-semibold s-col" style="left:36px" @if($rowSpan > 1)
 									rowspan="{{ $rowSpan }}" @endif>
@@ -441,30 +449,48 @@
 					</table>
 				</div>
 
+				{{-- Hidden fields for form submission --}}
+				<input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
+				@foreach($rows as $idx => $row)
+					<input type="hidden" name="lines[{{ $idx }}][gci_part_id]" value="{{ $row->gci_part_id }}">
+					<input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $row->gci_part->customer->id ?? 0 }}">
+					<input type="hidden" name="lines[{{ $idx }}][part_no]" value="{{ $row->fg_part_no }}">
+					<input type="hidden" name="lines[{{ $idx }}][part_name]" value="{{ $row->fg_part_name }}">
+					<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}">
+				@endforeach
+
 				{{-- Footer --}}
 				<div class="border-t border-slate-200 p-4 bg-slate-50">
-					<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+					<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 						<div class="text-sm text-slate-500">
 							<span class="font-semibold">Tip:</span> Klik tombol panah di setiap baris untuk input Trip (1-14).
 							Kolom kuning = data JIG. Kolom ungu = kalkulasi otomatis.
 						</div>
-						<div class="flex items-center gap-3">
-							<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-								<span class="w-3 h-3 rounded bg-green-100 border border-green-300"></span> Input Trip
-							</span>
-							<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-								<span class="w-3 h-3 rounded bg-yellow-100 border border-yellow-300"></span> JIG Data
-							</span>
-							<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-								<span class="w-3 h-3 rounded bg-purple-100 border border-purple-300"></span> Calculated
-							</span>
-							<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-								<span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> H+1
-							</span>
+						<div class="flex items-center gap-2 flex-wrap">
+							<div class="flex items-center gap-3">
+								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+									<span class="w-3 h-3 rounded bg-green-100 border border-green-300"></span> Input Trip
+								</span>
+								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+									<span class="w-3 h-3 rounded bg-yellow-100 border border-yellow-300"></span> JIG Data
+								</span>
+								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+									<span class="w-3 h-3 rounded bg-purple-100 border border-purple-300"></span> Calculated
+								</span>
+								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+									<span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> H+1
+								</span>
+							</div>
+							<button type="submit" class="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" id="generateSoBtn" disabled>
+								<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+								</svg>
+								Generate SO
+							</button>
 						</div>
 					</div>
 				</div>
-			</div>
+			</form>
 		@endif
 	</div>
 
@@ -572,5 +598,44 @@
 				}
 			}
 		}
+
+		// Enable/disable Generate SO button based on checkbox selection
+		function updateSoButtonState() {
+			const checkboxes = document.querySelectorAll('input[name="selected[]"]');
+			const generateSoBtn = document.getElementById('generateSoBtn');
+			const hasChecked = Array.from(checkboxes).some(cb => cb.checked);
+			generateSoBtn.disabled = !hasChecked;
+		}
+
+		// Setup checkbox listener
+		document.addEventListener('DOMContentLoaded', function() {
+			const checkboxes = document.querySelectorAll('input[name="selected[]"]');
+			const selectAllCheckbox = document.getElementById('selectAll');
+			
+			checkboxes.forEach(checkbox => {
+				checkbox.addEventListener('change', updateSoButtonState);
+			});
+			
+			if (selectAllCheckbox) {
+				selectAllCheckbox.addEventListener('change', function() {
+					checkboxes.forEach(cb => {
+						if (!cb.classList.contains('select-all-checkbox')) {
+							cb.checked = this.checked;
+						}
+					});
+					updateSoButtonState();
+				});
+			}
+
+			// Confirm before submission
+			document.getElementById('soForm').addEventListener('submit', function(e) {
+				const checkboxes = document.querySelectorAll('input[name="selected[]"]:checked');
+				if (checkboxes.length === 0) {
+					e.preventDefault();
+					alert('Pilih minimal 1 part untuk generate SO');
+					return false;
+				}
+			});
+		});
 	</script>
 @endsection

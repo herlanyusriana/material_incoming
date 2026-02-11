@@ -25,6 +25,7 @@ use App\Models\Truck;
 use App\Models\Driver;
 use App\Models\SalesOrderItem;
 use App\Models\SalesOrder;
+use App\Models\Customer;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -1381,5 +1382,89 @@ class OutgoingController extends Controller
         }
 
         return null;
+    }
+
+    public function generateSoFromDeliveryPlan(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => ['required', 'date'],
+            'selected' => ['required', 'array', 'min:1'],
+            'selected.*' => ['integer', 'min:0'],
+            'lines' => ['required', 'array'],
+            'lines.*.gci_part_id' => ['required', 'integer'],
+            'lines.*.customer_id' => ['required', 'integer'],
+            'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
+            'lines.*.part_no' => ['nullable', 'string'],
+            'lines.*.part_name' => ['nullable', 'string'],
+        ]);
+
+        $planDate = $validated['date'];
+        $selectedIdx = collect($validated['selected'])->map(fn($v) => (int) $v)->unique()->values();
+        $lines = collect($validated['lines']);
+
+        // Filter to only selected lines
+        $selectedLines = $selectedIdx
+            ->map(fn(int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
+            ->filter()
+            ->values();
+
+        if ($selectedLines->isEmpty()) {
+            return back()->with('error', 'Pilih minimal 1 part untuk generate SO.');
+        }
+
+        // Validate customers exist
+        $customerIds = $selectedLines->pluck('customer_id')->unique();
+        $invalidCustomers = $customerIds->filter(fn($id) => !Customer::find($id))->count();
+        if ($invalidCustomers > 0) {
+            return back()->with('error', 'Ada customer yang tidak valid.');
+        }
+
+        DB::transaction(function () use ($selectedLines, $planDate) {
+            // Group by customer
+            $byCustomer = $selectedLines->groupBy('customer_id');
+
+            foreach ($byCustomer as $customerId => $customerLines) {
+                // Generate unique SO number
+                $soNo = null;
+                for ($attempt = 0; $attempt < 5; $attempt++) {
+                    $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+                    if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
+                        $soNo = $candidate;
+                        break;
+                    }
+                }
+                $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
+
+                // Create Sales Order
+                $so = SalesOrder::create([
+                    'so_no' => $soNo,
+                    'customer_id' => (int) $customerId,
+                    'so_date' => $planDate,
+                    'status' => 'draft',
+                    'notes' => 'Generated from Delivery Planning - ' . date('d M Y H:i'),
+                    'created_by' => auth()->id(),
+                ]);
+
+                // Create SO Items - group by part and aggregate qty
+                $items = $customerLines
+                    ->groupBy('gci_part_id')
+                    ->mapWithKeys(function ($rows, $partId) {
+                        return [$partId => (float) $rows->sum('qty')];
+                    });
+
+                foreach ($items as $partId => $qty) {
+                    if ($qty <= 0) {
+                        continue;
+                    }
+                    SalesOrderItem::create([
+                        'sales_order_id' => $so->id,
+                        'gci_part_id' => (int) $partId,
+                        'qty_ordered' => $qty,
+                    ]);
+                }
+            }
+        });
+
+        return back()->with('success', 'Sales Order berhasil dibuat dari Delivery Planning.');
     }
 }

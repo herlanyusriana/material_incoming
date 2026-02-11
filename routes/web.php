@@ -199,6 +199,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan/update-trip', [OutgoingController::class, 'updateDeliveryPlanTrip'])->name('delivery-plan.update-trip');
+        Route::post('/delivery-plan/generate-so', [OutgoingController::class, 'generateSoFromDeliveryPlan'])->name('delivery-plan.generate-so');
 
         Route::resource('sales-orders', SalesOrderController::class);
         Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');
