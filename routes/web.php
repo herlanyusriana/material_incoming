@@ -12,6 +12,7 @@ use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\Outgoing\SalesOrderController;
 use App\Http\Controllers\Outgoing\OspController;
+use App\Http\Controllers\Outgoing\PickingFgController;
 use App\Http\Controllers\SubconController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\LogisticsDashboardController;
@@ -200,6 +201,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan/update-trip', [OutgoingController::class, 'updateDeliveryPlanTrip'])->name('delivery-plan.update-trip');
         Route::post('/delivery-plan/generate-so', [OutgoingController::class, 'generateSoFromDeliveryPlan'])->name('delivery-plan.generate-so');
+
+        // Picking FG Routes
+        Route::get('/picking-fg', [PickingFgController::class, 'index'])->name('picking-fg');
+        Route::post('/picking-fg/generate', [PickingFgController::class, 'generate'])->name('picking-fg.generate');
+        Route::post('/picking-fg/update-pick', [PickingFgController::class, 'updatePick'])->name('picking-fg.update-pick');
+        Route::post('/picking-fg/complete-all', [PickingFgController::class, 'completeAll'])->name('picking-fg.complete-all');
 
         Route::resource('sales-orders', SalesOrderController::class);
         Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');

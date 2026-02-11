@@ -504,9 +504,9 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-plan'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-plan')])></span>
                                     <span class="flex-1">Delivery Planning</span>
                                 </a>
-                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
-                                    <span class="flex-1 text-slate-400">Picking FG</span>
+                                <a href="{{ route('outgoing.picking-fg') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.picking-fg'), $subInactive => !request()->routeIs('outgoing.picking-fg')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.picking-fg'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.picking-fg')])></span>
+                                    <span class="flex-1">Picking FG</span>
                                 </a>
                                 <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
@@ -1225,9 +1225,9 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-plan'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-plan')])></span>
                                 <span class="flex-1">Delivery Planning</span>
                             </a>
-                            <a href="#" @class([$subLinkBase, $subInactive])>
-                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
-                                <span class="flex-1 text-slate-400">Picking FG</span>
+                            <a href="{{ route('outgoing.picking-fg') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.picking-fg'), $subInactive => !request()->routeIs('outgoing.picking-fg')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.picking-fg'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.picking-fg')])></span>
+                                <span class="flex-1">Picking FG</span>
                             </a>
                             <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
