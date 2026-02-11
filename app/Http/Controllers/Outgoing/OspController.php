@@ -28,10 +28,10 @@ class OspController extends Controller
 
         $stats = OspOrder::selectRaw("
             count(*) as total,
-            count(*) filter (where status = 'received') as received,
-            count(*) filter (where status = 'in_progress') as in_progress,
-            count(*) filter (where status = 'ready') as ready,
-            count(*) filter (where status = 'shipped') as shipped
+            sum(case when status = 'received' then 1 else 0 end) as received,
+            sum(case when status = 'in_progress' then 1 else 0 end) as in_progress,
+            sum(case when status = 'ready' then 1 else 0 end) as ready,
+            sum(case when status = 'shipped' then 1 else 0 end) as shipped
         ")->first();
 
         $customers = Customer::orderBy('name')->get(['id', 'name']);

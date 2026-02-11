@@ -36,10 +36,10 @@ class SubconController extends Controller
         // Stats
         $stats = SubconOrder::selectRaw("
             count(*) as total,
-            count(*) filter (where status = 'sent') as sent,
-            count(*) filter (where status = 'partial') as partial,
-            count(*) filter (where status = 'completed') as completed,
-            coalesce(sum(qty_sent - qty_received - qty_rejected) filter (where status in ('sent','partial')), 0) as total_outstanding
+            sum(case when status = 'sent' then 1 else 0 end) as sent,
+            sum(case when status = 'partial' then 1 else 0 end) as partial,
+            sum(case when status = 'completed' then 1 else 0 end) as completed,
+            coalesce(sum(case when status in ('sent','partial') then qty_sent - qty_received - qty_rejected else 0 end), 0) as total_outstanding
         ")->first();
 
         $vendors = Vendor::orderBy('vendor_name')->get(['id', 'vendor_name']);
