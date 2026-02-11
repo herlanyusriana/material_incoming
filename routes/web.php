@@ -13,6 +13,7 @@ use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\Outgoing\SalesOrderController;
 use App\Http\Controllers\Outgoing\OspController;
 use App\Http\Controllers\Outgoing\PickingFgController;
+use App\Http\Controllers\Outgoing\OutgoingPoController;
 use App\Http\Controllers\SubconController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\LogisticsDashboardController;
@@ -197,6 +198,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/drivers/template', [\App\Http\Controllers\Outgoing\DriverController::class, 'template'])->name('drivers.template');
         Route::get('/drivers/export', [\App\Http\Controllers\Outgoing\DriverController::class, 'export'])->name('drivers.export');
         Route::post('/drivers/import', [\App\Http\Controllers\Outgoing\DriverController::class, 'import'])->name('drivers.import');
+
+        // Customer PO Routes
+        Route::get('/customer-po', [OutgoingPoController::class, 'index'])->name('customer-po.index');
+        Route::get('/customer-po/create', [OutgoingPoController::class, 'create'])->name('customer-po.create');
+        Route::post('/customer-po', [OutgoingPoController::class, 'store'])->name('customer-po.store');
+        Route::get('/customer-po/search-parts', [OutgoingPoController::class, 'searchParts'])->name('customer-po.search-parts');
+        Route::get('/customer-po/{outgoingPo}', [OutgoingPoController::class, 'show'])->name('customer-po.show');
+        Route::post('/customer-po/{outgoingPo}/confirm', [OutgoingPoController::class, 'confirm'])->name('customer-po.confirm');
+        Route::post('/customer-po/{outgoingPo}/complete', [OutgoingPoController::class, 'complete'])->name('customer-po.complete');
+        Route::post('/customer-po/{outgoingPo}/cancel', [OutgoingPoController::class, 'cancel'])->name('customer-po.cancel');
 
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan/update-trip', [OutgoingController::class, 'updateDeliveryPlanTrip'])->name('delivery-plan.update-trip');

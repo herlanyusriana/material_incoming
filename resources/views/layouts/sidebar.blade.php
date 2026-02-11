@@ -487,9 +487,9 @@
                                 </div>
 
                                 {{-- Main Flow --}}
-                                <a href="#" @class([$subLinkBase, $subInactive]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
-                                    <span class="flex-1 text-slate-400">Customer PO</span>
+                                <a href="{{ route('outgoing.customer-po.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.customer-po.*'), $subInactive => !request()->routeIs('outgoing.customer-po.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po.*')])></span>
+                                    <span class="flex-1">Customer PO</span>
                                 </a>
                                 <a href="{{ route('outgoing.daily-planning') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.daily-planning'), $subInactive => !request()->routeIs('outgoing.daily-planning')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.daily-planning'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.daily-planning')])></span>
@@ -1209,9 +1209,9 @@
                                 class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                             </div>
                             {{-- Main Flow --}}
-                            <a href="#" @class([$subLinkBase, $subInactive])>
-                                <span @class([$subDotBase, 'bg-slate-300 group-hover:bg-indigo-400'])></span>
-                                <span class="flex-1 text-slate-400">Customer PO</span>
+                            <a href="{{ route('outgoing.customer-po.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.customer-po.*'), $subInactive => !request()->routeIs('outgoing.customer-po.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po.*')])></span>
+                                <span class="flex-1">Customer PO</span>
                             </a>
                             <a href="{{ route('outgoing.daily-planning') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.daily-planning'), $subInactive => !request()->routeIs('outgoing.daily-planning')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.daily-planning'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.daily-planning')])></span>
