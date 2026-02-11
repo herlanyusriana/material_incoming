@@ -1042,6 +1042,18 @@ class OutgoingController extends Controller
                 ];
             }
 
+            // OSP Status check
+            $isOsp = \App\Models\BomItem::where('special', 'OSP')
+                ->whereHas('bom', fn($q) => $q->where('part_id', $partId))
+                ->exists();
+            $ospOrder = null;
+            if ($isOsp) {
+                $ospOrder = \App\Models\OspOrder::where('gci_part_id', $partId)
+                    ->where('status', '!=', 'shipped')
+                    ->latest()
+                    ->first();
+            }
+
             // Production rate = sum(jig_qty × UPH) for today
             $productionRate = collect($jigRows)->sum(fn($j) => $j->jig_qty * $j->uph);
 
@@ -1050,7 +1062,10 @@ class OutgoingController extends Controller
                 $decimalHours = 7.0 + $deliveryReq / $productionRate;
                 $hours = (int) floor($decimalHours);
                 $minutes = (int) round(($decimalHours - $hours) * 60);
-                if ($minutes === 60) { $hours++; $minutes = 0; }
+                if ($minutes === 60) {
+                    $hours++;
+                    $minutes = 0;
+                }
                 $finishTime = sprintf('%02d:%02d', $hours, $minutes);
             } else {
                 $finishTime = null;
@@ -1070,7 +1085,10 @@ class OutgoingController extends Controller
                 $decimalHours = 7.0 + $deliveryReqH1 / $productionRateH1;
                 $hours = (int) floor($decimalHours);
                 $minutes = (int) round(($decimalHours - $hours) * 60);
-                if ($minutes === 60) { $hours++; $minutes = 0; }
+                if ($minutes === 60) {
+                    $hours++;
+                    $minutes = 0;
+                }
                 $estFinishTime = sprintf('%02d:%02d', $hours, $minutes);
             } else {
                 $estFinishTime = null;
@@ -1111,6 +1129,8 @@ class OutgoingController extends Controller
                 'jig_qty_h1' => $totalJigQtyH1,
                 'delivery_req_h1' => $deliveryReqH1,
                 'est_finish_time' => $estFinishTime,
+                'is_osp' => $isOsp,
+                'osp_order' => $ospOrder,
                 'has_line' => $line !== null,
                 'line_id' => $line?->id,
             ]);

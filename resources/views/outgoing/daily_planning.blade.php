@@ -268,7 +268,17 @@
                                 </td>
                                 <td
                                     class="px-4 py-3 text-xs text-slate-600 bg-white group-hover:bg-slate-50 sticky left-24 z-10 border-r border-slate-100">
-                                    {{ $row->customerPart->customer_part_name ?? $row->part_name ?? '-' }}
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="truncate">{{ $row->customerPart->customer_part_name ?? $row->part_name ?? '-' }}</span>
+                                        @php
+                                            $isOspRow = \App\Models\BomItem::where('special', 'OSP')
+                                                ->whereHas('bom', fn($q) => $q->where('part_id', $row->gci_part_id))
+                                                ->exists();
+                                        @endphp
+                                        @if($isOspRow)
+                                            <span class="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-800 border border-emerald-200">OSP</span>
+                                        @endif
+                                    </div>
                                     @if(isset($row->customerPart->case_name))
                                         <div class="text-[10px] text-slate-400 font-mono">{{ $row->customerPart->case_name }}</div>
                                     @endif

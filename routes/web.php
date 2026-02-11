@@ -11,6 +11,8 @@ use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\Outgoing\SalesOrderController;
+use App\Http\Controllers\Outgoing\OspController;
+use App\Http\Controllers\SubconController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\LogisticsDashboardController;
 use App\Http\Controllers\WarehousePutawayController;
@@ -214,6 +216,25 @@ Route::middleware('auth')->group(function () {
         Route::get('standard-packings/export', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'export'])->name('standard-packings.export');
         Route::post('standard-packings/import', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'import'])->name('standard-packings.import');
         Route::resource('standard-packings', \App\Http\Controllers\Outgoing\StandardPackingController::class);
+
+        // OSP Routes
+        Route::get('/osp', [OspController::class, 'index'])->name('osp.index');
+        Route::get('/osp/create', [OspController::class, 'create'])->name('osp.create');
+        Route::post('/osp', [OspController::class, 'store'])->name('osp.store');
+        Route::get('/osp/{ospOrder}', [OspController::class, 'show'])->name('osp.show');
+        Route::post('/osp/{ospOrder}/progress', [OspController::class, 'updateProgress'])->name('osp.progress');
+        Route::post('/osp/{ospOrder}/ship', [OspController::class, 'ship'])->name('osp.ship');
+    });
+
+    // Subcon Routes
+    Route::prefix('subcon')->name('subcon.')->group(function () {
+        Route::get('/', [SubconController::class, 'index'])->name('index');
+        Route::get('/create', [SubconController::class, 'create'])->name('create');
+        Route::get('/api/parts', [SubconController::class, 'parts'])->name('parts');
+        Route::post('/', [SubconController::class, 'store'])->name('store');
+        Route::get('/{subconOrder}', [SubconController::class, 'show'])->name('show');
+        Route::post('/{subconOrder}/receive', [SubconController::class, 'receive'])->name('receive');
+        Route::post('/{subconOrder}/cancel', [SubconController::class, 'cancel'])->name('cancel');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

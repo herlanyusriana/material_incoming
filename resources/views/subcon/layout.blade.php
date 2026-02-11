@@ -1,14 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        Outgoing
+        Subcon / Tolling
     </x-slot>
 
     <div class="py-6">
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div class="text-sm font-semibold text-slate-900">Flow Outgoing</div>
+                <div class="text-sm font-semibold text-slate-900">Flow Subcon</div>
                 <div class="mt-1 text-sm text-slate-600">
-                    Customer PO → Daily Planning → Delivery Requirement → Delivery Planning → Picking FG → Delivery
+                    Subcon Order → Send to Vendor → Tracking → Receive Back
                 </div>
             </div>
 

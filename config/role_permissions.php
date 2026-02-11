@@ -26,6 +26,7 @@ return [
             'view_dashboard',
             'manage_planning',
             'view_production',
+            'manage_subcon',
         ],
         'warehouse' => [
             'view_dashboard',
@@ -66,6 +67,9 @@ return [
 
         // Outgoing
         'manage_outgoing',
+
+        // Subcon
+        'manage_subcon',
 
         // Inventory/Warehouse
         'manage_inventory',
