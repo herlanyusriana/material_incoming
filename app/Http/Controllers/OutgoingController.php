@@ -1078,12 +1078,9 @@ class OutgoingController extends Controller
             // Production rate H+1 = sum(jig_qty_h1 × UPH)
             $productionRateH1 = collect($jigRows)->sum(fn($j) => $j->jig_qty_h1 * $j->uph);
 
-            // Delivery requirement H+1 = max(0, daily_plan_h1 - end_stock if positive)
-            $deliveryReqH1 = max(0, $dailyPlanH1Qty - max(0, $endStock));
-
-            // Est. finish time H+1 = 07:00 + delivery_req_h1 / production_rate_h1 (format HH:MM)
-            if ($productionRateH1 > 0 && $deliveryReqH1 > 0) {
-                $decimalHours = 7.0 + $deliveryReqH1 / $productionRateH1;
+            // Est. finish time H+1 = 07:00 + end_stock_customer / total_uph_h1 (format HH:MM)
+            if ($productionRateH1 > 0 && $endStock > 0) {
+                $decimalHours = 7.0 + $endStock / $productionRateH1;
                 $hours = (int) floor($decimalHours);
                 $minutes = (int) round(($decimalHours - $hours) * 60);
                 if ($minutes === 60) {
@@ -1128,7 +1125,7 @@ class OutgoingController extends Controller
                 'end_stock' => $endStock,
                 'daily_plan_h1' => $dailyPlanH1Qty,
                 'jig_qty_h1' => $totalJigQtyH1,
-                'delivery_req_h1' => $deliveryReqH1,
+                'delivery_req_h1' => max(0, $dailyPlanH1Qty - max(0, $endStock)),
                 'est_finish_time' => $estFinishTime,
                 'is_osp' => $isOsp,
                 'osp_order' => $ospOrder,

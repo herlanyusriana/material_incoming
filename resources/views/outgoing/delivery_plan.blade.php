@@ -232,221 +232,233 @@
 							<thead>
 								<tr>
 									<th class="px-1 py-3 text-center min-w-[36px] s-col" style="left:0">
-										<input type="checkbox" id="selectAll" class="rounded border-slate-300 cursor-pointer" 
+										<input type="checkbox" id="selectAll" class="rounded border-slate-300 cursor-pointer"
 											onchange="document.querySelectorAll('input[name=\\'selected[]\\']').forEach(cb => cb.checked = this.checked)">
 									</th>
 									<th class="px-2 py-3 text-left min-w-[44px] s-col" style="left:36px">No</th>
-								<th class="px-2 py-3 text-left min-w-[70px] s-col" style="left:80px">Category</th>
-								<th class="px-2 py-3 text-left min-w-[160px] s-col" style="left:150px">FG Part Name</th>
-								<th class="px-2 py-3 text-left min-w-[110px] s-col" style="left:310px">FG Part No.</th>
-								<th class="px-2 py-3 text-left min-w-[80px] s-col" style="left:420px">Model</th>
-								<th class="px-2 py-3 text-right min-w-[80px]">Stock at<br>Customer</th>
-								<th class="px-2 py-3 text-right min-w-[80px]">Daily Plan<br>H</th>
-								<th class="px-2 py-3 text-left min-w-[100px] bg-yellow-50 !text-amber-700">Jig Name</th>
-								<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">Jig<br>Qty H</th>
-								<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">UpH</th>
-								<th class="px-2 py-3 text-right min-w-[70px] bg-yellow-50 !text-amber-700">Total<br>UpH</th>
-								<th class="px-2 py-3 text-right min-w-[80px]">Delivery<br>Req.</th>
-								<th class="px-2 py-3 text-center min-w-[75px]">Std<br>Packing</th>
-								<th class="px-2 py-3 text-right min-w-[75px]" style="background:#dcfce7; color:#166534;">
-									Total<br>Trip</th>
-								<th class="px-2 py-3 text-right min-w-[75px] calc-col">Finish<br>Time</th>
-								<th class="px-2 py-3 text-right min-w-[80px] calc-col">End Stock<br>@Cust</th>
-								<th class="px-2 py-3 text-right min-w-[80px] h1-col">Daily Plan<br>H+1</th>
-								<th class="px-2 py-3 text-center min-w-[70px] h1-col">Jig Qty<br>H+1</th>
-								<th class="px-2 py-3 text-right min-w-[75px] h1-col">Est. Finish<br>Time</th>
-							</tr>
-						</thead>
-						@php $no = 0; @endphp
-						@foreach($rows as $row)
-							@php
-								$no++;
-								$jigCount = count($row->jigs);
-								$rowSpan = max(1, $jigCount);
-							@endphp
-
-							<tbody x-data="{ open: false }">
-								{{-- Main FG row --}}
-								<tr class="fg-row" data-part-id="{{ $row->gci_part_id }}">
-									{{-- Select checkbox + expand button --}}
-									<td class="px-1 py-2 text-center s-col" style="left:0" @if($rowSpan > 1)
-									rowspan="{{ $rowSpan }}" @endif>
-										<div class="flex items-center justify-center gap-1">
-											<input type="checkbox" name="selected[]" value="{{ $no - 1 }}" class="rounded border-slate-300 cursor-pointer">
-											<button @click="open = !open" class="expand-btn" title="Toggle trip inputs">
-											<svg class="w-4 h-4 text-slate-500 transition-transform duration-200"
-												:class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor"
-												viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-													d="M9 5l7 7-7 7" />
-											</svg>
-										</button>
-										</div>
-									</td>
-									<td class="px-2 py-2 text-slate-500 font-semibold s-col" style="left:36px" @if($rowSpan > 1)
-									rowspan="{{ $rowSpan }}" @endif>
-										{{ $no }}
-										{{-- Hidden data spans (always in DOM) --}}
-										<span class="hidden"
-											id="prod-rate-{{ $row->gci_part_id }}">{{ $row->production_rate }}</span>
-										<span class="hidden"
-											id="del-req-{{ $row->gci_part_id }}">{{ $row->delivery_requirement }}</span>
-										<span class="hidden"
-											id="prod-rate-h1-{{ $row->gci_part_id }}">{{ $row->production_rate_h1 }}</span>
-										<span class="hidden" id="plan-h1-{{ $row->gci_part_id }}">{{ $row->daily_plan_h1 }}</span>
-									</td>
-									<td class="px-2 py-2 text-slate-600 text-[10px] font-bold s-col" style="left:80px" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->category }}
-									</td>
-									<td class="px-2 py-2 text-slate-900 font-bold whitespace-nowrap s-col" style="left:150px"
-										@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										<div class="flex items-center gap-2">
-											{{ $row->fg_part_name }}
-											@if($row->is_osp)
-												<span
-													class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-800 border border-emerald-200">OSP</span>
-											@endif
-										</div>
-										@if($row->osp_order)
-											<div class="mt-0.5 text-[9px] font-medium text-amber-600 flex items-center gap-1">
-												<span class="w-1 h-1 rounded-full bg-amber-500"></span>
-												Assy: {{ number_format($row->osp_order->qty_assembled) }} /
-												{{ number_format($row->osp_order->qty_received_material) }}
-												<a href="{{ route('outgoing.osp.show', $row->osp_order) }}"
-													class="underline hover:text-amber-700 ml-1">Detail</a>
-											</div>
-										@endif
-									</td>
-									<td class="px-2 py-2 text-indigo-700 font-mono font-bold whitespace-nowrap s-col"
-										style="left:310px" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->fg_part_no }}
-									</td>
-									<td class="px-2 py-2 text-slate-600 whitespace-nowrap s-col" style="left:420px" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->model }}
-									</td>
-									<td class="px-2 py-2 text-right text-slate-700 font-semibold"
-										id="stock-val-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->stock_at_customer > 0 ? number_format($row->stock_at_customer) : '-' }}
-									</td>
-									<td class="px-2 py-2 text-right text-slate-900 font-bold" id="plan-val-{{ $row->gci_part_id }}"
-										@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->daily_plan_qty > 0 ? number_format($row->daily_plan_qty) : '-' }}
-									</td>
-
-									{{-- First jig --}}
-									@if($jigCount > 0)
-										<td class="px-2 py-2 bg-yellow-50 font-semibold text-amber-800">{{ $row->jigs[0]->jig_name }}
-										</td>
-										<td class="px-1 py-2 bg-yellow-50 text-center font-bold text-amber-900">
-											{{ $row->jigs[0]->jig_qty ?: '-' }}</td>
-										<td class="px-1 py-2 bg-yellow-50 text-center font-semibold text-amber-700">
-											{{ $row->jigs[0]->uph ?: '-' }}</td>
-										<td class="px-2 py-2 bg-yellow-50 text-right font-bold text-amber-900" @if($rowSpan > 1)
-										rowspan="{{ $rowSpan }}" @endif>
-											{{ $row->production_rate > 0 ? number_format($row->production_rate) : '-' }}
-										</td>
-									@else
-										<td class="px-2 py-2 bg-yellow-50 text-slate-300 italic">-</td>
-										<td class="px-1 py-2 bg-yellow-50 text-center text-slate-300">-</td>
-										<td class="px-1 py-2 bg-yellow-50 text-center text-slate-300">-</td>
-										<td class="px-2 py-2 bg-yellow-50 text-right text-slate-300">-</td>
-									@endif
-
-									<td class="px-2 py-2 text-right font-bold text-slate-900" @if($rowSpan > 1)
-									rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->delivery_requirement > 0 ? number_format($row->delivery_requirement) : '-' }}
-									</td>
-									<td class="px-2 py-2 text-center text-slate-700 font-semibold" @if($rowSpan > 1)
-									rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->std_packing > 0 ? number_format($row->std_packing) : '-' }}
-									</td>
-
-									{{-- Total trips (summary) --}}
-									<td class="px-2 py-2 text-right font-black text-green-800" style="background:#dcfce7;"
-										id="total-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->total_trips > 0 ? number_format($row->total_trips) : '-' }}
-									</td>
-									<td class="px-2 py-2 text-right font-semibold text-slate-700 calc-col"
-										id="finish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->finish_time ?? '-' }}
-									</td>
-									<td class="px-2 py-2 text-right font-bold calc-col" id="endstock-{{ $row->gci_part_id }}"
-										@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										@if($row->end_stock < 0)
-											<span class="text-red-600">{{ number_format($row->end_stock) }}</span>
-										@else
-											<span class="text-slate-900">{{ number_format($row->end_stock) }}</span>
-										@endif
-									</td>
-
-									{{-- H+1 --}}
-									<td class="px-2 py-2 text-right font-bold text-blue-800 h1-col" @if($rowSpan > 1)
-									rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->daily_plan_h1 > 0 ? number_format($row->daily_plan_h1) : '-' }}
-									</td>
-									<td class="px-2 py-2 text-center font-semibold text-blue-700 h1-col" @if($rowSpan > 1)
-									rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->jig_qty_h1 > 0 ? $row->jig_qty_h1 : '-' }}
-									</td>
-									<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col"
-										id="estfinish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
-										{{ $row->est_finish_time ?? '-' }}
-									</td>
+									<th class="px-2 py-3 text-left min-w-[70px] s-col" style="left:80px">Category</th>
+									<th class="px-2 py-3 text-left min-w-[160px] s-col" style="left:150px">FG Part Name</th>
+									<th class="px-2 py-3 text-left min-w-[110px] s-col" style="left:310px">FG Part No.</th>
+									<th class="px-2 py-3 text-left min-w-[80px] s-col" style="left:420px">Model</th>
+									<th class="px-2 py-3 text-right min-w-[80px]">Stock at<br>Customer</th>
+									<th class="px-2 py-3 text-right min-w-[80px]">Daily Plan<br>H</th>
+									<th class="px-2 py-3 text-left min-w-[100px] bg-yellow-50 !text-amber-700">Jig Name</th>
+									<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">Jig<br>Qty H
+									</th>
+									<th class="px-2 py-3 text-center min-w-[60px] bg-yellow-50 !text-amber-700">UpH</th>
+									<th class="px-2 py-3 text-right min-w-[70px] bg-yellow-50 !text-amber-700">Total<br>UpH</th>
+									<th class="px-2 py-3 text-right min-w-[80px]">Delivery<br>Req.</th>
+									<th class="px-2 py-3 text-center min-w-[75px]">Std<br>Packing</th>
+									<th class="px-2 py-3 text-right min-w-[75px]" style="background:#dcfce7; color:#166534;">
+										Total<br>Trip</th>
+									<th class="px-2 py-3 text-right min-w-[75px] calc-col">Finish<br>Time</th>
+									<th class="px-2 py-3 text-right min-w-[80px] calc-col">End Stock<br>@Cust</th>
+									<th class="px-2 py-3 text-right min-w-[80px] h1-col">Daily Plan<br>H+1</th>
+									<th class="px-2 py-3 text-center min-w-[70px] h1-col">Jig Qty<br>H+1</th>
+									<th class="px-2 py-3 text-right min-w-[75px] h1-col">Est. Finish<br>Time</th>
 								</tr>
+							</thead>
+							@php $no = 0; @endphp
+							@foreach($rows as $row)
+								@php
+									$no++;
+									$jigCount = count($row->jigs);
+									$rowSpan = max(1, $jigCount);
+								@endphp
 
-								{{-- Additional jig sub-rows --}}
-								@for($j = 1; $j < $jigCount; $j++)
-									<tr class="jig-sub">
-										<td class="px-2 py-2 bg-yellow-50 font-semibold text-amber-800">{{ $row->jigs[$j]->jig_name }}
-										</td>
-										<td class="px-1 py-2 bg-yellow-50 text-center font-bold text-amber-900">
-											{{ $row->jigs[$j]->jig_qty ?: '-' }}</td>
-										<td class="px-1 py-2 bg-yellow-50 text-center font-semibold text-amber-700">
-											{{ $row->jigs[$j]->uph ?: '-' }}</td>
-									</tr>
-								@endfor
-
-								{{-- Expandable trip input row --}}
-								<tr x-show="open" x-cloak x-transition:enter="transition ease-out duration-200"
-									x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-									<td colspan="20" class="p-0" style="border-right:0;">
-										<div class="trip-panel">
-											<div class="flex items-center justify-between mb-3">
-												<div class="flex items-center gap-2">
-													<span
-														class="inline-flex items-center justify-center w-5 h-5 rounded bg-green-200 text-green-800 text-[10px] font-black">T</span>
-													<span class="text-xs font-bold text-green-800">Trip Inputs</span>
-													<span
-														class="text-[10px] text-green-600 font-semibold">{{ $row->fg_part_name }}</span>
-												</div>
-												<button @click="open = false"
-													class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-													<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<tbody x-data="{ open: false }">
+									{{-- Main FG row --}}
+									<tr class="fg-row" data-part-id="{{ $row->gci_part_id }}">
+										{{-- Select checkbox + expand button --}}
+										<td class="px-1 py-2 text-center s-col" style="left:0" @if($rowSpan > 1)
+										rowspan="{{ $rowSpan }}" @endif>
+											<div class="flex items-center justify-center gap-1">
+												<input type="checkbox" name="selected[]" value="{{ $no - 1 }}"
+													class="rounded border-slate-300 cursor-pointer">
+												<button @click="open = !open" class="expand-btn" title="Toggle trip inputs">
+													<svg class="w-4 h-4 text-slate-500 transition-transform duration-200"
+														:class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor"
+														viewBox="0 0 24 24">
 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-															d="M5 15l7-7 7 7" />
+															d="M9 5l7 7-7 7" />
 													</svg>
-													Collapse
 												</button>
 											</div>
-											<div class="trip-grid">
-												@for($t = 1; $t <= 14; $t++)
-													<div class="trip-input-box">
-														<label
-															class="text-[10px] font-bold text-green-700 block text-center mb-0.5">Trip
-															{{ $t }}</label>
-														<input type="number" min="0" value="{{ $row->trips[$t] ?: '' }}" placeholder="-"
-															data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}"
-															oninput="recalcRow(this.dataset.part)" onchange="updateTrip(this)"
-															class="trip-expanded-input">
-													</div>
-												@endfor
+										</td>
+										<td class="px-2 py-2 text-slate-500 font-semibold s-col" style="left:36px" @if($rowSpan > 1)
+										rowspan="{{ $rowSpan }}" @endif>
+											{{ $no }}
+											{{-- Hidden data spans (always in DOM) --}}
+											<span class="hidden"
+												id="prod-rate-{{ $row->gci_part_id }}">{{ $row->production_rate }}</span>
+											<span class="hidden"
+												id="del-req-{{ $row->gci_part_id }}">{{ $row->delivery_requirement }}</span>
+											<span class="hidden"
+												id="prod-rate-h1-{{ $row->gci_part_id }}">{{ $row->production_rate_h1 }}</span>
+											<span class="hidden"
+												id="plan-h1-{{ $row->gci_part_id }}">{{ $row->daily_plan_h1 }}</span>
+										</td>
+										<td class="px-2 py-2 text-slate-600 text-[10px] font-bold s-col" style="left:80px"
+											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->category }}
+										</td>
+										<td class="px-2 py-2 text-slate-900 font-bold whitespace-nowrap s-col" style="left:150px"
+											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											<div class="flex items-center gap-2">
+												{{ $row->fg_part_name }}
+												@if($row->is_osp)
+													<span
+														class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-800 border border-emerald-200">OSP</span>
+												@endif
 											</div>
-										</div>
-									</td>
-								</tr>
-							</tbody>
-						@endforeach
-					</table>
+											@if($row->osp_order)
+												<div class="mt-0.5 text-[9px] font-medium text-amber-600 flex items-center gap-1">
+													<span class="w-1 h-1 rounded-full bg-amber-500"></span>
+													Assy: {{ number_format($row->osp_order->qty_assembled) }} /
+													{{ number_format($row->osp_order->qty_received_material) }}
+													<a href="{{ route('outgoing.osp.show', $row->osp_order) }}"
+														class="underline hover:text-amber-700 ml-1">Detail</a>
+												</div>
+											@endif
+										</td>
+										<td class="px-2 py-2 text-indigo-700 font-mono font-bold whitespace-nowrap s-col"
+											style="left:310px" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->fg_part_no }}
+										</td>
+										<td class="px-2 py-2 text-slate-600 whitespace-nowrap s-col" style="left:420px" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->model }}
+										</td>
+										<td class="px-2 py-2 text-right text-slate-700 font-semibold"
+											id="stock-val-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
+											@endif>
+											{{ $row->stock_at_customer > 0 ? number_format($row->stock_at_customer) : '-' }}
+										</td>
+										<td class="px-2 py-2 text-right text-slate-900 font-bold"
+											id="plan-val-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->daily_plan_qty > 0 ? number_format($row->daily_plan_qty) : '-' }}
+										</td>
+
+										{{-- First jig --}}
+										@if($jigCount > 0)
+											<td class="px-2 py-2 bg-yellow-50 font-semibold text-amber-800">
+												{{ $row->jigs[0]->jig_name }}
+											</td>
+											<td class="px-1 py-2 bg-yellow-50 text-center font-bold text-amber-900">
+												{{ $row->jigs[0]->jig_qty ?: '-' }}
+											</td>
+											<td class="px-1 py-2 bg-yellow-50 text-center font-semibold text-amber-700">
+												{{ $row->jigs[0]->uph ?: '-' }}
+											</td>
+											<td class="px-2 py-2 bg-yellow-50 text-right font-bold text-amber-900" @if($rowSpan > 1)
+											rowspan="{{ $rowSpan }}" @endif>
+												{{ $row->production_rate > 0 ? number_format($row->production_rate) : '-' }}
+											</td>
+										@else
+											<td class="px-2 py-2 bg-yellow-50 text-slate-300 italic">-</td>
+											<td class="px-1 py-2 bg-yellow-50 text-center text-slate-300">-</td>
+											<td class="px-1 py-2 bg-yellow-50 text-center text-slate-300">-</td>
+											<td class="px-2 py-2 bg-yellow-50 text-right text-slate-300">-</td>
+										@endif
+
+										<td class="px-2 py-2 text-right font-bold text-slate-900" @if($rowSpan > 1)
+										rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->delivery_requirement > 0 ? number_format($row->delivery_requirement) : '-' }}
+										</td>
+										<td class="px-2 py-2 text-center text-slate-700 font-semibold" @if($rowSpan > 1)
+										rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->std_packing > 0 ? number_format($row->std_packing) : '-' }}
+										</td>
+
+										{{-- Total trips (summary) --}}
+										<td class="px-2 py-2 text-right font-black text-green-800" style="background:#dcfce7;"
+											id="total-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->total_trips > 0 ? number_format($row->total_trips) : '-' }}
+										</td>
+										<td class="px-2 py-2 text-right font-semibold text-slate-700 calc-col"
+											id="finish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->finish_time ?? '-' }}
+										</td>
+										<td class="px-2 py-2 text-right font-bold calc-col" id="endstock-{{ $row->gci_part_id }}"
+											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											@if($row->end_stock < 0)
+												<span class="text-red-600">{{ number_format($row->end_stock) }}</span>
+											@else
+												<span class="text-slate-900">{{ number_format($row->end_stock) }}</span>
+											@endif
+										</td>
+
+										{{-- H+1 --}}
+										<td class="px-2 py-2 text-right font-bold text-blue-800 h1-col" @if($rowSpan > 1)
+										rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->daily_plan_h1 > 0 ? number_format($row->daily_plan_h1) : '-' }}
+										</td>
+										<td class="px-2 py-2 text-center font-semibold text-blue-700 h1-col" @if($rowSpan > 1)
+										rowspan="{{ $rowSpan }}" @endif>
+											{{ $row->jig_qty_h1 > 0 ? $row->jig_qty_h1 : '-' }}
+										</td>
+										<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col"
+											id="estfinish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
+											@endif>
+											{{ $row->est_finish_time ?? '-' }}
+										</td>
+									</tr>
+
+									{{-- Additional jig sub-rows --}}
+									@for($j = 1; $j < $jigCount; $j++)
+										<tr class="jig-sub">
+											<td class="px-2 py-2 bg-yellow-50 font-semibold text-amber-800">
+												{{ $row->jigs[$j]->jig_name }}
+											</td>
+											<td class="px-1 py-2 bg-yellow-50 text-center font-bold text-amber-900">
+												{{ $row->jigs[$j]->jig_qty ?: '-' }}
+											</td>
+											<td class="px-1 py-2 bg-yellow-50 text-center font-semibold text-amber-700">
+												{{ $row->jigs[$j]->uph ?: '-' }}
+											</td>
+										</tr>
+									@endfor
+
+									{{-- Expandable trip input row --}}
+									<tr x-show="open" x-cloak x-transition:enter="transition ease-out duration-200"
+										x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+										<td colspan="20" class="p-0" style="border-right:0;">
+											<div class="trip-panel">
+												<div class="flex items-center justify-between mb-3">
+													<div class="flex items-center gap-2">
+														<span
+															class="inline-flex items-center justify-center w-5 h-5 rounded bg-green-200 text-green-800 text-[10px] font-black">T</span>
+														<span class="text-xs font-bold text-green-800">Trip Inputs</span>
+														<span
+															class="text-[10px] text-green-600 font-semibold">{{ $row->fg_part_name }}</span>
+													</div>
+													<button @click="open = false"
+														class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+														<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+																d="M5 15l7-7 7 7" />
+														</svg>
+														Collapse
+													</button>
+												</div>
+												<div class="trip-grid">
+													@for($t = 1; $t <= 14; $t++)
+														<div class="trip-input-box">
+															<label
+																class="text-[10px] font-bold text-green-700 block text-center mb-0.5">Trip
+																{{ $t }}</label>
+															<input type="number" min="0" value="{{ $row->trips[$t] ?: '' }}"
+																placeholder="-" data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}"
+																oninput="recalcRow(this.dataset.part)" onchange="updateTrip(this)"
+																class="trip-expanded-input">
+														</div>
+													@endfor
+												</div>
+											</div>
+										</td>
+									</tr>
+								</tbody>
+							@endforeach
+						</table>
 				</div>
 
 				{{-- Hidden fields for form submission --}}
@@ -481,7 +493,9 @@
 									<span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> H+1
 								</span>
 							</div>
-							<button type="submit" class="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" id="generateSoBtn" disabled>
+							<button type="submit"
+								class="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+								id="generateSoBtn" disabled>
 								<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 								</svg>
@@ -490,152 +504,150 @@
 						</div>
 					</div>
 				</div>
-			</form>
+				</form>
 		@endif
-	</div>
+		</div>
 
-	<script>
-		const CSRF_TOKEN = '{{ csrf_token() }}';
-		const UPDATE_URL = '{{ route("outgoing.delivery-plan.update-trip") }}';
-		const DELIVERY_DATE = '{{ $selectedDate->toDateString() }}';
+		<script>
+			const CSRF_TOKEN = '{{ csrf_token() }}';
+			const UPDATE_URL = '{{ route("outgoing.delivery-plan.update-trip") }}';
+			const DELIVERY_DATE = '{{ $selectedDate->toDateString() }}';
 
-		async function updateTrip(input) {
-			const partId = input.dataset.part;
-			const tripNo = input.dataset.trip;
-			const qty = parseInt(input.value) || 0;
+			async function updateTrip(input) {
+				const partId = input.dataset.part;
+				const tripNo = input.dataset.trip;
+				const qty = parseInt(input.value) || 0;
 
-			input.style.background = '#fef9c3'; // yellow flash
+				input.style.background = '#fef9c3'; // yellow flash
 
-			try {
-				const response = await fetch(UPDATE_URL, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-CSRF-TOKEN': CSRF_TOKEN,
-						'Accept': 'application/json'
-					},
-					body: JSON.stringify({
-						delivery_date: DELIVERY_DATE,
-						gci_part_id: partId,
-						trip_no: tripNo,
-						qty: qty
-					})
-				});
+				try {
+					const response = await fetch(UPDATE_URL, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-CSRF-TOKEN': CSRF_TOKEN,
+							'Accept': 'application/json'
+						},
+						body: JSON.stringify({
+							delivery_date: DELIVERY_DATE,
+							gci_part_id: partId,
+							trip_no: tripNo,
+							qty: qty
+						})
+					});
 
-				const data = await response.json();
+					const data = await response.json();
 
-				if (data.success) {
-					input.style.background = '#dcfce7'; // green success
+					if (data.success) {
+						input.style.background = '#dcfce7'; // green success
 
-					// Recalculate total from all trip inputs for this part
-					recalcRow(partId);
+						// Recalculate total from all trip inputs for this part
+						recalcRow(partId);
 
-					setTimeout(() => { input.style.background = 'transparent'; }, 800);
-				} else {
-					input.style.background = '#fee2e2'; // red error
+						setTimeout(() => { input.style.background = 'transparent'; }, 800);
+					} else {
+						input.style.background = '#fee2e2'; // red error
+						setTimeout(() => { input.style.background = 'transparent'; }, 1500);
+					}
+				} catch (e) {
+					console.error('Failed:', e);
+					input.style.background = '#fee2e2';
 					setTimeout(() => { input.style.background = 'transparent'; }, 1500);
 				}
-			} catch (e) {
-				console.error('Failed:', e);
-				input.style.background = '#fee2e2';
-				setTimeout(() => { input.style.background = 'transparent'; }, 1500);
 			}
-		}
 
-		function recalcRow(partId) {
-			// Sum all trip inputs for this partId
-			const inputs = document.querySelectorAll(`input[data-part="${partId}"]`);
-			let total = 0;
-			inputs.forEach(inp => { total += parseInt(inp.value) || 0; });
+			function recalcRow(partId) {
+				// Sum all trip inputs for this partId
+				const inputs = document.querySelectorAll(`input[data-part="${partId}"]`);
+				let total = 0;
+				inputs.forEach(inp => { total += parseInt(inp.value) || 0; });
 
-			// Update Total
-			const totalEl = document.getElementById(`total-${partId}`);
-			if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
+				// Update Total
+				const totalEl = document.getElementById(`total-${partId}`);
+				if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
 
-			// Finish Time = 07:00 + delivery_requirement / production_rate (format HH:MM)
-			const prodRate = parseFloat(document.getElementById(`prod-rate-${partId}`)?.textContent) || 0;
-			const delReq = parseFloat(document.getElementById(`del-req-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
-			const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
-			const finishEl = document.getElementById(`finish-${partId}`);
-			if (finishEl) {
-				if (prodRate > 0 && delReq > 0) {
-					const decimal = 7.0 + delReq / prodRate;
-					const h = Math.floor(decimal);
-					let m = Math.round((decimal - h) * 60);
-					if (m === 60) { h++; m = 0; }
-					finishEl.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-				} else {
-					finishEl.textContent = '-';
+				// Finish Time = 07:00 + delivery_requirement / production_rate (format HH:MM)
+				const prodRate = parseFloat(document.getElementById(`prod-rate-${partId}`)?.textContent) || 0;
+				const delReq = parseFloat(document.getElementById(`del-req-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
+				const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
+				const finishEl = document.getElementById(`finish-${partId}`);
+				if (finishEl) {
+					if (prodRate > 0 && delReq > 0) {
+						const decimal = 7.0 + delReq / prodRate;
+						const h = Math.floor(decimal);
+						let m = Math.round((decimal - h) * 60);
+						if (m === 60) { h++; m = 0; }
+						finishEl.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+					} else {
+						finishEl.textContent = '-';
+					}
+				}
+
+				// Update End Stock (Stock + Total - Plan)
+				const dailyPlan = parseFloat(document.getElementById(`plan-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
+				const endStockEl = document.getElementById(`endstock-${partId}`);
+				let endStock = stockAtCust + total - dailyPlan;
+				if (endStockEl) {
+					const span = endStockEl.querySelector('span');
+					if (span) {
+						span.textContent = endStock.toLocaleString();
+						span.className = endStock < 0 ? 'text-red-600' : 'text-slate-900';
+					}
+				}
+
+				// Est. Finish Time H+1 = 07:00 + end_stock_customer / total_uph_h1 (format HH:MM)
+				const prodRateH1 = parseFloat(document.getElementById(`prod-rate-h1-${partId}`)?.textContent) || 0;
+				const estFinishEl = document.getElementById(`estfinish-${partId}`);
+				if (estFinishEl) {
+					if (prodRateH1 > 0 && endStock > 0) {
+						const decimal = 7.0 + endStock / prodRateH1;
+						const h = Math.floor(decimal);
+						let m = Math.round((decimal - h) * 60);
+						if (m === 60) { h++; m = 0; }
+						estFinishEl.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+					} else {
+						estFinishEl.textContent = '-';
+					}
 				}
 			}
 
-			// Update End Stock (Stock + Total - Plan)
-			const dailyPlan = parseFloat(document.getElementById(`plan-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
-			const endStockEl = document.getElementById(`endstock-${partId}`);
-			let endStock = stockAtCust + total - dailyPlan;
-			if (endStockEl) {
-				const span = endStockEl.querySelector('span');
-				if (span) {
-					span.textContent = endStock.toLocaleString();
-					span.className = endStock < 0 ? 'text-red-600' : 'text-slate-900';
-				}
+			// Enable/disable Generate SO button based on checkbox selection
+			function updateSoButtonState() {
+				const checkboxes = document.querySelectorAll('input[name="selected[]"]');
+				const generateSoBtn = document.getElementById('generateSoBtn');
+				const hasChecked = Array.from(checkboxes).some(cb => cb.checked);
+				generateSoBtn.disabled = !hasChecked;
 			}
 
-			// Est. Finish Time H+1 = 07:00 + delivery_req_h1 / production_rate_h1 (format HH:MM)
-			const prodRateH1 = parseFloat(document.getElementById(`prod-rate-h1-${partId}`)?.textContent) || 0;
-			const planH1 = parseFloat(document.getElementById(`plan-h1-${partId}`)?.textContent) || 0;
-			const estFinishEl = document.getElementById(`estfinish-${partId}`);
-			if (estFinishEl) {
-				const delReqH1 = Math.max(0, planH1 - Math.max(0, endStock));
-				if (prodRateH1 > 0 && delReqH1 > 0) {
-					const decimal = 7.0 + delReqH1 / prodRateH1;
-					const h = Math.floor(decimal);
-					let m = Math.round((decimal - h) * 60);
-					if (m === 60) { h++; m = 0; }
-					estFinishEl.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-				} else {
-					estFinishEl.textContent = '-';
-				}
-			}
-		}
+			// Setup checkbox listener
+			document.addEventListener('DOMContentLoaded', function () {
+				const checkboxes = document.querySelectorAll('input[name="selected[]"]');
+				const selectAllCheckbox = document.getElementById('selectAll');
 
-		// Enable/disable Generate SO button based on checkbox selection
-		function updateSoButtonState() {
-			const checkboxes = document.querySelectorAll('input[name="selected[]"]');
-			const generateSoBtn = document.getElementById('generateSoBtn');
-			const hasChecked = Array.from(checkboxes).some(cb => cb.checked);
-			generateSoBtn.disabled = !hasChecked;
-		}
-
-		// Setup checkbox listener
-		document.addEventListener('DOMContentLoaded', function() {
-			const checkboxes = document.querySelectorAll('input[name="selected[]"]');
-			const selectAllCheckbox = document.getElementById('selectAll');
-			
-			checkboxes.forEach(checkbox => {
-				checkbox.addEventListener('change', updateSoButtonState);
-			});
-			
-			if (selectAllCheckbox) {
-				selectAllCheckbox.addEventListener('change', function() {
-					checkboxes.forEach(cb => {
-						if (!cb.classList.contains('select-all-checkbox')) {
-							cb.checked = this.checked;
-						}
-					});
-					updateSoButtonState();
+				checkboxes.forEach(checkbox => {
+					checkbox.addEventListener('change', updateSoButtonState);
 				});
-			}
 
-			// Confirm before submission
-			document.getElementById('soForm').addEventListener('submit', function(e) {
-				const checkboxes = document.querySelectorAll('input[name="selected[]"]:checked');
-				if (checkboxes.length === 0) {
-					e.preventDefault();
-					alert('Pilih minimal 1 part untuk generate SO');
-					return false;
+				if (selectAllCheckbox) {
+					selectAllCheckbox.addEventListener('change', function () {
+						checkboxes.forEach(cb => {
+							if (!cb.classList.contains('select-all-checkbox')) {
+								cb.checked = this.checked;
+							}
+						});
+						updateSoButtonState();
+					});
 				}
+
+				// Confirm before submission
+				document.getElementById('soForm').addEventListener('submit', function (e) {
+					const checkboxes = document.querySelectorAll('input[name="selected[]"]:checked');
+					if (checkboxes.length === 0) {
+						e.preventDefault();
+						alert('Pilih minimal 1 part untuk generate SO');
+						return false;
+					}
+				});
 			});
-		});
-	</script>
+		</script>
 @endsection
