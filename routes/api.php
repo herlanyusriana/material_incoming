@@ -23,6 +23,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/outgoing/delivery-notes/{deliveryNote}', [OutgoingPickingController::class, 'show']);
     Route::post('/outgoing/delivery-notes/{deliveryNote}/start-picking', [OutgoingPickingController::class, 'startPicking']);
     Route::post('/outgoing/delivery-notes/{deliveryNote}/pick', [OutgoingPickingController::class, 'pick']);
+
+    // Picking FG (from delivery plan)
+    Route::prefix('picking-fg')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\PickingFgApiController::class, 'index']);
+        Route::post('/pick', [\App\Http\Controllers\Api\PickingFgApiController::class, 'updatePick']);
+    });
+
     // Warehouse Scanning & Putaway
     Route::get('/warehouse/tag-info', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'getTagInfo']);
     Route::post('/warehouse/putaway', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'putaway']);
