@@ -362,6 +362,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/mrp/generate-po', [PlanningMrpController::class, 'generatePo'])->name('mrp.generate-po');
         Route::delete('/mrp/clear', [PlanningMrpController::class, 'clear'])->name('mrp.clear');
         Route::get('/mrp/history', [PlanningMrpController::class, 'history'])->name('mrp.history');
+        Route::get('/mrp/integration', [PlanningMrpController::class, 'integrationDashboard'])->name('mrp.integration-dashboard');
     });
 
     Route::prefix('warehouse')->name('warehouse.')->group(function () {

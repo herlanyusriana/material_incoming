@@ -11,6 +11,7 @@ use App\Models\MrpProductionPlan;
 use App\Models\MrpPurchasePlan;
 use App\Models\MrpRun;
 use App\Models\ProductionOrder;
+use App\Services\MrpIncomingIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -408,13 +409,21 @@ class MrpController extends Controller
 
             $demandTotal = array_sum($monthlyDemand);
             $plannedOrderTotal = array_sum($monthlyPlanned);
-            $incomingTotal = 0.0;
+
+            // Calculate incoming quantities from actual received materials
+            $incomingService = new MrpIncomingIntegrationService();
+            $incomingTotal = $incomingService->getTotalIncomingForPart($partId, $startKey, $endKey);
+
             $endStock = (float) $startStock + $incomingTotal - (float) $demandTotal;
             $netRequired = $endStock < 0 ? abs($endStock) : 0.0;
 
             // Build daily view row for the selected month.
             $days = [];
             $runningStock = (float) $startStock;
+            
+            // Get daily incoming quantities
+            $dailyIncoming = $incomingService->getIncomingQuantities([$partId], $monthStartKey, $monthEndKey)[$partId] ?? [];
+            
             foreach ($dates as $dateKey) {
                 $p = $purchaseByPartDate[$partId][$dateKey] ?? null;
                 $pr = $productionByPartDate[$partId][$dateKey] ?? null;
@@ -431,7 +440,7 @@ class MrpController extends Controller
                     $planned += (float) ($pr['planned'] ?? 0);
                 }
 
-                $incoming = 0.0;
+                $incoming = (float) ($dailyIncoming[$dateKey] ?? 0);
                 $endDayStock = $runningStock + $incoming - $demand;
 
                 $days[$dateKey] = [
@@ -884,7 +893,14 @@ class MrpController extends Controller
             $onHand = (float) ($inventory->on_hand ?? 0);
             $onOrder = (float) ($inventory->on_order ?? 0);
 
-            $netRequired = max(0, $requiredQty - $onHand - $onOrder);
+            // Calculate incoming quantities for this period
+            $incomingService = new MrpIncomingIntegrationService();
+            $incomingTotal = $incomingService->getTotalIncomingForPart($partId, $startDate->format('Y-m-d'), $dates[count($dates) - 1]);
+            
+            // Adjust on-hand with incoming stock
+            $adjustedOnHand = $onHand + $incomingTotal;
+
+            $netRequired = max(0, $requiredQty - $adjustedOnHand - $onOrder);
 
             $dailyNetRequired = $netRequired / count($dates);
             $dailyRequired = $requiredQty / count($dates);
@@ -915,6 +931,7 @@ class MrpController extends Controller
                             'required_qty' => $dailyRequired,
                             'on_hand' => $onHand,
                             'on_order' => $onOrder,
+                            'incoming_stock' => $incomingTotal,
                             'net_required' => $dailyNetRequired,
                             'planned_order_rec' => $dailyNetRequired,
                         ]);
@@ -1119,5 +1136,84 @@ class MrpController extends Controller
             ->paginate(50);
 
         return view('planning.mrp.history', compact('histories'));
+    }
+
+    /**
+     * Show MRP and Incoming Integration Dashboard
+     */
+    public function integrationDashboard(Request $request)
+    {
+        $period = $request->query('month') ?: now()->format('Y-m');
+        $incomingService = new MrpIncomingIntegrationService();
+        
+        // Get all GCI parts that have MRP data
+        $mrpRuns = MrpRun::query()
+            ->where('period', 'LIKE', substr($period, 0, 7) . '%')
+            ->get();
+        
+        $mrpRunIds = $mrpRuns->pluck('id');
+        
+        // Get parts involved in MRP runs
+        $mrpPartIds = [];
+        if ($mrpRunIds->isNotEmpty()) {
+            $mrpPartIds = MrpPurchasePlan::whereIn('mrp_run_id', $mrpRunIds)
+                ->pluck('part_id')
+                ->merge(
+                    MrpProductionPlan::whereIn('mrp_run_id', $mrpRunIds)
+                        ->pluck('part_id')
+                )
+                ->unique()
+                ->values()
+                ->toArray();
+        }
+        
+        // Get incoming data for these parts
+        $startOfMonth = \Carbon\Carbon::createFromFormat('Y-m', $period)->startOfMonth();
+        $endOfMonth = \Carbon\Carbon::createFromFormat('Y-m', $period)->endOfMonth();
+        
+        $incomingData = $incomingService->getIncomingQuantities($mrpPartIds, 
+            $startOfMonth->format('Y-m-d'), 
+            $endOfMonth->format('Y-m-d')
+        );
+        
+        // Get parts details
+        $parts = \App\Models\GciPart::whereIn('id', $mrpPartIds)->get()->keyBy('id');
+        
+        // Calculate summary
+        $totalIncoming = 0;
+        $incomingByPart = [];
+        
+        foreach ($incomingData as $partId => $dailyIncoming) {
+            $partIncoming = array_sum($dailyIncoming);
+            $incomingByPart[$partId] = [
+                'part' => $parts[$partId] ?? null,
+                'total' => $partIncoming,
+                'daily' => $dailyIncoming
+            ];
+            $totalIncoming += $partIncoming;
+        }
+        
+        // Get MRP demand data for comparison
+        $mrpDemandByPart = [];
+        if ($mrpRunIds->isNotEmpty()) {
+            $mrpPurchasePlans = MrpPurchasePlan::whereIn('mrp_run_id', $mrpRunIds)
+                ->whereBetween('plan_date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
+                ->get();
+                
+            foreach ($mrpPurchasePlans as $plan) {
+                $partId = $plan->part_id;
+                if (!isset($mrpDemandByPart[$partId])) {
+                    $mrpDemandByPart[$partId] = 0;
+                }
+                $mrpDemandByPart[$partId] += $plan->required_qty ?? 0;
+            }
+        }
+        
+        return view('planning.mrp.integration-dashboard', compact(
+            'period',
+            'incomingByPart',
+            'mrpDemandByPart',
+            'totalIncoming'
+        ));
     }
 }

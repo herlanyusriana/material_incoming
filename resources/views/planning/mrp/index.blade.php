@@ -3,6 +3,20 @@
         Planning • MRP
     </x-slot>
 
+    <!-- MRP-Incoming Integration Banner -->
+    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="font-semibold text-indigo-800">MRP & Incoming Materials Integration</h3>
+                <p class="text-sm text-indigo-600 mt-1">Track how incoming materials align with MRP plans</p>
+            </div>
+            <a href="{{ route('planning.mrp.integration-dashboard') }}" 
+               class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                View Integration Dashboard
+            </a>
+        </div>
+    </div>
+
     <div class="py-6">
         <div class="max-w-[98%] mx-auto px-2 space-y-6">
             @php
