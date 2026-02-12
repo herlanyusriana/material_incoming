@@ -4,48 +4,88 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class DeliveryNote extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'sales_order_id',
-        'dn_no',
+        'delivery_no',
         'customer_id',
-        'delivery_date',
+        'truck_id',
         'status',
         'notes',
-        'delivery_plan_id',
-        'delivery_stop_id',
+        'delivery_date',
+        'delivered_at',
+        'assigned_at',
+        'created_by',
+        'total_value',
     ];
 
     protected $casts = [
         'delivery_date' => 'date',
+        'delivered_at' => 'datetime',
+        'assigned_at' => 'datetime',
     ];
+
+    public function getDeliveryNoteFileUrlAttribute(): ?string
+    {
+        if (!$this->delivery_note_file) {
+            return null;
+        }
+        return Storage::disk('public')->url($this->delivery_note_file);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (DeliveryNote $deliveryNote) {
+            if (empty($deliveryNote->delivery_no)) {
+                $deliveryNote->delivery_no = self::generateDeliveryNoteNo();
+            }
+        });
+    }
+
+    public static function generateDeliveryNoteNo(): string
+    {
+        $year = now()->year;
+        $lastDelivery = self::whereYear('created_at', $year)
+            ->orderByDesc('id')
+            ->first();
+
+        $lastSequence = 0;
+        if ($lastDelivery) {
+            $parts = explode('-', $lastDelivery->delivery_no);
+            $lastSequence = (int)($parts[2] ?? 0);
+        }
+
+        $next = str_pad((string)($lastSequence + 1), 4, '0', STR_PAD_LEFT);
+
+        return 'DN-' . $year . '-' . $next;
+    }
 
     public function customer()
     {
         return $this->belongsTo(Customer::class);
     }
 
+    public function truck()
+    {
+        return $this->belongsTo(Trucking::class, 'truck_id');
+    }
+
     public function items()
     {
-        return $this->hasMany(DnItem::class, 'dn_id');
+        return $this->hasMany(DeliveryItem::class);
     }
 
-    public function plan()
+    public function salesOrders()
     {
-        return $this->belongsTo(DeliveryPlan::class, 'delivery_plan_id');
+        return $this->belongsToMany(SalesOrder::class, 'delivery_items', 'delivery_note_id', 'sales_order_id');
     }
 
-    public function stop()
+    public function creator()
     {
-        return $this->belongsTo(DeliveryStop::class, 'delivery_stop_id');
-    }
-
-    public function salesOrder()
-    {
-        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

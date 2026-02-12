@@ -44,9 +44,14 @@ class SalesOrder extends Model
         return $this->belongsTo(DeliveryStop::class, 'delivery_stop_id');
     }
 
+    public function deliveryItems()
+    {
+        return $this->hasMany(DeliveryItem::class, 'sales_order_id');
+    }
+
     public function deliveryNotes()
     {
-        return $this->hasMany(DeliveryNote::class, 'sales_order_id');
+        return $this->belongsToMany(DeliveryNote::class, 'delivery_items', 'sales_order_id', 'delivery_note_id');
     }
 }
 

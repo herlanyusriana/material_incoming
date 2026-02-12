@@ -1176,6 +1176,10 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'))])></span>
                                 <span class="flex-1">Completed Receives</span>
                             </a>
+                            <a href="{{ route('delivery.outgoing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('delivery.outgoing.*'), $subInactive => !request()->routeIs('delivery.outgoing.*')])>
+                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('delivery.outgoing.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('delivery.outgoing.*')])></span>
+                                <span class="flex-1">Delivery Outgoing</span>
+                            </a>
                         </div>
                     </div>
                 </details>

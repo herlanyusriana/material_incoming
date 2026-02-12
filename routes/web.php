@@ -365,6 +365,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/mrp/integration', [PlanningMrpController::class, 'integrationDashboard'])->name('mrp.integration-dashboard');
     });
 
+    Route::prefix('delivery')->name('delivery.')->group(function () {
+        Route::prefix('outgoing')->name('outgoing.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'store'])->name('store');
+            Route::get('/{deliveryNote}', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'show'])->name('show');
+            Route::get('/{deliveryNote}/edit', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'edit'])->name('edit');
+            Route::put('/{deliveryNote}', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'update'])->name('update');
+            Route::post('/{deliveryNote}/assign-truck', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'assignTruck'])->name('assign-truck');
+            Route::post('/{deliveryNote}/update-status', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'updateStatus'])->name('update-status');
+            Route::get('/ajax/get-ready-orders', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'getReadyOrders'])->name('get-ready-orders');
+        });
+    });
+
     Route::prefix('warehouse')->name('warehouse.')->group(function () {
         Route::get('/labels', [App\Http\Controllers\BarcodeLabelController::class, 'index'])->name('labels.index');
         Route::get('/labels/part/{part}', [App\Http\Controllers\BarcodeLabelController::class, 'printPartLabel'])->name('labels.part');
