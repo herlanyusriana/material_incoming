@@ -106,7 +106,7 @@
                     @forelse($deliveryNotes as $dn)
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-slate-900">{{ $dn->delivery_no }}</div>
+                                <div class="text-sm font-medium text-slate-900">{{ $dn->dn_no }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-slate-900">{{ $dn->customer->name ?? 'N/A' }}</div>

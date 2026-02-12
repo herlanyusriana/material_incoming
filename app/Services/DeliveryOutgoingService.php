@@ -220,7 +220,7 @@ class DeliveryOutgoingService
 
         $lastSequence = 0;
         if ($lastDelivery) {
-            $parts = explode('-', $lastDelivery->delivery_no);
+            $parts = explode('-', $lastDelivery->dn_no);
             $lastSequence = (int)($parts[2] ?? 0);
         }
 

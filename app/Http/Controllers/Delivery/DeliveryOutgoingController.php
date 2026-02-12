@@ -101,7 +101,7 @@ class DeliveryOutgoingController extends Controller
             );
 
             return redirect()->route('delivery.outgoing.show', $deliveryNote->id)
-                ->with('success', 'Delivery note created successfully: ' . $deliveryNote->delivery_no);
+                ->with('success', 'Delivery note created successfully: ' . $deliveryNote->dn_no);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

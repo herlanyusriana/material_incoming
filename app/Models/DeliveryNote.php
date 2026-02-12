@@ -11,7 +11,7 @@ class DeliveryNote extends Model
     use HasFactory;
 
     protected $fillable = [
-        'delivery_no',
+        'dn_no',
         'customer_id',
         'truck_id',
         'driver_id',
@@ -22,6 +22,9 @@ class DeliveryNote extends Model
         'assigned_at',
         'created_by',
         'total_value',
+        'delivery_plan_id',
+        'delivery_stop_id',
+        'sales_order_id',
     ];
 
     protected $casts = [
@@ -41,8 +44,8 @@ class DeliveryNote extends Model
     protected static function booted(): void
     {
         static::creating(function (DeliveryNote $deliveryNote) {
-            if (empty($deliveryNote->delivery_no)) {
-                $deliveryNote->delivery_no = self::generateDeliveryNoteNo();
+            if (empty($deliveryNote->dn_no)) {
+                $deliveryNote->dn_no = self::generateDeliveryNoteNo();
             }
         });
     }
@@ -56,7 +59,7 @@ class DeliveryNote extends Model
 
         $lastSequence = 0;
         if ($lastDelivery) {
-            $parts = explode('-', $lastDelivery->delivery_no);
+            $parts = explode('-', $lastDelivery->dn_no);
             $lastSequence = (int)($parts[2] ?? 0);
         }
 

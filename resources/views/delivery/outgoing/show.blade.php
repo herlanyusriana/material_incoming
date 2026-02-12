@@ -5,7 +5,7 @@
     <div class="mb-8">
         <div class="flex justify-between items-start">
             <div>
-                <h1 class="text-3xl font-bold text-slate-900">Delivery Note: {{ $deliveryNote->delivery_no }}</h1>
+                <h1 class="text-3xl font-bold text-slate-900">Delivery Note: {{ $deliveryNote->dn_no }}</h1>
                 <p class="text-slate-600 mt-2">Details for delivery to {{ $deliveryNote->customer->name ?? 'N/A' }}</p>
             </div>
             
