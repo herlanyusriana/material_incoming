@@ -136,7 +136,7 @@
                         <button type="submit"
                             class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View</button>
                     </form>
-                    <a href="{{ route('outgoing.index', ['date' => $selectedDate->toDateString()]) }}"
+                    <a href="{{ route('outgoing.delivery-plan', ['date' => $selectedDate->toDateString()]) }}"
                         class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -311,11 +311,7 @@
                         </div>
                     </div>
                 @endforeach
-            </div>
-        @endif
-    </div>
-
-                {{-- Footer --}}
+                        {{-- Footer --}}
                 <div class="border-t border-slate-200 p-4 bg-slate-50">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div class="text-sm text-slate-500">
