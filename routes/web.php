@@ -210,6 +210,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/customer-po/{outgoingPo}/cancel', [OutgoingPoController::class, 'cancel'])->name('customer-po.cancel');
 
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
+        Route::post('/delivery-plan/update-trips', [OutgoingController::class, 'updateDeliveryPlanTrips'])->name('delivery-plan.update-trips');
         Route::post('/delivery-plan/update-trip', [OutgoingController::class, 'updateDeliveryPlanTrip'])->name('delivery-plan.update-trip');
         Route::post('/delivery-plan/generate-so', [OutgoingController::class, 'generateSoFromDeliveryPlan'])->name('delivery-plan.generate-so');
 

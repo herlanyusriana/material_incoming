@@ -1257,6 +1257,45 @@ class OutgoingController extends Controller
         ]);
     }
 
+    /**
+     * AJAX: Bulk update trip values.
+     */
+    public function updateDeliveryPlanTrips(Request $request)
+    {
+        $request->validate([
+            'delivery_date' => 'required|date',
+            'data' => 'required|array',
+            'data.*.gci_part_id' => 'required|integer',
+            'data.*.trip_no' => 'required|integer|min:1|max:14',
+            'data.*.qty' => 'required|integer|min:0',
+            'data.*.source' => 'nullable|string',
+            'data.*.outgoing_po_item_id' => 'nullable|integer',
+        ]);
+
+        $deliveryDate = $request->delivery_date;
+        $data = $request->input('data', []);
+
+        DB::transaction(function () use ($deliveryDate, $data) {
+            foreach ($data as $item) {
+                $source = $item['source'] ?? 'daily_plan';
+
+                OutgoingDeliveryPlanningLine::updateOrCreate(
+                    [
+                        'delivery_date' => $deliveryDate,
+                        'gci_part_id' => $item['gci_part_id'],
+                        'source' => $source,
+                    ],
+                    array_filter([
+                        'trip_' . $item['trip_no'] => $item['qty'],
+                        'outgoing_po_item_id' => $item['outgoing_po_item_id'] ?? null,
+                    ], fn($v) => $v !== null)
+                );
+            }
+        });
+
+        return response()->json(['success' => true]);
+    }
+
     // ──────────────────────────────────────────────
     // Stock at Customers
     // ──────────────────────────────────────────────
@@ -1498,16 +1537,9 @@ class OutgoingController extends Controller
             return back()->with('error', 'Ada customer yang tidak valid.');
         }
 
-        DB::transaction(function () use ($selectedLines, $planDate) {
-            // We need to group by customer AND trip
-            // Each line has 'trips' (1-14)
-            // But how is 'trips' passed in the request? Let's check the view later if needed.
-            // For now, let's assume 'selectedLines' contains the necessary info.
-            // Wait, I need to see how $selectedLines is built from $request->lines.
+        $generatedSoNos = [];
 
-            // Actually, the current view might not be sending TRIP-LEVEL selection.
-            // If the user selects a ROW, we should probably generate SOs for ALL trips in that row that have qty.
-
+        DB::transaction(function () use ($selectedLines, $planDate, &$generatedSoNos) {
             foreach ($selectedLines as $line) {
                 $customerId = (int) $line['customer_id'];
                 $partId = (int) $line['gci_part_id'];
@@ -1554,6 +1586,8 @@ class OutgoingController extends Controller
                         ]);
                     }
 
+                    $generatedSoNos[] = $so->so_no;
+
                     // Add item to SO
                     SalesOrderItem::updateOrCreate(
                         [
@@ -1583,6 +1617,10 @@ class OutgoingController extends Controller
             }
         });
 
-        return back()->with('success', 'Sales Order(s) and Picking list generated successfully.');
+        $generatedSoNos = array_unique($generatedSoNos);
+        $count = count($generatedSoNos);
+        $soList = implode(', ', $generatedSoNos);
+
+        return back()->with('success', "{$count} Sales Order(s) generated/updated: {$soList}");
     }
 }

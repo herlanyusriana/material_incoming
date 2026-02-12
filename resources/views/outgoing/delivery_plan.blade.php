@@ -291,14 +291,11 @@
 										rowspan="{{ $rowSpan }}" @endif>
 											{{ $no }}
 											{{-- Hidden data spans (always in DOM) --}}
-											<span class="hidden"
-												id="prod-rate-{{ $rowKey }}">{{ $row->production_rate }}</span>
-											<span class="hidden"
-												id="del-req-{{ $rowKey }}">{{ $row->delivery_requirement }}</span>
+											<span class="hidden" id="prod-rate-{{ $rowKey }}">{{ $row->production_rate }}</span>
+											<span class="hidden" id="del-req-{{ $rowKey }}">{{ $row->delivery_requirement }}</span>
 											<span class="hidden"
 												id="prod-rate-h1-{{ $rowKey }}">{{ $row->production_rate_h1 }}</span>
-											<span class="hidden"
-												id="plan-h1-{{ $rowKey }}">{{ $row->daily_plan_h1 }}</span>
+											<span class="hidden" id="plan-h1-{{ $rowKey }}">{{ $row->daily_plan_h1 }}</span>
 										</td>
 										<td class="px-2 py-2 text-slate-600 text-[10px] font-bold s-col" style="left:80px"
 											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
@@ -333,13 +330,12 @@
 										<td class="px-2 py-2 text-slate-600 whitespace-nowrap s-col" style="left:420px" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->model }}
 										</td>
-										<td class="px-2 py-2 text-right text-slate-700 font-semibold"
-											id="stock-val-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
-											@endif>
+										<td class="px-2 py-2 text-right text-slate-700 font-semibold" id="stock-val-{{ $rowKey }}"
+											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->stock_at_customer > 0 ? number_format($row->stock_at_customer) : '-' }}
 										</td>
-										<td class="px-2 py-2 text-right text-slate-900 font-bold"
-											id="plan-val-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+										<td class="px-2 py-2 text-right text-slate-900 font-bold" id="plan-val-{{ $rowKey }}"
+											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->daily_plan_qty > 0 ? number_format($row->daily_plan_qty) : '-' }}
 										</td>
 
@@ -383,8 +379,7 @@
 											id="finish-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->finish_time ?? '-' }}
 										</td>
-										<td class="px-2 py-2 text-right font-bold calc-col" id="endstock-{{ $rowKey }}"
-											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+										<td class="px-2 py-2 text-right font-bold calc-col" id="endstock-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											@if($row->end_stock < 0)
 												<span class="text-red-600">{{ number_format($row->end_stock) }}</span>
 											@else
@@ -402,8 +397,7 @@
 											{{ $row->jig_qty_h1 > 0 ? $row->jig_qty_h1 : '-' }}
 										</td>
 										<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col"
-											id="estfinish-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
-											@endif>
+											id="estfinish-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->est_finish_time ?? '-' }}
 										</td>
 									</tr>
@@ -455,8 +449,8 @@
 																placeholder="-" data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}"
 																data-source="{{ $rowSource }}" data-rowkey="{{ $rowKey }}"
 																data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}"
-																oninput="recalcRow(this.dataset.rowkey)" onchange="updateTrip(this)"
-																class="trip-expanded-input">
+																oninput="recalcRow(this.dataset.rowkey)"
+																class="trip-expanded-input trip-input">
 														</div>
 													@endfor
 												</div>
@@ -477,7 +471,8 @@
 					<input type="hidden" name="lines[{{ $idx }}][part_name]" value="{{ $row->fg_part_name }}">
 					<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}">
 					<input type="hidden" name="lines[{{ $idx }}][source]" value="{{ $row->source ?? 'daily_plan' }}">
-					<input type="hidden" name="lines[{{ $idx }}][outgoing_po_item_id]" value="{{ $row->outgoing_po_item_id ?? '' }}">
+					<input type="hidden" name="lines[{{ $idx }}][outgoing_po_item_id]"
+						value="{{ $row->outgoing_po_item_id ?? '' }}">
 				@endforeach
 
 				{{-- Footer --}}
@@ -502,9 +497,18 @@
 									<span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> H+1
 								</span>
 							</div>
-							<button type="submit"
+							<button type="button"
+								class="rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700"
+								id="savePlanningBtn" onclick="savePlanning()">
+								<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+								</svg>
+								Save Planning
+							</button>
+							<button type="button"
 								class="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-								id="generateSoBtn" disabled>
+								id="generateSoBtn" disabled onclick="handleGenerateSo(event)">
 								<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 								</svg>
@@ -519,57 +523,91 @@
 
 		<script>
 			const CSRF_TOKEN = '{{ csrf_token() }}';
-			const UPDATE_URL = '{{ route("outgoing.delivery-plan.update-trip") }}';
+			const UPDATE_TRIPS_URL = '{{ route("outgoing.delivery-plan.update-trips") }}';
 			const DELIVERY_DATE = '{{ $selectedDate->toDateString() }}';
 
-			async function updateTrip(input) {
-				const partId = input.dataset.part;
-				const tripNo = input.dataset.trip;
-				const qty = parseInt(input.value) || 0;
-				const source = input.dataset.source || 'daily_plan';
-				const rowKey = input.dataset.rowkey || partId;
-				const poItemId = input.dataset.poItemId || null;
+			async function savePlanning() {
+				const btn = document.getElementById('savePlanningBtn');
+				const originalText = btn.innerHTML;
+				btn.disabled = true;
+				btn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
 
-				input.style.background = '#fef9c3'; // yellow flash
+				// Collect all inputs with values
+				const inputs = document.querySelectorAll('.trip-input');
+				const data = [];
+
+				inputs.forEach(input => {
+					const val = parseInt(input.value);
+					if (!isNaN(val)) {
+						data.push({
+							gci_part_id: input.dataset.part,
+							trip_no: input.dataset.trip,
+							qty: val,
+							source: input.dataset.source || 'daily_plan',
+							outgoing_po_item_id: input.dataset.poItemId || null
+						});
+					}
+				});
+
+				if (data.length === 0) {
+					btn.disabled = false;
+					btn.innerHTML = originalText;
+					return true; // Nothing to save is considered success or "current"
+				}
 
 				try {
-					const body = {
-						delivery_date: DELIVERY_DATE,
-						gci_part_id: partId,
-						trip_no: tripNo,
-						qty: qty,
-						source: source
-					};
-					if (poItemId) body.outgoing_po_item_id = poItemId;
-
-					const response = await fetch(UPDATE_URL, {
+					const response = await fetch(UPDATE_TRIPS_URL, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
 							'X-CSRF-TOKEN': CSRF_TOKEN,
 							'Accept': 'application/json'
 						},
-						body: JSON.stringify(body)
+						body: JSON.stringify({
+							delivery_date: DELIVERY_DATE,
+							data: data
+						})
 					});
 
-					const data = await response.json();
-
-					if (data.success) {
-						input.style.background = '#dcfce7'; // green success
-
-						// Recalculate total from all trip inputs for this part+source
-						recalcRow(rowKey);
-
-
-						setTimeout(() => { input.style.background = 'transparent'; }, 800);
+					if (response.ok) {
+						// Success - subtle indication (e.g. change button text briefly)
+						btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Saved';
+						setTimeout(() => {
+							btn.disabled = false;
+							btn.innerHTML = originalText;
+						}, 1000);
+						return true;
 					} else {
-						input.style.background = '#fee2e2'; // red error
-						setTimeout(() => { input.style.background = 'transparent'; }, 1500);
+						console.error('Save failed');
+						btn.disabled = false;
+						btn.innerHTML = originalText;
+						alert('Failed to save. Please try again.');
+						return false;
 					}
 				} catch (e) {
-					console.error('Failed:', e);
-					input.style.background = '#fee2e2';
-					setTimeout(() => { input.style.background = 'transparent'; }, 1500);
+					console.error('Save error:', e);
+					btn.disabled = false;
+					btn.innerHTML = originalText;
+					alert('Network error. Please try again.');
+					return false;
+				}
+			}
+
+			async function handleGenerateSo(e) {
+				e.preventDefault();
+				const checkboxes = document.querySelectorAll('input[name="selected[]"]:checked');
+				if (checkboxes.length === 0) {
+					alert('Pilih minimal 1 part untuk generate SO');
+					return;
+				}
+
+				// Trigger save first
+				const saved = await savePlanning();
+				if (saved) {
+					const btn = document.getElementById('generateSoBtn');
+					btn.disabled = true;
+					btn.innerText = 'Creating SO...';
+					document.getElementById('soForm').submit();
 				}
 			}
 
@@ -655,16 +693,6 @@
 						updateSoButtonState();
 					});
 				}
-
-				// Confirm before submission
-				document.getElementById('soForm').addEventListener('submit', function (e) {
-					const checkboxes = document.querySelectorAll('input[name="selected[]"]:checked');
-					if (checkboxes.length === 0) {
-						e.preventDefault();
-						alert('Pilih minimal 1 part untuk generate SO');
-						return false;
-					}
-				});
 			});
 		</script>
 @endsection
