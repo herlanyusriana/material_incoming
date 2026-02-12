@@ -225,10 +225,10 @@
 		@else
 			{{-- Main Table Card --}}
 			<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-				<div class="dp-scroll">
-					<form id="soForm" method="POST" action="{{ route('outgoing.delivery-plan.generate-so') }}"
-						onsubmit="return false;">
-						@csrf
+				<form id="soForm" method="POST" action="{{ route('outgoing.delivery-plan.generate-so') }}"
+					onsubmit="return false;">
+					@csrf
+					<div class="dp-scroll">
 						<table class="dp-table w-full text-xs">
 							<thead>
 								<tr>
@@ -462,66 +462,70 @@
 								</tbody>
 							@endforeach
 						</table>
-				</div>
+					</div>
 
-				{{-- Hidden fields for form submission --}}
-				<input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
-				@foreach($rows as $idx => $row)
-					<input type="hidden" name="lines[{{ $idx }}][gci_part_id]" value="{{ $row->gci_part_id }}">
-					<input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $row->gci_part->customer->id ?? 0 }}">
-					<input type="hidden" name="lines[{{ $idx }}][part_no]" value="{{ $row->fg_part_no }}">
-					<input type="hidden" name="lines[{{ $idx }}][part_name]" value="{{ $row->fg_part_name }}">
-					<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}">
-					<input type="hidden" name="lines[{{ $idx }}][source]" value="{{ $row->source ?? 'daily_plan' }}">
-					<input type="hidden" name="lines[{{ $idx }}][outgoing_po_item_id]"
-						value="{{ $row->outgoing_po_item_id ?? '' }}">
-				@endforeach
+					{{-- Hidden fields for form submission --}}
+					<input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
+					@foreach($rows as $idx => $row)
+						<input type="hidden" name="lines[{{ $idx }}][gci_part_id]" value="{{ $row->gci_part_id }}">
+						<input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $row->gci_part->customer->id ?? 0 }}">
+						<input type="hidden" name="lines[{{ $idx }}][part_no]" value="{{ $row->fg_part_no }}">
+						<input type="hidden" name="lines[{{ $idx }}][part_name]" value="{{ $row->fg_part_name }}">
+						<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}">
+						<input type="hidden" name="lines[{{ $idx }}][source]" value="{{ $row->source ?? 'daily_plan' }}">
+						<input type="hidden" name="lines[{{ $idx }}][outgoing_po_item_id]"
+							value="{{ $row->outgoing_po_item_id ?? '' }}">
+					@endforeach
 
-				{{-- Footer --}}
-				<div class="border-t border-slate-200 p-4 bg-slate-50">
-					<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-						<div class="text-sm text-slate-500">
-							<span class="font-semibold">Tip:</span> Klik tombol panah di setiap baris untuk input Trip (1-14).
-							Kolom kuning = data JIG. Kolom ungu = kalkulasi otomatis.
-						</div>
-						<div class="flex items-center gap-2 flex-wrap">
-							<div class="flex items-center gap-3">
-								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-									<span class="w-3 h-3 rounded bg-green-100 border border-green-300"></span> Input Trip
-								</span>
-								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-									<span class="w-3 h-3 rounded bg-yellow-100 border border-yellow-300"></span> JIG Data
-								</span>
-								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-									<span class="w-3 h-3 rounded bg-purple-100 border border-purple-300"></span> Calculated
-								</span>
-								<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
-									<span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> H+1
-								</span>
+					{{-- Footer --}}
+					<div class="border-t border-slate-200 p-4 bg-slate-50">
+						<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+							<div class="text-sm text-slate-500">
+								<span class="font-semibold">Tip:</span> Klik tombol panah di setiap baris untuk input Trip
+								(1-14).
+								Kolom kuning = data JIG. Kolom ungu = kalkulasi otomatis.
 							</div>
-							<button type="button"
-								class="rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700"
-								id="savePlanningBtn" onclick="savePlanning()">
-								<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-										d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-								</svg>
-								Save Planning
-							</button>
-							<button type="button"
-								class="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-								id="generateSoBtn" disabled onclick="handleGenerateSo(event)">
-								<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-								</svg>
-								Generate SO
-							</button>
+							<div class="flex items-center gap-2 flex-wrap">
+								<div class="flex items-center gap-3">
+									<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+										<span class="w-3 h-3 rounded bg-green-100 border border-green-300"></span> Input Trip
+									</span>
+									<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+										<span class="w-3 h-3 rounded bg-yellow-100 border border-yellow-300"></span> JIG Data
+									</span>
+									<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+										<span class="w-3 h-3 rounded bg-purple-100 border border-purple-300"></span> Calculated
+									</span>
+									<span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
+										<span class="w-3 h-3 rounded bg-blue-100 border border-blue-300"></span> H+1
+									</span>
+								</div>
+								<button type="button"
+									class="rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700"
+									id="savePlanningBtn" onclick="savePlanning()">
+									<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
+										viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+											d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+									</svg>
+									Save Planning
+								</button>
+								<button type="button"
+									class="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+									id="generateSoBtn" disabled onclick="handleGenerateSo(event)">
+									<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
+										viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+											d="M12 4v16m8-8H4" />
+									</svg>
+									Generate SO
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
 				</form>
+			</div>
 		@endif
-		</div>
 
 		<script>
 			const CSRF_TOKEN = '{{ csrf_token() }}';
