@@ -7,10 +7,12 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('dn_items', function (Blueprint $table) {
-            $table->foreignId('outgoing_po_item_id')->nullable()->after('customer_po_id')
-                ->constrained('outgoing_po_items')->nullOnDelete();
-        });
+        if (!Schema::hasColumn('dn_items', 'outgoing_po_item_id')) {
+            Schema::table('dn_items', function (Blueprint $table) {
+                $table->foreignId('outgoing_po_item_id')->nullable()->after('customer_po_id')
+                    ->constrained('outgoing_po_items')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
