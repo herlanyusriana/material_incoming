@@ -14,6 +14,7 @@ class DeliveryNote extends Model
         'delivery_no',
         'customer_id',
         'truck_id',
+        'driver_id',
         'status',
         'notes',
         'delivery_date',
@@ -72,6 +73,11 @@ class DeliveryNote extends Model
     public function truck()
     {
         return $this->belongsTo(Trucking::class, 'truck_id');
+    }
+
+    public function driver()
+    {
+        return $this->belongsTo(User::class, 'driver_id'); // Assuming drivers are users
     }
 
     public function items()

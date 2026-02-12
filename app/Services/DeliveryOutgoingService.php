@@ -48,16 +48,16 @@ class DeliveryOutgoingService
      * @param array $salesOrderIds Array of sales order IDs
      * @param int $customerId Customer ID
      * @param int|null $truckId Optional truck ID
+     * @param int|null $driverId Optional driver ID
      * @param array $options Additional options
      * @return DeliveryNote
      */
-    public function createDeliveryNote(array $salesOrderIds, int $customerId, ?int $truckId = null, array $options = []): DeliveryNote
+    public function createDeliveryNote(array $salesOrderIds, int $customerId, ?int $truckId = null, ?int $driverId = null, array $options = []): DeliveryNote
     {
         $salesOrders = SalesOrder::with(['items.part', 'customer'])
             ->whereIn('id', $salesOrderIds)
             ->where('customer_id', $customerId)
-            ->where('order_type', 'FG')
-            ->where('status', 'completed')
+            ->where('status', 'completed') // Only completed orders
             ->get();
 
         if ($salesOrders->isEmpty()) {
@@ -81,6 +81,7 @@ class DeliveryOutgoingService
                 'delivery_no' => $deliveryNo,
                 'customer_id' => $customerId,
                 'truck_id' => $truckId,
+                'driver_id' => $driverId, // Add driver ID
                 'status' => 'prepared', // Initially prepared
                 'notes' => $options['notes'] ?? null,
                 'delivery_date' => $options['delivery_date'] ?? null,
@@ -179,6 +180,27 @@ class DeliveryOutgoingService
             'truck_id' => $truckId,
             'assigned_at' => now(),
             'status' => $options['status'] ?? 'assigned', // Could be 'assigned', 'in_transit', etc.
+        ]);
+
+        return $deliveryNote->fresh();
+    }
+
+    /**
+     * Assign delivery note to a driver
+     *
+     * @param int $deliveryNoteId
+     * @param int $driverId
+     * @param array $options
+     * @return DeliveryNote
+     */
+    public function assignToDriver(int $deliveryNoteId, int $driverId, array $options = []): DeliveryNote
+    {
+        $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
+        $driver = User::findOrFail($driverId);
+
+        $deliveryNote->update([
+            'driver_id' => $driverId,
+            'status' => $options['status'] ?? $deliveryNote->status,
         ]);
 
         return $deliveryNote->fresh();

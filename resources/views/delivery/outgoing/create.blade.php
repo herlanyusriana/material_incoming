@@ -40,6 +40,19 @@
             </div>
             
             <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Driver (Optional)</label>
+                <select name="driver_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">Select a driver (optional)</option>
+                    @foreach(\App\Models\User::where('role', 'driver')->get() as $driver)
+                        <option value="{{ $driver->id }}">{{ $driver->name }} ({{ $driver->username }})</option>
+                    @endforeach
+                </select>
+                @error('driver_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+            
+            <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Delivery Date (Optional)</label>
                 <input type="date" name="delivery_date" value="{{ old('delivery_date') }}" 
                        class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
@@ -48,7 +61,7 @@
                 @enderror
             </div>
             
-            <div>
+            <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
                 <textarea name="notes" rows="3" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
                 @error('notes')

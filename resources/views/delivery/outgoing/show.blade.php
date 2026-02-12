@@ -63,6 +63,12 @@
                 </div>
                 
                 <div>
+                    <p class="text-sm text-slate-500">Driver</p>
+                    <p class="font-medium text-slate-900">{{ $deliveryNote->driver->name ?? 'Unassigned' }}</p>
+                    <p class="text-sm text-slate-500">{{ $deliveryNote->driver->phone ?? '' }}</p>
+                </div>
+                
+                <div>
                     <p class="text-sm text-slate-500">Delivery Date</p>
                     <p class="font-medium text-slate-900">{{ $deliveryNote->delivery_date ? $deliveryNote->delivery_date->format('d M Y') : 'Not set' }}</p>
                 </div>
@@ -123,6 +129,28 @@
                     
                     <button type="submit" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
                         Assign Truck
+                    </button>
+                </form>
+                
+                <!-- Driver Assignment Form -->
+                <form method="POST" action="{{ route('delivery.outgoing.assign-driver', $deliveryNote) }}" class="space-y-3">
+                    @csrf
+                    @method('POST')
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Assign Driver</label>
+                        <select name="driver_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Select a driver</option>
+                            @foreach(\App\Models\User::where('role', 'driver')->get() as $driver)
+                                <option value="{{ $driver->id }}" {{ $deliveryNote->driver_id == $driver->id ? 'selected' : '' }}>
+                                    {{ $driver->name }} ({{ $driver->username }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Assign Driver
                     </button>
                 </form>
             </div>

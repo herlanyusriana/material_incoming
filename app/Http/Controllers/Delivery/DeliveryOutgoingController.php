@@ -82,6 +82,7 @@ class DeliveryOutgoingController extends Controller
             'sales_order_ids.*' => 'integer|exists:sales_orders,id',
             'customer_id' => 'required|integer|exists:customers,id',
             'truck_id' => 'nullable|integer|exists:trucking_companies,id',
+            'driver_id' => 'nullable|integer|exists:users,id', // Assuming drivers are stored as users
             'delivery_date' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -91,6 +92,7 @@ class DeliveryOutgoingController extends Controller
                 $request->sales_order_ids,
                 $request->customer_id,
                 $request->truck_id,
+                $request->driver_id,
                 [
                     'delivery_date' => $request->delivery_date,
                     'notes' => $request->notes,
@@ -135,6 +137,7 @@ class DeliveryOutgoingController extends Controller
     {
         $request->validate([
             'truck_id' => 'nullable|integer|exists:trucking_companies,id',
+            'driver_id' => 'nullable|integer|exists:users,id',
             'status' => 'required|string|in:prepared,assigned,in_transit,delivered,cancelled',
             'delivery_date' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
@@ -143,6 +146,7 @@ class DeliveryOutgoingController extends Controller
         try {
             $deliveryNote->update([
                 'truck_id' => $request->truck_id,
+                'driver_id' => $request->driver_id,
                 'status' => $request->status,
                 'delivery_date' => $request->delivery_date,
                 'notes' => $request->notes,
@@ -168,6 +172,24 @@ class DeliveryOutgoingController extends Controller
             $this->deliveryService->assignToTruck($deliveryNote->id, $request->truck_id);
 
             return redirect()->back()->with('success', 'Delivery note assigned to truck successfully');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Assign delivery note to a driver
+     */
+    public function assignDriver(Request $request, DeliveryNote $deliveryNote)
+    {
+        $request->validate([
+            'driver_id' => 'required|integer|exists:users,id',
+        ]);
+
+        try {
+            $this->deliveryService->assignToDriver($deliveryNote->id, $request->driver_id);
+
+            return redirect()->back()->with('success', 'Delivery note assigned to driver successfully');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

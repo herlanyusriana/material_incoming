@@ -374,6 +374,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{deliveryNote}/edit', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'edit'])->name('edit');
             Route::put('/{deliveryNote}', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'update'])->name('update');
             Route::post('/{deliveryNote}/assign-truck', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'assignTruck'])->name('assign-truck');
+            Route::post('/{deliveryNote}/assign-driver', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'assignDriver'])->name('assign-driver');
             Route::post('/{deliveryNote}/update-status', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'updateStatus'])->name('update-status');
             Route::get('/ajax/get-ready-orders', [App\Http\Controllers\Delivery\DeliveryOutgoingController::class, 'getReadyOrders'])->name('get-ready-orders');
         });
