@@ -24,65 +24,83 @@ class PickingFgController extends Controller
             : now()->startOfDay();
         $dateStr = $selectedDate->toDateString();
 
-        // Get picking records for this date (all sources, include SO)
+        // Get picking records for this date
         $picks = OutgoingPickingFg::with(['part', 'picker', 'outgoingPoItem.outgoingPo', 'salesOrder'])
             ->where('delivery_date', $dateStr)
             ->get();
 
-        // Build display rows from PICKS directly now, as we generate picks from Delivery Plan
-        $rows = $picks->map(function ($p) {
-            $part = $p->part;
-            $source = $p->source ?? 'daily_plan';
-            $poNo = null;
-            if ($source === 'po') {
-                $poNo = $p->outgoingPoItem?->outgoingPo?->po_no;
-            }
-
-            return (object) [
-                'id' => $p->id,
-                'gci_part_id' => $p->gci_part_id,
-                'part_no' => $part->part_no ?? '-',
-                'part_name' => $part->part_name ?? '-',
-                'model' => $part->model ?? '-',
-                'qty_plan' => (int) $p->qty_plan,
-                'qty_picked' => (int) $p->qty_picked,
-                'qty_remaining' => $p->qty_remaining,
-                'status' => $p->status,
-                'pick_location' => $p->pick_location,
-                'picked_by_name' => $p->picker ? $p->picker->name : null,
-                'picked_at' => $p->picked_at,
-                'notes' => $p->notes,
-                'stock_on_hand' => $p->part?->inventory?->on_hand ?? 0,
-                'pick_id' => $p->id,
-                'progress_percent' => $p->progress_percent,
-                'source' => $source,
-                'outgoing_po_item_id' => $p->outgoing_po_item_id,
-                'po_no' => $poNo,
-                'sales_order_id' => $p->sales_order_id,
-                'so_no' => $p->salesOrder?->so_no,
-                'trip_no' => $p->salesOrder?->trip_no,
-            ];
+        // Group by Sales Order
+        $grouped = $picks->groupBy(function ($p) {
+            return $p->sales_order_id ?? 0;
         });
 
-        // Sort: SO Number, سپس status, kemudian part name
-        $statusOrder = ['pending' => 1, 'picking' => 2, 'completed' => 3];
-        $rows = $rows->sortBy(fn($r) => [
-            $r->so_no ?? 'ZZZ',
-            $statusOrder[$r->status] ?? 4,
-            $r->part_name
-        ])->values();
+        $soList = $grouped->map(function ($items, $soId) {
+            $first = $items->first();
+            $soNo = $first->salesOrder?->so_no;
+            $tripNo = $first->salesOrder?->trip_no;
+            $source = $first->source;
+            $poNo = $source === 'po' ? ($first->outgoingPoItem?->outgoingPo?->po_no ?? 'N/A') : null;
+
+            return (object) [
+                'so_id' => $soId ?: null,
+                'so_no' => $soNo,
+                'trip_no' => $tripNo,
+                'source' => $source,
+                'po_no' => $poNo,
+                'items_count' => $items->count(),
+                'qty_plan_total' => $items->sum('qty_plan'),
+                'qty_picked_total' => $items->sum('qty_picked'),
+                'progress_percent' => $items->sum('qty_plan') > 0
+                    ? round(($items->sum('qty_picked') / $items->sum('qty_plan')) * 100)
+                    : 0,
+                'status' => $this->identifyGroupStatus($items),
+                'rows' => $items->map(function ($p) {
+                    return (object) [
+                        'id' => $p->id,
+                        'gci_part_id' => $p->gci_part_id,
+                        'part_no' => $p->part->part_no ?? '-',
+                        'part_name' => $p->part->part_name ?? '-',
+                        'model' => $p->part->model ?? '-',
+                        'qty_plan' => (int) $p->qty_plan,
+                        'qty_picked' => (int) $p->qty_picked,
+                        'qty_remaining' => $p->qty_remaining,
+                        'status' => $p->status,
+                        'pick_location' => $p->pick_location,
+                        'picked_by_name' => $p->picker ? $p->picker->name : null,
+                        'stock_on_hand' => $p->part?->inventory?->on_hand ?? 0,
+                        'progress_percent' => $p->progress_percent,
+                        'source' => $p->source,
+                        'sales_order_id' => $p->sales_order_id,
+                    ];
+                })
+            ];
+        })->sortByDesc('so_no')->values();
 
         // Stats
         $stats = (object) [
-            'total' => $rows->count(),
-            'pending' => $rows->where('status', 'pending')->count(),
-            'picking' => $rows->where('status', 'picking')->count(),
-            'completed' => $rows->where('status', 'completed')->count(),
-            'total_qty' => $rows->sum('qty_plan'),
-            'total_picked' => $rows->sum('qty_picked'),
+            'total_so' => $soList->count(),
+            'total_parts' => $picks->count(),
+            'pending' => $picks->where('status', 'pending')->count(),
+            'picking' => $picks->where('status', 'picking')->count(),
+            'completed' => $picks->where('status', 'completed')->count(),
+            'total_qty' => $picks->sum('qty_plan'),
+            'total_picked' => $picks->sum('qty_picked'),
         ];
 
-        return view('outgoing.picking_fg', compact('selectedDate', 'rows', 'stats'));
+        return view('outgoing.picking_fg', compact('selectedDate', 'soList', 'stats'));
+    }
+
+    private function identifyGroupStatus($items)
+    {
+        $allCompleted = $items->every(fn($i) => $i->status === 'completed');
+        if ($allCompleted)
+            return 'completed';
+
+        $anyPicking = $items->contains(fn($i) => $i->status === 'picking' || $i->status === 'completed');
+        if ($anyPicking)
+            return 'picking';
+
+        return 'pending';
     }
 
     /**
@@ -90,48 +108,9 @@ class PickingFgController extends Controller
      */
     public function generate(Request $request)
     {
-        $request->validate([
-            'date' => 'required|date',
-        ]);
-
-        $dateStr = Carbon::parse($request->date)->toDateString();
-
-        // Get all delivery plan lines for this date (all sources)
-        $planLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)->get();
-
-        $created = 0;
-        $updated = 0;
-
-        DB::transaction(function () use ($planLines, $dateStr, &$created, &$updated) {
-            foreach ($planLines as $line) {
-                $totalTrips = $line->total_trips;
-                if ($totalTrips <= 0)
-                    continue;
-
-                $source = $line->source ?? 'daily_plan';
-
-                $pick = OutgoingPickingFg::updateOrCreate(
-                    [
-                        'delivery_date' => $dateStr,
-                        'gci_part_id' => $line->gci_part_id,
-                        'source' => $source,
-                    ],
-                    [
-                        'qty_plan' => $totalTrips,
-                        'outgoing_po_item_id' => $line->outgoing_po_item_id,
-                        'created_by' => Auth::id(),
-                    ]
-                );
-
-                if ($pick->wasRecentlyCreated) {
-                    $created++;
-                } else {
-                    $updated++;
-                }
-            }
-        });
-
-        return back()->with('success', "Picking list generated: {$created} new, {$updated} updated.");
+        // Redirect to Delivery Plan with a message because SO generation is centralized there
+        return redirect()->route('outgoing.index', ['date' => $request->date])
+            ->with('info', 'Sales Order and Picking generation is now centralized in the Delivery Plan view. Please use the "Generate SO" button there.');
     }
 
     /**

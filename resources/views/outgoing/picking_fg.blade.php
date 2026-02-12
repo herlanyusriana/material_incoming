@@ -136,27 +136,27 @@
                         <button type="submit"
                             class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View</button>
                     </form>
-                    <form method="POST" action="{{ route('outgoing.picking-fg.generate') }}" class="inline">
-                        @csrf
-                        <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
-                        <button type="submit"
-                            class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Sync from Delivery Plan
-                        </button>
-                    </form>
+                    <a href="{{ route('outgoing.index', ['date' => $selectedDate->toDateString()]) }}"
+                        class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Manage Delivery Plan & SOs
+                    </a>
                 </div>
             </div>
         </div>
 
         {{-- Stats --}}
-        @if($rows->isNotEmpty())
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        @if($soList->isNotEmpty())
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 <div class="stat-card">
-                    <div class="stat-value text-slate-900">{{ $stats->total }}</div>
+                    <div class="stat-value text-indigo-700">{{ $stats->total_so }}</div>
+                    <div class="stat-label">Total SO</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value text-slate-900">{{ $stats->total_parts }}</div>
                     <div class="stat-label">Total Parts</div>
                 </div>
                 <div class="stat-card">
@@ -172,158 +172,148 @@
                     <div class="stat-label">Completed</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value text-indigo-700">{{ number_format($stats->total_qty) }}</div>
-                    <div class="stat-label">Total Qty Plan</div>
+                    <div class="stat-value text-indigo-700 text-xl">{{ number_format($stats->total_qty) }}</div>
+                    <div class="stat-label">Plan Qty</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value text-emerald-700">{{ number_format($stats->total_picked) }}</div>
-                    <div class="stat-label">Total Picked</div>
+                    <div class="stat-value text-emerald-700 text-xl">{{ number_format($stats->total_picked) }}</div>
+                    <div class="stat-label">Picked</div>
                 </div>
             </div>
         @endif
 
-        {{-- Pick Table --}}
-        @if($rows->isEmpty())
+        {{-- SO Lists --}}
+        @if($soList->isEmpty())
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
                 <div class="text-slate-400 text-sm italic">No picking items for this date.</div>
-                <div class="mt-2 text-xs text-slate-400">Use "Sync from Delivery Plan" to generate picking list, or select a
-                    different date.</div>
+                <div class="mt-2 text-xs text-slate-400">Generate SOs from the "Delivery Plan" page to start picking.</div>
             </div>
         @else
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200">
-                                <th
-                                    class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 w-12">
-                                    No</th>
-                                <th class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                    Status</th>
-                                <th
-                                    class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[120px]">
-                                    Part No.</th>
-                                <th
-                                    class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[180px]">
-                                    Part Name</th>
-                                <th class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                    Model</th>
-                                <th class="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                    Stock<br>On Hand</th>
-                                <th class="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                    Qty<br>Plan</th>
-                                <th
-                                    class="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50">
-                                    Qty<br>Picked</th>
-                                <th class="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                    Remaining</th>
-                                <th
-                                    class="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[120px]">
-                                    Progress</th>
-                                <th class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                    Location</th>
-                                <th class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                    Picker</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @php $lastSo = null; @endphp
-                            @foreach($rows as $idx => $row)
-                                @php
-                                    $rowKey = $row->id;
-                                    $currentSo = $row->so_no ?? ($row->source === 'po' ? 'PO: ' . ($row->po_no ?? 'N/A') : 'Daily Plan');
-                                @endphp
-
-                                @if($currentSo !== $lastSo)
-                                    <tr class="bg-indigo-50/50 border-y border-indigo-100">
-                                        <td colspan="12" class="px-4 py-2.5">
-                                            <div class="flex items-center gap-3">
-                                                <div class="flex items-center gap-1.5">
-                                                    <span class="h-6 w-1 bg-indigo-500 rounded-full"></span>
-                                                    <span class="text-xs font-black text-indigo-900 uppercase tracking-widest">
-                                                        @if($row->so_no)
-                                                            Sales Order: <span class="bg-indigo-600 text-white px-2 py-0.5 rounded ml-1">{{ $row->so_no }}</span>
-                                                            @if($row->trip_no)
-                                                                <span class="ml-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded border border-orange-200 text-[10px]">TRIP {{ $row->trip_no }}</span>
-                                                            @endif
-                                                        @elseif($row->source === 'po')
-                                                            PO: <span class="bg-amber-500 text-white px-2 py-0.5 rounded ml-1">{{ $row->po_no ?? 'N/A' }}</span>
-                                                        @else
-                                                            <span class="text-slate-500 italic">Daily Plan (Legacy)</span>
-                                                        @endif
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    @php $lastSo = $currentSo; @endphp
-                                @endif
-
-                                <tr class="pick-row status-{{ $row->status }} border-b border-slate-100"
-                                    id="row-{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $row->source }}"
-                                    data-sales-order-id="{{ $row->sales_order_id }}"
-                                    data-qty-plan="{{ $row->qty_plan }}">
-                                    <td class="px-3 py-3 text-slate-500 font-semibold text-center">{{ $idx + 1 }}</td>
-                                    <td class="px-3 py-3">
-                                        <span class="status-badge {{ $row->status }}" id="status-badge-{{ $rowKey }}">
-                                            @if($row->status === 'completed')
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd"
-                                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                        clip-rule="evenodd" />
-                                                </svg>
-                                            @endif
-                                            {{ ucfirst($row->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-3 py-3 text-indigo-700 font-mono font-bold whitespace-nowrap">{{ $row->part_no }}
-                                    </td>
-                                    <td class="px-3 py-3 text-slate-900 font-bold">{{ $row->part_name }}</td>
-                                    <td class="px-3 py-3 text-slate-600">{{ $row->model }}</td>
-                                    <td
-                                        class="px-3 py-3 text-right font-semibold {{ $row->stock_on_hand < $row->qty_plan ? 'text-red-600' : 'text-slate-700' }}">
-                                        {{ number_format($row->stock_on_hand) }}
-                                    </td>
-                                    <td class="px-3 py-3 text-right font-bold text-slate-900">{{ number_format($row->qty_plan) }}
-                                    </td>
-                                    <td class="px-3 py-3 text-center bg-emerald-50/50">
-                                        <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
-                                            class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" 
-                                            data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}" 
-                                            onchange="savePick(this)" id="pick-input-{{ $rowKey }}">
-                                    </td>
-                                    <td class="px-3 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
-                                        <span class="{{ $row->qty_remaining > 0 ? 'text-amber-600' : 'text-green-700' }}">
-                                            {{ number_format($row->qty_remaining) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-3 py-3">
+            <div class="space-y-6">
+                @foreach($soList as $so)
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        {{-- SO Header Card --}}
+                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-10 w-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-md">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                        </svg>
+                                    </div>
+                                    <div>
                                         <div class="flex items-center gap-2">
-                                            <div class="progress-bar-bg flex-1 min-w-[60px]">
-                                                <div class="progress-bar-fill" id="progress-{{ $rowKey }}"
-                                                    style="width: {{ $row->progress_percent }}%; background: {{ $row->progress_percent >= 100 ? '#16a34a' : ($row->progress_percent > 0 ? '#f59e0b' : '#e2e8f0') }};">
-                                                </div>
-                                            </div>
-                                            <span class="text-[10px] font-bold text-slate-500 w-10 tabular-nums"
-                                                id="pct-{{ $rowKey }}">{{ $row->progress_percent }}%</span>
+                                            <span class="text-lg font-black text-slate-900">
+                                                {{ $so->so_no ?? ($so->source === 'po' ? $so->po_no : 'DAILY PLAN') }}
+                                            </span>
+                                            @if($so->trip_no)
+                                                <span class="px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-[10px] font-black border border-orange-200 uppercase">
+                                                    Trip {{ $so->trip_no }}
+                                                </span>
+                                            @endif
+                                            <span class="status-badge {{ $so->status }} text-[10px]">
+                                                {{ ucfirst($so->status) }}
+                                            </span>
                                         </div>
-                                    </td>
-                                    <td class="px-3 py-3">
-                                        <input type="text" value="{{ $row->pick_location }}" placeholder="Loc..."
-                                            class="border border-slate-200 rounded-lg px-2 py-1 text-xs w-20 focus:outline-none focus:border-indigo-400"
-                                            data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" 
-                                            data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}"
-                                            onchange="savePick(document.getElementById('pick-input-{{ $rowKey }}'))"
-                                            id="loc-{{ $rowKey }}">
-                                    </td>
-                                    <td class="px-3 py-3 text-slate-500 text-[10px]">
-                                        <span id="picker-{{ $rowKey }}">{{ $row->picked_by_name ?? '-' }}</span>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                        <div class="text-xs text-slate-500 font-medium">
+                                            @if($so->so_no)
+                                                Sales Order Identity <span class="text-slate-300 mx-1">•</span>
+                                            @endif
+                                            {{ $so->items_count }} Parts to pick
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-6">
+                                    <div class="text-right">
+                                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan Qty</div>
+                                        <div class="text-lg font-black text-slate-800">{{ number_format($so->qty_plan_total) }}</div>
+                                    </div>
+                                    <div class="w-32">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="text-[10px] font-bold text-slate-500 uppercase">Progress</span>
+                                            <span class="text-[10px] font-black text-indigo-600">{{ $so->progress_percent }}%</span>
+                                        </div>
+                                        <div class="progress-bar-bg">
+                                            <div class="progress-bar-fill" style="width: {{ $so->progress_percent }}%; background: {{ $so->progress_percent >= 100 ? '#16a34a' : ($so->progress_percent > 0 ? '#6366f1' : '#e2e8f0') }}; shadow: 0 0 10px rgba(99, 102, 241, 0.2);"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Parts Table for this SO --}}
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-100">
+                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10">No</th>
+                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Part Info</th>
+                                        <th class="px-4 py-2 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Plan</th>
+                                        <th class="px-4 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50/50">Picked</th>
+                                        <th class="px-4 py-2 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Rem.</th>
+                                        <th class="px-4 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 w-32">Progress</th>
+                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</th>
+                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Picker</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($so->rows as $ridx => $row)
+                                        @php $rowKey = $row->id; @endphp
+                                        <tr class="pick-row status-{{ $row->status }} border-b border-slate-50" id="row-{{ $rowKey }}" data-qty-plan="{{ $row->qty_plan }}">
+                                            <td class="px-4 py-3 text-slate-400 font-medium text-center">{{ $ridx + 1 }}</td>
+                                            <td class="px-4 py-3">
+                                                <span class="status-badge {{ $row->status }}" id="status-badge-{{ $rowKey }}" style="font-size: 9px; padding: 2px 8px;">
+                                                    {{ ucfirst($row->status) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="font-mono font-bold text-indigo-700">{{ $row->part_no }}</div>
+                                                <div class="text-[10px] font-bold text-slate-900 truncate max-w-[200px]">{{ $row->part_name }}</div>
+                                                <div class="text-[9px] text-slate-500 uppercase font-bold">{{ $row->model }}</div>
+                                            </td>
+                                            <td class="px-4 py-3 text-right font-bold text-slate-900">{{ number_format($row->qty_plan) }}</td>
+                                            <td class="px-4 py-3 text-center bg-emerald-50/30">
+                                                <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
+                                                    class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" 
+                                                    data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}" 
+                                                    onchange="savePick(this)" id="pick-input-{{ $rowKey }}">
+                                            </td>
+                                            <td class="px-4 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
+                                                <span class="{{ $row->qty_remaining > 0 ? 'text-amber-600' : 'text-green-700' }}">
+                                                    {{ number_format($row->qty_remaining) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="progress-bar-bg flex-1">
+                                                        <div class="progress-bar-fill" id="progress-{{ $rowKey }}"
+                                                            style="width: {{ $row->progress_percent }}%; background: {{ $row->progress_percent >= 100 ? '#16a34a' : ($row->progress_percent > 0 ? '#f59e0b' : '#e2e8f0') }};">
+                                                        </div>
+                                                    </div>
+                                                    <span class="text-[9px] font-black text-slate-500 w-8 tabular-nums" id="pct-{{ $rowKey }}">{{ $row->progress_percent }}%</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <input type="text" value="{{ $row->pick_location }}" placeholder="Loc..."
+                                                    class="border border-slate-200 rounded-lg px-2 py-1 text-[11px] w-20 focus:outline-none focus:border-indigo-400"
+                                                    onchange="savePick(document.getElementById('pick-input-{{ $rowKey }}'))"
+                                                    id="loc-{{ $rowKey }}">
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-500 text-[10px] font-medium">
+                                                <span id="picker-{{ $rowKey }}">{{ $row->picked_by_name ?? '-' }}</span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
 
                 {{-- Footer --}}
                 <div class="border-t border-slate-200 p-4 bg-slate-50">
