@@ -1600,19 +1600,17 @@ class OutgoingController extends Controller
                     );
 
                     // Create/Update Picking record linked to this SO
-                    OutgoingPickingFg::updateOrCreate(
-                        [
-                            'delivery_date' => $planDate,
-                            'gci_part_id' => $partId,
-                            'sales_order_id' => $so->id,
-                        ],
-                        [
-                            'qty_plan' => DB::raw("qty_plan + {$tripQty}"),
-                            'status' => 'pending',
-                            'source' => $planningLine->source ?? 'daily_plan',
-                            'created_by' => auth()->id(),
-                        ]
-                    );
+                    $pickingFg = OutgoingPickingFg::firstOrNew([
+                        'delivery_date' => $planDate,
+                        'gci_part_id' => $partId,
+                        'sales_order_id' => $so->id,
+                    ]);
+
+                    $pickingFg->qty_plan = ($pickingFg->exists ? $pickingFg->qty_plan : 0) + $tripQty;
+                    $pickingFg->status = ($pickingFg->status === 'completed' && $pickingFg->qty_picked < $pickingFg->qty_plan) ? 'picking' : ($pickingFg->status ?? 'pending');
+                    $pickingFg->source = $planningLine->source ?? 'daily_plan';
+                    $pickingFg->created_by = auth()->id();
+                    $pickingFg->save();
                 }
             }
         });
