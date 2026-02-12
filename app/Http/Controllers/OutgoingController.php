@@ -626,7 +626,14 @@ class OutgoingController extends Controller
             })
             ->values()
             ->sort(function ($a, $b) use ($sortBy, $sortDir) {
-                // PRIORITY: Items with value (total_qty > 0) come first
+                // PRIORITY 1: PO items go to bottom
+                $aIsPo = ($a->source ?? '') === 'po' ? 1 : 0;
+                $bIsPo = ($b->source ?? '') === 'po' ? 1 : 0;
+                if ($aIsPo !== $bIsPo) {
+                    return $aIsPo <=> $bIsPo;
+                }
+
+                // PRIORITY 2: Items with value (total_qty > 0) come first
                 $aHasValue = ((float) ($a->total_qty ?? 0)) > 0 ? 0 : 1;
                 $bHasValue = ((float) ($b->total_qty ?? 0)) > 0 ? 0 : 1;
                 if ($aHasValue !== $bHasValue) {
@@ -848,7 +855,11 @@ class OutgoingController extends Controller
             $r->stock_at_customer = $stockTotal;
             $r->total_qty = max(0, $gross - $used);
             return $r;
-        })->sortBy(fn($r) => [$r->date?->toDateString(), $r->gci_part?->part_no ?? ''])->values();
+        })->sortBy(fn($r) => [
+            (($r->source ?? '') === 'po' ? 1 : 0), // PO items at bottom
+            $r->date?->toDateString(),
+            $r->gci_part?->part_no ?? ''
+        ])->values();
 
         $dateLabel = $dateFrom->format('d_M_Y');
         $filename = 'delivery_requirements_' . $dateFrom->format('Ymd') . '.xlsx';

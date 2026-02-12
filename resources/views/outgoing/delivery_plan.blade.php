@@ -560,6 +560,16 @@
 						// Recalculate total from all trip inputs for this part+source
 						recalcRow(rowKey);
 
+						// Auto-check the checkbox for this row when trip is filled
+						const row = input.closest('.fg-row') || input.closest('tr');
+						if (row) {
+							const checkbox = row.querySelector('input[name="selected[]"]');
+							if (checkbox && qty > 0) {
+								checkbox.checked = true;
+							}
+						}
+						updateSoButtonState();
+
 						setTimeout(() => { input.style.background = 'transparent'; }, 800);
 					} else {
 						input.style.background = '#fee2e2'; // red error
