@@ -53,7 +53,7 @@ class DeliveryOutgoingController extends Controller
             ->paginate(20);
 
         $customers = Customer::orderBy('name')->get();
-        $trucks = Trucking::orderBy('name')->get();
+        $trucks = Trucking::orderBy('company_name')->get();
 
         return view('delivery.outgoing.index', compact('deliveryNotes', 'customers', 'trucks'));
     }
@@ -67,7 +67,7 @@ class DeliveryOutgoingController extends Controller
         $salesOrders = $this->deliveryService->getReadyForDeliveryOrders($customerId);
 
         $customers = Customer::orderBy('name')->get();
-        $trucks = Trucking::orderBy('name')->get();
+        $trucks = Trucking::orderBy('company_name')->get();
 
         return view('delivery.outgoing.create', compact('salesOrders', 'customers', 'trucks', 'customerId'));
     }
@@ -125,7 +125,7 @@ class DeliveryOutgoingController extends Controller
         $deliveryNote->load(['customer', 'truck', 'items']);
         
         $customers = Customer::orderBy('name')->get();
-        $trucks = Trucking::orderBy('name')->get();
+        $trucks = Trucking::orderBy('company_name')->get();
 
         return view('delivery.outgoing.edit', compact('deliveryNote', 'customers', 'trucks'));
     }
