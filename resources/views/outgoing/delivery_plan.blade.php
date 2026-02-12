@@ -265,7 +265,8 @@
 									$jigCount = count($row->jigs);
 									$rowSpan = max(1, $jigCount);
 									$rowSource = $row->source ?? 'daily_plan';
-									$rowKey = $row->gci_part_id . '-' . $rowSource;
+									// Use loop index to ensure absolute uniqueness of DOM IDs
+									$rowKey = 'r' . $no . '-' . $row->gci_part_id;
 								@endphp
 
 								<tbody x-data="{ open: false }">
