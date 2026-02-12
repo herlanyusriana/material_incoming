@@ -50,6 +50,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($parts as $part)
+                            @php /** @var \App\Models\GciPart $part */ @endphp
                             <tr class="hover:bg-slate-50">
                                 <td class="px-6 py-4">
                                     <input type="checkbox" name="part_ids[]" value="{{ $part->id }}"
@@ -60,10 +61,10 @@
                                 <td class="px-6 py-4 text-slate-600">{{ $part->part_name }}</td>
                                 <td class="px-6 py-4">
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                            {{ $part->classification === 'FG' ? 'bg-green-100 text-green-700' : '' }}
-                                            {{ $part->classification === 'WIP' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                                            {{ $part->classification === 'RM' ? 'bg-blue-100 text-blue-700' : '' }}
-                                        ">
+                                                {{ $part->classification === 'FG' ? 'bg-green-100 text-green-700' : '' }}
+                                                {{ $part->classification === 'WIP' ? 'bg-yellow-100 text-yellow-700' : '' }}
+                                                {{ $part->classification === 'RM' ? 'bg-blue-100 text-blue-700' : '' }}
+                                            ">
                                         {{ $part->classification }}
                                     </span>
                                 </td>
@@ -93,14 +94,14 @@
 
     <script>
         // Select all checkbox functionality
-        document.getElementById('select-all').addEventListener('change', function() {
+        document.getElementById('select-all').addEventListener('change', function () {
             const checkboxes = document.querySelectorAll('.part-checkbox');
             checkboxes.forEach(cb => cb.checked = this.checked);
         });
 
         // Add batch to single print links
         document.querySelectorAll('a[href*="/labels/part/"]').forEach(link => {
-            link.addEventListener('click', function(e) {
+            link.addEventListener('click', function (e) {
                 const batch = document.getElementById('global-batch').value;
                 if (batch) {
                     const url = new URL(this.href);

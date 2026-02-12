@@ -60,10 +60,10 @@ class DeliveryNote extends Model
         $lastSequence = 0;
         if ($lastDelivery) {
             $parts = explode('-', $lastDelivery->dn_no);
-            $lastSequence = (int)($parts[2] ?? 0);
+            $lastSequence = (int) ($parts[2] ?? 0);
         }
 
-        $next = str_pad((string)($lastSequence + 1), 4, '0', STR_PAD_LEFT);
+        $next = str_pad((string) ($lastSequence + 1), 4, '0', STR_PAD_LEFT);
 
         return 'DN-' . $year . '-' . $next;
     }
@@ -75,12 +75,12 @@ class DeliveryNote extends Model
 
     public function truck()
     {
-        return $this->belongsTo(Trucking::class, 'truck_id');
+        return $this->belongsTo(Truck::class, 'truck_id');
     }
 
     public function driver()
     {
-        return $this->belongsTo(User::class, 'driver_id'); // Assuming drivers are users
+        return $this->belongsTo(Driver::class, 'driver_id');
     }
 
     public function items()

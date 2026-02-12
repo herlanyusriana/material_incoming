@@ -71,8 +71,8 @@ class OutgoingDailyPlanningExport implements FromArray, WithHeadings, WithStyles
     private function days(): array
     {
         $days = [];
-        $cursor = $this->plan->date_from->copy()->startOfDay();
-        $end = $this->plan->date_to->copy()->startOfDay();
+        $cursor = Carbon::parse($this->plan->date_from)->copy()->startOfDay();
+        $end = Carbon::parse($this->plan->date_to)->copy()->startOfDay();
         while ($cursor->lte($end)) {
             $days[] = $cursor->copy();
             $cursor->addDay();

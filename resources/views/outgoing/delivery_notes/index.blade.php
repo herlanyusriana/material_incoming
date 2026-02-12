@@ -86,6 +86,7 @@
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
+                                        <a href="{{ route('outgoing.delivery-notes.print', $dn) }}" target="_blank" class="text-emerald-600 hover:text-emerald-900 font-bold text-xs uppercase tracking-tighter">Print</a>
                                         <a href="{{ route('outgoing.delivery-notes.show', $dn) }}" class="text-indigo-600 hover:text-indigo-900 font-bold text-xs uppercase tracking-tighter">Details</a>
                                         
                                         @if ($dn->status === 'draft')

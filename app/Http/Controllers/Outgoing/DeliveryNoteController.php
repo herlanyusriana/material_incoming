@@ -10,7 +10,10 @@ use App\Models\DnItem;
 use App\Models\FgInventory;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
+use App\Models\Driver;
+use App\Models\OutgoingPickingFg;
 use App\Models\Part;
+use App\Models\Truck;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,8 +41,16 @@ class DeliveryNoteController extends Controller
     {
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $gciParts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
-        
-        return view('outgoing.delivery_notes.create', compact('customers', 'gciParts'));
+        $trucks = Truck::where('status', 'available')->orderBy('plate_no')->get();
+        $drivers = Driver::where('status', 'available')->orderBy('name')->get();
+
+        // Get completed picking for today/yesterday for convenience
+        $completedPickings = OutgoingPickingFg::with(['part'])
+            ->where('status', 'completed')
+            ->where('delivery_date', '>=', now()->subDays(2)->toDateString())
+            ->get();
+
+        return view('outgoing.delivery_notes.create', compact('customers', 'gciParts', 'trucks', 'drivers', 'completedPickings'));
     }
 
     public function store(Request $request)
@@ -47,6 +58,8 @@ class DeliveryNoteController extends Controller
         $validated = $request->validate([
             'dn_no' => ['required', 'string', 'unique:delivery_notes,dn_no'],
             'customer_id' => ['required', 'exists:customers,id'],
+            'truck_id' => ['nullable', 'exists:trucks,id'],
+            'driver_id' => ['nullable', 'exists:drivers,id'],
             'delivery_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
@@ -60,9 +73,11 @@ class DeliveryNoteController extends Controller
             $dn = DeliveryNote::create([
                 'dn_no' => $validated['dn_no'],
                 'customer_id' => $validated['customer_id'],
+                'truck_id' => $validated['truck_id'] ?? null,
+                'driver_id' => $validated['driver_id'] ?? null,
                 'delivery_date' => $validated['delivery_date'],
                 'notes' => $validated['notes'],
-                'status' => 'draft',
+                'status' => 'ready_to_ship', // Set directly to ready to ship because it's from picking
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -92,7 +107,7 @@ class DeliveryNoteController extends Controller
                 ->all();
 
             $partsByNo = Part::query()
-                ->whereIn('part_no', $deliveryNote->items->map(fn ($i) => $i->part?->part_no)->filter()->unique()->values())
+                ->whereIn('part_no', $deliveryNote->items->map(fn($i) => $i->part?->part_no)->filter()->unique()->values())
                 ->get()
                 ->keyBy('part_no');
 
@@ -115,7 +130,7 @@ class DeliveryNoteController extends Controller
 
                 $kittingLocationsByItem[$item->id] = ($stocks[$part->id] ?? collect())
                     ->sortBy('location_code')
-                    ->map(fn ($s) => ['code' => $s->location_code, 'qty' => (float) $s->qty_on_hand])
+                    ->map(fn($s) => ['code' => $s->location_code, 'qty' => (float) $s->qty_on_hand])
                     ->values()
                     ->all();
             }
@@ -153,14 +168,13 @@ class DeliveryNoteController extends Controller
 
         $deliveryNote->loadMissing(['items.part']);
 
-        $item = $deliveryNote->items
-            ->first(function ($i) use ($partNo, $locationCode) {
-                $pno = strtoupper(trim((string) ($i->part?->part_no ?? '')));
-                $loc = strtoupper(trim((string) ($i->kitting_location_code ?? '')));
+        $item = $deliveryNote->items->filter(function ($i) use ($partNo, $locationCode) {
+            $pno = strtoupper(trim((string) ($i->part?->part_no ?? '')));
+            $loc = strtoupper(trim((string) ($i->kitting_location_code ?? '')));
 
-                $remaining = (float) $i->qty - (float) ($i->picked_qty ?? 0);
-                return $pno === $partNo && $loc === $locationCode && $remaining > 0;
-            });
+            $remaining = (float) $i->qty - (float) ($i->picked_qty ?? 0);
+            return $pno === $partNo && $loc === $locationCode && $remaining > 0;
+        })->first();
 
         if (!$item) {
             $msg = "No matching DN item remaining for part {$partNo} at location {$locationCode}.";
@@ -215,7 +229,7 @@ class DeliveryNoteController extends Controller
         }
 
         $deliveryNote->loadMissing(['items']);
-        $incomplete = $deliveryNote->items->first(fn ($i) => (float) ($i->picked_qty ?? 0) < (float) $i->qty);
+        $incomplete = $deliveryNote->items->filter(fn($i) => (float) ($i->picked_qty ?? 0) < (float) $i->qty)->first();
         if ($incomplete) {
             return back()->with('error', 'Picking belum lengkap. Pastikan semua item sudah picked qty = required qty.');
         }
@@ -363,5 +377,12 @@ class DeliveryNoteController extends Controller
 
         $deliveryNote->delete();
         return redirect()->route('outgoing.delivery-notes.index')->with('success', 'Delivery Note deleted.');
+    }
+
+    public function print(DeliveryNote $delivery_note)
+    {
+        $delivery_note->load(['customer', 'truck', 'driver', 'items.part']);
+
+        return view('outgoing.delivery_notes.print', compact('delivery_note'));
     }
 }
