@@ -535,6 +535,64 @@ class OutgoingController extends Controller
             }
         }
 
+        // --- PO Non-LG items ---
+        $poItems = \App\Models\OutgoingPoItem::query()
+            ->whereHas('outgoingPo', fn($q) => $q->where('status', 'confirmed'))
+            ->whereNotNull('gci_part_id')
+            ->whereColumn('fulfilled_qty', '<', 'qty')
+            ->whereNotNull('delivery_date')
+            ->whereDate('delivery_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('delivery_date', '<=', $dateTo->format('Y-m-d'))
+            ->with(['part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->get();
+
+        foreach ($poItems as $poItem) {
+            $gciPart = $poItem->part;
+            if (!$gciPart) continue;
+
+            $remainingQty = max(0, $poItem->qty - $poItem->fulfilled_qty);
+            if ($remainingQty <= 0) continue;
+
+            $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
+
+            $lines->push((object) [
+                'date' => $poItem->delivery_date->copy(),
+                'customer' => $gciPart->customer,
+                'gci_part' => $gciPart,
+                'customer_part_no' => $poItem->vendor_part_name ?? $gciPart->part_no,
+                'customer_part_name' => $gciPart->part_name,
+                'unmapped' => false,
+                'gross_qty' => $remainingQty,
+                'sequence' => 9999,
+                'sequences_consolidated' => [],
+                'packing_std' => $packingQty,
+                'uom' => $gciPart->standardPacking?->uom ?? 'PCS',
+                'source_row_ids' => [],
+                'source' => 'po',
+                'outgoing_po_item_id' => $poItem->id,
+                'po_no' => $poItem->outgoingPo?->po_no,
+            ]);
+        }
+
+        // Also add PO part IDs to stock calculation collections
+        $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
+        $poCustomerIds = $poItems->map(fn($i) => $i->part?->customer_id)->filter()->unique();
+        $poPeriods = $poItems->pluck('delivery_date')->filter()->map(fn($d) => $d->format('Y-m'))->unique();
+
+        if ($poPeriods->isNotEmpty() && $poCustomerIds->isNotEmpty() && $poPartIds->isNotEmpty()) {
+            $poStockRecords = StockAtCustomer::query()
+                ->whereIn('period', $poPeriods->all())
+                ->whereIn('customer_id', $poCustomerIds->all())
+                ->whereIn('gci_part_id', $poPartIds->all())
+                ->get();
+            foreach ($poStockRecords as $rec) {
+                $k = (string) $rec->period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
+                if (!isset($stockMap[$k])) {
+                    $stockMap[$k] = $rec;
+                }
+            }
+        }
+
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
         $requirements = $lines
             ->map(function ($r) use ($getStockAtCustomer) {
@@ -750,6 +808,37 @@ class OutgoingController extends Controller
             }
         }
 
+        // --- PO Non-LG items (export) ---
+        $poItems = \App\Models\OutgoingPoItem::query()
+            ->whereHas('outgoingPo', fn($q) => $q->where('status', 'confirmed'))
+            ->whereNotNull('gci_part_id')
+            ->whereColumn('fulfilled_qty', '<', 'qty')
+            ->whereNotNull('delivery_date')
+            ->whereDate('delivery_date', '>=', $dateFrom->format('Y-m-d'))
+            ->whereDate('delivery_date', '<=', $dateTo->format('Y-m-d'))
+            ->with(['part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->get();
+
+        foreach ($poItems as $poItem) {
+            $gciPart = $poItem->part;
+            if (!$gciPart) continue;
+            $remainingQty = max(0, $poItem->qty - $poItem->fulfilled_qty);
+            if ($remainingQty <= 0) continue;
+
+            $lines->push((object) [
+                'date' => $poItem->delivery_date->copy(),
+                'customer' => $gciPart->customer,
+                'gci_part' => $gciPart,
+                'customer_part_name' => $gciPart->part_name,
+                'unmapped' => false,
+                'gross_qty' => $remainingQty,
+                'packing_std' => (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1,
+                'source_row_ids' => [],
+                'source' => 'po',
+                'po_no' => $poItem->outgoingPo?->po_no,
+            ]);
+        }
+
         $requirements = $lines->map(function ($r) use ($getStock) {
             $custId = (int) ($r->customer?->id ?? 0);
             $partId = (int) ($r->gci_part?->id ?? 0);
@@ -939,9 +1028,31 @@ class OutgoingController extends Controller
             ->unique()
             ->values();
 
-        // Also include parts that already have delivery planning lines for this date
-        $existingLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)->get();
+        // Also include parts that already have delivery planning lines for this date (daily_plan only)
+        $existingLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)
+            ->where(function ($q) { $q->where('source', 'daily_plan')->orWhereNull('source'); })
+            ->get();
         $allPartIds = $allPartIds->merge($existingLines->pluck('gci_part_id'))->unique()->values();
+
+        // PO Non-LG items for this date
+        $poItems = \App\Models\OutgoingPoItem::query()
+            ->whereHas('outgoingPo', fn($q) => $q->where('status', 'confirmed'))
+            ->whereNotNull('gci_part_id')
+            ->whereColumn('fulfilled_qty', '<', 'qty')
+            ->whereDate('delivery_date', $dateStr)
+            ->with(['part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->get();
+
+        $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
+
+        // PO delivery planning lines
+        $poExistingLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)
+            ->where('source', 'po')
+            ->get()
+            ->keyBy('gci_part_id');
+
+        // Merge PO part IDs but keep them separate for row building
+        $allPartIds = $allPartIds->merge($poPartIds)->unique()->values();
 
         if ($allPartIds->isEmpty()) {
             return view('outgoing.delivery_plan', [
@@ -1131,11 +1242,74 @@ class OutgoingController extends Controller
                 'osp_order' => $ospOrder,
                 'has_line' => $line !== null,
                 'line_id' => $line?->id,
+                'source' => 'daily_plan',
+                'outgoing_po_item_id' => null,
+                'po_no' => null,
+            ]);
+        }
+
+        // ── 10. PO Non-LG rows ──
+        foreach ($poItems as $poItem) {
+            $part = $poItem->part;
+            if (!$part || $part->classification !== 'FG' || $part->status !== 'active') continue;
+
+            $partId = (int) $poItem->gci_part_id;
+
+            // Skip if already in daily plan rows (same part)
+            if (isset($dailyPlanMap[$partId])) continue;
+
+            $remainingQty = max(0, $poItem->qty - $poItem->fulfilled_qty);
+            if ($remainingQty <= 0) continue;
+
+            $stockAtCust = (int) ($stockMap->get($partId) ?? 0);
+            $stdPack = $stdPackMap->get($partId);
+            $stdPackQty = $stdPack ? (int) $stdPack->packing_qty : 0;
+
+            $deliveryReq = $remainingQty;
+
+            // Trip data from PO-sourced lines
+            $line = $poExistingLines->get($partId);
+            $trips = [];
+            $totalTrips = 0;
+            for ($t = 1; $t <= 14; $t++) {
+                $val = $line ? (int) $line->{"trip_{$t}"} : 0;
+                $trips[$t] = $val;
+                $totalTrips += $val;
+            }
+
+            $rows->push((object) [
+                'gci_part_id' => $partId,
+                'category' => 'NON LG',
+                'fg_part_name' => $part->part_name ?? '-',
+                'fg_part_no' => $part->part_no ?? '-',
+                'model' => $part->model ?? '-',
+                'stock_at_customer' => $stockAtCust,
+                'daily_plan_qty' => $remainingQty,
+                'delivery_requirement' => $deliveryReq,
+                'std_packing' => $stdPackQty,
+                'production_rate' => null,
+                'production_rate_h1' => null,
+                'jigs' => [],
+                'trips' => $trips,
+                'total_trips' => $totalTrips,
+                'finish_time' => null,
+                'end_stock' => $stockAtCust + $totalTrips - $remainingQty,
+                'daily_plan_h1' => 0,
+                'jig_qty_h1' => 0,
+                'delivery_req_h1' => 0,
+                'est_finish_time' => null,
+                'is_osp' => false,
+                'osp_order' => null,
+                'has_line' => $line !== null,
+                'line_id' => $line?->id,
+                'source' => 'po',
+                'outgoing_po_item_id' => $poItem->id,
+                'po_no' => $poItem->outgoingPo?->po_no,
             ]);
         }
 
         // Sort by fixed category order, then part name
-        $categoryOrder = ['Base Comp' => 1, 'Plate Rear' => 2, 'Reinforce' => 3, 'Tray Drip' => 4, 'Small Part' => 5];
+        $categoryOrder = ['Base Comp' => 1, 'Plate Rear' => 2, 'Reinforce' => 3, 'Tray Drip' => 4, 'Small Part' => 5, 'NON LG' => 6];
         $rows = $rows->sortBy([
             fn($a, $b) => ($categoryOrder[$a->category] ?? 99) <=> ($categoryOrder[$b->category] ?? 99),
             ['fg_part_name', 'asc'],
@@ -1157,16 +1331,22 @@ class OutgoingController extends Controller
             'gci_part_id' => 'required|integer|exists:gci_parts,id',
             'trip_no' => 'required|integer|min:1|max:14',
             'qty' => 'required|integer|min:0',
+            'source' => 'nullable|string|in:daily_plan,po',
+            'outgoing_po_item_id' => 'nullable|integer|exists:outgoing_po_items,id',
         ]);
+
+        $source = $request->input('source', 'daily_plan');
 
         $line = OutgoingDeliveryPlanningLine::updateOrCreate(
             [
                 'delivery_date' => $request->delivery_date,
                 'gci_part_id' => $request->gci_part_id,
+                'source' => $source,
             ],
-            [
+            array_filter([
                 'trip_' . $request->trip_no => $request->qty,
-            ]
+                'outgoing_po_item_id' => $request->outgoing_po_item_id,
+            ], fn($v) => $v !== null)
         );
 
         return response()->json([

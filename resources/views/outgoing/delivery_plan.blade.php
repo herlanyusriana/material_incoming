@@ -264,11 +264,13 @@
 									$no++;
 									$jigCount = count($row->jigs);
 									$rowSpan = max(1, $jigCount);
+									$rowSource = $row->source ?? 'daily_plan';
+									$rowKey = $row->gci_part_id . '-' . $rowSource;
 								@endphp
 
 								<tbody x-data="{ open: false }">
 									{{-- Main FG row --}}
-									<tr class="fg-row" data-part-id="{{ $row->gci_part_id }}">
+									<tr class="fg-row" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}">
 										{{-- Select checkbox + expand button --}}
 										<td class="px-1 py-2 text-center s-col" style="left:0" @if($rowSpan > 1)
 										rowspan="{{ $rowSpan }}" @endif>
@@ -290,17 +292,20 @@
 											{{ $no }}
 											{{-- Hidden data spans (always in DOM) --}}
 											<span class="hidden"
-												id="prod-rate-{{ $row->gci_part_id }}">{{ $row->production_rate }}</span>
+												id="prod-rate-{{ $rowKey }}">{{ $row->production_rate }}</span>
 											<span class="hidden"
-												id="del-req-{{ $row->gci_part_id }}">{{ $row->delivery_requirement }}</span>
+												id="del-req-{{ $rowKey }}">{{ $row->delivery_requirement }}</span>
 											<span class="hidden"
-												id="prod-rate-h1-{{ $row->gci_part_id }}">{{ $row->production_rate_h1 }}</span>
+												id="prod-rate-h1-{{ $rowKey }}">{{ $row->production_rate_h1 }}</span>
 											<span class="hidden"
-												id="plan-h1-{{ $row->gci_part_id }}">{{ $row->daily_plan_h1 }}</span>
+												id="plan-h1-{{ $rowKey }}">{{ $row->daily_plan_h1 }}</span>
 										</td>
 										<td class="px-2 py-2 text-slate-600 text-[10px] font-bold s-col" style="left:80px"
 											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->category }}
+											@if($rowSource === 'po' && ($row->po_no ?? null))
+												<div class="text-[9px] text-amber-600 font-semibold">{{ $row->po_no }}</div>
+											@endif
 										</td>
 										<td class="px-2 py-2 text-slate-900 font-bold whitespace-nowrap s-col" style="left:150px"
 											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
@@ -329,12 +334,12 @@
 											{{ $row->model }}
 										</td>
 										<td class="px-2 py-2 text-right text-slate-700 font-semibold"
-											id="stock-val-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
+											id="stock-val-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
 											@endif>
 											{{ $row->stock_at_customer > 0 ? number_format($row->stock_at_customer) : '-' }}
 										</td>
 										<td class="px-2 py-2 text-right text-slate-900 font-bold"
-											id="plan-val-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											id="plan-val-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->daily_plan_qty > 0 ? number_format($row->daily_plan_qty) : '-' }}
 										</td>
 
@@ -371,14 +376,14 @@
 
 										{{-- Total trips (summary) --}}
 										<td class="px-2 py-2 text-right font-black text-green-800" style="background:#dcfce7;"
-											id="total-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											id="total-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->total_trips > 0 ? number_format($row->total_trips) : '-' }}
 										</td>
 										<td class="px-2 py-2 text-right font-semibold text-slate-700 calc-col"
-											id="finish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
+											id="finish-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											{{ $row->finish_time ?? '-' }}
 										</td>
-										<td class="px-2 py-2 text-right font-bold calc-col" id="endstock-{{ $row->gci_part_id }}"
+										<td class="px-2 py-2 text-right font-bold calc-col" id="endstock-{{ $rowKey }}"
 											@if($rowSpan > 1) rowspan="{{ $rowSpan }}" @endif>
 											@if($row->end_stock < 0)
 												<span class="text-red-600">{{ number_format($row->end_stock) }}</span>
@@ -397,7 +402,7 @@
 											{{ $row->jig_qty_h1 > 0 ? $row->jig_qty_h1 : '-' }}
 										</td>
 										<td class="px-2 py-2 text-right font-semibold text-blue-700 h1-col"
-											id="estfinish-{{ $row->gci_part_id }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
+											id="estfinish-{{ $rowKey }}" @if($rowSpan > 1) rowspan="{{ $rowSpan }}"
 											@endif>
 											{{ $row->est_finish_time ?? '-' }}
 										</td>
@@ -448,7 +453,9 @@
 																{{ $t }}</label>
 															<input type="number" min="0" value="{{ $row->trips[$t] ?: '' }}"
 																placeholder="-" data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}"
-																oninput="recalcRow(this.dataset.part)" onchange="updateTrip(this)"
+																data-source="{{ $rowSource }}" data-rowkey="{{ $rowKey }}"
+																data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}"
+																oninput="recalcRow(this.dataset.rowkey)" onchange="updateTrip(this)"
 																class="trip-expanded-input">
 														</div>
 													@endfor
@@ -469,6 +476,8 @@
 					<input type="hidden" name="lines[{{ $idx }}][part_no]" value="{{ $row->fg_part_no }}">
 					<input type="hidden" name="lines[{{ $idx }}][part_name]" value="{{ $row->fg_part_name }}">
 					<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}">
+					<input type="hidden" name="lines[{{ $idx }}][source]" value="{{ $row->source ?? 'daily_plan' }}">
+					<input type="hidden" name="lines[{{ $idx }}][outgoing_po_item_id]" value="{{ $row->outgoing_po_item_id ?? '' }}">
 				@endforeach
 
 				{{-- Footer --}}
@@ -517,10 +526,22 @@
 				const partId = input.dataset.part;
 				const tripNo = input.dataset.trip;
 				const qty = parseInt(input.value) || 0;
+				const source = input.dataset.source || 'daily_plan';
+				const rowKey = input.dataset.rowkey || partId;
+				const poItemId = input.dataset.poItemId || null;
 
 				input.style.background = '#fef9c3'; // yellow flash
 
 				try {
+					const body = {
+						delivery_date: DELIVERY_DATE,
+						gci_part_id: partId,
+						trip_no: tripNo,
+						qty: qty,
+						source: source
+					};
+					if (poItemId) body.outgoing_po_item_id = poItemId;
+
 					const response = await fetch(UPDATE_URL, {
 						method: 'POST',
 						headers: {
@@ -528,12 +549,7 @@
 							'X-CSRF-TOKEN': CSRF_TOKEN,
 							'Accept': 'application/json'
 						},
-						body: JSON.stringify({
-							delivery_date: DELIVERY_DATE,
-							gci_part_id: partId,
-							trip_no: tripNo,
-							qty: qty
-						})
+						body: JSON.stringify(body)
 					});
 
 					const data = await response.json();
@@ -541,8 +557,8 @@
 					if (data.success) {
 						input.style.background = '#dcfce7'; // green success
 
-						// Recalculate total from all trip inputs for this part
-						recalcRow(partId);
+						// Recalculate total from all trip inputs for this part+source
+						recalcRow(rowKey);
 
 						setTimeout(() => { input.style.background = 'transparent'; }, 800);
 					} else {
@@ -556,21 +572,21 @@
 				}
 			}
 
-			function recalcRow(partId) {
-				// Sum all trip inputs for this partId
-				const inputs = document.querySelectorAll(`input[data-part="${partId}"]`);
+			function recalcRow(rowKey) {
+				// Sum all trip inputs for this rowKey (partId-source)
+				const inputs = document.querySelectorAll(`input[data-rowkey="${rowKey}"]`);
 				let total = 0;
 				inputs.forEach(inp => { total += parseInt(inp.value) || 0; });
 
 				// Update Total
-				const totalEl = document.getElementById(`total-${partId}`);
+				const totalEl = document.getElementById(`total-${rowKey}`);
 				if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
 
 				// Finish Time = 07:00 + delivery_requirement / production_rate (format HH:MM)
-				const prodRate = parseFloat(document.getElementById(`prod-rate-${partId}`)?.textContent) || 0;
-				const delReq = parseFloat(document.getElementById(`del-req-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
-				const stockAtCust = parseFloat(document.getElementById(`stock-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
-				const finishEl = document.getElementById(`finish-${partId}`);
+				const prodRate = parseFloat(document.getElementById(`prod-rate-${rowKey}`)?.textContent) || 0;
+				const delReq = parseFloat(document.getElementById(`del-req-${rowKey}`)?.textContent?.replace(/,/g, '')) || 0;
+				const stockAtCust = parseFloat(document.getElementById(`stock-val-${rowKey}`)?.textContent?.replace(/,/g, '')) || 0;
+				const finishEl = document.getElementById(`finish-${rowKey}`);
 				if (finishEl) {
 					if (prodRate > 0 && delReq > 0) {
 						const decimal = 7.0 + delReq / prodRate;
@@ -584,8 +600,8 @@
 				}
 
 				// Update End Stock (Stock + Total - Plan)
-				const dailyPlan = parseFloat(document.getElementById(`plan-val-${partId}`)?.textContent?.replace(/,/g, '')) || 0;
-				const endStockEl = document.getElementById(`endstock-${partId}`);
+				const dailyPlan = parseFloat(document.getElementById(`plan-val-${rowKey}`)?.textContent?.replace(/,/g, '')) || 0;
+				const endStockEl = document.getElementById(`endstock-${rowKey}`);
 				let endStock = stockAtCust + total - dailyPlan;
 				if (endStockEl) {
 					const span = endStockEl.querySelector('span');
@@ -596,8 +612,8 @@
 				}
 
 				// Est. Finish Time H+1 = 07:00 + end_stock_customer / total_uph_h1 (format HH:MM)
-				const prodRateH1 = parseFloat(document.getElementById(`prod-rate-h1-${partId}`)?.textContent) || 0;
-				const estFinishEl = document.getElementById(`estfinish-${partId}`);
+				const prodRateH1 = parseFloat(document.getElementById(`prod-rate-h1-${rowKey}`)?.textContent) || 0;
+				const estFinishEl = document.getElementById(`estfinish-${rowKey}`);
 				if (estFinishEl) {
 					if (prodRateH1 > 0 && endStock > 0) {
 						const decimal = 7.0 + endStock / prodRateH1;

@@ -45,4 +45,13 @@ class OutgoingPo extends Model
     {
         return $this->items->sum(fn($i) => $i->qty * $i->price);
     }
+
+    public function scopeConfirmedWithPendingDelivery($query)
+    {
+        return $query->where('status', 'confirmed')
+            ->whereHas('items', function ($q) {
+                $q->whereColumn('fulfilled_qty', '<', 'qty')
+                    ->whereNotNull('gci_part_id');
+            });
+    }
 }

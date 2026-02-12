@@ -19,7 +19,7 @@ class PickingFgApiController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
 
-        $picks = OutgoingPickingFg::with(['part'])
+        $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo'])
             ->where('delivery_date', $date)
             ->get();
 
@@ -39,6 +39,8 @@ class PickingFgApiController extends Controller
                     'status' => $p->status,
                     'location' => $p->pick_location,
                     'progress' => $p->progress_percent,
+                    'source' => $p->source ?? 'daily_plan',
+                    'po_no' => $p->outgoingPoItem?->outgoingPo?->po_no,
                 ];
             })
         ]);
@@ -61,6 +63,7 @@ class PickingFgApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
 
+        // Try to find existing pick (check all sources)
         $pick = OutgoingPickingFg::where('delivery_date', $request->date)
             ->where('gci_part_id', $part->id)
             ->first();
@@ -75,6 +78,8 @@ class PickingFgApiController extends Controller
                 $pick = OutgoingPickingFg::create([
                     'delivery_date' => $request->date,
                     'gci_part_id' => $part->id,
+                    'source' => $plan->source ?? 'daily_plan',
+                    'outgoing_po_item_id' => $plan->outgoing_po_item_id,
                     'qty_plan' => $plan->total_trips,
                     'status' => 'pending',
                     'created_by' => Auth::id(),
@@ -85,11 +90,6 @@ class PickingFgApiController extends Controller
         }
 
         $newQty = $pick->qty_picked + $request->qty;
-
-        // Cap at plan? Or allow overpick? Usually cap.
-        // if ($newQty > $pick->qty_plan) {
-        //    return response()->json(['success' => false, 'message' => 'Overpick detected'], 400);
-        // }
 
         $pick->update([
             'qty_picked' => $newQty,
@@ -106,7 +106,8 @@ class PickingFgApiController extends Controller
                 'part_no' => $part->part_no,
                 'qty_picked' => $pick->qty_picked,
                 'qty_remaining' => $pick->qty_remaining,
-                'status' => $pick->status
+                'status' => $pick->status,
+                'source' => $pick->source ?? 'daily_plan',
             ]
         ]);
     }

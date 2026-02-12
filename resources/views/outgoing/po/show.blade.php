@@ -118,6 +118,10 @@
                                 Part No</th>
                             <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                 Qty</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50">
+                                Fulfilled</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50">
+                                Remaining</th>
                             <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                 Harga PO</th>
                             <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -135,6 +139,12 @@
                                 <td class="px-4 py-3 text-slate-600">{{ $item->part->model ?? '-' }}</td>
                                 <td class="px-4 py-3 text-indigo-700 font-mono font-bold">{{ $item->part->part_no ?? '-' }}</td>
                                 <td class="px-4 py-3 text-right font-bold text-slate-900">{{ number_format($item->qty) }}</td>
+                                <td class="px-4 py-3 text-right font-bold text-emerald-700 bg-emerald-50/30">
+                                    {{ number_format($item->fulfilled_qty) }}
+                                </td>
+                                <td class="px-4 py-3 text-right font-bold {{ $item->remaining_qty > 0 ? 'text-amber-600 bg-amber-50/30' : 'text-green-700 bg-green-50/30' }}">
+                                    {{ number_format($item->remaining_qty) }}
+                                </td>
                                 <td class="px-4 py-3 text-right text-slate-700 font-semibold">
                                     {{ number_format($item->price, 0) }}</td>
                                 <td class="px-4 py-3 text-right font-bold text-emerald-700">
@@ -151,6 +161,10 @@
                                 Total</td>
                             <td class="px-4 py-3 text-right font-black text-slate-900">
                                 {{ number_format($outgoingPo->total_qty) }}</td>
+                            <td class="px-4 py-3 text-right font-black text-emerald-700">
+                                {{ number_format($outgoingPo->items->sum('fulfilled_qty')) }}</td>
+                            <td class="px-4 py-3 text-right font-black text-amber-600">
+                                {{ number_format($outgoingPo->items->sum(fn($i) => $i->remaining_qty)) }}</td>
                             <td class="px-4 py-3"></td>
                             <td class="px-4 py-3 text-right font-black text-emerald-700">
                                 {{ number_format($outgoingPo->total_amount, 0) }}</td>

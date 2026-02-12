@@ -53,6 +53,7 @@ class DeliveryNoteController extends Controller
             'items.*.gci_part_id' => ['required', 'exists:gci_parts,id'],
             'items.*.qty' => ['required', 'numeric', 'min:0.0001'],
             'items.*.customer_po_id' => ['nullable', 'exists:customer_pos,id'],
+            'items.*.outgoing_po_item_id' => ['nullable', 'exists:outgoing_po_items,id'],
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -70,6 +71,7 @@ class DeliveryNoteController extends Controller
                     'gci_part_id' => $item['gci_part_id'],
                     'qty' => $item['qty'],
                     'customer_po_id' => $item['customer_po_id'] ?? null,
+                    'outgoing_po_item_id' => $item['outgoing_po_item_id'] ?? null,
                 ]);
             }
         });
@@ -328,6 +330,25 @@ class DeliveryNoteController extends Controller
                 );
 
                 $inventory->decrement('qty_on_hand', $item->qty);
+
+                // Update PO item fulfilled qty
+                if ($item->outgoing_po_item_id) {
+                    $poItem = \App\Models\OutgoingPoItem::find($item->outgoing_po_item_id);
+                    if ($poItem) {
+                        $poItem->increment('fulfilled_qty', (int) $item->qty);
+
+                        // Auto-complete PO if all items fulfilled
+                        $po = $poItem->outgoingPo;
+                        if ($po && $po->status === 'confirmed') {
+                            $allFulfilled = $po->items()
+                                ->whereColumn('fulfilled_qty', '<', 'qty')
+                                ->doesntExist();
+                            if ($allFulfilled) {
+                                $po->update(['status' => 'completed']);
+                            }
+                        }
+                    }
+                }
             }
         });
 

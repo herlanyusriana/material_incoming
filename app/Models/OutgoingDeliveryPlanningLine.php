@@ -11,6 +11,8 @@ class OutgoingDeliveryPlanningLine extends Model
     protected $fillable = [
         'delivery_date',
         'gci_part_id',
+        'source',
+        'outgoing_po_item_id',
         'trip_1',
         'trip_2',
         'trip_3',
@@ -35,6 +37,11 @@ class OutgoingDeliveryPlanningLine extends Model
     public function part()
     {
         return $this->belongsTo(GciPart::class, 'gci_part_id');
+    }
+
+    public function outgoingPoItem()
+    {
+        return $this->belongsTo(OutgoingPoItem::class);
     }
 
     /**

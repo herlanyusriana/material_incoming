@@ -24,14 +24,14 @@ class PickingFgController extends Controller
             : now()->startOfDay();
         $dateStr = $selectedDate->toDateString();
 
-        // Get picking records for this date
-        $picks = OutgoingPickingFg::with(['part', 'picker'])
+        // Get picking records for this date (all sources)
+        $picks = OutgoingPickingFg::with(['part', 'picker', 'outgoingPoItem.outgoingPo'])
             ->where('delivery_date', $dateStr)
             ->get()
-            ->keyBy('gci_part_id');
+            ->keyBy(fn($p) => $p->gci_part_id . '|' . ($p->source ?? 'daily_plan'));
 
-        // Get delivery plan lines for this date (to show what needs picking)
-        $planLines = OutgoingDeliveryPlanningLine::with('part')
+        // Get delivery plan lines for this date (all sources)
+        $planLines = OutgoingDeliveryPlanningLine::with(['part', 'outgoingPoItem.outgoingPo'])
             ->where('delivery_date', $dateStr)
             ->get();
 
@@ -53,8 +53,15 @@ class PickingFgController extends Controller
             if ($totalTrips <= 0)
                 continue;
 
-            $pick = $picks->get($partId);
+            $source = $line->source ?? 'daily_plan';
+            $pickKey = $partId . '|' . $source;
+            $pick = $picks->get($pickKey);
             $inventory = $inventoryMap->get($partId);
+
+            $poNo = null;
+            if ($source === 'po') {
+                $poNo = $line->outgoingPoItem?->outgoingPo?->po_no;
+            }
 
             $rows->push((object) [
                 'gci_part_id' => $partId,
@@ -72,6 +79,9 @@ class PickingFgController extends Controller
                 'stock_on_hand' => $inventory ? (int) $inventory->on_hand : 0,
                 'pick_id' => $pick?->id,
                 'progress_percent' => $pick ? $pick->progress_percent : 0,
+                'source' => $source,
+                'outgoing_po_item_id' => $line->outgoing_po_item_id,
+                'po_no' => $poNo,
             ]);
         }
 
@@ -104,7 +114,7 @@ class PickingFgController extends Controller
 
         $dateStr = Carbon::parse($request->date)->toDateString();
 
-        // Get all delivery plan lines for this date
+        // Get all delivery plan lines for this date (all sources)
         $planLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)->get();
 
         $created = 0;
@@ -116,13 +126,17 @@ class PickingFgController extends Controller
                 if ($totalTrips <= 0)
                     continue;
 
+                $source = $line->source ?? 'daily_plan';
+
                 $pick = OutgoingPickingFg::updateOrCreate(
                     [
                         'delivery_date' => $dateStr,
                         'gci_part_id' => $line->gci_part_id,
+                        'source' => $source,
                     ],
                     [
                         'qty_plan' => $totalTrips,
+                        'outgoing_po_item_id' => $line->outgoing_po_item_id,
                         'created_by' => Auth::id(),
                     ]
                 );
@@ -149,14 +163,17 @@ class PickingFgController extends Controller
             'qty_picked' => 'required|integer|min:0',
             'pick_location' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:500',
+            'source' => 'nullable|string|in:daily_plan,po',
         ]);
 
         $dateStr = Carbon::parse($request->delivery_date)->toDateString();
+        $source = $request->input('source', 'daily_plan');
 
         $pick = OutgoingPickingFg::firstOrCreate(
             [
                 'delivery_date' => $dateStr,
                 'gci_part_id' => $request->gci_part_id,
+                'source' => $source,
             ],
             [
                 'qty_plan' => 0,

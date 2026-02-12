@@ -228,12 +228,17 @@
                         </thead>
                         <tbody>
                             @foreach($rows as $idx => $row)
+                                @php
+                                    $rowSource = $row->source ?? 'daily_plan';
+                                    $rowKey = $row->gci_part_id . '-' . $rowSource;
+                                @endphp
                                 <tr class="pick-row status-{{ $row->status }} border-b border-slate-100"
-                                    id="row-{{ $row->gci_part_id }}" data-part-id="{{ $row->gci_part_id }}"
+                                    id="row-{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}"
+                                    data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}"
                                     data-qty-plan="{{ $row->qty_plan }}">
                                     <td class="px-3 py-3 text-slate-500 font-semibold">{{ $idx + 1 }}</td>
-                                    <td class="px-3 py-3">
-                                        <span class="status-badge {{ $row->status }}" id="status-badge-{{ $row->gci_part_id }}">
+                                    <td class="px-3 py-3 flex items-center gap-2">
+                                        <span class="status-badge {{ $row->status }}" id="status-badge-{{ $rowKey }}">
                                             @if($row->status === 'completed')
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd"
@@ -243,6 +248,11 @@
                                             @endif
                                             {{ ucfirst($row->status) }}
                                         </span>
+                                        @if($rowSource === 'po')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                                                PO: {{ $row->po_no ?? 'N/A' }}
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-3 py-3 text-indigo-700 font-mono font-bold whitespace-nowrap">{{ $row->part_no }}
                                     </td>
@@ -256,10 +266,11 @@
                                     </td>
                                     <td class="px-3 py-3 text-center bg-emerald-50/50">
                                         <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
-                                            class="pick-input" data-part-id="{{ $row->gci_part_id }}" onchange="savePick(this)"
-                                            id="pick-input-{{ $row->gci_part_id }}">
+                                            class="pick-input" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}" 
+                                            data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}" onchange="savePick(this)"
+                                            id="pick-input-{{ $rowKey }}">
                                     </td>
-                                    <td class="px-3 py-3 text-right font-bold" id="remaining-{{ $row->gci_part_id }}">
+                                    <td class="px-3 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
                                         <span class="{{ $row->qty_remaining > 0 ? 'text-amber-600' : 'text-green-700' }}">
                                             {{ number_format($row->qty_remaining) }}
                                         </span>
@@ -267,23 +278,23 @@
                                     <td class="px-3 py-3">
                                         <div class="flex items-center gap-2">
                                             <div class="progress-bar-bg flex-1 min-w-[60px]">
-                                                <div class="progress-bar-fill" id="progress-{{ $row->gci_part_id }}"
+                                                <div class="progress-bar-fill" id="progress-{{ $rowKey }}"
                                                     style="width: {{ $row->progress_percent }}%; background: {{ $row->progress_percent >= 100 ? '#16a34a' : ($row->progress_percent > 0 ? '#f59e0b' : '#e2e8f0') }};">
                                                 </div>
                                             </div>
                                             <span class="text-[10px] font-bold text-slate-500 w-10 tabular-nums"
-                                                id="pct-{{ $row->gci_part_id }}">{{ $row->progress_percent }}%</span>
+                                                id="pct-{{ $rowKey }}">{{ $row->progress_percent }}%</span>
                                         </div>
                                     </td>
                                     <td class="px-3 py-3">
                                         <input type="text" value="{{ $row->pick_location }}" placeholder="Loc..."
                                             class="border border-slate-200 rounded-lg px-2 py-1 text-xs w-20 focus:outline-none focus:border-indigo-400"
-                                            data-part-id="{{ $row->gci_part_id }}"
-                                            onchange="savePick(document.getElementById('pick-input-{{ $row->gci_part_id }}'))"
-                                            id="loc-{{ $row->gci_part_id }}">
+                                            data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}"
+                                            onchange="savePick(document.getElementById('pick-input-{{ $rowKey }}'))"
+                                            id="loc-{{ $rowKey }}">
                                     </td>
                                     <td class="px-3 py-3 text-slate-500 text-[10px]">
-                                        <span id="picker-{{ $row->gci_part_id }}">{{ $row->picked_by_name ?? '-' }}</span>
+                                        <span id="picker-{{ $rowKey }}">{{ $row->picked_by_name ?? '-' }}</span>
                                     </td>
                                 </tr>
                             @endforeach
@@ -331,9 +342,12 @@
 
         async function savePick(input) {
             const partId = input.dataset.partId;
+            const source = input.dataset.source || 'daily_plan';
+            const poItemId = input.dataset.poItemId || null;
+            const rowKey = partId + '-' + source;
             const qtyPicked = parseInt(input.value) || 0;
-            const qtyPlan = parseInt(document.getElementById(`row-${partId}`).dataset.qtyPlan) || 0;
-            const location = document.getElementById(`loc-${partId}`)?.value || '';
+            const qtyPlan = parseInt(document.getElementById(`row-${rowKey}`).dataset.qtyPlan) || 0;
+            const location = document.getElementById(`loc-${rowKey}`)?.value || '';
 
             input.style.background = '#fef9c3';
 
@@ -348,6 +362,8 @@
                     body: JSON.stringify({
                         delivery_date: DELIVERY_DATE,
                         gci_part_id: partId,
+                        source: source,
+                        outgoing_po_item_id: poItemId,
                         qty_picked: qtyPicked,
                         pick_location: location,
                     })
@@ -359,7 +375,7 @@
                     input.style.background = '#dcfce7';
 
                     // Update remaining
-                    const remEl = document.getElementById(`remaining-${partId}`);
+                    const remEl = document.getElementById(`remaining-${rowKey}`);
                     if (remEl) {
                         const span = remEl.querySelector('span');
                         span.textContent = data.qty_remaining.toLocaleString();
@@ -367,16 +383,16 @@
                     }
 
                     // Update progress bar
-                    const progEl = document.getElementById(`progress-${partId}`);
+                    const progEl = document.getElementById(`progress-${rowKey}`);
                     if (progEl) {
                         progEl.style.width = data.progress_percent + '%';
                         progEl.style.background = data.progress_percent >= 100 ? '#16a34a' : (data.progress_percent > 0 ? '#f59e0b' : '#e2e8f0');
                     }
-                    const pctEl = document.getElementById(`pct-${partId}`);
+                    const pctEl = document.getElementById(`pct-${rowKey}`);
                     if (pctEl) pctEl.textContent = data.progress_percent + '%';
 
                     // Update status badge
-                    const badgeEl = document.getElementById(`status-badge-${partId}`);
+                    const badgeEl = document.getElementById(`status-badge-${rowKey}`);
                     if (badgeEl) {
                         badgeEl.className = `status-badge ${data.status}`;
                         badgeEl.innerHTML = data.status === 'completed'
@@ -385,7 +401,7 @@
                     }
 
                     // Update row class
-                    const rowEl = document.getElementById(`row-${partId}`);
+                    const rowEl = document.getElementById(`row-${rowKey}`);
                     if (rowEl) {
                         rowEl.classList.remove('status-pending', 'status-picking', 'status-completed');
                         rowEl.classList.add(`status-${data.status}`);

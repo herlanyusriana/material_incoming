@@ -11,6 +11,8 @@ class OutgoingPickingFg extends Model
     protected $fillable = [
         'delivery_date',
         'gci_part_id',
+        'source',
+        'outgoing_po_item_id',
         'qty_plan',
         'qty_picked',
         'status',
@@ -29,6 +31,11 @@ class OutgoingPickingFg extends Model
     public function part()
     {
         return $this->belongsTo(GciPart::class, 'gci_part_id');
+    }
+
+    public function outgoingPoItem()
+    {
+        return $this->belongsTo(OutgoingPoItem::class);
     }
 
     public function picker()

@@ -117,6 +117,9 @@
 
                                     <td
                                         class="px-3 py-3 text-center text-xs font-bold text-slate-700 border-x border-slate-100">
+                                        @if(($req->source ?? '') === 'po')
+                                            <span class="inline-block bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded">PO</span>
+                                        @endif
                                         {{ $req->gci_part?->standardPacking?->delivery_class ?: '-' }}
                                     </td>
 
@@ -142,6 +145,9 @@
 
                                     <td class="px-4 py-3 text-right font-bold text-slate-900 border-x border-slate-100">
                                         {{ number_format($req->gross_qty ?? 0) }}
+                                        @if(($req->source ?? '') === 'po' && ($req->po_no ?? null))
+                                            <div class="text-[10px] text-amber-600 font-semibold">{{ $req->po_no }}</div>
+                                        @endif
                                     </td>
 
                                     <td class="px-4 py-3 text-right border-x border-slate-100">

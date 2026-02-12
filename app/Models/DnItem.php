@@ -13,6 +13,7 @@ class DnItem extends Model
         'dn_id',
         'gci_part_id',
         'customer_po_id',
+        'outgoing_po_item_id',
         'qty',
         'picked_qty',
         'picked_at',
@@ -42,5 +43,10 @@ class DnItem extends Model
     public function picker()
     {
         return $this->belongsTo(User::class, 'picked_by');
+    }
+
+    public function outgoingPoItem()
+    {
+        return $this->belongsTo(OutgoingPoItem::class);
     }
 }
