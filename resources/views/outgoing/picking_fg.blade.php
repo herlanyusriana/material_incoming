@@ -202,9 +202,6 @@
                                     Status</th>
                                 <th
                                     class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[120px]">
-                                    Sales Order</th>
-                                <th
-                                    class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[120px]">
                                     Part No.</th>
                                 <th
                                     class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[180px]">
@@ -230,16 +227,44 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @php $lastSo = null; @endphp
                             @foreach($rows as $idx => $row)
                                 @php
                                     $rowKey = $row->id;
+                                    $currentSo = $row->so_no ?? ($row->source === 'po' ? 'PO: ' . ($row->po_no ?? 'N/A') : 'Daily Plan');
                                 @endphp
+
+                                @if($currentSo !== $lastSo)
+                                    <tr class="bg-indigo-50/50 border-y border-indigo-100">
+                                        <td colspan="12" class="px-4 py-2.5">
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="h-6 w-1 bg-indigo-500 rounded-full"></span>
+                                                    <span class="text-xs font-black text-indigo-900 uppercase tracking-widest">
+                                                        @if($row->so_no)
+                                                            Sales Order: <span class="bg-indigo-600 text-white px-2 py-0.5 rounded ml-1">{{ $row->so_no }}</span>
+                                                            @if($row->trip_no)
+                                                                <span class="ml-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded border border-orange-200 text-[10px]">TRIP {{ $row->trip_no }}</span>
+                                                            @endif
+                                                        @elseif($row->source === 'po')
+                                                            PO: <span class="bg-amber-500 text-white px-2 py-0.5 rounded ml-1">{{ $row->po_no ?? 'N/A' }}</span>
+                                                        @else
+                                                            <span class="text-slate-500 italic">Daily Plan (Legacy)</span>
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @php $lastSo = $currentSo; @endphp
+                                @endif
+
                                 <tr class="pick-row status-{{ $row->status }} border-b border-slate-100"
                                     id="row-{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $row->source }}"
                                     data-sales-order-id="{{ $row->sales_order_id }}"
                                     data-qty-plan="{{ $row->qty_plan }}">
-                                    <td class="px-3 py-3 text-slate-500 font-semibold">{{ $idx + 1 }}</td>
-                                    <td class="px-3 py-3 flex items-center gap-2">
+                                    <td class="px-3 py-3 text-slate-500 font-semibold text-center">{{ $idx + 1 }}</td>
+                                    <td class="px-3 py-3">
                                         <span class="status-badge {{ $row->status }}" id="status-badge-{{ $rowKey }}">
                                             @if($row->status === 'completed')
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -250,20 +275,6 @@
                                             @endif
                                             {{ ucfirst($row->status) }}
                                         </span>
-                                    </td>
-                                    <td class="px-3 py-3">
-                                        @if($row->so_no)
-                                            <div class="font-bold text-slate-900">{{ $row->so_no }}</div>
-                                            @if($row->trip_no)
-                                                <div class="text-[10px] font-black text-orange-600 uppercase">Trip {{ $row->trip_no }}</div>
-                                            @endif
-                                        @elseif($row->source === 'po')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
-                                                PO: {{ $row->po_no ?? 'N/A' }}
-                                            </span>
-                                        @else
-                                            <span class="text-slate-400 italic">Daily Plan</span>
-                                        @endif
                                     </td>
                                     <td class="px-3 py-3 text-indigo-700 font-mono font-bold whitespace-nowrap">{{ $row->part_no }}
                                     </td>
@@ -300,7 +311,8 @@
                                     <td class="px-3 py-3">
                                         <input type="text" value="{{ $row->pick_location }}" placeholder="Loc..."
                                             class="border border-slate-200 rounded-lg px-2 py-1 text-xs w-20 focus:outline-none focus:border-indigo-400"
-                                            data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}"
+                                            data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" 
+                                            data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}"
                                             onchange="savePick(document.getElementById('pick-input-{{ $rowKey }}'))"
                                             id="loc-{{ $rowKey }}">
                                     </td>
