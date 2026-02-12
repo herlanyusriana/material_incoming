@@ -4,7 +4,7 @@
     </x-slot>
 
     @php
-        $partsPayload = collect($parts)->map(fn ($p) => [
+        $partsPayload = collect($parts)->map(fn($p) => [
             'id' => $p->id,
             'vendor_id' => $p->vendor_id,
             'price' => $p->price,
@@ -27,14 +27,22 @@
                 </div>
             @endif
 
+            @php
+                $initialItems = old('items', [
+                    ['part_id' => '', 'size' => '', 'qty_goods' => 0, 'unit_goods' => 'PCS', 'price' => 0]
+                ]);
+            @endphp
+
             <form action="{{ route('local-pos.store') }}" method="POST" enctype="multipart/form-data"
-                class="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 space-y-8" id="local-po-form">
+                class="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 space-y-8" id="local-po-form"
+                x-data="localPoCreate()">
                 @csrf
 
                 <div class="flex items-center justify-between pb-6 border-b border-slate-200">
                     <div>
                         <h3 class="text-xl font-bold text-slate-900">Local PO (Updated)</h3>
-                        <p class="text-sm text-slate-600 mt-1">Buat PO lokal tanpa proses Departure, lalu langsung Receive.</p>
+                        <p class="text-sm text-slate-600 mt-1">Buat PO lokal tanpa proses Departure, lalu langsung
+                            Receive.</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('local-pos.index') }}"
@@ -45,10 +53,11 @@
                 <div class="grid md:grid-cols-4 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-sm font-semibold text-slate-700">Vendor (LOCAL)</label>
-                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200" required id="vendor-select">
-                            <option value="" disabled @selected(old('vendor_id') === null || old('vendor_id') === '')>Select vendor</option>
+                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200" required
+                            x-model="vendor_id">
+                            <option value="" disabled>Select vendor</option>
                             @foreach ($vendors as $v)
-                                <option value="{{ $v->id }}" @selected((string) old('vendor_id') === (string) $v->id)>{{ $v->vendor_name }}</option>
+                                <option value="{{ $v->id }}">{{ $v->vendor_name }}</option>
                             @endforeach
                         </select>
                         @error('vendor_id') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
@@ -57,14 +66,15 @@
                     <div>
                         <label class="text-sm font-semibold text-slate-700">PO No</label>
                         <input type="text" name="po_no" value="{{ old('po_no') }}"
-                            class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="PO-LOCAL-001" required>
+                            class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="PO-LOCAL-001"
+                            required>
                         @error('po_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label class="text-sm font-semibold text-slate-700">PO Date</label>
                         <input type="date" name="po_date" value="{{ old('po_date', now()->toDateString()) }}"
-                            class="mt-1 w-full rounded-xl bor   der-slate-200" required>
+                            class="mt-1 w-full rounded-xl border-slate-200" required>
                         @error('po_date') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -90,14 +100,16 @@
                 <div class="bg-white rounded-xl p-6 border border-slate-200 space-y-4">
                     <div class="flex items-center justify-between">
                         <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Items</h4>
-                        <button type="button" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold" id="add-item-btn">+ Add Item</button>
+                        <button type="button"
+                            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                            @click="addItem()">+ Add Item</button>
                     </div>
 
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm" id="items-table">
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl min-h-[200px]">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                    <th class="px-4 py-3 text-left font-semibold">Part</th>
+                                    <th class="px-4 py-3 text-left font-semibold w-72">Part</th>
                                     <th class="px-4 py-3 text-left font-semibold">Size</th>
                                     <th class="px-4 py-3 text-right font-semibold">Qty Goods</th>
                                     <th class="px-4 py-3 text-right font-semibold">Price per UOM (IDR)</th>
@@ -105,40 +117,142 @@
                                 </tr>
                             </thead>
 
-                            <tbody class="divide-y divide-slate-100" id="items-tbody">
-                                <tr class="hover:bg-slate-50">
-                                    <td class="px-4 py-3">
-                                        <select name="items[0][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select data-old="{{ old('items.0.part_id') }}">
-                                            <option value="" disabled selected>Select vendor first</option>
-                                        </select>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <input type="text" name="items[0][size]" class="w-40 rounded-xl border-slate-200 uppercase"
-                                            placeholder="0.7 X 530 X C" value="{{ old('items.0.size') }}">
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center justify-end gap-2">
-                                            <input type="number" name="items[0][qty_goods]" min="0" step="1"
-                                                value="{{ old('items.0.qty_goods', 0) }}" class="w-24 text-right rounded-xl border-slate-200" required>
-                                            <select name="items[0][unit_goods]" class="w-24 rounded-xl border-slate-200" required>
-                                                <option value="PCS">PCS</option>
-                                                <option value="COIL">COIL</option>
-                                                <option value="SHEET">SHEET</option>
-                                                <option value="SET">SET</option>
-                                                <option value="EA">EA</option>
-                                                <option value="ROLL">ROLL</option>
-                                                <option value="KGM">KGM</option>
-                                            </select>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <input type="number" name="items[0][price]" step="0.01" min="0"
-                                            value="{{ old('items.0.price', 0) }}" class="w-32 text-right rounded-xl border-slate-200" placeholder="0">
-                                    </td>
-                                    <td class="px-4 py-3 text-right">
-                                        <button type="button" class="text-red-600 hover:text-red-800 font-semibold remove-item" disabled>Remove</button>
-                                    </td>
-                                </tr>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="(item, index) in items" :key="index">
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-4 py-3">
+                                            <!-- Custom Dropdown with Teleport -->
+                                            <div x-data="{
+                                                open: false,
+                                                search: '',
+                                                trigger: null,
+                                                dropdown: null,
+                                                get filteredParts() {
+                                                    if (!vendor_id) return [];
+                                                    if (this.search === '') return parts.filter(p => p.vendor_id == vendor_id);
+                                                    return parts.filter(p => p.vendor_id == vendor_id && p.label.toLowerCase().includes(this.search.toLowerCase()));
+                                                },
+                                                get selectedLabel() {
+                                                    if (!vendor_id) return 'Select vendor first';
+                                                    let p = parts.find(p => p.id == item.part_id);
+                                                    return p ? p.label : 'Select part';
+                                                },
+                                                init() {
+                                                    this.trigger = this.$refs.trigger;
+                                                },
+                                                toggle() {
+                                                    if (!vendor_id) return;
+                                                    this.open = !this.open;
+                                                    if (this.open) {
+                                                        this.$nextTick(() => this.updatePosition());
+                                                    }
+                                                },
+                                                updatePosition() {
+                                                    if (!this.open) return;
+                                                    const rect = this.trigger.getBoundingClientRect();
+                                                    this.dropdown = this.$refs.dropdown;
+                                                    
+                                                    this.dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+                                                    this.dropdown.style.left = (rect.left + window.scrollX) + 'px';
+                                                    this.dropdown.style.width = rect.width + 'px';
+                                                },
+                                                select(id) {
+                                                    item.part_id = id;
+                                                    this.open = false;
+                                                    this.search = '';
+                                                    onPartChange(item);
+                                                }
+                                            }" @resize.window="updatePosition()" @scroll.window="updatePosition()">
+                                                <input type="hidden" :name="`items[${index}][part_id]`"
+                                                    x-model="item.part_id">
+
+                                                <button type="button" x-ref="trigger"
+                                                    class="w-full text-left bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between"
+                                                    :class="{'opacity-50 cursor-not-allowed': !vendor_id}"
+                                                    @click="toggle()">
+                                                    <span class="block truncate" x-text="selectedLabel"></span>
+                                                    <svg class="h-5 w-5 text-gray-400"
+                                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                        fill="currentColor">
+                                                        <path fill-rule="evenodd"
+                                                            d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </button>
+
+                                                <template x-teleport="body">
+                                                    <div x-show="open" x-ref="dropdown" @click.outside="open = false"
+                                                        class="absolute z-[9999] bg-white shadow-xl border border-slate-200 rounded-xl py-1 overflow-auto max-h-60"
+                                                        style="display: none;">
+
+                                                        <div
+                                                            class="sticky top-0 z-10 bg-white px-2 py-1.5 border-b border-slate-100">
+                                                            <input type="text" x-model="search"
+                                                                class="w-full border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
+                                                                placeholder="Search part..." @click.stop>
+                                                        </div>
+
+                                                        <template x-for="p in filteredParts" :key="p.id">
+                                                            <div class="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-indigo-50 text-slate-900"
+                                                                @click="select(p.id)">
+                                                                <span class="block truncate text-xs" x-text="p.label"
+                                                                    :class="{ 'font-semibold': item.part_id == p.id, 'font-normal': item.part_id != p.id }"></span>
+
+                                                                <span x-show="item.part_id == p.id"
+                                                                    class="text-indigo-600 absolute inset-y-0 right-0 flex items-center pr-4">
+                                                                    <svg class="h-5 w-5"
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path fill-rule="evenodd"
+                                                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L8.586 13.586l7.293-7.293a1 1 0 011.414 0z"
+                                                                            clip-rule="evenodd" />
+                                                                    </svg>
+                                                                </span>
+                                                            </div>
+                                                        </template>
+
+                                                        <div x-show="filteredParts.length === 0"
+                                                            class="cursor-default select-none relative py-2 pl-3 pr-9 text-slate-500 italic text-xs">
+                                                            No part found
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" :name="`items[${index}][size]`" x-model="item.size"
+                                                class="w-40 rounded-xl border-slate-200 uppercase"
+                                                placeholder="0.7 X 530 X C">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <input type="number" :name="`items[${index}][qty_goods]`" min="0"
+                                                    step="1" x-model="item.qty_goods"
+                                                    class="w-24 text-right rounded-xl border-slate-200" required>
+                                                <select :name="`items[${index}][unit_goods]`" x-model="item.unit_goods"
+                                                    class="w-24 rounded-xl border-slate-200" required>
+                                                    <option value="PCS">PCS</option>
+                                                    <option value="COIL">COIL</option>
+                                                    <option value="SHEET">SHEET</option>
+                                                    <option value="SET">SET</option>
+                                                    <option value="EA">EA</option>
+                                                    <option value="ROLL">ROLL</option>
+                                                    <option value="KGM">KGM</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="number" :name="`items[${index}][price]`" step="0.01" min="0"
+                                                x-model="item.price" class="w-32 text-right rounded-xl border-slate-200"
+                                                placeholder="0">
+                                        </td>
+                                        <td class="px-4 py-3 text-right">
+                                            <button type="button" class="text-red-600 hover:text-red-800 font-semibold"
+                                                @click="removeItem(index)" :disabled="items.length <= 1"
+                                                :class="{'opacity-50 cursor-not-allowed': items.length <= 1}">Remove</button>
+                                        </td>
+                                    </tr>
+                                </template>
                             </tbody>
                         </table>
                     </div>
@@ -159,150 +273,44 @@
     </div>
 
     <script>
-        (function () {
-            const vendorSelect = document.getElementById('vendor-select');
-            const tbody = document.getElementById('items-tbody');
-            const addBtn = document.getElementById('add-item-btn');
-            let idx = 1;
+        function localPoCreate() {
+            return {
+                vendor_id: @js(old('vendor_id', '')),
+                parts: @js($partsPayload),
+                items: @js($initialItems),
 
-            const parts = {{ \Illuminate\Support\Js::from($partsPayload) }};
+                init() {
+                    // Ensure at least one item
+                    if (this.items.length === 0) this.addItem();
+                },
 
-            function setPartsOptions(selectEl) {
-                if (!selectEl) return;
-                const vendorId = vendorSelect.value ? Number(vendorSelect.value) : null;
-                const current = selectEl.value;
-                const desired = selectEl.dataset.old && String(selectEl.dataset.old).trim() !== '' ? String(selectEl.dataset.old).trim() : current;
+                addItem() {
+                    this.items.push({
+                        part_id: '',
+                        size: '',
+                        qty_goods: 0,
+                        unit_goods: 'PCS',
+                        price: 0
+                    });
+                },
 
-                selectEl.innerHTML = '';
-
-                const placeholder = document.createElement('option');
-                placeholder.value = '';
-                placeholder.disabled = true;
-                placeholder.selected = true;
-                placeholder.textContent = vendorId ? 'Select part' : 'Select vendor first';
-                selectEl.appendChild(placeholder);
-
-                if (!vendorId) return;
-
-                const list = parts.filter(p => Number(p.vendor_id) === vendorId);
-                list.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = String(p.id);
-                    opt.textContent = p.label;
-                    selectEl.appendChild(opt);
-                });
-
-                if (desired) {
-                    const exists = Array.from(selectEl.options).some(o => o.value === desired);
-                    if (exists) {
-                        selectEl.value = desired;
-                        delete selectEl.dataset.old;
+                removeItem(index) {
+                    if (this.items.length > 1) {
+                        this.items.splice(index, 1);
                     }
-                }
-            }
+                },
 
-            function bindRemoveButtons() {
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                rows.forEach((row) => {
-                    const btn = row.querySelector('.remove-item');
-                    if (!btn) return;
-                    btn.disabled = rows.length === 1;
-                });
-            }
-
-            function addRow() {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-slate-50';
-                row.innerHTML = `
-                    <td class="px-4 py-3">
-                        <select name="items[${idx}][part_id]" class="w-72 rounded-xl border-slate-200" required data-part-select data-old="">
-                            <option value="" disabled selected>Select vendor first</option>
-                        </select>
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="text" name="items[${idx}][size]" class="w-40 rounded-xl border-slate-200 uppercase" placeholder="0.7 X 530 X C">
-                    </td>
-                    <td class="px-4 py-3">
-                        <div class="flex items-center justify-end gap-2">
-                            <input type="number" name="items[${idx}][qty_goods]" min="0" step="1" value="0" class="w-24 text-right rounded-xl border-slate-200" required>
-                            <select name="items[${idx}][unit_goods]" class="w-24 rounded-xl border-slate-200" required>
-                                <option value="PCS">PCS</option>
-                                <option value="COIL">COIL</option>
-                                <option value="SHEET">SHEET</option>
-                                <option value="SET">SET</option>
-                                <option value="EA">EA</option>
-                                <option value="ROLL">ROLL</option>
-                                <option value="KGM">KGM</option>
-                            </select>
-                        </div>
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="number" name="items[${idx}][price]" step="0.01" min="0" value="0" class="w-32 text-right rounded-xl border-slate-200" placeholder="0">
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                        <button type="button" class="text-red-600 hover:text-red-800 font-semibold remove-item">Remove</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-                idx++;
-
-                setPartsOptions(row.querySelector('select[data-part-select]'));
-                bindRemoveButtons();
-
-                row.querySelector('.remove-item')?.addEventListener('click', () => {
-                    row.remove();
-                    bindRemoveButtons();
-                });
-            }
-
-            vendorSelect?.addEventListener('change', () => {
-                tbody.querySelectorAll('select[data-part-select]').forEach(sel => setPartsOptions(sel));
-            });
-
-            // Auto-fill price, size and uom when part is selected
-            tbody.addEventListener('change', (e) => {
-                if (e.target && e.target.matches('select[data-part-select]')) {
-                    const row = e.target.closest('tr');
-                    const partId = e.target.value;
-                    const part = parts.find(p => String(p.id) === String(partId));
-                    if (part && row) {
-                        // Fill size if available
-                        if (part.size) {
-                            const sizeInput = row.querySelector('input[name*="[size]"]');
-                            if (sizeInput) sizeInput.value = part.size.toUpperCase();
-                        }
-                        // Fill price if available
-                        if (part.price) {
-                            const priceInput = row.querySelector('input[name*="[price]"]');
-                            if (priceInput) priceInput.value = part.price;
-                        }
-                        // Select unit_goods if matches uom
+                onPartChange(item) {
+                    const part = this.parts.find(p => String(p.id) === String(item.part_id));
+                    if (part) {
+                        item.size = part.size ? part.size.toUpperCase() : '';
+                        item.price = part.price || 0;
                         if (part.uom) {
-                            const uomSelect = row.querySelector('select[name*="[unit_goods]"]');
-                            if (uomSelect) {
-                                // check if option exists
-                                const exists = Array.from(uomSelect.options).some(o => o.value === part.uom.toUpperCase());
-                                if (exists) uomSelect.value = part.uom.toUpperCase();
-                            }
+                            item.unit_goods = part.uom.toUpperCase();
                         }
                     }
                 }
-            });
-
-            addBtn?.addEventListener('click', addRow);
-
-            document.querySelectorAll('.remove-item').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const row = e.target.closest('tr');
-                    if (!row) return;
-                    if (tbody.querySelectorAll('tr').length <= 1) return;
-                    row.remove();
-                    bindRemoveButtons();
-                });
-            });
-
-            tbody.querySelectorAll('select[data-part-select]').forEach(sel => setPartsOptions(sel));
-            bindRemoveButtons();
-        })();
+            }
+        }
     </script>
 </x-app-layout>
