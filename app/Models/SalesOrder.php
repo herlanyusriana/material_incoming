@@ -17,6 +17,7 @@ class SalesOrder extends Model
         'notes',
         'delivery_plan_id',
         'delivery_stop_id',
+        'trip_no',
         'created_by',
     ];
 

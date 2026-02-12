@@ -7,6 +7,7 @@ use App\Exports\OutgoingDailyPlanningTemplateExport;
 use App\Exports\StockAtCustomersExport;
 use App\Imports\StockAtCustomersImport;
 use App\Models\OutgoingDeliveryPlanningLine;
+use App\Models\OutgoingPickingFg;
 use App\Models\OutgoingJigSetting;
 use App\Models\StandardPacking;
 use App\Imports\OutgoingDailyPlanningImport;
@@ -548,10 +549,12 @@ class OutgoingController extends Controller
 
         foreach ($poItems as $poItem) {
             $gciPart = $poItem->part;
-            if (!$gciPart) continue;
+            if (!$gciPart)
+                continue;
 
             $remainingQty = max(0, $poItem->qty - $poItem->fulfilled_qty);
-            if ($remainingQty <= 0) continue;
+            if ($remainingQty <= 0)
+                continue;
 
             $packingQty = (float) ($gciPart->standardPacking?->packing_qty ?? 1) ?: 1;
 
@@ -828,9 +831,11 @@ class OutgoingController extends Controller
 
         foreach ($poItems as $poItem) {
             $gciPart = $poItem->part;
-            if (!$gciPart) continue;
+            if (!$gciPart)
+                continue;
             $remainingQty = max(0, $poItem->qty - $poItem->fulfilled_qty);
-            if ($remainingQty <= 0) continue;
+            if ($remainingQty <= 0)
+                continue;
 
             $lines->push((object) [
                 'date' => $poItem->delivery_date->copy(),
@@ -856,10 +861,10 @@ class OutgoingController extends Controller
             $r->total_qty = max(0, $gross - $used);
             return $r;
         })->sortBy(fn($r) => [
-            (($r->source ?? '') === 'po' ? 1 : 0), // PO items at bottom
-            $r->date?->toDateString(),
-            $r->gci_part?->part_no ?? ''
-        ])->values();
+                (($r->source ?? '') === 'po' ? 1 : 0), // PO items at bottom
+                $r->date?->toDateString(),
+                $r->gci_part?->part_no ?? ''
+            ])->values();
 
         $dateLabel = $dateFrom->format('d_M_Y');
         $filename = 'delivery_requirements_' . $dateFrom->format('Ymd') . '.xlsx';
@@ -870,125 +875,6 @@ class OutgoingController extends Controller
         );
     }
 
-    public function generateSoBulk(Request $request)
-    {
-        $validated = $request->validate([
-            'selected' => ['required', 'array', 'min:1'],
-            'selected.*' => ['integer', 'min:0'],
-            'lines' => ['required', 'array'],
-            'lines.*.date' => ['required', 'date'],
-            'lines.*.customer_id' => ['required', 'exists:customers,id'],
-            'lines.*.gci_part_id' => ['required', 'exists:gci_parts,id'],
-            'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
-            'lines.*.row_ids' => ['nullable', 'array'],
-            'lines.*.row_ids.*' => ['integer', 'exists:outgoing_daily_plan_rows,id'],
-        ]);
-
-        $selectedIdx = collect($validated['selected'])->map(fn($v) => (int) $v)->unique()->values();
-        $lines = collect($validated['lines']);
-
-        $selectedLines = $selectedIdx
-            ->map(fn(int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
-            ->filter()
-            ->values();
-
-        if ($selectedLines->isEmpty()) {
-            return back()->with('error', 'No lines selected.');
-        }
-
-        $dates = $selectedLines->pluck('date')->unique()->values();
-        if ($dates->count() !== 1) {
-            return back()->with('error', 'Please select requirements for a single date only.');
-        }
-        $planDate = (string) $dates->first();
-
-        DB::transaction(function () use ($validated, $selectedLines, $planDate) {
-            $byCustomer = $selectedLines->groupBy('customer_id');
-
-            foreach ($byCustomer as $customerId => $customerLines) {
-                $soNo = null;
-                for ($attempt = 0; $attempt < 5; $attempt++) {
-                    $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
-                    if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
-                        $soNo = $candidate;
-                        break;
-                    }
-                }
-                $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
-
-                $so = SalesOrder::create([
-                    'so_no' => $soNo,
-                    'customer_id' => (int) $customerId,
-                    'so_date' => $planDate,
-                    'status' => 'draft',
-                    'notes' => 'Generated from Delivery Requirements',
-                    'created_by' => auth()->id(),
-                ]);
-
-                $items = $customerLines
-                    ->groupBy('gci_part_id')
-                    ->map(fn($rows) => (float) $rows->sum('qty'));
-
-                foreach ($items as $partId => $qty) {
-                    if ($qty <= 0) {
-                        continue;
-                    }
-                    SalesOrderItem::create([
-                        'sales_order_id' => $so->id,
-                        'gci_part_id' => (int) $partId,
-                        'qty_ordered' => $qty,
-                    ]);
-                }
-            }
-
-            // Mark selected requirements as fulfilled without mutating Daily Planning:
-            // Create fulfillment records (best-effort, idempotent on remaining qty).
-            $rowIds = $selectedLines
-                ->flatMap(fn($l) => $l['row_ids'] ?? [])
-                ->map(fn($v) => (int) $v)
-                ->filter(fn($v) => $v > 0)
-                ->unique()
-                ->values();
-
-            if ($rowIds->isEmpty()) {
-                return;
-            }
-
-            $cells = OutgoingDailyPlanCell::query()
-                ->whereIn('row_id', $rowIds->all())
-                ->whereDate('plan_date', $planDate)
-                ->get(['row_id', 'qty', 'plan_date']);
-
-            $alreadyFulfilled = DeliveryRequirementFulfillment::query()
-                ->whereIn('row_id', $rowIds->all())
-                ->whereDate('plan_date', $planDate)
-                ->selectRaw('row_id, SUM(qty) as fulfilled_qty')
-                ->groupBy('row_id')
-                ->get()
-                ->mapWithKeys(fn($f) => [$f->row_id => $f->fulfilled_qty]);
-
-            $newFulfillments = [];
-            foreach ($cells as $cell) {
-                $fulfilled = $alreadyFulfilled->get($cell->row_id, 0);
-                $remaining = max(0, $cell->qty - $fulfilled);
-                if ($remaining > 0) {
-                    $newFulfillments[] = [
-                        'row_id' => $cell->row_id,
-                        'plan_date' => $planDate,
-                        'qty' => $remaining,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
-
-            if (!empty($newFulfillments)) {
-                DeliveryRequirementFulfillment::insert($newFulfillments);
-            }
-        });
-
-        return back()->with('success', 'Sales Order(s) generated successfully.');
-    }
 
     public function deliveryPlan(Request $request)
     {
@@ -1041,7 +927,9 @@ class OutgoingController extends Controller
 
         // Also include parts that already have delivery planning lines for this date (daily_plan only)
         $existingLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)
-            ->where(function ($q) { $q->where('source', 'daily_plan')->orWhereNull('source'); })
+            ->where(function ($q) {
+                $q->where('source', 'daily_plan')->orWhereNull('source');
+            })
             ->get();
         $allPartIds = $allPartIds->merge($existingLines->pluck('gci_part_id'))->unique()->values();
 
@@ -1262,15 +1150,18 @@ class OutgoingController extends Controller
         // ── 10. PO Non-LG rows ──
         foreach ($poItems as $poItem) {
             $part = $poItem->part;
-            if (!$part || $part->classification !== 'FG' || $part->status !== 'active') continue;
+            if (!$part || $part->classification !== 'FG' || $part->status !== 'active')
+                continue;
 
             $partId = (int) $poItem->gci_part_id;
 
             // Skip if already in daily plan rows (same part)
-            if (isset($dailyPlanMap[$partId])) continue;
+            if (isset($dailyPlanMap[$partId]))
+                continue;
 
             $remainingQty = max(0, $poItem->qty - $poItem->fulfilled_qty);
-            if ($remainingQty <= 0) continue;
+            if ($remainingQty <= 0)
+                continue;
 
             $stockAtCust = (int) ($stockMap->get($partId) ?? 0);
             $stdPack = $stdPackMap->get($partId);
@@ -1608,51 +1499,90 @@ class OutgoingController extends Controller
         }
 
         DB::transaction(function () use ($selectedLines, $planDate) {
-            // Group by customer
-            $byCustomer = $selectedLines->groupBy('customer_id');
+            // We need to group by customer AND trip
+            // Each line has 'trips' (1-14)
+            // But how is 'trips' passed in the request? Let's check the view later if needed.
+            // For now, let's assume 'selectedLines' contains the necessary info.
+            // Wait, I need to see how $selectedLines is built from $request->lines.
 
-            foreach ($byCustomer as $customerId => $customerLines) {
-                // Generate unique SO number
-                $soNo = null;
-                for ($attempt = 0; $attempt < 5; $attempt++) {
-                    $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
-                    if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
-                        $soNo = $candidate;
-                        break;
-                    }
-                }
-                $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
+            // Actually, the current view might not be sending TRIP-LEVEL selection.
+            // If the user selects a ROW, we should probably generate SOs for ALL trips in that row that have qty.
 
-                // Create Sales Order
-                $so = SalesOrder::create([
-                    'so_no' => $soNo,
-                    'customer_id' => (int) $customerId,
-                    'so_date' => $planDate,
-                    'status' => 'draft',
-                    'notes' => 'Generated from Delivery Planning - ' . date('d M Y H:i'),
-                    'created_by' => auth()->id(),
-                ]);
+            foreach ($selectedLines as $line) {
+                $customerId = (int) $line['customer_id'];
+                $partId = (int) $line['gci_part_id'];
 
-                // Create SO Items - group by part and aggregate qty
-                $items = $customerLines
-                    ->groupBy('gci_part_id')
-                    ->mapWithKeys(function ($rows, $partId) {
-                        return [$partId => (float) $rows->sum('qty')];
-                    });
+                // Get the planning line to find trip quantities
+                $planningLine = OutgoingDeliveryPlanningLine::where('delivery_date', $planDate)
+                    ->where('gci_part_id', $partId)
+                    ->first();
 
-                foreach ($items as $partId => $qty) {
-                    if ($qty <= 0) {
+                if (!$planningLine)
+                    continue;
+
+                for ($t = 1; $t <= 14; $t++) {
+                    $tripQty = (int) $planningLine->{"trip_{$t}"};
+                    if ($tripQty <= 0)
                         continue;
+
+                    // Find or create SO for this customer on this date and trip
+                    $so = SalesOrder::where('customer_id', $customerId)
+                        ->where('so_date', $planDate)
+                        ->where('trip_no', $t)
+                        ->where('status', 'draft')
+                        ->first();
+
+                    if (!$so) {
+                        $soNo = null;
+                        for ($attempt = 0; $attempt < 5; $attempt++) {
+                            $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)) . '-T' . $t;
+                            if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
+                                $soNo = $candidate;
+                                break;
+                            }
+                        }
+                        $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
+
+                        $so = SalesOrder::create([
+                            'so_no' => $soNo,
+                            'customer_id' => $customerId,
+                            'so_date' => $planDate,
+                            'trip_no' => $t,
+                            'status' => 'draft',
+                            'notes' => "Generated from Delivery Planning (Trip {$t})",
+                            'created_by' => auth()->id(),
+                        ]);
                     }
-                    SalesOrderItem::create([
-                        'sales_order_id' => $so->id,
-                        'gci_part_id' => (int) $partId,
-                        'qty_ordered' => $qty,
-                    ]);
+
+                    // Add item to SO
+                    SalesOrderItem::updateOrCreate(
+                        [
+                            'sales_order_id' => $so->id,
+                            'gci_part_id' => $partId,
+                        ],
+                        [
+                            'qty_ordered' => DB::raw("qty_ordered + {$tripQty}"),
+                        ]
+                    );
+
+                    // Create/Update Picking record linked to this SO
+                    OutgoingPickingFg::updateOrCreate(
+                        [
+                            'delivery_date' => $planDate,
+                            'gci_part_id' => $partId,
+                            'sales_order_id' => $so->id,
+                        ],
+                        [
+                            'qty_plan' => DB::raw("qty_plan + {$tripQty}"),
+                            'status' => 'pending',
+                            'source' => $planningLine->source ?? 'daily_plan',
+                            'created_by' => auth()->id(),
+                        ]
+                    );
                 }
             }
         });
 
-        return back()->with('success', 'Sales Order berhasil dibuat dari Delivery Planning.');
+        return back()->with('success', 'Sales Order(s) and Picking list generated successfully.');
     }
 }

@@ -202,6 +202,9 @@
                                     Status</th>
                                 <th
                                     class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[120px]">
+                                    Sales Order</th>
+                                <th
+                                    class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[120px]">
                                     Part No.</th>
                                 <th
                                     class="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 min-w-[180px]">
@@ -229,12 +232,11 @@
                         <tbody>
                             @foreach($rows as $idx => $row)
                                 @php
-                                    $rowSource = $row->source ?? 'daily_plan';
-                                    $rowKey = $row->gci_part_id . '-' . $rowSource;
+                                    $rowKey = $row->id;
                                 @endphp
                                 <tr class="pick-row status-{{ $row->status }} border-b border-slate-100"
-                                    id="row-{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}"
-                                    data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}"
+                                    id="row-{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $row->source }}"
+                                    data-sales-order-id="{{ $row->sales_order_id }}"
                                     data-qty-plan="{{ $row->qty_plan }}">
                                     <td class="px-3 py-3 text-slate-500 font-semibold">{{ $idx + 1 }}</td>
                                     <td class="px-3 py-3 flex items-center gap-2">
@@ -248,10 +250,19 @@
                                             @endif
                                             {{ ucfirst($row->status) }}
                                         </span>
-                                        @if($rowSource === 'po')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        @if($row->so_no)
+                                            <div class="font-bold text-slate-900">{{ $row->so_no }}</div>
+                                            @if($row->trip_no)
+                                                <div class="text-[10px] font-black text-orange-600 uppercase">Trip {{ $row->trip_no }}</div>
+                                            @endif
+                                        @elseif($row->source === 'po')
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
                                                 PO: {{ $row->po_no ?? 'N/A' }}
                                             </span>
+                                        @else
+                                            <span class="text-slate-400 italic">Daily Plan</span>
                                         @endif
                                     </td>
                                     <td class="px-3 py-3 text-indigo-700 font-mono font-bold whitespace-nowrap">{{ $row->part_no }}
@@ -266,9 +277,9 @@
                                     </td>
                                     <td class="px-3 py-3 text-center bg-emerald-50/50">
                                         <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
-                                            class="pick-input" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}" 
-                                            data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}" onchange="savePick(this)"
-                                            id="pick-input-{{ $rowKey }}">
+                                            class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" 
+                                            data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}" 
+                                            onchange="savePick(this)" id="pick-input-{{ $rowKey }}">
                                     </td>
                                     <td class="px-3 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
                                         <span class="{{ $row->qty_remaining > 0 ? 'text-amber-600' : 'text-green-700' }}">
@@ -341,10 +352,10 @@
         const DELIVERY_DATE = '{{ $selectedDate->toDateString() }}';
 
         async function savePick(input) {
+            const rowKey = input.dataset.rowKey;
             const partId = input.dataset.partId;
             const source = input.dataset.source || 'daily_plan';
-            const poItemId = input.dataset.poItemId || null;
-            const rowKey = partId + '-' + source;
+            const soId = input.dataset.salesOrderId || null;
             const qtyPicked = parseInt(input.value) || 0;
             const qtyPlan = parseInt(document.getElementById(`row-${rowKey}`).dataset.qtyPlan) || 0;
             const location = document.getElementById(`loc-${rowKey}`)?.value || '';
@@ -363,7 +374,7 @@
                         delivery_date: DELIVERY_DATE,
                         gci_part_id: partId,
                         source: source,
-                        outgoing_po_item_id: poItemId,
+                        sales_order_id: soId,
                         qty_picked: qtyPicked,
                         pick_location: location,
                     })

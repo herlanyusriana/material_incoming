@@ -19,7 +19,7 @@ class PickingFgApiController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
 
-        $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo'])
+        $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo', 'salesOrder'])
             ->where('delivery_date', $date)
             ->get();
 
@@ -41,6 +41,9 @@ class PickingFgApiController extends Controller
                     'progress' => $p->progress_percent,
                     'source' => $p->source ?? 'daily_plan',
                     'po_no' => $p->outgoingPoItem?->outgoingPo?->po_no,
+                    'sales_order_id' => $p->sales_order_id,
+                    'so_no' => $p->salesOrder?->so_no,
+                    'trip_no' => $p->salesOrder?->trip_no,
                 ];
             })
         ]);
@@ -56,6 +59,7 @@ class PickingFgApiController extends Controller
             'part_no' => 'required|string',
             'qty' => 'required|integer|min:1',
             'location' => 'nullable|string',
+            'sales_order_id' => 'nullable|integer|exists:sales_orders,id',
         ]);
 
         $part = GciPart::where('part_no', $request->part_no)->first();
@@ -63,30 +67,25 @@ class PickingFgApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
 
-        // Try to find existing pick (check all sources)
-        $pick = OutgoingPickingFg::where('delivery_date', $request->date)
-            ->where('gci_part_id', $part->id)
-            ->first();
+        // Try to find existing pick
+        $query = OutgoingPickingFg::where('delivery_date', $request->date)
+            ->where('gci_part_id', $part->id);
+
+        if ($request->sales_order_id) {
+            $query->where('sales_order_id', $request->sales_order_id);
+        }
+
+        $pick = $query->first();
 
         if (!$pick) {
-            // Maybe try to create it if it exists in delivery plan but not synced yet
-            $plan = OutgoingDeliveryPlanningLine::where('delivery_date', $request->date)
-                ->where('gci_part_id', $part->id)
-                ->first();
-
-            if ($plan && $plan->total_trips > 0) {
-                $pick = OutgoingPickingFg::create([
-                    'delivery_date' => $request->date,
-                    'gci_part_id' => $part->id,
-                    'source' => $plan->source ?? 'daily_plan',
-                    'outgoing_po_item_id' => $plan->outgoing_po_item_id,
-                    'qty_plan' => $plan->total_trips,
-                    'status' => 'pending',
-                    'created_by' => Auth::id(),
-                ]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Part not in delivery plan for this date'], 404);
+            // If sales_order_id was specifically requested but not found for that part
+            if ($request->sales_order_id) {
+                return response()->json(['success' => false, 'message' => 'Part not found in this Sales Order'], 404);
             }
+
+            // Fallback: maybe try to create it if it exists in delivery plan but not synced yet (deprecated approach now)
+            // But we already generate picks during SO generation, so this shouldn't happen much.
+            return response()->json(['success' => false, 'message' => 'Picking record not found'], 404);
         }
 
         $newQty = $pick->qty_picked + $request->qty;

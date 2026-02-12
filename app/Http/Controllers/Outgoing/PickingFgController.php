@@ -24,71 +24,53 @@ class PickingFgController extends Controller
             : now()->startOfDay();
         $dateStr = $selectedDate->toDateString();
 
-        // Get picking records for this date (all sources)
-        $picks = OutgoingPickingFg::with(['part', 'picker', 'outgoingPoItem.outgoingPo'])
-            ->where('delivery_date', $dateStr)
-            ->get()
-            ->keyBy(fn($p) => $p->gci_part_id . '|' . ($p->source ?? 'daily_plan'));
-
-        // Get delivery plan lines for this date (all sources)
-        $planLines = OutgoingDeliveryPlanningLine::with(['part', 'outgoingPoItem.outgoingPo'])
+        // Get picking records for this date (all sources, include SO)
+        $picks = OutgoingPickingFg::with(['part', 'picker', 'outgoingPoItem.outgoingPo', 'salesOrder'])
             ->where('delivery_date', $dateStr)
             ->get();
 
-        // Get FG inventory for available stock
-        $partIds = $planLines->pluck('gci_part_id')->merge($picks->pluck('gci_part_id'))->unique();
-        $inventoryMap = GciInventory::whereIn('gci_part_id', $partIds)
-            ->get()
-            ->keyBy('gci_part_id');
-
-        // Build display rows
-        $rows = collect();
-        foreach ($planLines as $line) {
-            $partId = (int) $line->gci_part_id;
-            $part = $line->part;
-            if (!$part || $part->classification !== 'FG')
-                continue;
-
-            $totalTrips = $line->total_trips;
-            if ($totalTrips <= 0)
-                continue;
-
-            $source = $line->source ?? 'daily_plan';
-            $pickKey = $partId . '|' . $source;
-            $pick = $picks->get($pickKey);
-            $inventory = $inventoryMap->get($partId);
-
+        // Build display rows from PICKS directly now, as we generate picks from Delivery Plan
+        $rows = $picks->map(function ($p) {
+            $part = $p->part;
+            $source = $p->source ?? 'daily_plan';
             $poNo = null;
             if ($source === 'po') {
-                $poNo = $line->outgoingPoItem?->outgoingPo?->po_no;
+                $poNo = $p->outgoingPoItem?->outgoingPo?->po_no;
             }
 
-            $rows->push((object) [
-                'gci_part_id' => $partId,
+            return (object) [
+                'id' => $p->id,
+                'gci_part_id' => $p->gci_part_id,
                 'part_no' => $part->part_no ?? '-',
                 'part_name' => $part->part_name ?? '-',
                 'model' => $part->model ?? '-',
-                'qty_plan' => $totalTrips,
-                'qty_picked' => $pick ? (int) $pick->qty_picked : 0,
-                'qty_remaining' => $pick ? $pick->qty_remaining : $totalTrips,
-                'status' => $pick ? $pick->status : 'pending',
-                'pick_location' => $pick->pick_location ?? null,
-                'picked_by_name' => $pick && $pick->picker ? $pick->picker->name : null,
-                'picked_at' => $pick ? $pick->picked_at : null,
-                'notes' => $pick->notes ?? null,
-                'stock_on_hand' => $inventory ? (int) $inventory->on_hand : 0,
-                'pick_id' => $pick?->id,
-                'progress_percent' => $pick ? $pick->progress_percent : 0,
+                'qty_plan' => (int) $p->qty_plan,
+                'qty_picked' => (int) $p->qty_picked,
+                'qty_remaining' => $p->qty_remaining,
+                'status' => $p->status,
+                'pick_location' => $p->pick_location,
+                'picked_by_name' => $p->picker ? $p->picker->name : null,
+                'picked_at' => $p->picked_at,
+                'notes' => $p->notes,
+                'stock_on_hand' => $p->part?->inventory?->on_hand ?? 0,
+                'pick_id' => $p->id,
+                'progress_percent' => $p->progress_percent,
                 'source' => $source,
-                'outgoing_po_item_id' => $line->outgoing_po_item_id,
+                'outgoing_po_item_id' => $p->outgoing_po_item_id,
                 'po_no' => $poNo,
-            ]);
-        }
+                'sales_order_id' => $p->sales_order_id,
+                'so_no' => $p->salesOrder?->so_no,
+                'trip_no' => $p->salesOrder?->trip_no,
+            ];
+        });
 
-        // Sort: pending first, then picking, then completed
+        // Sort: SO Number, سپس status, kemudian part name
         $statusOrder = ['pending' => 1, 'picking' => 2, 'completed' => 3];
-        $rows = $rows->sortBy(fn($r) => [$statusOrder[$r->status] ?? 4, $r->part_name])
-            ->values();
+        $rows = $rows->sortBy(fn($r) => [
+            $r->so_no ?? 'ZZZ',
+            $statusOrder[$r->status] ?? 4,
+            $r->part_name
+        ])->values();
 
         // Stats
         $stats = (object) [
@@ -164,20 +146,28 @@ class PickingFgController extends Controller
             'pick_location' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:500',
             'source' => 'nullable|string|in:daily_plan,po',
+            'sales_order_id' => 'nullable|integer|exists:sales_orders,id',
         ]);
 
         $dateStr = Carbon::parse($request->delivery_date)->toDateString();
         $source = $request->input('source', 'daily_plan');
 
-        $pick = OutgoingPickingFg::firstOrCreate(
-            [
-                'delivery_date' => $dateStr,
-                'gci_part_id' => $request->gci_part_id,
-                'source' => $source,
-            ],
+        $query = OutgoingPickingFg::where('delivery_date', $dateStr)
+            ->where('gci_part_id', $request->gci_part_id);
+
+        if ($request->sales_order_id) {
+            $query->where('sales_order_id', $request->sales_order_id);
+        } else {
+            $query->where('source', $source);
+        }
+
+        $pick = $query->firstOrCreate(
+            [], // Attributes already in query
             [
                 'qty_plan' => 0,
                 'created_by' => Auth::id(),
+                'sales_order_id' => $request->sales_order_id,
+                'source' => $source,
             ]
         );
 
