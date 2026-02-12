@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (!Schema::hasColumn('delivery_notes', 'driver_id')) {
             Schema::table('delivery_notes', function (Blueprint $table) {
-                $table->unsignedBigInteger('driver_id')->nullable()->after('truck_id');
+                $table->unsignedBigInteger('driver_id')->nullable();
                 $table->foreign('driver_id')->references('id')->on('users')->onDelete('set null');
             });
         }
