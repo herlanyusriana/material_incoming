@@ -543,7 +543,7 @@ class OutgoingController extends Controller
             ->whereNotNull('delivery_date')
             ->whereDate('delivery_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('delivery_date', '<=', $dateTo->format('Y-m-d'))
-            ->with(['part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->with(['part', 'part.customer', 'part.standardPacking', 'outgoingPo'])
             ->get();
 
         foreach ($poItems as $poItem) {
@@ -823,7 +823,7 @@ class OutgoingController extends Controller
             ->whereNotNull('delivery_date')
             ->whereDate('delivery_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('delivery_date', '<=', $dateTo->format('Y-m-d'))
-            ->with(['part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->with(['part', 'part.customer', 'part.standardPacking', 'outgoingPo'])
             ->get();
 
         foreach ($poItems as $poItem) {
@@ -1051,7 +1051,7 @@ class OutgoingController extends Controller
             ->whereNotNull('gci_part_id')
             ->whereColumn('fulfilled_qty', '<', 'qty')
             ->whereDate('delivery_date', $dateStr)
-            ->with(['part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->with(['part', 'part.customer', 'part.standardPacking', 'outgoingPo'])
             ->get();
 
         $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
