@@ -109,7 +109,7 @@ class PickingFgController extends Controller
     public function generate(Request $request)
     {
         // Redirect to Delivery Plan with a message because SO generation is centralized there
-        return redirect()->route('outgoing.index', ['date' => $request->date])
+        return redirect()->route('outgoing.delivery-plan', ['date' => $request->date])
             ->with('info', 'Sales Order and Picking generation is now centralized in the Delivery Plan view. Please use the "Generate SO" button there.');
     }
 
