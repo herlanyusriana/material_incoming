@@ -200,6 +200,8 @@
                                             <div class="md:col-span-3" x-data="{
                                                 open: false,
                                                 search: '',
+                                                trigger: null,
+                                                dropdown: null,
                                                 get filteredParts() {
                                                     if (this.search === '') return parts;
                                                     return parts.filter(p => p.label.toLowerCase().includes(this.search.toLowerCase()));
@@ -208,57 +210,86 @@
                                                     let p = parts.find(p => p.id == it.part_id);
                                                     return p ? p.label : 'Select part';
                                                 },
+                                                init() {
+                                                    this.trigger = this.$refs.trigger;
+                                                },
+                                                toggle() {
+                                                    this.open = !this.open;
+                                                    if (this.open) {
+                                                        this.$nextTick(() => this.updatePosition());
+                                                    }
+                                                },
+                                                updatePosition() {
+                                                    if (!this.open) return;
+                                                    const rect = this.trigger.getBoundingClientRect();
+                                                    this.dropdown = this.$refs.dropdown;
+                                                    
+                                                    this.dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+                                                    this.dropdown.style.left = (rect.left + window.scrollX) + 'px';
+                                                    this.dropdown.style.width = rect.width + 'px';
+                                                },
                                                 select(id) {
                                                     it.part_id = id;
                                                     this.open = false;
                                                     this.search = '';
                                                 }
-                                            }" @click.outside="open = false">
+                                            }" @resize.window="updatePosition()" @scroll.window="updatePosition()">
                                                 <label class="text-xs font-semibold text-slate-600">Part GCI</label>
-                                                <input type="hidden" :name="`items[${idx}][part_id]`" x-model="it.part_id">
-                                                
+                                                <input type="hidden" :name="`items[${idx}][part_id]`"
+                                                    x-model="it.part_id">
+
                                                 <div class="relative mt-1">
-                                                    <button type="button" 
+                                                    <button type="button" x-ref="trigger"
                                                         class="w-full text-left bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent flex items-center justify-between"
-                                                        @click="open = !open">
+                                                        @click="toggle()">
                                                         <span class="block truncate" x-text="selectedLabel"></span>
-                                                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                        <svg class="h-5 w-5 text-gray-400"
+                                                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                            fill="currentColor">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                                                clip-rule="evenodd" />
                                                         </svg>
                                                     </button>
-                                            
-                                                    <div x-show="open" 
-                                                        x-transition:leave="transition ease-in duration-100"
-                                                        x-transition:leave-start="opacity-100"
-                                                        x-transition:leave-end="opacity-0"
-                                                        class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-xl py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-                                                        
-                                                        <div class="sticky top-0 z-10 bg-white px-2 py-1.5 border-b border-slate-100">
-                                                            <input type="text" x-model="search" 
-                                                                class="w-full border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500" 
-                                                                placeholder="Search part..."
-                                                                @click.stop>
-                                                        </div>
 
-                                                        <template x-for="p in filteredParts" :key="p.id">
-                                                            <div class="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-indigo-50 text-slate-900" 
-                                                                @click="select(p.id)">
-                                                                <span class="block truncate" x-text="p.label" 
-                                                                    :class="{ 'font-semibold': it.part_id == p.id, 'font-normal': it.part_id != p.id }"></span>
-                                                                
-                                                                <span x-show="it.part_id == p.id" 
-                                                                    class="text-indigo-600 absolute inset-y-0 right-0 flex items-center pr-4">
-                                                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L8.586 13.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                                                    </svg>
-                                                                </span>
+                                                    <template x-teleport="body">
+                                                        <div x-show="open" x-ref="dropdown"
+                                                            @click.outside="open = false"
+                                                            class="absolute z-[9999] bg-white shadow-xl max-h-60 rounded-xl py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
+                                                            style="display: none;">
+
+                                                            <div
+                                                                class="sticky top-0 z-10 bg-white px-2 py-1.5 border-b border-slate-100">
+                                                                <input type="text" x-model="search"
+                                                                    class="w-full border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
+                                                                    placeholder="Search part..." @click.stop>
                                                             </div>
-                                                        </template>
-                                                        
-                                                        <div x-show="filteredParts.length === 0" class="cursor-default select-none relative py-2 pl-3 pr-9 text-slate-500 italic">
-                                                            No part found
+
+                                                            <template x-for="p in filteredParts" :key="p.id">
+                                                                <div class="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-indigo-50 text-slate-900"
+                                                                    @click="select(p.id)">
+                                                                    <span class="block truncate" x-text="p.label"
+                                                                        :class="{ 'font-semibold': it.part_id == p.id, 'font-normal': it.part_id != p.id }"></span>
+
+                                                                    <span x-show="it.part_id == p.id"
+                                                                        class="text-indigo-600 absolute inset-y-0 right-0 flex items-center pr-4">
+                                                                        <svg class="h-5 w-5"
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd"
+                                                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L8.586 13.586l7.293-7.293a1 1 0 011.414 0z"
+                                                                                clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    </span>
+                                                                </div>
+                                                            </template>
+
+                                                            <div x-show="filteredParts.length === 0"
+                                                                class="cursor-default select-none relative py-2 pl-3 pr-9 text-slate-500 italic">
+                                                                No part found
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    </template>
                                                 </div>
                                             </div>
 
@@ -408,24 +439,22 @@
                         };
                         this.modalOpen = true;
                     },
-                    this.modalOpen = true;
-                },
                     openEdit(o) {
-                    this.mode = 'edit';
-                    this.formAction = @js(url('/planning/customer-pos')) + '/' + o.id;
-                    this.form = {
-                        id: o.id,
-                        qty: o.qty,
-                        price: o.price,
-                        po_date: o.po_date ? o.po_date.substring(0, 10) : '',
-                        delivery_date: o.delivery_date ? o.delivery_date.substring(0, 10) : '',
-                        status: o.status,
-                        notes: o.notes ?? '',
-                    };
-                    this.modalOpen = true;
-                },
-                close() { this.modalOpen = false; },
-                parts: @js($gciParts->map(fn($p) => ['id' => $p->id, 'label' => $p->part_no . ' — ' . ($p->part_name ?? '-')])->values()),
+                        this.mode = 'edit';
+                        this.formAction = @js(url('/planning/customer-pos')) + '/' + o.id;
+                        this.form = {
+                            id: o.id,
+                            qty: o.qty,
+                            price: o.price,
+                            po_date: o.po_date ? o.po_date.substring(0, 10) : '',
+                            delivery_date: o.delivery_date ? o.delivery_date.substring(0, 10) : '',
+                            status: o.status,
+                            notes: o.notes ?? '',
+                        };
+                        this.modalOpen = true;
+                    },
+                    close() { this.modalOpen = false; },
+                    parts: @js($gciParts->map(fn($p) => ['id' => $p->id, 'label' => $p->part_no . ' — ' . ($p->part_name ?? '-')])->values()),
                 }
             }
         </script>
