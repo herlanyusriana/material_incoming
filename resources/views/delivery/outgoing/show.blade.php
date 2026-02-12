@@ -58,7 +58,8 @@
                 
                 <div>
                     <p class="text-sm text-slate-500">Truck</p>
-                    <p class="font-medium text-slate-900">{{ $deliveryNote->truck->company_name ?? 'Unassigned' }}</p>
+                    <p class="font-medium text-slate-900">{{ $deliveryNote->truck->name ?? 'Unassigned' }}</p>
+                    <p class="text-sm text-slate-500">{{ $deliveryNote->truck->vehicle_number ?? '' }}</p>
                 </div>
                 
                 <div>
@@ -118,9 +119,9 @@
                         <label class="block text-sm font-medium text-slate-700 mb-1">Assign Truck</label>
                         <select name="truck_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select a truck</option>
-                            @foreach(\App\Models\Trucking::orderBy('company_name')->get() as $truck)
+                            @foreach(\App\Models\Trucking::all() as $truck)
                                 <option value="{{ $truck->id }}" {{ $deliveryNote->truck_id == $truck->id ? 'selected' : '' }}>
-                                    {{ $truck->company_name }}
+                                    {{ $truck->name }} - {{ $truck->vehicle_number }}
                                 </option>
                             @endforeach
                         </select>

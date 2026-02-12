@@ -31,7 +31,7 @@
                 <select name="truck_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Select a truck (optional)</option>
                     @foreach($trucks as $truck)
-                        <option value="{{ $truck->id }}">{{ $truck->company_name }}</option>
+                        <option value="{{ $truck->id }}">{{ $truck->name }} - {{ $truck->vehicle_number }}</option>
                     @endforeach
                 </select>
                 @error('truck_id')

@@ -1176,6 +1176,10 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'))])></span>
                                 <span class="flex-1">Completed Receives</span>
                             </a>
+                            <a href="{{ route('delivery.outgoing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('delivery.outgoing.*'), $subInactive => !request()->routeIs('delivery.outgoing.*')])>
+                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('delivery.outgoing.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('delivery.outgoing.*')])></span>
+                                <span class="flex-1">Delivery Outgoing</span>
+                            </a>
                         </div>
                     </div>
                 </details>
@@ -1189,13 +1193,14 @@
 
                 <details class="group" {{ $outgoingModuleActive ? 'open' : '' }}
                     x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
-                    <summary class="list-none cursor-pointer" title="Outgoing Material"
+                    <summary class="list-none cursor-pointer" title="Outgoing"
                         :class="sidebarCollapsed ? 'flex justify-center' : ''">
                         <div @class([$navLinkBase, $navActive => $outgoingModuleActive, $navInactive => !$outgoingModuleActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 7.5V6a2 2 0 0 1 2-2h5l2 2h6a2 2 0 0 1 2 2v9.5a2 2 0 0 1-2 2h-6l-2 2H5a2 2 0 0 1-2-2V7.5Z" />
+                                    d="M3 7h14l4 4v10a2 2 0 0 1-2 2H3V7Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11h10M7 15h10M7 19h6" />
                             </svg>
                             <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Outgoing</span>
                             <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
@@ -1211,35 +1216,6 @@
                             <div
                                 class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                             </div>
-                            <a href="{{ route('delivery.outgoing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('delivery.outgoing.*'), $subInactive => !request()->routeIs('delivery.outgoing.*')])>
-                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('delivery.outgoing.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('delivery.outgoing.*')])></span>
-                                <span class="flex-1">Delivery Outgoing</span>
-                            </a>
-                            <a href="{{ route('departures.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('departures.create'), $subInactive => !request()->routeIs('departures.create')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('departures.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('departures.create')])></span>
-                                <span class="flex-1">Create Departure</span>
-                            </a>
-                            <a href="{{ route('delivery.outgoing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('delivery.outgoing.*'), $subInactive => !request()->routeIs('delivery.outgoing.*')])>
-                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('delivery.outgoing.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('delivery.outgoing.*')])></span>
-                                <span class="flex-1">Delivery Outgoing</span>
-                            </a>
-                            <a href="{{ route('departures.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('departures.create'), $subInactive => !request()->routeIs('departures.create')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('departures.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('departures.create')])></span>
-                                <span class="flex-1">Create Departure</span>
-                            </a>
-                            <a href="{{ route('departures.index') }}" @class([
-                                $subLinkBase,
-                                $subActive => request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'),
-                                $subInactive => !(request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit')),
-                            ])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'))])></span>
-                                <span class="flex-1">Departure List</span>
-                            </a>
-                        </div>
-                    </div>
-                </details>
-            </div>
-        @endcan
                             {{-- Main Flow --}}
                             <a href="{{ route('outgoing.customer-po.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.customer-po.*'), $subInactive => !request()->routeIs('outgoing.customer-po.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po.*')])></span>

@@ -39,7 +39,7 @@
                     <option value="">Select a truck (optional)</option>
                     @foreach($trucks as $truck)
                         <option value="{{ $truck->id }}" {{ $deliveryNote->truck_id == $truck->id ? 'selected' : '' }}>
-                            {{ $truck->company_name }}
+                            {{ $truck->name }} - {{ $truck->vehicle_number }}
                         </option>
                     @endforeach
                 </select>
