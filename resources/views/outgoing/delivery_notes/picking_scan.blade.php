@@ -5,12 +5,14 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('outgoing.delivery-notes.show', $deliveryNote) }}" class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500">
+                    <a href="{{ route('outgoing.delivery-notes.show', $deliveryNote) }}"
+                        class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500">
                         ←
                     </a>
                     <div>
                         <h1 class="text-2xl font-black text-slate-900">Picking Scan • {{ $deliveryNote->dn_no }}</h1>
-                        <p class="text-sm text-slate-500 font-semibold">{{ $deliveryNote->customer->name }} • {{ $deliveryNote->delivery_date->format('d M Y') }}</p>
+                        <p class="text-sm text-slate-500 font-semibold">{{ $deliveryNote->customer->name }} •
+                            {{ $deliveryNote->delivery_date->format('d M Y') }}</p>
                     </div>
                 </div>
 
@@ -18,12 +20,14 @@
                     @if ($deliveryNote->status === 'ready_to_pick')
                         <form action="{{ route('outgoing.delivery-notes.start-picking', $deliveryNote) }}" method="POST">
                             @csrf
-                            <button type="submit" class="px-4 py-2 rounded-xl bg-amber-600 text-white font-black hover:bg-amber-700">
+                            <button type="submit"
+                                class="px-4 py-2 rounded-xl bg-amber-600 text-white font-black hover:bg-amber-700">
                                 START PICKING
                             </button>
                         </form>
                     @endif
-                    <a href="{{ route('outgoing.delivery-notes.show', $deliveryNote) }}" class="px-4 py-2 rounded-xl border border-slate-200 font-black text-slate-700 hover:bg-slate-50">
+                    <a href="{{ route('outgoing.delivery-notes.show', $deliveryNote) }}"
+                        class="px-4 py-2 rounded-xl border border-slate-200 font-black text-slate-700 hover:bg-slate-50">
                         Back to DN
                     </a>
                 </div>
@@ -68,7 +72,8 @@
                 </div>
             </div>
 
-            <form id="scan-form" action="{{ route('outgoing.delivery-notes.picking-scan.store', $deliveryNote) }}" method="POST" class="hidden">
+            <form id="scan-form" action="{{ route('outgoing.delivery-notes.picking-scan.store', $deliveryNote) }}"
+                method="POST" class="hidden">
                 @csrf
                 <input type="hidden" name="location_code" id="form-location">
                 <input type="hidden" name="part_no" id="form-part">
@@ -85,7 +90,8 @@
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                 <div class="text-lg font-black text-slate-900">Items</div>
                 <div class="text-sm font-semibold text-slate-600">
-                    Picked: {{ number_format((float) $deliveryNote->items->sum('picked_qty'), 4) }} / {{ number_format((float) $deliveryNote->items->sum('qty'), 4) }}
+                    Picked: {{ number_format((float) $deliveryNote->items->sum('picked_qty'), 4) }} /
+                    {{ number_format((float) $deliveryNote->items->sum('qty'), 4) }}
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -114,9 +120,11 @@
                                 <td class="px-5 py-4 text-slate-700">
                                     <span class="font-mono text-xs">{{ $item->kitting_location_code ?: '-' }}</span>
                                 </td>
-                                <td class="px-5 py-4 text-right font-black text-slate-900">{{ number_format($required, 4) }}</td>
+                                <td class="px-5 py-4 text-right font-black text-slate-900">{{ number_format($required, 4) }}
+                                </td>
                                 <td class="px-5 py-4 text-right font-black text-indigo-700">{{ number_format($picked, 4) }}</td>
-                                <td class="px-5 py-4 text-right font-black {{ $remaining <= 0 ? 'text-emerald-700' : 'text-rose-700' }}">
+                                <td
+                                    class="px-5 py-4 text-right font-black {{ $remaining <= 0 ? 'text-emerald-700' : 'text-rose-700' }}">
                                     {{ number_format($remaining, 4) }}
                                 </td>
                             </tr>
@@ -142,7 +150,24 @@
             }
 
             function submitIfReady() {
-                const loc = norm(elLoc.value);
+                let loc = norm(elLoc.value);
+
+                // Try to parse JSON if it looks like JSON (starts with {)
+                if (loc.startsWith('{')) {
+                    try {
+                        // The scanner might send the raw JSON string
+                        const payload = JSON.parse(elLoc.value);
+                        if (payload && payload.location_code) {
+                            loc = norm(payload.location_code);
+                            // Auto-fill the correct value back to input for clarity
+                            elLoc.value = loc;
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse location barcode JSON', e);
+                        // If parse fails, we just use the raw value (fallback)
+                    }
+                }
+
                 const part = norm(elPart.value);
                 const qty = String(elQty.value || '1').trim();
                 if (!loc || !part) return;
@@ -157,6 +182,18 @@
             elLoc.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+
+                    // Try to parse JSON immediately for better UX
+                    const val = elLoc.value.trim();
+                    if (val.startsWith('{')) {
+                        try {
+                            const payload = JSON.parse(val);
+                            if (payload && payload.location_code) {
+                                elLoc.value = payload.location_code;
+                            }
+                        } catch (e) { }
+                    }
+
                     elPart.focus();
                 }
             });
@@ -174,4 +211,3 @@
         })();
     </script>
 @endsection
-

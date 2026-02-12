@@ -226,7 +226,8 @@
 			{{-- Main Table Card --}}
 			<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 				<div class="dp-scroll">
-					<form id="soForm" method="POST" action="{{ route('outgoing.delivery-plan.generate-so') }}">
+					<form id="soForm" method="POST" action="{{ route('outgoing.delivery-plan.generate-so') }}"
+						onsubmit="return false;">
 						@csrf
 						<table class="dp-table w-full text-xs">
 							<thead>
@@ -269,7 +270,7 @@
 									$rowKey = 'r' . $no . '-' . $row->gci_part_id;
 								@endphp
 
-								<tbody x-data="{ open: false }">
+								<tbody>
 									{{-- Main FG row --}}
 									<tr class="fg-row" data-part-id="{{ $row->gci_part_id }}" data-source="{{ $rowSource }}">
 										{{-- Select checkbox + expand button --}}
@@ -278,10 +279,11 @@
 											<div class="flex items-center justify-center gap-1">
 												<input type="checkbox" name="selected[]" value="{{ $no - 1 }}"
 													class="rounded border-slate-300 cursor-pointer">
-												<button @click="open = !open" class="expand-btn" title="Toggle trip inputs">
-													<svg class="w-4 h-4 text-slate-500 transition-transform duration-200"
-														:class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor"
-														viewBox="0 0 24 24">
+												<button type="button" onclick="toggleRow('{{ $rowKey }}')" class="expand-btn"
+													title="Toggle trip inputs">
+													<svg id="icon-{{ $rowKey }}"
+														class="w-4 h-4 text-slate-500 transition-transform duration-200" fill="none"
+														stroke="currentColor" viewBox="0 0 24 24">
 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
 															d="M9 5l7 7-7 7" />
 													</svg>
@@ -419,8 +421,7 @@
 									@endfor
 
 									{{-- Expandable trip input row --}}
-									<tr x-show="open" x-cloak x-transition:enter="transition ease-out duration-200"
-										x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+									<tr id="trip-row-{{ $rowKey }}" class="hidden transition-all duration-200">
 										<td colspan="20" class="p-0" style="border-right:0;">
 											<div class="trip-panel">
 												<div class="flex items-center justify-between mb-3">
@@ -431,7 +432,7 @@
 														<span
 															class="text-[10px] text-green-600 font-semibold">{{ $row->fg_part_name }}</span>
 													</div>
-													<button @click="open = false"
+													<button type="button" onclick="toggleRow('{{ $rowKey }}')"
 														class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
 														<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -450,7 +451,7 @@
 																placeholder="-" data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}"
 																data-source="{{ $rowSource }}" data-rowkey="{{ $rowKey }}"
 																data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}"
-																oninput="recalcRow(this.dataset.rowkey)"
+																oninput="recalcRow('{{ $rowKey }}')"
 																class="trip-expanded-input trip-input">
 														</div>
 													@endfor
@@ -673,6 +674,19 @@
 				const generateSoBtn = document.getElementById('generateSoBtn');
 				const hasChecked = Array.from(checkboxes).some(cb => cb.checked);
 				generateSoBtn.disabled = !hasChecked;
+			}
+
+			function toggleRow(rowKey) {
+				const row = document.getElementById('trip-row-' + rowKey);
+				const icon = document.getElementById('icon-' + rowKey);
+
+				if (row.classList.contains('hidden')) {
+					row.classList.remove('hidden');
+					icon.classList.add('rotate-90');
+				} else {
+					row.classList.add('hidden');
+					icon.classList.remove('rotate-90');
+				}
 			}
 
 			// Setup checkbox listener
