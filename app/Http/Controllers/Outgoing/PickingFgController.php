@@ -40,10 +40,10 @@ class PickingFgController extends Controller
             $search = $filterSearch;
             $query->where(function ($q) use ($search) {
                 $q->whereHas('part', function ($pq) use ($search) {
-                    $pq->where('part_no', 'ilike', "%{$search}%")
-                        ->orWhere('part_name', 'ilike', "%{$search}%");
+                    $pq->where('part_no', 'like', "%{$search}%")
+                        ->orWhere('part_name', 'like', "%{$search}%");
                 })->orWhereHas('salesOrder', function ($sq) use ($search) {
-                    $sq->where('so_no', 'ilike', "%{$search}%");
+                    $sq->where('so_no', 'like', "%{$search}%");
                 });
             });
         }

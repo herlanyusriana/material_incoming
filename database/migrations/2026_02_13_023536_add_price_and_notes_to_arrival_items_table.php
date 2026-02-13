@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('arrival_items', function (Blueprint $table) {
-            $table->decimal('price', 20, 3)->nullable()->after('weight_gross');
-            $table->decimal('total_price', 20, 3)->nullable()->after('price');
-            $table->text('notes')->nullable()->after('total_price');
+            if (!Schema::hasColumn('arrival_items', 'price')) {
+                $table->decimal('price', 20, 3)->nullable()->after('weight_gross');
+            }
+            if (!Schema::hasColumn('arrival_items', 'total_price')) {
+                $table->decimal('total_price', 20, 3)->nullable()->after('price');
+            }
+            if (!Schema::hasColumn('arrival_items', 'notes')) {
+                $table->text('notes')->nullable()->after('total_price');
+            }
         });
     }
 
