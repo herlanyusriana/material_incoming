@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         if (!Schema::hasColumn('dn_items', 'outgoing_po_item_id')) {
             Schema::table('dn_items', function (Blueprint $table) {
-                $table->foreignId('outgoing_po_item_id')->nullable()->after('customer_po_id')
+                $table->foreignId('outgoing_po_item_id')->nullable()->after('gci_part_id')
                     ->constrained('outgoing_po_items')->nullOnDelete();
             });
         }

@@ -1538,6 +1538,7 @@ class OutgoingController extends Controller
             'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
             'lines.*.part_no' => ['nullable', 'string'],
             'lines.*.part_name' => ['nullable', 'string'],
+            'lines.*.source' => ['nullable', 'string'],
         ]);
 
         $planDate = $validated['date'];
@@ -1567,9 +1568,11 @@ class OutgoingController extends Controller
             foreach ($selectedLines as $line) {
                 $customerId = (int) $line['customer_id'];
                 $partId = (int) $line['gci_part_id'];
+                $source = $line['source'] ?? 'daily_plan';
 
                 $planningLine = OutgoingDeliveryPlanningLine::where('delivery_date', $planDate)
                     ->where('gci_part_id', $partId)
+                    ->where('source', $source)
                     ->first();
 
                 if (!$planningLine)

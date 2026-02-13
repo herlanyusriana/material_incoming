@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('outgoing_picking_fgs', function (Blueprint $table) {
-            $table->foreignId('sales_order_id')->nullable()->after('outgoing_po_item_id')->constrained('sales_orders')->nullOnDelete();
+            $table->foreignId('sales_order_id')->nullable()->after('id')->constrained('sales_orders')->nullOnDelete();
         });
     }
 
