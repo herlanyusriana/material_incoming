@@ -114,7 +114,7 @@
                                 UOM</th>
                             <th scope="col"
                                 class="px-6 py-3 text-xs font-semibold tracking-wider text-right uppercase text-slate-500">
-                                NM (Kg)</th>
+                                Net Weight (Kg)</th>
                             <th scope="col"
                                 class="px-6 py-3 text-xs font-semibold tracking-wider text-center uppercase text-slate-500">
                                 Kemasan</th>
