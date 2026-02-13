@@ -10,8 +10,9 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('sales_orders', function (Blueprint $table) {
-            $table->integer('trip_no')->default(1)->after('so_date');
+        Schema::table('gci_parts', function (Blueprint $table) {
+            $table->decimal('net_weight', 10, 4)->nullable()->after('model');
+            $table->decimal('gross_weight', 10, 4)->nullable()->after('net_weight');
         });
     }
 
@@ -20,8 +21,8 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('sales_orders', function (Blueprint $table) {
-            $table->dropColumn('trip_no');
+        Schema::table('gci_parts', function (Blueprint $table) {
+            //
         });
     }
 };

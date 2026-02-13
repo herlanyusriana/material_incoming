@@ -29,7 +29,7 @@
                             class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select Customer</option>
                             @foreach ($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->code }})</option>
+                                <option value="{{ $customer->id }}" {{ ($prefilledData['customer_id'] ?? '') == $customer->id ? 'selected' : '' }}>{{ $customer->name }} ({{ $customer->code }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -40,27 +40,7 @@
                             class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Truck (Plate No)</label>
-                        <select name="truck_id"
-                            class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">- Select Truck -</option>
-                            @foreach ($trucks as $truck)
-                                <option value="{{ $truck->id }}">{{ $truck->plate_no }} ({{ $truck->type }})</option>
-                            @endforeach
-                        </select>
-                    </div>
 
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Driver</label>
-                        <select name="driver_id"
-                            class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">- Select Driver -</option>
-                            @foreach ($drivers as $driver)
-                                <option value="{{ $driver->id }}">{{ $driver->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
 
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-2">Notes</label>
@@ -121,8 +101,17 @@
                                         class="w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="0.00">
                                 </div>
+                                <div class="w-full md:w-64">
+                                    <label
+                                        class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Remarks</label>
+                                    <input type="text" :name="`items[${index}][remarks]`" x-model="item.remarks"
+                                        class="w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        placeholder="Optional notes...">
+                                </div>
                                 <input type="hidden" :name="`items[${index}][outgoing_po_item_id]`"
                                     x-model="item.outgoing_po_item_id">
+                                <input type="hidden" :name="`items[${index}][sales_order_id]`"
+                                    x-model="item.sales_order_id">
                                 <div class="flex items-end pb-1">
                                     <button type="button" @click="removeItem(index)"
                                         class="h-9 w-9 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all">
@@ -157,9 +146,9 @@
     <script>
         function deliveryNoteForm() {
             return {
-                items: [],
+                items: @json($prefilledData['items'] ?? []),
                 addItem() {
-                    this.items.push({ gci_part_id: '', qty: '', outgoing_po_item_id: '' });
+                    this.items.push({ gci_part_id: '', qty: '', outgoing_po_item_id: '', remarks: '' });
                 },
                 removeItem(index) {
                     this.items.splice(index, 1);
@@ -176,7 +165,8 @@
                         this.items.push({
                             gci_part_id: data.id,
                             qty: data.qty,
-                            outgoing_po_item_id: data.po_item_id
+                            outgoing_po_item_id: data.po_item_id,
+                            remarks: ''
                         });
                     }
                 }

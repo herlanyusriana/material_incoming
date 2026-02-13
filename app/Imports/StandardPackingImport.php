@@ -12,9 +12,11 @@ use App\Models\Customer;
 
 class StandardPackingImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 {
-    private function norm($val) {
-        if ($val === null) return null;
-        $t = trim((string)$val);
+    private function norm($val)
+    {
+        if ($val === null)
+            return null;
+        $t = trim((string) $val);
         return $t === '' ? null : $t;
     }
 
@@ -23,8 +25,9 @@ class StandardPackingImport implements ToCollection, WithHeadingRow, SkipsEmptyR
         foreach ($rows as $row) {
             $customerName = $this->norm($row['customer']);
             $partNo = $this->norm($row['part_no'] ?? $row['part_number'] ?? null);
-            
-            if (!$partNo) continue;
+
+            if (!$partNo)
+                continue;
 
             // 1. Resolve Customer
             $customer = null;
@@ -55,6 +58,8 @@ class StandardPackingImport implements ToCollection, WithHeadingRow, SkipsEmptyR
             $qty = (float) ($row['packing_qty'] ?? $row['qty'] ?? 0);
             $uom = $this->norm($row['uom'] ?? 'PCS');
             $trolley = $this->norm($row['trolly_type'] ?? $row['trolley_type'] ?? null);
+            $net = $row['net_weight'] ?? null;
+            $gross = $row['gross_weight'] ?? null;
 
             // 4. Update or Create
             StandardPacking::updateOrCreate(
@@ -66,6 +71,8 @@ class StandardPackingImport implements ToCollection, WithHeadingRow, SkipsEmptyR
                     'packing_qty' => $qty,
                     'uom' => $uom,
                     'trolley_type' => $trolley,
+                    'net_weight' => $net,
+                    'gross_weight' => $gross,
                     'status' => 'active'
                 ]
             );

@@ -20,6 +20,8 @@ class GciPart extends Model
         'model',
         'classification',
         'status',
+        'net_weight',
+        'gross_weight',
     ];
 
     public function customer()

@@ -19,6 +19,7 @@ class DnItem extends Model
         'picked_at',
         'picked_by',
         'kitting_location_code',
+        'remarks',
     ];
 
     protected $casts = [

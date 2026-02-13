@@ -6,180 +6,216 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Surat Jalan - {{ $delivery_note->dn_no }}</title>
     <style>
+        @page {
+            margin: 0;
+            size: auto;
+            /* auto is the initial value */
+        }
+
         body {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-
-        .company-info h2 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 900;
-        }
-
-        .dn-info {
-            text-align: right;
-        }
-
-        .dn-info h1 {
-            margin: 0;
-            font-size: 24px;
+            /* font-family: 'Courier New', Courier, monospace; */
+            /* Dot matrix style */
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
             color: #000;
+            /* Black for data */
+            margin: 0;
+            padding: 0;
+            background: transparent;
         }
 
-        .details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-bottom: 30px;
-        }
-
-        .detail-item {
-            margin-bottom: 5px;
-        }
-
-        .detail-label {
-            font-weight: bold;
-            display: inline-block;
-            width: 100px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-        }
-
-        th {
-            border-top: 2px solid #000;
-            border-bottom: 2px solid #000;
-            padding: 10px 5px;
-            text-align: left;
-        }
-
-        td {
-            border-bottom: 1px dashed #ccc;
-            padding: 10px 5px;
-        }
-
-        .footer {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            text-align: center;
-            margin-top: 50px;
-        }
-
-        .signature-box {
-            height: 80px;
-            border-bottom: 1px solid #000;
-            margin-bottom: 5px;
+        .no-print {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         @media print {
             .no-print {
                 display: none;
             }
-
-            body {
-                padding: 0;
-            }
         }
+
+        /* Container to match the paper size. Adjust width/height as needed */
+        .page-container {
+            position: relative;
+            width: 210mm;
+            /* A4 Width/Letter Width approx */
+            height: 148mm;
+            /* Half A4 Height approx */
+            /* border: 1px solid red; */
+            /* Debug border */
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .data-absolute {
+            position: absolute;
+            white-space: nowrap;
+            /* background: rgba(0, 255, 0, 0.1); */
+            /* Debug background */
+        }
+
+        /* Coordinates (Estimates in mm) */
+
+        /* NO. (Top Right) - e.g. 0771 */
+        .pos-dn-no-top {
+            top: 18mm;
+            left: 170mm;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Date (Top Right) - e.g. 13 Feb 2026 */
+        .pos-date {
+            top: 25mm;
+            left: 170mm;
+        }
+
+        /* Customer Name (Kepada Yth) */
+        .pos-customer-name {
+            top: 42mm;
+            left: 140mm;
+            width: 60mm;
+            font-weight: bold;
+        }
+
+        /* Customer Address */
+        .pos-customer-addr {
+            top: 48mm;
+            left: 140mm;
+            width: 60mm;
+            font-size: 12px;
+            line-height: 1.2;
+            white-space: normal;
+            /* Allow wrapping */
+        }
+
+        /* DN No / Ref (Left side) */
+        /* "NO. : .... / SJ GCI / .... " */
+        .pos-dn-ref-left {
+            top: 48mm;
+            left: 45mm;
+        }
+
+        /* PO Ref (Blue text in image) */
+        .pos-po-ref {
+            top: 55mm;
+            left: 160mm;
+            color: blue;
+            /* Match image style? Or keep black */
+            font-weight: bold;
+        }
+
+        /* ITEMS TABLE */
+        /* The table grid starts around 70mm from top */
+        .items-container {
+            position: absolute;
+            top: 75mm;
+            /* Moved up from 82mm */
+            /* Adjust based on header height */
+            left: 10mm;
+            width: 190mm;
+        }
+
+        .item-row {
+            display: flex;
+            height: 8mm;
+            /* Row height fitting the pre-printed lines */
+            align-items: center;
+            /* border-bottom: 1px solid blue; */
+            /* Debug alignment */
+        }
+
+        .col-no {
+            width: 10mm;
+            text-align: center;
+        }
+
+        .col-qty {
+            width: 30mm;
+            text-align: center;
+            font-weight: bold;
+            color: #0066cc;
+        }
+
+        /* Blueish qty */
+        .col-name {
+            width: 70mm;
+            padding-left: 5mm;
+        }
+
+        .col-size {
+            width: 40mm;
+            padding-left: 5mm;
+        }
+
+        /* Part No */
+        .col-remarks {
+            width: 40mm;
+            padding-left: 5mm;
+        }
+
+        /* Remarks/Footer specific data? */
     </style>
 </head>
 
 <body>
-    <div class="no-print"
-        style="background: #f1f5f9; padding: 10px; margin-bottom: 20px; border-radius: 8px; text-align: center;">
-        <button onclick="window.print()"
-            style="padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-            PRINT SURAT JALAN
-        </button>
-    </div>
 
-    <div class="header">
-        <div class="company-info">
-            <h2>PT. GCI INDONESIA</h2>
-            <p>Kawasan Industri Bekasi Fajar, Blok A-1, MM2100<br>Cikarang Barat, Bekasi 17520</p>
-        </div>
-        <div class="dn-info">
-            <h1>SURAT JALAN</h1>
-            <p><strong>No:</strong> {{ $delivery_note->dn_no }}</p>
-            <p><strong>Date:</strong> {{ \Carbon\Carbon::parse($delivery_note->delivery_date)->format('d F Y') }}</p>
+    <div class="no-print">
+        <button onclick="window.print()" style="cursor: pointer; padding: 5px 10px; font-weight: bold;">PRINT
+            DATA</button>
+        <div style="font-size: 10px; margin-top: 5px; color: #666;">
+            * This prints ONLY data.<br>
+            * Ensure page size is correct.<br>
+            * Adjust printer margins to 0.
         </div>
     </div>
 
-    <div class="details-grid">
-        <div class="to-info">
-            <p class="detail-label">SHIP TO:</p>
-            <p><strong>{{ $delivery_note->customer?->name }}</strong></p>
-            <p>{{ $delivery_note->customer?->address ?? 'N/A' }}</p>
-        </div>
-        <div class="transport-info">
-            <div class="detail-item"><span class="detail-label">Truck:</span>
-                {{ $delivery_note->truck?->plate_no ?? '-' }} ({{ $delivery_note->truck?->type ?? '-' }})</div>
-            <div class="detail-item"><span class="detail-label">Driver:</span>
-                {{ $delivery_note->driver?->name ?? '-' }}</div>
-            <div class="detail-item"><span class="detail-label">Notes:</span> {{ $delivery_note->notes ?? '-' }}</div>
-        </div>
-    </div>
+    @php
+        // Prepare PO refs for display
+        $poRefs = $delivery_note->items->map(fn($i) => $i->outgoing_po_item_id ? ($i->outgoingPoItem?->outgoingPo?->po_no) : ($i->customerPo?->po_no))->filter()->unique()->implode(', ');
+    @endphp
 
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 40px;">No</th>
-                <th>Part Number</th>
-                <th>Description</th>
-                <th style="text-align: right;">Quantity</th>
-                <th style="width: 60px;">UoM</th>
-            </tr>
-        </thead>
-        <tbody>
+    <div class="page-container">
+        <!-- Top Right No -->
+        <div class="data-absolute pos-dn-no-top">{{ substr($delivery_note->dn_no, -4) }}</div> {{-- Taking last 4 digits
+        mainly? Or full? --}}
+
+        <!-- Date -->
+        <div class="data-absolute pos-date">{{ $delivery_note->delivery_date->format('d M Y') }}</div>
+
+        <!-- Customer -->
+        <div class="data-absolute pos-customer-name">{{ $delivery_note->customer?->name }}</div>
+        <div class="data-absolute pos-customer-addr">{{ Str::limit($delivery_note->customer?->address, 100) }}</div>
+
+        <!-- Left Ref (DN No Full) -->
+        <div class="data-absolute pos-dn-ref-left">{{ $delivery_note->dn_no }}</div>
+
+        <!-- PO Ref (Right side) -->
+        <div class="data-absolute pos-po-ref">{{ $poRefs ?? '' }}</div>
+
+        <!-- Items -->
+        <div class="items-container">
             @foreach($delivery_note->items as $index => $item)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $item->part?->part_no }}</td>
-                    <td>{{ $item->part?->part_name }}</td>
-                    <td style="text-align: right; font-weight: bold;">{{ number_format($item->qty, 2) }}</td>
-                    <td>PCS</td>
-                </tr>
+                <div class="item-row">
+                    <!-- <div class="col-no">{{ $index + 1 }}.</div> -->
+                    <div class="col-no"></div>
+                    <div class="col-qty">{{ number_format($item->qty) }} {{ $item->part?->uom ?? 'Pcs' }}</div>
+                    <div class="col-name">{{ $item->part?->part_name }}</div>
+                    <div class="col-size">{{ $item->part?->part_no }}</div> <!-- "Ukuran" mapped to Part No -->
+                    <div class="col-remarks">{{ $item->remarks }}</div>
+                </div>
             @endforeach
-        </tbody>
-    </table>
+        </div>
 
-    <div class="footer">
-        <div>
-            <p>Prepared By,</p>
-            <div class="signature-box"></div>
-            <p>( Warehouse )</p>
-        </div>
-        <div>
-            <p>Driver,</p>
-            <div class="signature-box"></div>
-            <p>( {{ $delivery_note->driver?->name ?? '.................' }} )</p>
-        </div>
-        <div>
-            <p>Security,</p>
-            <div class="signature-box"></div>
-            <p>( ................. )</p>
-        </div>
-        <div>
-            <p>Received By,</p>
-            <div class="signature-box"></div>
-            <p>( Customer )</p>
-        </div>
     </div>
+
 </body>
 
 </html>

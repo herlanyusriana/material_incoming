@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Outgoing;
 use App\Http\Controllers\Controller;
 use App\Models\OutgoingPickingFg;
 use App\Models\OutgoingDeliveryPlanningLine;
+use App\Models\SalesOrder;
 use App\Models\GciPart;
 use App\Models\GciInventory;
 use Illuminate\Http\Request;
@@ -239,6 +240,23 @@ class PickingFgController extends Controller
             'picked_at' => $qtyPicked > 0 ? now() : null,
         ]);
 
+        // Check if all items for this SO are completed
+        if ($pick->sales_order_id) {
+            $pendingCount = OutgoingPickingFg::where('sales_order_id', $pick->sales_order_id)
+                ->where('status', '!=', 'completed')
+                ->count();
+
+            if ($pendingCount === 0) {
+                SalesOrder::where('id', $pick->sales_order_id)->update(['status' => 'completed']);
+            } else {
+                // If any item is not completed, revert SO status if it was completed (handling un-picking)
+                // Assuming 'picking' is the status for in-progress
+                SalesOrder::where('id', $pick->sales_order_id)
+                    ->where('status', 'completed')
+                    ->update(['status' => 'picking']);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'status' => $status,
@@ -246,6 +264,35 @@ class PickingFgController extends Controller
             'qty_remaining' => max(0, $pick->qty_plan - $qtyPicked),
             'progress_percent' => $pick->progress_percent,
         ]);
+    }
+
+    /**
+     * Clear generated data for a date (Undo Generate).
+     */
+    public function clear(Request $request)
+    {
+        $request->validate(['date' => 'required|date']);
+        $dateStr = Carbon::parse($request->date)->toDateString();
+
+        DB::transaction(function () use ($dateStr) {
+            // 1. Delete Picking FGs that are pending
+            OutgoingPickingFg::where('delivery_date', $dateStr)
+                ->where('status', 'pending')
+                ->delete();
+
+            // 2. Delete Sales Orders that are draft/pending
+            // (Standard cascade should delete Items, but we do it safely)
+            $sos = SalesOrder::where('so_date', $dateStr)
+                ->whereIn('status', ['draft', 'pending'])
+                ->get();
+
+            foreach ($sos as $so) {
+                $so->items()->delete(); // Delete items first
+                $so->delete();
+            }
+        });
+
+        return back()->with('success', 'Generated data cleared successfully.');
     }
 
     /**
@@ -264,6 +311,14 @@ class PickingFgController extends Controller
                 'picked_by' => Auth::id(),
                 'picked_at' => now(),
             ]);
+
+        // Update all related Sales Orders to completed
+        $soIds = OutgoingPickingFg::where('delivery_date', $dateStr)
+            ->whereNotNull('sales_order_id')
+            ->pluck('sales_order_id')
+            ->unique();
+
+        SalesOrder::whereIn('id', $soIds)->update(['status' => 'completed']);
 
         return back()->with('success', 'All items marked as completed.');
     }

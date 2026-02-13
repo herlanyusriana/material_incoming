@@ -37,20 +37,63 @@ class DeliveryNoteController extends Controller
         return view('outgoing.delivery_notes.index', compact('deliveryNotes'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $gciParts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
-        $trucks = Truck::where('status', 'available')->orderBy('plate_no')->get();
-        $drivers = Driver::where('status', 'available')->orderBy('name')->get();
 
-        // Get completed picking for today/yesterday for convenience
+        $selectedSos = [];
+        $prefilledData = [
+            'customer_id' => '',
+            'delivery_date' => date('Y-m-d'),
+            'items' => [],
+        ];
+
+        // Handle creation from Picking (Sales Orders)
+        if ($request->has('sales_order_ids')) {
+            $soIds = explode(',', $request->sales_order_ids);
+
+            // Get Sales Orders with their Items and Picking info
+            $salesOrders = \App\Models\SalesOrder::with(['customer', 'items.part'])
+                ->whereIn('id', $soIds)
+                ->get();
+
+            if ($salesOrders->isNotEmpty()) {
+                $firstSo = $salesOrders->first();
+                $prefilledData['customer_id'] = $firstSo->customer_id;
+                // If SO has delivery plan date, maybe use that? Or just today. Using today by default.
+
+                foreach ($salesOrders as $so) {
+
+                    // Better to query OutgoingPickingFg directly for these SOs to get actual picked qty
+                    $picks = OutgoingPickingFg::with('part')
+                        ->where('sales_order_id', $so->id)
+                        ->where('status', 'completed')
+                        ->get();
+
+                    foreach ($picks as $pick) {
+                        $prefilledData['items'][] = [
+                            'gci_part_id' => $pick->gci_part_id,
+                            'part_no' => $pick->part?->part_no,
+                            'part_name' => $pick->part?->part_name,
+                            'qty' => $pick->qty_picked,
+                            'outgoing_po_item_id' => $pick->outgoing_po_item_id,
+                            'sales_order_id' => $so->id // Track which SO this came from
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Get completed picking for today/yesterday for dropdown (manual add)
         $completedPickings = OutgoingPickingFg::with(['part'])
             ->where('status', 'completed')
             ->where('delivery_date', '>=', now()->subDays(2)->toDateString())
+            ->doesntHave('salesOrder') // Suggest manual pickings only? Or all? Let's show all for now but maybe filter out ones already in a DN?
+            // ->whereDoesntHave('deliveryNoteItems') // If we had this relation
             ->get();
 
-        return view('outgoing.delivery_notes.create', compact('customers', 'gciParts', 'trucks', 'drivers', 'completedPickings'));
+        return view('outgoing.delivery_notes.create', compact('customers', 'gciParts', 'completedPickings', 'prefilledData'));
     }
 
     public function store(Request $request)
@@ -58,8 +101,6 @@ class DeliveryNoteController extends Controller
         $validated = $request->validate([
             'dn_no' => ['required', 'string', 'unique:delivery_notes,dn_no'],
             'customer_id' => ['required', 'exists:customers,id'],
-            'truck_id' => ['nullable', 'exists:trucks,id'],
-            'driver_id' => ['nullable', 'exists:drivers,id'],
             'delivery_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
@@ -67,14 +108,16 @@ class DeliveryNoteController extends Controller
             'items.*.qty' => ['required', 'numeric', 'min:0.0001'],
             'items.*.customer_po_id' => ['nullable', 'exists:customer_pos,id'],
             'items.*.outgoing_po_item_id' => ['nullable', 'exists:outgoing_po_items,id'],
+            'items.*.sales_order_id' => ['nullable', 'exists:sales_orders,id'],
+            'items.*.remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
         DB::transaction(function () use ($validated) {
+            $soIds = collect($validated['items'])->pluck('sales_order_id')->filter()->unique();
+
             $dn = DeliveryNote::create([
                 'dn_no' => $validated['dn_no'],
                 'customer_id' => $validated['customer_id'],
-                'truck_id' => $validated['truck_id'] ?? null,
-                'driver_id' => $validated['driver_id'] ?? null,
                 'delivery_date' => $validated['delivery_date'],
                 'notes' => $validated['notes'],
                 'status' => 'ready_to_ship', // Set directly to ready to ship because it's from picking
@@ -87,7 +130,12 @@ class DeliveryNoteController extends Controller
                     'qty' => $item['qty'],
                     'customer_po_id' => $item['customer_po_id'] ?? null,
                     'outgoing_po_item_id' => $item['outgoing_po_item_id'] ?? null,
+                    'remarks' => $item['remarks'] ?? null,
                 ]);
+            }
+
+            if ($soIds->isNotEmpty()) {
+                $dn->salesOrders()->sync($soIds);
             }
         });
 
@@ -381,8 +429,20 @@ class DeliveryNoteController extends Controller
 
     public function print(DeliveryNote $delivery_note)
     {
-        $delivery_note->load(['customer', 'truck', 'driver', 'items.part']);
+        $delivery_note->load(['customer', 'items.part']);
 
         return view('outgoing.delivery_notes.print', compact('delivery_note'));
+    }
+
+    public function printPackingList(DeliveryNote $delivery_note)
+    {
+        $delivery_note->load([
+            'customer',
+            'items.part.standardPacking',
+            'items.customerPo',
+            'items.outgoingPoItem.outgoingPo'
+        ]);
+
+        return view('outgoing.delivery_notes.packing_list', compact('delivery_note'));
     }
 }

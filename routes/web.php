@@ -220,6 +220,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/picking-fg/generate', [PickingFgController::class, 'generate'])->name('picking-fg.generate');
         Route::post('/picking-fg/update-pick', [PickingFgController::class, 'updatePick'])->name('picking-fg.update-pick');
         Route::post('/picking-fg/complete-all', [PickingFgController::class, 'completeAll'])->name('picking-fg.complete-all');
+        Route::post('/picking-fg/clear', [PickingFgController::class, 'clear'])->name('picking-fg.clear');
 
         Route::resource('sales-orders', SalesOrderController::class);
         Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');
@@ -233,6 +234,7 @@ Route::middleware('auth')->group(function () {
         Route::post('delivery-notes/{delivery_note}/picking-scan', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'pickingScanStore'])->name('delivery-notes.picking-scan.store');
         Route::post('delivery-notes/{delivery_note}/ship', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'ship'])->name('delivery-notes.ship');
         Route::get('delivery-notes/{delivery_note}/print', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'print'])->name('delivery-notes.print');
+        Route::get('delivery-notes/{delivery_note}/packing-list', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'printPackingList'])->name('delivery-notes.packing-list');
 
         Route::get('standard-packings/template', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'template'])->name('standard-packings.template');
         Route::get('standard-packings/export', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'export'])->name('standard-packings.export');

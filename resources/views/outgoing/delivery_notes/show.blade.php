@@ -119,6 +119,7 @@
                                 <tr>
                                     <th class="px-5 py-3 text-left font-bold text-slate-600">Part Number</th>
                                     <th class="px-5 py-3 text-left font-bold text-slate-600">Part Name</th>
+                                    <th class="px-5 py-3 text-left font-bold text-slate-600">Remarks</th>
                                     <th class="px-5 py-3 text-left font-bold text-slate-600">Kitting Location</th>
                                     <th class="px-5 py-3 text-right font-bold text-slate-600">Picked</th>
                                     <th class="px-5 py-3 text-right font-bold text-slate-600">Quantity</th>
@@ -129,6 +130,7 @@
                                     <tr>
                                         <td class="px-5 py-4 font-black text-slate-900">{{ $item->part->part_no }}</td>
                                         <td class="px-5 py-4 text-slate-600 font-semibold">{{ $item->part->part_name }}</td>
+                                        <td class="px-5 py-4 text-slate-500 text-xs">{{ $item->remarks ?: '-' }}</td>
                                         <td class="px-5 py-4 text-slate-700">
                                             @if ($deliveryNote->status === 'kitting')
                                                 @php $opts = $kittingLocationsByItem[$item->id] ?? []; @endphp
@@ -158,9 +160,8 @@
                                     </tr>
                                 @endforeach
                             </tbody>
-                            <tfoot class="bg-indigo-50 font-black">
-                                <tr>
-                                    <td colspan="3" class="px-5 py-4 text-right text-indigo-900 uppercase tracking-wider">
+                                <tr class="bg-indigo-50 font-black">
+                                    <td colspan="4" class="px-5 py-4 text-right text-indigo-900 uppercase tracking-wider">
                                         Total Quantity</td>
                                     <td class="px-5 py-4 text-right text-indigo-900 text-xl">
                                         {{ number_format((float) $deliveryNote->items->sum('picked_qty'), 4) }}</td>

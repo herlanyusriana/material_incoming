@@ -22,6 +22,8 @@ class StandardPackingTemplateExport implements FromCollection, WithHeadings
             'del_class',
             'trolley_type',
             'uom',
+            'net_weight',
+            'gross_weight',
         ];
     }
 }

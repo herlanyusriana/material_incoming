@@ -164,6 +164,16 @@
                         <button type="submit"
                             class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View</button>
                     </form>
+                    <form method="POST" action="{{ route('outgoing.picking-fg.clear') }}" onsubmit="return confirm('Are you sure you want to CLEAR all generated data for this date? This cannot be undone.');">
+                        @csrf
+                        <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
+                        <button type="submit" class="rounded-xl bg-red-100 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-200 border border-red-200 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Clear Data
+                        </button>
+                    </form>
                     <a href="{{ route('outgoing.picking-fg', ['date' => $selectedDate->toDateString()]) }}"
                         class="rounded-xl bg-slate-600 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,15 +307,24 @@
                                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan Qty</div>
                                         <div class="text-lg font-black text-slate-800">{{ number_format($so->qty_plan_total) }}</div>
                                     </div>
-                                    <div class="w-32">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="text-[10px] font-bold text-slate-500 uppercase">Progress</span>
-                                            <span class="text-[10px] font-black text-indigo-600" id="so-pct-{{ $so->so_id }}">{{ $so->progress_percent }}%</span>
+                                    
+                                    @if($so->status === 'completed')
+                                        <a href="{{ route('outgoing.delivery-notes.create', ['sales_order_ids' => $so->so_id]) }}" 
+                                           class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2">
+                                           <span>Create Delivery</span>
+                                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                        </a>
+                                    @else
+                                        <div class="w-32">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-[10px] font-bold text-slate-500 uppercase">Progress</span>
+                                                <span class="text-[10px] font-black text-indigo-600" id="so-pct-{{ $so->so_id }}">{{ $so->progress_percent }}%</span>
+                                            </div>
+                                            <div class="progress-bar-bg">
+                                                <div class="progress-bar-fill" id="so-progress-{{ $so->so_id }}" style="width: {{ $so->progress_percent }}%; background: {{ $so->progress_percent >= 100 ? '#16a34a' : ($so->progress_percent > 0 ? '#6366f1' : '#e2e8f0') }};"></div>
+                                            </div>
                                         </div>
-                                        <div class="progress-bar-bg">
-                                            <div class="progress-bar-fill" id="so-progress-{{ $so->so_id }}" style="width: {{ $so->progress_percent }}%; background: {{ $so->progress_percent >= 100 ? '#16a34a' : ($so->progress_percent > 0 ? '#6366f1' : '#e2e8f0') }};"></div>
-                                        </div>
-                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>

@@ -13,8 +13,6 @@ class DeliveryNote extends Model
     protected $fillable = [
         'dn_no',
         'customer_id',
-        'truck_id',
-        'driver_id',
         'status',
         'notes',
         'delivery_date',
@@ -73,24 +71,16 @@ class DeliveryNote extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function truck()
-    {
-        return $this->belongsTo(Truck::class, 'truck_id');
-    }
 
-    public function driver()
-    {
-        return $this->belongsTo(Driver::class, 'driver_id');
-    }
 
     public function items()
     {
-        return $this->hasMany(DeliveryItem::class);
+        return $this->hasMany(DnItem::class, 'dn_id');
     }
 
     public function salesOrders()
     {
-        return $this->belongsToMany(SalesOrder::class, 'delivery_items', 'delivery_note_id', 'sales_order_id');
+        return $this->belongsToMany(SalesOrder::class, 'delivery_note_sales_order', 'delivery_note_id', 'sales_order_id');
     }
 
     public function creator()

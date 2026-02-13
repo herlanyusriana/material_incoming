@@ -11,8 +11,8 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 class StandardPackingExport implements FromCollection, WithHeadings, WithMapping
 {
     /**
-    * @return \Illuminate\Support\Collection
-    */
+     * @return \Illuminate\Support\Collection
+     */
     public function collection()
     {
         return StandardPacking::with('part.customer')->get();
@@ -31,6 +31,8 @@ class StandardPackingExport implements FromCollection, WithHeadings, WithMapping
             'Packing qty',
             'Uom',
             'Trolly type',
+            'Net Weight',
+            'Gross Weight',
         ];
     }
 
@@ -47,6 +49,8 @@ class StandardPackingExport implements FromCollection, WithHeadings, WithMapping
             $row->packing_qty,
             $row->uom,
             $row->trolley_type,
+            $row->net_weight,
+            $row->gross_weight,
         ];
     }
 }

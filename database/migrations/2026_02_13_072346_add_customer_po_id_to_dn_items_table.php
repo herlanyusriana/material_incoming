@@ -10,8 +10,8 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('sales_orders', function (Blueprint $table) {
-            $table->integer('trip_no')->default(1)->after('so_date');
+        Schema::table('dn_items', function (Blueprint $table) {
+            $table->foreignId('customer_po_id')->nullable()->constrained('customer_pos')->nullOnDelete();
         });
     }
 
@@ -20,8 +20,9 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('sales_orders', function (Blueprint $table) {
-            $table->dropColumn('trip_no');
+        Schema::table('dn_items', function (Blueprint $table) {
+            $table->dropForeign(['customer_po_id']);
+            $table->dropColumn('customer_po_id');
         });
     }
 };
