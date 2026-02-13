@@ -11,7 +11,11 @@
       "Bash(python -c:*)",
       "Bash(php artisan tinker:*)",
       "Bash(php artisan migrate:status:*)",
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(grep:*)",
+      "Bash(php artisan make:test:*)",
+      "Bash(php artisan test:*)"
     ]
-  }
+  },
+  "outputStyle": "default"
 }

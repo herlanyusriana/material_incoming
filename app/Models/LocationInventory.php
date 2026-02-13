@@ -29,6 +29,69 @@ class LocationInventory extends Model
     ];
 
     /**
+     * Boot method to register model events
+     */
+    protected static function booted(): void
+    {
+        // After any stock change, sync summary tables
+        static::saved(function (LocationInventory $locationInventory) {
+            $locationInventory->syncSummaryTables();
+        });
+
+        static::deleted(function (LocationInventory $locationInventory) {
+            $locationInventory->syncSummaryTables();
+        });
+    }
+
+    /**
+     * Sync summary tables (inventories & gci_inventories) after stock change
+     */
+    protected function syncSummaryTables(): void
+    {
+        // Sync Inventory (vendor parts summary)
+        if ($this->part_id) {
+            $this->syncInventorySummary($this->part_id);
+        }
+
+        // Sync GciInventory (internal parts summary)
+        if ($this->gci_part_id) {
+            $this->syncGciInventorySummary($this->gci_part_id);
+        }
+    }
+
+    /**
+     * Sync Inventory table for vendor parts
+     */
+    protected function syncInventorySummary(int $partId): void
+    {
+        $totalOnHand = self::where('part_id', $partId)->sum('qty_on_hand');
+
+        Inventory::updateOrCreate(
+            ['part_id' => $partId],
+            [
+                'on_hand' => $totalOnHand,
+                'as_of_date' => now(),
+            ]
+        );
+    }
+
+    /**
+     * Sync GciInventory table for internal parts
+     */
+    protected function syncGciInventorySummary(int $gciPartId): void
+    {
+        $totalOnHand = self::where('gci_part_id', $gciPartId)->sum('qty_on_hand');
+
+        GciInventory::updateOrCreate(
+            ['gci_part_id' => $gciPartId],
+            [
+                'on_hand' => $totalOnHand,
+                'as_of_date' => now(),
+            ]
+        );
+    }
+
+    /**
      * Get the Internal Master Part
      */
     public function gciPart()
