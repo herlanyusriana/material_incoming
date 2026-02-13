@@ -486,7 +486,7 @@
 					<input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
 					@foreach($rows as $idx => $row)
 						<input type="hidden" name="lines[{{ $idx }}][gci_part_id]" value="{{ $row->gci_part_id }}">
-						<input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $row->gci_part->customer->id ?? 0 }}">
+						<input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $row->customer_id ?? 0 }}">
 						<input type="hidden" name="lines[{{ $idx }}][part_no]" value="{{ $row->fg_part_no }}">
 						<input type="hidden" name="lines[{{ $idx }}][part_name]" value="{{ $row->fg_part_name }}">
 						<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}">

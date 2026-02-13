@@ -961,7 +961,8 @@ class OutgoingController extends Controller
         }
 
         // ── 4. Load FG Part master data (only active FG parts) ──
-        $parts = GciPart::whereIn('id', $allPartIds)
+        $parts = GciPart::with('customer')
+            ->whereIn('id', $allPartIds)
             ->where('classification', 'FG')
             ->where('status', 'active')
             ->get()
@@ -1118,6 +1119,7 @@ class OutgoingController extends Controller
 
             $rows->push((object) [
                 'gci_part_id' => $partId,
+                'customer_id' => $part->customer_id ?? 0,
                 'category' => $category,
                 'fg_part_name' => $part->part_name ?? '-',
                 'fg_part_no' => $part->part_no ?? '-',
@@ -1181,6 +1183,7 @@ class OutgoingController extends Controller
 
             $rows->push((object) [
                 'gci_part_id' => $partId,
+                'customer_id' => $part->customer_id ?? 0,
                 'category' => 'NON LG',
                 'fg_part_name' => $part->part_name ?? '-',
                 'fg_part_no' => $part->part_no ?? '-',
