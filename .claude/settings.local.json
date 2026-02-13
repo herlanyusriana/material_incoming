@@ -9,7 +9,9 @@
       "Bash(ForEach-Object { '{0:X2}' -f [int]$_ } \")",
       "Bash(python3:*)",
       "Bash(python -c:*)",
-      "Bash(php artisan tinker:*)"
+      "Bash(php artisan tinker:*)",
+      "Bash(php artisan migrate:status:*)",
+      "Bash(mysql:*)"
     ]
   }
 }
