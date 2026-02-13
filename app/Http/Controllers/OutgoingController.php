@@ -1639,7 +1639,7 @@ class OutgoingController extends Controller
                     } elseif ($pickingFg->qty_picked >= $pickingFg->qty_plan) {
                         $pickingFg->status = 'completed';
                     }
-                    $pickingFg->source = $planningLine->source ?? 'daily_plan';
+                    $pickingFg->source = $planningLine->source ?: 'daily_plan';
                     $pickingFg->created_by = auth()->id();
                     $pickingFg->save();
                 }
