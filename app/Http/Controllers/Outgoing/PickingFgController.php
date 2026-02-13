@@ -24,10 +24,31 @@ class PickingFgController extends Controller
             : now()->startOfDay();
         $dateStr = $selectedDate->toDateString();
 
+        // Filters
+        $filterStatus = $request->query('status');
+        $filterSearch = $request->query('search');
+
         // Get picking records for this date
-        $picks = OutgoingPickingFg::with(['part', 'picker', 'outgoingPoItem.outgoingPo', 'salesOrder'])
-            ->where('delivery_date', $dateStr)
-            ->get();
+        $query = OutgoingPickingFg::with(['part', 'picker', 'outgoingPoItem.outgoingPo', 'salesOrder'])
+            ->where('delivery_date', $dateStr);
+
+        if ($filterStatus && in_array($filterStatus, ['pending', 'picking', 'completed'])) {
+            $query->where('status', $filterStatus);
+        }
+
+        if ($filterSearch) {
+            $search = $filterSearch;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('part', function ($pq) use ($search) {
+                    $pq->where('part_no', 'ilike', "%{$search}%")
+                        ->orWhere('part_name', 'ilike', "%{$search}%");
+                })->orWhereHas('salesOrder', function ($sq) use ($search) {
+                    $sq->where('so_no', 'ilike', "%{$search}%");
+                });
+            });
+        }
+
+        $picks = $query->get();
 
         // Group by Sales Order
         $grouped = $picks->groupBy(function ($p) {
@@ -76,18 +97,67 @@ class PickingFgController extends Controller
             ];
         })->sortByDesc('so_no')->values();
 
-        // Stats
+        // Stats (always unfiltered for header)
+        $allPicks = OutgoingPickingFg::where('delivery_date', $dateStr)->get();
         $stats = (object) [
-            'total_so' => $soList->count(),
-            'total_parts' => $picks->count(),
-            'pending' => $picks->where('status', 'pending')->count(),
-            'picking' => $picks->where('status', 'picking')->count(),
-            'completed' => $picks->where('status', 'completed')->count(),
-            'total_qty' => $picks->sum('qty_plan'),
-            'total_picked' => $picks->sum('qty_picked'),
+            'total_so' => $allPicks->pluck('sales_order_id')->unique()->count(),
+            'total_parts' => $allPicks->count(),
+            'pending' => $allPicks->where('status', 'pending')->count(),
+            'picking' => $allPicks->where('status', 'picking')->count(),
+            'completed' => $allPicks->where('status', 'completed')->count(),
+            'total_qty' => $allPicks->sum('qty_plan'),
+            'total_picked' => $allPicks->sum('qty_picked'),
         ];
 
-        return view('outgoing.picking_fg', compact('selectedDate', 'soList', 'stats'));
+        return view('outgoing.picking_fg', compact('selectedDate', 'soList', 'stats', 'filterStatus', 'filterSearch'));
+    }
+
+    /**
+     * Lightweight JSON status for polling auto-refresh.
+     */
+    public function statusJson(Request $request)
+    {
+        $dateStr = $request->query('date', now()->toDateString());
+
+        $picks = OutgoingPickingFg::with(['part', 'picker', 'salesOrder'])
+            ->where('delivery_date', $dateStr)
+            ->get();
+
+        $lastUpdated = $picks->max('updated_at');
+
+        $grouped = $picks->groupBy(fn($p) => $p->sales_order_id ?? 0);
+
+        $soList = $grouped->map(function ($items, $soId) {
+            $first = $items->first();
+            return [
+                'so_id' => $soId ?: null,
+                'so_no' => $first->salesOrder?->so_no,
+                'trip_no' => $first->salesOrder?->trip_no,
+                'status' => $this->identifyGroupStatus($items),
+                'progress_percent' => $items->sum('qty_plan') > 0
+                    ? round(($items->sum('qty_picked') / $items->sum('qty_plan')) * 100) : 0,
+                'rows' => $items->map(fn($p) => [
+                    'id' => $p->id,
+                    'qty_picked' => (int) $p->qty_picked,
+                    'qty_remaining' => $p->qty_remaining,
+                    'status' => $p->status,
+                    'progress_percent' => $p->progress_percent,
+                    'picked_by_name' => $p->picker?->name,
+                ]),
+            ];
+        })->values();
+
+        return response()->json([
+            'last_updated' => $lastUpdated?->toIso8601String(),
+            'stats' => [
+                'pending' => $picks->where('status', 'pending')->count(),
+                'picking' => $picks->where('status', 'picking')->count(),
+                'completed' => $picks->where('status', 'completed')->count(),
+                'total_qty' => $picks->sum('qty_plan'),
+                'total_picked' => $picks->sum('qty_picked'),
+            ],
+            'so_list' => $soList,
+        ]);
     }
 
     private function identifyGroupStatus($items)

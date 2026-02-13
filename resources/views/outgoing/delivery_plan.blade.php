@@ -180,6 +180,20 @@
 	</style>
 
 	<div class="space-y-6">
+		{{-- Flash Messages --}}
+		@foreach(['success', 'error', 'warning', 'info'] as $type)
+			@if(session($type))
+				<div id="flash-{{ $type }}" class="rounded-xl px-4 py-3 text-sm font-semibold flex items-center justify-between gap-3 shadow-sm border
+					{{ $type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : '' }}
+					{{ $type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : '' }}
+					{{ $type === 'warning' ? 'bg-amber-50 text-amber-800 border-amber-200' : '' }}
+					{{ $type === 'info' ? 'bg-blue-50 text-blue-800 border-blue-200' : '' }}">
+					<span>{{ session($type) }}</span>
+					<button onclick="this.parentElement.remove()" class="text-current opacity-50 hover:opacity-100 text-lg leading-none">&times;</button>
+				</div>
+			@endif
+		@endforeach
+
 		{{-- Header Card --}}
 		<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
 			<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -314,6 +328,10 @@
 												@if($row->is_osp)
 													<span
 														class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-800 border border-emerald-200">OSP</span>
+												@endif
+												@if($row->has_so ?? false)
+													<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-100 text-blue-800 border border-blue-200"
+														title="{{ collect($row->existing_sos)->pluck('so_no')->implode(', ') }}">SO</span>
 												@endif
 											</div>
 											@if($row->osp_order)
@@ -607,12 +625,14 @@
 					return;
 				}
 
+				if (!confirm(`Generate SO untuk ${checkboxes.length} part yang dipilih?`)) return;
+
 				// Trigger save first
 				const saved = await savePlanning();
 				if (saved) {
 					const btn = document.getElementById('generateSoBtn');
 					btn.disabled = true;
-					btn.innerText = 'Creating SO...';
+					btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating SO...';
 					document.getElementById('soForm').submit();
 				}
 			}

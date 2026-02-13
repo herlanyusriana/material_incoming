@@ -104,6 +104,29 @@
             background: #dcfce7;
             color: #166534;
         }
+
+        .filter-btn {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .filter-btn:hover { background: #f8fafc; }
+        .filter-btn.active { background: #6366f1; color: white; border-color: #6366f1; }
+
+        .sync-pulse {
+            animation: pulse 1s ease-in-out;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
     </style>
 
     <div class="space-y-6">
@@ -116,7 +139,12 @@
                         PK
                     </div>
                     <div>
-                        <div class="text-2xl md:text-3xl font-black text-slate-900">Picking FG</div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl md:text-3xl font-black text-slate-900">Picking FG</div>
+                            <span id="live-indicator" class="hidden items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold border border-green-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> LIVE
+                            </span>
+                        </div>
                         <div class="mt-1 text-sm text-slate-600">
                             Delivery Date: <span
                                 class="font-bold text-slate-900">{{ $selectedDate->format('d M Y') }}</span>
@@ -150,52 +178,92 @@
                     </form>
                 </div>
             </div>
+
+            {{-- Filter & Search Bar --}}
+            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Filter:</span>
+                    <a href="{{ route('outgoing.picking-fg', ['date' => $selectedDate->toDateString()]) }}"
+                        class="filter-btn {{ !isset($filterStatus) || !$filterStatus ? 'active' : '' }}">All</a>
+                    <a href="{{ route('outgoing.picking-fg', ['date' => $selectedDate->toDateString(), 'status' => 'pending', 'search' => $filterSearch ?? '']) }}"
+                        class="filter-btn {{ ($filterStatus ?? '') === 'pending' ? 'active' : '' }}">Pending</a>
+                    <a href="{{ route('outgoing.picking-fg', ['date' => $selectedDate->toDateString(), 'status' => 'picking', 'search' => $filterSearch ?? '']) }}"
+                        class="filter-btn {{ ($filterStatus ?? '') === 'picking' ? 'active' : '' }}">Picking</a>
+                    <a href="{{ route('outgoing.picking-fg', ['date' => $selectedDate->toDateString(), 'status' => 'completed', 'search' => $filterSearch ?? '']) }}"
+                        class="filter-btn {{ ($filterStatus ?? '') === 'completed' ? 'active' : '' }}">Completed</a>
+                </div>
+                <form method="GET" action="{{ route('outgoing.picking-fg') }}" class="flex items-center gap-2 flex-1 max-w-sm">
+                    <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
+                    @if($filterStatus ?? '')
+                        <input type="hidden" name="status" value="{{ $filterStatus }}">
+                    @endif
+                    <div class="relative flex-1">
+                        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" name="search" value="{{ $filterSearch ?? '' }}" placeholder="Search SO / Part..."
+                            class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                    </div>
+                    <button type="submit" class="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white hover:bg-slate-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
 
         {{-- Stats --}}
-        @if($soList->isNotEmpty())
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                <div class="stat-card">
-                    <div class="stat-value text-indigo-700">{{ $stats->total_so }}</div>
-                    <div class="stat-label">Total SO</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value text-slate-900">{{ $stats->total_parts }}</div>
-                    <div class="stat-label">Total Parts</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value text-slate-400">{{ $stats->pending }}</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value text-amber-600">{{ $stats->picking }}</div>
-                    <div class="stat-label">Picking</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value text-green-700">{{ $stats->completed }}</div>
-                    <div class="stat-label">Completed</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value text-indigo-700 text-xl">{{ number_format($stats->total_qty) }}</div>
-                    <div class="stat-label">Plan Qty</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value text-emerald-700 text-xl">{{ number_format($stats->total_picked) }}</div>
-                    <div class="stat-label">Picked</div>
-                </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div class="stat-card">
+                <div class="stat-value text-indigo-700" id="stat-total-so">{{ $stats->total_so }}</div>
+                <div class="stat-label">Total SO</div>
             </div>
-        @endif
+            <div class="stat-card">
+                <div class="stat-value text-slate-900" id="stat-total-parts">{{ $stats->total_parts }}</div>
+                <div class="stat-label">Total Parts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-slate-400" id="stat-pending">{{ $stats->pending }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-amber-600" id="stat-picking">{{ $stats->picking }}</div>
+                <div class="stat-label">Picking</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-green-700" id="stat-completed">{{ $stats->completed }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-indigo-700 text-xl" id="stat-total-qty">{{ number_format($stats->total_qty) }}</div>
+                <div class="stat-label">Plan Qty</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-emerald-700 text-xl" id="stat-total-picked">{{ number_format($stats->total_picked) }}</div>
+                <div class="stat-label">Picked</div>
+            </div>
+        </div>
 
         {{-- SO Lists --}}
         @if($soList->isEmpty())
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
-                <div class="text-slate-400 text-sm italic">No picking items for this date.</div>
-                <div class="mt-2 text-xs text-slate-400">Generate SOs from the "Delivery Plan" page to start picking.</div>
+                <div class="text-slate-400 text-sm italic">
+                    @if($filterStatus || $filterSearch)
+                        No items match your filter.
+                        <a href="{{ route('outgoing.picking-fg', ['date' => $selectedDate->toDateString()]) }}" class="text-indigo-600 underline ml-1">Clear filters</a>
+                    @else
+                        No picking items for this date.
+                    @endif
+                </div>
+                @if(!$filterStatus && !$filterSearch)
+                    <div class="mt-2 text-xs text-slate-400">Generate SOs from the "Delivery Plan" page to start picking.</div>
+                @endif
             </div>
         @else
             <div class="space-y-6">
                 @foreach($soList as $so)
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-so-id="{{ $so->so_id }}">
                         {{-- SO Header Card --}}
                         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -236,10 +304,10 @@
                                     <div class="w-32">
                                         <div class="flex items-center justify-between mb-1">
                                             <span class="text-[10px] font-bold text-slate-500 uppercase">Progress</span>
-                                            <span class="text-[10px] font-black text-indigo-600">{{ $so->progress_percent }}%</span>
+                                            <span class="text-[10px] font-black text-indigo-600" id="so-pct-{{ $so->so_id }}">{{ $so->progress_percent }}%</span>
                                         </div>
                                         <div class="progress-bar-bg">
-                                            <div class="progress-bar-fill" style="width: {{ $so->progress_percent }}%; background: {{ $so->progress_percent >= 100 ? '#16a34a' : ($so->progress_percent > 0 ? '#6366f1' : '#e2e8f0') }}; shadow: 0 0 10px rgba(99, 102, 241, 0.2);"></div>
+                                            <div class="progress-bar-fill" id="so-progress-{{ $so->so_id }}" style="width: {{ $so->progress_percent }}%; background: {{ $so->progress_percent >= 100 ? '#16a34a' : ($so->progress_percent > 0 ? '#6366f1' : '#e2e8f0') }};"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -280,8 +348,8 @@
                                             <td class="px-4 py-3 text-right font-bold text-slate-900">{{ number_format($row->qty_plan) }}</td>
                                             <td class="px-4 py-3 text-center bg-emerald-50/30">
                                                 <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
-                                                    class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}" 
-                                                    data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}" 
+                                                    class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}"
+                                                    data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}"
                                                     onchange="savePick(this)" id="pick-input-{{ $rowKey }}">
                                             </td>
                                             <td class="px-4 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
@@ -320,7 +388,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div class="text-sm text-slate-500">
                             <span class="font-semibold">Tip:</span> Input qty picked langsung di kolom hijau.
-                            Data tersimpan otomatis. Status berubah otomatis berdasarkan qty.
+                            Data tersimpan otomatis. Auto-refresh setiap 15 detik.
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="inline-flex items-center gap-1.5 text-[10px] font-bold">
@@ -338,7 +406,7 @@
                                 <input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
                                 <button type="submit"
                                     class="rounded-xl bg-green-600 px-4 py-2 text-xs font-bold text-white hover:bg-green-700">
-                                    ✓ Complete All
+                                    Complete All
                                 </button>
                             </form>
                         </div>
@@ -351,7 +419,10 @@
     <script>
         const CSRF = '{{ csrf_token() }}';
         const UPDATE_URL = '{{ route("outgoing.picking-fg.update-pick") }}';
+        const STATUS_URL = '{{ route("outgoing.picking-fg.status") }}';
         const DELIVERY_DATE = '{{ $selectedDate->toDateString() }}';
+        let lastUpdated = null;
+        let pollInterval = null;
 
         async function savePick(input) {
             const rowKey = input.dataset.rowKey;
@@ -386,40 +457,7 @@
 
                 if (data.success) {
                     input.style.background = '#dcfce7';
-
-                    // Update remaining
-                    const remEl = document.getElementById(`remaining-${rowKey}`);
-                    if (remEl) {
-                        const span = remEl.querySelector('span');
-                        span.textContent = data.qty_remaining.toLocaleString();
-                        span.className = data.qty_remaining > 0 ? 'text-amber-600' : 'text-green-700';
-                    }
-
-                    // Update progress bar
-                    const progEl = document.getElementById(`progress-${rowKey}`);
-                    if (progEl) {
-                        progEl.style.width = data.progress_percent + '%';
-                        progEl.style.background = data.progress_percent >= 100 ? '#16a34a' : (data.progress_percent > 0 ? '#f59e0b' : '#e2e8f0');
-                    }
-                    const pctEl = document.getElementById(`pct-${rowKey}`);
-                    if (pctEl) pctEl.textContent = data.progress_percent + '%';
-
-                    // Update status badge
-                    const badgeEl = document.getElementById(`status-badge-${rowKey}`);
-                    if (badgeEl) {
-                        badgeEl.className = `status-badge ${data.status}`;
-                        badgeEl.innerHTML = data.status === 'completed'
-                            ? '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Completed'
-                            : data.status.charAt(0).toUpperCase() + data.status.slice(1);
-                    }
-
-                    // Update row class
-                    const rowEl = document.getElementById(`row-${rowKey}`);
-                    if (rowEl) {
-                        rowEl.classList.remove('status-pending', 'status-picking', 'status-completed');
-                        rowEl.classList.add(`status-${data.status}`);
-                    }
-
+                    updateRowUI(rowKey, data);
                     setTimeout(() => { input.style.background = ''; }, 800);
                 } else {
                     input.style.background = '#fee2e2';
@@ -431,5 +469,120 @@
                 setTimeout(() => { input.style.background = ''; }, 1500);
             }
         }
+
+        function updateRowUI(rowKey, data) {
+            // Update remaining
+            const remEl = document.getElementById(`remaining-${rowKey}`);
+            if (remEl) {
+                const span = remEl.querySelector('span');
+                span.textContent = data.qty_remaining.toLocaleString();
+                span.className = data.qty_remaining > 0 ? 'text-amber-600' : 'text-green-700';
+            }
+
+            // Update progress bar
+            const progEl = document.getElementById(`progress-${rowKey}`);
+            if (progEl) {
+                progEl.style.width = data.progress_percent + '%';
+                progEl.style.background = data.progress_percent >= 100 ? '#16a34a' : (data.progress_percent > 0 ? '#f59e0b' : '#e2e8f0');
+            }
+            const pctEl = document.getElementById(`pct-${rowKey}`);
+            if (pctEl) pctEl.textContent = data.progress_percent + '%';
+
+            // Update status badge
+            const badgeEl = document.getElementById(`status-badge-${rowKey}`);
+            if (badgeEl) {
+                badgeEl.className = `status-badge ${data.status}`;
+                badgeEl.innerHTML = data.status === 'completed'
+                    ? '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Completed'
+                    : data.status.charAt(0).toUpperCase() + data.status.slice(1);
+            }
+
+            // Update row class
+            const rowEl = document.getElementById(`row-${rowKey}`);
+            if (rowEl) {
+                rowEl.classList.remove('status-pending', 'status-picking', 'status-completed');
+                rowEl.classList.add(`status-${data.status}`);
+            }
+        }
+
+        // Auto-refresh polling
+        async function pollStatus() {
+            try {
+                const res = await fetch(`${STATUS_URL}?date=${DELIVERY_DATE}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+
+                if (lastUpdated && data.last_updated && data.last_updated !== lastUpdated) {
+                    // Data changed - update stats and rows
+                    updateStats(data.stats);
+                    updateRows(data.so_list);
+                }
+                lastUpdated = data.last_updated;
+
+                // Show live indicator
+                const liveEl = document.getElementById('live-indicator');
+                if (liveEl) liveEl.classList.replace('hidden', 'inline-flex');
+            } catch (e) {
+                // Silently fail - will retry next poll
+            }
+        }
+
+        function updateStats(stats) {
+            const map = {
+                'stat-pending': stats.pending,
+                'stat-picking': stats.picking,
+                'stat-completed': stats.completed,
+                'stat-total-qty': stats.total_qty.toLocaleString(),
+                'stat-total-picked': stats.total_picked.toLocaleString(),
+            };
+            for (const [id, val] of Object.entries(map)) {
+                const el = document.getElementById(id);
+                if (el && el.textContent != val) {
+                    el.textContent = val;
+                    el.classList.add('sync-pulse');
+                    setTimeout(() => el.classList.remove('sync-pulse'), 1000);
+                }
+            }
+        }
+
+        function updateRows(soList) {
+            if (!soList) return;
+            soList.forEach(so => {
+                // Update SO-level progress
+                const soPctEl = document.getElementById(`so-pct-${so.so_id}`);
+                if (soPctEl) soPctEl.textContent = so.progress_percent + '%';
+                const soProgEl = document.getElementById(`so-progress-${so.so_id}`);
+                if (soProgEl) {
+                    soProgEl.style.width = so.progress_percent + '%';
+                    soProgEl.style.background = so.progress_percent >= 100 ? '#16a34a' : (so.progress_percent > 0 ? '#6366f1' : '#e2e8f0');
+                }
+
+                // Update individual rows
+                if (so.rows) {
+                    so.rows.forEach(row => {
+                        const rowKey = row.id;
+                        const input = document.getElementById(`pick-input-${rowKey}`);
+                        // Only update if input is not focused (user not editing)
+                        if (input && document.activeElement !== input) {
+                            if (parseInt(input.value) !== row.qty_picked) {
+                                input.value = row.qty_picked;
+                                updateRowUI(rowKey, row);
+                            }
+                        }
+                        // Update picker name
+                        const pickerEl = document.getElementById(`picker-${rowKey}`);
+                        if (pickerEl && row.picked_by_name) pickerEl.textContent = row.picked_by_name;
+                    });
+                }
+            });
+        }
+
+        // Start polling
+        document.addEventListener('DOMContentLoaded', function() {
+            pollInterval = setInterval(pollStatus, 15000);
+            // Initial poll to set lastUpdated
+            pollStatus();
+        });
     </script>
 @endsection

@@ -1210,6 +1210,27 @@ class OutgoingController extends Controller
             ]);
         }
 
+        // ── 11. Check existing SOs for each part on this date ──
+        $existingSos = SalesOrder::where('so_date', $dateStr)
+            ->with('items')
+            ->get();
+        $soByPart = [];
+        foreach ($existingSos as $so) {
+            foreach ($so->items as $item) {
+                $soByPart[$item->gci_part_id][] = [
+                    'so_no' => $so->so_no,
+                    'status' => $so->status,
+                    'trip_no' => $so->trip_no,
+                ];
+            }
+        }
+
+        // Attach SO info to rows
+        foreach ($rows as $row) {
+            $row->existing_sos = $soByPart[$row->gci_part_id] ?? [];
+            $row->has_so = !empty($row->existing_sos);
+        }
+
         // Sort by fixed category order, then part name
         $categoryOrder = ['Base Comp' => 1, 'Plate Rear' => 2, 'Reinforce' => 3, 'Tray Drip' => 4, 'Small Part' => 5, 'NON LG' => 6];
         $rows = $rows->sortBy([
@@ -1520,7 +1541,6 @@ class OutgoingController extends Controller
         $selectedIdx = collect($validated['selected'])->map(fn($v) => (int) $v)->unique()->values();
         $lines = collect($validated['lines']);
 
-        // Filter to only selected lines
         $selectedLines = $selectedIdx
             ->map(fn(int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
             ->filter()
@@ -1530,21 +1550,21 @@ class OutgoingController extends Controller
             return back()->with('error', 'Pilih minimal 1 part untuk generate SO.');
         }
 
-        // Validate customers exist
         $customerIds = $selectedLines->pluck('customer_id')->unique();
         $invalidCustomers = $customerIds->filter(fn($id) => !Customer::find($id))->count();
         if ($invalidCustomers > 0) {
             return back()->with('error', 'Ada customer yang tidak valid.');
         }
 
-        $generatedSoNos = [];
+        $created = [];
+        $updated = [];
+        $skipped = [];
 
-        DB::transaction(function () use ($selectedLines, $planDate, &$generatedSoNos) {
+        DB::transaction(function () use ($selectedLines, $planDate, &$created, &$updated, &$skipped) {
             foreach ($selectedLines as $line) {
                 $customerId = (int) $line['customer_id'];
                 $partId = (int) $line['gci_part_id'];
 
-                // Get the planning line to find trip quantities
                 $planningLine = OutgoingDeliveryPlanningLine::where('delivery_date', $planDate)
                     ->where('gci_part_id', $partId)
                     ->first();
@@ -1557,24 +1577,22 @@ class OutgoingController extends Controller
                     if ($tripQty <= 0)
                         continue;
 
-                    // Find or create SO for this customer on this date and trip
+                    // Check for existing SO (any status) for this customer+date+trip
                     $so = SalesOrder::where('customer_id', $customerId)
                         ->where('so_date', $planDate)
                         ->where('trip_no', $t)
-                        ->where('status', 'draft')
                         ->first();
 
-                    if (!$so) {
-                        $soNo = null;
-                        for ($attempt = 0; $attempt < 5; $attempt++) {
-                            $candidate = 'SO-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)) . '-T' . $t;
-                            if (!SalesOrder::query()->where('so_no', $candidate)->exists()) {
-                                $soNo = $candidate;
-                                break;
-                            }
-                        }
-                        $soNo ??= 'SO-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
+                    if ($so && !in_array($so->status, ['draft', 'pending'])) {
+                        // SO already shipped/completed → skip
+                        $skipped[$so->so_no] = $so->status;
+                        continue;
+                    }
 
+                    $isNew = !$so;
+
+                    if (!$so) {
+                        $soNo = $this->generateSoNumber($planDate, $t);
                         $so = SalesOrder::create([
                             'so_no' => $soNo,
                             'customer_id' => $customerId,
@@ -1584,20 +1602,26 @@ class OutgoingController extends Controller
                             'notes' => "Generated from Delivery Planning (Trip {$t})",
                             'created_by' => auth()->id(),
                         ]);
+                        $created[] = $so->so_no;
+                    } else {
+                        $updated[] = $so->so_no;
                     }
 
-                    $generatedSoNos[] = $so->so_no;
+                    // Upsert SO item - set qty (not accumulate) to allow regenerate
+                    $soItem = SalesOrderItem::where('sales_order_id', $so->id)
+                        ->where('gci_part_id', $partId)
+                        ->first();
 
-                    // Add item to SO
-                    SalesOrderItem::updateOrCreate(
-                        [
+                    if ($soItem) {
+                        $soItem->update(['qty_ordered' => $tripQty]);
+                    } else {
+                        SalesOrderItem::create([
                             'sales_order_id' => $so->id,
                             'gci_part_id' => $partId,
-                        ],
-                        [
-                            'qty_ordered' => DB::raw("qty_ordered + {$tripQty}"),
-                        ]
-                    );
+                            'qty_ordered' => $tripQty,
+                            'qty_shipped' => 0,
+                        ]);
+                    }
 
                     // Create/Update Picking record linked to this SO
                     $pickingFg = OutgoingPickingFg::firstOrNew([
@@ -1606,8 +1630,15 @@ class OutgoingController extends Controller
                         'sales_order_id' => $so->id,
                     ]);
 
-                    $pickingFg->qty_plan = ($pickingFg->exists ? $pickingFg->qty_plan : 0) + $tripQty;
-                    $pickingFg->status = ($pickingFg->status === 'completed' && $pickingFg->qty_picked < $pickingFg->qty_plan) ? 'picking' : ($pickingFg->status ?? 'pending');
+                    $pickingFg->qty_plan = $tripQty;
+                    if (!$pickingFg->exists) {
+                        $pickingFg->status = 'pending';
+                        $pickingFg->qty_picked = 0;
+                    } elseif ($pickingFg->qty_picked > 0 && $pickingFg->qty_picked < $pickingFg->qty_plan) {
+                        $pickingFg->status = 'picking';
+                    } elseif ($pickingFg->qty_picked >= $pickingFg->qty_plan) {
+                        $pickingFg->status = 'completed';
+                    }
                     $pickingFg->source = $planningLine->source ?? 'daily_plan';
                     $pickingFg->created_by = auth()->id();
                     $pickingFg->save();
@@ -1615,10 +1646,44 @@ class OutgoingController extends Controller
             }
         });
 
-        $generatedSoNos = array_unique($generatedSoNos);
-        $count = count($generatedSoNos);
-        $soList = implode(', ', $generatedSoNos);
+        // Build feedback message
+        $messages = [];
+        $created = array_unique($created);
+        $updated = array_unique($updated);
+        if (count($created) > 0) {
+            $messages[] = count($created) . ' SO created: ' . implode(', ', $created);
+        }
+        if (count($updated) > 0) {
+            $messages[] = count($updated) . ' SO updated: ' . implode(', ', $updated);
+        }
+        if (count($skipped) > 0) {
+            $skippedList = collect($skipped)->map(fn($status, $no) => "{$no} ({$status})")->implode(', ');
+            $messages[] = count($skipped) . ' SO skipped (non-draft): ' . $skippedList;
+        }
 
-        return back()->with('success', "{$count} Sales Order(s) generated/updated: {$soList}");
+        if (empty($messages)) {
+            return back()->with('info', 'Tidak ada SO yang di-generate. Pastikan trip qty sudah diisi.');
+        }
+
+        $type = count($skipped) > 0 && count($created) === 0 && count($updated) === 0 ? 'warning' : 'success';
+        return back()->with($type, implode(' | ', $messages));
+    }
+
+    private function generateSoNumber(string $planDate, int $tripNo): string
+    {
+        $dateStr = \Carbon\Carbon::parse($planDate)->format('Ymd');
+        $prefix = "SO-{$dateStr}-T{$tripNo}-";
+
+        $lastSo = SalesOrder::where('so_no', 'like', $prefix . '%')
+            ->orderByRaw('LENGTH(so_no) DESC, so_no DESC')
+            ->first();
+
+        $nextSeq = 1;
+        if ($lastSo) {
+            $lastSeqStr = str_replace($prefix, '', $lastSo->so_no);
+            $nextSeq = ((int) $lastSeqStr) + 1;
+        }
+
+        return $prefix . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
     }
 }

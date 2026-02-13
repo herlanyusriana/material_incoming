@@ -27,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Picking FG (from delivery plan)
     Route::prefix('picking-fg')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\PickingFgApiController::class, 'index']);
+        Route::get('/status', [\App\Http\Controllers\Api\PickingFgApiController::class, 'status']);
+        Route::get('/lookup', [\App\Http\Controllers\Api\PickingFgApiController::class, 'lookupPart']);
         Route::post('/pick', [\App\Http\Controllers\Api\PickingFgApiController::class, 'updatePick']);
     });
 

@@ -216,6 +216,7 @@ Route::middleware('auth')->group(function () {
 
         // Picking FG Routes
         Route::get('/picking-fg', [PickingFgController::class, 'index'])->name('picking-fg');
+        Route::get('/picking-fg/status', [PickingFgController::class, 'statusJson'])->name('picking-fg.status');
         Route::post('/picking-fg/generate', [PickingFgController::class, 'generate'])->name('picking-fg.generate');
         Route::post('/picking-fg/update-pick', [PickingFgController::class, 'updatePick'])->name('picking-fg.update-pick');
         Route::post('/picking-fg/complete-all', [PickingFgController::class, 'completeAll'])->name('picking-fg.complete-all');
