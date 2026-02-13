@@ -224,7 +224,8 @@
                     <td colspan="2" style="border-bottom: none; border-top: none; padding-top: 2px; padding-bottom: 2px;">
                         <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; align-items: start;">
                             <span>{{ $item->part->part_name }}</span>
-                            <span class="text-center"><b>{{ $pkgs }}</b> Bx</span>
+                            <span class="text-center"><b>{{ $pkgs }}</b>
+                                {{ $item->part->standardPacking->kemasan ?? 'Bx' }}</span>
                             <span>{{ $item->part->part_no }}</span>
                         </div>
                     </td>

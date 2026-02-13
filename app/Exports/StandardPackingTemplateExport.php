@@ -24,6 +24,7 @@ class StandardPackingTemplateExport implements FromCollection, WithHeadings
             'uom',
             'net_weight',
             'gross_weight',
+            'kemasan',
         ];
     }
 }

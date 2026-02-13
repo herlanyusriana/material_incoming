@@ -60,6 +60,7 @@ class StandardPackingImport implements ToCollection, WithHeadingRow, SkipsEmptyR
             $trolley = $this->norm($row['trolly_type'] ?? $row['trolley_type'] ?? null);
             $net = $row['net_weight'] ?? null;
             $gross = $row['gross_weight'] ?? null;
+            $kemasan = $this->norm($row['kemasan'] ?? null);
 
             // 4. Update or Create
             StandardPacking::updateOrCreate(
@@ -73,6 +74,7 @@ class StandardPackingImport implements ToCollection, WithHeadingRow, SkipsEmptyR
                     'trolley_type' => $trolley,
                     'net_weight' => $net,
                     'gross_weight' => $gross,
+                    'kemasan' => $kemasan,
                     'status' => 'active'
                 ]
             );
