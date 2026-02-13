@@ -53,6 +53,8 @@ class StandardPackingController extends Controller
             'delivery_class' => 'nullable|string',
             'packing_qty' => 'required|numeric|min:0',
             'uom' => 'nullable|string',
+            'net_weight' => 'nullable|numeric|min:0',
+            'kemasan' => 'nullable|string',
             'trolley_type' => 'nullable|string',
         ]);
 
@@ -61,6 +63,8 @@ class StandardPackingController extends Controller
             [
                 'packing_qty' => $request->packing_qty,
                 'uom' => $request->uom ?? 'PCS',
+                'net_weight' => $request->net_weight,
+                'kemasan' => $request->kemasan,
                 'trolley_type' => $request->trolley_type,
                 'status' => 'active'
             ]
@@ -121,6 +125,8 @@ class StandardPackingController extends Controller
             'delivery_class' => 'nullable|string|max:50',
             'packing_qty' => 'required|numeric|min:0.0001',
             'uom' => 'nullable|string|max:20',
+            'net_weight' => 'nullable|numeric|min:0',
+            'kemasan' => 'nullable|string|max:50',
             'trolley_type' => 'nullable|string|max:50',
         ]);
 
@@ -130,6 +136,8 @@ class StandardPackingController extends Controller
             'delivery_class' => $request->delivery_class ?? 'Main',
             'packing_qty' => $request->packing_qty,
             'uom' => $request->uom ?? 'PCS',
+            'net_weight' => $request->net_weight,
+            'kemasan' => $request->kemasan,
             'trolley_type' => $request->trolley_type,
         ]);
 

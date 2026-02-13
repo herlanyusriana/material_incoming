@@ -13,7 +13,6 @@ class StandardPacking extends Model
         'packing_qty',
         'uom',
         'net_weight',
-        'gross_weight',
         'kemasan',
         'trolley_type',
         'status',

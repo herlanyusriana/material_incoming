@@ -32,7 +32,6 @@ class StandardPackingExport implements FromCollection, WithHeadings, WithMapping
             'Uom',
             'Trolly type',
             'Net Weight',
-            'Gross Weight',
             'Kemasan',
         ];
     }
@@ -51,7 +50,6 @@ class StandardPackingExport implements FromCollection, WithHeadings, WithMapping
             $row->uom,
             $row->trolley_type,
             $row->net_weight,
-            $row->gross_weight,
             $row->kemasan,
         ];
     }

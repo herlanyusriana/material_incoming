@@ -113,6 +113,12 @@
                                 class="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500">
                                 UOM</th>
                             <th scope="col"
+                                class="px-6 py-3 text-xs font-semibold tracking-wider text-right uppercase text-slate-500">
+                                NM (Kg)</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-xs font-semibold tracking-wider text-center uppercase text-slate-500">
+                                Kemasan</th>
+                            <th scope="col"
                                 class="px-6 py-3 text-xs font-semibold tracking-wider text-center uppercase text-slate-500">
                                 BS Type</th>
                             <th scope="col"
@@ -138,6 +144,10 @@
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900 text-right">
                                                     {{ $item->packing_qty + 0 }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ $item->uom }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-right">
+                                                    {{ $item->net_weight ? number_format($item->net_weight, 4) : '-' }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
+                                                    {{ $item->kemasan ?? '-' }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
                                                     {{ $item->trolley_type }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
@@ -149,6 +159,8 @@
                                 'delivery_class' => $item->delivery_class,
                                 'packing_qty' => $item->packing_qty + 0,
                                 'uom' => $item->uom,
+                                'net_weight' => $item->net_weight,
+                                'kemasan' => $item->kemasan,
                                 'trolley_type' => $item->trolley_type,
                             ]) }})"
                                                             class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
@@ -318,6 +330,27 @@
                         </select>
                     </div>
 
+                    <!-- Net Weight -->
+                    <div>
+                        <label for="edit_net_weight" class="block mb-1.5 text-sm font-medium text-slate-700">Net Weight (Kg)</label>
+                        <input type="number" name="net_weight" id="edit_net_weight" step="0.0001" min="0"
+                            class="block w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="e.g. 5.2">
+                    </div>
+
+                    <!-- Kemasan -->
+                    <div>
+                        <label for="edit_kemasan" class="block mb-1.5 text-sm font-medium text-slate-700">Kemasan</label>
+                        <select name="kemasan" id="edit_kemasan"
+                            class="block w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">- Select -</option>
+                            <option value="BOX">BOX</option>
+                            <option value="BAG">BAG</option>
+                            <option value="BUNDLE">BUNDLE</option>
+                            <option value="TROLLEY">TROLLEY</option>
+                        </select>
+                    </div>
+
                     <!-- Trolley Type -->
                     <div>
                         <label for="edit_trolley_type" class="block mb-1.5 text-sm font-medium text-slate-700">BS Type (Trolley)</label>
@@ -354,6 +387,8 @@
             document.getElementById('edit_delivery_class').value = data.delivery_class || '';
             document.getElementById('edit_packing_qty').value = data.packing_qty;
             document.getElementById('edit_uom').value = data.uom || 'PCS';
+            document.getElementById('edit_net_weight').value = data.net_weight || '';
+            document.getElementById('edit_kemasan').value = data.kemasan || '';
             document.getElementById('edit_trolley_type').value = data.trolley_type || '';
             
             // Show modal
