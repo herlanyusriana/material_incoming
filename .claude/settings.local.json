@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd Production Order to Daily Planning relation & Fix Generate SO server issue\n\n1. Production Orders - Daily Planning Outgoing Integration:\n   - Add migration: daily_plan_cell_id to production_orders table\n   - Add model relationships: ProductionOrder->dailyPlanCell, OutgoingDailyPlanCell->productionOrders\n   - Update controllers to load relationships\n   - Add Daily Planning mapping display in all production order views \\(index, show, detail\\)\n   - Show: production line, plan date, sequence, qty, part no, and plan period\n\n2. Fix Generate SO from Delivery Plan \\(Server Issue\\):\n   - Add comprehensive error handling with try-catch\n   - Add detailed logging at each step \\(transaction start, SO creation, Picking FG creation\\)\n   - Add validation for customers and GCI parts before transaction\n   - Add better error messages with line numbers\n   - Add troubleshooting documentation \\(FIX_GENERATE_SO_SERVER.md\\)\n   \n   Root cause: Migration constraint mismatch between local and server\n   - Server may have old unique constraint on outgoing_picking_fgs\n   - Logs now capture exact error for debugging\n   \n   Solution steps documented in FIX_GENERATE_SO_SERVER.md\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(find:*)"
     ]
   }
 }
