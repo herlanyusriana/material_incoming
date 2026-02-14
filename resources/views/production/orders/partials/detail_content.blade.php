@@ -56,6 +56,62 @@
             </dl>
         </div>
 
+        <!-- Daily Planning Mapping -->
+        @if($order->dailyPlanCell)
+        <div class="bg-indigo-50 rounded-lg p-6 border border-indigo-200">
+            <h3 class="text-lg font-semibold mb-4 text-indigo-900 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                </svg>
+                Daily Planning Mapping
+            </h3>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
+                <div>
+                    <dt class="text-indigo-600 font-medium">Production Line</dt>
+                    <dd class="font-semibold text-indigo-900 text-lg">{{ $order->dailyPlanCell->row->production_line }}</dd>
+                </div>
+                <div>
+                    <dt class="text-indigo-600 font-medium">Plan Date</dt>
+                    <dd class="font-semibold text-indigo-900">{{ \Carbon\Carbon::parse($order->dailyPlanCell->plan_date)->format('d M Y') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-indigo-600 font-medium">Sequence</dt>
+                    <dd class="font-semibold text-indigo-900">{{ $order->dailyPlanCell->seq ?? '-' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-indigo-600 font-medium">Planned Qty</dt>
+                    <dd class="font-semibold text-indigo-900 text-lg">{{ $order->dailyPlanCell->qty ? number_format($order->dailyPlanCell->qty) : '-' }}</dd>
+                </div>
+                <div class="col-span-2">
+                    <dt class="text-indigo-600 font-medium mb-1">Part No (from Daily Plan)</dt>
+                    <dd class="font-mono text-sm text-indigo-900 bg-white px-3 py-2 rounded border border-indigo-200">{{ $order->dailyPlanCell->row->part_no }}</dd>
+                </div>
+                @if($order->dailyPlanCell->row->plan)
+                <div class="col-span-2 pt-2 border-t border-indigo-200">
+                    <dt class="text-indigo-600 font-medium mb-1">Plan Period</dt>
+                    <dd class="text-indigo-900">
+                        {{ \Carbon\Carbon::parse($order->dailyPlanCell->row->plan->date_from)->format('d M Y') }}
+                        <span class="mx-2">→</span>
+                        {{ \Carbon\Carbon::parse($order->dailyPlanCell->row->plan->date_to)->format('d M Y') }}
+                    </dd>
+                </div>
+                @endif
+            </dl>
+        </div>
+        @else
+        <div class="bg-amber-50 rounded-lg p-6 border border-amber-200">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-amber-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <div>
+                    <h3 class="text-sm font-semibold text-amber-900">No Daily Planning Mapping</h3>
+                    <p class="text-xs text-amber-700 mt-1">This production order is not yet linked to any daily planning outgoing cell.</p>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <!-- Workflow Actions -->
         @if($order->status != 'completed' && $order->status != 'cancelled')
         <div class="bg-white border rounded-lg shadow-sm p-6 relative overflow-hidden">

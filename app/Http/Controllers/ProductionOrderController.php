@@ -33,7 +33,7 @@ class ProductionOrderController extends Controller
         }
 
         $query = ProductionOrder::query()
-            ->with('part')
+            ->with(['part', 'dailyPlanCell.row'])
             ->when($gciPartId > 0, fn ($qr) => $qr->where('gci_part_id', $gciPartId))
             ->when($status !== '', fn ($qr) => $qr->where('status', $status))
             ->when($dateFrom || $dateTo, function ($qr) use ($dateFrom, $dateTo) {
@@ -93,8 +93,14 @@ class ProductionOrderController extends Controller
 
     public function show(Request $request, ProductionOrder $order)
     {
-        $order->load(['part', 'inspections.inspector', 'creator', 'mrpRun']);
-        
+        $order->load([
+            'part',
+            'inspections.inspector',
+            'creator',
+            'mrpRun',
+            'dailyPlanCell.row.plan'
+        ]);
+
         if ($request->ajax()) {
             return view('production.orders.partials.detail_content', compact('order'));
         }

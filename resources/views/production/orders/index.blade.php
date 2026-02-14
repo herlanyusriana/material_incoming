@@ -88,6 +88,7 @@
                             <th class="px-6 py-4 font-semibold">Part</th>
                             <th class="px-6 py-4 font-semibold">Process / Machine</th>
                             <th class="px-6 py-4 font-semibold">Plan Date</th>
+                            <th class="px-6 py-4 font-semibold">Daily Planning</th>
                             <th class="px-6 py-4 font-semibold">Qty</th>
                             <th class="px-6 py-4 font-semibold">Status</th>
                             <th class="px-6 py-4 font-semibold">Stage</th>
@@ -109,6 +110,21 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
+                                <td class="px-6 py-4">
+                                    @if($order->dailyPlanCell)
+                                        <div class="text-sm">
+                                            <div class="font-medium text-indigo-600">{{ $order->dailyPlanCell->row->production_line ?? '-' }}</div>
+                                            <div class="text-xs text-slate-500">
+                                                Seq: {{ $order->dailyPlanCell->seq ?? '-' }}
+                                                @if($order->dailyPlanCell->qty)
+                                                    • Qty: {{ number_format($order->dailyPlanCell->qty) }}
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-slate-400 italic">No mapping</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_planned) }}</td>
                                 <td class="px-6 py-4">
                                     @php
@@ -137,7 +153,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-slate-500 italic">
+                                <td colspan="9" class="px-6 py-12 text-center text-slate-500 italic">
                                     No production orders found. Create one to get started.
                                 </td>
                             </tr>

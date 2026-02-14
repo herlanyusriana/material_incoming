@@ -32,6 +32,11 @@ class ProductionOrder extends Model
     {
         return $this->hasMany(ProductionInspection::class);
     }
+
+    public function dailyPlanCell()
+    {
+        return $this->belongsTo(OutgoingDailyPlanCell::class, 'daily_plan_cell_id');
+    }
     
     // Status Accessors
     

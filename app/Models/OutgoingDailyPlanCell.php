@@ -26,4 +26,9 @@ class OutgoingDailyPlanCell extends Model
     {
         return $this->belongsTo(OutgoingDailyPlanRow::class, 'row_id');
     }
+
+    public function productionOrders()
+    {
+        return $this->hasMany(ProductionOrder::class, 'daily_plan_cell_id');
+    }
 }

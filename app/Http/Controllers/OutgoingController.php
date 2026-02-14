@@ -1528,43 +1528,70 @@ class OutgoingController extends Controller
 
     public function generateSoFromDeliveryPlan(Request $request)
     {
-        $validated = $request->validate([
-            'date' => ['required', 'date'],
-            'selected' => ['required', 'array', 'min:1'],
-            'selected.*' => ['integer', 'min:0'],
-            'lines' => ['required', 'array'],
-            'lines.*.gci_part_id' => ['required', 'integer'],
-            'lines.*.customer_id' => ['required', 'integer'],
-            'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
-            'lines.*.part_no' => ['nullable', 'string'],
-            'lines.*.part_name' => ['nullable', 'string'],
-            'lines.*.source' => ['nullable', 'string'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'date' => ['required', 'date'],
+                'selected' => ['required', 'array', 'min:1'],
+                'selected.*' => ['integer', 'min:0'],
+                'lines' => ['required', 'array'],
+                'lines.*.gci_part_id' => ['required', 'integer'],
+                'lines.*.customer_id' => ['required', 'integer'],
+                'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
+                'lines.*.part_no' => ['nullable', 'string'],
+                'lines.*.part_name' => ['nullable', 'string'],
+                'lines.*.source' => ['nullable', 'string'],
+            ]);
 
-        $planDate = $validated['date'];
-        $selectedIdx = collect($validated['selected'])->map(fn($v) => (int) $v)->unique()->values();
-        $lines = collect($validated['lines']);
+            $planDate = $validated['date'];
+            $selectedIdx = collect($validated['selected'])->map(fn($v) => (int) $v)->unique()->values();
+            $lines = collect($validated['lines']);
 
-        $selectedLines = $selectedIdx
-            ->map(fn(int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
-            ->filter()
-            ->values();
+            $selectedLines = $selectedIdx
+                ->map(fn(int $i) => is_array($lines->get($i)) ? array_merge(['_idx' => $i], $lines->get($i)) : null)
+                ->filter()
+                ->values();
 
-        if ($selectedLines->isEmpty()) {
-            return back()->with('error', 'Pilih minimal 1 part untuk generate SO.');
-        }
+            if ($selectedLines->isEmpty()) {
+                \Log::warning('Generate SO: No lines selected', ['date' => $planDate]);
+                return back()->with('error', 'Pilih minimal 1 part untuk generate SO.');
+            }
 
-        $customerIds = $selectedLines->pluck('customer_id')->unique();
-        $invalidCustomers = $customerIds->filter(fn($id) => !Customer::find($id))->count();
-        if ($invalidCustomers > 0) {
-            return back()->with('error', 'Ada customer yang tidak valid.');
-        }
+            // Validate all customers exist first
+            $customerIds = $selectedLines->pluck('customer_id')->unique()->values();
+            $existingCustomers = Customer::whereIn('id', $customerIds)->pluck('id');
+            $invalidCustomers = $customerIds->diff($existingCustomers);
 
-        $created = [];
-        $updated = [];
-        $skipped = [];
+            if ($invalidCustomers->isNotEmpty()) {
+                \Log::error('Generate SO: Invalid customers', [
+                    'invalid_ids' => $invalidCustomers->toArray(),
+                    'plan_date' => $planDate
+                ]);
+                return back()->with('error', 'Ada customer yang tidak valid: ' . $invalidCustomers->implode(', '));
+            }
+
+            // Validate all GCI parts exist
+            $partIds = $selectedLines->pluck('gci_part_id')->unique()->values();
+            $existingParts = GciPart::whereIn('id', $partIds)->pluck('id');
+            $invalidParts = $partIds->diff($existingParts);
+
+            if ($invalidParts->isNotEmpty()) {
+                \Log::error('Generate SO: Invalid GCI parts', [
+                    'invalid_ids' => $invalidParts->toArray(),
+                    'plan_date' => $planDate
+                ]);
+                return back()->with('error', 'Ada GCI part yang tidak valid: ' . $invalidParts->implode(', '));
+            }
+
+            $created = [];
+            $updated = [];
+            $skipped = [];
 
         DB::transaction(function () use ($selectedLines, $planDate, &$created, &$updated, &$skipped) {
+            \Log::info('Generate SO Transaction Start', [
+                'plan_date' => $planDate,
+                'lines_count' => $selectedLines->count()
+            ]);
+
             foreach ($selectedLines as $line) {
                 $customerId = (int) $line['customer_id'];
                 $partId = (int) $line['gci_part_id'];
@@ -1575,8 +1602,14 @@ class OutgoingController extends Controller
                     ->where('source', $source)
                     ->first();
 
-                if (!$planningLine)
+                if (!$planningLine) {
+                    \Log::warning('Generate SO: Planning line not found', [
+                        'plan_date' => $planDate,
+                        'gci_part_id' => $partId,
+                        'source' => $source
+                    ]);
                     continue;
+                }
 
                 for ($t = 1; $t <= 14; $t++) {
                     $tripQty = (int) $planningLine->{"trip_{$t}"};
@@ -1599,6 +1632,13 @@ class OutgoingController extends Controller
 
                     if (!$so) {
                         $soNo = $this->generateSoNumber($planDate, $t);
+                        \Log::info('Creating new SO', [
+                            'so_no' => $soNo,
+                            'customer_id' => $customerId,
+                            'trip_no' => $t,
+                            'plan_date' => $planDate
+                        ]);
+
                         $so = SalesOrder::create([
                             'so_no' => $soNo,
                             'customer_id' => $customerId,
@@ -1610,6 +1650,10 @@ class OutgoingController extends Controller
                         ]);
                         $created[] = $so->so_no;
                     } else {
+                        \Log::info('Updating existing SO', [
+                            'so_no' => $so->so_no,
+                            'so_id' => $so->id
+                        ]);
                         $updated[] = $so->so_no;
                     }
 
@@ -1636,6 +1680,7 @@ class OutgoingController extends Controller
                         'sales_order_id' => $so->id,
                     ]);
 
+                    $isNewPicking = !$pickingFg->exists;
                     $pickingFg->qty_plan = $tripQty;
                     if (!$pickingFg->exists) {
                         $pickingFg->status = 'pending';
@@ -1647,7 +1692,25 @@ class OutgoingController extends Controller
                     }
                     $pickingFg->source = $planningLine->source ?: 'daily_plan';
                     $pickingFg->created_by = auth()->id();
-                    $pickingFg->save();
+
+                    try {
+                        $pickingFg->save();
+                        \Log::info($isNewPicking ? 'Created Picking FG' : 'Updated Picking FG', [
+                            'picking_id' => $pickingFg->id,
+                            'so_id' => $so->id,
+                            'gci_part_id' => $partId,
+                            'qty_plan' => $tripQty,
+                            'status' => $pickingFg->status
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to save Picking FG', [
+                            'error' => $e->getMessage(),
+                            'so_id' => $so->id,
+                            'gci_part_id' => $partId,
+                            'delivery_date' => $planDate
+                        ]);
+                        throw $e;
+                    }
                 }
             }
         });
@@ -1673,6 +1736,17 @@ class OutgoingController extends Controller
 
         $type = count($skipped) > 0 && count($created) === 0 && count($updated) === 0 ? 'warning' : 'success';
         return back()->with($type, implode(' | ', $messages));
+
+        } catch (\Exception $e) {
+            \Log::error('Generate SO Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'plan_date' => $request->input('date'),
+                'selected_count' => count($request->input('selected', [])),
+            ]);
+
+            return back()->with('error', 'Gagal generate SO: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')');
+        }
     }
 
     private function generateSoNumber(string $planDate, int $tripNo): string

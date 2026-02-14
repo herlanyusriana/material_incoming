@@ -46,6 +46,62 @@
                     </dl>
                 </div>
 
+                <!-- Daily Planning Mapping -->
+                @if($order->dailyPlanCell)
+                <div class="bg-indigo-50 border-2 border-indigo-300 rounded-lg p-6 shadow-sm">
+                    <h3 class="text-base font-semibold mb-4 text-indigo-900 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                        Daily Planning
+                    </h3>
+                    <dl class="space-y-3 text-sm">
+                        <div>
+                            <dt class="text-indigo-600 font-medium">Production Line</dt>
+                            <dd class="font-semibold text-indigo-900 text-base">{{ $order->dailyPlanCell->row->production_line }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-indigo-600 font-medium">Plan Date</dt>
+                            <dd class="font-semibold text-indigo-900">{{ \Carbon\Carbon::parse($order->dailyPlanCell->plan_date)->format('d M Y') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-indigo-600 font-medium">Sequence</dt>
+                            <dd class="font-semibold text-indigo-900">{{ $order->dailyPlanCell->seq ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-indigo-600 font-medium">Planned Qty</dt>
+                            <dd class="font-semibold text-indigo-900 text-base">{{ $order->dailyPlanCell->qty ? number_format($order->dailyPlanCell->qty) : '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-indigo-600 font-medium">Part No</dt>
+                            <dd class="font-mono text-xs text-indigo-900 bg-white px-2 py-1 rounded border border-indigo-200">{{ $order->dailyPlanCell->row->part_no }}</dd>
+                        </div>
+                        @if($order->dailyPlanCell->row->plan)
+                        <div class="pt-2 border-t border-indigo-200">
+                            <dt class="text-indigo-600 font-medium mb-1">Plan Period</dt>
+                            <dd class="text-xs text-indigo-900">
+                                {{ \Carbon\Carbon::parse($order->dailyPlanCell->row->plan->date_from)->format('d M Y') }}
+                                →
+                                {{ \Carbon\Carbon::parse($order->dailyPlanCell->row->plan->date_to)->format('d M Y') }}
+                            </dd>
+                        </div>
+                        @endif
+                    </dl>
+                </div>
+                @else
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-amber-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div>
+                            <h3 class="text-xs font-semibold text-amber-900">No Daily Planning</h3>
+                            <p class="text-xs text-amber-700 mt-1">Not linked to daily planning outgoing.</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 @if($order->mrp_generated)
                     <div class="bg-slate-50 border rounded-lg p-4 space-y-2 mt-3 text-sm">
                         <div class="text-xs uppercase tracking-wider text-slate-500">MRP Source</div>
