@@ -1534,9 +1534,9 @@ class OutgoingController extends Controller
                 'selected' => ['required', 'array', 'min:1'],
                 'selected.*' => ['integer', 'min:0'],
                 'lines' => ['required', 'array'],
-                'lines.*.gci_part_id' => ['required', 'integer'],
-                'lines.*.customer_id' => ['required', 'integer'],
-                'lines.*.qty' => ['required', 'numeric', 'min:0.0001'],
+                'lines.*.gci_part_id' => ['nullable', 'integer'],
+                'lines.*.customer_id' => ['nullable', 'integer'],
+                'lines.*.qty' => ['nullable', 'numeric'],
                 'lines.*.part_no' => ['nullable', 'string'],
                 'lines.*.part_name' => ['nullable', 'string'],
                 'lines.*.source' => ['nullable', 'string'],
@@ -1554,6 +1554,19 @@ class OutgoingController extends Controller
             if ($selectedLines->isEmpty()) {
                 \Log::warning('Generate SO: No lines selected', ['date' => $planDate]);
                 return back()->with('error', 'Pilih minimal 1 part untuk generate SO.');
+            }
+
+            // Validate selected lines have required data
+            foreach ($selectedLines as $idx => $line) {
+                if (empty($line['gci_part_id'])) {
+                    return back()->with('error', "Baris #" . ($idx + 1) . ": GCI Part ID tidak valid.");
+                }
+                if (empty($line['customer_id'])) {
+                    return back()->with('error', "Baris #" . ($idx + 1) . ": Customer ID tidak valid.");
+                }
+                if (!isset($line['qty']) || $line['qty'] <= 0) {
+                    return back()->with('error', "Baris #" . ($idx + 1) . ": Qty harus lebih dari 0.");
+                }
             }
 
             // Validate all customers exist first
