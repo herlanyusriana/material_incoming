@@ -125,7 +125,9 @@
                 <thead>
                     <tr class="bg-gradient-to-r from-yellow-100 to-yellow-50">
                         <th class="sticky left-0 z-20 bg-yellow-100 border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[120px]" rowspan="2">MESIN<br><span class="text-[10px] font-normal text-slate-500">(from BOM)</span></th>
+                        <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[130px]" rowspan="2">PART NO</th>
                         <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[180px]" rowspan="2">PART NAME</th>
+                        <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[100px]" rowspan="2">MODEL</th>
                         <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 bg-yellow-50" colspan="2">Stock Finish Good</th>
                         <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 bg-yellow-50" colspan="3">Urutan Produksi (Plan GCI)</th>
                         <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 bg-blue-50" colspan="{{ count($dateRange) }}">FG Stock vs Planning LG</th>
@@ -159,8 +161,14 @@
                                 @endif
                             </td>
                             @endif
+                            <td class="border border-slate-300 px-2 py-1.5 font-mono text-[11px] text-slate-700 whitespace-nowrap">
+                                {{ $line->gciPart->part_no ?? '-' }}
+                            </td>
                             <td class="border border-slate-300 px-2 py-1.5 font-medium text-slate-800 whitespace-nowrap">
-                                {{ $line->gciPart->part_name ?? $line->gciPart->part_no ?? '-' }}
+                                {{ $line->gciPart->part_name ?? '-' }}
+                            </td>
+                            <td class="border border-slate-300 px-2 py-1.5 text-[11px] text-slate-600 whitespace-nowrap">
+                                {{ $line->gciPart->model ?? '-' }}
                             </td>
                             <td class="border border-slate-300 px-2 py-1 text-right">
                                 <input type="number" step="1"
@@ -232,7 +240,7 @@
                         @endforeach
                         {{-- Machine Subtotal Row --}}
                         <tr class="bg-yellow-100 font-bold border-b-2 border-b-slate-400">
-                            <td class="border border-slate-300 px-2 py-1.5 text-center text-[11px] text-slate-700" colspan="1">
+                            <td class="border border-slate-300 px-2 py-1.5 text-center text-[11px] text-slate-700" colspan="3">
                                 Sub Total
                             </td>
                             <td class="border border-slate-300 px-2 py-1.5 text-right font-mono">
@@ -253,7 +261,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ 8 + count($dateRange) }}" class="border border-slate-300 px-4 py-12 text-center text-slate-400">
+                            <td colspan="{{ 10 + count($dateRange) }}" class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                 <div class="flex flex-col items-center gap-3">
                                     <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"/></svg>
                                     <div class="text-sm font-medium">No planning lines yet</div>
@@ -269,7 +277,7 @@
                         <td class="sticky left-0 z-10 border border-slate-400 px-2 py-2 text-center font-bold text-slate-800 bg-emerald-100">
                             Grand Total
                         </td>
-                        <td class="border border-slate-400 px-2 py-2 text-center font-bold text-slate-700">
+                        <td class="border border-slate-400 px-2 py-2 text-center font-bold text-slate-700" colspan="3">
                             {{ $totalParts }} parts
                         </td>
                         <td class="border border-slate-400 px-2 py-2 text-right font-mono font-bold text-slate-800">
@@ -283,6 +291,7 @@
                             {{ number_format($grandTotalPlanQty, 0) }}
                         </td>
                         <td class="border border-slate-400 px-2 py-2" colspan="{{ count($dateRange) + 3 }}"></td>
+
                     </tr>
                     @endif
                 </tbody>
