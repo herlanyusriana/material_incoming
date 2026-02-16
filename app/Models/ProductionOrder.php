@@ -37,9 +37,9 @@ class ProductionOrder extends Model
     {
         return $this->belongsTo(OutgoingDailyPlanCell::class, 'daily_plan_cell_id');
     }
-    
+
     // Status Accessors
-    
+
     public function getIsStartedAttribute()
     {
         return $this->status !== 'planned' && $this->status !== 'material_hold';
@@ -49,4 +49,10 @@ class ProductionOrder extends Model
     {
         return $this->belongsTo(MrpRun::class, 'mrp_run_id');
     }
+
+    public function planningLine()
+    {
+        return $this->belongsTo(ProductionPlanningLine::class, 'planning_line_id');
+    }
 }
+

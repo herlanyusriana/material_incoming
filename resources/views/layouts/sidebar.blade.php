@@ -324,6 +324,23 @@
                                     class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                                 </div>
 
+                                {{-- Planning Section --}}
+                                <div class="pb-1">
+                                    <div
+                                        class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                        Planning</div>
+                                </div>
+                                <a href="{{ route('production.planning.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.planning.index'), $subInactive => !request()->routeIs('production.planning.index')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.planning.index'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.planning.index')])></span>
+                                    <span class="flex-1">📋 Production Planning</span>
+                                </a>
+
+                                {{-- Execution Section --}}
+                                <div class="pt-2 mt-2 border-t border-slate-200">
+                                    <div
+                                        class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                        Execution</div>
+                                </div>
                                 <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                     <span class="flex-1">Production Orders</span>
@@ -1074,6 +1091,21 @@
                                 class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
                             </div>
 
+                            {{-- Planning Section --}}
+                            <div class="pb-1">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Planning</div>
+                            </div>
+                            <a href="{{ route('production.planning.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.planning.index'), $subInactive => !request()->routeIs('production.planning.index')])>
+                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.planning.index'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.planning.index')])></span>
+                                <span class="flex-1">📋 Production Planning</span>
+                            </a>
+
+                            {{-- Execution Section --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Execution</div>
+                            </div>
                             <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                 <span class="flex-1">Production Orders</span>

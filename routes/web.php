@@ -404,6 +404,16 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('production')->name('production.')->group(function () {
+        // Production Planning (GCI Planning Produksi)
+        Route::get('/planning', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'index'])->name('planning.index');
+        Route::post('/planning/create-session', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'createSession'])->name('planning.create-session');
+        Route::post('/planning/auto-populate', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'autoPopulate'])->name('planning.auto-populate');
+        Route::post('/planning/add-line', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'addLine'])->name('planning.add-line');
+        Route::put('/planning/line/{line}', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'updateLine'])->name('planning.update-line');
+        Route::delete('/planning/line/{line}', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'deleteLine'])->name('planning.delete-line');
+        Route::post('/planning/generate-mo', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'generateMoWo'])->name('planning.generate-mo');
+        Route::get('/planning/calculations', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'getCalculations'])->name('planning.calculations');
+
         // Production Orders
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');
