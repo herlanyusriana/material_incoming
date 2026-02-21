@@ -22,3 +22,37 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Debug/check/fix scripts
+check_*.php
+debug_*.php
+fix_*.php
+diagnose_*.php
+list_vendors.php
+create_demo_data.php
+create_test_daily_plan.php
+
+# Migration backups
+migration_backup/
+
+# Log/output files
+migrate_*.txt
+migration_output.txt
+directives.txt
+output.txt
+php_path.txt
+qa_result.txt
+seeder_error.txt
+
+# Binaries
+composer.phar
+composer-setup.php
+incoming_material
+
+# Docs (generated/temporary)
+OUTGOING_TABLE_RESPONSIVE_FIX.md
+PROJECT_SUMMARY.md
+QUICK_TEST_GUIDE.md
+
+# Windows artifacts
+nul
