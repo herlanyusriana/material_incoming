@@ -88,19 +88,19 @@ class OutgoingController extends Controller
                 ->with([
                     'gciPart.standardPacking',
                     'customerPart',
-                    'cells' => function ($query) use ($dateFrom, $dateTo) {
+                    'cells' => function (\Illuminate\Database\Eloquent\Relations\HasMany $query) use ($dateFrom, $dateTo) {
                         $query->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
                     }
                 ])
-                ->when($search !== '', function ($query) use ($search) {
-                    $query->where(function ($q) use ($search) {
+                ->when($search !== '', function (\Illuminate\Database\Eloquent\Builder $query) use ($search) {
+                    $query->where(function (\Illuminate\Database\Eloquent\Builder $q) use ($search) {
                         $q->where('part_no', 'like', '%' . $search . '%')
-                            ->orWhereHas('gciPart', function ($sq) use ($search) {
+                            ->orWhereHas('gciPart', function (\Illuminate\Database\Eloquent\Builder $sq) use ($search) {
                                 $sq->where('part_name', 'like', '%' . $search . '%');
                             });
                     });
                 })
-                ->whereHas('cells', function ($query) use ($dateFrom, $dateTo) {
+                ->whereHas('cells', function (\Illuminate\Database\Eloquent\Builder $query) use ($dateFrom, $dateTo) {
                     $query->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                         ->where('qty', '>', 0);
                 })
@@ -108,7 +108,7 @@ class OutgoingController extends Controller
                 ->withQueryString();
         } else {
             // Empty paginator if no plan
-            $rows = new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+            $rows = new LengthAwarePaginator([], 0, $perPage);
         }
 
         $totalsByDate = [];
@@ -135,7 +135,7 @@ class OutgoingController extends Controller
             // Count only rows with NULL gci_part_id that have demand in the selected date range
             $unmappedCount = $plan->rows()
                 ->whereNull('gci_part_id')
-                ->whereHas('cells', function ($q) use ($dateFrom, $dateTo) {
+                ->whereHas('cells', function (\Illuminate\Database\Eloquent\Builder $q) use ($dateFrom, $dateTo) {
                     $q->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                         ->where('qty', '>', 0);
                 })
@@ -299,7 +299,7 @@ class OutgoingController extends Controller
         }
 
         $results = $boms->map(function ($bom) {
-            $customerProducts = \App\Models\CustomerPartComponent::query()
+            $customerProducts = CustomerPartComponent::query()
                 ->with(['customerPart.customer'])
                 ->where('gci_part_id', $bom->part_id)
                 ->get()
@@ -353,6 +353,7 @@ class OutgoingController extends Controller
         $this->syncDailyPlanRowMappings(null, $dateFrom, $dateTo);
 
         // Fetch planned cells within range (we will subtract fulfillments below)
+        /** @var \Illuminate\Support\Collection $cells */
         $cells = OutgoingDailyPlanCell::query()
             ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
             ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
@@ -371,6 +372,7 @@ class OutgoingController extends Controller
             })
             ->all();
 
+        /** @var \Illuminate\Support\Collection $cells */
         $cells = $cells
             ->map(function ($cell) use ($fulfilledMap) {
                 $key = $cell->plan_date->format('Y-m-d') . '|' . (int) $cell->row_id;
@@ -449,6 +451,7 @@ class OutgoingController extends Controller
             $dayCellsByRow = $dayCells->groupBy(fn($c) => (int) ($c->row_id ?? 0));
 
             foreach ($dayCellsByRow as $rowId => $rowCells) {
+                /** @var \Illuminate\Support\Collection $rowCells */
                 $firstCell = $rowCells->first();
                 $row = $firstCell?->row;
 
@@ -583,6 +586,7 @@ class OutgoingController extends Controller
         $poPeriods = $poItems->pluck('delivery_date')->filter()->map(fn($d) => $d->format('Y-m'))->unique();
 
         if ($poPeriods->isNotEmpty() && $poCustomerIds->isNotEmpty() && $poPartIds->isNotEmpty()) {
+            /** @var \Illuminate\Support\Collection $poStockRecords */
             $poStockRecords = StockAtCustomer::query()
                 ->whereIn('period', $poPeriods->all())
                 ->whereIn('customer_id', $poCustomerIds->all())
@@ -597,8 +601,9 @@ class OutgoingController extends Controller
         }
 
         // Allocate StockAtCustomer per date+customer+part across sequences (reduce later sequences first).
+        /** @var \Illuminate\Support\Collection $requirements */
         $requirements = $lines
-            ->map(function ($r) use ($getStockAtCustomer) {
+            ->map(function (object $r) use ($getStockAtCustomer): object {
                 // Calculate quantities for each line (GCI Part / Unmapped) individually
                 $date = $r->date;
                 $custId = (int) ($r->customer?->id ?? 0);
@@ -628,7 +633,7 @@ class OutgoingController extends Controller
                 return $r;
             })
             ->values()
-            ->sort(function ($a, $b) use ($sortBy, $sortDir) {
+            ->sort(function (object $a, object $b) use ($sortBy, $sortDir): int {
                 // PRIORITY 1: PO items go to bottom
                 $aIsPo = ($a->source ?? '') === 'po' ? 1 : 0;
                 $bIsPo = ($b->source ?? '') === 'po' ? 1 : 0;
@@ -723,6 +728,7 @@ class OutgoingController extends Controller
         $this->syncDailyPlanRowMappings(null, $dateFrom, $dateTo);
 
         // Build requirements using same logic as deliveryRequirements (without pagination)
+        /** @var \Illuminate\Support\Collection $cells */
         $cells = OutgoingDailyPlanCell::query()
             ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
             ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
@@ -740,6 +746,7 @@ class OutgoingController extends Controller
             })
             ->all();
 
+        /** @var \Illuminate\Support\Collection $cells */
         $cells = $cells
             ->map(function ($cell) use ($fulfilledMap) {
                 $key = $cell->plan_date->format('Y-m-d') . '|' . (int) $cell->row_id;
@@ -783,6 +790,7 @@ class OutgoingController extends Controller
             $dayCellsByRow = $dayCells->groupBy(fn($c) => (int) ($c->row_id ?? 0));
 
             foreach ($dayCellsByRow as $rowId => $rowCells) {
+                /** @var \Illuminate\Support\Collection $rowCells */
                 $row = $rowCells->first()?->row;
                 if (!$row)
                     continue;
@@ -851,7 +859,8 @@ class OutgoingController extends Controller
             ]);
         }
 
-        $requirements = $lines->map(function ($r) use ($getStock) {
+        /** @var \Illuminate\Support\Collection $requirements */
+        $requirements = $lines->map(function (object $r) use ($getStock): object {
             $custId = (int) ($r->customer?->id ?? 0);
             $partId = (int) ($r->gci_part?->id ?? 0);
             $stockTotal = ($r->date && $custId > 0 && $partId > 0) ? $getStock($r->date, $custId, $partId) : 0.0;
@@ -860,7 +869,7 @@ class OutgoingController extends Controller
             $r->stock_at_customer = $stockTotal;
             $r->total_qty = max(0, $gross - $used);
             return $r;
-        })->sortBy(fn($r) => [
+        })->sortBy(fn(object $r): array => [
                 (($r->source ?? '') === 'po' ? 1 : 0), // PO items at bottom
                 $r->date?->toDateString(),
                 $r->gci_part?->part_no ?? ''
@@ -889,6 +898,7 @@ class OutgoingController extends Controller
         $this->syncDailyPlanRowMappings(null, $selectedDate, $nextDate);
 
         // ── 1. Daily Plan data for today (H) ──
+        /** @var \Illuminate\Support\Collection $planCells */
         $planCells = OutgoingDailyPlanCell::query()
             ->with(['row'])
             ->whereDate('plan_date', $dateStr)
@@ -905,6 +915,7 @@ class OutgoingController extends Controller
         }
 
         // ── 2. Daily Plan data for H+1 ──
+        /** @var \Illuminate\Support\Collection $planCellsH1 */
         $planCellsH1 = OutgoingDailyPlanCell::query()
             ->with(['row'])
             ->whereDate('plan_date', $nextDateStr)
@@ -1056,7 +1067,7 @@ class OutgoingController extends Controller
 
             // OSP Status check
             $isOsp = \App\Models\BomItem::where('special', 'OSP')
-                ->whereHas('bom', fn($q) => $q->where('part_id', $partId))
+                ->whereHas('bom', fn(\Illuminate\Database\Eloquent\Builder $q) => $q->where('part_id', $partId))
                 ->exists();
             $ospOrder = null;
             if ($isOsp) {
@@ -1236,10 +1247,13 @@ class OutgoingController extends Controller
 
         // Sort by fixed category order, then part name
         $categoryOrder = ['Base Comp' => 1, 'Plate Rear' => 2, 'Reinforce' => 3, 'Tray Drip' => 4, 'Small Part' => 5, 'NON LG' => 6];
-        $rows = $rows->sortBy([
-            fn($a, $b) => ($categoryOrder[$a->category] ?? 99) <=> ($categoryOrder[$b->category] ?? 99),
-            ['fg_part_name', 'asc'],
-        ])->values();
+        $rows = $rows->sort(function (object $a, object $b) use ($categoryOrder): int {
+            $catCmp = ($categoryOrder[$a->category ?? ''] ?? 99) <=> ($categoryOrder[$b->category ?? ''] ?? 99);
+            if ($catCmp !== 0) {
+                return $catCmp;
+            }
+            return strcmp((string) ($a->fg_part_name ?? ''), (string) ($b->fg_part_name ?? ''));
+        })->values();
 
         return view('outgoing.delivery_plan', [
             'selectedDate' => $selectedDate,
@@ -1344,7 +1358,7 @@ class OutgoingController extends Controller
     public function stockAtCustomersTemplate(Request $request)
     {
         $period = $request->input('period', now()->format('Y-m'));
-        return \Maatwebsite\Excel\Facades\Excel::download(
+        return Excel::download(
             new StockAtCustomersExport($period),
             "stock_at_customers_template_{$period}.xlsx"
         );
@@ -1353,7 +1367,7 @@ class OutgoingController extends Controller
     public function stockAtCustomersExport(Request $request)
     {
         $period = $request->input('period', now()->format('Y-m'));
-        return \Maatwebsite\Excel\Facades\Excel::download(
+        return Excel::download(
             new StockAtCustomersExport($period),
             "stock_at_customers_{$period}.xlsx"
         );
@@ -1367,7 +1381,7 @@ class OutgoingController extends Controller
         ]);
 
         $import = new StockAtCustomersImport($request->period);
-        \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+        Excel::import($import, $request->file('file'));
 
         $msg = "Imported {$import->rowCount} rows.";
         if ($import->skippedRows > 0) {
@@ -1599,156 +1613,156 @@ class OutgoingController extends Controller
             $updated = [];
             $skipped = [];
 
-        DB::transaction(function () use ($selectedLines, $planDate, &$created, &$updated, &$skipped) {
-            \Log::info('Generate SO Transaction Start', [
-                'plan_date' => $planDate,
-                'lines_count' => $selectedLines->count()
-            ]);
+            DB::transaction(function () use ($selectedLines, $planDate, &$created, &$updated, &$skipped) {
+                \Log::info('Generate SO Transaction Start', [
+                    'plan_date' => $planDate,
+                    'lines_count' => $selectedLines->count()
+                ]);
 
-            foreach ($selectedLines as $line) {
-                $customerId = (int) $line['customer_id'];
-                $partId = (int) $line['gci_part_id'];
-                $source = $line['source'] ?? 'daily_plan';
+                foreach ($selectedLines as $line) {
+                    $customerId = (int) $line['customer_id'];
+                    $partId = (int) $line['gci_part_id'];
+                    $source = $line['source'] ?? 'daily_plan';
 
-                $planningLine = OutgoingDeliveryPlanningLine::where('delivery_date', $planDate)
-                    ->where('gci_part_id', $partId)
-                    ->where('source', $source)
-                    ->first();
-
-                if (!$planningLine) {
-                    \Log::warning('Generate SO: Planning line not found', [
-                        'plan_date' => $planDate,
-                        'gci_part_id' => $partId,
-                        'source' => $source
-                    ]);
-                    continue;
-                }
-
-                for ($t = 1; $t <= 14; $t++) {
-                    $tripQty = (int) $planningLine->{"trip_{$t}"};
-                    if ($tripQty <= 0)
-                        continue;
-
-                    // Check for existing SO (any status) for this customer+date+trip
-                    $so = SalesOrder::where('customer_id', $customerId)
-                        ->where('so_date', $planDate)
-                        ->where('trip_no', $t)
-                        ->first();
-
-                    if ($so && !in_array($so->status, ['draft', 'pending'])) {
-                        // SO already shipped/completed → skip
-                        $skipped[$so->so_no] = $so->status;
-                        continue;
-                    }
-
-                    $isNew = !$so;
-
-                    if (!$so) {
-                        $soNo = $this->generateSoNumber($planDate, $t);
-                        \Log::info('Creating new SO', [
-                            'so_no' => $soNo,
-                            'customer_id' => $customerId,
-                            'trip_no' => $t,
-                            'plan_date' => $planDate
-                        ]);
-
-                        $so = SalesOrder::create([
-                            'so_no' => $soNo,
-                            'customer_id' => $customerId,
-                            'so_date' => $planDate,
-                            'trip_no' => $t,
-                            'status' => 'draft',
-                            'notes' => "Generated from Delivery Planning (Trip {$t})",
-                            'created_by' => auth()->id(),
-                        ]);
-                        $created[] = $so->so_no;
-                    } else {
-                        \Log::info('Updating existing SO', [
-                            'so_no' => $so->so_no,
-                            'so_id' => $so->id
-                        ]);
-                        $updated[] = $so->so_no;
-                    }
-
-                    // Upsert SO item - set qty (not accumulate) to allow regenerate
-                    $soItem = SalesOrderItem::where('sales_order_id', $so->id)
+                    $planningLine = OutgoingDeliveryPlanningLine::where('delivery_date', $planDate)
                         ->where('gci_part_id', $partId)
+                        ->where('source', $source)
                         ->first();
 
-                    if ($soItem) {
-                        $soItem->update(['qty_ordered' => $tripQty]);
-                    } else {
-                        SalesOrderItem::create([
+                    if (!$planningLine) {
+                        \Log::warning('Generate SO: Planning line not found', [
+                            'plan_date' => $planDate,
+                            'gci_part_id' => $partId,
+                            'source' => $source
+                        ]);
+                        continue;
+                    }
+
+                    for ($t = 1; $t <= 14; $t++) {
+                        $tripQty = (int) $planningLine->{"trip_{$t}"};
+                        if ($tripQty <= 0)
+                            continue;
+
+                        // Check for existing SO (any status) for this customer+date+trip
+                        $so = SalesOrder::where('customer_id', $customerId)
+                            ->where('so_date', $planDate)
+                            ->where('trip_no', $t)
+                            ->first();
+
+                        if ($so && !in_array($so->status, ['draft', 'pending'])) {
+                            // SO already shipped/completed → skip
+                            $skipped[$so->so_no] = $so->status;
+                            continue;
+                        }
+
+                        $isNew = !$so;
+
+                        if (!$so) {
+                            $soNo = $this->generateSoNumber($planDate, $t);
+                            \Log::info('Creating new SO', [
+                                'so_no' => $soNo,
+                                'customer_id' => $customerId,
+                                'trip_no' => $t,
+                                'plan_date' => $planDate
+                            ]);
+
+                            $so = SalesOrder::create([
+                                'so_no' => $soNo,
+                                'customer_id' => $customerId,
+                                'so_date' => $planDate,
+                                'trip_no' => $t,
+                                'status' => 'draft',
+                                'notes' => "Generated from Delivery Planning (Trip {$t})",
+                                'created_by' => auth()->id(),
+                            ]);
+                            $created[] = $so->so_no;
+                        } else {
+                            \Log::info('Updating existing SO', [
+                                'so_no' => $so->so_no,
+                                'so_id' => $so->id
+                            ]);
+                            $updated[] = $so->so_no;
+                        }
+
+                        // Upsert SO item - set qty (not accumulate) to allow regenerate
+                        $soItem = SalesOrderItem::where('sales_order_id', $so->id)
+                            ->where('gci_part_id', $partId)
+                            ->first();
+
+                        if ($soItem) {
+                            $soItem->update(['qty_ordered' => $tripQty]);
+                        } else {
+                            SalesOrderItem::create([
+                                'sales_order_id' => $so->id,
+                                'gci_part_id' => $partId,
+                                'qty_ordered' => $tripQty,
+                                'qty_shipped' => 0,
+                            ]);
+                        }
+
+                        // Create/Update Picking record linked to this SO
+                        $pickingFg = OutgoingPickingFg::firstOrNew([
+                            'delivery_date' => $planDate,
+                            'gci_part_id' => $partId,
                             'sales_order_id' => $so->id,
-                            'gci_part_id' => $partId,
-                            'qty_ordered' => $tripQty,
-                            'qty_shipped' => 0,
                         ]);
-                    }
 
-                    // Create/Update Picking record linked to this SO
-                    $pickingFg = OutgoingPickingFg::firstOrNew([
-                        'delivery_date' => $planDate,
-                        'gci_part_id' => $partId,
-                        'sales_order_id' => $so->id,
-                    ]);
+                        $isNewPicking = !$pickingFg->exists;
+                        $pickingFg->qty_plan = $tripQty;
+                        if (!$pickingFg->exists) {
+                            $pickingFg->status = 'pending';
+                            $pickingFg->qty_picked = 0;
+                        } elseif ($pickingFg->qty_picked > 0 && $pickingFg->qty_picked < $pickingFg->qty_plan) {
+                            $pickingFg->status = 'picking';
+                        } elseif ($pickingFg->qty_picked >= $pickingFg->qty_plan) {
+                            $pickingFg->status = 'completed';
+                        }
+                        $pickingFg->source = $planningLine->source ?: 'daily_plan';
+                        $pickingFg->created_by = auth()->id();
 
-                    $isNewPicking = !$pickingFg->exists;
-                    $pickingFg->qty_plan = $tripQty;
-                    if (!$pickingFg->exists) {
-                        $pickingFg->status = 'pending';
-                        $pickingFg->qty_picked = 0;
-                    } elseif ($pickingFg->qty_picked > 0 && $pickingFg->qty_picked < $pickingFg->qty_plan) {
-                        $pickingFg->status = 'picking';
-                    } elseif ($pickingFg->qty_picked >= $pickingFg->qty_plan) {
-                        $pickingFg->status = 'completed';
-                    }
-                    $pickingFg->source = $planningLine->source ?: 'daily_plan';
-                    $pickingFg->created_by = auth()->id();
-
-                    try {
-                        $pickingFg->save();
-                        \Log::info($isNewPicking ? 'Created Picking FG' : 'Updated Picking FG', [
-                            'picking_id' => $pickingFg->id,
-                            'so_id' => $so->id,
-                            'gci_part_id' => $partId,
-                            'qty_plan' => $tripQty,
-                            'status' => $pickingFg->status
-                        ]);
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to save Picking FG', [
-                            'error' => $e->getMessage(),
-                            'so_id' => $so->id,
-                            'gci_part_id' => $partId,
-                            'delivery_date' => $planDate
-                        ]);
-                        throw $e;
+                        try {
+                            $pickingFg->save();
+                            \Log::info($isNewPicking ? 'Created Picking FG' : 'Updated Picking FG', [
+                                'picking_id' => $pickingFg->id,
+                                'so_id' => $so->id,
+                                'gci_part_id' => $partId,
+                                'qty_plan' => $tripQty,
+                                'status' => $pickingFg->status
+                            ]);
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to save Picking FG', [
+                                'error' => $e->getMessage(),
+                                'so_id' => $so->id,
+                                'gci_part_id' => $partId,
+                                'delivery_date' => $planDate
+                            ]);
+                            throw $e;
+                        }
                     }
                 }
+            });
+
+            // Build feedback message
+            $messages = [];
+            $created = array_unique($created);
+            $updated = array_unique($updated);
+            if (count($created) > 0) {
+                $messages[] = count($created) . ' SO created: ' . implode(', ', $created);
             }
-        });
+            if (count($updated) > 0) {
+                $messages[] = count($updated) . ' SO updated: ' . implode(', ', $updated);
+            }
+            if (count($skipped) > 0) {
+                $skippedList = collect($skipped)->map(fn($status, $no) => "{$no} ({$status})")->implode(', ');
+                $messages[] = count($skipped) . ' SO skipped (non-draft): ' . $skippedList;
+            }
 
-        // Build feedback message
-        $messages = [];
-        $created = array_unique($created);
-        $updated = array_unique($updated);
-        if (count($created) > 0) {
-            $messages[] = count($created) . ' SO created: ' . implode(', ', $created);
-        }
-        if (count($updated) > 0) {
-            $messages[] = count($updated) . ' SO updated: ' . implode(', ', $updated);
-        }
-        if (count($skipped) > 0) {
-            $skippedList = collect($skipped)->map(fn($status, $no) => "{$no} ({$status})")->implode(', ');
-            $messages[] = count($skipped) . ' SO skipped (non-draft): ' . $skippedList;
-        }
+            if (empty($messages)) {
+                return back()->with('info', 'Tidak ada SO yang di-generate. Pastikan trip qty sudah diisi.');
+            }
 
-        if (empty($messages)) {
-            return back()->with('info', 'Tidak ada SO yang di-generate. Pastikan trip qty sudah diisi.');
-        }
-
-        $type = count($skipped) > 0 && count($created) === 0 && count($updated) === 0 ? 'warning' : 'success';
-        return back()->with($type, implode(' | ', $messages));
+            $type = count($skipped) > 0 && count($created) === 0 && count($updated) === 0 ? 'warning' : 'success';
+            return back()->with($type, implode(' | ', $messages));
 
         } catch (\Exception $e) {
             \Log::error('Generate SO Error', [
@@ -1764,7 +1778,7 @@ class OutgoingController extends Controller
 
     private function generateSoNumber(string $planDate, int $tripNo): string
     {
-        $dateStr = \Carbon\Carbon::parse($planDate)->format('Ymd');
+        $dateStr = Carbon::parse($planDate)->format('Ymd');
         $prefix = "SO-{$dateStr}-T{$tripNo}-";
 
         $lastSo = SalesOrder::where('so_no', 'like', $prefix . '%')
