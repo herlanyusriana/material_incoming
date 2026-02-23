@@ -24,6 +24,7 @@ class ArrivalItem extends Model
         'price',
         'total_price',
         'notes',
+        'purchase_order_item_id',
     ];
 
     public function arrival()
@@ -39,5 +40,10 @@ class ArrivalItem extends Model
     public function part()
     {
         return $this->belongsTo(Part::class);
+    }
+
+    public function purchaseOrderItem()
+    {
+        return $this->belongsTo(PurchaseOrderItem::class);
     }
 }

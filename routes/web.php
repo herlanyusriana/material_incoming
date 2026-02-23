@@ -145,7 +145,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
     Route::get('/inventory/receives/search', [InventoryController::class, 'searchReceives'])->name('inventory.receives.search');
-    Route::get('/inventory/gci', [GciInventoryController::class, 'index'])->name('inventory.gci.index');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
@@ -466,6 +465,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/{order}/start', [\App\Http\Controllers\ProductionOrderController::class, 'startProduction'])->name('orders.start');
         Route::post('/orders/{order}/finish', [\App\Http\Controllers\ProductionOrderController::class, 'finishProduction'])->name('orders.finish');
         Route::post('/orders/{order}/kanban-update', [\App\Http\Controllers\ProductionOrderController::class, 'kanbanUpdate'])->name('orders.kanban-update');
+
+        // Production Downtimes (QDC, Breaks, etc.)
+        Route::post('/orders/{productionOrder}/downtimes', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'store'])->name('downtimes.store');
+        Route::put('/orders/{productionOrder}/downtimes/{downtime}', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'update'])->name('downtimes.update');
+        Route::delete('/orders/{productionOrder}/downtimes/{downtime}', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'destroy'])->name('downtimes.destroy');
 
         // Work Order & Kanban Release
         Route::get('/work-orders', [\App\Http\Controllers\Production\WorkOrderController::class, 'index'])->name('work-orders.index');

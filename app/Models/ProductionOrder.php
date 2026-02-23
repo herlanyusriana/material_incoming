@@ -88,6 +88,16 @@ class ProductionOrder extends Model
         return $this->belongsToMany(Arrival::class, 'production_order_arrivals')
             ->withTimestamps();
     }
+
+    public function downtimes()
+    {
+        return $this->hasMany(ProductionDowntime::class, 'production_order_id');
+    }
+
+    public function getTotalDowntimeMinutesAttribute()
+    {
+        return $this->downtimes()->sum('duration_minutes') ?? 0;
+    }
 }
 
 

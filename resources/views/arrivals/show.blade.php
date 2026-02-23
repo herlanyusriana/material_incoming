@@ -143,7 +143,14 @@
 	                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Invoice:</span>
-                        <span class="text-slate-900">{{ $arrival->invoice_no }} ({{ $arrival->invoice_date->format('Y-m-d') }})</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-900">{{ $arrival->invoice_no }} ({{ $arrival->invoice_date ? $arrival->invoice_date->format('Y-m-d') : '-' }})</span>
+                            @if ($arrival->purchaseOrder)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-700" title="Auto-generated from PO">
+                                    PO: {{ $arrival->purchaseOrder->po_number }}
+                                </span>
+                            @endif
+                        </div>
                     </div>
                     <div class="flex items-start gap-2">
                         <span class="font-semibold text-slate-700 min-w-[100px]">Vendor:</span>

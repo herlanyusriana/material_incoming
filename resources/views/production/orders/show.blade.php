@@ -268,6 +268,137 @@
         <!-- Right: Inspections & History -->
         <div class="lg:col-span-2 space-y-6">
 
+            <!-- Machine Stop / Downtime (QDC) -->
+            <div class="bg-white border rounded-lg shadow-sm" x-data="{ openDowntime: false }">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Machine Stop / Downtime
+                    </h3>
+                    @if($order->status == 'in_production')
+                        <button @click="openDowntime = !openDowntime" class="text-sm px-3 py-1.5 bg-white border shadow-sm text-gray-700 hover:bg-gray-50 rounded-md font-medium transition-colors">
+                            + Add Record
+                        </button>
+                    @endif
+                </div>
+
+                <!-- Expanded Form for new record -->
+                <div x-show="openDowntime" style="display: none;" class="p-6 border-b bg-yellow-50/30">
+                    <form action="{{ route('production.downtimes.store', $order) }}" method="POST" class="space-y-4">
+                        @csrf
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Start Time</label>
+                                <input type="time" name="start_time" required class="w-full text-sm rounded border-gray-300">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">End Time</label>
+                                <input type="time" name="end_time" class="w-full text-sm rounded border-gray-300">
+                                <span class="text-[10px] text-gray-500">Leave blank if ongoing</span>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Category / Issue</label>
+                                <select name="category" required class="w-full text-sm rounded border-gray-300">
+                                    <option value="qdc">QDC (Quick Dies Change)</option>
+                                    <option value="setting">Setting</option>
+                                    <option value="refill">Refill Material</option>
+                                    <option value="breakdown">Breakdown</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-span-full">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Keterangan / Notes</label>
+                                <input type="text" name="notes" placeholder="e.g., QDC VT11 -> ng" class="w-full text-sm rounded border-gray-300">
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button type="button" @click="openDowntime = false" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                            <button type="submit" class="px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800 rounded shadow-sm">Save Record</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="divide-y overflow-x-auto">
+                    @if($order->downtimes->count() > 0)
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-gray-50 border-b text-xs uppercase font-semibold text-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3">Jam</th>
+                                    <th class="px-6 py-3">Mnt</th>
+                                    <th class="px-6 py-3">Keterangan Mesin Stop / Permasalahan</th>
+                                    <th class="px-6 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach($order->downtimes as $downtime)
+                                    <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                            {{ \Carbon\Carbon::parse($downtime->start_time)->format('H:i') }} - 
+                                            @if($downtime->end_time)
+                                                {{ \Carbon\Carbon::parse($downtime->end_time)->format('H:i') }}
+                                            @else
+                                                <span class="text-yellow-600 animate-pulse font-bold">Ongoing</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @if($downtime->duration_minutes !== null)
+                                                {{ $downtime->duration_minutes }} <span class="text-xs text-gray-400">m</span>
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-col">
+                                                <span class="font-semibold text-gray-800 uppercase text-xs">{{ $downtime->category }}</span>
+                                                @if($downtime->notes)
+                                                    <span class="text-sm text-gray-500 mt-0.5">{{ $downtime->notes }}</span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                                            <div class="flex items-center justify-end gap-2">
+                                                @if(!$downtime->end_time && $order->status == 'in_production')
+                                                    <!-- Form to Stop Ongoing Downtime -->
+                                                    <form action="{{ route('production.downtimes.update', [$order, $downtime]) }}" method="POST" class="flex items-center gap-1">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <input type="time" name="end_time" value="{{ now()->format('H:i') }}" required class="w-24 text-xs py-1 px-2 rounded border-gray-300">
+                                                        <button type="submit" class="px-2 py-1 text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded font-semibold transition-colors">
+                                                            Stop
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                                
+                                                <form action="{{ route('production.downtimes.destroy', [$order, $downtime]) }}" method="POST" onsubmit="return confirm('Delete this record?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <div class="p-6 text-center text-gray-500 text-sm italic">
+                            No machine stop or downtime recorded.
+                        </div>
+                    @endif
+                </div>
+                
+                @if($order->total_downtime_minutes > 0)
+                    <div class="px-6 py-3 bg-gray-50 rounded-b-lg border-t text-sm flex justify-between items-center">
+                        <span class="text-gray-600 font-medium">Total Downtime:</span>
+                        <span class="font-bold text-gray-900 bg-white px-3 py-1 border rounded shadow-sm">{{ $order->total_downtime_minutes }} Minutes</span>
+                    </div>
+                @endif
+            </div>
+
             <!-- Inspections -->
             <div class="bg-white border rounded-lg shadow-sm">
                 <div class="px-6 py-4 border-b flex justify-between items-center">

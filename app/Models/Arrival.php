@@ -35,10 +35,10 @@ class Arrival extends Model
         'port_of_loading',
         'country',
         'container_numbers',
-        'seal_code',
         'currency',
         'notes',
         'created_by',
+        'purchase_order_id',
     ];
 
     protected $casts = [
@@ -170,5 +170,10 @@ class Arrival extends Model
     {
         return $this->belongsToMany(ProductionOrder::class, 'production_order_arrivals')
             ->withTimestamps();
+    }
+
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 }

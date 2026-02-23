@@ -51,7 +51,7 @@ class PurchaseOrderController extends Controller
             DB::beginTransaction();
 
             $poNumber = 'PO-' . date('Ymd') . '-' . strtoupper(Str::random(4));
-            
+
             $purchaseOrder = PurchaseOrder::create([
                 'po_number' => $poNumber,
                 'vendor_id' => $validated['vendor_id'],
@@ -62,7 +62,7 @@ class PurchaseOrderController extends Controller
             $totalAmount = 0;
             foreach ($validated['items'] as $item) {
                 $subtotal = $item['unit_price'] * $item['qty'];
-                
+
                 PurchaseOrderItem::create([
                     'purchase_order_id' => $purchaseOrder->id,
                     'purchase_request_item_id' => $item['pr_item_id'] ?? null,
@@ -71,7 +71,7 @@ class PurchaseOrderController extends Controller
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $subtotal,
                 ]);
-                
+
                 $totalAmount += $subtotal;
             }
 
@@ -118,13 +118,50 @@ class PurchaseOrderController extends Controller
             return back()->with('error', 'Only approved orders can be released.');
         }
 
-        $purchaseOrder->update([
-            'status' => 'Released',
-            'released_at' => now(),
-            'released_by' => auth()->id(),
-        ]);
+        DB::beginTransaction();
+        try {
+            $purchaseOrder->update([
+                'status' => 'Released',
+                'released_at' => now(),
+                'released_by' => auth()->id(),
+            ]);
 
-        return back()->with('success', 'Purchase Order released to vendor.');
+            // Create Draft Departure in Incoming
+            $purchaseOrder->load('items.part');
+
+            $arrival = \App\Models\Arrival::create([
+                'arrival_no' => \App\Models\Arrival::generateArrivalNo(),
+                'invoice_no' => 'DRAFT-PO-' . $purchaseOrder->po_number,
+                'invoice_date' => now(),
+                'vendor_id' => $purchaseOrder->vendor_id,
+                'status' => 'pending',
+                'currency' => 'USD', // Assumed default, can be edited later
+                'created_by' => auth()->id(),
+                'purchase_order_id' => $purchaseOrder->id,
+                'notes' => 'Auto-generated from PO ' . $purchaseOrder->po_number,
+            ]);
+
+            foreach ($purchaseOrder->items as $item) {
+                \App\Models\ArrivalItem::create([
+                    'arrival_id' => $arrival->id,
+                    'part_id' => $item->part_id,
+                    'qty_goods' => (int) $item->qty, // Assuming integer logic for incoming
+                    'unit_goods' => null, // To be filled by incoming team
+                    'weight_nett' => 0,
+                    'weight_gross' => 0,
+                    'price' => '0.000', // Need to compute later or leave 0 for draft
+                    'total_price' => $item->subtotal ?? 0,
+                    'purchase_order_item_id' => $item->id,
+                    'notes' => 'Auto-generated item from PO',
+                ]);
+            }
+
+            DB::commit();
+            return back()->with('success', 'Purchase Order released to vendor. Draft Departure automatically created.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to release PO: ' . $e->getMessage());
+        }
     }
 
     public function print(PurchaseOrder $purchaseOrder)

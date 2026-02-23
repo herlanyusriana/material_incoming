@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Inventory;
+use App\Models\GciInventory;
 use App\Models\Part;
+use App\Models\GciPart;
 use App\Models\Receive;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
@@ -17,26 +19,70 @@ class InventoryController extends Controller
 {
     public function index(Request $request)
     {
-        $partId = $request->query('part_id');
-        $q = trim((string) $request->query('q', ''));
+        $activeTab = $request->query('tab', 'rm');
 
-        $parts = Part::query()->orderBy('part_no')->get();
+        // --- RM Data ---
+        $rmPartId = $request->query('rm_part_id');
+        $rmQ = trim((string) $request->query('rm_q', ''));
+        $rmParts = Part::query()->orderBy('part_no')->get();
 
         $inventories = Inventory::query()
             ->with('part')
-            ->when($partId, fn ($q) => $q->where('part_id', $partId))
-            ->when($q !== '', function ($qr) use ($q) {
-                $qr->whereHas('part', function ($qp) use ($q) {
-                    $qp->where('part_no', 'like', '%' . $q . '%')
-                        ->orWhere('part_name_gci', 'like', '%' . $q . '%')
-                        ->orWhere('register_no', 'like', '%' . $q . '%');
+            ->when($rmPartId, fn($q) => $q->where('part_id', $rmPartId))
+            ->when($rmQ !== '', function ($qr) use ($rmQ) {
+                $qr->whereHas('part', function ($qp) use ($rmQ) {
+                    $qp->where('part_no', 'like', '%' . $rmQ . '%')
+                        ->orWhere('part_name_gci', 'like', '%' . $rmQ . '%')
+                        ->orWhere('register_no', 'like', '%' . $rmQ . '%');
                 });
             })
             ->orderBy(Part::select('part_no')->whereColumn('parts.id', 'inventories.part_id'))
-            ->paginate(25)
+            ->paginate(25, ['*'], 'rm_page')
             ->withQueryString();
 
-        return view('inventory.index', compact('inventories', 'parts', 'partId', 'q'));
+        // --- FG/WIP Data ---
+        $gciSearch = trim((string) $request->query('gci_search', ''));
+        $gciClass = strtoupper(trim((string) $request->query('gci_class', '')));
+        $gciStatus = strtolower(trim((string) $request->query('gci_status', '')));
+        $gciPerPage = (int) $request->query('gci_per_page', 25);
+        if ($gciPerPage < 10)
+            $gciPerPage = 10;
+        if ($gciPerPage > 200)
+            $gciPerPage = 200;
+
+        $gciQuery = GciInventory::query()
+            ->with('part.customer')
+            ->when($gciClass !== '', fn($q) => $q->whereHas('part', fn($qp) => $qp->where('classification', $gciClass)))
+            ->when(in_array($gciStatus, ['active', 'inactive'], true), fn($q) => $q->whereHas('part', fn($qp) => $qp->where('status', $gciStatus)))
+            ->when($gciSearch !== '', function ($q) use ($gciSearch) {
+                $s = strtoupper($gciSearch);
+                $q->whereHas('part', function ($qp) use ($s) {
+                    $qp->where('part_no', 'like', '%' . $s . '%')
+                        ->orWhere('part_name', 'like', '%' . $s . '%')
+                        ->orWhere('model', 'like', '%' . $s . '%');
+                });
+            })
+            ->orderByDesc('on_hand')
+            ->orderBy('gci_part_id');
+
+        $gciRows = $gciQuery->paginate($gciPerPage, ['*'], 'gci_page')->withQueryString();
+        $gciPartsForModal = GciPart::where('status', 'active')->orderBy('part_no')->get();
+
+        return view('inventory.index', compact(
+            'activeTab',
+            // RM
+            'inventories',
+            'rmParts',
+            'rmPartId',
+            'rmQ',
+            // GCI
+            'gciRows',
+            'gciSearch',
+            'gciClass',
+            'gciStatus',
+            'gciPerPage',
+            'gciPartsForModal'
+        ));
     }
 
     public function receives(Request $request)
@@ -49,8 +95,8 @@ class InventoryController extends Controller
 
         $receives = Receive::query()
             ->with(['arrivalItem.part', 'arrivalItem.arrival'])
-            ->when($partId, fn ($q) => $q->whereHas('arrivalItem', fn ($qq) => $qq->where('part_id', $partId)))
-            ->when($qcStatus, fn ($q) => $q->where('qc_status', $qcStatus))
+            ->when($partId, fn($q) => $q->whereHas('arrivalItem', fn($qq) => $qq->where('part_id', $partId)))
+            ->when($qcStatus, fn($q) => $q->where('qc_status', $qcStatus))
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('tag', 'like', '%' . $search . '%')
@@ -70,8 +116,8 @@ class InventoryController extends Controller
 
         $locationCodes = $receives->getCollection()
             ->pluck('location_code')
-            ->filter(fn ($code) => is_string($code) && trim($code) !== '')
-            ->map(fn ($code) => strtoupper(trim($code)))
+            ->filter(fn($code) => is_string($code) && trim($code) !== '')
+            ->map(fn($code) => strtoupper(trim($code)))
             ->unique()
             ->values();
 
@@ -140,7 +186,7 @@ class InventoryController extends Controller
     public function searchReceives(Request $request)
     {
         $query = trim((string) $request->query('q', ''));
-        
+
         if ($query === '') {
             return response()->json([]);
         }
