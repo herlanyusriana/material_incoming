@@ -7,8 +7,8 @@ use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\FgInventory;
 use App\Models\GciPart;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
+use App\Models\DeliveryOrder;
+use App\Models\DeliveryOrderItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -34,16 +34,16 @@ class SalesOrderShipCreatesDnTest extends TestCase
             'status' => 'active',
         ]);
 
-        $so = SalesOrder::create([
-            'so_no' => 'SO-TEST-1',
+        $do = DeliveryOrder::create([
+            'do_no' => 'DO-TEST-1',
             'customer_id' => $customer->id,
-            'so_date' => now()->toDateString(),
+            'do_date' => now()->toDateString(),
             'status' => 'draft',
             'created_by' => $user->id,
         ]);
 
-        $item = SalesOrderItem::create([
-            'sales_order_id' => $so->id,
+        $item = DeliveryOrderItem::create([
+            'delivery_order_id' => $do->id,
             'gci_part_id' => $part->id,
             'qty_ordered' => 10,
             'qty_shipped' => 0,
@@ -55,19 +55,19 @@ class SalesOrderShipCreatesDnTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->post(route('outgoing.sales-orders.ship', $so), [
+            ->post(route('outgoing.delivery-orders.ship', $do), [
                 'items' => [
                     $item->id => ['qty' => 4],
                 ],
             ])
             ->assertSessionHas('success');
 
-        $so->refresh();
+        $do->refresh();
         $item->refresh();
-        $this->assertSame('partial_shipped', $so->status);
+        $this->assertSame('partial_shipped', $do->status);
         $this->assertSame(4.0, (float) $item->qty_shipped);
 
-        $dn1 = DeliveryNote::query()->where('sales_order_id', $so->id)->first();
+        $dn1 = DeliveryNote::query()->where('delivery_order_id', $do->id)->first();
         $this->assertNotNull($dn1);
         $this->assertSame('shipped', $dn1->status);
         $this->assertTrue(DnItem::query()->where('dn_id', $dn1->id)->where('gci_part_id', $part->id)->where('qty', 4)->exists());
@@ -75,20 +75,20 @@ class SalesOrderShipCreatesDnTest extends TestCase
         $this->assertSame(96.0, (float) FgInventory::where('gci_part_id', $part->id)->value('qty_on_hand'));
 
         $this->actingAs($user)
-            ->post(route('outgoing.sales-orders.ship', $so), [
+            ->post(route('outgoing.delivery-orders.ship', $do), [
                 'items' => [
                     $item->id => ['qty' => 6],
                 ],
             ])
             ->assertSessionHas('success');
 
-        $so->refresh();
+        $do->refresh();
         $item->refresh();
-        $this->assertSame('shipped', $so->status);
+        $this->assertSame('shipped', $do->status);
         $this->assertSame(10.0, (float) $item->qty_shipped);
 
         $this->assertSame(90.0, (float) FgInventory::where('gci_part_id', $part->id)->value('qty_on_hand'));
-        $this->assertSame(2, DeliveryNote::query()->where('sales_order_id', $so->id)->count());
+        $this->assertSame(2, DeliveryNote::query()->where('delivery_order_id', $do->id)->count());
     }
 }
 

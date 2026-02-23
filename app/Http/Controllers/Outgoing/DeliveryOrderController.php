@@ -8,22 +8,22 @@ use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\FgInventory;
 use App\Models\GciPart;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
+use App\Models\DeliveryOrder;
+use App\Models\DeliveryOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class SalesOrderController extends Controller
+class DeliveryOrderController extends Controller
 {
     public function index(Request $request)
     {
         $q = $request->query('q');
         $customerId = $request->query('customer_id');
 
-        $orders = SalesOrder::with(['customer', 'items'])
+        $orders = DeliveryOrder::with(['customer', 'items'])
             ->when($q, function ($query) use ($q) {
-                $query->where('so_no', 'like', "%{$q}%");
+                $query->where('do_no', 'like', "%{$q}%");
             })
             ->when($customerId, function ($query) use ($customerId) {
                 $query->where('customer_id', $customerId);
@@ -34,7 +34,7 @@ class SalesOrderController extends Controller
 
         $customers = Customer::orderBy('name')->get();
 
-        return view('outgoing.sales_orders.index', compact('orders', 'customers', 'q', 'customerId'));
+        return view('outgoing.delivery_orders.index', compact('orders', 'customers', 'q', 'customerId'));
     }
 
     public function create()
@@ -42,15 +42,15 @@ class SalesOrderController extends Controller
         $customers = Customer::orderBy('name')->get();
         $parts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
 
-        return view('outgoing.sales_orders.create', compact('customers', 'parts'));
+        return view('outgoing.delivery_orders.create', compact('customers', 'parts'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'so_no' => 'required|string|max:100|unique:sales_orders,so_no',
+            'do_no' => 'required|string|max:100|unique:delivery_orders,do_no',
             'customer_id' => 'required|exists:customers,id',
-            'so_date' => 'required|date',
+            'do_date' => 'required|date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.part_id' => 'required|exists:gci_parts,id',
@@ -60,18 +60,18 @@ class SalesOrderController extends Controller
         try {
             DB::beginTransaction();
 
-            $so = SalesOrder::create([
-                'so_no' => $validated['so_no'],
+            $do = DeliveryOrder::create([
+                'do_no' => $validated['do_no'],
                 'customer_id' => $validated['customer_id'],
-                'so_date' => $validated['so_date'],
+                'do_date' => $validated['do_date'],
                 'status' => 'draft',
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => auth()->id(),
             ]);
 
             foreach ($validated['items'] as $item) {
-                SalesOrderItem::create([
-                    'sales_order_id' => $so->id,
+                DeliveryOrderItem::create([
+                    'delivery_order_id' => $do->id,
                     'gci_part_id' => $item['part_id'],
                     'qty_ordered' => $item['qty'],
                     'qty_shipped' => 0,
@@ -79,43 +79,43 @@ class SalesOrderController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('outgoing.sales-orders.index')->with('success', 'Sales Order created.');
+            return redirect()->route('outgoing.delivery-orders.index')->with('success', 'Delivery Order created.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
-    public function show(SalesOrder $salesOrder)
+    public function show(DeliveryOrder $deliveryOrder)
     {
-        $salesOrder->loadMissing(['customer', 'items.part.standardPacking', 'plan', 'stop', 'deliveryNotes']);
+        $deliveryOrder->loadMissing(['customer', 'items.part.standardPacking', 'plan', 'stop', 'deliveryNotes']);
 
-        return view('outgoing.sales_orders.show', compact('salesOrder'));
+        return view('outgoing.delivery_orders.show', compact('deliveryOrder'));
     }
 
-    public function edit(SalesOrder $salesOrder)
+    public function edit(DeliveryOrder $deliveryOrder)
     {
-        if ($salesOrder->status !== 'draft') {
-            return back()->with('error', 'Only draft SO can be edited.');
+        if ($deliveryOrder->status !== 'draft') {
+            return back()->with('error', 'Only draft DO can be edited.');
         }
 
-        $salesOrder->load('items');
+        $deliveryOrder->load('items');
         $customers = Customer::orderBy('name')->get();
         $parts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
 
-        return view('outgoing.sales_orders.edit', compact('salesOrder', 'customers', 'parts'));
+        return view('outgoing.delivery_orders.edit', compact('deliveryOrder', 'customers', 'parts'));
     }
 
-    public function update(Request $request, SalesOrder $salesOrder)
+    public function update(Request $request, DeliveryOrder $deliveryOrder)
     {
-        if ($salesOrder->status !== 'draft') {
-            return back()->with('error', 'Only draft SO can be updated.');
+        if ($deliveryOrder->status !== 'draft') {
+            return back()->with('error', 'Only draft DO can be updated.');
         }
 
         $validated = $request->validate([
-            'so_no' => 'required|string|max:100|unique:sales_orders,so_no,' . $salesOrder->id,
+            'do_no' => 'required|string|max:100|unique:delivery_orders,do_no,' . $deliveryOrder->id,
             'customer_id' => 'required|exists:customers,id',
-            'so_date' => 'required|date',
+            'do_date' => 'required|date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.part_id' => 'required|exists:gci_parts,id',
@@ -125,18 +125,18 @@ class SalesOrderController extends Controller
         try {
             DB::beginTransaction();
 
-            $salesOrder->update([
-                'so_no' => $validated['so_no'],
+            $deliveryOrder->update([
+                'do_no' => $validated['do_no'],
                 'customer_id' => $validated['customer_id'],
-                'so_date' => $validated['so_date'],
+                'do_date' => $validated['do_date'],
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $salesOrder->items()->delete();
+            $deliveryOrder->items()->delete();
 
             foreach ($validated['items'] as $item) {
-                SalesOrderItem::create([
-                    'sales_order_id' => $salesOrder->id,
+                DeliveryOrderItem::create([
+                    'delivery_order_id' => $deliveryOrder->id,
                     'gci_part_id' => $item['part_id'],
                     'qty_ordered' => $item['qty'],
                     'qty_shipped' => 0,
@@ -144,30 +144,30 @@ class SalesOrderController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('outgoing.sales-orders.index')->with('success', 'Sales Order updated.');
+            return redirect()->route('outgoing.delivery-orders.index')->with('success', 'Delivery Order updated.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
-    public function destroy(SalesOrder $salesOrder)
+    public function destroy(DeliveryOrder $deliveryOrder)
     {
-        if ($salesOrder->status !== 'draft') {
-            return back()->with('error', 'Only draft SO can be deleted.');
+        if ($deliveryOrder->status !== 'draft') {
+            return back()->with('error', 'Only draft DO can be deleted.');
         }
 
-        $salesOrder->delete();
-        return redirect()->route('outgoing.sales-orders.index')->with('success', 'Sales Order deleted.');
+        $deliveryOrder->delete();
+        return redirect()->route('outgoing.delivery-orders.index')->with('success', 'Delivery Order deleted.');
     }
 
-    public function ship(Request $request, SalesOrder $salesOrder)
+    public function ship(Request $request, DeliveryOrder $deliveryOrder)
     {
-        if ($salesOrder->status === 'shipped') {
-            return back()->with('error', 'SO already fully shipped.');
+        if ($deliveryOrder->status === 'shipped') {
+            return back()->with('error', 'DO already fully shipped.');
         }
 
-        $salesOrder->loadMissing(['customer', 'items']);
+        $deliveryOrder->loadMissing(['customer', 'items']);
 
         $validated = $request->validate([
             'items' => ['required', 'array', 'min:1'],
@@ -187,19 +187,16 @@ class SalesOrderController extends Controller
 
         $dn = null;
 
-        DB::transaction(function () use ($salesOrder, $qtyByItemId, $request, &$dn) {
-            /** @var SalesOrder $so */
-            $so = SalesOrder::query()->whereKey($salesOrder->id)->lockForUpdate()->firstOrFail();
-            $so->loadMissing(['items']);
+        DB::transaction(function () use ($deliveryOrder, $qtyByItemId, $request, &$dn) {
+            $do = DeliveryOrder::query()->whereKey($deliveryOrder->id)->lockForUpdate()->firstOrFail();
+            $do->loadMissing(['items']);
 
-            $itemsById = $so->items->keyBy('id');
+            $itemsById = $do->items->keyBy('id');
 
-            // Validate remaining qty for each selected item
             foreach ($qtyByItemId as $itemId => $qtyToShip) {
-                /** @var SalesOrderItem|null $item */
                 $item = $itemsById->get((int) $itemId);
                 if (!$item) {
-                    throw new \RuntimeException("Invalid SO item: {$itemId}");
+                    throw new \RuntimeException("Invalid DO item: {$itemId}");
                 }
 
                 $ordered = (float) $item->qty_ordered;
@@ -210,7 +207,6 @@ class SalesOrderController extends Controller
                 }
             }
 
-            // Create DN (generated at ship)
             $dnNo = null;
             for ($attempt = 0; $attempt < 5; $attempt++) {
                 $candidate = 'DN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
@@ -222,14 +218,14 @@ class SalesOrderController extends Controller
             $dnNo ??= 'DN-' . now()->format('YmdHis') . '-' . (string) Str::uuid();
 
             $dn = DeliveryNote::create([
-                'sales_order_id' => $so->id,
+                'delivery_order_id' => $do->id,
                 'dn_no' => $dnNo,
-                'customer_id' => $so->customer_id,
-                'delivery_date' => $so->so_date->toDateString(),
+                'customer_id' => $do->customer_id,
+                'delivery_date' => $do->do_date->toDateString(),
                 'status' => 'shipped',
-                'delivery_plan_id' => $so->delivery_plan_id,
-                'delivery_stop_id' => $so->delivery_stop_id,
-                'notes' => 'Shipped from SO ' . $so->so_no,
+                'delivery_plan_id' => $do->delivery_plan_id,
+                'delivery_stop_id' => $do->delivery_stop_id,
+                'notes' => 'Shipped from DO ' . $do->do_no,
             ]);
 
             foreach ($qtyByItemId as $itemId => $qtyToShip) {
@@ -253,21 +249,20 @@ class SalesOrderController extends Controller
                 $inventory->decrement('qty_on_hand', $qtyToShip);
             }
 
-            $so->refresh();
-            $totalRemaining = $so->items->sum(function ($i) {
+            $do->refresh();
+            $totalRemaining = $do->items->sum(function ($i) {
                 $ordered = (float) $i->qty_ordered;
                 $shipped = (float) ($i->qty_shipped ?? 0);
                 return max(0, $ordered - $shipped);
             });
 
-            $so->update([
+            $do->update([
                 'status' => $totalRemaining > 0 ? 'partial_shipped' : 'shipped',
             ]);
         });
 
         return redirect()
-            ->route('outgoing.sales-orders.show', $salesOrder)
+            ->route('outgoing.delivery-orders.show', $deliveryOrder)
             ->with('success', 'DN created: ' . ($dn?->dn_no ?? ''));
     }
 }
-

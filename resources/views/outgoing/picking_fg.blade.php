@@ -207,7 +207,7 @@
                         <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        <input type="text" name="search" value="{{ $filterSearch ?? '' }}" placeholder="Search SO / Part..."
+                        <input type="text" name="search" value="{{ $filterSearch ?? '' }}" placeholder="Search DO / Part..."
                             class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
                     </div>
                     <button type="submit" class="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white hover:bg-slate-700">
@@ -222,8 +222,8 @@
         {{-- Stats --}}
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <div class="stat-card">
-                <div class="stat-value text-indigo-700" id="stat-total-so">{{ $stats->total_so }}</div>
-                <div class="stat-label">Total SO</div>
+                <div class="stat-value text-indigo-700" id="stat-total-do">{{ $stats->total_so }}</div>
+                <div class="stat-label">Total DO</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value text-slate-900" id="stat-total-parts">{{ $stats->total_parts }}</div>
@@ -251,7 +251,7 @@
             </div>
         </div>
 
-        {{-- SO Lists --}}
+        {{-- DO Lists --}}
         @if($soList->isEmpty())
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
                 <div class="text-slate-400 text-sm italic">
@@ -263,14 +263,14 @@
                     @endif
                 </div>
                 @if(!$filterStatus && !$filterSearch)
-                    <div class="mt-2 text-xs text-slate-400">Generate SOs from the "Delivery Plan" page to start picking.</div>
+                    <div class="mt-2 text-xs text-slate-400">Generate DOs from the "Delivery Plan" page to start picking.</div>
                 @endif
             </div>
         @else
             <div class="space-y-6">
                 @foreach($soList as $so)
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-so-id="{{ $so->so_id }}">
-                        {{-- SO Header Card --}}
+                        {{-- DO Header Card --}}
                         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div class="flex items-center gap-4">
@@ -295,7 +295,7 @@
                                         </div>
                                         <div class="text-xs text-slate-500 font-medium">
                                             @if($so->so_no)
-                                                Sales Order Identity <span class="text-slate-300 mx-1">•</span>
+                                                Delivery Order Identity <span class="text-slate-300 mx-1">•</span>
                                             @endif
                                             {{ $so->items_count }} Parts to pick
                                         </div>

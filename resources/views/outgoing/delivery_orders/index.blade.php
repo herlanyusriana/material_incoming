@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Outgoing • Sales Orders (PO Outgoing)
+        Outgoing • Delivery Orders
     </x-slot>
 
     <div class="py-6">
@@ -26,12 +26,12 @@
             <div class="bg-white shadow-xl border border-slate-200 rounded-3xl overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Sales Order List</h2>
-                        <p class="text-sm text-slate-500 mt-1">Manage outgoing purchase orders from customers.</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Delivery Order List</h2>
+                        <p class="text-sm text-slate-500 mt-1">Manage outgoing delivery orders.</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <form action="{{ route('outgoing.sales-orders.index') }}" method="GET" class="flex items-center gap-2">
-                            <input type="text" name="q" value="{{ $q }}" placeholder="Search SO No..." class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <form action="{{ route('outgoing.delivery-orders.index') }}" method="GET" class="flex items-center gap-2">
+                            <input type="text" name="q" value="{{ $q }}" placeholder="Search DO No..." class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                             <select name="customer_id" class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="">All Customers</option>
                                 @foreach($customers as $c)
@@ -44,11 +44,11 @@
                                 </svg>
                             </button>
                         </form>
-                        <a href="{{ route('outgoing.sales-orders.create') }}" class="px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-md uppercase text-xs tracking-wider">
+                        <a href="{{ route('outgoing.delivery-orders.create') }}" class="px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-md uppercase text-xs tracking-wider">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
-                            New Sales Order
+                            New Delivery Order
                         </a>
                     </div>
                 </div>
@@ -57,9 +57,9 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">SO Number</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">DO Number</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Customer</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">SO Date</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">DO Date</th>
                                 <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
                                 <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Items</th>
                                 <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Actions</th>
@@ -69,13 +69,13 @@
                             @forelse ($orders as $order)
                                 <tr class="hover:bg-slate-50/80 transition-colors group">
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-bold text-indigo-600 group-hover:text-indigo-700">{{ $order->so_no }}</div>
+                                        <div class="text-sm font-bold text-indigo-600 group-hover:text-indigo-700">{{ $order->do_no }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-semibold text-slate-700">{{ $order->customer?->name }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                        {{ $order->so_date ? $order->so_date->format('M d, Y') : '-' }}
+                                        {{ $order->do_date ? $order->do_date->format('M d, Y') : '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         @php
@@ -96,19 +96,19 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('outgoing.sales-orders.show', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail">
+                                            <a href="{{ route('outgoing.delivery-orders.show', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
                                             </a>
                                             @if($order->status === 'draft')
-                                                <a href="{{ route('outgoing.sales-orders.edit', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="Edit">
+                                                <a href="{{ route('outgoing.delivery-orders.edit', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="Edit">
                                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                 </a>
-                                                <form action="{{ route('outgoing.sales-orders.destroy', $order) }}" method="POST" class="inline" onsubmit="return confirm('Confirm delete?')">
+                                                <form action="{{ route('outgoing.delivery-orders.destroy', $order) }}" method="POST" class="inline" onsubmit="return confirm('Confirm delete?')">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all" title="Delete">
@@ -128,7 +128,7 @@
                                             <svg class="h-12 w-12 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            <span class="font-semibold">No sales orders found.</span>
+                                            <span class="font-semibold">No delivery orders found.</span>
                                         </div>
                                     </td>
                                 </tr>

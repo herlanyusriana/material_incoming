@@ -42,32 +42,27 @@ class DeliveryNoteController extends Controller
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $gciParts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
 
-        $selectedSos = [];
         $prefilledData = [
             'customer_id' => '',
             'delivery_date' => date('Y-m-d'),
             'items' => [],
         ];
 
-        // Handle creation from Picking (Sales Orders)
-        if ($request->has('sales_order_ids')) {
-            $soIds = explode(',', $request->sales_order_ids);
+        // Handle creation from Picking (Delivery Orders)
+        if ($request->has('delivery_order_ids')) {
+            $doIds = explode(',', $request->delivery_order_ids);
 
-            // Get Sales Orders with their Items and Picking info
-            $salesOrders = \App\Models\SalesOrder::with(['customer', 'items.part'])
-                ->whereIn('id', $soIds)
+            $deliveryOrders = \App\Models\DeliveryOrder::with(['customer', 'items.part'])
+                ->whereIn('id', $doIds)
                 ->get();
 
-            if ($salesOrders->isNotEmpty()) {
-                $firstSo = $salesOrders->first();
-                $prefilledData['customer_id'] = $firstSo->customer_id;
-                // If SO has delivery plan date, maybe use that? Or just today. Using today by default.
+            if ($deliveryOrders->isNotEmpty()) {
+                $firstDo = $deliveryOrders->first();
+                $prefilledData['customer_id'] = $firstDo->customer_id;
 
-                foreach ($salesOrders as $so) {
-
-                    // Better to query OutgoingPickingFg directly for these SOs to get actual picked qty
+                foreach ($deliveryOrders as $do) {
                     $picks = OutgoingPickingFg::with('part')
-                        ->where('sales_order_id', $so->id)
+                        ->where('delivery_order_id', $do->id)
                         ->where('status', 'completed')
                         ->get();
 
@@ -78,7 +73,7 @@ class DeliveryNoteController extends Controller
                             'part_name' => $pick->part?->part_name,
                             'qty' => $pick->qty_picked,
                             'outgoing_po_item_id' => $pick->outgoing_po_item_id,
-                            'sales_order_id' => $so->id // Track which SO this came from
+                            'delivery_order_id' => $do->id
                         ];
                     }
                 }
@@ -89,8 +84,7 @@ class DeliveryNoteController extends Controller
         $completedPickings = OutgoingPickingFg::with(['part'])
             ->where('status', 'completed')
             ->where('delivery_date', '>=', now()->subDays(2)->toDateString())
-            ->doesntHave('salesOrder') // Suggest manual pickings only? Or all? Let's show all for now but maybe filter out ones already in a DN?
-            // ->whereDoesntHave('deliveryNoteItems') // If we had this relation
+            ->doesntHave('deliveryOrder')
             ->get();
 
         return view('outgoing.delivery_notes.create', compact('customers', 'gciParts', 'completedPickings', 'prefilledData'));
@@ -108,12 +102,12 @@ class DeliveryNoteController extends Controller
             'items.*.qty' => ['required', 'numeric', 'min:0.0001'],
             'items.*.customer_po_id' => ['nullable', 'exists:customer_pos,id'],
             'items.*.outgoing_po_item_id' => ['nullable', 'exists:outgoing_po_items,id'],
-            'items.*.sales_order_id' => ['nullable', 'exists:sales_orders,id'],
+            'items.*.delivery_order_id' => ['nullable', 'exists:delivery_orders,id'],
             'items.*.remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
         DB::transaction(function () use ($validated) {
-            $soIds = collect($validated['items'])->pluck('sales_order_id')->filter()->unique();
+            $doIds = collect($validated['items'])->pluck('delivery_order_id')->filter()->unique();
 
             $dn = DeliveryNote::create([
                 'dn_no' => $validated['dn_no'],
@@ -134,8 +128,8 @@ class DeliveryNoteController extends Controller
                 ]);
             }
 
-            if ($soIds->isNotEmpty()) {
-                $dn->salesOrders()->sync($soIds);
+            if ($doIds->isNotEmpty()) {
+                $dn->deliveryOrders()->sync($doIds);
             }
         });
 

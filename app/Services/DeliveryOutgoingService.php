@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\SalesOrder;
+use App\Models\DeliveryOrder;
 use App\Models\DeliveryNote;
 use App\Models\DeliveryItem;
 use App\Models\Customer;
@@ -13,19 +13,11 @@ use Illuminate\Support\Facades\DB;
 
 class DeliveryOutgoingService
 {
-    /**
-     * Get finished goods sales orders that are ready for delivery (picked/completed)
-     *
-     * @param int|null $customerId Optional customer ID to filter
-     * @param string|null $status Optional status to filter
-     * @return \Illuminate\Support\Collection
-     */
     public function getReadyForDeliveryOrders(?int $customerId = null, ?string $status = null): \Illuminate\Support\Collection
     {
-        $query = SalesOrder::with(['customer', 'items.part'])
-            ->where('status', 'completed') // Assuming 'completed' means picked/ready
+        $query = DeliveryOrder::with(['customer', 'items.part'])
+            ->where('status', 'completed')
             ->whereDoesntHave('deliveryItems', function ($q) {
-                // Exclude orders that are already assigned to a delivery note
                 $q->whereHas('deliveryNote', function ($dnQuery) {
                     $dnQuery->where('status', '!=', 'cancelled');
                 });
@@ -42,30 +34,19 @@ class DeliveryOutgoingService
         return $query->get();
     }
 
-    /**
-     * Create a delivery note from selected sales orders
-     *
-     * @param array $salesOrderIds Array of sales order IDs
-     * @param int $customerId Customer ID
-     * @param int|null $truckId Optional truck ID
-     * @param int|null $driverId Optional driver ID
-     * @param array $options Additional options
-     * @return DeliveryNote
-     */
-    public function createDeliveryNote(array $salesOrderIds, int $customerId, ?int $truckId = null, ?int $driverId = null, array $options = []): DeliveryNote
+    public function createDeliveryNote(array $deliveryOrderIds, int $customerId, ?int $truckId = null, ?int $driverId = null, array $options = []): DeliveryNote
     {
-        $salesOrders = SalesOrder::with(['items.part', 'customer'])
-            ->whereIn('id', $salesOrderIds)
+        $deliveryOrders = DeliveryOrder::with(['items.part', 'customer'])
+            ->whereIn('id', $deliveryOrderIds)
             ->where('customer_id', $customerId)
-            ->where('status', 'completed') // Only completed orders
+            ->where('status', 'completed')
             ->get();
 
-        if ($salesOrders->isEmpty()) {
-            throw new \Exception('No valid sales orders found for delivery');
+        if ($deliveryOrders->isEmpty()) {
+            throw new \Exception('No valid delivery orders found for delivery');
         }
 
-        // Validate that all orders belong to the same customer
-        $customerIds = $salesOrders->pluck('customer_id')->unique();
+        $customerIds = $deliveryOrders->pluck('customer_id')->unique();
         if ($customerIds->count() > 1) {
             throw new \Exception('All selected orders must belong to the same customer');
         }
@@ -73,27 +54,24 @@ class DeliveryOutgoingService
         DB::beginTransaction();
 
         try {
-            // Generate delivery note number
             $deliveryNo = $this->generateDeliveryNoteNumber();
 
-            // Create delivery note
             $deliveryNote = DeliveryNote::create([
                 'delivery_no' => $deliveryNo,
                 'customer_id' => $customerId,
                 'truck_id' => $truckId,
-                'driver_id' => $driverId, // Add driver ID
-                'status' => 'prepared', // Initially prepared
+                'driver_id' => $driverId,
+                'status' => 'prepared',
                 'notes' => $options['notes'] ?? null,
                 'delivery_date' => $options['delivery_date'] ?? null,
                 'created_by' => $options['created_by'] ?? null,
             ]);
 
-            // Add items from sales orders to delivery note
-            foreach ($salesOrders as $so) {
-                foreach ($so->items as $item) {
+            foreach ($deliveryOrders as $do) {
+                foreach ($do->items as $item) {
                     DeliveryItem::create([
                         'delivery_note_id' => $deliveryNote->id,
-                        'sales_order_id' => $so->id,
+                        'delivery_order_id' => $do->id,
                         'part_id' => $item->part_id,
                         'quantity' => $item->quantity,
                         'unit' => $item->unit,
@@ -101,12 +79,6 @@ class DeliveryOutgoingService
                     ]);
                 }
             }
-
-            // Optionally update sales order status to indicate they're assigned to delivery
-            $salesOrders->each(function ($so) {
-                // You might want to update SO status to 'shipped' or similar
-                // $so->update(['status' => 'shipped']);
-            });
 
             DB::commit();
 
@@ -117,17 +89,9 @@ class DeliveryOutgoingService
         }
     }
 
-    /**
-     * Get delivery notes grouped by customer
-     *
-     * @param string|null $status Optional status to filter
-     * @param string|null $dateFrom Optional start date
-     * @param string|null $dateTo Optional end date
-     * @return array
-     */
     public function getDeliveriesGroupedByCustomer(?string $status = null, ?string $dateFrom = null, ?string $dateTo = null): array
     {
-        $query = DeliveryNote::with(['customer', 'items.salesOrder', 'items.part', 'truck'])
+        $query = DeliveryNote::with(['customer', 'items.deliveryOrder', 'items.part', 'truck'])
             ->join('customers', 'delivery_notes.customer_id', '=', 'customers.id');
 
         if ($status) {
@@ -147,7 +111,6 @@ class DeliveryOutgoingService
             ->orderBy('delivery_notes.delivery_date', 'desc')
             ->get();
 
-        // Group by customer
         $grouped = [];
         foreach ($deliveries as $delivery) {
             $customerId = $delivery->customer_id;
@@ -163,14 +126,6 @@ class DeliveryOutgoingService
         return $grouped;
     }
 
-    /**
-     * Assign delivery note to a truck
-     *
-     * @param int $deliveryNoteId
-     * @param int $truckId
-     * @param array $options
-     * @return DeliveryNote
-     */
     public function assignToTruck(int $deliveryNoteId, int $truckId, array $options = []): DeliveryNote
     {
         $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
@@ -179,24 +134,15 @@ class DeliveryOutgoingService
         $deliveryNote->update([
             'truck_id' => $truckId,
             'assigned_at' => now(),
-            'status' => $options['status'] ?? 'assigned', // Could be 'assigned', 'in_transit', etc.
+            'status' => $options['status'] ?? 'assigned',
         ]);
 
         return $deliveryNote->fresh();
     }
 
-    /**
-     * Assign delivery note to a driver
-     *
-     * @param int $deliveryNoteId
-     * @param int $driverId
-     * @param array $options
-     * @return DeliveryNote
-     */
     public function assignToDriver(int $deliveryNoteId, int $driverId, array $options = []): DeliveryNote
     {
         $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-        $driver = User::findOrFail($driverId);
 
         $deliveryNote->update([
             'driver_id' => $driverId,
@@ -206,11 +152,6 @@ class DeliveryOutgoingService
         return $deliveryNote->fresh();
     }
 
-    /**
-     * Generate delivery note number
-     *
-     * @return string
-     */
     private function generateDeliveryNoteNumber(): string
     {
         $year = Carbon::now()->year;
@@ -229,14 +170,6 @@ class DeliveryOutgoingService
         return 'DN-' . $year . '-' . $next;
     }
 
-    /**
-     * Update delivery note status
-     *
-     * @param int $deliveryNoteId
-     * @param string $status
-     * @param array $options
-     * @return DeliveryNote
-     */
     public function updateDeliveryStatus(int $deliveryNoteId, string $status, array $options = []): DeliveryNote
     {
         $validStatuses = ['prepared', 'assigned', 'in_transit', 'delivered', 'cancelled'];
@@ -253,13 +186,6 @@ class DeliveryOutgoingService
         return $deliveryNote->fresh();
     }
 
-    /**
-     * Get delivery statistics
-     *
-     * @param string|null $dateFrom
-     * @param string|null $dateTo
-     * @return array
-     */
     public function getDeliveryStats(?string $dateFrom = null, ?string $dateTo = null): array
     {
         $query = DeliveryNote::selectRaw('status, COUNT(*) as count, SUM(total_value) as total_value')

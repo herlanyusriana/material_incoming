@@ -24,8 +24,8 @@ use App\Models\Bom;
 use App\Models\DeliveryPlan;
 use App\Models\Truck;
 use App\Models\Driver;
-use App\Models\SalesOrderItem;
-use App\Models\SalesOrder;
+use App\Models\DeliveryOrderItem;
+use App\Models\DeliveryOrder;
 use App\Models\Customer;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
@@ -1224,25 +1224,25 @@ class OutgoingController extends Controller
             ]);
         }
 
-        // ── 11. Check existing SOs for each part on this date ──
-        $existingSos = SalesOrder::where('so_date', $dateStr)
+        // ── 11. Check existing DOs for each part on this date ──
+        $existingDos = DeliveryOrder::where('do_date', $dateStr)
             ->with('items')
             ->get();
-        $soByPart = [];
-        foreach ($existingSos as $so) {
-            foreach ($so->items as $item) {
-                $soByPart[$item->gci_part_id][] = [
-                    'so_no' => $so->so_no,
-                    'status' => $so->status,
-                    'trip_no' => $so->trip_no,
+        $doByPart = [];
+        foreach ($existingDos as $do) {
+            foreach ($do->items as $item) {
+                $doByPart[$item->gci_part_id][] = [
+                    'do_no' => $do->do_no,
+                    'status' => $do->status,
+                    'trip_no' => $do->trip_no,
                 ];
             }
         }
 
-        // Attach SO info to rows
+        // Attach DO info to rows
         foreach ($rows as $row) {
-            $row->existing_sos = $soByPart[$row->gci_part_id] ?? [];
-            $row->has_so = !empty($row->existing_sos);
+            $row->existing_dos = $doByPart[$row->gci_part_id] ?? [];
+            $row->has_do = !empty($row->existing_dos);
         }
 
         // Sort by fixed category order, then part name
@@ -1540,7 +1540,7 @@ class OutgoingController extends Controller
         return null;
     }
 
-    public function generateSoFromDeliveryPlan(Request $request)
+    public function generateDoFromDeliveryPlan(Request $request)
     {
         try {
             $validated = $request->validate([
@@ -1566,8 +1566,8 @@ class OutgoingController extends Controller
                 ->values();
 
             if ($selectedLines->isEmpty()) {
-                \Log::warning('Generate SO: No lines selected', ['date' => $planDate]);
-                return back()->with('error', 'Pilih minimal 1 part untuk generate SO.');
+                \Log::warning('Generate DO: No lines selected', ['date' => $planDate]);
+                return back()->with('error', 'Pilih minimal 1 part untuk generate DO.');
             }
 
             // Validate selected lines have required data
@@ -1589,7 +1589,7 @@ class OutgoingController extends Controller
             $invalidCustomers = $customerIds->diff($existingCustomers);
 
             if ($invalidCustomers->isNotEmpty()) {
-                \Log::error('Generate SO: Invalid customers', [
+                \Log::error('Generate DO: Invalid customers', [
                     'invalid_ids' => $invalidCustomers->toArray(),
                     'plan_date' => $planDate
                 ]);
@@ -1602,7 +1602,7 @@ class OutgoingController extends Controller
             $invalidParts = $partIds->diff($existingParts);
 
             if ($invalidParts->isNotEmpty()) {
-                \Log::error('Generate SO: Invalid GCI parts', [
+                \Log::error('Generate DO: Invalid GCI parts', [
                     'invalid_ids' => $invalidParts->toArray(),
                     'plan_date' => $planDate
                 ]);
@@ -1614,7 +1614,7 @@ class OutgoingController extends Controller
             $skipped = [];
 
             DB::transaction(function () use ($selectedLines, $planDate, &$created, &$updated, &$skipped) {
-                \Log::info('Generate SO Transaction Start', [
+                \Log::info('Generate DO Transaction Start', [
                     'plan_date' => $planDate,
                     'lines_count' => $selectedLines->count()
                 ]);
@@ -1630,7 +1630,7 @@ class OutgoingController extends Controller
                         ->first();
 
                     if (!$planningLine) {
-                        \Log::warning('Generate SO: Planning line not found', [
+                        \Log::warning('Generate DO: Planning line not found', [
                             'plan_date' => $planDate,
                             'gci_part_id' => $partId,
                             'source' => $source
@@ -1643,68 +1643,68 @@ class OutgoingController extends Controller
                         if ($tripQty <= 0)
                             continue;
 
-                        // Check for existing SO (any status) for this customer+date+trip
-                        $so = SalesOrder::where('customer_id', $customerId)
-                            ->where('so_date', $planDate)
+                        // Check for existing DO (any status) for this customer+date+trip
+                        $do = DeliveryOrder::where('customer_id', $customerId)
+                            ->where('do_date', $planDate)
                             ->where('trip_no', $t)
                             ->first();
 
-                        if ($so && !in_array($so->status, ['draft', 'pending'])) {
-                            // SO already shipped/completed → skip
-                            $skipped[$so->so_no] = $so->status;
+                        if ($do && !in_array($do->status, ['draft', 'pending'])) {
+                            // DO already shipped/completed → skip
+                            $skipped[$do->do_no] = $do->status;
                             continue;
                         }
 
-                        $isNew = !$so;
+                        $isNew = !$do;
 
-                        if (!$so) {
-                            $soNo = $this->generateSoNumber($planDate, $t);
-                            \Log::info('Creating new SO', [
-                                'so_no' => $soNo,
+                        if (!$do) {
+                            $doNo = $this->generateDoNumber($planDate, $t);
+                            \Log::info('Creating new DO', [
+                                'do_no' => $doNo,
                                 'customer_id' => $customerId,
                                 'trip_no' => $t,
                                 'plan_date' => $planDate
                             ]);
 
-                            $so = SalesOrder::create([
-                                'so_no' => $soNo,
+                            $do = DeliveryOrder::create([
+                                'do_no' => $doNo,
                                 'customer_id' => $customerId,
-                                'so_date' => $planDate,
+                                'do_date' => $planDate,
                                 'trip_no' => $t,
                                 'status' => 'draft',
                                 'notes' => "Generated from Delivery Planning (Trip {$t})",
                                 'created_by' => auth()->id(),
                             ]);
-                            $created[] = $so->so_no;
+                            $created[] = $do->do_no;
                         } else {
-                            \Log::info('Updating existing SO', [
-                                'so_no' => $so->so_no,
-                                'so_id' => $so->id
+                            \Log::info('Updating existing DO', [
+                                'do_no' => $do->do_no,
+                                'do_id' => $do->id
                             ]);
-                            $updated[] = $so->so_no;
+                            $updated[] = $do->do_no;
                         }
 
-                        // Upsert SO item - set qty (not accumulate) to allow regenerate
-                        $soItem = SalesOrderItem::where('sales_order_id', $so->id)
+                        // Upsert DO item - set qty (not accumulate) to allow regenerate
+                        $doItem = DeliveryOrderItem::where('delivery_order_id', $do->id)
                             ->where('gci_part_id', $partId)
                             ->first();
 
-                        if ($soItem) {
-                            $soItem->update(['qty_ordered' => $tripQty]);
+                        if ($doItem) {
+                            $doItem->update(['qty_ordered' => $tripQty]);
                         } else {
-                            SalesOrderItem::create([
-                                'sales_order_id' => $so->id,
+                            DeliveryOrderItem::create([
+                                'delivery_order_id' => $do->id,
                                 'gci_part_id' => $partId,
                                 'qty_ordered' => $tripQty,
                                 'qty_shipped' => 0,
                             ]);
                         }
 
-                        // Create/Update Picking record linked to this SO
+                        // Create/Update Picking record linked to this DO
                         $pickingFg = OutgoingPickingFg::firstOrNew([
                             'delivery_date' => $planDate,
                             'gci_part_id' => $partId,
-                            'sales_order_id' => $so->id,
+                            'delivery_order_id' => $do->id,
                         ]);
 
                         $isNewPicking = !$pickingFg->exists;
@@ -1724,7 +1724,7 @@ class OutgoingController extends Controller
                             $pickingFg->save();
                             \Log::info($isNewPicking ? 'Created Picking FG' : 'Updated Picking FG', [
                                 'picking_id' => $pickingFg->id,
-                                'so_id' => $so->id,
+                                'do_id' => $do->id,
                                 'gci_part_id' => $partId,
                                 'qty_plan' => $tripQty,
                                 'status' => $pickingFg->status
@@ -1732,7 +1732,7 @@ class OutgoingController extends Controller
                         } catch (\Exception $e) {
                             \Log::error('Failed to save Picking FG', [
                                 'error' => $e->getMessage(),
-                                'so_id' => $so->id,
+                                'do_id' => $do->id,
                                 'gci_part_id' => $partId,
                                 'delivery_date' => $planDate
                             ]);
@@ -1747,47 +1747,47 @@ class OutgoingController extends Controller
             $created = array_unique($created);
             $updated = array_unique($updated);
             if (count($created) > 0) {
-                $messages[] = count($created) . ' SO created: ' . implode(', ', $created);
+                $messages[] = count($created) . ' DO created: ' . implode(', ', $created);
             }
             if (count($updated) > 0) {
-                $messages[] = count($updated) . ' SO updated: ' . implode(', ', $updated);
+                $messages[] = count($updated) . ' DO updated: ' . implode(', ', $updated);
             }
             if (count($skipped) > 0) {
                 $skippedList = collect($skipped)->map(fn($status, $no) => "{$no} ({$status})")->implode(', ');
-                $messages[] = count($skipped) . ' SO skipped (non-draft): ' . $skippedList;
+                $messages[] = count($skipped) . ' DO skipped (non-draft): ' . $skippedList;
             }
 
             if (empty($messages)) {
-                return back()->with('info', 'Tidak ada SO yang di-generate. Pastikan trip qty sudah diisi.');
+                return back()->with('info', 'Tidak ada DO yang di-generate. Pastikan trip qty sudah diisi.');
             }
 
             $type = count($skipped) > 0 && count($created) === 0 && count($updated) === 0 ? 'warning' : 'success';
             return back()->with($type, implode(' | ', $messages));
 
         } catch (\Exception $e) {
-            \Log::error('Generate SO Error', [
+            \Log::error('Generate DO Error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'plan_date' => $request->input('date'),
                 'selected_count' => count($request->input('selected', [])),
             ]);
 
-            return back()->with('error', 'Gagal generate SO: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')');
+            return back()->with('error', 'Gagal generate DO: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')');
         }
     }
 
-    private function generateSoNumber(string $planDate, int $tripNo): string
+    private function generateDoNumber(string $planDate, int $tripNo): string
     {
         $dateStr = Carbon::parse($planDate)->format('Ymd');
-        $prefix = "SO-{$dateStr}-T{$tripNo}-";
+        $prefix = "DO-{$dateStr}-T{$tripNo}-";
 
-        $lastSo = SalesOrder::where('so_no', 'like', $prefix . '%')
-            ->orderByRaw('LENGTH(so_no) DESC, so_no DESC')
+        $lastDo = DeliveryOrder::where('do_no', 'like', $prefix . '%')
+            ->orderByRaw('LENGTH(do_no) DESC, do_no DESC')
             ->first();
 
         $nextSeq = 1;
-        if ($lastSo) {
-            $lastSeqStr = str_replace($prefix, '', $lastSo->so_no);
+        if ($lastDo) {
+            $lastSeqStr = str_replace($prefix, '', $lastDo->do_no);
             $nextSeq = ((int) $lastSeqStr) + 1;
         }
 

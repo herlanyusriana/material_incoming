@@ -29,8 +29,8 @@ class DeliveryStop extends Model
         return $this->hasMany(DeliveryNote::class, 'delivery_stop_id');
     }
 
-    public function salesOrders()
+    public function deliveryOrders()
     {
-        return $this->hasMany(SalesOrder::class, 'delivery_stop_id');
+        return $this->hasMany(DeliveryOrder::class, 'delivery_stop_id');
     }
 }

@@ -13,7 +13,7 @@ class OutgoingPickingFg extends Model
         'gci_part_id',
         'source',
         'outgoing_po_item_id',
-        'sales_order_id',
+        'delivery_order_id',
         'qty_plan',
         'qty_picked',
         'status',
@@ -39,9 +39,9 @@ class OutgoingPickingFg extends Model
         return $this->belongsTo(OutgoingPoItem::class);
     }
 
-    public function salesOrder()
+    public function deliveryOrder()
     {
-        return $this->belongsTo(SalesOrder::class);
+        return $this->belongsTo(DeliveryOrder::class);
     }
 
     public function picker()

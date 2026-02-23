@@ -329,9 +329,9 @@
 													<span
 														class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-800 border border-emerald-200">OSP</span>
 												@endif
-												@if($row->has_so ?? false)
-													<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-100 text-blue-800 border border-blue-200"
-														title="{{ collect($row->existing_sos)->pluck('so_no')->implode(', ') }}">SO</span>
+										@if($row->has_do ?? false)
+											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-blue-100 text-blue-800 border border-blue-200"
+												title="{{ collect($row->existing_dos)->pluck('do_no')->implode(', ') }}">DO</span>
 												@endif
 											</div>
 											@if($row->osp_order)
@@ -530,13 +530,13 @@
 								</button>
 								<button type="button"
 									class="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-									id="generateSoBtn" disabled onclick="handleGenerateSo(event)">
+									id="generateDoBtn" disabled onclick="handleGenerateDo(event)">
 									<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
 										viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
 											d="M12 4v16m8-8H4" />
 									</svg>
-									Generate SO
+									Generate DO
 								</button>
 							</div>
 						</div>
@@ -617,23 +617,23 @@
 				}
 			}
 
-			async function handleGenerateSo(e) {
+			async function handleGenerateDo(e) {
 				e.preventDefault();
 				const checkboxes = document.querySelectorAll('input[name="selected[]"]:checked');
 				if (checkboxes.length === 0) {
-					alert('Pilih minimal 1 part untuk generate SO');
+					alert('Pilih minimal 1 part untuk generate DO');
 					return;
 				}
 
-				if (!confirm(`Generate SO untuk ${checkboxes.length} part yang dipilih?`)) return;
+				if (!confirm(`Generate DO untuk ${checkboxes.length} part yang dipilih?`)) return;
 
 				// Trigger save first
 				const saved = await savePlanning();
 				if (saved) {
-					const btn = document.getElementById('generateSoBtn');
+					const btn = document.getElementById('generateDoBtn');
 					btn.disabled = true;
-					btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating SO...';
-					document.getElementById('soForm').submit();
+					btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating DO...';
+					document.getElementById('doForm').submit();
 				}
 			}
 
@@ -692,12 +692,12 @@
 				}
 			}
 
-			// Enable/disable Generate SO button based on checkbox selection
-			function updateSoButtonState() {
+			// Enable/disable Generate DO button based on checkbox selection
+			function updateDoButtonState() {
 				const checkboxes = document.querySelectorAll('input[name="selected[]"]');
-				const generateSoBtn = document.getElementById('generateSoBtn');
+				const generateDoBtn = document.getElementById('generateDoBtn');
 				const hasChecked = Array.from(checkboxes).some(cb => cb.checked);
-				generateSoBtn.disabled = !hasChecked;
+				generateDoBtn.disabled = !hasChecked;
 			}
 
 			function toggleRow(rowKey) {
@@ -719,7 +719,7 @@
 				const selectAllCheckbox = document.getElementById('selectAll');
 
 				checkboxes.forEach(checkbox => {
-					checkbox.addEventListener('change', updateSoButtonState);
+					checkbox.addEventListener('change', updateDoButtonState);
 				});
 
 				if (selectAllCheckbox) {
@@ -729,7 +729,7 @@
 								cb.checked = this.checked;
 							}
 						});
-						updateSoButtonState();
+						updateDoButtonState();
 					});
 				}
 			});

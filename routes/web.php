@@ -10,7 +10,7 @@ use App\Http\Controllers\GciInventoryController;
 use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
-use App\Http\Controllers\Outgoing\SalesOrderController;
+use App\Http\Controllers\Outgoing\DeliveryOrderController;
 use App\Http\Controllers\Outgoing\OspController;
 use App\Http\Controllers\Outgoing\PickingFgController;
 use App\Http\Controllers\Outgoing\OutgoingPoController;
@@ -169,8 +169,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/where-used', [OutgoingController::class, 'whereUsed'])->name('where-used');
         Route::get('/delivery-requirements', [OutgoingController::class, 'deliveryRequirements'])->name('delivery-requirements');
         Route::get('/delivery-requirements/export', [OutgoingController::class, 'deliveryRequirementsExport'])->name('delivery-requirements.export');
-        Route::post('/delivery-requirements/generate-so', [OutgoingController::class, 'generateSo'])->name('generate-so');
-        Route::post('/delivery-requirements/generate-so-bulk', [OutgoingController::class, 'generateSoBulk'])->name('generate-so-bulk');
+        Route::post('/delivery-requirements/generate-do', [OutgoingController::class, 'generateDo'])->name('generate-do');
+        Route::post('/delivery-requirements/generate-do-bulk', [OutgoingController::class, 'generateDoBulk'])->name('generate-do-bulk');
         Route::get('/stock-at-customers', [OutgoingController::class, 'stockAtCustomers'])->name('stock-at-customers');
         Route::get('/stock-at-customers/template', [OutgoingController::class, 'stockAtCustomersTemplate'])->name('stock-at-customers.template');
         Route::get('/stock-at-customers/export', [OutgoingController::class, 'stockAtCustomersExport'])->name('stock-at-customers.export');
@@ -212,7 +212,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/delivery-plan', [OutgoingController::class, 'deliveryPlan'])->name('delivery-plan');
         Route::post('/delivery-plan/update-trips', [OutgoingController::class, 'updateDeliveryPlanTrips'])->name('delivery-plan.update-trips');
         Route::post('/delivery-plan/update-trip', [OutgoingController::class, 'updateDeliveryPlanTrip'])->name('delivery-plan.update-trip');
-        Route::post('/delivery-plan/generate-so', [OutgoingController::class, 'generateSoFromDeliveryPlan'])->name('delivery-plan.generate-so');
+        Route::post('/delivery-plan/generate-do', [OutgoingController::class, 'generateDoFromDeliveryPlan'])->name('delivery-plan.generate-do');
 
         // Picking FG Routes
         Route::get('/picking-fg', [PickingFgController::class, 'index'])->name('picking-fg');
@@ -222,8 +222,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/picking-fg/complete-all', [PickingFgController::class, 'completeAll'])->name('picking-fg.complete-all');
         Route::post('/picking-fg/clear', [PickingFgController::class, 'clear'])->name('picking-fg.clear');
 
-        Route::resource('sales-orders', SalesOrderController::class);
-        Route::post('sales-orders/{sales_order}/ship', [SalesOrderController::class, 'ship'])->name('sales-orders.ship');
+        Route::resource('delivery-orders', DeliveryOrderController::class);
+        Route::post('delivery-orders/{delivery_order}/ship', [DeliveryOrderController::class, 'ship'])->name('delivery-orders.ship');
 
         Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);
         Route::post('delivery-notes/{delivery_note}/start-kitting', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startKitting'])->name('delivery-notes.start-kitting');

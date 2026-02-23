@@ -530,9 +530,9 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.picking-fg'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.picking-fg')])></span>
                                     <span class="flex-1">Picking FG</span>
                                 </a>
-                                <a href="{{ route('outgoing.sales-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.sales-orders.*'), $subInactive => !request()->routeIs('outgoing.sales-orders.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.sales-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.sales-orders.*')])></span>
-                                    <span class="flex-1">Sales Orders</span>
+                                <a href="{{ route('outgoing.delivery-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-orders.*'), $subInactive => !request()->routeIs('outgoing.delivery-orders.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-orders.*')])></span>
+                                    <span class="flex-1">Delivery Orders</span>
                                 </a>
                                 <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>

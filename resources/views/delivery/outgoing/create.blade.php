@@ -71,11 +71,11 @@
         </div>
         
         <div class="mb-6">
-            <h2 class="text-lg font-semibold text-slate-900 mb-4">Sales Orders Ready for Delivery</h2>
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Delivery Orders Ready for Delivery</h2>
             
             <div class="bg-slate-50 rounded-lg border border-slate-200 p-4">
                 <div class="flex justify-between items-center mb-4">
-                    <p class="text-sm text-slate-600">Select sales orders to include in this delivery note</p>
+                    <p class="text-sm text-slate-600">Select delivery orders to include in this delivery note</p>
                     <p class="text-sm text-slate-600"><span id="selectedCount">0</span> selected</p>
                 </div>
                 
@@ -112,8 +112,8 @@
                         </div>
                     @empty
                         <div class="text-center py-8 text-slate-500">
-                            <p>No sales orders ready for delivery found for the selected customer.</p>
-                            <p class="mt-2">Sales orders must be marked as 'completed' to appear here.</p>
+                            <p>No delivery orders ready for delivery found for the selected customer.</p>
+                            <p class="mt-2">Delivery orders must be marked as 'completed' to appear here.</p>
                         </div>
                     @endforelse
                 </div>

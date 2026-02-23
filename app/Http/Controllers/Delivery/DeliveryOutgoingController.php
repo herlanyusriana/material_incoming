@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Delivery;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryNote;
-use App\Models\SalesOrder;
+use App\Models\DeliveryOrder;
 use App\Models\Customer;
 use App\Models\Trucking;
 use App\Services\DeliveryOutgoingService;
@@ -64,12 +64,12 @@ class DeliveryOutgoingController extends Controller
     public function create(Request $request)
     {
         $customerId = $request->query('customer_id');
-        $salesOrders = $this->deliveryService->getReadyForDeliveryOrders($customerId);
+        $deliveryOrders = $this->deliveryService->getReadyForDeliveryOrders($customerId);
 
         $customers = Customer::orderBy('name')->get();
         $trucks = Trucking::orderBy('name')->get();
 
-        return view('delivery.outgoing.create', compact('salesOrders', 'customers', 'trucks', 'customerId'));
+        return view('delivery.outgoing.create', compact('deliveryOrders', 'customers', 'trucks', 'customerId'));
     }
 
     /**
@@ -78,8 +78,8 @@ class DeliveryOutgoingController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'sales_order_ids' => 'required|array|min:1',
-            'sales_order_ids.*' => 'integer|exists:sales_orders,id',
+            'delivery_order_ids' => 'required|array|min:1',
+            'delivery_order_ids.*' => 'integer|exists:delivery_orders,id',
             'customer_id' => 'required|integer|exists:customers,id',
             'truck_id' => 'nullable|integer|exists:trucking_companies,id',
             'driver_id' => 'nullable|integer|exists:users,id', // Assuming drivers are stored as users
@@ -89,7 +89,7 @@ class DeliveryOutgoingController extends Controller
 
         try {
             $deliveryNote = $this->deliveryService->createDeliveryNote(
-                $request->sales_order_ids,
+                $request->delivery_order_ids,
                 $request->customer_id,
                 $request->truck_id,
                 $request->driver_id,
@@ -112,7 +112,7 @@ class DeliveryOutgoingController extends Controller
      */
     public function show(DeliveryNote $deliveryNote)
     {
-        $deliveryNote->load(['customer', 'truck', 'items.salesOrder', 'items.part', 'creator']);
+        $deliveryNote->load(['customer', 'truck', 'items.deliveryOrder', 'items.part', 'creator']);
 
         return view('delivery.outgoing.show', compact('deliveryNote'));
     }
@@ -219,11 +219,11 @@ class DeliveryOutgoingController extends Controller
     public function getReadyOrders(Request $request)
     {
         $customerId = $request->query('customer_id');
-        $salesOrders = $this->deliveryService->getReadyForDeliveryOrders($customerId);
+        $deliveryOrders = $this->deliveryService->getReadyForDeliveryOrders($customerId);
 
         return response()->json([
             'success' => true,
-            'data' => $salesOrders
+            'data' => $deliveryOrders
         ]);
     }
 }

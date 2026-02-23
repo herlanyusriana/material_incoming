@@ -12,14 +12,11 @@ use Carbon\Carbon;
 
 class PickingFgApiController extends Controller
 {
-    /**
-     * Get picking list for a date
-     */
     public function index(Request $request)
     {
         $date = $request->query('date', now()->toDateString());
 
-        $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo', 'salesOrder'])
+        $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo', 'deliveryOrder'])
             ->where('delivery_date', $date)
             ->get();
 
@@ -44,18 +41,15 @@ class PickingFgApiController extends Controller
                     'progress' => $p->progress_percent,
                     'source' => $p->source ?? 'daily_plan',
                     'po_no' => $p->outgoingPoItem?->outgoingPo?->po_no,
-                    'sales_order_id' => $p->sales_order_id,
-                    'so_no' => $p->salesOrder?->so_no,
-                    'trip_no' => $p->salesOrder?->trip_no,
+                    'delivery_order_id' => $p->delivery_order_id,
+                    'do_no' => $p->deliveryOrder?->do_no,
+                    'trip_no' => $p->deliveryOrder?->trip_no,
                     'updated_at' => $p->updated_at?->toIso8601String(),
                 ];
             })
         ]);
     }
 
-    /**
-     * Lightweight status check for polling
-     */
     public function status(Request $request)
     {
         $date = $request->query('date', now()->toDateString());
@@ -75,9 +69,6 @@ class PickingFgApiController extends Controller
         ]);
     }
 
-    /**
-     * Lookup part info by part_no (for scan validation)
-     */
     public function lookupPart(Request $request)
     {
         $request->validate(['part_no' => 'required|string', 'date' => 'required|date']);
@@ -87,7 +78,7 @@ class PickingFgApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
 
-        $picks = OutgoingPickingFg::with('salesOrder')
+        $picks = OutgoingPickingFg::with('deliveryOrder')
             ->where('delivery_date', $request->date)
             ->where('gci_part_id', $part->id)
             ->where('status', '!=', 'completed')
@@ -110,9 +101,9 @@ class PickingFgApiController extends Controller
             ],
             'picks' => $picks->map(fn($p) => [
                 'id' => $p->id,
-                'sales_order_id' => $p->sales_order_id,
-                'so_no' => $p->salesOrder?->so_no ?? 'N/A',
-                'trip_no' => $p->salesOrder?->trip_no,
+                'delivery_order_id' => $p->delivery_order_id,
+                'do_no' => $p->deliveryOrder?->do_no ?? 'N/A',
+                'trip_no' => $p->deliveryOrder?->trip_no,
                 'qty_plan' => (int) $p->qty_plan,
                 'qty_picked' => (int) $p->qty_picked,
                 'qty_remaining' => $p->qty_remaining,
@@ -121,9 +112,6 @@ class PickingFgApiController extends Controller
         ]);
     }
 
-    /**
-     * Update pick quantity (Scanning part)
-     */
     public function updatePick(Request $request)
     {
         $request->validate([
@@ -131,7 +119,7 @@ class PickingFgApiController extends Controller
             'part_no' => 'required|string',
             'qty' => 'required|integer|min:1',
             'location' => 'nullable|string',
-            'sales_order_id' => 'nullable|integer|exists:sales_orders,id',
+            'delivery_order_id' => 'nullable|integer|exists:delivery_orders,id',
         ]);
 
         $part = GciPart::where('part_no', $request->part_no)->first();
@@ -139,24 +127,23 @@ class PickingFgApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
 
-        // Check if part exists in multiple SOs → require sales_order_id
         $pickCount = OutgoingPickingFg::where('delivery_date', $request->date)
             ->where('gci_part_id', $part->id)
             ->count();
 
-        if ($pickCount > 1 && !$request->sales_order_id) {
+        if ($pickCount > 1 && !$request->delivery_order_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Part exists in multiple SOs. Please specify sales_order_id.',
-                'require_so_selection' => true,
+                'message' => 'Part exists in multiple DOs. Please specify delivery_order_id.',
+                'require_do_selection' => true,
             ], 422);
         }
 
         $query = OutgoingPickingFg::where('delivery_date', $request->date)
             ->where('gci_part_id', $part->id);
 
-        if ($request->sales_order_id) {
-            $query->where('sales_order_id', $request->sales_order_id);
+        if ($request->delivery_order_id) {
+            $query->where('delivery_order_id', $request->delivery_order_id);
         }
 
         $pick = $query->first();
@@ -187,7 +174,7 @@ class PickingFgApiController extends Controller
                 'qty_remaining' => $pick->qty_remaining,
                 'status' => $pick->status,
                 'progress' => $pick->progress_percent,
-                'so_no' => $pick->salesOrder?->so_no,
+                'do_no' => $pick->deliveryOrder?->do_no,
             ]
         ]);
     }

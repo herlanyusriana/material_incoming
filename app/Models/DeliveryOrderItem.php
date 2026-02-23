@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SalesOrderItem extends Model
+class DeliveryOrderItem extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'sales_order_id',
+        'delivery_order_id',
         'gci_part_id',
         'qty_ordered',
         'qty_shipped',
@@ -21,9 +21,9 @@ class SalesOrderItem extends Model
         'qty_shipped' => 'decimal:4',
     ];
 
-    public function salesOrder()
+    public function deliveryOrder()
     {
-        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+        return $this->belongsTo(DeliveryOrder::class, 'delivery_order_id');
     }
 
     public function part()
@@ -31,4 +31,3 @@ class SalesOrderItem extends Model
         return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
 }
-

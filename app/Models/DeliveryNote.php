@@ -22,7 +22,7 @@ class DeliveryNote extends Model
         'total_value',
         'delivery_plan_id',
         'delivery_stop_id',
-        'sales_order_id',
+        'delivery_order_id',
     ];
 
     protected $casts = [
@@ -78,9 +78,9 @@ class DeliveryNote extends Model
         return $this->hasMany(DnItem::class, 'dn_id');
     }
 
-    public function salesOrders()
+    public function deliveryOrders()
     {
-        return $this->belongsToMany(SalesOrder::class, 'delivery_note_sales_order', 'delivery_note_id', 'sales_order_id');
+        return $this->belongsToMany(DeliveryOrder::class, 'delivery_note_delivery_order', 'delivery_note_id', 'delivery_order_id');
     }
 
     public function creator()

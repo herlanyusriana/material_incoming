@@ -5,14 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SalesOrder extends Model
+class DeliveryOrder extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'so_no',
+        'do_no',
         'customer_id',
-        'so_date',
+        'do_date',
         'status',
         'notes',
         'delivery_plan_id',
@@ -22,7 +22,7 @@ class SalesOrder extends Model
     ];
 
     protected $casts = [
-        'so_date' => 'date',
+        'do_date' => 'date',
     ];
 
     public function customer()
@@ -32,7 +32,7 @@ class SalesOrder extends Model
 
     public function items()
     {
-        return $this->hasMany(SalesOrderItem::class, 'sales_order_id');
+        return $this->hasMany(DeliveryOrderItem::class, 'delivery_order_id');
     }
 
     public function plan()
@@ -47,12 +47,11 @@ class SalesOrder extends Model
 
     public function deliveryItems()
     {
-        return $this->hasMany(DeliveryItem::class, 'sales_order_id');
+        return $this->hasMany(DeliveryItem::class, 'delivery_order_id');
     }
 
     public function deliveryNotes()
     {
-        return $this->belongsToMany(DeliveryNote::class, 'delivery_items', 'sales_order_id', 'delivery_note_id');
+        return $this->belongsToMany(DeliveryNote::class, 'delivery_note_delivery_order', 'delivery_order_id', 'delivery_note_id');
     }
 }
-
