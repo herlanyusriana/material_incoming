@@ -26,6 +26,13 @@
                             </div>
                         @else
                             <div class="text-sm text-emerald-700 mt-1">Semua item sudah complete receive.</div>
+                            @if ($arrival->transaction_no)
+                                <div class="mt-2">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 tracking-wide">
+                                        🔗 {{ $arrival->transaction_no }}
+                                    </span>
+                                </div>
+                            @endif
                         @endif
                     </div>
                 <div class="flex items-center gap-2">

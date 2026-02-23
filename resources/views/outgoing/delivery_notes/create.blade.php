@@ -128,6 +128,63 @@
                     </div>
                 </div>
 
+                {{-- Related WO (Production) — Traceability --}}
+                <div class="border-t border-slate-100 pt-6">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">🔗 Related WO (Production Orders)</label>
+                    <p class="text-xs text-slate-500 mb-3">Auto-suggest berdasarkan Part FG yang dipilih. Bisa diedit.</p>
+                    <div id="wo-checkboxes" class="space-y-2 max-h-48 overflow-y-auto bg-slate-50 rounded-xl p-3">
+                        <p class="text-xs text-slate-400 italic">Tambahkan items terlebih dahulu...</p>
+                    </div>
+                    <button type="button" onclick="refreshWoSuggestions()"
+                        class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-bold">↻ Refresh WO
+                        Suggestions</button>
+                </div>
+
+                <script>
+                    function refreshWoSuggestions() {
+                        const container = document.getElementById('wo-checkboxes');
+                        // Collect all selected gci_part_ids from items
+                        const selects = document.querySelectorAll('select[name*="gci_part_id"]');
+                        const partIds = [...new Set([...selects].map(s => s.value).filter(v => v))];
+
+                        if (!partIds.length) {
+                            container.innerHTML = '<p class="text-xs text-slate-400 italic">Tambahkan items terlebih dahulu...</p>';
+                            return;
+                        }
+
+                        container.innerHTML = '<p class="text-xs text-slate-400">Loading...</p>';
+
+                        Promise.all(partIds.map(id =>
+                            fetch(`/api/suggest-production-orders/${id}`).then(r => r.json())
+                        )).then(results => {
+                            const allOrders = results.flat();
+                            // Deduplicate by id
+                            const seen = new Set();
+                            const unique = allOrders.filter(o => {
+                                if (seen.has(o.id)) return false;
+                                seen.add(o.id);
+                                return true;
+                            });
+
+                            if (!unique.length) {
+                                container.innerHTML = '<p class="text-xs text-slate-400 italic">Tidak ada WO terkait untuk parts ini.</p>';
+                                return;
+                            }
+                            container.innerHTML = unique.map(o => `
+                                    <label class="flex items-center gap-2 text-sm bg-white rounded px-3 py-2 border hover:bg-indigo-50 cursor-pointer">
+                                        <input type="checkbox" name="production_order_ids[]" value="${o.id}" checked
+                                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="font-bold text-indigo-700">${o.transaction_no}</span>
+                                        <span class="text-slate-500">${o.production_order_number}</span>
+                                        <span class="text-slate-400 text-xs ml-auto">${o.status}</span>
+                                    </label>
+                                `).join('');
+                        }).catch(() => {
+                            container.innerHTML = '<p class="text-xs text-red-400">Error loading suggestions.</p>';
+                        });
+                    }
+                </script>
+
                 <div class="flex justify-end gap-3 pt-6 border-t border-slate-100">
                     <a href="{{ route('outgoing.delivery-notes.index') }}"
                         class="px-6 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">

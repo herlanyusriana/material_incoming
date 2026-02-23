@@ -104,6 +104,8 @@ class DeliveryNoteController extends Controller
             'items.*.outgoing_po_item_id' => ['nullable', 'exists:outgoing_po_items,id'],
             'items.*.delivery_order_id' => ['nullable', 'exists:delivery_orders,id'],
             'items.*.remarks' => ['nullable', 'string', 'max:255'],
+            'production_order_ids' => ['nullable', 'array'],
+            'production_order_ids.*' => ['integer', 'exists:production_orders,id'],
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -130,6 +132,17 @@ class DeliveryNoteController extends Controller
 
             if ($doIds->isNotEmpty()) {
                 $dn->deliveryOrders()->sync($doIds);
+            }
+
+            // Auto-generate DO transaction number on creation
+            if (empty($dn->transaction_no)) {
+                $dn->transaction_no = DeliveryNote::generateTransactionNo($validated['delivery_date']);
+                $dn->save();
+            }
+
+            // Save traceability: DO ↔ WO
+            if (!empty($validated['production_order_ids'])) {
+                $dn->productionOrders()->sync($validated['production_order_ids']);
             }
         });
 

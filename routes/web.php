@@ -77,6 +77,51 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/parts/search', [PartController::class, 'search'])->name('parts.search');
     Route::get('/api/gci-parts/search', [PlanningGciPartController::class, 'search'])->name('gci-parts.search');
     Route::get('/api/gci-parts/{gciPart}/bom-info', [PlanningGciPartController::class, 'getBomInfo'])->name('gci-parts.bom-info');
+
+    // Traceability suggest endpoints (FIFO)
+    Route::get('/api/suggest-arrivals/{gciPartId}', function (int $gciPartId) {
+        // Find RM components for this FG part via BOM
+        $bom = \App\Models\Bom::where('part_id', $gciPartId)->first();
+        if (!$bom) {
+            return response()->json([]);
+        }
+
+        $componentPartIds = \App\Models\BomItem::where('bom_id', $bom->id)
+            ->whereNotNull('incoming_part_id')
+            ->pluck('incoming_part_id')
+            ->unique();
+
+        if ($componentPartIds->isEmpty()) {
+            // Fallback: find arrivals with items linked to any RM parts mapped to this gci_part
+            $rmPartIds = \App\Models\Part::where('gci_part_id', $gciPartId)->pluck('id');
+            if ($rmPartIds->isEmpty()) {
+                return response()->json([]);
+            }
+            $arrivalIds = \App\Models\ArrivalItem::whereIn('part_id', $rmPartIds)
+                ->pluck('arrival_id')->unique();
+        } else {
+            $arrivalIds = \App\Models\ArrivalItem::whereIn('part_id', $componentPartIds)
+                ->pluck('arrival_id')->unique();
+        }
+
+        $arrivals = \App\Models\Arrival::whereIn('id', $arrivalIds)
+            ->whereNotNull('transaction_no')
+            ->orderBy('created_at', 'asc') // FIFO
+            ->limit(20)
+            ->get(['id', 'arrival_no', 'transaction_no', 'invoice_no', 'created_at']);
+
+        return response()->json($arrivals);
+    })->name('api.suggest-arrivals');
+
+    Route::get('/api/suggest-production-orders/{gciPartId}', function (int $gciPartId) {
+        $orders = \App\Models\ProductionOrder::where('gci_part_id', $gciPartId)
+            ->whereNotNull('transaction_no')
+            ->orderBy('created_at', 'asc') // FIFO
+            ->limit(20)
+            ->get(['id', 'production_order_number', 'transaction_no', 'plan_date', 'status']);
+
+        return response()->json($orders);
+    })->name('api.suggest-production-orders');
     Route::view('/incoming-material', 'incoming-material.dashboard')->name('incoming-material.dashboard');
     Route::get('/logistics', [LogisticsDashboardController::class, 'index'])->name('logistics.dashboard');
     Route::resource('vendors', VendorController::class)->except(['show']);

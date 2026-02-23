@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class DeliveryNote extends Model
 {
@@ -12,6 +13,7 @@ class DeliveryNote extends Model
 
     protected $fillable = [
         'dn_no',
+        'transaction_no',
         'customer_id',
         'status',
         'notes',
@@ -66,6 +68,30 @@ class DeliveryNote extends Model
         return 'DN-' . $year . '-' . $next;
     }
 
+    /**
+     * Generate a unique transaction number for delivery notes.
+     * Format: DO{4-digit sequence per day}{DDMMYY} — 12 characters total
+     * Example: DO1234010226
+     */
+    public static function generateTransactionNo(string $date): string
+    {
+        $dateObj = Carbon::parse($date);
+        $dateStr = $dateObj->format('dmy');
+        $suffix = $dateStr;
+
+        $lastNote = self::where('transaction_no', 'like', 'DO%' . $suffix)
+            ->orderByRaw('LENGTH(transaction_no) DESC, transaction_no DESC')
+            ->first();
+
+        $nextSeq = 1;
+        if ($lastNote) {
+            $seqStr = substr($lastNote->transaction_no, 2, strlen($lastNote->transaction_no) - 2 - strlen($suffix));
+            $nextSeq = ((int) $seqStr) + 1;
+        }
+
+        return 'DO' . str_pad($nextSeq, 4, '0', STR_PAD_LEFT) . $suffix;
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);
@@ -86,5 +112,14 @@ class DeliveryNote extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Linked production orders (WO) for traceability: DO ↔ WO
+     */
+    public function productionOrders()
+    {
+        return $this->belongsToMany(ProductionOrder::class, 'delivery_note_production_orders')
+            ->withTimestamps();
     }
 }

@@ -34,8 +34,8 @@ class ProductionOrderController extends Controller
 
         $query = ProductionOrder::query()
             ->with(['part', 'dailyPlanCell.row'])
-            ->when($gciPartId > 0, fn ($qr) => $qr->where('gci_part_id', $gciPartId))
-            ->when($status !== '', fn ($qr) => $qr->where('status', $status))
+            ->when($gciPartId > 0, fn($qr) => $qr->where('gci_part_id', $gciPartId))
+            ->when($status !== '', fn($qr) => $qr->where('status', $status))
             ->when($dateFrom || $dateTo, function ($qr) use ($dateFrom, $dateTo) {
                 $from = $dateFrom ? $dateFrom : '1900-01-01';
                 $to = $dateTo ? $dateTo : '2999-12-31';
@@ -72,6 +72,8 @@ class ProductionOrderController extends Controller
             'plan_date' => 'required|date',
             'qty_planned' => 'required|numeric|min:1',
             'production_order_number' => 'required|unique:production_orders,production_order_number',
+            'arrival_ids' => 'nullable|array',
+            'arrival_ids.*' => 'integer|exists:arrivals,id',
         ]);
 
         $order = ProductionOrder::create([
@@ -88,6 +90,17 @@ class ProductionOrderController extends Controller
             'created_by' => Auth::id(),
         ]);
 
+        // Auto-generate WO transaction number on creation
+        if (empty($order->transaction_no)) {
+            $order->transaction_no = ProductionOrder::generateTransactionNo($validated['plan_date']);
+            $order->save();
+        }
+
+        // Save traceability: WO ↔ SO
+        if (!empty($validated['arrival_ids'])) {
+            $order->arrivals()->sync($validated['arrival_ids']);
+        }
+
         return redirect()->route('production.orders.show', $order);
     }
 
@@ -98,7 +111,8 @@ class ProductionOrderController extends Controller
             'inspections.inspector',
             'creator',
             'mrpRun',
-            'dailyPlanCell.row.plan'
+            'dailyPlanCell.row.plan',
+            'arrivals',
         ]);
 
         if ($request->ajax()) {
@@ -113,7 +127,7 @@ class ProductionOrderController extends Controller
         // Logic to check BOM vs Inventory
         $part = $order->part;
         $bom = Bom::where('part_id', $part->id)->latest()->first(); // Assuming latest BOM
-        
+
         if (!$bom) {
             return back()->with('error', 'No BOM found for this part.');
         }
@@ -125,12 +139,12 @@ class ProductionOrderController extends Controller
         foreach ($bomItems as $item) {
             $requiredQty = $item->usage_qty * $order->qty_planned;
             // Check inventory (GciInventory)
-            $currentStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand'); 
+            $currentStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
 
             if ($currentStock < $requiredQty) {
                 $isAvailable = false;
                 $missingMaterials[] = [
-                    'part' => $item->componentPart?->part_no ?? 'Unknown', 
+                    'part' => $item->componentPart?->part_no ?? 'Unknown',
                     'required' => $requiredQty,
                     'available' => $currentStock,
                 ];
@@ -138,21 +152,21 @@ class ProductionOrderController extends Controller
         }
 
         if ($isAvailable) {
-             if ($order->status === 'planned') {
-                 return back()->with('error', 'Kanban belum di-release. Release dulu sebelum check material.');
-             }
-             if (in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold'], true)) {
-                 // Require machine/die info for flow parity (best-effort).
-                 if (!$order->process_name || !$order->machine_name) {
-                     $order->update(['status' => 'resource_hold', 'workflow_stage' => 'resource_check']);
-                     return back()->with('error', 'Machine/Process belum diisi. Isi dulu lalu ulangi check.');
-                 }
-                 $order->update(['status' => 'released', 'workflow_stage' => 'ready']);
-             }
-             return back()->with('success', 'Material check passed! Order released.');
+            if ($order->status === 'planned') {
+                return back()->with('error', 'Kanban belum di-release. Release dulu sebelum check material.');
+            }
+            if (in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold'], true)) {
+                // Require machine/die info for flow parity (best-effort).
+                if (!$order->process_name || !$order->machine_name) {
+                    $order->update(['status' => 'resource_hold', 'workflow_stage' => 'resource_check']);
+                    return back()->with('error', 'Machine/Process belum diisi. Isi dulu lalu ulangi check.');
+                }
+                $order->update(['status' => 'released', 'workflow_stage' => 'ready']);
+            }
+            return back()->with('success', 'Material check passed! Order released.');
         } else {
-             $order->update(['status' => 'material_hold', 'workflow_stage' => 'material_check']);
-             return back()->with('error', 'Material check failed.')->with('missing_materials', $missingMaterials);
+            $order->update(['status' => 'material_hold', 'workflow_stage' => 'material_check']);
+            return back()->with('error', 'Material check failed.')->with('missing_materials', $missingMaterials);
         }
     }
 
@@ -173,11 +187,11 @@ class ProductionOrderController extends Controller
     }
 
     // Workflow Transitions
-    
+
     public function startProduction(ProductionOrder $order)
     {
         if ($order->status !== 'released') {
-             return back()->with('error', 'Order must be Released to start.');
+            return back()->with('error', 'Order must be Released to start.');
         }
 
         $order->update([
@@ -185,7 +199,7 @@ class ProductionOrderController extends Controller
             'workflow_stage' => 'first_article_inspection',
             'start_time' => now(),
         ]);
-        
+
         // Initial transition to First Article Inspection
         $this->createInspection($order, 'first_article');
 
@@ -203,24 +217,24 @@ class ProductionOrderController extends Controller
 
     public function finishProduction(ProductionOrder $order)
     {
-         // Move to Final Inspection stage (inventory update happens on Kanban Update after final pass).
-         if ($order->status !== 'in_production') {
-             return back()->with('error', 'Order must be In Production to finish production.');
-         }
+        // Move to Final Inspection stage (inventory update happens on Kanban Update after final pass).
+        if ($order->status !== 'in_production') {
+            return back()->with('error', 'Order must be In Production to finish production.');
+        }
 
-         $order->update([
-             'workflow_stage' => 'final_inspection',
-             'end_time' => now(),
-             // Keep qty_actual for Kanban Update; default to planned for convenience.
-             'qty_actual' => $order->qty_actual > 0 ? $order->qty_actual : $order->qty_planned,
-         ]);
+        $order->update([
+            'workflow_stage' => 'final_inspection',
+            'end_time' => now(),
+            // Keep qty_actual for Kanban Update; default to planned for convenience.
+            'qty_actual' => $order->qty_actual > 0 ? $order->qty_actual : $order->qty_planned,
+        ]);
 
-         // Ensure final inspection exists
-         if (!$order->inspections()->where('type', 'final')->exists()) {
-             $this->createInspection($order, 'final');
-         }
+        // Ensure final inspection exists
+        if (!$order->inspections()->where('type', 'final')->exists()) {
+            $this->createInspection($order, 'final');
+        }
 
-         return back()->with('success', 'Production finished. Please complete Final Inspection, then Kanban Update.');
+        return back()->with('success', 'Production finished. Please complete Final Inspection, then Kanban Update.');
     }
 
     public function kanbanUpdate(Request $request, ProductionOrder $order)

@@ -40,6 +40,7 @@
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200">
                             <th class="px-5 py-4 text-left font-bold text-slate-700">DN Number</th>
+                            <th class="px-5 py-4 text-left font-bold text-slate-700">Transaction No</th>
                             <th class="px-5 py-4 text-left font-bold text-slate-700">Customer</th>
                             <th class="px-5 py-4 text-left font-bold text-slate-700">Delivery Date</th>
                             <th class="px-5 py-4 text-left font-bold text-slate-700">Items</th>
@@ -51,6 +52,13 @@
                         @forelse ($deliveryNotes as $dn)
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-5 py-4 font-black text-slate-900">{{ $dn->dn_no }}</td>
+                                <td class="px-5 py-4 whitespace-nowrap">
+                                    @if($dn->transaction_no)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 tracking-wide">{{ $dn->transaction_no }}</span>
+                                    @else
+                                        <span class="text-slate-400 text-xs">—</span>
+                                    @endif
+                                </td>
                                 <td class="px-5 py-4 text-slate-600 font-semibold">{{ $dn->customer->name }}</td>
                                 <td class="px-5 py-4 text-slate-600">{{ $dn->delivery_date->format('d M Y') }}</td>
                                 <td class="px-5 py-4 text-slate-600">
@@ -143,7 +151,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-slate-500 italic">No Delivery Notes found.</td>
+                                <td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">No Delivery Notes found.</td>
                             </tr>
                         @endforelse
                     </tbody>

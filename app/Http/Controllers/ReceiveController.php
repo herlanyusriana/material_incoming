@@ -434,8 +434,13 @@ class ReceiveController extends Controller
 
         $arrival = $arrivalItem->arrival()->with('items.receives')->first();
         if ($arrival) {
-            $message = !$this->hasPendingReceives($arrival)
-                ? 'Invoice sudah complete receive.'
+            $isComplete = !$this->hasPendingReceives($arrival);
+            if ($isComplete && empty($arrival->transaction_no)) {
+                $arrival->transaction_no = Arrival::generateTransactionNo($receiveAt->toDateString());
+                $arrival->save();
+            }
+            $message = $isComplete
+                ? 'Invoice sudah complete receive. Transaction No: ' . $arrival->transaction_no
                 : 'TAG tersimpan. Silakan cek summary (masih ada pending).';
             return redirect()->route('receives.completed.invoice', $arrival)->with('success', $message);
         }
@@ -702,8 +707,13 @@ class ReceiveController extends Controller
         });
 
         $arrival->load('items.receives');
-        $message = !$this->hasPendingReceives($arrival)
-            ? 'Invoice sudah complete receive.'
+        $isComplete = !$this->hasPendingReceives($arrival);
+        if ($isComplete && empty($arrival->transaction_no)) {
+            $arrival->transaction_no = Arrival::generateTransactionNo($receiveAt->toDateString());
+            $arrival->save();
+        }
+        $message = $isComplete
+            ? 'Invoice sudah complete receive. Transaction No: ' . $arrival->transaction_no
             : 'TAG tersimpan. Silakan cek summary (masih ada pending).';
 
         return redirect()->route('receives.completed.invoice', $arrival)->with('success', $message);

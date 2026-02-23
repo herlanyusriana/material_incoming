@@ -13,6 +13,7 @@ class Arrival extends Model
 
     protected $fillable = [
         'arrival_no',
+        'transaction_no',
         'invoice_no',
         'invoice_date',
         'vendor_id',
@@ -98,12 +99,38 @@ class Arrival extends Model
         $lastSequence = 0;
         if ($lastArrival) {
             $parts = explode('-', $lastArrival->arrival_no);
-            $lastSequence = (int)($parts[2] ?? 0);
+            $lastSequence = (int) ($parts[2] ?? 0);
         }
 
-        $next = str_pad((string)($lastSequence + 1), 4, '0', STR_PAD_LEFT);
+        $next = str_pad((string) ($lastSequence + 1), 4, '0', STR_PAD_LEFT);
 
         return 'ARR-' . $year . '-' . $next;
+    }
+
+    /**
+     * Generate a unique transaction number for completed receives.
+     * Format: SO{4-digit sequence per day}{DDMMYY} — 12 characters total
+     * Example: SO1234010226
+     */
+    public static function generateTransactionNo(string $receiveDate): string
+    {
+        $date = Carbon::parse($receiveDate);
+        $dateStr = $date->format('dmy');
+        $suffix = $dateStr;
+
+        // Count existing transaction_no for the same date
+        $lastArrival = self::where('transaction_no', 'like', 'SO%' . $suffix)
+            ->orderByRaw('LENGTH(transaction_no) DESC, transaction_no DESC')
+            ->first();
+
+        $nextSeq = 1;
+        if ($lastArrival) {
+            // Extract the sequence number between 'SO' and the date suffix
+            $seqStr = substr($lastArrival->transaction_no, 2, strlen($lastArrival->transaction_no) - 2 - strlen($suffix));
+            $nextSeq = ((int) $seqStr) + 1;
+        }
+
+        return 'SO' . str_pad($nextSeq, 4, '0', STR_PAD_LEFT) . $suffix;
     }
 
     public function vendor()
@@ -134,5 +161,14 @@ class Arrival extends Model
     public function inspection()
     {
         return $this->hasOne(ArrivalInspection::class);
+    }
+
+    /**
+     * Linked production orders (WO) for traceability: SO ↔ WO
+     */
+    public function productionOrders()
+    {
+        return $this->belongsToMany(ProductionOrder::class, 'production_order_arrivals')
+            ->withTimestamps();
     }
 }
