@@ -222,7 +222,7 @@
         {{-- Stats --}}
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <div class="stat-card">
-                <div class="stat-value text-indigo-700" id="stat-total-do">{{ $stats->total_so }}</div>
+                <div class="stat-value text-indigo-700" id="stat-total-do">{{ $stats->total_do }}</div>
                 <div class="stat-label">Total DO</div>
             </div>
             <div class="stat-card">
