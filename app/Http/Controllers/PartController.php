@@ -58,23 +58,34 @@ class PartController extends Controller
      */
     public function index(Request $request)
     {
-        $classification = $request->query('classification');
+        $classification = $request->query('classification', 'RM');
         $status = $request->query('status', 'active');
         $search = $request->query('q');
 
-        $parts = GciPart::with(['vendorLinks.vendor', 'customer'])
-            ->when($classification, fn($q) => $q->where('classification', strtoupper($classification)))
+        // Classification-specific eager loading
+        $eagerLoads = ['customer'];
+        if ($classification === 'RM') {
+            $eagerLoads[] = 'vendorLinks.vendor';
+        } elseif ($classification === 'FG') {
+            $eagerLoads[] = 'customerPartUsages.customerPart.customer';
+        }
+
+        $parts = GciPart::with($eagerLoads)
+            ->where('classification', strtoupper($classification))
             ->when($status, fn($q) => $q->where('status', $status))
-            ->when($search, function ($query, $search) {
-                $query->where(function ($inner) use ($search) {
+            ->when($search, function ($query, $search) use ($classification) {
+                $query->where(function ($inner) use ($search, $classification) {
                     $inner->where('part_no', 'like', "%{$search}%")
                         ->orWhere('part_name', 'like', "%{$search}%")
-                        ->orWhere('model', 'like', "%{$search}%")
-                        ->orWhereHas('vendorLinks', function ($vq) use ($search) {
+                        ->orWhere('model', 'like', "%{$search}%");
+
+                    if ($classification === 'RM') {
+                        $inner->orWhereHas('vendorLinks', function ($vq) use ($search) {
                             $vq->where('vendor_part_no', 'like', "%{$search}%")
                                 ->orWhere('vendor_part_name', 'like', "%{$search}%")
                                 ->orWhere('register_no', 'like', "%{$search}%");
                         });
+                    }
                 });
             })
             ->orderBy('part_no')

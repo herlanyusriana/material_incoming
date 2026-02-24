@@ -136,4 +136,12 @@ class GciPart extends Model
     {
         return $this->hasMany(GciPartVendor::class);
     }
+
+    /**
+     * Customer parts that use this GCI part as a component.
+     */
+    public function customerPartUsages()
+    {
+        return $this->hasMany(CustomerPartComponent::class, 'gci_part_id');
+    }
 }

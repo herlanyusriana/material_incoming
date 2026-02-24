@@ -23,15 +23,40 @@ return new class extends Migration {
         'purchase_order_items' => 'vendor_part_id',
     ];
 
+    /**
+     * Additional FKs that reference gci_parts (not `parts`) but can block
+     * truncation of gci_part_vendor because of the cascade chain.
+     */
+    private array $gciPartForeignKeys = [
+        'bom_item_substitutes' => 'substitute_part_id',
+    ];
+
     public function up(): void
     {
         $driver = DB::getDriverName();
 
-        // ─── Step 1: Re-seed gci_part_vendor preserving original parts.id ───
+        // Disable FK checks for entire migration on MySQL
         if ($driver === 'mysql') {
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        }
+
+        // ─── Step 0: Drop FKs on gci_parts that can block cascade ───
+        foreach ($this->gciPartForeignKeys as $table => $column) {
+            if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
+                continue;
+            }
+            Schema::table($table, function ($blueprint) use ($table, $column) {
+                try {
+                    $blueprint->dropForeign("{$table}_{$column}_foreign");
+                } catch (\Throwable $e) {
+                    // FK might not exist
+                }
+            });
+        }
+
+        // ─── Step 1: Re-seed gci_part_vendor preserving original parts.id ───
+        if ($driver === 'mysql') {
             DB::table('gci_part_vendor')->truncate();
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
         } else {
             DB::statement('TRUNCATE TABLE gci_part_vendor CASCADE');
         }
@@ -125,6 +150,25 @@ return new class extends Migration {
             FROM gci_part_vendor gpv
             JOIN gci_parts gp ON gp.id = gpv.gci_part_id
         ");
+
+        // ─── Step 5: Restore FKs on gci_parts ───
+        foreach ($this->gciPartForeignKeys as $table => $column) {
+            if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
+                continue;
+            }
+            try {
+                Schema::table($table, function ($blueprint) use ($column) {
+                    $blueprint->foreign($column)->references('id')->on('gci_parts')->onDelete('restrict');
+                });
+            } catch (\Throwable $e) {
+                // Best effort
+            }
+        }
+
+        // Re-enable FK checks on MySQL
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
     }
 
     public function down(): void
