@@ -11,6 +11,7 @@ class LocationInventoryAdjustment extends Model
 
     protected $fillable = [
         'part_id',
+        'gci_part_id',
         'location_code',
         'batch_no',
         'from_location_code',
@@ -36,6 +37,11 @@ class LocationInventoryAdjustment extends Model
     public function part()
     {
         return $this->belongsTo(Part::class);
+    }
+
+    public function gciPart()
+    {
+        return $this->belongsTo(GciPart::class);
     }
 
     public function location()

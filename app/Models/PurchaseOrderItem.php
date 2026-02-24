@@ -13,6 +13,8 @@ class PurchaseOrderItem extends Model
         'purchase_order_id',
         'purchase_request_item_id',
         'part_id',
+        'vendor_part_id',
+        'gci_part_vendor_id',
         'qty',
         'unit_price',
         'subtotal',
@@ -31,5 +33,15 @@ class PurchaseOrderItem extends Model
     public function part()
     {
         return $this->belongsTo(GciPart::class, 'part_id');
+    }
+
+    public function vendorPart()
+    {
+        return $this->belongsTo(Part::class, 'vendor_part_id');
+    }
+
+    public function gciPartVendor()
+    {
+        return $this->belongsTo(GciPartVendor::class);
     }
 }

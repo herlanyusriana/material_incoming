@@ -88,7 +88,7 @@ class ArrivalController extends Controller
 
         $parts = preg_split('/[\r\n,;]+/', $value) ?: [];
         $codes = collect($parts)
-            ->map(fn ($code) => trim((string) $code))
+            ->map(fn($code) => trim((string) $code))
             ->filter()
             ->unique()
             ->values();
@@ -109,7 +109,7 @@ class ArrivalController extends Controller
         }
 
         $numbers = collect($matches[0] ?? [])
-            ->map(fn ($n) => (float) $n)
+            ->map(fn($n) => (float) $n)
             ->values()
             ->all();
 
@@ -117,7 +117,7 @@ class ArrivalController extends Controller
         // - Sheet: "0.25 x 640 x 1215" => width is typically the smaller of the 2 big numbers (640 vs 1215).
         // - Coil:  "0.7 x 530 x C"     => width is the only big number (530).
         // - Some users may swap order; we prefer choosing from "big" dimensions (>= 10).
-        $big = array_values(array_filter($numbers, fn ($n) => $n >= 10));
+        $big = array_values(array_filter($numbers, fn($n) => $n >= 10));
         if (count($big) >= 2) {
             return min($big);
         }
@@ -153,8 +153,8 @@ class ArrivalController extends Controller
                 return $hsCodeModel ? strtoupper(trim((string) $hsCodeModel)) : null;
             })
             ->filter()
-            ->flatMap(fn ($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
-            ->map(fn ($code) => trim((string) $code))
+            ->flatMap(fn($code) => collect(preg_split('/[\r\n,;]+/', (string) $code) ?: []))
+            ->map(fn($code) => trim((string) $code))
             ->filter()
             ->unique()
             ->values();
@@ -166,7 +166,7 @@ class ArrivalController extends Controller
     {
         $arrival->loadMissing('items.part');
         $normalizedHsCodes = $this->inferHsCodesFromItems($arrival->items);
-        
+
         $hsCodePrimary = null;
         if ($normalizedHsCodes) {
             $hsCodePrimary = collect(preg_split('/\r\n|\r|\n/', $normalizedHsCodes) ?: [])
@@ -185,7 +185,7 @@ class ArrivalController extends Controller
     private function filterArrivalColumns(array $data): array
     {
         return collect($data)
-            ->filter(fn ($value, $key) => Schema::hasColumn('arrivals', (string) $key))
+            ->filter(fn($value, $key) => Schema::hasColumn('arrivals', (string) $key))
             ->all();
     }
 
@@ -197,7 +197,7 @@ class ArrivalController extends Controller
 
         // Require container inspections (when containers exist)
         if (!$isLocal && $arrival->containers && $arrival->containers->isNotEmpty()) {
-            $hasMissingInspection = $arrival->containers->contains(fn ($c) => !$c->inspection);
+            $hasMissingInspection = $arrival->containers->contains(fn($c) => !$c->inspection);
             if ($hasMissingInspection) {
                 return true;
             }
@@ -206,8 +206,8 @@ class ArrivalController extends Controller
         // Require TAG filled for all receive rows (non-local only).
         if (!$isLocal) {
             $hasMissingTag = $arrival->items
-                ->flatMap(fn ($i) => $i->receives ?? collect())
-                ->contains(fn ($r) => !is_string($r->tag) || trim($r->tag) === '');
+                ->flatMap(fn($i) => $i->receives ?? collect())
+                ->contains(fn($r) => !is_string($r->tag) || trim($r->tag) === '');
             if ($hasMissingTag) {
                 return true;
             }
@@ -226,7 +226,7 @@ class ArrivalController extends Controller
     public function index()
     {
         $departures = Arrival::with(['vendor', 'creator', 'items.receives', 'containers.inspection'])
-            ->whereHas('vendor', fn ($q) => $q->where('vendor_type', '!=', 'local'))
+            ->whereHas('vendor', fn($q) => $q->where('vendor_type', '!=', 'local'))
             ->latest()
             ->paginate(10);
 
@@ -272,26 +272,26 @@ class ArrivalController extends Controller
             'invoice_no' => strtoupper(trim((string) $request->input('invoice_no', ''))),
         ]);
 
-		        $validated = $request->validate([
-		            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')],
-		            'invoice_date' => ['required', 'date'],
-		            'vendor_id' => ['required', 'exists:vendors,id'],
-		            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
-		            'vessel' => ['nullable', 'string', 'max:255'],
-			            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
-			            'etd' => ['nullable', 'date'],
-			            'eta' => ['nullable', 'date'],
-			            'eta_gci' => ['nullable', 'date'],
-			            'bl_no' => ['nullable', 'string', 'max:255'],
-                    'bl_status' => ['nullable', 'in:surrender,draft'],
-                    'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-		            'price_term' => ['nullable', 'string', 'max:50'],
-		            'port_of_loading' => ['nullable', 'string', 'max:255'],
-		            'container_numbers' => ['nullable', 'string'],
-		            'seal_code' => ['nullable', 'string', 'max:100'],
-                    'hs_code' => ['nullable', 'string', 'max:50'],
-                    'hs_codes' => ['nullable', 'string'],
-	            'containers' => ['nullable', 'array'],
+        $validated = $request->validate([
+            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')],
+            'invoice_date' => ['required', 'date'],
+            'vendor_id' => ['required', 'exists:vendors,id'],
+            'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
+            'vessel' => ['nullable', 'string', 'max:255'],
+            'trucking_company_id' => ['nullable', 'exists:trucking_companies,id'],
+            'etd' => ['nullable', 'date'],
+            'eta' => ['nullable', 'date'],
+            'eta_gci' => ['nullable', 'date'],
+            'bl_no' => ['nullable', 'string', 'max:255'],
+            'bl_status' => ['nullable', 'in:surrender,draft'],
+            'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'price_term' => ['nullable', 'string', 'max:50'],
+            'port_of_loading' => ['nullable', 'string', 'max:255'],
+            'container_numbers' => ['nullable', 'string'],
+            'seal_code' => ['nullable', 'string', 'max:100'],
+            'hs_code' => ['nullable', 'string', 'max:50'],
+            'hs_codes' => ['nullable', 'string'],
+            'containers' => ['nullable', 'array'],
             'containers.*.container_no' => ['required_with:containers', 'string', 'max:50', 'distinct'],
             'containers.*.seal_code' => ['required_with:containers.*.container_no', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
@@ -304,33 +304,33 @@ class ArrivalController extends Controller
             'items.*.unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX', 'BAG', 'ROLL'])],
             'items.*.qty_goods' => ['required', 'integer', 'min:1'],
             'items.*.unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET', 'EA', 'ROLL', 'KGM'])],
-			            'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
-			            'items.*.unit_weight' => ['nullable', 'string', 'max:20'],
-			            'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
-			            'items.*.total_amount' => ['required', 'numeric', 'min:0'],
-			            'items.*.price' => ['nullable', 'numeric', 'min:0'],
-			            'items.*.notes' => ['nullable', 'string'],
-			        ]);
+            'items.*.weight_nett' => ['required', 'numeric', 'min:0'],
+            'items.*.unit_weight' => ['nullable', 'string', 'max:20'],
+            'items.*.weight_gross' => ['required', 'numeric', 'min:0'],
+            'items.*.total_amount' => ['required', 'numeric', 'min:0'],
+            'items.*.price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.notes' => ['nullable', 'string'],
+        ]);
 
-            foreach (($validated['items'] ?? []) as $index => $item) {
-                $nett = (float) ($item['weight_nett'] ?? 0);
-                $gross = (float) ($item['weight_gross'] ?? 0);
-                if ($nett > $gross) {
-                    throw ValidationException::withMessages([
-                        "items.{$index}.weight_nett" => 'Net weight harus lebih kecil atau sama dengan gross weight.',
-                    ]);
-                }
+        foreach (($validated['items'] ?? []) as $index => $item) {
+            $nett = (float) ($item['weight_nett'] ?? 0);
+            $gross = (float) ($item['weight_gross'] ?? 0);
+            if ($nett > $gross) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.weight_nett" => 'Net weight harus lebih kecil atau sama dengan gross weight.',
+                ]);
             }
+        }
 
-	        $vendorId = $validated['vendor_id'];
-	        $validated['invoice_no'] = strtoupper(trim((string) ($validated['invoice_no'] ?? '')));
+        $vendorId = $validated['vendor_id'];
+        $validated['invoice_no'] = strtoupper(trim((string) ($validated['invoice_no'] ?? '')));
 
-            $billOfLadingFilePath = null;
-            if ($request->hasFile('bl_file')) {
-                $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
-            }
+        $billOfLadingFilePath = null;
+        if ($request->hasFile('bl_file')) {
+            $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
+        }
 
-	        $arrival = DB::transaction(function () use ($validated, $vendorId, $billOfLadingFilePath) {
+        $arrival = DB::transaction(function () use ($validated, $vendorId, $billOfLadingFilePath) {
             $normalizedContainers = collect($validated['containers'] ?? [])
                 ->map(function ($row) {
                     $containerNo = strtoupper(trim((string) ($row['container_no'] ?? '')));
@@ -340,7 +340,7 @@ class ArrivalController extends Controller
                         'seal_code' => $sealCode !== '' ? $sealCode : null,
                     ];
                 })
-                ->filter(fn ($row) => $row['container_no'] !== '')
+                ->filter(fn($row) => $row['container_no'] !== '')
                 ->values();
 
             if ($normalizedContainers->isEmpty() && !empty($validated['container_numbers'])) {
@@ -349,7 +349,8 @@ class ArrivalController extends Controller
                 $normalizedContainers = collect($lines)
                     ->map(function ($line) use ($defaultSeal) {
                         $raw = trim((string) $line);
-                        if ($raw === '') return null;
+                        if ($raw === '')
+                            return null;
                         $parts = preg_split('/\s+/', $raw) ?: [];
                         $containerNo = strtoupper(trim((string) ($parts[0] ?? '')));
                         $sealCode = strtoupper(trim((string) ($parts[1] ?? $defaultSeal ?? '')));
@@ -366,20 +367,20 @@ class ArrivalController extends Controller
                 ? $normalizedContainers->pluck('container_no')->implode("\n")
                 : ($validated['container_numbers'] ?? null);
 
-		            $arrivalData = [
-		                'invoice_no' => $validated['invoice_no'],
-		                'invoice_date' => $validated['invoice_date'],
-		                'vendor_id' => $vendorId,
-		                'vessel' => $validated['vessel'] ?? null,
-		                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
-		                'ETD' => $validated['etd'] ?? null,
-		                'ETA' => $validated['eta'] ?? null,
-		                'ETA_GCI' => $validated['eta_gci'] ?? null,
-		                'bill_of_lading' => $validated['bl_no'] ?? null,
-                        'bill_of_lading_status' => $validated['bl_status'] ?? null,
-                        'bill_of_lading_file' => $billOfLadingFilePath,
-		                'price_term' => $validated['price_term'] ?? null,
-	                'port_of_loading' => $validated['port_of_loading'] ?? null,
+            $arrivalData = [
+                'invoice_no' => $validated['invoice_no'],
+                'invoice_date' => $validated['invoice_date'],
+                'vendor_id' => $vendorId,
+                'vessel' => $validated['vessel'] ?? null,
+                'trucking_company_id' => $validated['trucking_company_id'] ?? null,
+                'ETD' => $validated['etd'] ?? null,
+                'ETA' => $validated['eta'] ?? null,
+                'ETA_GCI' => $validated['eta_gci'] ?? null,
+                'bill_of_lading' => $validated['bl_no'] ?? null,
+                'bill_of_lading_status' => $validated['bl_status'] ?? null,
+                'bill_of_lading_file' => $billOfLadingFilePath,
+                'price_term' => $validated['price_term'] ?? null,
+                'port_of_loading' => $validated['port_of_loading'] ?? null,
                 'country' => $validated['port_of_loading'] ?? 'SOUTH KOREA',
                 'container_numbers' => $containerNumbersLegacy,
                 'seal_code' => $validated['seal_code'] ?? null,
@@ -388,7 +389,7 @@ class ArrivalController extends Controller
                 'created_by' => Auth::id(),
             ];
 
-	            $arrival = Arrival::create($this->filterArrivalColumns($arrivalData));
+            $arrival = Arrival::create($this->filterArrivalColumns($arrivalData));
 
             if ($normalizedContainers->isNotEmpty() && Schema::hasTable('arrival_containers')) {
                 $arrival->containers()->createMany($normalizedContainers->all());
@@ -409,6 +410,7 @@ class ArrivalController extends Controller
 
                 $arrival->items()->create([
                     'part_id' => $item['part_id'],
+                    'gci_part_id' => $part?->gci_part_id,
                     'material_group' => $item['material_group'] ?? null,
                     'size' => $item['size'] ?? null,
                     'qty_bundle' => $item['qty_bundle'] ?? 0,
@@ -502,60 +504,60 @@ class ArrivalController extends Controller
             'invoice_no' => strtoupper(trim((string) $request->input('invoice_no', ''))),
         ]);
 
-		        $data = $request->validate([
-		            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')->ignore($departure->id)],
-		            'invoice_date' => ['required', 'date'],
-		            'etd' => ['nullable', 'date'],
-		            'eta' => ['nullable', 'date'],
-		            'eta_gci' => ['nullable', 'date'],
-		            'vessel' => ['nullable', 'string', 'max:255'],
-		            'bl_no' => ['nullable', 'string', 'max:255'],
-                    'bl_status' => ['nullable', 'in:surrender,draft'],
-                    'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-	            'price_term' => ['nullable', 'string', 'max:50'],
-	            'port_of_loading' => ['nullable', 'string', 'max:255'],
-	            'container_numbers' => ['nullable', 'string'],
-	            'seal_code' => ['nullable', 'string', 'max:100'],
+        $data = $request->validate([
+            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')->ignore($departure->id)],
+            'invoice_date' => ['required', 'date'],
+            'etd' => ['nullable', 'date'],
+            'eta' => ['nullable', 'date'],
+            'eta_gci' => ['nullable', 'date'],
+            'vessel' => ['nullable', 'string', 'max:255'],
+            'bl_no' => ['nullable', 'string', 'max:255'],
+            'bl_status' => ['nullable', 'in:surrender,draft'],
+            'bl_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'price_term' => ['nullable', 'string', 'max:50'],
+            'port_of_loading' => ['nullable', 'string', 'max:255'],
+            'container_numbers' => ['nullable', 'string'],
+            'seal_code' => ['nullable', 'string', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'hs_code' => ['nullable', 'string', 'max:50'],
             'hs_codes' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
         ]);
 
-	        $data['invoice_no'] = strtoupper(trim((string) ($data['invoice_no'] ?? '')));
+        $data['invoice_no'] = strtoupper(trim((string) ($data['invoice_no'] ?? '')));
 
-            $billOfLadingFilePath = null;
-            if ($request->hasFile('bl_file')) {
-                $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
-            }
+        $billOfLadingFilePath = null;
+        if ($request->hasFile('bl_file')) {
+            $billOfLadingFilePath = $request->file('bl_file')->storePublicly('bill_of_ladings', 'public');
+        }
 
-		        $departureData = [
-		            'invoice_no' => $data['invoice_no'],
-		            'invoice_date' => $data['invoice_date'],
-		            'ETD' => $data['etd'] ?? null,
-		            'ETA' => $data['eta'] ?? null,
-		            'ETA_GCI' => $data['eta_gci'] ?? null,
-		            'vessel' => $data['vessel'] ?? null,
-		            'bill_of_lading' => $data['bl_no'] ?? null,
-                    'bill_of_lading_status' => $data['bl_status'] ?? null,
-		            'price_term' => $data['price_term'] ?? null,
-	            'port_of_loading' => $data['port_of_loading'] ?? null,
-	            'container_numbers' => $data['container_numbers'] ?? null,
-	            'seal_code' => $data['seal_code'] ?? null,
-	            'currency' => $data['currency'] ?? 'USD',
-	            'notes' => $data['notes'] ?? null,
-	        ];
+        $departureData = [
+            'invoice_no' => $data['invoice_no'],
+            'invoice_date' => $data['invoice_date'],
+            'ETD' => $data['etd'] ?? null,
+            'ETA' => $data['eta'] ?? null,
+            'ETA_GCI' => $data['eta_gci'] ?? null,
+            'vessel' => $data['vessel'] ?? null,
+            'bill_of_lading' => $data['bl_no'] ?? null,
+            'bill_of_lading_status' => $data['bl_status'] ?? null,
+            'price_term' => $data['price_term'] ?? null,
+            'port_of_loading' => $data['port_of_loading'] ?? null,
+            'container_numbers' => $data['container_numbers'] ?? null,
+            'seal_code' => $data['seal_code'] ?? null,
+            'currency' => $data['currency'] ?? 'USD',
+            'notes' => $data['notes'] ?? null,
+        ];
 
-            $oldBillFile = $departure->bill_of_lading_file;
-            if ($billOfLadingFilePath !== null) {
-                $departureData['bill_of_lading_file'] = $billOfLadingFilePath;
-            }
+        $oldBillFile = $departure->bill_of_lading_file;
+        if ($billOfLadingFilePath !== null) {
+            $departureData['bill_of_lading_file'] = $billOfLadingFilePath;
+        }
 
-	        DB::transaction(function () use ($departure, $departureData, $data, $oldBillFile, $billOfLadingFilePath) {
-	            $defaultSeal = strtoupper(trim((string) ($data['seal_code'] ?? '')));
-	            $lines = preg_split('/\r\n|\r|\n/', (string) ($data['container_numbers'] ?? '')) ?: [];
-	            $normalizedContainers = collect($lines)
-	                ->map(function ($line) use ($defaultSeal) {
+        DB::transaction(function () use ($departure, $departureData, $data, $oldBillFile, $billOfLadingFilePath) {
+            $defaultSeal = strtoupper(trim((string) ($data['seal_code'] ?? '')));
+            $lines = preg_split('/\r\n|\r|\n/', (string) ($data['container_numbers'] ?? '')) ?: [];
+            $normalizedContainers = collect($lines)
+                ->map(function ($line) use ($defaultSeal) {
                     $raw = trim((string) $line);
                     if ($raw === '') {
                         return null;
@@ -581,16 +583,16 @@ class ArrivalController extends Controller
 
             $departureData['container_numbers'] = $containerNumbersLegacy !== '' ? $containerNumbersLegacy : null;
 
-	            $departure->update($this->filterArrivalColumns($departureData));
+            $departure->update($this->filterArrivalColumns($departureData));
 
-                if ($billOfLadingFilePath !== null && $oldBillFile) {
-                    Storage::disk('public')->delete($oldBillFile);
-                }
+            if ($billOfLadingFilePath !== null && $oldBillFile) {
+                Storage::disk('public')->delete($oldBillFile);
+            }
 
-	            if (Schema::hasTable('arrival_containers')) {
-	                $departure->containers()->delete();
-	                if ($normalizedContainers->isNotEmpty()) {
-	                    $departure->containers()->createMany($normalizedContainers->all());
+            if (Schema::hasTable('arrival_containers')) {
+                $departure->containers()->delete();
+                if ($normalizedContainers->isNotEmpty()) {
+                    $departure->containers()->createMany($normalizedContainers->all());
                 }
             }
         });
@@ -753,6 +755,7 @@ class ArrivalController extends Controller
 
         $arrival->items()->create([
             'part_id' => $data['part_id'],
+            'gci_part_id' => $part?->gci_part_id,
             'material_group' => $data['material_group'] ?? null,
             'size' => $data['size'] ?? null,
             'unit_bundle' => $data['unit_bundle'] ?? null,
@@ -798,32 +801,32 @@ class ArrivalController extends Controller
                 ->with('error', 'Item sudah punya receive, tidak bisa di-edit.');
         }
 
-		        $data = $request->validate([
-		            'material_group' => ['nullable', 'string', 'max:255'],
-		            'size' => ['nullable', 'string', 'max:100'],
-		            'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX', 'BAG', 'ROLL'])],
-		            'qty_bundle' => ['nullable', 'integer', 'min:0'],
-		            'qty_goods' => ['required', 'integer', 'min:1'],
-		            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET', 'EA', 'ROLL', 'KGM'])],
-		            'weight_nett' => ['required', 'numeric', 'min:0'],
-		            'weight_gross' => ['required', 'numeric', 'min:0'],
-		            'total_amount' => ['required', 'numeric', 'min:0'],
-		            'notes' => ['nullable', 'string'],
-		        ]);
+        $data = $request->validate([
+            'material_group' => ['nullable', 'string', 'max:255'],
+            'size' => ['nullable', 'string', 'max:100'],
+            'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX', 'BAG', 'ROLL'])],
+            'qty_bundle' => ['nullable', 'integer', 'min:0'],
+            'qty_goods' => ['required', 'integer', 'min:1'],
+            'unit_goods' => ['nullable', 'string', 'max:20', Rule::in(['PCS', 'COIL', 'SHEET', 'SET', 'EA', 'ROLL', 'KGM'])],
+            'weight_nett' => ['required', 'numeric', 'min:0'],
+            'weight_gross' => ['required', 'numeric', 'min:0'],
+            'total_amount' => ['required', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string'],
+        ]);
 
-	        $normalizedNett = $this->normalizeDecimalInput($data['weight_nett']);
-	        $normalizedGross = $this->normalizeDecimalInput($data['weight_gross']);
-	        $normalizedTotal = $this->normalizeDecimalInput($data['total_amount']);
+        $normalizedNett = $this->normalizeDecimalInput($data['weight_nett']);
+        $normalizedGross = $this->normalizeDecimalInput($data['weight_gross']);
+        $normalizedTotal = $this->normalizeDecimalInput($data['total_amount']);
 
-            if ((float) $normalizedNett > (float) $normalizedGross) {
-                throw ValidationException::withMessages([
-                    'weight_nett' => 'Net weight harus lebih kecil atau sama dengan gross weight.',
-                ]);
-            }
+        if ((float) $normalizedNett > (float) $normalizedGross) {
+            throw ValidationException::withMessages([
+                'weight_nett' => 'Net weight harus lebih kecil atau sama dengan gross weight.',
+            ]);
+        }
 
-	        $qtyGoods = (int) $data['qty_goods'];
-	        $totalPrice = round((float) $normalizedTotal, 2);
-	        $totalCents = $this->toCents($normalizedTotal);
+        $qtyGoods = (int) $data['qty_goods'];
+        $totalPrice = round((float) $normalizedTotal, 2);
+        $totalCents = $this->toCents($normalizedTotal);
 
         $goodsUnit = strtoupper(trim((string) ($data['unit_goods'] ?? '')));
         $weightCenti = $this->toCents($normalizedNett);
@@ -835,10 +838,10 @@ class ArrivalController extends Controller
 
         $price = $this->formatMilli($priceMilli);
 
-	        $arrivalItem->update([
-	            'material_group' => $data['material_group'] ?? null,
-	            'size' => $data['size'] ?? null,
-	            'unit_bundle' => $data['unit_bundle'] ?? null,
+        $arrivalItem->update([
+            'material_group' => $data['material_group'] ?? null,
+            'size' => $data['size'] ?? null,
+            'unit_bundle' => $data['unit_bundle'] ?? null,
             'qty_bundle' => (int) ($data['qty_bundle'] ?? 0),
             'qty_goods' => $qtyGoods,
             'unit_goods' => $data['unit_goods'] ?? null,
@@ -847,15 +850,15 @@ class ArrivalController extends Controller
             'weight_gross' => $normalizedGross,
             'total_price' => $totalPrice,
             'price' => $price,
-	            'notes' => $data['notes'] ?? null,
-	        ]);
+            'notes' => $data['notes'] ?? null,
+        ]);
 
-            $this->syncHsCodes($arrivalItem->arrival);
+        $this->syncHsCodes($arrivalItem->arrival);
 
-	        return redirect()
-	            ->route('departures.show', $arrivalItem->arrival)
-	            ->with('success', 'Item berhasil di-update.');
-	    }
+        return redirect()
+            ->route('departures.show', $arrivalItem->arrival)
+            ->with('success', 'Item berhasil di-update.');
+    }
 
     public function printInspectionReport(Arrival $departure)
     {
@@ -961,7 +964,7 @@ class ArrivalController extends Controller
         };
 
         $containersWithInspection = $arrival->containers
-            ? $arrival->containers->filter(fn ($c) => (bool) $c->inspection)->values()
+            ? $arrival->containers->filter(fn($c) => (bool) $c->inspection)->values()
             : collect();
 
         if ($containersWithInspection->isNotEmpty()) {

@@ -24,8 +24,8 @@ class LocalPoController extends Controller
 
         $localPos = Arrival::query()
             ->with(['vendor', 'items.receives'])
-            ->whereHas('vendor', fn ($qv) => $qv->where('vendor_type', 'local'))
-            ->when($vendorId, fn ($qa) => $qa->where('vendor_id', $vendorId))
+            ->whereHas('vendor', fn($qv) => $qv->where('vendor_type', 'local'))
+            ->when($vendorId, fn($qa) => $qa->where('vendor_id', $vendorId))
             ->when($q !== '', function ($qa) use ($q) {
                 $qa->where(function ($inner) use ($q) {
                     $inner->where('invoice_no', 'like', "%{$q}%")
@@ -104,8 +104,8 @@ class LocalPoController extends Controller
 
         $invalidPartIds = collect($validated['items'] ?? [])
             ->pluck('part_id')
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id !== 0 && !in_array($id, $vendorPartIds, true))
+            ->map(fn($id) => (int) $id)
+            ->filter(fn($id) => $id !== 0 && !in_array($id, $vendorPartIds, true))
             ->unique()
             ->values();
 
@@ -141,6 +141,7 @@ class LocalPoController extends Controller
 
                 $arrival->items()->create([
                     'part_id' => (int) $item['part_id'],
+                    'gci_part_id' => Part::find((int) $item['part_id'])?->gci_part_id,
                     'material_group' => null, // Removed form field
                     'size' => isset($item['size']) && trim((string) $item['size']) !== '' ? strtoupper(trim((string) $item['size'])) : null,
                     'qty_bundle' => 0, // Removed form field, set to 0 default
@@ -198,7 +199,7 @@ class LocalPoController extends Controller
 
     public function update(Request $request, Arrival $arrival)
     {
-         $request->merge([
+        $request->merge([
             'po_no' => strtoupper(trim((string) $request->input('po_no', ''))),
         ]);
 
@@ -220,7 +221,7 @@ class LocalPoController extends Controller
         ]);
 
         $vendor = Vendor::findOrFail((int) $validated['vendor_id']);
-         if ($vendor->vendor_type !== 'local') {
+        if ($vendor->vendor_type !== 'local') {
             return back()->withInput()->withErrors([
                 'vendor_id' => 'Vendor harus bertipe LOCAL untuk Local PO.',
             ]);
@@ -240,7 +241,7 @@ class LocalPoController extends Controller
             $inputItemIds = collect($validated['items'])
                 ->pluck('id')
                 ->filter()
-                ->map(fn($id) => (int)$id)
+                ->map(fn($id) => (int) $id)
                 ->all();
 
             // 2. Identify items to delete (existing in DB but not in request)
@@ -253,9 +254,9 @@ class LocalPoController extends Controller
             foreach ($itemsToDelete as $itemToDelete) {
                 // Check if has receives
                 if ($itemToDelete->receives()->exists()) {
-                     // Better to throw error or skip? Let's skip and warn or just fail.
-                     // Making it fail is safer.
-                     throw new \Exception("Item {$itemToDelete->part->part_no} sudah ada receive, tidak bisa dihapus via Edit.");
+                    // Better to throw error or skip? Let's skip and warn or just fail.
+                    // Making it fail is safer.
+                    throw new \Exception("Item {$itemToDelete->part->part_no} sudah ada receive, tidak bisa dihapus via Edit.");
                 }
                 $itemToDelete->delete();
             }
@@ -284,7 +285,7 @@ class LocalPoController extends Controller
                 if ($itemId) {
                     $itemModel = $arrival->items()->findOrFail($itemId);
                     // Prevent changing Part ID if receives exist
-                     if ($itemModel->receives()->exists() && (int)$itemModel->part_id !== (int)$data['part_id']) {
+                    if ($itemModel->receives()->exists() && (int) $itemModel->part_id !== (int) $data['part_id']) {
                         throw new \Exception("Item {$itemModel->part->part_no} sudah ada receive, part tidak boleh diganti.");
                     }
                     $itemModel->update($data);
@@ -304,10 +305,10 @@ class LocalPoController extends Controller
         // but let's delete items explicitly to be safe or just delete arrival.
         // Assuming cascade delete is set on DB level or we rely on model events. 
         // But for safety:
-        
+
         DB::transaction(function () use ($arrival) {
-             $arrival->items()->delete();
-             $arrival->delete();
+            $arrival->items()->delete();
+            $arrival->delete();
         });
 
         return back()->with('success', 'Local PO deleted successfully.');

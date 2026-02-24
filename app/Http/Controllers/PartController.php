@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Part;
 use App\Models\GciPart;
+use App\Models\GciPartVendor;
 use App\Models\Vendor;
 use App\Exports\PartsExport;
 use App\Imports\PartsImport;
@@ -215,7 +216,20 @@ class PartController extends Controller
         $validated['gci_part_id'] = $gciPart->id;
         // ----------------------------------------------
 
-        Part::create($validated);
+        // Write to gci_part_vendor (the real table)
+        GciPartVendor::updateOrCreate(
+            ['gci_part_id' => $gciPart->id, 'vendor_id' => $validated['vendor_id']],
+            [
+                'vendor_part_no' => $validated['part_no'],
+                'vendor_part_name' => $validated['part_name_vendor'],
+                'register_no' => $validated['register_no'] ?? null,
+                'price' => $validated['price'] ?? 0,
+                'uom' => $validated['uom'] ?? null,
+                'hs_code' => $validated['hs_code'] ?? null,
+                'quality_inspection' => ($validated['quality_inspection'] ?? null) === 'YES',
+                'status' => $validated['status'],
+            ]
+        );
 
         return redirect()->route('parts.index')->with('status', 'Part created.');
     }
@@ -242,14 +256,37 @@ class PartController extends Controller
             'uom' => ['nullable', 'string', 'max:10'],
         ]);
 
-        $part->update($data);
+        // Part view ID = gci_part_vendor.id — update the real table
+        $vendorLink = GciPartVendor::find($part->id);
+        if ($vendorLink) {
+            // Also update gci_parts.part_name if part_name_gci changed
+            if ($vendorLink->gciPart && $data['part_name_gci'] !== $vendorLink->gciPart->part_name) {
+                $vendorLink->gciPart->update(['part_name' => $data['part_name_gci']]);
+            }
+
+            $vendorLink->update([
+                'vendor_id' => $data['vendor_id'],
+                'vendor_part_no' => strtoupper(trim($data['part_no'])),
+                'vendor_part_name' => strtoupper(trim($data['part_name_vendor'])),
+                'register_no' => $data['register_no'] ?? null,
+                'price' => $data['price'] ?? 0,
+                'uom' => $data['uom'] ?? null,
+                'hs_code' => $data['hs_code'] ?? null,
+                'quality_inspection' => ($data['quality_inspection'] ?? null) === 'YES',
+                'status' => $data['status'],
+            ]);
+        }
 
         return redirect()->route('parts.index')->with('status', 'Part updated.');
     }
 
     public function destroy(Part $part)
     {
-        $part->delete();
+        // Delete from the real table (gci_part_vendor)
+        $vendorLink = GciPartVendor::find($part->id);
+        if ($vendorLink) {
+            $vendorLink->delete();
+        }
 
         return redirect()->route('parts.index')->with('status', 'Part deleted.');
     }

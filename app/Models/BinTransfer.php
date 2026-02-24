@@ -12,6 +12,7 @@ class BinTransfer extends Model
 
     protected $fillable = [
         'part_id',
+        'gci_part_id',
         'from_location_code',
         'to_location_code',
         'qty',
@@ -32,6 +33,11 @@ class BinTransfer extends Model
     public function part()
     {
         return $this->belongsTo(Part::class);
+    }
+
+    public function gciPart()
+    {
+        return $this->belongsTo(GciPart::class);
     }
 
     /**

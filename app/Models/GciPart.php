@@ -124,4 +124,16 @@ class GciPart extends Model
     {
         return $this->hasMany(Part::class);
     }
+
+    public function vendors()
+    {
+        return $this->belongsToMany(Vendor::class, 'gci_part_vendor')
+            ->withPivot(['vendor_part_no', 'vendor_part_name', 'register_no', 'price', 'uom', 'hs_code', 'quality_inspection', 'status'])
+            ->withTimestamps();
+    }
+
+    public function vendorLinks()
+    {
+        return $this->hasMany(GciPartVendor::class);
+    }
 }

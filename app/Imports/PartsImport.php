@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Part;
 use App\Models\GciPart;
+use App\Models\GciPartVendor;
 use App\Models\Vendor;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -196,108 +197,71 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
         $partNameGci = $this->firstNonEmpty($row, ['part_name_gci', 'part_name_internal', 'gci_part_name']);
         $hsCode = $this->firstNonEmpty($row, ['hs_code']);
         $qualityInspectionRaw = $this->firstNonEmpty($row, ['quality_inspection', 'qc_inspection', 'quality']);
-        $qualityInspection = null;
+        $qualityInspection = false;
         if ($qualityInspectionRaw !== null) {
             $flag = strtoupper(trim((string) $qualityInspectionRaw));
-            if (in_array($flag, ['YES', 'Y', '1', 'TRUE'], true)) {
-                $qualityInspection = 1;
-            } else {
-                $qualityInspection = 0;
-            }
-        }
-
-        // Check if exists
-        $existingPart = Part::where('part_no', $partNo)
-            ->where('vendor_id', $vendor->id)
-            ->first();
-
-        if ($existingPart) {
-            // Already exists for this vendor
-            $this->duplicates[] = "{$partNo} [{$vendor->vendor_name}]";
-            return;
-        }
-
-        $part = new Part();
-        $part->part_no = $partNo;
-        $part->vendor_id = $vendor->id;
-
-        if ($registerNo !== null) {
-            $part->register_no = $registerNo;
-        }
-
-        if ($partNameVendor !== null) {
-            $part->part_name_vendor = $partNameVendor;
-        }
-
-        if ($partNameGci !== null) {
-            $part->part_name_gci = $partNameGci;
-        }
-
-        if ($hsCode !== null) {
-            $part->hs_code = $hsCode;
-        }
-
-        if ($qualityInspection !== null) {
-            $part->quality_inspection = $qualityInspection;
+            $qualityInspection = in_array($flag, ['YES', 'Y', '1', 'TRUE'], true);
         }
 
         $price = $this->firstNonEmpty($row, ['price', 'cost']);
-        if ($price !== null && is_numeric($price)) {
-            $part->price = (float) $price;
-        }
-
         $uom = $this->firstNonEmpty($row, ['uom', 'unit', 'unit_of_measure']);
-        if ($uom !== null) {
-            $part->uom = strtoupper(trim((string) $uom));
+
+        $statusRaw = $this->firstNonEmpty($row, ['status']);
+        $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : 'active';
+        if (!in_array($status, ['active', 'inactive'], true)) {
+            $status = 'active';
         }
 
-        if (array_key_exists('status', $row)) {
-            $statusRaw = $this->firstNonEmpty($row, ['status']);
-            $status = $statusRaw ? mb_strtolower(trim($statusRaw)) : null;
-            if ($status) {
-                if (!in_array($status, ['active', 'inactive'], true)) {
-                    $status = 'active';
-                }
-                $part->status = $status;
-            }
-        } else {
-            $part->status = 'active';
+        // Normalize defaults
+        if (!$registerNo) {
+            $registerNo = $partNo;
+        }
+        if (!$partNameVendor) {
+            $partNameVendor = $partNo;
+        }
+        if (!$partNameGci) {
+            $partNameGci = $partNameVendor ?: $partNo;
         }
 
-        if (!$part->register_no || trim((string) $part->register_no) === '') {
-            $part->register_no = $partNo;
-        }
-        if (!$part->part_name_vendor || trim((string) $part->part_name_vendor) === '') {
-            $part->part_name_vendor = $partNo;
-        }
-        if (!$part->part_name_gci || trim((string) $part->part_name_gci) === '') {
-            $part->part_name_gci = $part->part_name_vendor ?: $partNo;
-        }
-
-        // --- Logic to Link to GCI Part (The Bridge) ---
-        $gciPart = null;
-
-        // 1. Try matching by Part Code (Exact)
+        // --- Logic to Link to GCI Part ---
         $gciPart = GciPart::where('part_no', $partNo)->first();
 
-        // 2. Try matching by GCI Name (Exact)
-        if (!$gciPart && $part->part_name_gci) {
-            $gciPart = GciPart::where('part_name', $part->part_name_gci)->first();
+        if (!$gciPart && $partNameGci) {
+            $gciPart = GciPart::where('part_name', $partNameGci)->first();
         }
 
-        // 3. If not found, create new GCI Part (Auto-Master)
         if (!$gciPart) {
             $gciPart = GciPart::create([
-                'part_no' => $partNo, // Use Vendor Part No as Internal Code (initially)
-                'part_name' => $part->part_name_gci,
-                'classification' => 'RM', // Default to Raw Material
+                'part_no' => $partNo,
+                'part_name' => $partNameGci,
+                'classification' => 'RM',
                 'status' => 'active',
             ]);
         }
 
-        $part->gci_part_id = $gciPart->id;
-        // ----------------------------------------------
-        $part->save();
+        // Check for duplicates in gci_part_vendor
+        $existing = GciPartVendor::where('gci_part_id', $gciPart->id)
+            ->where('vendor_id', $vendor->id)
+            ->first();
+
+        if ($existing) {
+            $this->duplicates[] = "{$partNo} [{$vendor->vendor_name}]";
+            return;
+        }
+
+        // Write to gci_part_vendor (the real table)
+        GciPartVendor::create([
+            'gci_part_id' => $gciPart->id,
+            'vendor_id' => $vendor->id,
+            'vendor_part_no' => strtoupper(trim($partNo)),
+            'vendor_part_name' => strtoupper(trim($partNameVendor)),
+            'register_no' => $registerNo ? strtoupper(trim($registerNo)) : null,
+            'price' => ($price !== null && is_numeric($price)) ? (float) $price : 0,
+            'uom' => $uom ? strtoupper(trim($uom)) : null,
+            'hs_code' => $hsCode ? strtoupper(trim($hsCode)) : null,
+            'quality_inspection' => $qualityInspection,
+            'status' => $status,
+        ]);
     }
 
     public function rules(): array

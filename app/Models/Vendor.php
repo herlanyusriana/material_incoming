@@ -35,6 +35,11 @@ class Vendor extends Model
         return $this->hasMany(Part::class);
     }
 
+    public function gciPartVendors()
+    {
+        return $this->hasMany(GciPartVendor::class);
+    }
+
     public function arrivals()
     {
         return $this->hasMany(Arrival::class);

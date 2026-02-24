@@ -3,78 +3,27 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Read-only model backed by a DATABASE VIEW.
+ *
+ * The `parts` view reads from `gci_part_vendor` + `gci_parts`.
+ * DO NOT call create() / update() / save() on this model.
+ * Use GciPartVendor model for all write operations.
+ */
 class Part extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'register_no',
-        'part_no',
-        'part_name_vendor',
-        'part_name_gci',
-        'hs_code',
-        'quality_inspection',
-        'vendor_id',
-        'gci_part_id',
-        'status',
-        'price',
-        'uom',
-    ];
+    protected $table = 'parts';
 
-    private static function upperOrNull(mixed $value): mixed
-    {
-        if ($value === null) {
-            return null;
-        }
+    // View is read-only — no timestamps
+    public $timestamps = false;
 
-        $string = trim((string) $value);
-        return strtoupper($string);
-    }
+    protected $guarded = [];
 
-    protected function registerNo(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => self::upperOrNull($value),
-        );
-    }
-
-    protected function partNo(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => self::upperOrNull($value),
-        );
-    }
-
-    protected function partNameVendor(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => self::upperOrNull($value),
-        );
-    }
-
-    protected function partNameGci(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => self::upperOrNull($value),
-        );
-    }
-
-    protected function hsCode(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => self::upperOrNull($value),
-        );
-    }
-
-    protected function qualityInspection(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => self::upperOrNull($value),
-        );
-    }
+    // ── Relationships (read-only) ──────────────────────
 
     public function vendor()
     {
@@ -107,5 +56,13 @@ class Part extends Model
     public function gciPart()
     {
         return $this->belongsTo(GciPart::class);
+    }
+
+    /**
+     * Resolve the corresponding GciPartVendor record (writable).
+     */
+    public function vendorLink()
+    {
+        return $this->belongsTo(GciPartVendor::class, 'id', 'id');
     }
 }

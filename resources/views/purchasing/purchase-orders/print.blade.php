@@ -94,6 +94,9 @@
                     <td>
                         <div style="font-weight: 900;">{{ $item->part?->part_no }}</div>
                         <div style="font-size: 8pt; color: #718096;">{{ $item->part?->part_name }}</div>
+                        @if ($item->vendorPart)
+                            <div style="font-size: 7pt; color: #4c51bf; font-family: monospace;">Vendor Part: {{ $item->vendorPart->part_no }}</div>
+                        @endif
                     </td>
                     <td class="text-right font-mono">{{ number_format($item->qty, 4) }}</td>
                     <td class="text-right font-mono">{{ number_format($item->unit_price, 2) }}</td>

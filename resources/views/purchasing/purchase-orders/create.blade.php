@@ -63,6 +63,14 @@
                                                     <td class="px-6 py-4">
                                                         <div class="text-sm font-bold text-slate-900 font-mono">{{ $item->part?->part_no }}</div>
                                                         <div class="text-[10px] text-slate-500">{{ $item->part?->part_name }}</div>
+                                                        <template x-if="getVendorPartInfo({{ $item->part_id }})">
+                                                            <div class="mt-1 text-[10px] text-indigo-600 font-mono">
+                                                                <span x-text="'Vendor Part: ' + getVendorPartInfo({{ $item->part_id }}).part_no"></span>
+                                                            </div>
+                                                        </template>
+                                                        <template x-if="!getVendorPartInfo({{ $item->part_id }}) && selectedVendorId">
+                                                            <div class="mt-1 text-[10px] text-amber-500 italic">No vendor part linked</div>
+                                                        </template>
                                                         <input type="hidden" name="items[{{ $index }}][part_id]" value="{{ $item->part_id }}">
                                                         <input type="hidden" name="items[{{ $index }}][pr_item_id]" value="{{ $item->id }}">
                                                     </td>
@@ -142,6 +150,7 @@
     <script>
         function createPo() {
             const itemPrices = @js($itemPrices ?? []);
+            const vendorPartMap = @js($vendorPartMap ?? []);
             const partIds = @js($pr ? $pr->items->pluck('part_id')->toArray() : []);
             const suggestedVendorId = @js($suggestedVendorId ? (string) $suggestedVendorId : '');
 
@@ -171,6 +180,14 @@
                             item.price = getPriceForPart(partId, vendorId);
                         }
                     });
+                },
+
+                getVendorPartInfo(gciPartId) {
+                    const vendorId = this.selectedVendorId;
+                    if (!vendorId || !vendorPartMap[gciPartId] || !vendorPartMap[gciPartId][vendorId]) {
+                        return null;
+                    }
+                    return vendorPartMap[gciPartId][vendorId];
                 },
 
                 addItem() {

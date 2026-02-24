@@ -8,6 +8,7 @@ use App\Models\PurchaseRequestItem;
 use App\Models\GciPart;
 use App\Models\MrpPurchasePlan;
 use App\Models\Part;
+use App\Models\GciPartVendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -58,12 +59,12 @@ class PurchaseRequestController extends Controller
                     continue;
 
                 $hasItems = true;
-                $vendorPart = Part::where('gci_part_id', $item['part_id'])
+                $vendorLink = GciPartVendor::where('gci_part_id', $item['part_id'])
                     ->whereNotNull('price')
                     ->where('price', '>', 0)
                     ->orderBy('price', 'asc')
                     ->first();
-                $unitPrice = $vendorPart->price ?? 0;
+                $unitPrice = $vendorLink->price ?? 0;
                 $subtotal = $unitPrice * $item['qty'];
 
                 PurchaseRequestItem::create([
@@ -129,7 +130,7 @@ class PurchaseRequestController extends Controller
             ->get();
 
         $partIds = $plans->pluck('part_id')->unique()->toArray();
-        $vendorParts = Part::with('vendor')
+        $vendorLinks = GciPartVendor::with('vendor')
             ->whereIn('gci_part_id', $partIds)
             ->whereNotNull('price')
             ->where('price', '>', 0)
@@ -137,6 +138,6 @@ class PurchaseRequestController extends Controller
             ->get()
             ->groupBy('gci_part_id');
 
-        return view('purchasing.purchase-requests.create_from_mrp', compact('plans', 'vendorParts'));
+        return view('purchasing.purchase-requests.create_from_mrp', compact('plans', 'vendorLinks'));
     }
 }

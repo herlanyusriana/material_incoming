@@ -118,6 +118,9 @@
                                                 <td class="px-6 py-4 text-sm">
                                                     <div class="font-bold text-slate-900">{{ $item->part?->part_no }}</div>
                                                     <div class="text-[10px] text-slate-500 font-sans tracking-tight">{{ $item->part?->part_name }}</div>
+                                                    @if ($item->vendorPart)
+                                                        <div class="text-[10px] text-indigo-600 font-mono mt-1">Vendor Part: {{ $item->vendorPart->part_no }}</div>
+                                                    @endif
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-indigo-600">
                                                     {{ number_format($item->qty, 4) }}
