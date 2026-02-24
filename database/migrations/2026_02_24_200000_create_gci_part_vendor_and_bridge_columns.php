@@ -137,60 +137,96 @@ return new class extends Migration {
 
         // ─── 1D: Backfill new columns ───
 
+        $driver = DB::getDriverName();
+
         // Backfill arrival_items.gci_part_id from parts.gci_part_id
-        DB::statement("
-            UPDATE arrival_items
-            SET gci_part_id = p.gci_part_id
-            FROM parts p
-            WHERE p.id = arrival_items.part_id
-              AND arrival_items.part_id IS NOT NULL
-              AND arrival_items.gci_part_id IS NULL
-              AND p.gci_part_id IS NOT NULL
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement("
+                UPDATE arrival_items SET gci_part_id = p.gci_part_id
+                FROM parts p
+                WHERE p.id = arrival_items.part_id
+                  AND arrival_items.part_id IS NOT NULL AND arrival_items.gci_part_id IS NULL AND p.gci_part_id IS NOT NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE arrival_items ai
+                INNER JOIN parts p ON p.id = ai.part_id
+                SET ai.gci_part_id = p.gci_part_id
+                WHERE ai.part_id IS NOT NULL AND ai.gci_part_id IS NULL AND p.gci_part_id IS NOT NULL
+            ");
+        }
 
         // Backfill arrival_items.gci_part_vendor_id
-        DB::statement("
-            UPDATE arrival_items
-            SET gci_part_vendor_id = gpv.id
-            FROM parts p
-            JOIN gci_part_vendor gpv ON gpv.gci_part_id = p.gci_part_id AND gpv.vendor_id = p.vendor_id
-            WHERE p.id = arrival_items.part_id
-              AND arrival_items.part_id IS NOT NULL
-              AND arrival_items.gci_part_vendor_id IS NULL
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement("
+                UPDATE arrival_items SET gci_part_vendor_id = gpv.id
+                FROM parts p
+                JOIN gci_part_vendor gpv ON gpv.gci_part_id = p.gci_part_id AND gpv.vendor_id = p.vendor_id
+                WHERE p.id = arrival_items.part_id
+                  AND arrival_items.part_id IS NOT NULL AND arrival_items.gci_part_vendor_id IS NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE arrival_items ai
+                INNER JOIN parts p ON p.id = ai.part_id
+                INNER JOIN gci_part_vendor gpv ON gpv.gci_part_id = p.gci_part_id AND gpv.vendor_id = p.vendor_id
+                SET ai.gci_part_vendor_id = gpv.id
+                WHERE ai.part_id IS NOT NULL AND ai.gci_part_vendor_id IS NULL
+            ");
+        }
 
         // Backfill location_inventory_adjustments.gci_part_id
-        DB::statement("
-            UPDATE location_inventory_adjustments
-            SET gci_part_id = p.gci_part_id
-            FROM parts p
-            WHERE p.id = location_inventory_adjustments.part_id
-              AND location_inventory_adjustments.part_id IS NOT NULL
-              AND location_inventory_adjustments.gci_part_id IS NULL
-              AND p.gci_part_id IS NOT NULL
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement("
+                UPDATE location_inventory_adjustments SET gci_part_id = p.gci_part_id
+                FROM parts p
+                WHERE p.id = location_inventory_adjustments.part_id
+                  AND location_inventory_adjustments.part_id IS NOT NULL AND location_inventory_adjustments.gci_part_id IS NULL AND p.gci_part_id IS NOT NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE location_inventory_adjustments lia
+                INNER JOIN parts p ON p.id = lia.part_id
+                SET lia.gci_part_id = p.gci_part_id
+                WHERE lia.part_id IS NOT NULL AND lia.gci_part_id IS NULL AND p.gci_part_id IS NOT NULL
+            ");
+        }
 
         // Backfill bin_transfers.gci_part_id
-        DB::statement("
-            UPDATE bin_transfers
-            SET gci_part_id = p.gci_part_id
-            FROM parts p
-            WHERE p.id = bin_transfers.part_id
-              AND bin_transfers.part_id IS NOT NULL
-              AND bin_transfers.gci_part_id IS NULL
-              AND p.gci_part_id IS NOT NULL
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement("
+                UPDATE bin_transfers SET gci_part_id = p.gci_part_id
+                FROM parts p
+                WHERE p.id = bin_transfers.part_id
+                  AND bin_transfers.part_id IS NOT NULL AND bin_transfers.gci_part_id IS NULL AND p.gci_part_id IS NOT NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE bin_transfers bt
+                INNER JOIN parts p ON p.id = bt.part_id
+                SET bt.gci_part_id = p.gci_part_id
+                WHERE bt.part_id IS NOT NULL AND bt.gci_part_id IS NULL AND p.gci_part_id IS NOT NULL
+            ");
+        }
 
         // Backfill purchase_order_items.gci_part_vendor_id
-        DB::statement("
-            UPDATE purchase_order_items
-            SET gci_part_vendor_id = gpv.id
-            FROM parts p
-            JOIN gci_part_vendor gpv ON gpv.gci_part_id = p.gci_part_id AND gpv.vendor_id = p.vendor_id
-            WHERE p.id = purchase_order_items.vendor_part_id
-              AND purchase_order_items.vendor_part_id IS NOT NULL
-              AND purchase_order_items.gci_part_vendor_id IS NULL
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement("
+                UPDATE purchase_order_items SET gci_part_vendor_id = gpv.id
+                FROM parts p
+                JOIN gci_part_vendor gpv ON gpv.gci_part_id = p.gci_part_id AND gpv.vendor_id = p.vendor_id
+                WHERE p.id = purchase_order_items.vendor_part_id
+                  AND purchase_order_items.vendor_part_id IS NOT NULL AND purchase_order_items.gci_part_vendor_id IS NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE purchase_order_items poi
+                INNER JOIN parts p ON p.id = poi.vendor_part_id
+                INNER JOIN gci_part_vendor gpv ON gpv.gci_part_id = p.gci_part_id AND gpv.vendor_id = p.vendor_id
+                SET poi.gci_part_vendor_id = gpv.id
+                WHERE poi.vendor_part_id IS NOT NULL AND poi.gci_part_vendor_id IS NULL
+            ");
+        }
     }
 
     public function down(): void

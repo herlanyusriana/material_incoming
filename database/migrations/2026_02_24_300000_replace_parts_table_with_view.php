@@ -8,10 +8,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Phase 3: Replace `parts` table with a database VIEW.
  *
- * 1. Re-seed gci_part_vendor with ORIGINAL parts.id preserved.
- * 2. Drop all FK constraints pointing to `parts`.
- * 3. Rename `parts` → `parts_legacy`.
- * 4. Create VIEW `parts` reading from `gci_part_vendor` + `gci_parts`.
+ * Supports both MySQL and PostgreSQL.
  */
 return new class extends Migration {
     private array $foreignKeys = [
@@ -28,27 +25,20 @@ return new class extends Migration {
 
     public function up(): void
     {
-        // ─── Step 1: Re-seed gci_part_vendor preserving original parts.id ───
-        // This ensures all existing part_id FKs in other tables remain valid.
+        $driver = DB::getDriverName();
 
-        // Clear existing auto-generated data
+        // ─── Step 1: Re-seed gci_part_vendor preserving original parts.id ───
         DB::table('gci_part_vendor')->truncate();
 
-        // Re-insert from parts table WITH explicit IDs
-        // Only include rows that have both gci_part_id and vendor_id
-        // For duplicate (gci_part_id, vendor_id) pairs, keep the one with the lowest id
         $parts = DB::table('parts')
             ->whereNotNull('gci_part_id')
             ->whereNotNull('vendor_id')
             ->orderBy('id')
             ->get();
 
-        $seen = []; // track gci_part_id-vendor_id uniqueness
-
+        $seen = [];
         foreach ($parts as $p) {
             $key = $p->gci_part_id . '-' . $p->vendor_id;
-
-            // Handle the unique constraint: skip duplicate (gci_part_id, vendor_id)
             if (isset($seen[$key])) {
                 continue;
             }
@@ -61,7 +51,7 @@ return new class extends Migration {
             }
 
             DB::table('gci_part_vendor')->insert([
-                'id' => $p->id,  // ← PRESERVE original parts.id
+                'id' => $p->id,
                 'gci_part_id' => $p->gci_part_id,
                 'vendor_id' => $p->vendor_id,
                 'vendor_part_no' => $p->part_no,
@@ -77,10 +67,14 @@ return new class extends Migration {
             ]);
         }
 
-        // Reset the sequence to match the max ID
+        // Reset auto-increment sequence
         $maxId = DB::table('gci_part_vendor')->max('id') ?? 0;
         if ($maxId > 0) {
-            DB::statement("SELECT setval(pg_get_serial_sequence('gci_part_vendor', 'id'), {$maxId})");
+            if ($driver === 'pgsql') {
+                DB::statement("SELECT setval(pg_get_serial_sequence('gci_part_vendor', 'id'), {$maxId})");
+            } else {
+                DB::statement("ALTER TABLE gci_part_vendor AUTO_INCREMENT = " . ($maxId + 1));
+            }
         }
 
         // ─── Step 2: Drop all FK constraints pointing to `parts` ───
@@ -93,7 +87,7 @@ return new class extends Migration {
                 try {
                     $blueprint->dropForeign("{$table}_{$column}_foreign");
                 } catch (\Throwable $e) {
-                    // FK might not exist or have different name
+                    // FK might not exist
                 }
             });
         }
@@ -102,6 +96,9 @@ return new class extends Migration {
         Schema::rename('parts', 'parts_legacy');
 
         // ─── Step 4: Create VIEW `parts` ───
+        // Boolean comparison differs: PG uses `= true`, MySQL uses `= 1`
+        $boolCheck = ($driver === 'pgsql') ? 'gpv.quality_inspection = true' : 'gpv.quality_inspection = 1';
+
         DB::statement("
             CREATE VIEW parts AS
             SELECT
@@ -115,7 +112,7 @@ return new class extends Migration {
                 gpv.price,
                 gpv.uom,
                 gpv.hs_code,
-                CASE WHEN gpv.quality_inspection = true THEN 'YES' ELSE NULL END AS quality_inspection,
+                CASE WHEN {$boolCheck} THEN 'YES' ELSE NULL END AS quality_inspection,
                 gpv.status,
                 gpv.created_at,
                 gpv.updated_at
