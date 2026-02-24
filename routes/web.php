@@ -127,9 +127,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('vendors', VendorController::class)->except(['show']);
     Route::get('/vendors/export', [VendorController::class, 'export'])->name('vendors.export');
     Route::post('/vendors/import', [VendorController::class, 'import'])->name('vendors.import');
-    Route::resource('parts', PartController::class)->except(['show']);
+    Route::get('/parts', [PartController::class, 'index'])->name('parts.index');
+    Route::post('/parts', [PartController::class, 'store'])->name('parts.store');
+    Route::put('/parts/{part}', [PartController::class, 'update'])->name('parts.update');
+    Route::delete('/parts/{part}', [PartController::class, 'destroy'])->name('parts.destroy');
     Route::get('/parts/export', [PartController::class, 'export'])->name('parts.export');
     Route::post('/parts/import', [PartController::class, 'import'])->name('parts.import');
+    // Vendor part CRUD under a GCI part
+    Route::post('/parts/{part}/vendor-parts', [PartController::class, 'storeVendorPart'])->name('parts.vendor-parts.store');
+    Route::put('/vendor-parts/{vendorPart}', [PartController::class, 'updateVendorPart'])->name('parts.vendor-parts.update');
+    Route::delete('/vendor-parts/{vendorPart}', [PartController::class, 'destroyVendorPart'])->name('parts.vendor-parts.destroy');
     Route::resource('truckings', TruckingController::class)->except(['show']);
     Route::resource('departures', ArrivalController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');

@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class PartController extends Controller
 {
+    /**
+     * API: search parts (vendor-level) for autocomplete.
+     * Kept as-is for backward compat with departure/arrival forms.
+     */
     public function search(Request $request)
     {
         $q = trim((string) $request->query('q', ''));
@@ -26,7 +30,6 @@ class PartController extends Controller
             $limit = 50;
         }
 
-        // Avoid returning huge datasets (and freezing the UI) when user hasn't typed a query.
         if (mb_strlen($q) < 2) {
             return response()->json([]);
         }
@@ -50,30 +53,38 @@ class PartController extends Controller
         return response()->json($query->get());
     }
 
+    /**
+     * Parts Master index: hierarchical GCI Parts with vendor parts.
+     */
     public function index(Request $request)
     {
-        $vendorId = $request->query('vendor_id');
-        $statusFilter = $request->query('status_filter');
+        $classification = $request->query('classification');
+        $status = $request->query('status', 'active');
         $search = $request->query('q');
 
-        $parts = Part::with('vendor')
-            ->when($vendorId, fn($query) => $query->where('vendor_id', $vendorId))
+        $parts = GciPart::with(['vendorLinks.vendor', 'customer'])
+            ->when($classification, fn($q) => $q->where('classification', strtoupper($classification)))
+            ->when($status, fn($q) => $q->where('status', $status))
             ->when($search, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('part_no', 'like', "%{$search}%")
-                        ->orWhere('register_no', 'like', "%{$search}%")
-                        ->orWhere('part_name_vendor', 'like', "%{$search}%")
-                        ->orWhere('part_name_gci', 'like', "%{$search}%");
+                        ->orWhere('part_name', 'like', "%{$search}%")
+                        ->orWhere('model', 'like', "%{$search}%")
+                        ->orWhereHas('vendorLinks', function ($vq) use ($search) {
+                            $vq->where('vendor_part_no', 'like', "%{$search}%")
+                                ->orWhere('vendor_part_name', 'like', "%{$search}%")
+                                ->orWhere('register_no', 'like', "%{$search}%");
+                        });
                 });
             })
-            ->when($statusFilter, fn($query) => $query->where('status', $statusFilter))
-            ->latest()
-            ->paginate(10)
+            ->orderBy('part_no')
+            ->paginate(25)
             ->withQueryString();
 
         $vendors = Vendor::orderBy('vendor_name')->get();
+        $customers = \App\Models\Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('parts.index', compact('parts', 'vendors', 'vendorId', 'search', 'statusFilter'));
+        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search'));
     }
 
     public function export()
@@ -99,7 +110,6 @@ class PartController extends Controller
         try {
             $filePath = null;
             if ($file) {
-                // Save original file to temp storage
                 $filename = 'import_parts_' . auth()->id() . '_' . time() . '.' . $file->getClientOriginalExtension();
                 $filePath = $file->storeAs('temp', $filename);
             } else {
@@ -113,7 +123,6 @@ class PartController extends Controller
             $import = new PartsImport($confirm);
             Excel::import($import, \Illuminate\Support\Facades\Storage::path($filePath));
 
-            // Check for skipped duplicates
             $dupMsg = '';
             if (!empty($import->duplicates)) {
                 $dupCount = count($import->duplicates);
@@ -132,7 +141,6 @@ class PartController extends Controller
 
             $createdVendors = $import->createdVendors();
 
-            // Delete temp file on success
             \Illuminate\Support\Facades\Storage::delete($filePath);
 
             $msg = "Parts imported successfully.{$dupMsg}";
@@ -146,7 +154,6 @@ class PartController extends Controller
             return back()->with('status', $msg);
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {
-                // Keep file logic if reusable? Complexity. Let's delete for now on validation error.
                 if (isset($filePath))
                     \Illuminate\Support\Facades\Storage::delete($filePath);
 
@@ -163,133 +170,104 @@ class PartController extends Controller
         }
     }
 
-    public function create()
-    {
-        $vendors = Vendor::orderBy('vendor_name')->get();
-        $part = new Part();
-
-        return view('parts.create', compact('vendors', 'part'));
-    }
+    // ─── GCI Part CRUD ───
 
     public function store(Request $request)
     {
-        $rules = [
-            'register_no' => ['required', 'string', 'max:255'],
+        $data = $request->validate([
             'part_no' => ['required', 'string', 'max:255'],
-            'part_name_vendor' => ['required', 'string', 'max:255'],
-            'part_name_gci' => ['required', 'string', 'max:255'],
-            'hs_code' => ['nullable', 'string', 'max:50'],
-            'quality_inspection' => ['nullable', 'in:YES'],
-            'vendor_id' => ['required', 'exists:vendors,id'],
+            'part_name' => ['nullable', 'string', 'max:255'],
+            'model' => ['nullable', 'string', 'max:255'],
+            'classification' => ['required', 'in:FG,WIP,RM'],
+            'customer_id' => ['nullable', 'exists:customers,id'],
             'status' => ['required', 'in:active,inactive'],
-            'price' => ['nullable', 'numeric', 'min:0'],
-            'uom' => ['nullable', 'string', 'max:10'],
-        ];
+        ]);
 
-        $validated = $request->validate($rules);
-
-        // Check for duplicates
-        if (!$request->boolean('confirm_duplicate')) {
-            if (Part::where('part_no', $validated['part_no'])->exists()) {
-                return back()
-                    ->withInput()
-                    ->with('duplicate_warning', "Part number '{$validated['part_no']}' already exists. Do you want to proceed creating a duplicate?");
-            }
-        }
-
-        // --- Logic to Link to GCI Part (The Bridge) ---
-        $gciPart = GciPart::where('part_no', $validated['part_no'])->first();
-
-        if (!$gciPart && !empty($validated['part_name_gci'])) {
-            $gciPart = GciPart::where('part_name', $validated['part_name_gci'])->first();
-        }
-
-        if (!$gciPart) {
-            $gciPart = GciPart::create([
-                'part_no' => $validated['part_no'],
-                'part_name' => $validated['part_name_gci'],
-                'classification' => 'RM',
-                'status' => 'active',
-            ]);
-        }
-
-        $validated['gci_part_id'] = $gciPart->id;
-        // ----------------------------------------------
-
-        // Write to gci_part_vendor (the real table)
-        GciPartVendor::updateOrCreate(
-            ['gci_part_id' => $gciPart->id, 'vendor_id' => $validated['vendor_id']],
-            [
-                'vendor_part_no' => $validated['part_no'],
-                'vendor_part_name' => $validated['part_name_vendor'],
-                'register_no' => $validated['register_no'] ?? null,
-                'price' => $validated['price'] ?? 0,
-                'uom' => $validated['uom'] ?? null,
-                'hs_code' => $validated['hs_code'] ?? null,
-                'quality_inspection' => ($validated['quality_inspection'] ?? null) === 'YES',
-                'status' => $validated['status'],
-            ]
-        );
+        GciPart::create($data);
 
         return redirect()->route('parts.index')->with('status', 'Part created.');
     }
 
-    public function edit(Part $part)
-    {
-        $vendors = Vendor::orderBy('vendor_name')->get();
-
-        return view('parts.edit', compact('part', 'vendors'));
-    }
-
-    public function update(Request $request, Part $part)
+    public function update(Request $request, GciPart $part)
     {
         $data = $request->validate([
-            'register_no' => ['required', 'string', 'max:255'],
             'part_no' => ['required', 'string', 'max:255'],
-            'part_name_vendor' => ['required', 'string', 'max:255'],
-            'part_name_gci' => ['required', 'string', 'max:255'],
-            'hs_code' => ['nullable', 'string', 'max:50'],
-            'quality_inspection' => ['nullable', 'in:YES'],
-            'vendor_id' => ['required', 'exists:vendors,id'],
+            'part_name' => ['nullable', 'string', 'max:255'],
+            'model' => ['nullable', 'string', 'max:255'],
+            'classification' => ['required', 'in:FG,WIP,RM'],
+            'customer_id' => ['nullable', 'exists:customers,id'],
             'status' => ['required', 'in:active,inactive'],
-            'price' => ['nullable', 'numeric', 'min:0'],
-            'uom' => ['nullable', 'string', 'max:10'],
         ]);
 
-        // Part view ID = gci_part_vendor.id — update the real table
-        $vendorLink = GciPartVendor::find($part->id);
-        if ($vendorLink) {
-            // Also update gci_parts.part_name if part_name_gci changed
-            if ($vendorLink->gciPart && $data['part_name_gci'] !== $vendorLink->gciPart->part_name) {
-                $vendorLink->gciPart->update(['part_name' => $data['part_name_gci']]);
-            }
-
-            $vendorLink->update([
-                'vendor_id' => $data['vendor_id'],
-                'vendor_part_no' => strtoupper(trim($data['part_no'])),
-                'vendor_part_name' => strtoupper(trim($data['part_name_vendor'])),
-                'register_no' => $data['register_no'] ?? null,
-                'price' => $data['price'] ?? 0,
-                'uom' => $data['uom'] ?? null,
-                'hs_code' => $data['hs_code'] ?? null,
-                'quality_inspection' => ($data['quality_inspection'] ?? null) === 'YES',
-                'status' => $data['status'],
-            ]);
-        }
+        $part->update($data);
 
         return redirect()->route('parts.index')->with('status', 'Part updated.');
     }
 
-    public function destroy(Part $part)
+    public function destroy(GciPart $part)
     {
-        // Delete from the real table (gci_part_vendor)
-        $vendorLink = GciPartVendor::find($part->id);
-        if ($vendorLink) {
-            $vendorLink->delete();
+        if ($part->vendorLinks()->count() > 0) {
+            return back()->with('error', 'Cannot delete part with vendor links. Remove vendor parts first.');
         }
+
+        $part->delete();
 
         return redirect()->route('parts.index')->with('status', 'Part deleted.');
     }
+
+    // ─── Vendor Part CRUD ───
+
+    public function storeVendorPart(Request $request, GciPart $part)
+    {
+        $data = $request->validate([
+            'vendor_id' => ['required', 'exists:vendors,id'],
+            'vendor_part_no' => ['nullable', 'string', 'max:255'],
+            'vendor_part_name' => ['nullable', 'string', 'max:255'],
+            'register_no' => ['nullable', 'string', 'max:255'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'uom' => ['nullable', 'string', 'max:20'],
+            'hs_code' => ['nullable', 'string', 'max:50'],
+            'quality_inspection' => ['nullable', 'in:YES'],
+            'status' => ['required', 'in:active,inactive'],
+        ]);
+
+        $data['gci_part_id'] = $part->id;
+        $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
+
+        GciPartVendor::create($data);
+
+        return redirect()->route('parts.index')->with('status', 'Vendor part added.');
+    }
+
+    public function updateVendorPart(Request $request, GciPartVendor $vendorPart)
+    {
+        $data = $request->validate([
+            'vendor_id' => ['required', 'exists:vendors,id'],
+            'vendor_part_no' => ['nullable', 'string', 'max:255'],
+            'vendor_part_name' => ['nullable', 'string', 'max:255'],
+            'register_no' => ['nullable', 'string', 'max:255'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'uom' => ['nullable', 'string', 'max:20'],
+            'hs_code' => ['nullable', 'string', 'max:50'],
+            'quality_inspection' => ['nullable', 'in:YES'],
+            'status' => ['required', 'in:active,inactive'],
+        ]);
+
+        $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
+
+        $vendorPart->update($data);
+
+        return redirect()->route('parts.index')->with('status', 'Vendor part updated.');
+    }
+
+    public function destroyVendorPart(GciPartVendor $vendorPart)
+    {
+        $vendorPart->delete();
+
+        return redirect()->route('parts.index')->with('status', 'Vendor part deleted.');
+    }
+
+    // ─── API: vendor-scoped part lookup (backward compat) ───
 
     public function byVendor(Request $request, Vendor $vendor)
     {
@@ -331,7 +309,6 @@ class PartController extends Controller
             ->where('vendor_id', $vendor->id)
             ->where('status', 'active')
             ->when($groupTitle !== '', function ($qr) use ($groupTitle) {
-                // Case-insensitive exact match by normalized title.
                 $qr->whereRaw('UPPER(TRIM(part_name_vendor)) = UPPER(?)', [$groupTitle]);
             })
             ->when($q !== '', function ($qr) use ($q) {
@@ -357,7 +334,6 @@ class PartController extends Controller
             ]);
         }
 
-        // Backward-compat: keep returning a plain array for existing pages.
         return response()->json($parts);
     }
 }

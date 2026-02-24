@@ -1,393 +1,386 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="space-y-1">
-            <h2 class="text-2xl font-semibold text-gray-900">Part Number Management</h2>
-            <p class="text-sm text-gray-500">Kelola registrasi part number beserta daftar yang sudah tercatat.</p>
-        </div>
-    </x-slot>
+    <x-slot name="header">Parts Master</x-slot>
 
-    <div class="py-8">
-        <div class="px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="py-3" x-data="partsMaster()">
+        <div class="px-4 sm:px-6 lg:px-8 space-y-4">
             @if (session('status'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-                    {{ session('status') }}
-                </div>
+                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">{{ session('status') }}</div>
             @endif
-            
             @if (session('error'))
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
-                    {{ session('error') }}
-                </div>
+                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
             @endif
 
-            @php
-                $vendorMap = $vendors->pluck('vendor_name', 'id');
-                $filterVendorName = $vendorMap[$vendorId ?? null] ?? '';
-            @endphp
+            <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-4 space-y-4">
+                {{-- Filters --}}
+                <div class="flex flex-wrap items-end justify-between gap-3">
+                    <form method="GET" class="flex items-end gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Classification</label>
+                            <select name="classification" class="mt-1 rounded-xl border-slate-200 text-sm">
+                                <option value="">All</option>
+                                <option value="FG" @selected(($classification ?? '') === 'FG')>FG</option>
+                                <option value="WIP" @selected(($classification ?? '') === 'WIP')>WIP</option>
+                                <option value="RM" @selected(($classification ?? '') === 'RM')>RM</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Status</label>
+                            <select name="status" class="mt-1 rounded-xl border-slate-200 text-sm">
+                                <option value="">All</option>
+                                <option value="active" @selected(($status ?? '') === 'active')>Active</option>
+                                <option value="inactive" @selected(($status ?? '') === 'inactive')>Inactive</option>
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
+                            <input name="q" value="{{ $search ?? '' }}" class="rounded-xl border-slate-200 pl-10 text-sm" placeholder="Search part...">
+                        </div>
+                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold">Filter</button>
+                    </form>
 
-            <section class="bg-white border rounded-xl shadow-sm p-6 space-y-6">
-                <div class="space-y-2">
-                    <h3 class="text-lg font-semibold text-gray-900">Existing Part Numbers</h3>
-                    <p class="text-sm text-gray-500">Gunakan filter untuk mempercepat pencarian part.</p>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('parts.export') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Export</a>
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold" @click="importOpen=true">Import</button>
+                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold" @click="openCreatePart()">+ Add Part</button>
+                    </div>
                 </div>
 
-                <form method="GET" id="parts-filter-form" class="grid gap-4 md:grid-cols-4">
-                    <div class="md:col-span-2">
-                        <x-input type="search" name="q" label="Search" placeholder="Cari part..." :value="$search" :preserve-old="false" />
-                    </div>
-                    <div class="space-y-1">
-                        <label for="filter-vendor-name" class="block text-sm font-medium text-gray-700">Vendor</label>
-                        <div class="relative">
-                            <input
-                                type="text"
-                                id="filter-vendor-name"
-                                name="vendor_name_display"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                placeholder="Ketik nama vendor..."
-                                autocomplete="off"
-                                value="{{ $filterVendorName }}"
-                            />
-                            <div id="filter-vendor-suggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
-                        </div>
-                        <input type="hidden" name="vendor_id" id="filter-vendor-id" value="{{ $vendorId }}">
-                    </div>
-                    <div>
-                        <x-select name="status_filter" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" :value="$statusFilter" placeholder="Semua status" :preserve-old="false" />
-                    </div>
-                    <div class="md:col-span-4 flex justify-end gap-3">
-                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" />
-                            </svg>
-                            Apply Filters
-                        </button>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <a href="{{ route('parts.export') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0-3-3m3 3 3-3m2 8H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
-                            </svg>
-                            Export
-                        </a>
-                        <button type="button" onclick="document.getElementById('import-part-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-6m0 0 3 3m-3-3-3 3m8-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
-                            Import
-                        </button>
-                    </div>
-                </form>
-
-                @php
-                    $groupedParts = $parts->getCollection()->groupBy(function ($part) {
-                        return $part->part_name_vendor ?: 'Unspecified Vendor Part';
-                    });
-                @endphp
-
+                {{-- Table --}}
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">GCI Part Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Part Number</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Size</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">HS Code</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Price / UOM</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                    <table class="min-w-full text-sm divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr class="text-slate-600 text-xs uppercase tracking-wider">
+                                <th class="px-4 py-3 text-left font-semibold w-8"></th>
+                                <th class="px-4 py-3 text-left font-semibold">Customer</th>
+                                <th class="px-4 py-3 text-left font-semibold">Part No</th>
+                                <th class="px-4 py-3 text-left font-semibold">Part Name</th>
+                                <th class="px-4 py-3 text-left font-semibold">Model</th>
+                                <th class="px-4 py-3 text-left font-semibold">Type</th>
+                                <th class="px-4 py-3 text-center font-semibold">Vendors</th>
+                                <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                <th class="px-4 py-3 text-right font-semibold">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($groupedParts as $vendorPartName => $group)
-                                @php
-                                    $statusCounts = $group->groupBy('status')->map(fn($items) => $items->count());
-                                    $primaryVendor = $group->first();
-                                @endphp
-                                <tr class="bg-slate-50/70">
-                                    <td colspan="7" class="px-4 py-3">
-                                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                                            <div>
-                                                <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Vendor Part Name</p>
-                                                <p class="text-base font-semibold text-slate-900">{{ $vendorPartName }}</p>
-                                                <p class="text-xs text-slate-500">
-                                                    Vendor: {{ optional($group->first()->vendor)->vendor_name ?? 'Unassigned Vendor' }} &bull;
-                                                    {{ $group->count() }} GCI {{ $group->count() === 1 ? 'name' : 'names' }}
-                                                </p>
-                                            </div>
-                                            <div class="flex flex-wrap gap-2 text-xs text-slate-500">
-                                                @foreach ($statusCounts as $status => $count)
-                                                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
-                                                        {{ ucfirst($status) }}: {{ $count }}
-                                                    </span>
-                                                @endforeach
-                                                {{-- Registration moved to Register Part page --}}
-                                            </div>
-                                        </div>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse ($parts as $p)
+                                {{-- GCI Part row --}}
+                                <tr class="hover:bg-slate-50 cursor-pointer" @click="toggle({{ $p->id }})">
+                                    <td class="px-4 py-3">
+                                        <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="expanded[{{ $p->id }}] && 'rotate-90'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if($p->customer)
+                                            <span class="font-bold text-indigo-700">{{ $p->customer->code }}</span>
+                                            <div class="text-[10px] text-slate-500">{{ $p->customer->name }}</div>
+                                        @else
+                                            <span class="text-slate-400 italic text-xs">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                    <td class="px-4 py-3">
+                                        @php
+                                            $classColors = [
+                                                'FG' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                                'WIP' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                                'RM' => 'bg-green-100 text-green-800 border-green-200',
+                                            ];
+                                            $color = $classColors[$p->classification] ?? 'bg-slate-100 text-slate-700 border-slate-200';
+                                        @endphp
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border {{ $color }}">{{ $p->classification }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold {{ $p->vendorLinks->count() > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500' }}">{{ $p->vendorLinks->count() }}</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $p->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">{{ strtoupper($p->status) }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right" @click.stop>
+                                        <button type="button" class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold" @click="openEditPart(@js($p))">Edit</button>
+                                        <button type="button" class="ml-2 text-emerald-600 hover:text-emerald-800 text-xs font-semibold" @click="openCreateVendorPart({{ $p->id }})">+ Vendor</button>
+                                        <form action="{{ route('parts.destroy', $p) }}" method="POST" class="inline" onsubmit="return confirm('Delete this part?')">
+                                            @csrf @method('DELETE')
+                                            <button class="ml-2 text-red-600 hover:text-red-800 text-xs font-semibold">Del</button>
+                                        </form>
                                     </td>
                                 </tr>
-                                @foreach ($group as $part)
-                                    <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="px-4 py-4 text-sm text-slate-800">
-                                            <div class="ml-6 pl-4 border-l-2 border-slate-100">
-                                                <p class="font-semibold text-slate-900">{{ $part->part_name_gci }}</p>
-                                                <p class="text-xs text-slate-500">Updated: {{ $part->updated_at?->format('d M Y') ?? '-' }}</p>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-4 text-sm text-slate-700">{{ $part->part_no }}</td>
-                                        <td class="px-4 py-4 text-sm text-slate-700">{{ $part->register_no }}</td>
-                                        <td class="px-4 py-4 text-sm text-slate-600">{{ $part->hs_code ?? '-' }}</td>
-                                        <td class="px-4 py-4 text-sm text-slate-700 font-semibold">{{ strtoupper((string) ($part->quality_inspection ?? '')) === 'YES' ? 'YES' : '-' }}</td>
-                                        <td class="px-4 py-4 text-sm text-slate-700">
-                                            @if($part->price > 0)
-                                                <div class="font-medium text-slate-900">{{ number_format($part->price, 0) }}</div>
-                                                <div class="text-xs text-slate-500">{{ $part->uom ? '/ ' . $part->uom : '' }}</div>
-                                            @else
-                                                <span class="text-slate-400">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-4">
-                                            <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $part->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600' }}">
-                                                {{ ucfirst($part->status) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-4 text-right text-sm">
-                                            <div class="inline-flex items-center gap-3">
-                                                <a href="{{ route('parts.edit', $part) }}" class="text-blue-600 hover:text-blue-700 font-medium">Edit</a>
-                                                <form method="POST" action="{{ route('parts.destroy', $part) }}" onsubmit="return confirm('Delete this part?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
+
+                                {{-- Vendor parts (expandable) --}}
+                                @if($p->vendorLinks->count() > 0)
+                                    <template x-if="expanded[{{ $p->id }}]">
+                                        <tr>
+                                            <td colspan="9" class="px-0 py-0">
+                                                <div class="bg-gradient-to-r from-indigo-50/50 to-slate-50 border-l-4 border-indigo-300 mx-4 my-2 rounded-lg overflow-hidden">
+                                                    <table class="min-w-full text-xs divide-y divide-indigo-100">
+                                                        <thead class="bg-indigo-50/80">
+                                                            <tr class="text-indigo-600 uppercase tracking-wider">
+                                                                <th class="px-4 py-2 text-left font-semibold">Vendor</th>
+                                                                <th class="px-4 py-2 text-left font-semibold">Vendor Part No</th>
+                                                                <th class="px-4 py-2 text-left font-semibold">Vendor Part Name</th>
+                                                                <th class="px-4 py-2 text-left font-semibold">Register No</th>
+                                                                <th class="px-4 py-2 text-right font-semibold">Price</th>
+                                                                <th class="px-4 py-2 text-left font-semibold">UOM</th>
+                                                                <th class="px-4 py-2 text-left font-semibold">HS Code</th>
+                                                                <th class="px-4 py-2 text-left font-semibold">QI</th>
+                                                                <th class="px-4 py-2 text-left font-semibold">Status</th>
+                                                                <th class="px-4 py-2 text-right font-semibold">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="divide-y divide-indigo-50 bg-white/60">
+                                                            @foreach($p->vendorLinks as $vl)
+                                                                <tr class="hover:bg-indigo-50/40">
+                                                                    <td class="px-4 py-2 font-semibold text-slate-800">{{ $vl->vendor->vendor_name ?? '-' }}</td>
+                                                                    <td class="px-4 py-2 text-slate-700">{{ $vl->vendor_part_no ?? '-' }}</td>
+                                                                    <td class="px-4 py-2 text-slate-700">{{ $vl->vendor_part_name ?? '-' }}</td>
+                                                                    <td class="px-4 py-2 text-slate-600">{{ $vl->register_no ?? '-' }}</td>
+                                                                    <td class="px-4 py-2 text-right font-medium text-slate-900">{{ number_format($vl->price, 2) }}</td>
+                                                                    <td class="px-4 py-2 text-slate-600">{{ $vl->uom ?? '-' }}</td>
+                                                                    <td class="px-4 py-2 text-slate-600">{{ $vl->hs_code ?? '-' }}</td>
+                                                                    <td class="px-4 py-2">
+                                                                        @if($vl->quality_inspection)
+                                                                            <span class="text-emerald-600 font-bold">YES</span>
+                                                                        @else
+                                                                            <span class="text-slate-400">—</span>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="px-4 py-2">
+                                                                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold {{ $vl->status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">{{ strtoupper($vl->status) }}</span>
+                                                                    </td>
+                                                                    <td class="px-4 py-2 text-right">
+                                                                        <button type="button" class="text-indigo-600 hover:text-indigo-800 font-semibold" @click="openEditVendorPart(@js($vl))">Edit</button>
+                                                                        <form action="{{ route('parts.vendor-parts.destroy', $vl) }}" method="POST" class="inline" onsubmit="return confirm('Delete this vendor part?')">
+                                                                            @csrf @method('DELETE')
+                                                                            <button class="ml-2 text-red-600 hover:text-red-800 font-semibold">Del</button>
+                                                                        </form>
+                                                                    </td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                @endif
                             @empty
-                                <tr>
-                                    <td colspan="7">
-                                        <div class="py-12 text-center text-slate-500">
-                                            <p class="text-lg font-semibold mb-2">No part numbers found</p>
-                                            <p class="text-sm">Use the form above to register the first record.</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No parts found</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
 
-                <div>
-                    {{ $parts->links() }}
-                </div>
-            </section>
-        </div>
-    </div>
-
-    <!-- Import Modal -->
-    <div id="import-part-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
-                <h3 class="text-lg font-bold text-slate-900">Import Parts</h3>
-                <button type="button" onclick="document.getElementById('import-part-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                <div class="mt-4">{{ $parts->links() }}</div>
             </div>
-            
-            <form action="{{ route('parts.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Upload Excel File</label>
-                    <input type="file" name="file" accept=".xlsx,.xls" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <p class="mt-2 text-xs text-slate-500">Accepted formats: .xlsx, .xls (Max: 2MB)</p>
-                </div>
-                
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p class="text-xs text-blue-800 font-medium mb-1">Kolom wajib (nama harus sama):</p>
-                    <p class="text-xs text-blue-700">vendor, vendor_type, part_no, size</p>
-                    <p class="text-xs text-blue-800 font-medium mt-2 mb-1">Kolom opsional:</p>
-                    <p class="text-xs text-blue-700">part_name_vendor, part_name_gci, hs_code, quality_inspection, status</p>
-                    <p class="text-xs text-blue-600 mt-1">Tip: Klik Export untuk dapat template yang sesuai.</p>
-                </div>
-                
-                <div class="flex gap-3 pt-2">
-                    <button type="button" onclick="document.getElementById('import-part-modal').classList.add('hidden')" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-                        Upload & Import
-                    </button>
-                </div>
-            </form>
         </div>
-    </div>
 
-    <!-- Duplicate Confirmation Modal -->
-    @if(session('import_duplicates'))
-        <div id="duplicate-confirmation-modal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
-                <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-yellow-50 rounded-t-2xl">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-yellow-100 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
+        {{-- GCI Part Modal --}}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="partModal" x-cloak @keydown.escape.window="partModal=false">
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                    <div class="text-sm font-semibold text-slate-900" x-text="partMode === 'create' ? 'Add Part' : 'Edit Part'"></div>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="partModal=false">✕</button>
+                </div>
+                <form :action="partAction" method="POST" class="px-5 py-4 space-y-4">
+                    @csrf
+                    <template x-if="partMode==='edit'"><input type="hidden" name="_method" value="PUT"></template>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Customer (Optional)</label>
+                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.customer_id">
+                            <option value="">— No Customer —</option>
+                            @foreach($customers as $c)
+                                <option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Part No <span class="text-red-500">*</span></label>
+                            <input name="part_no" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required x-model="partForm.part_no">
                         </div>
                         <div>
-                            <h3 class="text-lg font-bold text-gray-900">Existing Data Found</h3>
-                            <p class="text-sm text-yellow-700">The following parts already exist in the database.</p>
+                            <label class="text-sm font-semibold text-slate-700">Classification <span class="text-red-500">*</span></label>
+                            <select name="classification" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required x-model="partForm.classification">
+                                <option value="FG">FG</option>
+                                <option value="WIP">WIP</option>
+                                <option value="RM">RM</option>
+                            </select>
                         </div>
                     </div>
-                </div>
-                
-                <div class="p-6 overflow-y-auto">
-                    <p class="text-sm text-gray-600 mb-4">Are you sure you want to import them as NEW records (duplicates)?</p>
-                    
-                    <div class="border border-gray-200 rounded-lg overflow-hidden">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Row</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Part No</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Vendor</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Part Name</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
-                                @foreach(session('import_duplicates') as $dup)
-                                    <tr>
-                                        <td class="px-3 py-2 text-gray-500">{{ $dup['row'] }}</td>
-                                        <td class="px-3 py-2 font-semibold text-gray-900">{{ $dup['part_no'] }}</td>
-                                        <td class="px-3 py-2 text-gray-600">{{ $dup['vendor'] ?? '-' }}</td>
-                                        <td class="px-3 py-2 text-gray-600">{{ $dup['part_name_vendor'] ?? ($dup['part_name_gci'] ?? '-') }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Part Name</label>
+                        <input name="part_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.part_name">
                     </div>
-                </div>
-                
-                <div class="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl">
-                    <a href="{{ route('parts.index') }}" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-white transition-colors decoration-0">
-                        Cancel Import
-                    </a>
-                    
-                    <form action="{{ route('parts.import') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="temp_file" value="{{ session('temp_file') }}">
-                        <input type="hidden" name="confirm_import" value="1">
-                        <button type="submit" class="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-medium rounded-lg transition-colors shadow-sm">
-                            Yes, Proceed with Duplicates
-                        </button>
-                    </form>
-                </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Model</label>
+                            <input name="model" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.model">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Status</label>
+                            <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.status">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm" @click="partModal=false">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">Save</button>
+                    </div>
+                </form>
             </div>
         </div>
-    @endif
 
+        {{-- Vendor Part Modal --}}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="vpModal" x-cloak @keydown.escape.window="vpModal=false">
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                    <div class="text-sm font-semibold text-slate-900" x-text="vpMode === 'create' ? 'Add Vendor Part' : 'Edit Vendor Part'"></div>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="vpModal=false">✕</button>
+                </div>
+                <form :action="vpAction" method="POST" class="px-5 py-4 space-y-4">
+                    @csrf
+                    <template x-if="vpMode==='edit'"><input type="hidden" name="_method" value="PUT"></template>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Vendor <span class="text-red-500">*</span></label>
+                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required x-model="vpForm.vendor_id">
+                            <option value="">Select vendor...</option>
+                            @foreach($vendors as $v)
+                                <option value="{{ $v->id }}">{{ $v->vendor_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Vendor Part No</label>
+                            <input name="vendor_part_no" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.vendor_part_no">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Register No</label>
+                            <input name="register_no" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.register_no">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Vendor Part Name</label>
+                        <input name="vendor_part_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.vendor_part_name">
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Price</label>
+                            <input name="price" type="number" step="0.001" min="0" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.price">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">UOM</label>
+                            <input name="uom" class="mt-1 w-full rounded-xl border-slate-200 text-sm" placeholder="PCS" x-model="vpForm.uom">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">HS Code</label>
+                            <input name="hs_code" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.hs_code">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Quality Inspection</label>
+                            <select name="quality_inspection" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.quality_inspection">
+                                <option value="">No</option>
+                                <option value="YES">Yes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Status</label>
+                            <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.status">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm" @click="vpModal=false">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-    <script>
-        const vendorsData = @json($vendors->map(fn($v) => ['id' => $v->id, 'name' => $v->vendor_name])->values());
+        {{-- Import Modal --}}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importOpen" x-cloak @keydown.escape.window="importOpen=false">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                    <div class="text-sm font-semibold text-slate-900">Import Parts</div>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="importOpen=false">✕</button>
+                </div>
+                <form action="{{ route('parts.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+                    @csrf
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Excel File</label>
+                        <input type="file" name="file" accept=".xlsx,.xls" required class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm" @click="importOpen=false">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-        function attachTypeahead(inputId, hiddenId, boxId, options = {}) {
-            const { suggestionsOnFocus = false, onSelected = null, autoSubmitFormId = null } = options;
-            const input = document.getElementById(inputId);
-            const hidden = document.getElementById(hiddenId);
-            const box = document.getElementById(boxId);
-            if (!input || !hidden || !box) return;
+        <script>
+            function partsMaster() {
+                return {
+                    expanded: {},
+                    importOpen: false,
 
-            function submitIfNeeded() {
-                if (autoSubmitFormId) {
-                    const form = document.getElementById(autoSubmitFormId);
-                    if (form) form.submit();
+                    // GCI Part modal
+                    partModal: false,
+                    partMode: 'create',
+                    partAction: @js(route('parts.store')),
+                    partForm: { customer_id: '', part_no: '', part_name: '', model: '', classification: 'RM', status: 'active' },
+
+                    // Vendor Part modal
+                    vpModal: false,
+                    vpMode: 'create',
+                    vpAction: '',
+                    vpForm: { vendor_id: '', vendor_part_no: '', vendor_part_name: '', register_no: '', price: 0, uom: '', hs_code: '', quality_inspection: '', status: 'active' },
+
+                    toggle(id) { this.expanded[id] = !this.expanded[id]; },
+
+                    openCreatePart() {
+                        this.partMode = 'create';
+                        this.partAction = @js(route('parts.store'));
+                        this.partForm = { customer_id: '', part_no: '', part_name: '', model: '', classification: 'RM', status: 'active' };
+                        this.partModal = true;
+                    },
+                    openEditPart(p) {
+                        this.partMode = 'edit';
+                        this.partAction = @js(url('/parts')) + '/' + p.id;
+                        this.partForm = { customer_id: p.customer_id || '', part_no: p.part_no, part_name: p.part_name || '', model: p.model || '', classification: p.classification, status: p.status };
+                        this.partModal = true;
+                    },
+
+                    openCreateVendorPart(partId) {
+                        this.vpMode = 'create';
+                        this.vpAction = @js(url('/parts')) + '/' + partId + '/vendor-parts';
+                        this.vpForm = { vendor_id: '', vendor_part_no: '', vendor_part_name: '', register_no: '', price: 0, uom: '', hs_code: '', quality_inspection: '', status: 'active' };
+                        this.vpModal = true;
+                    },
+                    openEditVendorPart(vl) {
+                        this.vpMode = 'edit';
+                        this.vpAction = @js(url('/vendor-parts')) + '/' + vl.id;
+                        this.vpForm = {
+                            vendor_id: vl.vendor_id,
+                            vendor_part_no: vl.vendor_part_no || '',
+                            vendor_part_name: vl.vendor_part_name || '',
+                            register_no: vl.register_no || '',
+                            price: vl.price || 0,
+                            uom: vl.uom || '',
+                            hs_code: vl.hs_code || '',
+                            quality_inspection: vl.quality_inspection ? 'YES' : '',
+                            status: vl.status || 'active',
+                        };
+                        this.vpModal = true;
+                    },
                 }
             }
-
-            function renderSuggestions(query, force = false) {
-                const q = query.toLowerCase();
-                if (!q && !force) {
-                    box.classList.add('hidden');
-                    return;
-                }
-
-                const matches = vendorsData
-                    .filter(v => force ? true : v.name.toLowerCase().includes(q))
-                    .slice(0, 8);
-
-                if (!matches.length) {
-                    box.innerHTML = '<div class="px-4 py-2 text-gray-500 text-sm italic">Tidak ada vendor ditemukan</div>';
-                    box.classList.remove('hidden');
-                    return;
-                }
-
-                box.innerHTML = matches.map(v => {
-                    const idx = v.name.toLowerCase().indexOf(q);
-                    let highlighted = v.name;
-                    if (idx !== -1) {
-                        highlighted = v.name.substring(0, idx) +
-                            '<span class="font-semibold text-blue-600">' +
-                            v.name.substring(idx, idx + q.length) +
-                            '</span>' +
-                            v.name.substring(idx + q.length);
-                    }
-                    return `<div class="px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-0" data-id="${v.id}" data-name="${v.name}">${highlighted}</div>`;
-                }).join('');
-
-                box.classList.remove('hidden');
-            }
-
-            input.addEventListener('input', (e) => {
-                hidden.value = '';
-                renderSuggestions(e.target.value.trim());
-            });
-
-            box.addEventListener('click', (e) => {
-                const item = e.target.closest('[data-id]');
-                if (!item) return;
-                input.value = item.dataset.name;
-                hidden.value = item.dataset.id;
-                box.classList.add('hidden');
-                if (typeof onSelected === 'function') onSelected(item.dataset);
-                submitIfNeeded();
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!box.contains(e.target) && !input.contains(e.target)) {
-                    box.classList.add('hidden');
-                }
-            });
-
-            input.addEventListener('focus', () => {
-                if (input.value.trim().length > 0) {
-                    renderSuggestions(input.value.trim());
-                } else if (suggestionsOnFocus) {
-                    renderSuggestions('', true);
-                }
-            });
-
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    box.classList.add('hidden');
-                }
-                if (e.key === 'Enter') {
-                    const first = box.querySelector('[data-id]');
-                    if (first) {
-                        e.preventDefault();
-                        input.value = first.dataset.name;
-                        hidden.value = first.dataset.id;
-                        box.classList.add('hidden');
-                        if (typeof onSelected === 'function') onSelected(first.dataset);
-                        submitIfNeeded();
-                    }
-                }
-            });
-        }
-
-        attachTypeahead('filter-vendor-name', 'filter-vendor-id', 'filter-vendor-suggestions', {
-            suggestionsOnFocus: true,
-            autoSubmitFormId: 'parts-filter-form'
-        });
-    </script>
+        </script>
+    </div>
 </x-app-layout>
