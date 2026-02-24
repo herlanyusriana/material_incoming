@@ -94,6 +94,11 @@ class PurchaseOrderController extends Controller
                     ->where('vendor_id', $vendorId)
                     ->first();
 
+                // Skip item if it doesn't have a vendor link to the selected PO vendor
+                if (!$vendorLink) {
+                    continue;
+                }
+
                 // Also resolve legacy parts table for vendor_part_id (backward compat)
                 $vendorPart = Part::where('gci_part_id', $item['part_id'])
                     ->where('vendor_id', $vendorId)

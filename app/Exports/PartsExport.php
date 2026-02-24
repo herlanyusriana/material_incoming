@@ -30,6 +30,23 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 
     public function headings(): array
     {
+        if (strtoupper($this->classification) === 'RM') {
+            return [
+                'Classificat',
+                'vendor',
+                'vendor_type',
+                'part_no',
+                'size',
+                'part_name_vendor',
+                'part_name_gci',
+                'hs_code',
+                'quality_inspection',
+                'price',
+                'uom',
+                'status',
+            ];
+        }
+
         return [
             'classification',
             'part_no',
@@ -37,15 +54,6 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             'model',
             'customer',
             'status',
-            'vendor',
-            'vendor_part_no',
-            'vendor_part_name',
-            'register_no',
-            'price',
-            'uom',
-            'hs_code',
-            'quality_inspection',
-            'vendor_status',
         ];
     }
 
@@ -53,29 +61,43 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     {
         $rows = [];
 
-        // If part has vendor links (RM), output one row per vendor link
-        if ($part->vendorLinks->count() > 0) {
-            foreach ($part->vendorLinks as $vl) {
+        if (strtoupper($this->classification) === 'RM') {
+            // RM Export format
+            if ($part->vendorLinks->count() > 0) {
+                foreach ($part->vendorLinks as $vl) {
+                    $rows[] = [
+                        $part->classification,
+                        $vl->vendor->vendor_name ?? '',
+                        $vl->vendor->vendor_type ?? '',
+                        $vl->vendor_part_no ?? '',
+                        $vl->register_no ?? '',
+                        $vl->vendor_part_name ?? '',
+                        $part->part_name ?? '',
+                        $vl->hs_code ?? '',
+                        $vl->quality_inspection ? 'YES' : '-',
+                        $vl->price ?? 0,
+                        $vl->uom ?? '',
+                        $vl->status ?? 'active',
+                    ];
+                }
+            } else {
                 $rows[] = [
                     $part->classification,
-                    $part->part_no,
-                    $part->part_name ?? '',
-                    $part->model ?? '',
-                    $part->customer->name ?? '',
-                    $part->status ?? 'active',
-                    $vl->vendor->vendor_name ?? '',
-                    $vl->vendor_part_no ?? '',
-                    $vl->vendor_part_name ?? '',
-                    $vl->register_no ?? '',
-                    $vl->price ?? 0,
-                    $vl->uom ?? '',
-                    $vl->hs_code ?? '',
-                    $vl->quality_inspection ? 'YES' : '-',
-                    $vl->status ?? 'active',
+                    '', // vendor
+                    '', // vendor_type
+                    '', // part_no (vendor)
+                    '', // size / register_no
+                    '', // part_name_vendor
+                    $part->part_name ?? '', // part_name_gci
+                    '', // hs_code
+                    '', // quality_inspection
+                    0,  // price
+                    '', // uom
+                    $part->status ?? 'active', // status
                 ];
             }
         } else {
-            // FG/WIP or RM with no vendor — output single row
+            // FG/WIP Export format
             $rows[] = [
                 $part->classification,
                 $part->part_no,
@@ -83,15 +105,6 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 $part->model ?? '',
                 $part->customer->name ?? '',
                 $part->status ?? 'active',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
             ];
         }
 
@@ -107,22 +120,30 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 
     public function columnWidths(): array
     {
+        if (strtoupper($this->classification) === 'RM') {
+            return [
+                'A' => 14, // Classificat
+                'B' => 25, // vendor
+                'C' => 14, // vendor_type
+                'D' => 22, // part_no
+                'E' => 18, // size
+                'F' => 30, // part_name_vendor
+                'G' => 30, // part_name_gci
+                'H' => 14, // hs_code
+                'I' => 18, // quality_inspection
+                'J' => 12, // price
+                'K' => 10, // uom
+                'L' => 12, // status
+            ];
+        }
+
         return [
-            'A' => 14,
-            'B' => 22,
-            'C' => 30,
-            'D' => 14,
-            'E' => 22,
-            'F' => 10,
-            'G' => 25,
-            'H' => 22,
-            'I' => 30,
-            'J' => 18,
-            'K' => 12,
-            'L' => 10,
-            'M' => 14,
-            'N' => 18,
-            'O' => 12,
+            'A' => 14, // classification
+            'B' => 22, // part_no
+            'C' => 30, // part_name
+            'D' => 22, // model
+            'E' => 22, // customer
+            'F' => 12, // status
         ];
     }
 }

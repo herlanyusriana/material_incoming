@@ -26,7 +26,10 @@ class PurchaseRequestController extends Controller
 
     public function create()
     {
-        return view('purchasing.purchase-requests.create');
+        $parts = GciPart::where('classification', 'RM')
+            ->whereHas('vendorLinks')
+            ->get();
+        return view('purchasing.purchase-requests.create', compact('parts'));
     }
 
     public function store(Request $request)
@@ -52,12 +55,36 @@ class PurchaseRequestController extends Controller
                 'notes' => $validated['notes'],
             ]);
 
-            $totalAmount = 0;
-            $hasItems = false;
+            // Aggregate items by part_id
+            $aggregatedItems = [];
             foreach ($validated['items'] as $item) {
                 if (!isset($item['selected']) || $item['selected'] != '1')
                     continue;
 
+                $partId = $item['part_id'];
+                if (isset($aggregatedItems[$partId])) {
+                    $aggregatedItems[$partId]['qty'] += (float) $item['qty'];
+
+                    // Keep the earliest required_date
+                    if (empty($aggregatedItems[$partId]['required_date']) && !empty($item['required_date'])) {
+                        $aggregatedItems[$partId]['required_date'] = $item['required_date'];
+                    } elseif (!empty($aggregatedItems[$partId]['required_date']) && !empty($item['required_date'])) {
+                        if ($item['required_date'] < $aggregatedItems[$partId]['required_date']) {
+                            $aggregatedItems[$partId]['required_date'] = $item['required_date'];
+                        }
+                    }
+                } else {
+                    $aggregatedItems[$partId] = [
+                        'part_id' => $partId,
+                        'qty' => (float) $item['qty'],
+                        'required_date' => $item['required_date'] ?? null,
+                    ];
+                }
+            }
+
+            $totalAmount = 0;
+            $hasItems = false;
+            foreach ($aggregatedItems as $item) {
                 $hasItems = true;
                 $vendorLink = GciPartVendor::where('gci_part_id', $item['part_id'])
                     ->whereNotNull('price')

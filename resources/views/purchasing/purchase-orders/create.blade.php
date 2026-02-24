@@ -59,7 +59,7 @@
                                     <tbody class="bg-white divide-y divide-slate-100">
                                         @if ($pr)
                                             @foreach ($pr->items as $index => $item)
-                                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                                <tr x-show="!selectedVendorId || getVendorPartInfo({{ $item->part_id }})" class="hover:bg-slate-50/50 transition-colors">
                                                     <td class="px-6 py-4">
                                                         <div class="text-sm font-bold text-slate-900 font-mono">{{ $item->part?->part_no }}</div>
                                                         <div class="text-[10px] text-slate-500">{{ $item->part?->part_name }}</div>
@@ -71,14 +71,14 @@
                                                         <template x-if="!getVendorPartInfo({{ $item->part_id }}) && selectedVendorId">
                                                             <div class="mt-1 text-[10px] text-amber-500 italic">No vendor part linked</div>
                                                         </template>
-                                                        <input type="hidden" name="items[{{ $index }}][part_id]" value="{{ $item->part_id }}">
-                                                        <input type="hidden" name="items[{{ $index }}][pr_item_id]" value="{{ $item->id }}">
+                                                        <input type="hidden" name="items[{{ $index }}][part_id]" value="{{ $item->part_id }}" x-bind:disabled="selectedVendorId && !getVendorPartInfo({{ $item->part_id }})">
+                                                        <input type="hidden" name="items[{{ $index }}][pr_item_id]" value="{{ $item->id }}" x-bind:disabled="selectedVendorId && !getVendorPartInfo({{ $item->part_id }})">
                                                     </td>
                                                     <td class="px-6 py-4 text-right">
-                                                        <input type="number" name="items[{{ $index }}][qty]" x-model="line_items[{{ $index }}].qty" step="0.0001" class="w-32 rounded-xl border-slate-200 text-sm font-bold text-right" required>
+                                                        <input type="number" name="items[{{ $index }}][qty]" x-model="line_items[{{ $index }}].qty" step="0.0001" class="w-32 rounded-xl border-slate-200 text-sm font-bold text-right" required x-bind:disabled="selectedVendorId && !getVendorPartInfo({{ $item->part_id }})">
                                                     </td>
                                                     <td class="px-6 py-4 text-right">
-                                                        <input type="number" name="items[{{ $index }}][unit_price]" x-model="line_items[{{ $index }}].price" step="0.01" class="w-32 rounded-xl border-slate-200 text-sm font-bold text-right" required>
+                                                        <input type="number" name="items[{{ $index }}][unit_price]" x-model="line_items[{{ $index }}].price" step="0.01" class="w-32 rounded-xl border-slate-200 text-sm font-bold text-right" required x-bind:disabled="selectedVendorId && !getVendorPartInfo({{ $item->part_id }})">
                                                     </td>
                                                     <td class="px-6 py-4 text-right text-sm font-bold text-slate-900 font-mono">
                                                         <span x-text="formatCurrency(line_items[{{ $index }}].qty * line_items[{{ $index }}].price)"></span>
