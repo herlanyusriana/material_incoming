@@ -22,6 +22,7 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
     /** @var array<int, string> */
     private array $createdVendors = [];
     public $duplicates = [];
+    public $skippedParts = [];
     private $confirm = false;
 
     public function __construct($confirm = false)
@@ -231,12 +232,9 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
         }
 
         if (!$gciPart) {
-            $gciPart = GciPart::create([
-                'part_no' => $partNo,
-                'part_name' => $partNameGci,
-                'classification' => 'RM',
-                'status' => 'active',
-            ]);
+            // Do NOT auto-create GCI Part. Skip and log.
+            $this->skippedParts[] = "{$partNo} (GCI Part not found — register it first)";
+            return;
         }
 
         // Check for duplicates in gci_part_vendor

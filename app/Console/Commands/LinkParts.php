@@ -13,7 +13,7 @@ class LinkParts extends Command
      *
      * @var string
      */
-    protected $signature = 'app:link-parts {--auto : Automatically create GCI Part if not found}';
+    protected $signature = 'app:link-parts';
 
     /**
      * The console command description.
@@ -37,7 +37,7 @@ class LinkParts extends Command
         }
 
         $linked = 0;
-        $created = 0;
+        $skipped = 0;
 
         foreach ($parts as $part) {
             /** @var Part $part */
@@ -56,23 +56,11 @@ class LinkParts extends Command
                 $this->info("  -> Linked to existing GCI Part: {$gciPart->part_no}");
                 $linked++;
             } else {
-                if ($this->option('auto')) {
-                    // Create new GCI Part
-                    $newGciPart = GciPart::create([
-                        'part_no' => $part->part_no, // Use same code by default
-                        'part_name' => $part->part_name_gci ?? $part->part_name_vendor,
-                        'classification' => 'RM', // Default to Raw Material
-                        'status' => 'active',
-                    ]);
-                    $part->update(['gci_part_id' => $newGciPart->id]);
-                    $this->info("  -> Created NEW GCI Part: {$newGciPart->part_no}");
-                    $created++;
-                } else {
-                    $this->warn("  -> No match found. Use --auto to create.");
-                }
+                $this->warn("  -> No match found. Register this part in Parts Master first.");
+                $skipped++;
             }
         }
 
-        $this->info("Done! Linked: {$linked}, Created: {$created}");
+        $this->info("Done! Linked: {$linked}, Skipped: {$skipped}");
     }
 }

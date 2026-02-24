@@ -98,9 +98,10 @@ class PartController extends Controller
         return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search'));
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        return Excel::download(new PartsExport, 'parts_' . date('Y-m-d_His') . '.xlsx');
+        $classification = $request->query('classification');
+        return Excel::download(new PartsExport($classification), 'parts_' . ($classification ? strtolower($classification) . '_' : '') . date('Y-m-d_His') . '.xlsx');
     }
 
     public function import(Request $request)
@@ -162,6 +163,11 @@ class PartController extends Controller
                 $msg .= " New vendors created: {$preview}{$more}";
             }
 
+            if (!empty($import->skippedParts)) {
+                $skippedCount = count($import->skippedParts);
+                $skippedPreview = collect($import->skippedParts)->take(5)->implode(', ');
+                $msg .= " ⚠ Skipped {$skippedCount} parts (not in master): {$skippedPreview}";
+            }
             return back()->with('status', $msg);
         } catch (\Exception $e) {
             if ($e instanceof ValidationException) {

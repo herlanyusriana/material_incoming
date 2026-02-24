@@ -52,7 +52,7 @@
                     </form>
 
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('parts.export') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Export</a>
+                        <a href="{{ route('parts.export', ['classification' => $activeTab]) }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Export</a>
                         <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold" @click="importOpen=true">Import</button>
                         <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold" @click="openCreatePart()">+ Add Part</button>
                     </div>
@@ -296,7 +296,7 @@
                 <form :action="partAction" method="POST" class="px-5 py-4 space-y-4">
                     @csrf
                     <template x-if="partMode==='edit'"><input type="hidden" name="_method" value="PUT"></template>
-                    <div>
+                    <div x-show="partForm.classification === 'FG'">
                         <label class="text-sm font-semibold text-slate-700">Customer (Optional)</label>
                         <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.customer_id">
                             <option value="">— No Customer —</option>
