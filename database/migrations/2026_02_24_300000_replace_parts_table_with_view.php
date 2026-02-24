@@ -28,7 +28,13 @@ return new class extends Migration {
         $driver = DB::getDriverName();
 
         // ─── Step 1: Re-seed gci_part_vendor preserving original parts.id ───
-        DB::table('gci_part_vendor')->truncate();
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            DB::table('gci_part_vendor')->truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        } else {
+            DB::statement('TRUNCATE TABLE gci_part_vendor CASCADE');
+        }
 
         $parts = DB::table('parts')
             ->whereNotNull('gci_part_id')
