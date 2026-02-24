@@ -8,28 +8,32 @@ return new class extends Migration {
     public function up(): void
     {
         // WO ↔ SO pivot table
-        Schema::create('production_order_arrivals', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('production_order_id');
-            $table->unsignedBigInteger('arrival_id');
-            $table->timestamps();
+        if (!Schema::hasTable('production_order_arrivals')) {
+            Schema::create('production_order_arrivals', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('production_order_id');
+                $table->unsignedBigInteger('arrival_id');
+                $table->timestamps();
 
-            $table->foreign('production_order_id')->references('id')->on('production_orders')->onDelete('cascade');
-            $table->foreign('arrival_id')->references('id')->on('arrivals')->onDelete('cascade');
-            $table->unique(['production_order_id', 'arrival_id']);
-        });
+                $table->foreign('production_order_id')->references('id')->on('production_orders')->onDelete('cascade');
+                $table->foreign('arrival_id')->references('id')->on('arrivals')->onDelete('cascade');
+                $table->unique(['production_order_id', 'arrival_id']);
+            });
+        }
 
         // DO ↔ WO pivot table
-        Schema::create('delivery_note_production_orders', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('delivery_note_id');
-            $table->unsignedBigInteger('production_order_id');
-            $table->timestamps();
+        if (!Schema::hasTable('delivery_note_production_orders')) {
+            Schema::create('delivery_note_production_orders', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('delivery_note_id');
+                $table->unsignedBigInteger('production_order_id');
+                $table->timestamps();
 
-            $table->foreign('delivery_note_id')->references('id')->on('delivery_notes')->onDelete('cascade');
-            $table->foreign('production_order_id')->references('id')->on('production_orders')->onDelete('cascade');
-            $table->unique(['delivery_note_id', 'production_order_id'], 'unique_dn_po');
-        });
+                $table->foreign('delivery_note_id')->references('id')->on('delivery_notes')->onDelete('cascade');
+                $table->foreign('production_order_id')->references('id')->on('production_orders')->onDelete('cascade');
+                $table->unique(['delivery_note_id', 'production_order_id'], 'unique_dn_po');
+            });
+        }
 
         // Drop old string columns
         Schema::table('production_orders', function (Blueprint $table) {
