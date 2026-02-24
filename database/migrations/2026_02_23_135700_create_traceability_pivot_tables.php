@@ -28,7 +28,7 @@ return new class extends Migration {
 
             $table->foreign('delivery_note_id')->references('id')->on('delivery_notes')->onDelete('cascade');
             $table->foreign('production_order_id')->references('id')->on('production_orders')->onDelete('cascade');
-            $table->unique(['delivery_note_id', 'production_order_id']);
+            $table->unique(['delivery_note_id', 'production_order_id'], 'unique_dn_po');
         });
 
         // Drop old string columns

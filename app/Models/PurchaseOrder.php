@@ -22,6 +22,11 @@ class PurchaseOrder extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'approved_at' => 'datetime',
+        'released_at' => 'datetime',
+    ];
+
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);

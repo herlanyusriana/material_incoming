@@ -8,6 +8,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestItem;
 use App\Models\Vendor;
+use App\Models\Part;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +28,29 @@ class PurchaseOrderController extends Controller
     public function create(Request $request)
     {
         $pr = null;
+        $suggestedVendorId = null;
+        $itemPrices = [];
+
         if ($request->has('pr_id')) {
             $pr = PurchaseRequest::with('items.part')->findOrFail($request->pr_id);
+
+            $partIds = $pr->items->pluck('part_id')->toArray();
+            $vendorParts = Part::whereIn('gci_part_id', $partIds)
+                ->whereNotNull('vendor_id')
+                ->get();
+
+            $suggestedVendorId = $vendorParts->groupBy('vendor_id')
+                ->sortByDesc(fn($group) => $group->count())
+                ->keys()
+                ->first();
+
+            foreach ($vendorParts as $vp) {
+                $itemPrices[$vp->gci_part_id][$vp->vendor_id] = (float) $vp->price;
+            }
         }
 
         $vendors = Vendor::all();
-        return view('purchasing.purchase-orders.create', compact('pr', 'vendors'));
+        return view('purchasing.purchase-orders.create', compact('pr', 'vendors', 'suggestedVendorId', 'itemPrices'));
     }
 
     public function store(Request $request)

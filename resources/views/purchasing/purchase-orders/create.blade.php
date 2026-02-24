@@ -25,7 +25,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="space-y-4">
                                 <label class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Select Vendor</label>
-                                <select name="vendor_id" class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-semibold" required>
+                                <select name="vendor_id" x-model="selectedVendorId" @change="onVendorChange()" class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-semibold" required>
                                     <option value="">— Choose Vendor —</option>
                                     @foreach ($vendors as $vendor)
                                         <option value="{{ $vendor->id }}">{{ $vendor->vendor_code }} - {{ $vendor->vendor_name }}</option>
@@ -141,23 +141,52 @@
 
     <script>
         function createPo() {
+            const itemPrices = @js($itemPrices ?? []);
+            const partIds = @js($pr ? $pr->items->pluck('part_id')->toArray() : []);
+            const suggestedVendorId = @js($suggestedVendorId ? (string) $suggestedVendorId : '');
+
+            function getPriceForPart(partId, vendorId) {
+                if (itemPrices[partId] && itemPrices[partId][vendorId]) {
+                    return itemPrices[partId][vendorId];
+                }
+                return 0;
+            }
+
             return {
-                line_items: @js($pr ? $pr->items->map(fn($i) => ['qty' => $i->qty, 'price' => 0]) : [['qty' => 1, 'price' => 0]]),
-                
-                addItem() {
-                    this.line_items.push({ qty: 1, price: 0 });
+                selectedVendorId: suggestedVendorId,
+                line_items: @js($pr ? $pr->items->map(fn($i) => ['qty' => $i->qty, 'price' => 0, 'part_id' => $i->part_id]) : [['qty' => 1, 'price' => 0, 'part_id' => null]]),
+
+                init() {
+                    if (this.selectedVendorId) {
+                        this.onVendorChange();
+                    }
                 },
-                
+
+                onVendorChange() {
+                    const vendorId = this.selectedVendorId;
+                    if (!vendorId) return;
+                    this.line_items.forEach((item, index) => {
+                        const partId = partIds[index] || item.part_id;
+                        if (partId) {
+                            item.price = getPriceForPart(partId, vendorId);
+                        }
+                    });
+                },
+
+                addItem() {
+                    this.line_items.push({ qty: 1, price: 0, part_id: null });
+                },
+
                 removeItem(index) {
                     if (this.line_items.length > 1) {
                         this.line_items.splice(index, 1);
                     }
                 },
-                
+
                 calculateTotal() {
                     return this.line_items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.price || 0)), 0);
                 },
-                
+
                 formatCurrency(value) {
                     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
                 }

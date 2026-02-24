@@ -7,6 +7,7 @@ use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestItem;
 use App\Models\GciPart;
 use App\Models\MrpPurchasePlan;
+use App\Models\Part;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,8 +58,12 @@ class PurchaseRequestController extends Controller
                     continue;
 
                 $hasItems = true;
-                // Get price from Part model if available, or just use 0 for now
-                $unitPrice = 0;
+                $vendorPart = Part::where('gci_part_id', $item['part_id'])
+                    ->whereNotNull('price')
+                    ->where('price', '>', 0)
+                    ->orderBy('price', 'asc')
+                    ->first();
+                $unitPrice = $vendorPart->price ?? 0;
                 $subtotal = $unitPrice * $item['qty'];
 
                 PurchaseRequestItem::create([
@@ -118,13 +123,20 @@ class PurchaseRequestController extends Controller
 
     public function createFromMrp(Request $request)
     {
-        // Fetch items from MrpPurchasePlan that haven't been converted to PR yet
-        // This logic requires a way to track which plans are already handled
         $plans = MrpPurchasePlan::with('part')
             ->latest()
             ->limit(50)
             ->get();
 
-        return view('purchasing.purchase-requests.create_from_mrp', compact('plans'));
+        $partIds = $plans->pluck('part_id')->unique()->toArray();
+        $vendorParts = Part::with('vendor')
+            ->whereIn('gci_part_id', $partIds)
+            ->whereNotNull('price')
+            ->where('price', '>', 0)
+            ->orderBy('price', 'asc')
+            ->get()
+            ->groupBy('gci_part_id');
+
+        return view('purchasing.purchase-requests.create_from_mrp', compact('plans', 'vendorParts'));
     }
 }

@@ -23,6 +23,7 @@
                                                 <input type="checkbox" id="select-all" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                             </th>
                                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Part Info</th>
+                                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Vendor / Price</th>
                                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Plan Date</th>
                                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Net Required</th>
                                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Planned Order</th>
@@ -40,6 +41,18 @@
                                                     <div class="text-xs font-bold text-slate-900 font-mono">{{ $plan->part?->part_no }}</div>
                                                     <div class="text-[10px] text-slate-500">{{ Str::limit($plan->part?->part_name, 30) }}</div>
                                                 </td>
+                                                <td class="px-4 py-3 whitespace-nowrap">
+                                                    @if (isset($vendorParts[$plan->part_id]) && $vendorParts[$plan->part_id]->count())
+                                                        @php $bestVp = $vendorParts[$plan->part_id]->first(); @endphp
+                                                        <div class="text-xs font-bold text-indigo-600">{{ $bestVp->vendor?->vendor_name }}</div>
+                                                        <div class="text-[10px] text-slate-500 font-mono">{{ number_format($bestVp->price, 3) }} /unit</div>
+                                                        @if ($vendorParts[$plan->part_id]->count() > 1)
+                                                            <div class="text-[9px] text-slate-400">+{{ $vendorParts[$plan->part_id]->count() - 1 }} vendor lain</div>
+                                                        @endif
+                                                    @else
+                                                        <div class="text-[10px] text-slate-400 italic">No vendor data</div>
+                                                    @endif
+                                                </td>
                                                 <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600">
                                                     {{ \Carbon\Carbon::parse($plan->plan_date)->format('M d, Y') }}
                                                 </td>
@@ -56,7 +69,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="6" class="px-4 py-12 text-center text-slate-500">No pending MRP plans found.</td>
+                                                <td colspan="7" class="px-4 py-12 text-center text-slate-500">No pending MRP plans found.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
