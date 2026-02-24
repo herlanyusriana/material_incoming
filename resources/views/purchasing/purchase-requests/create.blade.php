@@ -15,7 +15,21 @@
                 <form action="{{ route('purchasing.purchase-requests.store') }}" method="POST">
                     @csrf
                     <div class="p-8 space-y-8">
-                        <div class="grid grid-cols-1 gap-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-4">
+                                <label
+                                    class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Select
+                                    Vendor</label>
+                                <select name="vendor_id" x-model="selectedVendorId" @change="onVendorChange()"
+                                    class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-semibold"
+                                    required>
+                                    <option value="">— Choose Vendor —</option>
+                                    @foreach ($vendors as $vendor)
+                                        <option value="{{ $vendor->id }}">{{ $vendor->vendor_code }} -
+                                            {{ $vendor->vendor_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="space-y-4">
                                 <label
                                     class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">General
@@ -31,28 +45,30 @@
                                 <span class="h-px w-8 bg-slate-200"></span>
                                 Order Line Items
                             </h3>
-                            <div class="overflow-hidden border border-slate-200 rounded-2xl">
+                            <!-- Removed overflow-hidden to allow TomSelect dropdown to overlay properly -->
+                            <div class="border border-slate-200 rounded-2xl" style="overflow: visible;">
                                 <table class="min-w-full divide-y divide-slate-200">
                                     <thead
-                                        class="bg-slate-50 text-xs text-slate-500 font-bold uppercase tracking-wider">
+                                        class="bg-slate-50 text-xs text-slate-500 font-bold uppercase tracking-wider rounded-t-2xl">
                                         <tr>
-                                            <th class="px-6 py-4 text-left">Part Description</th>
+                                            <th class="px-6 py-4 text-left rounded-tl-2xl">Part Description</th>
                                             <th class="px-6 py-4 text-right">Order Qty</th>
                                             <th class="px-6 py-4 text-left">Required Date</th>
-                                            <th class="px-6 py-4 text-center">Actions</th>
+                                            <th class="px-6 py-4 text-center rounded-tr-2xl">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-slate-100">
                                         <template x-for="(item, index) in items" :key="index">
                                             <tr class="hover:bg-slate-50/50 transition-colors">
                                                 <td class="px-6 py-4">
+                                                    <!-- Re-initialize tomselect whenever the options change or new row added -->
                                                     <select :name="`items[${index}][part_id]`"
-                                                        class="w-full rounded-xl border-slate-200 text-sm" required>
+                                                        class="w-full rounded-xl border-slate-200 text-sm" required
+                                                        x-bind:disabled="!selectedVendorId">
                                                         <option value="">Select Part...</option>
-                                                        @foreach ($parts as $part)
-                                                            <option value="{{ $part->id }}">{{ $part->part_no }} -
-                                                                {{ $part->part_name }}</option>
-                                                        @endforeach
+                                                        <template x-for="vp in getAvailableParts()" :key="vp.id">
+                                                            <option :value="vp.id" x-text="vp.text"></option>
+                                                        </template>
                                                     </select>
                                                     <input type="hidden" :name="`items[${index}][selected]`" value="1">
                                                 </td>
@@ -60,11 +76,12 @@
                                                     <input type="number" :name="`items[${index}][qty]`"
                                                         x-model="item.qty" step="0.0001"
                                                         class="w-24 rounded-xl border-slate-200 text-sm text-right"
-                                                        required>
+                                                        required x-bind:disabled="!selectedVendorId">
                                                 </td>
                                                 <td class="px-6 py-4">
                                                     <input type="date" :name="`items[${index}][required_date]`"
-                                                        class="w-full rounded-xl border-slate-200 text-sm" required>
+                                                        class="w-full rounded-xl border-slate-200 text-sm" required
+                                                        x-bind:disabled="!selectedVendorId">
                                                 </td>
                                                 <td class="px-6 py-4 text-center">
                                                     <button type="button" @click="removeItem(index)"
@@ -107,11 +124,50 @@
 
     <script>
         function manualPr() {
+            // PHP passes the array as `gci_part_id => [ vendor_id => vendor_part_data ]`
+            // Let's invert it so we can easily get parts by vendor_id
+            const vendorPartMap = @js($vendorPartMap ?? []);
+            const allParts = @js($parts ?? []);
+
+            const partsByVendor = {};
+            // Group parts by vendor
+            for (const [gciPartId, vendors] of Object.entries(vendorPartMap)) {
+                // Find original part to get its names
+                const pt = allParts.find(p => p.id == gciPartId);
+                if (!pt) continue;
+
+                for (const [vendorId, vPartData] of Object.entries(vendors)) {
+                    if (!partsByVendor[vendorId]) {
+                        partsByVendor[vendorId] = [];
+                    }
+                    partsByVendor[vendorId].push({
+                        id: gciPartId,
+                        text: pt.part_no + ' - ' + (pt.part_name || '') + ' (' + vPartData.part_no + ')'
+                    });
+                }
+            }
+
             return {
+                selectedVendorId: '',
                 items: [{ qty: 1 }],
+
+                getAvailableParts() {
+                    if (!this.selectedVendorId || !partsByVendor[this.selectedVendorId]) {
+                        return [];
+                    }
+                    return partsByVendor[this.selectedVendorId];
+                },
+
+                onVendorChange() {
+                    // Changing vendor resets items
+                    this.items = [{ qty: 1 }];
+                    // Delay to let alpine render the options, then TomSelect MutationObserver catches it
+                },
+
                 addItem() {
                     this.items.push({ qty: 1 });
                 },
+
                 removeItem(index) {
                     if (this.items.length > 1) {
                         this.items.splice(index, 1);

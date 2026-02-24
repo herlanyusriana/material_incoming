@@ -29,7 +29,19 @@ class PurchaseRequestController extends Controller
         $parts = GciPart::where('classification', 'RM')
             ->whereHas('vendorLinks')
             ->get();
-        return view('purchasing.purchase-requests.create', compact('parts'));
+
+        $vendors = \App\Models\Vendor::all();
+        $vendorLinks = GciPartVendor::whereNotNull('vendor_id')->get();
+        $vendorPartMap = [];
+        foreach ($vendorLinks as $vl) {
+            $vendorPartMap[$vl->gci_part_id][$vl->vendor_id] = [
+                'id' => $vl->id,
+                'part_no' => $vl->vendor_part_no,
+                'part_name' => $vl->vendor_part_name,
+            ];
+        }
+
+        return view('purchasing.purchase-requests.create', compact('parts', 'vendors', 'vendorPartMap'));
     }
 
     public function store(Request $request)
