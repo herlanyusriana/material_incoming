@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/herla/dev/material_incoming/**)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(while read f)",
+      "Bash(do if grep -q \"arrival_container_inspection\" \"$f\")",
+      "Bash(then basename \"$f\")"
+    ]
+  }
+}

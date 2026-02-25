@@ -12,14 +12,17 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'username' => ['required', 'string'],
+        $request->validate([
+            'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        $login = $request->input('login');
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        if (!Auth::attempt([$field => $login, 'password' => $request->input('password')])) {
             throw ValidationException::withMessages([
-                'username' => ['Username atau password salah.'],
+                'login' => ['Username/email atau password salah.'],
             ]);
         }
 
