@@ -26,7 +26,8 @@
                                     <option value="">— Choose Vendor —</option>
                                     @foreach ($vendors as $vendor)
                                         <option value="{{ $vendor->id }}">{{ $vendor->vendor_code }} -
-                                            {{ $vendor->vendor_name }}</option>
+                                            {{ $vendor->vendor_name }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -63,8 +64,13 @@
                                                 <td class="px-6 py-4">
                                                     <!-- Re-initialize tomselect whenever the options change or new row added -->
                                                     <select :name="`items[${index}][part_id]`"
-                                                        class="w-full rounded-xl border-slate-200 text-sm" required
-                                                        x-bind:disabled="!selectedVendorId">
+                                                        class="w-full rounded-xl border-slate-200 text-sm no-search"
+                                                        x-init="$nextTick(() => { 
+                                                            $el.classList.remove('no-search'); 
+                                                            setTimeout(() => {
+                                                                window.initTomSelect($el);
+                                                            }, 100);
+                                                        })" required>
                                                         <option value="">Select Part...</option>
                                                         <template x-for="vp in getAvailableParts()" :key="vp.id">
                                                             <option :value="vp.id" x-text="vp.text"></option>
@@ -159,9 +165,12 @@
                 },
 
                 onVendorChange() {
-                    // Changing vendor resets items
-                    this.items = [{ qty: 1 }];
-                    // Delay to let alpine render the options, then TomSelect MutationObserver catches it
+                    // Changing vendor completely resets items, forcing Alpine to destroy 
+                    // and recreate the DOM rows (which triggers x-init for TomSelect)
+                    this.items = [];
+                    setTimeout(() => {
+                        this.items = [{ qty: 1 }];
+                    }, 10);
                 },
 
                 addItem() {
