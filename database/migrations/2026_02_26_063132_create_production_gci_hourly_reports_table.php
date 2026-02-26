@@ -13,7 +13,9 @@ return new class extends Migration {
         Schema::create('production_gci_hourly_reports', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
-            $table->foreignId('production_gci_work_order_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('production_gci_work_order_id');
+            $table->foreign('production_gci_work_order_id', 'gci_hourly_wo_id_foreign')
+                ->references('id')->on('production_gci_work_orders')->onDelete('cascade');
             $table->string('time_range');
             $table->integer('target');
             $table->integer('actual');
