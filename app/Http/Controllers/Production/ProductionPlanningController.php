@@ -350,6 +350,7 @@ class ProductionPlanningController extends Controller
                     'status' => 'planned',
                     'workflow_stage' => 'planned',
                     'qty_actual' => 0,
+                    'qty_rejected' => 0,
                     'created_by' => auth()->id(),
                 ]);
 
@@ -440,6 +441,7 @@ class ProductionPlanningController extends Controller
                 'status' => 'planned',
                 'workflow_stage' => 'planned',
                 'qty_actual' => 0,
+                'qty_rejected' => 0,
                 'created_by' => auth()->id(),
             ]);
 
