@@ -339,8 +339,8 @@
                                     <span class="flex-1">Finish Production</span>
                                 </a>
                                 </a>
-                                <a href="{{ route('gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('gci-dashboard.*'), $subInactive => !request()->routeIs('gci-dashboard.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('gci-dashboard.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('gci-dashboard.*')])></span>
+                                <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
                                     <span class="flex-1">GCI Operator Dashboard</span>
                                 </a>
                             </div>
@@ -1048,8 +1048,8 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.final-inspection.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.final-inspection.*')])></span>
                                 <span class="flex-1">Final Inspection → Kanban Update & Inventory</span>
                             </a>
-                            <a href="{{ route('gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('gci-dashboard.*'), $subInactive => !request()->routeIs('gci-dashboard.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('gci-dashboard.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('gci-dashboard.*')])></span>
+                            <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
                                 <span class="flex-1">GCI Operator Dashboard</span>
                             </a>
                         </div>
