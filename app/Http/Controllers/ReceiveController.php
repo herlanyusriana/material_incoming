@@ -484,7 +484,7 @@ class ReceiveController extends Controller
                 'items.*.summary.location_code' => $locationCodeRule,
                 'items.*.summary.net_weight' => ['nullable', 'numeric'],
                 'items.*.summary.gross_weight' => ['nullable', 'numeric'],
-                'items.*.summary.qty_unit' => ['nullable', 'in:KGM,KG,PCS,COIL,SHEET,SET,EA'],
+                'items.*.summary.qty_unit' => ['nullable', 'in:KGM,KG,PCS,COIL,SHEET,SET,EA,UOM,ROLL'],
                 'items.*.summary.qc_status' => ['nullable', 'in:pass,reject'],
             ];
         } else {

@@ -357,8 +357,8 @@
                                                     $defaultBundleUnit = strtoupper($item->unit_bundle ?? 'PALLET');
                                                 @endphp
                                                 <div class="flex items-center gap-2">
-                                                    <input type="number" name="items[{{ $item->id }}][summary][bundle_qty]" min="0" value="{{ old("items.{$item->id}.summary.bundle_qty", (int) ($item->qty_bundle ?? 0)) }}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                                    <select name="items[{{ $item->id }}][summary][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                    <input type="number" name="items[{{ $item->id }}][summary][bundle_qty]" min="0" value="{{ old("items.{$item->id}.summary.bundle_qty", (int) ($item->qty_bundle ?? 0)) }}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                    <select name="items[{{ $item->id }}][summary][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
                                                         <option value="PALLET" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'PALLET')>PALLET</option>
                                                         <option value="BUNDLE" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BUNDLE')>BUNDLE</option>
                                                         <option value="BOX" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BOX')>BOX</option>
@@ -370,7 +370,7 @@
                                             <td class="px-3 py-2 align-top">
                                                 @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
                                                 <div class="flex items-center gap-2">
-                                                    <input type="number" name="items[{{ $item->id }}][summary][qty]" min="0" value="{{ old("items.{$item->id}.summary.qty") }}" placeholder="0" class="no-tag-qty w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
+                                                    <input type="number" name="items[{{ $item->id }}][summary][qty]" min="0" value="{{ old("items.{$item->id}.summary.qty") }}" placeholder="0" class="no-tag-qty w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-item="{{ $item->id }}">
                                                     <input type="hidden" name="items[{{ $item->id }}][summary][qty_unit]" value="{{ $defaultGoodsUnit }}">
                                                     <span class="w-24 text-center text-xs font-semibold text-slate-700">{{ $defaultGoodsUnit }}</span>
                                                 </div>
@@ -382,8 +382,8 @@
                                                 <input type="number" name="items[{{ $item->id }}][summary][gross_weight]" value="{{ old("items.{$item->id}.summary.gross_weight") }}" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
                                             </td>
                                             <td class="px-3 py-2 align-top">
-                                                <select name="items[{{ $item->id }}][summary][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                                    <option value="pass" @selected(old("items.{$item->id}.summary.qc_status") === 'pass')>Pass</option>
+                                                <select name="items[{{ $item->id }}][summary][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                    <option value="pass" @selected(old("items.{$item->id}.summary.qc_status", 'pass') === 'pass')>Pass</option>
                                                     <option value="reject" @selected(old("items.{$item->id}.summary.qc_status") === 'reject')>Reject</option>
                                                 </select>
                                             </td>
