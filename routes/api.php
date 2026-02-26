@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'sync']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 

@@ -474,6 +474,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/{order}/finish', [\App\Http\Controllers\ProductionOrderController::class, 'finishProduction'])->name('orders.finish');
         Route::post('/orders/{order}/kanban-update', [\App\Http\Controllers\ProductionOrderController::class, 'kanbanUpdate'])->name('orders.kanban-update');
 
+        // GCI Operator Dashboard (From Flutter App Sync)
+        Route::get('/gci-dashboard', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'index'])->name('gci-dashboard.index');
+        Route::get('/gci-dashboard/{id}', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'show'])->name('gci-dashboard.show');
+
         // Production Downtimes (QDC, Breaks, etc.)
         Route::post('/orders/{productionOrder}/downtimes', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'store'])->name('downtimes.store');
         Route::put('/orders/{productionOrder}/downtimes/{downtime}', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'update'])->name('downtimes.update');
