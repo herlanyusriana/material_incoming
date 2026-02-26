@@ -203,7 +203,7 @@ class ProductionPlanningController extends Controller
 
             DB::commit();
 
-            return redirect()->route('production.planning.index', ['date' => $session->plan_date->format('Y-m-d')])
+            return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
                 ->with('success', 'Planning lines auto-populated from BOM data. ' . $parts->count() . ' FG parts processed.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -355,7 +355,7 @@ class ProductionPlanningController extends Controller
 
             DB::commit();
 
-            return redirect()->route('production.planning.index', ['date' => $session->plan_date->format('Y-m-d')])
+            return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
                 ->with('success', "Berhasil generate {$generated} Work Order (WO)");
         } catch (\Exception $e) {
             DB::rollBack();
@@ -434,7 +434,7 @@ class ProductionPlanningController extends Controller
 
             DB::commit();
 
-            return redirect()->route('production.planning.index', ['date' => $session->plan_date->format('Y-m-d')])
+            return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
                 ->with('success', "WO {$woNumber} berhasil dibuat untuk {$line->gciPart->part_no}");
         } catch (\Exception $e) {
             DB::rollBack();
@@ -456,7 +456,7 @@ class ProductionPlanningController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        $planDate = $session->plan_date;
+        $planDate = \Carbon\Carbon::parse($session->plan_date);
         $planningDays = $session->planning_days;
         $dateRange = [];
         for ($i = 0; $i < $planningDays; $i++) {
