@@ -463,6 +463,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/planning/line/{line}', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'updateLine'])->name('planning.update-line');
         Route::delete('/planning/line/{line}', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'deleteLine'])->name('planning.delete-line');
         Route::post('/planning/generate-mo', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'generateMoWo'])->name('planning.generate-mo');
+        Route::post('/planning/generate-mo-line', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'generateMoWoLine'])->name('planning.generate-mo-line');
         Route::get('/planning/calculations', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'getCalculations'])->name('planning.calculations');
 
         // Production Orders

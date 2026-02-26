@@ -34,7 +34,7 @@ class ProductionPlanningController extends Controller
         $machineGroups = [];
         if ($session) {
             $allLines = ProductionPlanningLine::where('session_id', $session->id)
-                ->with(['gciPart.bom.items'])
+                ->with(['gciPart.bom.items', 'productionOrders'])
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
@@ -285,7 +285,7 @@ class ProductionPlanningController extends Controller
     }
 
     /**
-     * Generate MO/WO from planning session
+     * Generate WO from planning session
      */
     public function generateMoWo(Request $request)
     {
@@ -310,21 +310,22 @@ class ProductionPlanningController extends Controller
         try {
             $generated = 0;
             foreach ($lines as $line) {
-                // Check if MO already exists for this planning line
-                $existingMo = ProductionOrder::where('planning_line_id', $line->id)->first();
-                if ($existingMo)
+                // Check if WO already exists for this planning line
+                $existingWo = ProductionOrder::where('planning_line_id', $line->id)->first();
+                if ($existingWo)
                     continue;
 
                 // Generate production order number
-                $prefix = 'MO-' . now()->format('ymd');
+                $prefix = 'WO-' . now()->format('ymd');
                 $lastOrder = ProductionOrder::where('production_order_number', 'like', $prefix . '%')
                     ->orderBy('production_order_number', 'desc')
                     ->first();
                 $seq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) + 1 : 1;
-                $moNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                $woNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
 
-                ProductionOrder::create([
-                    'production_order_number' => $moNumber,
+                $order = ProductionOrder::create([
+                    'production_order_number' => $woNumber,
+                    'transaction_no' => ProductionOrder::generateTransactionNo(Carbon::parse($session->plan_date)->format('Y-m-d')),
                     'gci_part_id' => $line->gci_part_id,
                     'machine_name' => $line->machine_name,
                     'process_name' => $line->process_name,
@@ -334,8 +335,16 @@ class ProductionPlanningController extends Controller
                     'shift' => $line->shift,
                     'production_sequence' => $line->production_sequence,
                     'status' => 'planned',
+                    'workflow_stage' => 'planned',
+                    'qty_actual' => 0,
                     'created_by' => auth()->id(),
                 ]);
+
+                // Auto-link arrivals (SO)
+                $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
+                if (!empty($arrivalIds)) {
+                    $order->arrivals()->sync($arrivalIds);
+                }
 
                 $generated++;
             }
@@ -345,10 +354,88 @@ class ProductionPlanningController extends Controller
             DB::commit();
 
             return redirect()->route('production.planning.index', ['date' => $session->plan_date->format('Y-m-d')])
-                ->with('success', "Successfully generated {$generated} production orders (MO/WO)");
+                ->with('success', "Berhasil generate {$generated} Work Order (WO)");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to generate MO/WO: ' . $e->getMessage());
+            return back()->with('error', 'Gagal generate WO: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate WO for a single planning line
+     */
+    public function generateMoWoLine(Request $request)
+    {
+        $request->validate([
+            'line_id' => 'required|exists:production_planning_lines,id',
+        ]);
+
+        $line = ProductionPlanningLine::with(['gciPart', 'session'])->findOrFail($request->line_id);
+        $session = $line->session;
+
+        if (!$line->plan_qty || $line->plan_qty <= 0) {
+            return back()->with('error', 'Plan qty harus diisi terlebih dahulu.');
+        }
+
+        if (!$line->production_sequence) {
+            return back()->with('error', 'Production sequence harus diisi terlebih dahulu.');
+        }
+
+        $existingWo = ProductionOrder::where('planning_line_id', $line->id)->first();
+        if ($existingWo) {
+            return back()->with('error', "WO sudah ada untuk part ini: {$existingWo->production_order_number}");
+        }
+
+        DB::beginTransaction();
+        try {
+            $prefix = 'WO-' . now()->format('ymd');
+            $lastOrder = ProductionOrder::where('production_order_number', 'like', $prefix . '%')
+                ->orderBy('production_order_number', 'desc')
+                ->first();
+            $seq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) + 1 : 1;
+            $woNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+
+            $order = ProductionOrder::create([
+                'production_order_number' => $woNumber,
+                'transaction_no' => ProductionOrder::generateTransactionNo(Carbon::parse($session->plan_date)->format('Y-m-d')),
+                'gci_part_id' => $line->gci_part_id,
+                'machine_name' => $line->machine_name,
+                'process_name' => $line->process_name,
+                'planning_line_id' => $line->id,
+                'plan_date' => $session->plan_date,
+                'qty_planned' => $line->plan_qty,
+                'shift' => $line->shift,
+                'production_sequence' => $line->production_sequence,
+                'status' => 'planned',
+                'workflow_stage' => 'planned',
+                'qty_actual' => 0,
+                'created_by' => auth()->id(),
+            ]);
+
+            // Auto-link arrivals (SO)
+            $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
+            if (!empty($arrivalIds)) {
+                $order->arrivals()->sync($arrivalIds);
+            }
+
+            // Check if all lines with qty+seq now have WO → auto-confirm session
+            $pendingLines = ProductionPlanningLine::where('session_id', $session->id)
+                ->where('plan_qty', '>', 0)
+                ->whereNotNull('production_sequence')
+                ->whereDoesntHave('productionOrders')
+                ->count();
+
+            if ($pendingLines === 0 && $session->status !== 'confirmed') {
+                $session->update(['status' => 'confirmed', 'confirmed_by' => auth()->id(), 'confirmed_at' => now()]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('production.planning.index', ['date' => $session->plan_date->format('Y-m-d')])
+                ->with('success', "WO {$woNumber} berhasil dibuat untuk {$line->gciPart->part_no}");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal generate WO: ' . $e->getMessage());
         }
     }
 
@@ -495,5 +582,40 @@ class ProductionPlanningController extends Controller
     private function getFgStockGci(): array
     {
         return GciInventory::pluck('on_hand', 'gci_part_id')->toArray();
+    }
+
+    /**
+     * Find linked Arrival IDs for a GCI part (for WO <-> SO traceability)
+     */
+    private function findLinkedArrivalIds(int $gciPartId): array
+    {
+        $bom = Bom::where('part_id', $gciPartId)->first();
+        if (!$bom) {
+            return [];
+        }
+
+        $componentPartIds = BomItem::where('bom_id', $bom->id)
+            ->whereNotNull('incoming_part_id')
+            ->pluck('incoming_part_id')
+            ->unique();
+
+        if ($componentPartIds->isEmpty()) {
+            $rmPartIds = \App\Models\Part::where('gci_part_id', $gciPartId)->pluck('id');
+            if ($rmPartIds->isEmpty()) {
+                return [];
+            }
+            $arrivalIds = \App\Models\ArrivalItem::whereIn('part_id', $rmPartIds)
+                ->pluck('arrival_id')->unique();
+        } else {
+            $arrivalIds = \App\Models\ArrivalItem::whereIn('part_id', $componentPartIds)
+                ->pluck('arrival_id')->unique();
+        }
+
+        return \App\Models\Arrival::whereIn('id', $arrivalIds)
+            ->whereNotNull('transaction_no')
+            ->orderBy('created_at', 'asc') // FIFO
+            ->limit(20)
+            ->pluck('id')
+            ->toArray();
     }
 }
