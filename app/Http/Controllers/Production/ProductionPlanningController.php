@@ -9,6 +9,7 @@ use App\Models\ProductionOrder;
 use App\Models\GciPart;
 use App\Models\GciInventory;
 use App\Models\FgInventory;
+use App\Models\StockAtCustomer;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\OutgoingDailyPlan;
@@ -63,7 +64,7 @@ class ProductionPlanningController extends Controller
         $dailyPlanData = $this->getDailyPlanningData($planDate);
 
         // Get FG stock data
-        $fgStockLg = $this->getFgStockLg();
+        $fgStockLg = $this->getFgStockLg($planDate);
         $fgStockGci = $this->getFgStockGci();
 
         // Date range for planning
@@ -144,7 +145,7 @@ class ProductionPlanningController extends Controller
         $session = ProductionPlanningSession::findOrFail($request->session_id);
 
         // Get FG stock data
-        $fgStockLg = $this->getFgStockLg();
+        $fgStockLg = $this->getFgStockLg(Carbon::parse($session->plan_date));
         $fgStockGci = $this->getFgStockGci();
 
         $sortOrder = ProductionPlanningLine::where('session_id', $session->id)->max('sort_order') ?? 0;
@@ -244,7 +245,8 @@ class ProductionPlanningController extends Controller
 
         $sortOrder = ProductionPlanningLine::where('session_id', $request->session_id)->max('sort_order') + 1;
 
-        $fgStockLg = $this->getFgStockLg();
+        $session = ProductionPlanningSession::findOrFail($request->session_id);
+        $fgStockLg = $this->getFgStockLg(Carbon::parse($session->plan_date));
         $fgStockGci = $this->getFgStockGci();
 
         // Get machine/process from BOM
@@ -357,6 +359,7 @@ class ProductionPlanningController extends Controller
                 ->with('success', "Berhasil generate {$generated} Work Order (WO)");
         } catch (\Exception $e) {
             DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Mass WO Generation failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Gagal generate WO: ' . $e->getMessage());
         }
     }
@@ -435,6 +438,7 @@ class ProductionPlanningController extends Controller
                 ->with('success', "WO {$woNumber} berhasil dibuat untuk {$line->gciPart->part_no}");
         } catch (\Exception $e) {
             DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Single WO Generation failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Gagal generate WO: ' . $e->getMessage());
         }
     }
@@ -569,19 +573,37 @@ class ProductionPlanningController extends Controller
     }
 
     /**
-     * Get FG Stock LG (from FG Inventory)
+     * Get FG Stock LG (from StockAtCustomer based on plan date)
      */
-    private function getFgStockLg(): array
+    private function getFgStockLg(Carbon $date): array
     {
-        return FgInventory::pluck('qty_on_hand', 'gci_part_id')->toArray();
+        $period = $date->format('Y-m');
+        $dayColumn = 'day_' . (int) $date->format('j');
+
+        $stocks = StockAtCustomer::where('period', $period)->get();
+
+        $result = [];
+        foreach ($stocks as $stock) {
+            if (!isset($result[$stock->gci_part_id])) {
+                $result[$stock->gci_part_id] = 0;
+            }
+            $result[$stock->gci_part_id] += (float) ($stock->{$dayColumn} ?? 0);
+        }
+
+        return $result;
     }
 
     /**
-     * Get FG Stock GCI (from GCI Inventory)
+     * Get FG Stock GCI (from Inventory via parts table)
      */
     private function getFgStockGci(): array
     {
-        return GciInventory::pluck('on_hand', 'gci_part_id')->toArray();
+        return \App\Models\Inventory::join('parts', 'inventories.part_id', '=', 'parts.id')
+            ->whereNotNull('parts.gci_part_id')
+            ->select('parts.gci_part_id', \Illuminate\Support\Facades\DB::raw('SUM(inventories.on_hand) as total_on_hand'))
+            ->groupBy('parts.gci_part_id')
+            ->pluck('total_on_hand', 'parts.gci_part_id')
+            ->toArray();
     }
 
     /**

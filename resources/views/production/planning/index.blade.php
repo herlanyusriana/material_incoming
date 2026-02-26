@@ -92,19 +92,14 @@
                             </button>
                         </form>
 
-                        <form action="{{ route('production.planning.generate-mo') }}" method="POST" class="inline">
-                            @csrf
-                            <input type="hidden" name="session_id" value="{{ $session->id }}">
-                            <button type="submit"
-                                class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700 transition-all"
-                                onclick="return confirm('Generate WO untuk semua planning lines yang belum punya WO?')">
+                        <button @click="generateMoAll({{ $session->id }})"
+                                class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700 transition-all">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                                 Generate WO
-                            </button>
-                        </form>
+                        </button>
 
                         <button @click="showAddPartModal = true"
                             class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-slate-600 to-slate-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-slate-700 hover:to-slate-800 transition-all">
@@ -205,31 +200,31 @@
                                             </td>
                                             <td class="px-3 py-2 text-right">
                                                 <input type="number" step="1"
-                                                    class="w-full text-right text-xs bg-transparent border-transparent hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
+                                                    class="w-full text-right text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
                                                     value="{{ intval($line->stock_fg_lg) }}"
                                                     @change="updateLineField($event, {{ $line->id }}, 'stock_fg_lg')">
                                             </td>
                                             <td class="px-3 py-2 text-right">
                                                 <input type="number" step="1"
-                                                    class="w-full text-right text-xs bg-transparent border-transparent hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
+                                                    class="w-full text-right text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
                                                     value="{{ intval($line->stock_fg_gci) }}"
                                                     @change="updateLineField($event, {{ $line->id }}, 'stock_fg_gci')">
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <input type="number" step="1" min="1"
-                                                    class="w-16 mx-auto text-center text-xs bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
+                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
                                                     value="{{ $line->production_sequence }}" placeholder="Seq"
                                                     @change="updateLineField($event, {{ $line->id }}, 'production_sequence')">
                                             </td>
                                             <td class="px-3 py-2 text-right">
                                                 <input type="number" step="1" min="0"
-                                                    class="w-24 ml-auto text-right text-xs bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-emerald-700 transition-all placeholder-emerald-300"
+                                                    class="w-24 ml-auto text-right text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-emerald-700 transition-all placeholder-emerald-300"
                                                     value="{{ $line->plan_qty > 0 ? intval($line->plan_qty) : '' }}" placeholder="0"
                                                     @change="updateLineField($event, {{ $line->id }}, 'plan_qty')">
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <select
-                                                    class="w-14 mx-auto text-center text-xs bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-semibold text-slate-700 transition-all cursor-pointer"
+                                                    class="w-14 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-semibold text-slate-700 transition-all cursor-pointer"
                                                     @change="updateLineField($event, {{ $line->id }}, 'shift')">
                                                     <option value="">-</option>
                                                     <option value="1" {{ $line->shift == 1 ? 'selected' : '' }}>1</option>
@@ -239,7 +234,7 @@
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <select
-                                                    class="w-20 mx-auto text-center text-[10px] bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-medium text-slate-600 transition-all cursor-pointer"
+                                                    class="w-20 mx-auto text-center text-[10px] bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-medium text-slate-600 transition-all cursor-pointer"
                                                     @change="updateLineField($event, {{ $line->id }}, 'remark')">
                                                     <option value="">-</option>
                                                     <option value="LG Plan" {{ $line->remark == 'LG Plan' ? 'selected' : '' }}>LG Plan</option>
@@ -247,7 +242,7 @@
                                                 </select>
                                             </td>
                                             <td class="px-3 py-2 text-center">
-                                                <div class="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div class="flex items-center justify-center gap-1.5 transition-opacity">
                                                     @if($line->productionOrders->count())
                                                         <span
                                                             class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200"
@@ -255,17 +250,11 @@
                                                             WO
                                                         </span>
                                                     @elseif($line->plan_qty > 0 && $line->production_sequence)
-                                                        <form action="{{ route('production.planning.generate-mo-line') }}" method="POST"
-                                                            class="inline">
-                                                            @csrf
-                                                            <input type="hidden" name="line_id" value="{{ $line->id }}">
-                                                            <button type="submit"
+                                                        <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
                                                                 class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
-                                                                title="Generate WO for this part"
-                                                                onclick="return confirm('Generate WO untuk {{ $line->gciPart->part_no ?? 'part ini' }}?')">
+                                                                title="Generate WO for this part">
                                                                 WO
-                                                            </button>
-                                                        </form>
+                                                        </button>
                                                     @endif
                                                     <button @click="deleteLine({{ $line->id }})"
                                                         class="p-1 rounded text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Remove part">
@@ -578,6 +567,66 @@
                         } catch (e) {
                             console.error('Delete error:', e);
                         }
+                    },
+
+                    async generateMoLine(lineId, partNo) {
+                        // Force blur to trigger any pending updates
+                        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+                            document.activeElement.blur();
+                        }
+                        
+                        // Wait briefly to allow AJAX to complete
+                        await new Promise(r => setTimeout(r, 400));
+
+                        if (!confirm(`Generate WO untuk ${partNo || 'part ini'}?`)) return;
+                        
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ route("production.planning.generate-mo-line") }}';
+                        
+                        const csrf = document.createElement('input');
+                        csrf.type = 'hidden';
+                        csrf.name = '_token';
+                        csrf.value = '{{ csrf_token() }}';
+                        form.appendChild(csrf);
+
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'line_id';
+                        input.value = lineId;
+                        form.appendChild(input);
+
+                        document.body.appendChild(form);
+                        form.submit();
+                    },
+
+                    async generateMoAll(sessionId) {
+                        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+                            document.activeElement.blur();
+                        }
+
+                        await new Promise(r => setTimeout(r, 400));
+
+                        if (!confirm('Generate WO untuk semua planning lines yang belum punya WO?')) return;
+                        
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ route("production.planning.generate-mo") }}';
+                        
+                        const csrf = document.createElement('input');
+                        csrf.type = 'hidden';
+                        csrf.name = '_token';
+                        csrf.value = '{{ csrf_token() }}';
+                        form.appendChild(csrf);
+
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'session_id';
+                        input.value = sessionId;
+                        form.appendChild(input);
+
+                        document.body.appendChild(form);
+                        form.submit();
                     },
                 };
             }
