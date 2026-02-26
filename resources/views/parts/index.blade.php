@@ -16,6 +16,7 @@
                     'RM'  => ['label' => 'Raw Material', 'icon' => '📦', 'color' => 'emerald'],
                     'FG'  => ['label' => 'Finished Goods', 'icon' => '🏭', 'color' => 'blue'],
                     'WIP' => ['label' => 'Work in Progress', 'icon' => '⚙️', 'color' => 'amber'],
+                    'SUB' => ['label' => 'Substitute', 'icon' => '🔄', 'color' => 'purple'],
                 ];
                 $activeTab = $classification ?? 'RM';
             @endphp
@@ -51,11 +52,13 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold">Filter</button>
                     </form>
 
-                    <div class="flex items-center gap-2">
-                        <a href="{{ route('parts.export', ['classification' => $activeTab]) }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Export</a>
-                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold" @click="importOpen=true">Import</button>
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold" @click="openCreatePart()">+ Add Part</button>
-                    </div>
+                    @if($activeTab !== 'SUB')
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('parts.export', ['classification' => $activeTab]) }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Export</a>
+                            <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold" @click="importOpen=true">Import</button>
+                            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold" @click="openCreatePart()">+ Add Part</button>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- RM Table --}}
@@ -282,7 +285,59 @@
                     </div>
                 @endif
 
-                <div class="mt-4">{{ $parts->links() }}</div>
+                {{-- SUB Table --}}
+                @if($activeTab === 'SUB')
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="min-w-full text-sm divide-y divide-slate-200">
+                            <thead class="bg-purple-50">
+                                <tr class="text-purple-700 text-xs uppercase tracking-wider">
+                                    <th class="px-4 py-3 text-left font-semibold">Substitute Part No</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Substitute Part Name</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Component Part</th>
+                                    <th class="px-4 py-3 text-left font-semibold">FG Part</th>
+                                    <th class="px-4 py-3 text-center font-semibold">Ratio</th>
+                                    <th class="px-4 py-3 text-center font-semibold">Priority</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse ($substitutes ?? [] as $sub)
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-4 py-3 font-semibold text-slate-900">{{ $sub->substitute_part_no ?? ($sub->part->part_no ?? '-') }}</td>
+                                        <td class="px-4 py-3 text-slate-700">{{ $sub->part->part_name ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-slate-700">
+                                            <div class="font-medium">{{ $sub->bomItem->componentPart->part_no ?? '-' }}</div>
+                                            <div class="text-[10px] text-slate-500">{{ $sub->bomItem->componentPart->part_name ?? '' }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-slate-700">
+                                            <div class="font-medium">{{ $sub->bomItem->bom->part->part_no ?? '-' }}</div>
+                                            <div class="text-[10px] text-slate-500">{{ $sub->bomItem->bom->part->part_name ?? '' }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-medium text-slate-900">{{ $sub->ratio }}</td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold bg-purple-100 text-purple-700">{{ $sub->priority }}</span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $sub->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">{{ strtoupper($sub->status) }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs text-slate-500 max-w-[200px] truncate" title="{{ $sub->notes }}">{{ $sub->notes ?? '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">No substitute parts found</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                <div class="mt-4">
+                    @if($activeTab === 'SUB')
+                        {{ ($substitutes ?? collect())->links() }}
+                    @else
+                        {{ $parts->links() }}
+                    @endif
+                </div>
             </div>
         </div>
 

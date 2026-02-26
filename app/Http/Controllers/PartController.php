@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Models\BomItemSubstitute;
 
 class PartController extends Controller
 {
@@ -61,6 +62,36 @@ class PartController extends Controller
         $classification = $request->query('classification', 'RM');
         $status = $request->query('status', 'active');
         $search = $request->query('q');
+
+        // Substitute tab: query BomItemSubstitute instead of GciPart
+        if (strtoupper($classification) === 'SUB') {
+            $substitutes = BomItemSubstitute::with(['bomItem.bom.part', 'bomItem.componentPart', 'part'])
+                ->when($status, fn($q) => $q->where('status', $status))
+                ->when($search, function ($query) use ($search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('substitute_part_no', 'like', "%{$search}%")
+                            ->orWhereHas('part', fn($q) => $q->where('part_name', 'like', "%{$search}%"))
+                            ->orWhereHas('bomItem.componentPart', fn($q) => $q->where('part_no', 'like', "%{$search}%"))
+                            ->orWhereHas('bomItem.bom.part', fn($q) => $q->where('part_no', 'like', "%{$search}%"));
+                    });
+                })
+                ->latest()
+                ->paginate(25)
+                ->withQueryString();
+
+            $vendors = Vendor::orderBy('vendor_name')->get();
+            $customers = \App\Models\Customer::where('status', 'active')->orderBy('name')->get();
+
+            return view('parts.index', [
+                'parts' => collect(), // empty for non-SUB sections
+                'substitutes' => $substitutes,
+                'vendors' => $vendors,
+                'customers' => $customers,
+                'classification' => 'SUB',
+                'status' => $status,
+                'search' => $search,
+            ]);
+        }
 
         // Classification-specific eager loading
         $eagerLoads = ['customer'];
