@@ -138,6 +138,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/vendor-parts/{vendorPart}', [PartController::class, 'updateVendorPart'])->name('parts.vendor-parts.update');
     Route::delete('/vendor-parts/{vendorPart}', [PartController::class, 'destroyVendorPart'])->name('parts.vendor-parts.destroy');
     Route::resource('truckings', TruckingController::class)->except(['show']);
+    Route::get('/machines/export', [\App\Http\Controllers\MachineController::class, 'export'])->name('machines.export');
+    Route::post('/machines/import', [\App\Http\Controllers\MachineController::class, 'import'])->name('machines.import');
     Route::resource('machines', \App\Http\Controllers\MachineController::class)->except(['show']);
     Route::resource('departures', ArrivalController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
