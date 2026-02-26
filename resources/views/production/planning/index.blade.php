@@ -198,17 +198,11 @@
                                             <td class="px-3 py-2 text-[11px] text-slate-500 whitespace-nowrap">
                                                 {{ $line->gciPart->model ?? '-' }}
                                             </td>
-                                            <td class="px-3 py-2 text-right">
-                                                <input type="number" step="1"
-                                                    class="w-full text-right text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
-                                                    value="{{ intval($line->stock_fg_lg) }}"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'stock_fg_lg')">
+                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
+                                                {{ number_format((float) $line->stock_fg_lg, 0) }}
                                             </td>
-                                            <td class="px-3 py-2 text-right">
-                                                <input type="number" step="1"
-                                                    class="w-full text-right text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
-                                                    value="{{ intval($line->stock_fg_gci) }}"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'stock_fg_gci')">
+                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
+                                                {{ number_format((float) $line->stock_fg_gci, 0) }}
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <input type="number" step="1" min="1"

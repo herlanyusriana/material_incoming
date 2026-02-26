@@ -222,7 +222,7 @@ class ProductionPlanningController extends Controller
         ]);
 
         $field = $request->field;
-        $allowed = ['machine_name', 'process_name', 'production_sequence', 'plan_qty', 'shift', 'remark', 'stock_fg_lg', 'stock_fg_gci', 'sort_order'];
+        $allowed = ['machine_name', 'process_name', 'production_sequence', 'plan_qty', 'shift', 'remark', 'sort_order'];
 
         if (!in_array($field, $allowed)) {
             return response()->json(['error' => 'Invalid field'], 422);
