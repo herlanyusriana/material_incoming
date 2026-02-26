@@ -311,23 +311,34 @@ class ProductionPlanningController extends Controller
         DB::beginTransaction();
         try {
             $generated = 0;
+            $planDateStr = Carbon::parse($session->plan_date)->format('Y-m-d');
+            $woPrefix = 'WO-' . now()->format('ymd');
+
+            // Pre-fetch the last WO sequence for today to avoid stale reads in loop
+            $lastOrder = ProductionOrder::where('production_order_number', 'like', $woPrefix . '%')
+                ->orderBy('production_order_number', 'desc')
+                ->first();
+            $woSeq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) : 0;
+
             foreach ($lines as $line) {
                 // Check if WO already exists for this planning line
                 $existingWo = ProductionOrder::where('planning_line_id', $line->id)->first();
                 if ($existingWo)
                     continue;
 
-                // Generate production order number
-                $prefix = 'WO-' . now()->format('ymd');
-                $lastOrder = ProductionOrder::where('production_order_number', 'like', $prefix . '%')
-                    ->orderBy('production_order_number', 'desc')
-                    ->first();
-                $seq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) + 1 : 1;
-                $woNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                // Skip lines with missing gciPart relation
+                if (!$line->gciPart) {
+                    \Illuminate\Support\Facades\Log::warning("Planning line {$line->id} has invalid gci_part_id {$line->gci_part_id}, skipping.");
+                    continue;
+                }
+
+                // Generate production order number (increment in memory)
+                $woSeq++;
+                $woNumber = $woPrefix . '-' . str_pad($woSeq, 4, '0', STR_PAD_LEFT);
 
                 $order = ProductionOrder::create([
                     'production_order_number' => $woNumber,
-                    'transaction_no' => ProductionOrder::generateTransactionNo(Carbon::parse($session->plan_date)->format('Y-m-d')),
+                    'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
                     'gci_part_id' => $line->gci_part_id,
                     'machine_name' => $line->machine_name,
                     'process_name' => $line->process_name,
@@ -342,13 +353,22 @@ class ProductionPlanningController extends Controller
                     'created_by' => auth()->id(),
                 ]);
 
-                // Auto-link arrivals (SO)
-                $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
-                if (!empty($arrivalIds)) {
-                    $order->arrivals()->sync($arrivalIds);
+                // Auto-link arrivals (SO) — skip if no links found
+                try {
+                    $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
+                    if (!empty($arrivalIds)) {
+                        $order->arrivals()->sync($arrivalIds);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
                 }
 
                 $generated++;
+            }
+
+            if ($generated === 0) {
+                DB::rollBack();
+                return back()->with('error', 'Tidak ada WO yang bisa digenerate. Semua line sudah punya WO atau data tidak valid.');
             }
 
             $session->update(['status' => 'confirmed', 'confirmed_by' => auth()->id(), 'confirmed_at' => now()]);
@@ -360,7 +380,8 @@ class ProductionPlanningController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             \Illuminate\Support\Facades\Log::error('Mass WO Generation failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Gagal generate WO: ' . $e->getMessage());
+            return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
+                ->with('error', 'Gagal generate WO: ' . $e->getMessage());
         }
     }
 
@@ -389,6 +410,11 @@ class ProductionPlanningController extends Controller
             return back()->with('error', "WO sudah ada untuk part ini: {$existingWo->production_order_number}");
         }
 
+        if (!$line->gciPart) {
+            return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
+                ->with('error', 'Data part tidak valid untuk planning line ini.');
+        }
+
         DB::beginTransaction();
         try {
             $prefix = 'WO-' . now()->format('ymd');
@@ -398,9 +424,11 @@ class ProductionPlanningController extends Controller
             $seq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) + 1 : 1;
             $woNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
 
+            $planDateStr = Carbon::parse($session->plan_date)->format('Y-m-d');
+
             $order = ProductionOrder::create([
                 'production_order_number' => $woNumber,
-                'transaction_no' => ProductionOrder::generateTransactionNo(Carbon::parse($session->plan_date)->format('Y-m-d')),
+                'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
                 'gci_part_id' => $line->gci_part_id,
                 'machine_name' => $line->machine_name,
                 'process_name' => $line->process_name,
@@ -416,9 +444,13 @@ class ProductionPlanningController extends Controller
             ]);
 
             // Auto-link arrivals (SO)
-            $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
-            if (!empty($arrivalIds)) {
-                $order->arrivals()->sync($arrivalIds);
+            try {
+                $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
+                if (!empty($arrivalIds)) {
+                    $order->arrivals()->sync($arrivalIds);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
             }
 
             // Check if all lines with qty+seq now have WO → auto-confirm session
@@ -439,7 +471,8 @@ class ProductionPlanningController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             \Illuminate\Support\Facades\Log::error('Single WO Generation failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Gagal generate WO: ' . $e->getMessage());
+            return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
+                ->with('error', 'Gagal generate WO: ' . $e->getMessage());
         }
     }
 

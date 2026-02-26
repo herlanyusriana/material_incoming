@@ -470,7 +470,7 @@
 	                                @endphp
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-4 py-4 text-slate-800 whitespace-nowrap">
-                                        <div class="font-semibold">{{ $item->part->part_name_gci ?: ($item->part->part_name_vendor ?? '-') }}</div>
+                                        <div class="font-semibold">{{ $item->part?->part_name_gci ?: ($item->part?->part_name_vendor ?? '-') }}</div>
                                     </td>
                                     <td class="px-4 py-4 text-slate-700 font-mono text-xs whitespace-nowrap">{{ $item->size ?? '-' }}</td>
                                     <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ $item->qty_bundle }}</td>
