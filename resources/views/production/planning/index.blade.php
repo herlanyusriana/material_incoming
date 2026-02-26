@@ -148,194 +148,174 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs border-collapse" id="planningTable">
                         <thead>
-                            <tr class="bg-gradient-to-r from-yellow-100 to-yellow-50">
-                                <th class="sticky left-0 z-20 bg-yellow-100 border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[120px]"
-                                    rowspan="2">MESIN<br><span class="text-[10px] font-normal text-slate-500">(from BOM)</span>
-                                </th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[130px]"
-                                    rowspan="2">PART NO</th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[180px]"
-                                    rowspan="2">PART NAME</th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[100px]"
-                                    rowspan="2">MODEL</th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 bg-yellow-50"
-                                    colspan="2">Stock Finish Good</th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 bg-yellow-50"
-                                    colspan="3">Urutan Produksi (Plan GCI)</th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 bg-blue-50"
-                                    colspan="{{ count($dateRange) }}">FG Stock vs Planning LG</th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[100px]"
-                                    rowspan="2">Remark</th>
-                                <th class="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700 min-w-[60px]"
-                                    rowspan="2">Action</th>
-                            </tr>
-                            <tr class="bg-gradient-to-r from-yellow-50 to-white">
-                                <th
-                                    class="border border-slate-300 px-2 py-1.5 text-center font-semibold text-slate-600 bg-yellow-50 min-w-[80px]">
-                                    FG LG</th>
-                                <th
-                                    class="border border-slate-300 px-2 py-1.5 text-center font-semibold text-slate-600 bg-yellow-50 min-w-[80px]">
-                                    FG GCI</th>
-                                <th
-                                    class="border border-slate-300 px-2 py-1.5 text-center font-semibold text-slate-600 bg-yellow-50 min-w-[50px]">
-                                    Seq</th>
-                                <th
-                                    class="border border-slate-300 px-2 py-1.5 text-center font-semibold text-slate-600 bg-yellow-50 min-w-[70px]">
-                                    Plan Qty</th>
-                                <th
-                                    class="border border-slate-300 px-2 py-1.5 text-center font-semibold text-slate-600 bg-yellow-50 min-w-[50px]">
-                                    Shift</th>
-                                @foreach($dateRange as $date)
-                                    <th
-                                        class="border border-slate-300 px-2 py-1.5 text-center font-semibold text-slate-600 bg-blue-50 min-w-[80px]">
-                                        {{ $date->format('d') }}<br><span
-                                            class="text-[10px] text-slate-400">{{ $date->format('D') }}</span>
-                                    </th>
-                                @endforeach
+                            <tr class="bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-300">
+                                <th class="w-10 px-2 py-3 text-center"></th> <!-- Expand Toggle -->
+                                <th class="px-3 py-3 text-left font-bold text-slate-700">PART NO</th>
+                                <th class="px-3 py-3 text-left font-bold text-slate-700">PART NAME</th>
+                                <th class="px-3 py-3 text-left font-bold text-slate-700">MODEL</th>
+                                <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK LG</th>
+                                <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK GCI</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
+                                <th class="px-3 py-3 text-right font-bold text-slate-700 text-emerald-700">PLAN QTY</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">SHIFT</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">REMARK</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">ACTION</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($machineGroups as $machineName => $group)
-                                @foreach($group['lines'] as $idx => $line)
-                                    <tr class="hover:bg-slate-50 transition-colors {{ $idx === 0 ? 'border-t-2 border-t-slate-400' : '' }}"
-                                        data-line-id="{{ $line->id }}">
-                                        @if($idx === 0)
-                                            <td class="sticky left-0 z-10 bg-white border border-slate-300 px-2 py-1.5 text-center font-bold text-[11px] text-slate-700 align-middle"
-                                                rowspan="{{ count($group['lines']) + 1 }}">
-                                                <div class="font-bold text-emerald-700 text-[11px] leading-tight">{{ $machineName }}</div>
-                                                @if($group['process_name'] && $group['process_name'] !== '-')
-                                                    <div class="text-[10px] text-slate-500 mt-0.5">{{ $group['process_name'] }}</div>
-                                                @endif
-                                            </td>
-                                        @endif
-                                        <td
-                                            class="border border-slate-300 px-2 py-1.5 font-mono text-[11px] text-slate-700 whitespace-nowrap">
-                                            {{ $line->gciPart->part_no ?? '-' }}
-                                        </td>
-                                        <td class="border border-slate-300 px-2 py-1.5 font-medium text-slate-800 whitespace-nowrap">
-                                            {{ $line->gciPart->part_name ?? '-' }}
-                                        </td>
-                                        <td class="border border-slate-300 px-2 py-1.5 text-[11px] text-slate-600 whitespace-nowrap">
-                                            {{ $line->gciPart->model ?? '-' }}
-                                        </td>
-                                        <td class="border border-slate-300 px-2 py-1 text-right">
-                                            <input type="number" step="1"
-                                                class="w-full text-right text-xs border-0 bg-transparent p-0 focus:ring-0 focus:outline-none font-mono"
-                                                value="{{ intval($line->stock_fg_lg) }}"
-                                                @change="updateLineField($event, {{ $line->id }}, 'stock_fg_lg')">
-                                        </td>
-                                        <td class="border border-slate-300 px-2 py-1 text-right">
-                                            <input type="number" step="1"
-                                                class="w-full text-right text-xs border-0 bg-transparent p-0 focus:ring-0 focus:outline-none font-mono"
-                                                value="{{ intval($line->stock_fg_gci) }}"
-                                                @change="updateLineField($event, {{ $line->id }}, 'stock_fg_gci')">
-                                        </td>
-                                        <td class="border border-slate-300 px-1 py-1 text-center bg-yellow-50">
-                                            <input type="number" step="1" min="1"
-                                                class="w-full text-center text-xs border-0 bg-transparent p-0 focus:ring-0 focus:outline-none font-bold"
-                                                value="{{ $line->production_sequence }}" placeholder="-"
-                                                @change="updateLineField($event, {{ $line->id }}, 'production_sequence')">
-                                        </td>
-                                        <td class="border border-slate-300 px-1 py-1 text-right bg-yellow-50">
-                                            <input type="number" step="1" min="0"
-                                                class="w-full text-right text-xs border-0 bg-transparent p-0 focus:ring-0 focus:outline-none font-bold text-emerald-700"
-                                                value="{{ $line->plan_qty > 0 ? intval($line->plan_qty) : '' }}" placeholder="0"
-                                                @change="updateLineField($event, {{ $line->id }}, 'plan_qty')">
-                                        </td>
-                                        <td class="border border-slate-300 px-1 py-1 text-center bg-yellow-50">
-                                            <select
-                                                class="w-full text-center text-xs border-0 bg-transparent p-0 focus:ring-0 focus:outline-none"
-                                                @change="updateLineField($event, {{ $line->id }}, 'shift')">
-                                                <option value="">-</option>
-                                                <option value="1" {{ $line->shift == 1 ? 'selected' : '' }}>1</option>
-                                                <option value="2" {{ $line->shift == 2 ? 'selected' : '' }}>2</option>
-                                                <option value="3" {{ $line->shift == 3 ? 'selected' : '' }}>3</option>
-                                            </select>
-                                        </td>
-                                        {{-- FG Stock vs Planning LG daily columns --}}
-                                        @foreach($dateRange as $dIdx => $date)
-                                            @php
-                                                $fgStock = (float) $line->stock_fg_lg;
-                                                $planQty = (float) $line->plan_qty;
-                                                $dailyReq = isset($dailyPlanData[$line->gci_part_id]) ? ($dailyPlanData[$line->gci_part_id]['total_qty'] ?? 0) : 0;
-                                                $projectedStock = $fgStock + $planQty - ($dailyReq * ($dIdx + 1));
-                                            @endphp
-                                            <td class="border border-slate-300 px-1 py-0 text-center">
-                                                <div
-                                                    class="text-[10px] leading-tight py-0.5 font-mono {{ $projectedStock >= 0 ? 'text-slate-600' : 'text-red-600 font-bold' }}">
-                                                    {{ number_format($projectedStock, 0) }}
-                                                </div>
-                                                <div
-                                                    class="text-[10px] leading-tight py-0.5 font-mono border-t border-slate-200 {{ $projectedStock < 0 ? 'bg-red-100 text-red-700 font-bold' : ($projectedStock < ($dailyReq * 2) ? 'bg-yellow-100 text-amber-700' : 'text-slate-500') }}">
-                                                    {{ number_format($projectedStock, 0) }}
-                                                </div>
-                                            </td>
-                                        @endforeach
-                                        <td class="border border-slate-300 px-1 py-1 text-center">
-                                            <select
-                                                class="w-full text-center text-[10px] border-0 bg-transparent p-0 focus:ring-0 focus:outline-none"
-                                                @change="updateLineField($event, {{ $line->id }}, 'remark')">
-                                                <option value="">-</option>
-                                                <option value="LG Plan" {{ $line->remark == 'LG Plan' ? 'selected' : '' }}>LG Plan
-                                                </option>
-                                                <option value="GCI Stock" {{ $line->remark == 'GCI Stock' ? 'selected' : '' }}>GCI Stock
-                                                </option>
-                                            </select>
-                                        </td>
-                                        <td class="border border-slate-300 px-1 py-1 text-center">
-                                            <div class="flex items-center justify-center gap-1">
-                                                @if($line->productionOrders->count())
-                                                    <span
-                                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-100 text-green-700 border border-green-200"
-                                                        title="{{ $line->productionOrders->first()->production_order_number }}">
-                                                        WO
-                                                    </span>
-                                                @elseif($line->plan_qty > 0 && $line->production_sequence)
-                                                    <form action="{{ route('production.planning.generate-mo-line') }}" method="POST"
-                                                        class="inline">
-                                                        @csrf
-                                                        <input type="hidden" name="line_id" value="{{ $line->id }}">
-                                                        <button type="submit"
-                                                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors"
-                                                            title="Generate WO for this part"
-                                                            onclick="return confirm('Generate WO untuk {{ $line->gciPart->part_no ?? 'part ini' }}?')">
-                                                            WO
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                                <button @click="deleteLine({{ $line->id }})"
-                                                    class="text-red-400 hover:text-red-600 transition-colors" title="Remove">
-                                                    <svg class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
+                                <!-- Section Header for Machine -->
+                                <tr class="bg-slate-800 text-white">
+                                    <td colspan="11" class="px-4 py-2">
+                                        <div class="flex items-center gap-3">
+                                            <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <span class="font-bold text-[13px] tracking-wide">{{ $machineName }}</span>
+                                            @if($group['process_name'] && $group['process_name'] !== '-')
+                                                <span class="px-2 py-0.5 rounded-full bg-slate-700 text-[10px] text-slate-300 border border-slate-600">{{ $group['process_name'] }}</span>
+                                            @endif
+                                            <div class="ml-auto text-[11px] text-slate-400 font-medium">
+                                                Plan Qty: <span class="text-white ml-1">{{ number_format($group['subtotal_plan_qty'], 0) }}</span>
                                             </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                                {{-- Machine Subtotal Row --}}
-                                <tr class="bg-yellow-100 font-bold border-b-2 border-b-slate-400">
-                                    <td class="border border-slate-300 px-2 py-1.5 text-center text-[11px] text-slate-700"
-                                        colspan="3">
-                                        Sub Total
+                                        </div>
                                     </td>
-                                    <td class="border border-slate-300 px-2 py-1.5 text-right font-mono">
-                                        {{ number_format($group['subtotal_fg_lg'], 0) }}
-                                    </td>
-                                    <td class="border border-slate-300 px-2 py-1.5 text-right font-mono">
-                                        {{ number_format($group['subtotal_fg_gci'], 0) }}
-                                    </td>
-                                    <td class="border border-slate-300 px-1 py-1.5 text-center" colspan="1"></td>
-                                    <td class="border border-slate-300 px-1 py-1.5 text-right font-mono text-emerald-700">
-                                        {{ number_format($group['subtotal_plan_qty'], 0) }}
-                                    </td>
-                                    <td class="border border-slate-300 px-1 py-1.5" colspan="1"></td>
-                                    @foreach($dateRange as $date)
-                                        <td class="border border-slate-300 px-1 py-1.5 text-center font-mono text-[10px]">-</td>
-                                    @endforeach
-                                    <td class="border border-slate-300 px-1 py-1.5" colspan="2"></td>
                                 </tr>
+
+                                @foreach($group['lines'] as $idx => $line)
+                                    <!-- Main Row Data -->
+                                    <tbody x-data="{ expanded: false }" class="border-b border-slate-200 hover:bg-slate-50/80 transition-colors group">
+                                        <tr data-line-id="{{ $line->id }}">
+                                            <td class="w-10 px-2 py-2 text-center cursor-pointer" @click="expanded = !expanded">
+                                                <div class="h-6 w-6 rounded-md hover:bg-slate-200 flex items-center justify-center transition-colors text-slate-400 group-hover:text-emerald-600">
+                                                    <svg class="h-4 w-4 transform transition-transform" :class="expanded ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </div>
+                                            </td>
+                                            <td class="px-3 py-2 font-mono text-[12px] font-semibold text-slate-700 whitespace-nowrap">
+                                                {{ $line->gciPart->part_no ?? '-' }}
+                                            </td>
+                                            <td class="px-3 py-2 font-medium text-[12px] text-slate-800 whitespace-nowrap">
+                                                {{ $line->gciPart->part_name ?? '-' }}
+                                            </td>
+                                            <td class="px-3 py-2 text-[11px] text-slate-500 whitespace-nowrap">
+                                                {{ $line->gciPart->model ?? '-' }}
+                                            </td>
+                                            <td class="px-3 py-2 text-right">
+                                                <input type="number" step="1"
+                                                    class="w-full text-right text-xs bg-transparent border-transparent hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
+                                                    value="{{ intval($line->stock_fg_lg) }}"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'stock_fg_lg')">
+                                            </td>
+                                            <td class="px-3 py-2 text-right">
+                                                <input type="number" step="1"
+                                                    class="w-full text-right text-xs bg-transparent border-transparent hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-mono transition-all"
+                                                    value="{{ intval($line->stock_fg_gci) }}"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'stock_fg_gci')">
+                                            </td>
+                                            <td class="px-3 py-2 text-center">
+                                                <input type="number" step="1" min="1"
+                                                    class="w-16 mx-auto text-center text-xs bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
+                                                    value="{{ $line->production_sequence }}" placeholder="Seq"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'production_sequence')">
+                                            </td>
+                                            <td class="px-3 py-2 text-right">
+                                                <input type="number" step="1" min="0"
+                                                    class="w-24 ml-auto text-right text-xs bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-emerald-700 transition-all placeholder-emerald-300"
+                                                    value="{{ $line->plan_qty > 0 ? intval($line->plan_qty) : '' }}" placeholder="0"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'plan_qty')">
+                                            </td>
+                                            <td class="px-3 py-2 text-center">
+                                                <select
+                                                    class="w-14 mx-auto text-center text-xs bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-semibold text-slate-700 transition-all cursor-pointer"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'shift')">
+                                                    <option value="">-</option>
+                                                    <option value="1" {{ $line->shift == 1 ? 'selected' : '' }}>1</option>
+                                                    <option value="2" {{ $line->shift == 2 ? 'selected' : '' }}>2</option>
+                                                    <option value="3" {{ $line->shift == 3 ? 'selected' : '' }}>3</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-3 py-2 text-center">
+                                                <select
+                                                    class="w-20 mx-auto text-center text-[10px] bg-transparent border-transparent hover:bg-white hover:border-slate-300 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-medium text-slate-600 transition-all cursor-pointer"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'remark')">
+                                                    <option value="">-</option>
+                                                    <option value="LG Plan" {{ $line->remark == 'LG Plan' ? 'selected' : '' }}>LG Plan</option>
+                                                    <option value="GCI Stock" {{ $line->remark == 'GCI Stock' ? 'selected' : '' }}>GCI Stock</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-3 py-2 text-center">
+                                                <div class="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    @if($line->productionOrders->count())
+                                                        <span
+                                                            class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200"
+                                                            title="{{ $line->productionOrders->first()->production_order_number }}">
+                                                            WO
+                                                        </span>
+                                                    @elseif($line->plan_qty > 0 && $line->production_sequence)
+                                                        <form action="{{ route('production.planning.generate-mo-line') }}" method="POST"
+                                                            class="inline">
+                                                            @csrf
+                                                            <input type="hidden" name="line_id" value="{{ $line->id }}">
+                                                            <button type="submit"
+                                                                class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
+                                                                title="Generate WO for this part"
+                                                                onclick="return confirm('Generate WO untuk {{ $line->gciPart->part_no ?? 'part ini' }}?')">
+                                                                WO
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                    <button @click="deleteLine({{ $line->id }})"
+                                                        class="p-1 rounded text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Remove part">
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Expandable Detail Row (Projected Stock) -->
+                                        <tr x-show="expanded" x-transition.opacity x-cloak>
+                                            <td colspan="11" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+                                                <div class="mb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
+                                                    <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                                                    </svg>
+                                                    Projected Daily Stock vs LG Plan Requirement
+                                                </div>
+                                                <div class="flex gap-2 overflow-x-auto pb-2">
+                                                    @foreach($dateRange as $dIdx => $date)
+                                                        @php
+                                                            $fgStock = (float) $line->stock_fg_lg;
+                                                            $planQty = (float) $line->plan_qty;
+                                                            $dailyReq = isset($dailyPlanData[$line->gci_part_id]) ? ($dailyPlanData[$line->gci_part_id]['total_qty'] ?? 0) : 0;
+                                                            $projectedStock = $fgStock + $planQty - ($dailyReq * ($dIdx + 1));
+                                                        @endphp
+                                                        <div class="flex-shrink-0 w-24 bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                                                            <div class="bg-blue-50/50 px-2 py-1.5 border-b border-slate-100 text-center">
+                                                                <div class="text-xs font-bold text-slate-700">{{ $date->format('d') }}</div>
+                                                                <div class="text-[9px] font-medium text-slate-500 uppercase">{{ $date->format('D') }}</div>
+                                                            </div>
+                                                            <div class="px-2 py-1.5 text-center bg-white border-b border-slate-50">
+                                                                <div class="text-[9px] text-slate-400 mb-0.5">Req</div>
+                                                                <div class="font-mono text-[11px] font-semibold text-slate-700">{{ $dailyReq > 0 ? number_format($dailyReq, 0) : '-' }}</div>
+                                                            </div>
+                                                            <div class="px-2 py-1.5 text-center {{ $projectedStock < 0 ? 'bg-red-50' : ($projectedStock < ($dailyReq * 2) ? 'bg-amber-50' : 'bg-emerald-50/30') }}">
+                                                                <div class="text-[9px] text-slate-400 mb-0.5">Proj. Stock</div>
+                                                                <div class="font-mono text-[12px] font-bold {{ $projectedStock < 0 ? 'text-red-700' : ($projectedStock < ($dailyReq * 2) ? 'text-amber-700' : 'text-emerald-700') }}">
+                                                                    {{ number_format($projectedStock, 0) }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="{{ 10 + count($dateRange) }}"
@@ -356,26 +336,21 @@
 
                             @if(!empty($machineGroups))
                                 {{-- Grand Total Row --}}
-                                <tr class="bg-gradient-to-r from-emerald-100 to-teal-100 font-bold text-sm">
-                                    <td
-                                        class="sticky left-0 z-10 border border-slate-400 px-2 py-2 text-center font-bold text-slate-800 bg-emerald-100">
-                                        Grand Total
+                                <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
+                                    <td colspan="4" class="px-4 py-3 text-right text-slate-700">
+                                        Grand Total ({{ $totalParts }} parts)
                                     </td>
-                                    <td class="border border-slate-400 px-2 py-2 text-center font-bold text-slate-700" colspan="3">
-                                        {{ $totalParts }} parts
-                                    </td>
-                                    <td class="border border-slate-400 px-2 py-2 text-right font-mono font-bold text-slate-800">
+                                    <td class="px-3 py-3 text-right font-mono text-slate-800">
                                         {{ number_format($grandTotalFgLg, 0) }}
                                     </td>
-                                    <td class="border border-slate-400 px-2 py-2 text-right font-mono font-bold text-slate-800">
+                                    <td class="px-3 py-3 text-right font-mono text-slate-800">
                                         {{ number_format($grandTotalFgGci, 0) }}
                                     </td>
-                                    <td class="border border-slate-400 px-2 py-2" colspan="1"></td>
-                                    <td class="border border-slate-400 px-2 py-2 text-right font-mono font-bold text-emerald-700">
+                                    <td class="px-3 py-3"></td>
+                                    <td class="px-3 py-3 text-right font-mono text-emerald-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>
-                                    <td class="border border-slate-400 px-2 py-2" colspan="{{ count($dateRange) + 3 }}"></td>
-
+                                    <td colspan="3" class="px-3 py-3"></td>
                                 </tr>
                             @endif
                         </tbody>

@@ -143,6 +143,20 @@ class DeliveryNoteController extends Controller
             // Save traceability: DO ↔ WO
             if (!empty($validated['production_order_ids'])) {
                 $dn->productionOrders()->sync($validated['production_order_ids']);
+            } else {
+                $gciPartIds = collect($validated['items'])->pluck('gci_part_id')->filter()->unique()->toArray();
+                if (!empty($gciPartIds)) {
+                    $autoWoIds = \App\Models\ProductionOrder::whereIn('gci_part_id', $gciPartIds)
+                        ->whereNotNull('transaction_no')
+                        ->orderBy('created_at', 'asc') // FIFO
+                        ->limit(20) // Limit to recent/oldest 20 to prevent runaway pivot sizes
+                        ->pluck('id')
+                        ->toArray();
+
+                    if (!empty($autoWoIds)) {
+                        $dn->productionOrders()->sync($autoWoIds);
+                    }
+                }
             }
         });
 
