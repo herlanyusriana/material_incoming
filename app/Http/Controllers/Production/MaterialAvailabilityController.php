@@ -99,7 +99,7 @@ class MaterialAvailabilityController extends Controller
         
         if ($allAvailable) {
             // Check if machine/process is filled
-            if (!$order->process_name || !$order->machine_name) {
+            if (!$order->process_name || !$order->machine_id) {
                 $order->update([
                     'status' => 'resource_hold',
                     'workflow_stage' => 'resource_check'

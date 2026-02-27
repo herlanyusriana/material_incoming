@@ -429,7 +429,7 @@ class ProductionPlanningController extends Controller
                 'production_order_number' => $woNumber,
                 'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
                 'gci_part_id' => $line->gci_part_id,
-                'machine_name' => $line->machine_name,
+                'machine_id' => $line->machine_id,
                 'process_name' => $line->process_name,
                 'planning_line_id' => $line->id,
                 'plan_date' => $session->plan_date,

@@ -34,7 +34,7 @@ class ProductionOrderController extends Controller
         }
 
         $query = ProductionOrder::query()
-            ->with(['part', 'dailyPlanCell.row'])
+            ->with(['part', 'machine', 'dailyPlanCell.row'])
             ->when($gciPartId > 0, fn($qr) => $qr->where('gci_part_id', $gciPartId))
             ->when($status !== '', fn($qr) => $qr->where('status', $status))
             ->when($dateFrom || $dateTo, function ($qr) use ($dateFrom, $dateTo) {

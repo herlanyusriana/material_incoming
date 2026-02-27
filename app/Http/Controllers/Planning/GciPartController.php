@@ -65,7 +65,7 @@ class GciPartController extends Controller
             'success' => true,
             'bom' => [
                 'process_name' => $targetItem->process_name,
-                'machine_name' => $targetItem->machine_name,
+                'machine_id' => $targetItem->machine_id,
             ]
         ]);
     }
@@ -107,49 +107,39 @@ class GciPartController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => ['nullable', 'file', 'mimes:xlsx,xls', 'max:2048'],
-            'temp_file' => ['nullable', 'string'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
         ]);
 
-        $file = $request->file('file');
-        $tempPath = $request->input('temp_file');
-        $confirm = $request->boolean('confirm_import');
-
-        if (!$file && !$tempPath) {
-            return back()->with('error', 'Please upload a file.');
-        }
-
         try {
-            $filePath = null;
-            if ($file) {
-                $filename = 'import_gci_' . auth()->id() . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $filePath = $file->storeAs('temp', $filename);
-            } else {
-                $filePath = $tempPath;
-            }
+            $import = new GciPartsImport();
 
-            if (!$filePath || !\Illuminate\Support\Facades\Storage::exists($filePath)) {
-                return back()->with('error', 'File not found or expired. Please upload again.');
-            }
-
-            $import = new GciPartsImport($confirm);
-            
-            DB::transaction(function () use ($import, $filePath) {
-                Excel::import($import, \Illuminate\Support\Facades\Storage::path($filePath));
+            DB::transaction(function () use ($import, $request) {
+                Excel::import($import, $request->file('file'));
             });
 
-            if (!empty($import->duplicates)) {
-                $dupCount = count($import->duplicates);
-                // Instead of returning error, we proceed and report skipped count
-                // We don't need to keep temp file if we are skipping them.
-                \Illuminate\Support\Facades\Storage::delete($filePath);
-                
-                return back()->with('success', "Part GCI imported successfully. Skipped {$dupCount} duplicate rows.");
+            $parts = [];
+            if ($import->createdCount > 0) {
+                $parts[] = "{$import->createdCount} created";
+            }
+            if ($import->updatedCount > 0) {
+                $parts[] = "{$import->updatedCount} updated";
+            }
+            $msg = 'Part GCI imported successfully. ' . implode(', ', $parts) . '.';
+
+            if ($import->substituteCount > 0) {
+                $msg .= " {$import->substituteCount} substitutes processed.";
             }
 
-            \Illuminate\Support\Facades\Storage::delete($filePath);
+            $missingComp = array_keys($import->missingComponentParts);
+            $missingSub = array_keys($import->missingSubstituteParts);
+            if (!empty($missingComp) || !empty($missingSub)) {
+                $allMissing = array_unique(array_merge($missingComp, $missingSub));
+                $preview = implode(', ', array_slice($allMissing, 0, 10));
+                $more = count($allMissing) > 10 ? (' … +' . (count($allMissing) - 10) . ' more') : '';
+                $msg .= " Missing parts for substitutes: {$preview}{$more}.";
+            }
 
-            return back()->with('success', 'Part GCI imported successfully.');
+            return back()->with('success', $msg);
         } catch (\Throwable $e) {
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }

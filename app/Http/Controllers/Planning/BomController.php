@@ -204,11 +204,17 @@ class BomController extends Controller
             $missingFg = array_keys($import->missingFgParts ?? []);
             $missingComp = array_keys($import->missingComponentParts ?? []);
             $missingWip = array_keys($import->missingWipParts ?? []);
+            $missingMachines = array_keys($import->missingMachines ?? []);
             if (!empty($missingComp) || !empty($missingWip) || !empty($missingFg)) {
                 $parts = array_values(array_unique(array_filter(array_merge($missingFg, $missingComp, $missingWip))));
                 $preview = implode(', ', array_slice($parts, 0, 15));
                 $more = count($parts) > 15 ? (' … +' . (count($parts) - 15) . ' more') : '';
                 $msg .= " Missing parts in GCI master: {$preview}{$more}.";
+            }
+            if (!empty($missingMachines)) {
+                $machinePreview = implode(', ', array_slice($missingMachines, 0, 10));
+                $machineMore = count($missingMachines) > 10 ? (' … +' . (count($missingMachines) - 10) . ' more') : '';
+                $msg .= " Missing machines (not found in master): {$machinePreview}{$machineMore}.";
             }
 
             if (!empty($missingFg)) {

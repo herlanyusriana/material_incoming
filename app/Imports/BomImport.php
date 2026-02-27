@@ -29,6 +29,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
     /** @var array<string, true> */
     public array $missingWipParts = [];
 
+    /** @var array<string, true> */
+    public array $missingMachines = [];
+
     public function __construct(private readonly bool $autoCreateParts = false)
     {
     }
@@ -176,6 +179,9 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             $machineNameRaw = trim($machineNameRaw);
             $machine = Machine::where('code', $machineNameRaw)->orWhere('name', $machineNameRaw)->first();
             $machineId = $machine?->id;
+            if (!$machine) {
+                $this->missingMachines[$machineNameRaw] = true;
+            }
         }
 
         // Check availability of identification data
