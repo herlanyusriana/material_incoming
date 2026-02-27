@@ -75,8 +75,8 @@
                                         <div class="text-slate-500">SJ: {{ $receive->delivery_note_no ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-4 text-slate-800">
-                                        {{ $receive->arrivalItem->part->part_no }}
-                                        <div class="text-xs text-slate-500">{{ $receive->arrivalItem->part->part_name_vendor }}</div>
+                                        {{ $receive->arrivalItem?->part?->part_no ?? '-' }}
+                                        <div class="text-xs text-slate-500">{{ $receive->arrivalItem?->part?->part_name_vendor ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-4 text-right text-slate-800 font-semibold">
                                         @php

@@ -212,7 +212,7 @@
                         <div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 flex items-center justify-between">
                             <div class="space-y-1 text-sm">
                                 <div class="text-xs uppercase text-slate-500">Item</div>
-                                <div class="font-semibold text-slate-900">{{ $item->part->part_no }} — {{ $item->part->part_name_gci ?? $item->part->part_name_vendor }}</div>
+                                <div class="font-semibold text-slate-900">{{ $item->part?->part_no ?? '-' }} — {{ $item->part?->part_name_gci ?? $item->part?->part_name_vendor ?? '-' }}</div>
                                 <div class="text-slate-600 font-mono text-xs">{{ $item->size ?? '-' }}</div>
                             </div>
                             <div class="flex items-center gap-4 text-sm">
@@ -270,8 +270,8 @@
                                     data-default-weight="{{ $item->default_weight }}"
                                     data-bundles="{{ $item->qty_bundle ?? 0 }}"
                                     data-size="{{ $item->size ?? '-' }}"
-                                    data-part-no="{{ $item->part->part_no }}"
-                                    data-part-name="{{ $item->part->part_name_gci ?? $item->part->part_name_vendor }}"
+                                    data-part-no="{{ $item->part?->part_no ?? '-' }}"
+                                    data-part-name="{{ $item->part?->part_name_gci ?? $item->part?->part_name_vendor ?? '-' }}"
                                     data-goods-unit="{{ strtoupper($item->unit_goods ?? 'KGM') }}"
                                     data-old-tags="{{ json_encode(old("items.{$item->id}.tags")) }}"
                                 >

@@ -23,7 +23,7 @@
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <div class="text-sm text-slate-600">{{ $arrival->vendor->vendor_name ?? '-' }} • {{ $arrival->invoice_no ?? '-' }}</div>
-                        <div class="mt-1 text-lg font-bold text-slate-900">{{ $arrivalItem->part->part_no }} — {{ $arrivalItem->part->part_name_gci ?? $arrivalItem->part->part_name_vendor }}</div>
+                        <div class="mt-1 text-lg font-bold text-slate-900">{{ $arrivalItem->part?->part_no ?? '-' }} — {{ $arrivalItem->part?->part_name_gci ?? $arrivalItem->part?->part_name_vendor ?? '-' }}</div>
                         <div class="text-xs font-mono text-slate-500">{{ $arrivalItem->size ?? '-' }}</div>
                     </div>
                     <div class="flex items-center gap-2">

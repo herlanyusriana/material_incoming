@@ -151,8 +151,8 @@
                                 <tr class="tag-row hover:bg-slate-50 transition-colors">
                                     <td class="px-6 py-4 text-sm text-slate-700 font-mono">{{ $arrivalItem->size ?? '-' }}</td>
                                     <td class="px-6 py-4">
-                                        <div class="font-semibold text-slate-900 text-sm">{{ $arrivalItem->part->part_no }}</div>
-                                        <div class="text-xs text-slate-600 mt-0.5">{{ $arrivalItem->part->part_name_gci ?? $arrivalItem->part->part_name_vendor }}</div>
+                                        <div class="font-semibold text-slate-900 text-sm">{{ $arrivalItem->part?->part_no ?? '-' }}</div>
+                                        <div class="text-xs text-slate-600 mt-0.5">{{ $arrivalItem->part?->part_name_gci ?? $arrivalItem->part?->part_name_vendor ?? '-' }}</div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <input type="text" name="tags[0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
@@ -228,8 +228,8 @@
         const tagRows = document.getElementById('tag-rows');
         const addTagBtn = document.getElementById('add-tag-btn');
         const size = @json($arrivalItem->size ?? '-');
-        const partNo = @json($arrivalItem->part->part_no);
-        const partName = @json($arrivalItem->part->part_name_gci ?? $arrivalItem->part->part_name_vendor);
+        const partNo = @json($arrivalItem->part?->part_no ?? '-');
+        const partName = @json($arrivalItem->part?->part_name_gci ?? $arrivalItem->part?->part_name_vendor ?? '-');
         const remainingQty = {{ (int) $remainingQty }};
         const inputTotalEl = document.getElementById('input-total');
         const receiveForm = document.getElementById('receive-form');
