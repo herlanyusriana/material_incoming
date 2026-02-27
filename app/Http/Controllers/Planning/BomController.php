@@ -158,6 +158,13 @@ class BomController extends Controller
         return back()->with('success', 'All substitutes have been cleared. You can now re-import with correct data.');
     }
 
+    public function truncateBoms()
+    {
+        $count = Bom::count();
+        Bom::query()->delete();
+        return back()->with('success', "All BOMs have been cleared ({$count} BOMs deleted including items & substitutes).");
+    }
+
     public function exportSubstitutes()
     {
         $filename = 'bom_substitutes_' . now()->format('Y-m-d_His') . '.xlsx';

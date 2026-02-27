@@ -361,6 +361,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/boms/{bom}/explosion', [PlanningBomController::class, 'explosion'])->name('boms.explosion');
         Route::delete('/bom-items/{bomItem}', [PlanningBomController::class, 'destroyItem'])->name('boms.items.destroy');
         Route::post('/bom-items/{bomItem}/substitutes', [PlanningBomController::class, 'storeSubstitute'])->name('bom-items.substitutes.store');
+        Route::delete('/boms/truncate', [PlanningBomController::class, 'truncateBoms'])->name('boms.truncate');
         Route::delete('/bom-item-substitutes/truncate', [PlanningBomController::class, 'truncateSubstitutes'])->name('boms.substitutes.truncate');
         Route::delete('/bom-item-substitutes/{substitute}', [PlanningBomController::class, 'destroySubstitute'])->name('bom-item-substitutes.destroy');
 
