@@ -503,6 +503,7 @@
                                                     'action' => route('planning.boms.items.store', $bom),
                                                     'bom_item_id' => $item->id,
                                                     'fg_label' => $fgNo . ' — ' . $fgName,
+                                                    'classification' => $item->componentPart?->classification ?? '',
                                                     'line_no' => $lineNo,
                                                     'process_name' => $item->process_name,
                                                     'machine_id' => $item->machine_id,
@@ -864,17 +865,59 @@
                             <div class="font-semibold" x-text="lineForm.fg_label"></div>
                         </div>
 
+                        {{-- === PRIMARY FIELDS (always visible) === --}}
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
-                                <label class="text-xs font-semibold text-slate-600">No</label>
-                                <input type="number" min="1" name="line_no"
-                                    class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.line_no">
+                                <label class="text-xs font-semibold text-slate-600">Classification</label>
+                                <select class="mt-1 w-full rounded-xl border-slate-200"
+                                    x-model="lineForm.classification"
+                                    @change="lineForm.component_part_id = ''; lineForm.component_part_no = ''; lineForm.make_or_buy = (lineForm.classification === 'RM' ? 'buy' : (lineForm.classification ? 'make' : 'buy'))">
+                                    <option value="">-- Pilih Classification --</option>
+                                    <option value="FG">FG (Finished Goods)</option>
+                                    <option value="WIP">WIP (Work in Process)</option>
+                                    <option value="RM">RM (Raw Material)</option>
+                                </select>
                             </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">Process Name</label>
-                                <input type="text" name="process_name" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.process_name">
+                            <div class="md:col-span-2">
+                                <label class="text-xs font-semibold text-slate-600">Component Part</label>
+                                <div class="flex gap-2">
+                                    <template x-if="!lineForm.component_part_id">
+                                        <input type="text" name="component_part_no"
+                                            class="mt-1 w-full rounded-xl border-slate-200"
+                                            x-model="lineForm.component_part_no" placeholder="Ketik Part No..."
+                                            :disabled="!lineForm.classification">
+                                    </template>
+                                    <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.component_part_id"
+                                        :disabled="!lineForm.classification">
+                                        <option value="">(Ketik manual)</option>
+                                        <template x-if="lineForm.classification === 'FG'">
+                                            <optgroup label="FG (Finished Goods)">
+                                                @foreach (($fgParts ?? []) as $c)
+                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        </template>
+                                        <template x-if="lineForm.classification === 'WIP'">
+                                            <optgroup label="WIP (Work in Process)">
+                                                @foreach (($wipParts ?? []) as $c)
+                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        </template>
+                                        <template x-if="lineForm.classification === 'RM'">
+                                            <optgroup label="RM (Raw Material)">
+                                                @foreach (($rmParts ?? []) as $c)
+                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        </template>
+                                    </select>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
                                 <label class="text-xs font-semibold text-slate-600">Machine</label>
                                 <select name="machine_id" class="mt-1 w-full rounded-xl border-slate-200"
@@ -884,113 +927,6 @@
                                         <option value="{{ $machine->id }}">{{ $machine->code }} - {{ $machine->name }}</option>
                                     @endforeach
                                 </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">WIP Part No.</label>
-                                <div class="flex gap-2">
-                                    <template x-if="!lineForm.wip_part_id">
-                                        <input type="text" name="wip_part_no"
-                                            class="mt-1 w-full rounded-xl border-slate-200"
-                                            x-model="lineForm.wip_part_no" placeholder="Part No String">
-                                    </template>
-                                    <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200"
-                                        x-model="lineForm.wip_part_id">
-                                        <option value="">(Use text / -)</option>
-                                        @foreach(($wipParts ?? []) as $p)
-                                            <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} —
-                                                {{ optional($p)->part_name ?? '-' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">Qty.</label>
-                                <input type="number" step="any" min="0" name="wip_qty"
-                                    class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_qty">
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">UOM</label>
-                                <select name="wip_uom_id" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.wip_uom_id">
-                                    <option value="">-</option>
-                                    @foreach(($uoms ?? []) as $uom)
-                                        <option value="{{ optional($uom)->id }}">{{ optional($uom)->code }} -
-                                            {{ optional($uom)->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">WIP Part Name</label>
-                                <input type="text" name="wip_part_name" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.wip_part_name" placeholder="Optional override">
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">spesial</label>
-                                <input type="text" name="special" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.special">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">Material Size</label>
-                                <input type="text" name="material_size" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.material_size">
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">Material Spec</label>
-                                <input type="text" name="material_spec" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.material_spec">
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">Material Name</label>
-                                <input type="text" name="material_name" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.material_name">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <div class="md:col-span-2">
-                                <label class="text-xs font-semibold text-slate-600">Component Part (GCI /
-                                    String)</label>
-                                <div class="flex gap-2">
-                                    <template x-if="!lineForm.component_part_id">
-                                        <input type="text" name="component_part_no"
-                                            class="mt-1 w-full rounded-xl border-slate-200"
-                                            x-model="lineForm.component_part_no" placeholder="RM/Part No">
-                                    </template>
-                                    <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200"
-                                        x-model="lineForm.component_part_id">
-                                        <option value="">(Use text)</option>
-                                        <template x-if="['buy','free_issue'].includes((lineForm.make_or_buy || 'buy'))">
-                                            <optgroup label="BUY (RM)">
-                                                @foreach (($rmParts ?? []) as $c)
-                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} —
-                                                        {{ optional($c)->part_name ?? '-' }}
-                                                    </option>
-                                                @endforeach
-                                            </optgroup>
-                                        </template>
-                                        <template x-if="(lineForm.make_or_buy || 'buy') === 'make'">
-                                            <optgroup label="MAKE (FG/WIP)">
-                                                @foreach (($makeParts ?? []) as $c)
-                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} —
-                                                        {{ optional($c)->part_name ?? '-' }}
-                                                        ({{ strtoupper(optional($c)->classification ?? '') }})
-                                                    </option>
-                                                @endforeach
-                                            </optgroup>
-                                        </template>
-                                    </select>
-                                </div>
                             </div>
                             <div>
                                 <label class="text-xs font-semibold text-slate-600">Make / Buy</label>
@@ -1009,50 +945,135 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600 block mb-1">Incoming Part (Vendor /
-                                    RM)</label>
-                                <select name="incoming_part_id" class="w-full rounded-xl border-slate-200 bg-slate-50"
-                                    x-model="lineForm.incoming_part_id">
-                                    <option value="">(No incoming part linked)</option>
-                                    @foreach(($incomingParts ?? []) as $ip)
-                                        <option value="{{ $ip->id }}">
-                                            {{ $ip->part_no }} — {{ $ip->part_name_gci ?: ($ip->part_name_vendor ?? '-') }}
-                                            @if($ip->vendor) [{{ $ip->vendor->name }}] @endif
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div class="text-[10px] text-slate-500 mt-0.5">Link RM ke Part Incoming yang terdaftar
-                                    di
-                                    receiving.</div>
-                            </div>
-                        </div>
+                        {{-- === SECONDARY FIELDS (shown after part is selected) === --}}
+                        <div x-show="lineForm.component_part_id || lineForm.component_part_no" x-transition class="space-y-4 border-t border-slate-100 pt-4">
+                            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Detail Tambahan</div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">UOM (Consumption)</label>
-                                <select name="consumption_uom_id" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.consumption_uom_id">
-                                    <option value="">-</option>
-                                    @foreach(($uoms ?? []) as $uom)
-                                        <option value="{{ optional($uom)->id }}">{{ optional($uom)->code }} -
-                                            {{ optional($uom)->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">No</label>
+                                    <input type="number" min="1" name="line_no"
+                                        class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.line_no">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Process Name</label>
+                                    <input type="text" name="process_name" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.process_name">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Special</label>
+                                    <input type="text" name="special" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.special">
+                                </div>
                             </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">Scrap Factor</label>
-                                <input type="number" step="0.01" min="0" max="1" name="scrap_factor"
-                                    class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.scrap_factor"
-                                    placeholder="0.05 = 5%">
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP Part No.</label>
+                                    <div class="flex gap-2">
+                                        <template x-if="!lineForm.wip_part_id">
+                                            <input type="text" name="wip_part_no"
+                                                class="mt-1 w-full rounded-xl border-slate-200"
+                                                x-model="lineForm.wip_part_no" placeholder="Part No String">
+                                        </template>
+                                        <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200"
+                                            x-model="lineForm.wip_part_id">
+                                            <option value="">(Use text / -)</option>
+                                            @foreach(($wipParts ?? []) as $p)
+                                                <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} —
+                                                    {{ optional($p)->part_name ?? '-' }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP Qty.</label>
+                                    <input type="number" step="any" min="0" name="wip_qty"
+                                        class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.wip_qty">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP UOM</label>
+                                    <select name="wip_uom_id" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.wip_uom_id">
+                                        <option value="">-</option>
+                                        @foreach(($uoms ?? []) as $uom)
+                                            <option value="{{ optional($uom)->id }}">{{ optional($uom)->code }} -
+                                                {{ optional($uom)->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-600">Yield Factor</label>
-                                <input type="number" step="0.01" min="0" max="1" name="yield_factor"
-                                    class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.yield_factor"
-                                    placeholder="0.95 = 95%">
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP Part Name</label>
+                                    <input type="text" name="wip_part_name" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.wip_part_name" placeholder="Optional override">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Material Size</label>
+                                    <input type="text" name="material_size" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.material_size">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Material Spec</label>
+                                    <input type="text" name="material_spec" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.material_spec">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Material Name</label>
+                                    <input type="text" name="material_name" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.material_name">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600 block mb-1">Incoming Part (Vendor / RM)</label>
+                                    <select name="incoming_part_id" class="w-full rounded-xl border-slate-200 bg-slate-50"
+                                        x-model="lineForm.incoming_part_id">
+                                        <option value="">(No incoming part linked)</option>
+                                        @foreach(($incomingParts ?? []) as $ip)
+                                            <option value="{{ $ip->id }}">
+                                                {{ $ip->part_no }} — {{ $ip->part_name_gci ?: ($ip->part_name_vendor ?? '-') }}
+                                                @if($ip->vendor) [{{ $ip->vendor->name }}] @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="text-[10px] text-slate-500 mt-0.5">Link RM ke Part Incoming yang terdaftar di receiving.</div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">UOM (Consumption)</label>
+                                    <select name="consumption_uom_id" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="lineForm.consumption_uom_id">
+                                        <option value="">-</option>
+                                        @foreach(($uoms ?? []) as $uom)
+                                            <option value="{{ optional($uom)->id }}">{{ optional($uom)->code }} -
+                                                {{ optional($uom)->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Scrap Factor</label>
+                                    <input type="number" step="0.01" min="0" max="1" name="scrap_factor"
+                                        class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.scrap_factor"
+                                        placeholder="0.05 = 5%">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Yield Factor</label>
+                                    <input type="number" step="0.01" min="0" max="1" name="yield_factor"
+                                        class="mt-1 w-full rounded-xl border-slate-200" x-model="lineForm.yield_factor"
+                                        placeholder="0.95 = 95%">
+                                </div>
                             </div>
                         </div>
 
@@ -1101,6 +1122,7 @@
                             action: '',
                             bom_item_id: null,
                             fg_label: '',
+                            classification: '',
                             line_no: null,
                             process_name: '',
                             machine_id: '',
@@ -1165,6 +1187,7 @@
                                 action: payload.action,
                                 bom_item_id: payload.bom_item_id,
                                 fg_label: payload.fg_label,
+                                classification: payload.classification ?? '',
                                 line_no: payload.line_no,
                                 process_name: payload.process_name ?? '',
                                 machine_id: payload.machine_id ?? '',
