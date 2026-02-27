@@ -138,7 +138,7 @@ class Bom extends Model
                 'wip_qty' => $item->wip_qty,
                 'wip_uom' => $item->wip_uom,
                 'process_name' => $item->process_name,
-                'machine_name' => $item->machine_name,
+                'machine_name' => $item->machine?->name,
                 'usage_qty' => $item->usage_qty,
                 'scrap_factor' => $item->scrap_factor,
                 'yield_factor' => $item->yield_factor,

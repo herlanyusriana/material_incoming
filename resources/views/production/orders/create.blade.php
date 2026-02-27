@@ -38,15 +38,15 @@
                                         .then(data => {
                                             if (data.success && data.bom) {
                                                 const processInput = document.querySelector('input[name="process_name"]');
-                                                const machineInput = document.querySelector('input[name="machine_name"]');
+                                                const machineSelect = document.querySelector('select[name="machine_id"]');
 
                                                 if (data.bom.process_name) {
                                                     processInput.value = data.bom.process_name;
                                                     processInput.classList.add('bg-green-50');
                                                 }
-                                                if (data.bom.machine_name) {
-                                                    machineInput.value = data.bom.machine_name;
-                                                    machineInput.classList.add('bg-green-50');
+                                                if (data.bom.machine_id) {
+                                                    machineSelect.value = data.bom.machine_id;
+                                                    machineSelect.classList.add('bg-green-50');
                                                 }
                                             }
                                         })
@@ -66,9 +66,13 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Machine</label>
-                        <input type="text" name="machine_name" value="{{ old('machine_name') }}"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            placeholder="ex: LINE-01 / MACHINE-A">
+                        <select name="machine_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="">-- Select Machine --</option>
+                            @foreach ($machines as $machine)
+                                <option value="{{ $machine->id }}" @selected(old('machine_id') == $machine->id)>{{ $machine->code }} - {{ $machine->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 

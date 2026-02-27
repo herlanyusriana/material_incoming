@@ -13,7 +13,8 @@ class Machine extends Model
         'code',
         'name',
         'group_name',
-        'sort_order',
+        'cycle_time',
+        'cycle_time_unit',
         'is_active',
     ];
 
@@ -24,6 +25,21 @@ class Machine extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function bomItems()
+    {
+        return $this->hasMany(BomItem::class);
+    }
+
+    public function productionOrders()
+    {
+        return $this->hasMany(ProductionOrder::class);
+    }
+
+    public function planningLines()
+    {
+        return $this->hasMany(ProductionPlanningLine::class);
     }
 
     public function scopeSearch($query, ?string $search)

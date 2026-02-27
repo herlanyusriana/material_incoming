@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\GciPart;
+use App\Models\Machine;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -167,11 +168,19 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
 
         $processName = $this->firstNonEmpty($row, ['process_name']);
-        $machineName = $this->firstNonEmpty($row, ['machine_name']);
+        $machineNameRaw = $this->firstNonEmpty($row, ['machine_name', 'machine_code', 'machine']);
+
+        // Lookup machine by code or name
+        $machineId = null;
+        if ($machineNameRaw) {
+            $machineNameRaw = trim($machineNameRaw);
+            $machine = Machine::where('code', $machineNameRaw)->orWhere('name', $machineNameRaw)->first();
+            $machineId = $machine?->id;
+        }
 
         // Check availability of identification data
         $hasPartNo = ($rmPartNo || $wipPartNo);
-        $hasProcess = ($processName || $machineName);
+        $hasProcess = ($processName || $machineId);
 
         // If neither Part No nor Process is specified, then skip
         if (!$hasPartNo && !$hasProcess) {
@@ -213,7 +222,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $payload = [
             'bom_id' => $bom->id,
             'process_name' => $processName ? trim($processName) : null,
-            'machine_name' => $machineName ? trim($machineName) : null,
+            'machine_id' => $machineId,
             'wip_part_id' => null, // Explicitly null as we use wip_part_no
             'wip_part_no' => $wipPartNo,
             'wip_qty' => $wipQty,
@@ -287,7 +296,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         // This prevents accidental overwrites when `line_no` is duplicated in the file.
         $signatureQuery = BomItem::query()->where('bom_id', $bom->id);
         $signatureQuery = $this->whereNullable($signatureQuery, 'process_name', $payload['process_name']);
-        $signatureQuery = $this->whereNullable($signatureQuery, 'machine_name', $payload['machine_name']);
+        $signatureQuery = $this->whereNullable($signatureQuery, 'machine_id', $payload['machine_id']);
         $signatureQuery = $this->whereNullable($signatureQuery, 'wip_part_no', $payload['wip_part_no']);
         $signatureQuery = $this->whereNullable($signatureQuery, 'component_part_no', $payload['component_part_no']);
         $signatureQuery = $this->whereNullable($signatureQuery, 'material_size', $payload['material_size']);
@@ -327,7 +336,7 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'fg_model' => ['nullable', 'string', 'max:255'],
             'fg_part_no' => ['required', 'string', 'max:255'],
             'process_name' => ['nullable', 'string', 'max:255'],
-            'machine_name' => ['nullable', 'string', 'max:255'],
+            'machine_name' => ['nullable', 'string', 'max:255'], // kept for import compatibility, resolved to machine_id
             'wip_part_no' => ['nullable', 'string', 'max:255'],
             'qty_wip' => ['nullable', 'numeric', 'min:0'],
             'uom_wip' => ['nullable', 'string', 'max:20'],

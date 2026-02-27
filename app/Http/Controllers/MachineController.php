@@ -20,7 +20,7 @@ class MachineController extends Controller
             ->search($search)
             ->when($status === 'active', fn($q) => $q->where('is_active', true))
             ->when($status === 'inactive', fn($q) => $q->where('is_active', false))
-            ->orderBy('sort_order')
+            ->orderBy('cycle_time')
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -39,12 +39,14 @@ class MachineController extends Controller
             'code' => ['required', 'string', 'max:50', 'unique:machines,code'],
             'name' => ['required', 'string', 'max:255'],
             'group_name' => ['nullable', 'string', 'max:255'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'cycle_time' => ['nullable', 'numeric', 'min:0'],
+            'cycle_time_unit' => ['nullable', 'string', 'in:seconds,minutes,hours'],
             'is_active' => ['nullable'],
         ]);
 
         $data['is_active'] = $request->has('is_active');
-        $data['sort_order'] = $data['sort_order'] ?? 0;
+        $data['cycle_time'] = $data['cycle_time'] ?? 0;
+        $data['cycle_time_unit'] = $data['cycle_time_unit'] ?? 'seconds';
 
         Machine::create($data);
 
@@ -62,12 +64,14 @@ class MachineController extends Controller
             'code' => ['required', 'string', 'max:50', 'unique:machines,code,' . $machine->id],
             'name' => ['required', 'string', 'max:255'],
             'group_name' => ['nullable', 'string', 'max:255'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'cycle_time' => ['nullable', 'numeric', 'min:0'],
+            'cycle_time_unit' => ['nullable', 'string', 'in:seconds,minutes,hours'],
             'is_active' => ['nullable'],
         ]);
 
         $data['is_active'] = $request->has('is_active');
-        $data['sort_order'] = $data['sort_order'] ?? 0;
+        $data['cycle_time'] = $data['cycle_time'] ?? 0;
+        $data['cycle_time_unit'] = $data['cycle_time_unit'] ?? 'seconds';
 
         $machine->update($data);
 

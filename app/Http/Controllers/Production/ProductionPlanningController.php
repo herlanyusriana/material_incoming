@@ -12,6 +12,7 @@ use App\Models\FgInventory;
 use App\Models\StockAtCustomer;
 use App\Models\Bom;
 use App\Models\BomItem;
+use App\Models\Machine;
 use App\Models\OutgoingDailyPlan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,21 +31,23 @@ class ProductionPlanningController extends Controller
         // Get or create session
         $session = ProductionPlanningSession::where('plan_date', $planDate->format('Y-m-d'))->first();
 
-        // Get planning lines grouped by machine_name (from BOM)
+        // Get planning lines grouped by machine (from BOM)
         $lines = collect();
         $machineGroups = [];
         if ($session) {
             $allLines = ProductionPlanningLine::where('session_id', $session->id)
-                ->with(['gciPart.bom.items', 'productionOrders'])
+                ->with(['gciPart.bom.items', 'productionOrders', 'machine'])
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
 
-            // Group by machine_name
+            // Group by machine_id
             foreach ($allLines as $line) {
-                $machineName = $line->machine_name ?: 'Unassigned';
-                if (!isset($machineGroups[$machineName])) {
-                    $machineGroups[$machineName] = [
+                $machineKey = $line->machine_id ?: 'unassigned';
+                $machineName = $line->machine?->name ?: 'Unassigned';
+                if (!isset($machineGroups[$machineKey])) {
+                    $machineGroups[$machineKey] = [
+                        'machine_id' => $line->machine_id,
                         'machine_name' => $machineName,
                         'process_name' => $line->process_name ?: '-',
                         'lines' => [],
@@ -53,10 +56,10 @@ class ProductionPlanningController extends Controller
                         'subtotal_plan_qty' => 0,
                     ];
                 }
-                $machineGroups[$machineName]['lines'][] = $line;
-                $machineGroups[$machineName]['subtotal_fg_lg'] += (float) $line->stock_fg_lg;
-                $machineGroups[$machineName]['subtotal_fg_gci'] += (float) $line->stock_fg_gci;
-                $machineGroups[$machineName]['subtotal_plan_qty'] += (float) $line->plan_qty;
+                $machineGroups[$machineKey]['lines'][] = $line;
+                $machineGroups[$machineKey]['subtotal_fg_lg'] += (float) $line->stock_fg_lg;
+                $machineGroups[$machineKey]['subtotal_fg_gci'] += (float) $line->stock_fg_gci;
+                $machineGroups[$machineKey]['subtotal_plan_qty'] += (float) $line->plan_qty;
             }
         }
 
@@ -74,13 +77,8 @@ class ProductionPlanningController extends Controller
             $dateRange[] = $planDate->copy()->addDays($i);
         }
 
-        // Get distinct machine names from BOMs for dropdown
-        $bomMachineNames = BomItem::whereNotNull('machine_name')
-            ->where('machine_name', '!=', '')
-            ->distinct()
-            ->pluck('machine_name')
-            ->sort()
-            ->values();
+        // Get active machines for dropdown
+        $machines = Machine::where('is_active', true)->orderBy('name')->get();
 
         // Get existing sessions for navigation
         $existingSessions = ProductionPlanningSession::orderBy('plan_date', 'desc')
@@ -103,7 +101,7 @@ class ProductionPlanningController extends Controller
             'dateRange',
             'existingSessions',
             'planningDays',
-            'bomMachineNames',
+            'machines',
             'grandTotalFgLg',
             'grandTotalFgGci',
             'grandTotalPlanQty',
@@ -170,20 +168,20 @@ class ProductionPlanningController extends Controller
                 if ($exists)
                     continue;
 
-                // Get machine_name and process_name from BOM
-                $machineName = null;
+                // Get machine_id and process_name from BOM
+                $machineId = null;
                 $processName = null;
                 $activeBom = $part->bom;
                 if ($activeBom) {
                     foreach ($activeBom->items as $bomItem) {
-                        if (!empty($bomItem->machine_name)) {
-                            $machineName = $bomItem->machine_name;
+                        if (!empty($bomItem->machine_id)) {
+                            $machineId = $bomItem->machine_id;
                         }
                         if (!empty($bomItem->process_name)) {
                             $processName = $bomItem->process_name;
                         }
                         // Found both, stop
-                        if ($machineName && $processName)
+                        if ($machineId && $processName)
                             break;
                     }
                 }
@@ -193,7 +191,7 @@ class ProductionPlanningController extends Controller
                 ProductionPlanningLine::create([
                     'session_id' => $session->id,
                     'gci_part_id' => $part->id,
-                    'machine_name' => $machineName,
+                    'machine_id' => $machineId,
                     'process_name' => $processName,
                     'stock_fg_lg' => $fgStockLg[$part->id] ?? 0,
                     'stock_fg_gci' => $fgStockGci[$part->id] ?? 0,
@@ -222,7 +220,7 @@ class ProductionPlanningController extends Controller
         ]);
 
         $field = $request->field;
-        $allowed = ['machine_name', 'process_name', 'production_sequence', 'plan_qty', 'shift', 'remark', 'sort_order'];
+        $allowed = ['machine_id', 'process_name', 'production_sequence', 'plan_qty', 'shift', 'remark', 'sort_order'];
 
         if (!in_array($field, $allowed)) {
             return response()->json(['error' => 'Invalid field'], 422);
@@ -251,15 +249,15 @@ class ProductionPlanningController extends Controller
 
         // Get machine/process from BOM
         $part = GciPart::with('bom.items')->find($request->gci_part_id);
-        $machineName = null;
+        $machineId = null;
         $processName = null;
         if ($part && $part->bom) {
             foreach ($part->bom->items as $bomItem) {
-                if (!empty($bomItem->machine_name))
-                    $machineName = $bomItem->machine_name;
+                if (!empty($bomItem->machine_id))
+                    $machineId = $bomItem->machine_id;
                 if (!empty($bomItem->process_name))
                     $processName = $bomItem->process_name;
-                if ($machineName && $processName)
+                if ($machineId && $processName)
                     break;
             }
         }
@@ -267,7 +265,7 @@ class ProductionPlanningController extends Controller
         $line = ProductionPlanningLine::create([
             'session_id' => $request->session_id,
             'gci_part_id' => $request->gci_part_id,
-            'machine_name' => $machineName,
+            'machine_id' => $machineId,
             'process_name' => $processName,
             'stock_fg_lg' => $fgStockLg[$request->gci_part_id] ?? 0,
             'stock_fg_gci' => $fgStockGci[$request->gci_part_id] ?? 0,
@@ -340,7 +338,7 @@ class ProductionPlanningController extends Controller
                     'production_order_number' => $woNumber,
                     'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
                     'gci_part_id' => $line->gci_part_id,
-                    'machine_name' => $line->machine_name,
+                    'machine_id' => $line->machine_id,
                     'process_name' => $line->process_name,
                     'planning_line_id' => $line->id,
                     'plan_date' => $session->plan_date,

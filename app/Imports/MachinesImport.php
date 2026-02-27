@@ -32,11 +32,17 @@ class MachinesImport implements ToModel, WithHeadingRow, WithValidation, WithBat
 
         $isActive = strtolower(trim((string) ($row['is_active'] ?? 'yes')));
 
+        $cycleTimeUnit = strtolower(trim((string) ($row['cycle_time_unit'] ?? 'seconds')));
+        if (!in_array($cycleTimeUnit, ['seconds', 'minutes', 'hours'], true)) {
+            $cycleTimeUnit = 'seconds';
+        }
+
         return new Machine([
             'code' => $code,
             'name' => trim((string) ($row['name'] ?? '')),
             'group_name' => trim((string) ($row['group_name'] ?? '')) ?: null,
-            'sort_order' => (int) ($row['sort_order'] ?? 0),
+            'cycle_time' => (float) ($row['cycle_time'] ?? 0),
+            'cycle_time_unit' => $cycleTimeUnit,
             'is_active' => in_array($isActive, ['yes', '1', 'true', 'active'], true),
         ]);
     }
@@ -47,7 +53,8 @@ class MachinesImport implements ToModel, WithHeadingRow, WithValidation, WithBat
             'code' => 'required|string|max:50',
             'name' => 'required|string|max:255',
             'group_name' => 'nullable|string|max:255',
-            'sort_order' => 'nullable|integer|min:0',
+            'cycle_time' => 'nullable|numeric|min:0',
+            'cycle_time_unit' => 'nullable|string|in:seconds,minutes,hours',
             'is_active' => 'nullable|string',
         ];
     }

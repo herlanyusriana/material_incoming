@@ -23,7 +23,7 @@ class BomItem extends Model
         'consumption_uom_id',
         'line_no',
         'process_name',
-        'machine_name',
+        'machine_id',
         'wip_part_id',
         'wip_part_no',
         'wip_qty',
@@ -63,6 +63,11 @@ class BomItem extends Model
     public function substitutes()
     {
         return $this->hasMany(BomItemSubstitute::class, 'bom_item_id');
+    }
+
+    public function machine()
+    {
+        return $this->belongsTo(Machine::class);
     }
 
     public function consumptionUom()

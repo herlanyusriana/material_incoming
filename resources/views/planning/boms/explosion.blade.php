@@ -198,10 +198,10 @@
                                             @if($item['process_name'])
                                                 <div class="font-semibold text-indigo-700">🔧 {{ $item['process_name'] }}</div>
                                             @endif
-                                            @if($item['machine_name'])
+                                            @if($item['machine_name'] ?? null)
                                                 <div class="text-xs text-slate-500">⚙️ {{ $item['machine_name'] }}</div>
                                             @endif
-                                            @if(!$item['process_name'] && !$item['machine_name'])
+                                            @if(!$item['process_name'] && !($item['machine_name'] ?? null))
                                                 <span class="text-slate-300">-</span>
                                             @endif
                                         </td>

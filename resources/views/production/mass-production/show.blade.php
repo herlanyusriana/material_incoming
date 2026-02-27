@@ -29,7 +29,7 @@
                         </div>
                         <div>
                             <label class="text-xs font-semibold text-slate-600">Machine</label>
-                            <p class="text-sm font-medium">{{ $order->machine_name ?: '-' }}</p>
+                            <p class="text-sm font-medium">{{ $order->machine?->name ?: '-' }}</p>
                         </div>
                     </div>
                 </div>

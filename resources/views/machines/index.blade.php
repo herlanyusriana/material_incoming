@@ -66,7 +66,7 @@
                                 <th class="px-4 py-3 text-left font-semibold">Code</th>
                                 <th class="px-4 py-3 text-left font-semibold">Name</th>
                                 <th class="px-4 py-3 text-left font-semibold">Group</th>
-                                <th class="px-4 py-3 text-center font-semibold">Sort Order</th>
+                                <th class="px-4 py-3 text-center font-semibold">Cycle Time</th>
                                 <th class="px-4 py-3 text-center font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Actions</th>
                             </tr>
@@ -77,7 +77,7 @@
                                     <td class="px-4 py-4 font-mono text-sm font-semibold text-slate-800">{{ $machine->code }}</td>
                                     <td class="px-4 py-4 font-semibold text-slate-900">{{ $machine->name }}</td>
                                     <td class="px-4 py-4 text-slate-600">{{ $machine->group_name ?? '-' }}</td>
-                                    <td class="px-4 py-4 text-center text-slate-600">{{ $machine->sort_order }}</td>
+                                    <td class="px-4 py-4 text-center text-slate-600">{{ $machine->cycle_time }} {{ $machine->cycle_time_unit }}</td>
                                     <td class="px-4 py-4 text-center">
                                         @if ($machine->is_active)
                                             <span class="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-green-200">Active</span>
@@ -158,7 +158,7 @@
 
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p class="text-xs text-blue-800 font-medium mb-1">Required Columns (exact names):</p>
-                    <p class="text-xs text-blue-700">code, name, group_name, sort_order, is_active</p>
+                    <p class="text-xs text-blue-700">code, name, group_name, cycle_time, cycle_time_unit, is_active</p>
                     <p class="text-xs text-blue-600 mt-1">Tip: Export existing data to get the correct format</p>
                 </div>
 

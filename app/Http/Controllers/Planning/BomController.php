@@ -15,6 +15,7 @@ use App\Models\CustomerPartComponent;
 use App\Exports\BomSubstitutesExport;
 use App\Models\GciPart;
 use App\Models\Part;
+use App\Models\Machine;
 use App\Models\Uom;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -58,7 +59,7 @@ class BomController extends Controller
             ->get();
 
         $boms = Bom::query()
-            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.incomingPart.vendor', 'items.wipUom', 'items.consumptionUom', 'items.substitutes.part', 'items.substitutes.incomingPart.vendor'])
+            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.incomingPart.vendor', 'items.wipUom', 'items.consumptionUom', 'items.machine', 'items.substitutes.part', 'items.substitutes.incomingPart.vendor'])
             ->when($gciPartId, fn($q) => $q->where('part_id', $gciPartId))
             ->when($q !== '', function ($query) use ($q) {
                 $query->whereHas('part', function ($sub) use ($q) {
@@ -70,7 +71,9 @@ class BomController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'incomingParts', 'uoms', 'gciPartId', 'q'));
+        $machines = Machine::query()->where('is_active', true)->orderBy('name')->get();
+
+        return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'incomingParts', 'uoms', 'machines', 'gciPartId', 'q'));
     }
 
     public function whereUsed(Request $request)
@@ -439,7 +442,7 @@ class BomController extends Controller
             'consumption_uom' => ['nullable', 'string', 'max:20'],
             'line_no' => ['nullable', 'integer', 'min:1'],
             'process_name' => ['nullable', 'string', 'max:255'],
-            'machine_name' => ['nullable', 'string', 'max:255'],
+            'machine_id' => ['nullable', Rule::exists('machines', 'id')],
             'wip_part_id' => ['nullable', Rule::exists('gci_parts', 'id')],
             'wip_part_no' => ['nullable', 'string', 'max:100'],
             'wip_qty' => ['nullable', 'numeric', 'min:0'],
@@ -517,7 +520,7 @@ class BomController extends Controller
             'consumption_uom' => $consumptionUomCode,
             'line_no' => $validated['line_no'] ?? null,
             'process_name' => $validated['process_name'] ?? null,
-            'machine_name' => $validated['machine_name'] ?? null,
+            'machine_id' => $validated['machine_id'] ?? null,
             'wip_part_id' => $validated['wip_part_id'] ?? null,
             'wip_part_no' => $validated['wip_part_no'] ?? null,
             'wip_qty' => $validated['wip_qty'] ?? null,

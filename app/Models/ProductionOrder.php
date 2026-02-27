@@ -75,6 +75,11 @@ class ProductionOrder extends Model
         return $this->belongsTo(MrpRun::class, 'mrp_run_id');
     }
 
+    public function machine()
+    {
+        return $this->belongsTo(Machine::class);
+    }
+
     public function planningLine()
     {
         return $this->belongsTo(ProductionPlanningLine::class, 'planning_line_id');

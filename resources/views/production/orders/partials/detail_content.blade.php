@@ -22,7 +22,7 @@
                 </div>
                 <div>
                     <dt class="text-gray-500">Machine</dt>
-                    <dd class="font-medium text-gray-900">{{ $order->machine_name ?? '-' }}</dd>
+                    <dd class="font-medium text-gray-900">{{ $order->machine?->name ?? '-' }}</dd>
                 </div>
                 <div>
                     <dt class="text-gray-500">Dies</dt>

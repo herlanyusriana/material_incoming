@@ -15,8 +15,8 @@ class MachinesExport implements FromQuery, WithHeadings, WithMapping, WithStyles
     public function query()
     {
         return Machine::query()
-            ->select(['code', 'name', 'group_name', 'sort_order', 'is_active'])
-            ->orderBy('sort_order')
+            ->select(['code', 'name', 'group_name', 'cycle_time', 'cycle_time_unit', 'is_active'])
+            ->orderBy('cycle_time')
             ->orderBy('name');
     }
 
@@ -26,7 +26,8 @@ class MachinesExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             'code',
             'name',
             'group_name',
-            'sort_order',
+            'cycle_time',
+            'cycle_time_unit',
             'is_active',
         ];
     }
@@ -37,7 +38,8 @@ class MachinesExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             $machine->code,
             $machine->name,
             $machine->group_name,
-            $machine->sort_order,
+            $machine->cycle_time,
+            $machine->cycle_time_unit,
             $machine->is_active ? 'yes' : 'no',
         ];
     }
@@ -56,7 +58,8 @@ class MachinesExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             'B' => 30,
             'C' => 20,
             'D' => 12,
-            'E' => 12,
+            'E' => 15,
+            'F' => 12,
         ];
     }
 }

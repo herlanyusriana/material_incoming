@@ -21,7 +21,7 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
     public function array(): array
     {
         $boms = Bom::query()
-            ->with(['part', 'items.wipPart', 'items.componentPart'])
+            ->with(['part', 'items.wipPart', 'items.componentPart', 'items.machine'])
             ->when($this->gciPartId, fn ($query) => $query->where('part_id', $this->gciPartId))
             ->when($this->q !== '', function ($query) {
                 $query->whereHas('part', function ($sub) {
@@ -68,7 +68,7 @@ class BomExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
                     $bom->part?->model ?? '',
                     $bom->part?->part_no ?? '',
                     $item->process_name ?? '',
-                    $item->machine_name ?? '',
+                    $item->machine?->name ?? '',
                     $item->wipPart?->part_no ?? '',
                     $item->wip_qty !== null ? (string) $item->wip_qty : '',
                     $item->wip_uom ?? '',

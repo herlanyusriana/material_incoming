@@ -272,7 +272,7 @@
                                 <th class="px-2 py-3 text-left font-bold sticky-col-3 th-sticky w-24">FG Model</th>
                                 <th class="px-2 py-3 text-left font-bold sticky-col-4 th-sticky w-48">FG Part No.</th>
                                 <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Process Name</th>
-                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Machine Name</th>
+                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Machine</th>
                                 <th class="px-2 py-3 text-left font-bold whitespace-nowrap">WIP Part No.</th>
                                 <th class="px-2 py-3 text-right font-bold whitespace-nowrap">Qty.</th>
                                 <th class="px-2 py-3 text-left font-bold whitespace-nowrap">UOM</th>
@@ -387,7 +387,7 @@
                                             {{ $item->process_name ?? '' }}
                                         </td>
                                         <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600">
-                                            {{ $item->machine_name ?? '' }}
+                                            {{ $item->machine->name ?? '' }}
                                         </td>
                                         <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">
                                             {{ $wipNo }}
@@ -495,7 +495,7 @@
                                                     'fg_label' => $fgNo . ' — ' . $fgName,
                                                     'line_no' => $lineNo,
                                                     'process_name' => $item->process_name,
-                                                    'machine_name' => $item->machine_name,
+                                                    'machine_id' => $item->machine_id,
                                                     'wip_part_id' => $item->wip_part_id,
                                                     'wip_part_no' => $item->wip_part_no,
                                                     'wip_qty' => $item->wip_qty,
@@ -546,7 +546,7 @@
                                                 'fg_label' => $fgNo . ' — ' . $fgName,
                                                 'line_no' => null,
                                                 'process_name' => null,
-                                                'machine_name' => null,
+                                                'machine_id' => null,
                                                 'wip_part_id' => null,
                                                 'wip_part_no' => null,
                                                 'wip_qty' => null,
@@ -866,9 +866,14 @@
                                     x-model="lineForm.process_name">
                             </div>
                             <div>
-                                <label class="text-xs font-semibold text-slate-600">Machine Name</label>
-                                <input type="text" name="machine_name" class="mt-1 w-full rounded-xl border-slate-200"
-                                    x-model="lineForm.machine_name">
+                                <label class="text-xs font-semibold text-slate-600">Machine</label>
+                                <select name="machine_id" class="mt-1 w-full rounded-xl border-slate-200"
+                                    x-model="lineForm.machine_id">
+                                    <option value="">-- Select Machine --</option>
+                                    @foreach ($machines as $machine)
+                                        <option value="{{ $machine->id }}">{{ $machine->code }} - {{ $machine->name }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
 
@@ -1088,7 +1093,7 @@
                             fg_label: '',
                             line_no: null,
                             process_name: '',
-                            machine_name: '',
+                            machine_id: '',
                             wip_part_id: '',
                             wip_qty: '',
                             wip_uom: '',
@@ -1152,7 +1157,7 @@
                                 fg_label: payload.fg_label,
                                 line_no: payload.line_no,
                                 process_name: payload.process_name ?? '',
-                                machine_name: payload.machine_name ?? '',
+                                machine_id: payload.machine_id ?? '',
                                 wip_part_id: payload.wip_part_id ?? '',
                                 wip_qty: payload.wip_qty ?? '',
                                 wip_uom: payload.wip_uom ?? '',

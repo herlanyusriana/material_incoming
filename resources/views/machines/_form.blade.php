@@ -16,9 +16,17 @@
         <x-input-error :messages="$errors->get('group_name')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="sort_order" value="Sort Order" />
-        <x-text-input id="sort_order" name="sort_order" type="number" min="0" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" placeholder="0" value="{{ old('sort_order', $machine->sort_order ?? 0) }}" />
-        <x-input-error :messages="$errors->get('sort_order')" class="mt-2" />
+        <x-input-label for="cycle_time" value="Cycle Time" />
+        <div class="mt-1 flex gap-2">
+            <x-text-input id="cycle_time" name="cycle_time" type="number" min="0" step="0.01" class="w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" placeholder="0" value="{{ old('cycle_time', $machine->cycle_time ?? 0) }}" />
+            <select name="cycle_time_unit" id="cycle_time_unit" class="rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm min-w-[130px]">
+                <option value="seconds" {{ old('cycle_time_unit', $machine->cycle_time_unit ?? 'seconds') === 'seconds' ? 'selected' : '' }}>Seconds</option>
+                <option value="minutes" {{ old('cycle_time_unit', $machine->cycle_time_unit ?? 'seconds') === 'minutes' ? 'selected' : '' }}>Minutes</option>
+                <option value="hours" {{ old('cycle_time_unit', $machine->cycle_time_unit ?? 'seconds') === 'hours' ? 'selected' : '' }}>Hours</option>
+            </select>
+        </div>
+        <x-input-error :messages="$errors->get('cycle_time')" class="mt-2" />
+        <x-input-error :messages="$errors->get('cycle_time_unit')" class="mt-2" />
     </div>
     <div class="flex items-end">
         <label class="flex items-center gap-3 cursor-pointer">

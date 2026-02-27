@@ -7,6 +7,7 @@ use App\Models\ProductionInspection;
 use App\Models\GciPart;
 use App\Models\GciInventory;
 use App\Models\Bom;
+use App\Models\Machine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -59,7 +60,8 @@ class ProductionOrderController extends Controller
 
     public function create()
     {
-        return view('production.orders.create');
+        $machines = Machine::where('is_active', true)->orderBy('name')->get();
+        return view('production.orders.create', compact('machines'));
     }
 
     public function store(Request $request)
@@ -67,7 +69,7 @@ class ProductionOrderController extends Controller
         $validated = $request->validate([
             'gci_part_id' => 'required|exists:gci_parts,id',
             'process_name' => 'nullable|string|max:255',
-            'machine_name' => 'nullable|string|max:255',
+            'machine_id' => 'nullable|exists:machines,id',
             'die_name' => 'nullable|string|max:255',
             'plan_date' => 'required|date',
             'qty_planned' => 'required|numeric|min:1',
@@ -80,7 +82,7 @@ class ProductionOrderController extends Controller
             'production_order_number' => $validated['production_order_number'],
             'gci_part_id' => $validated['gci_part_id'],
             'process_name' => isset($validated['process_name']) && trim((string) $validated['process_name']) !== '' ? trim((string) $validated['process_name']) : null,
-            'machine_name' => isset($validated['machine_name']) && trim((string) $validated['machine_name']) !== '' ? trim((string) $validated['machine_name']) : null,
+            'machine_id' => $validated['machine_id'] ?? null,
             'die_name' => isset($validated['die_name']) && trim((string) $validated['die_name']) !== '' ? trim((string) $validated['die_name']) : null,
             'plan_date' => $validated['plan_date'],
             'qty_planned' => $validated['qty_planned'],
@@ -108,6 +110,7 @@ class ProductionOrderController extends Controller
     {
         $order->load([
             'part',
+            'machine',
             'inspections.inspector',
             'creator',
             'mrpRun',
@@ -157,7 +160,7 @@ class ProductionOrderController extends Controller
             }
             if (in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold'], true)) {
                 // Require machine/die info for flow parity (best-effort).
-                if (!$order->process_name || !$order->machine_name) {
+                if (!$order->process_name || !$order->machine_id) {
                     $order->update(['status' => 'resource_hold', 'workflow_stage' => 'resource_check']);
                     return back()->with('error', 'Machine/Process belum diisi. Isi dulu lalu ulangi check.');
                 }

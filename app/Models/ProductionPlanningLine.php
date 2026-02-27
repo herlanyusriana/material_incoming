@@ -12,7 +12,7 @@ class ProductionPlanningLine extends Model
     protected $fillable = [
         'session_id',
         'gci_part_id',
-        'machine_name',
+        'machine_id',
         'process_name',
         'stock_fg_lg',
         'stock_fg_gci',
@@ -39,18 +39,23 @@ class ProductionPlanningLine extends Model
         return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
 
+    public function machine()
+    {
+        return $this->belongsTo(Machine::class);
+    }
+
     public function productionOrders()
     {
         return $this->hasMany(ProductionOrder::class, 'planning_line_id');
     }
 
     /**
-     * Get the machine name from BOM if not set directly
+     * Get the machine_id from BOM if not set directly
      */
-    public function getMachineFromBom(): ?string
+    public function getMachineFromBom(): ?int
     {
-        if ($this->machine_name) {
-            return $this->machine_name;
+        if ($this->machine_id) {
+            return $this->machine_id;
         }
 
         $bom = Bom::where('part_id', $this->gci_part_id)
@@ -59,11 +64,10 @@ class ProductionPlanningLine extends Model
 
         if ($bom) {
             $bomItem = $bom->items()
-                ->whereNotNull('machine_name')
-                ->where('machine_name', '!=', '')
+                ->whereNotNull('machine_id')
                 ->first();
 
-            return $bomItem->machine_name ?? null;
+            return $bomItem->machine_id ?? null;
         }
 
         return null;

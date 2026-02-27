@@ -124,7 +124,7 @@
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-slate-900">{{ $order->process_name ?: '-' }}</div>
                                     <div class="text-xs text-slate-500">
-                                        {{ $order->machine_name ?: '-' }}{{ $order->die_name ? ' • ' . $order->die_name : '' }}
+                                        {{ $order->machine?->name ?: '-' }}{{ $order->die_name ? ' • ' . $order->die_name : '' }}
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">
