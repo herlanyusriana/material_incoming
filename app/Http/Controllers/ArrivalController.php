@@ -18,9 +18,12 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DepartureDetailExport;
+use App\Traits\LogsActivity;
 
 class ArrivalController extends Controller
 {
+    use LogsActivity;
+
     private function toCents(mixed $value): int
     {
         if (!is_string($value)) {
@@ -448,6 +451,11 @@ class ArrivalController extends Controller
             return $arrival;
         });
 
+        $this->logActivity('STORE Departure', "arrival_id:{$arrival->id} invoice:{$arrival->invoice_no}", [
+            'vendor_id' => $validated['vendor_id'],
+            'items_count' => count($validated['items']),
+        ]);
+
         return redirect()
             ->route('departures.index')
             ->with('success', 'Departure created successfully.');
@@ -468,6 +476,8 @@ class ArrivalController extends Controller
     {
         $arrival = $departure;
 
+        $logData = ['arrival_id' => $arrival->id, 'invoice_no' => $arrival->invoice_no, 'vendor_id' => $arrival->vendor_id];
+
         DB::transaction(function () use ($arrival) {
             foreach ($arrival->items as $item) {
                 $item->receives()->delete();
@@ -475,6 +485,8 @@ class ArrivalController extends Controller
             $arrival->items()->delete();
             $arrival->delete();
         });
+
+        $this->logActivity('DELETE Departure', "invoice:{$logData['invoice_no']}", $logData);
 
         return redirect()->route('departures.index')->with('success', 'Departure berhasil dihapus.');
     }
@@ -598,6 +610,8 @@ class ArrivalController extends Controller
         });
 
         $this->syncHsCodes($departure);
+
+        $this->logActivity('UPDATE Departure', "arrival_id:{$departure->id} invoice:{$departure->invoice_no}");
 
         return redirect()->route('departures.show', $departure)->with('success', 'Departure berhasil di-update.');
     }
@@ -772,6 +786,10 @@ class ArrivalController extends Controller
 
         $this->syncHsCodes($arrival);
 
+        $this->logActivity('STORE Departure Item', "arrival_id:{$arrival->id} part_id:{$data['part_id']}", [
+            'qty_goods' => $qtyGoods,
+        ]);
+
         return redirect()
             ->route('departures.show', $arrival)
             ->with('success', 'Item berhasil ditambahkan.');
@@ -854,6 +872,10 @@ class ArrivalController extends Controller
         ]);
 
         $this->syncHsCodes($arrivalItem->arrival);
+
+        $this->logActivity('UPDATE Departure Item', "item_id:{$arrivalItem->id}", [
+            'qty_goods' => $qtyGoods,
+        ]);
 
         return redirect()
             ->route('departures.show', $arrivalItem->arrival)

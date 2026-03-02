@@ -14,9 +14,12 @@ use App\Models\GciPartVendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Traits\LogsActivity;
 
 class PurchaseOrderController extends Controller
 {
+    use LogsActivity;
+
     public function index()
     {
         $orders = PurchaseOrder::with(['vendor', 'items.part'])
@@ -124,11 +127,20 @@ class PurchaseOrderController extends Controller
             }
 
             DB::commit();
+
+            $this->logActivity('STORE PurchaseOrder', "po:{$poNumber}", [
+                'po_id' => $purchaseOrder->id,
+                'vendor_id' => $validated['vendor_id'],
+                'items_count' => count($validated['items']),
+                'total_amount' => $totalAmount,
+            ]);
+
             return redirect()->route('purchasing.purchase-orders.index')
                 ->with('success', 'Purchase Order created successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->logActivityError('STORE PurchaseOrder FAILED', $e->getMessage());
             return back()->with('error', 'Error creating PO: ' . $e->getMessage());
         }
     }
@@ -149,6 +161,10 @@ class PurchaseOrderController extends Controller
             'status' => 'Approved',
             'approved_at' => now(),
             'approved_by' => auth()->id(),
+        ]);
+
+        $this->logActivity('APPROVE PurchaseOrder', "po:{$purchaseOrder->po_number}", [
+            'po_id' => $purchaseOrder->id,
         ]);
 
         return back()->with('success', 'Purchase Order approved.');
@@ -218,9 +234,18 @@ class PurchaseOrderController extends Controller
             }
 
             DB::commit();
+
+            $this->logActivity('RELEASE PurchaseOrder', "po:{$purchaseOrder->po_number}", [
+                'po_id' => $purchaseOrder->id,
+                'arrival_id' => $arrival->id,
+            ]);
+
             return back()->with('success', 'Purchase Order released to vendor. Draft Departure automatically created.');
         } catch (\Exception $e) {
             DB::rollBack();
+            $this->logActivityError('RELEASE PurchaseOrder FAILED', $e->getMessage(), [
+                'po_id' => $purchaseOrder->id,
+            ]);
             return back()->with('error', 'Failed to release PO: ' . $e->getMessage());
         }
     }

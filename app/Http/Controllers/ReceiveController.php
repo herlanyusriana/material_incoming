@@ -18,9 +18,12 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Support\QrSvg;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use App\Traits\LogsActivity;
 
 class ReceiveController extends Controller
 {
+    use LogsActivity;
+
     private function normalizeTag(?string $tag): ?string
     {
         $tag = is_string($tag) ? strtoupper(trim($tag)) : null;
@@ -432,6 +435,12 @@ class ReceiveController extends Controller
             }
         });
 
+        $this->logActivity('STORE Receive', "arrival_item_id:{$arrivalItem->id}", [
+            'total_tags' => count($validated['tags']),
+            'total_qty' => collect($validated['tags'])->sum('qty'),
+            'truck_no' => $truckNo,
+        ]);
+
         $arrival = $arrivalItem->arrival()->with('items.receives')->first();
         if ($arrival) {
             $isComplete = !$this->hasPendingReceives($arrival);
@@ -706,6 +715,12 @@ class ReceiveController extends Controller
             }
         });
 
+        $this->logActivity('STORE Receive (Invoice)', "arrival_id:{$arrival->id} invoice:{$arrival->invoice_no}", [
+            'items_count' => count($itemsInput),
+            'total_qty' => collect($itemsInput)->sum(fn($i) => collect($i['tags'])->sum('qty')),
+            'truck_no' => $truckNo,
+        ]);
+
         $arrival->load('items.receives');
         $isComplete = !$this->hasPendingReceives($arrival);
         if ($isComplete && empty($arrival->transaction_no)) {
@@ -911,6 +926,12 @@ class ReceiveController extends Controller
                 'as_of_date' => $receiveAt->toDateString(),
             ]);
         });
+
+        $this->logActivity('UPDATE Receive', "receive_id:{$receive->id}", [
+            'old' => ['qty' => $oldQty, 'qc_status' => $oldPass ? 'pass' : 'reject', 'location' => $oldLocationCode],
+            'new' => ['qty' => $newQty, 'qc_status' => $validated['qc_status'], 'location' => $locationCode],
+            'inventory_delta' => $delta,
+        ]);
 
         return redirect()
             ->route('receives.completed.invoice', $arrival)

@@ -9,9 +9,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use App\Traits\LogsActivity;
 
 class WarehousePutawayController extends Controller
 {
+    use LogsActivity;
+
     public function index(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
@@ -104,6 +107,12 @@ class WarehousePutawayController extends Controller
             $receive->update(['location_code' => $newLocationCode]);
         });
 
+        $this->logActivity('STORE Putaway', "receive_id:{$receive->id} location:{$newLocationCode}", [
+            'part_id' => $partId,
+            'qty' => $qtyContribution,
+            'old_location' => $oldLocationCode,
+        ]);
+
         return back()->with('success', 'Putaway berhasil. Lokasi tersimpan.');
     }
 
@@ -170,6 +179,12 @@ class WarehousePutawayController extends Controller
         if ($skipped > 0) {
             $msg .= " {$skipped} skipped.";
         }
+
+        $this->logActivity('BULK Putaway', "location:{$newLocationCode}", [
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'receive_ids' => $receiveIds,
+        ]);
 
         return back()->with('success', $msg);
     }

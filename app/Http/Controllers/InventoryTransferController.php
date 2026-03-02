@@ -10,9 +10,12 @@ use App\Models\Part;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Traits\LogsActivity;
 
 class InventoryTransferController extends Controller
 {
+    use LogsActivity;
+
     /**
      * Display transfer history
      */
@@ -99,10 +102,18 @@ class InventoryTransferController extends Controller
                 ]);
             });
 
+            $this->logActivity('STORE InventoryTransfer', "part_id:{$validated['part_id']} -> gci_part_id:{$validated['gci_part_id']}", [
+                'qty' => $validated['qty'],
+            ]);
+
             return redirect()
                 ->route('inventory.transfers.index')
                 ->with('success', 'Inventory transferred successfully.');
         } catch (\Exception $e) {
+            $this->logActivityError('STORE InventoryTransfer FAILED', $e->getMessage(), [
+                'part_id' => $validated['part_id'],
+                'qty' => $validated['qty'],
+            ]);
             return back()
                 ->withInput()
                 ->withErrors(['error' => $e->getMessage()]);
@@ -175,10 +186,15 @@ class InventoryTransferController extends Controller
                 $message .= ' Errors: ' . implode(', ', $errors);
             }
 
+            $this->logActivity('AUTO-SYNC InventoryTransfer', "transferred:{$transferred}", [
+                'errors_count' => count($errors),
+            ]);
+
             return redirect()
                 ->route('inventory.transfers.index')
                 ->with('success', $message);
         } catch (\Exception $e) {
+            $this->logActivityError('AUTO-SYNC InventoryTransfer FAILED', $e->getMessage());
             return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
