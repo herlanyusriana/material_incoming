@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Planning;
 use App\Http\Controllers\Controller;
 use App\Exports\GciPartsExport;
 use App\Imports\GciPartsImport;
+use App\Models\Bom;
+use App\Models\BomItem;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -96,7 +98,28 @@ class GciPartController extends Controller
 
         $customers = \App\Models\Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers', 'qParam'));
+        // FG parts that have a BOM (for RM destination field)
+        $fgPartsWithBom = GciPart::where('classification', 'FG')
+            ->whereHas('bom')
+            ->orderBy('part_no')
+            ->get(['id', 'part_no', 'part_name']);
+
+        // RM → linked FG IDs mapping (for edit pre-populate)
+        $rmFgMap = [];
+        if ($classification === 'RM') {
+            $rmIds = $parts->pluck('id')->toArray();
+            if (!empty($rmIds)) {
+                $links = BomItem::whereIn('component_part_id', $rmIds)
+                    ->whereHas('bom')
+                    ->with('bom:id,part_id')
+                    ->get(['id', 'bom_id', 'component_part_id']);
+                foreach ($links as $link) {
+                    $rmFgMap[$link->component_part_id][] = $link->bom->part_id;
+                }
+            }
+        }
+
+        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers', 'qParam', 'fgPartsWithBom', 'rmFgMap'));
     }
 
     public function export()
@@ -154,12 +177,22 @@ class GciPartController extends Controller
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'destination_fg_ids' => ['nullable', 'array'],
+            'destination_fg_ids.*' => ['exists:gci_parts,id'],
         ]);
+
+        $destinationFgIds = $validated['destination_fg_ids'] ?? [];
+        unset($validated['destination_fg_ids']);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
         $validated['classification'] = strtoupper(trim($validated['classification']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
+
+        // Clear model for RM parts
+        if ($validated['classification'] === 'RM') {
+            $validated['model'] = null;
+        }
 
         if (!$request->boolean('confirm_duplicate')) {
             if (GciPart::where('part_no', $validated['part_no'])->exists()) {
@@ -170,9 +203,34 @@ class GciPartController extends Controller
             }
         }
 
-        GciPart::create($validated);
+        $gciPart = GciPart::create($validated);
 
-        return back()->with('success', 'Part GCI created.');
+        // Auto-link RM to FG BOMs
+        $bomLinked = 0;
+        if ($validated['classification'] === 'RM' && !empty($destinationFgIds)) {
+            foreach ($destinationFgIds as $fgId) {
+                $bom = Bom::where('part_id', $fgId)->first();
+                if ($bom) {
+                    $nextLine = ($bom->items()->max('line_no') ?? 0) + 1;
+                    BomItem::create([
+                        'bom_id' => $bom->id,
+                        'component_part_id' => $gciPart->id,
+                        'component_part_no' => $gciPart->part_no,
+                        'line_no' => $nextLine,
+                        'usage_qty' => 1,
+                        'make_or_buy' => 'buy',
+                    ]);
+                    $bomLinked++;
+                }
+            }
+        }
+
+        $msg = 'Part GCI created.';
+        if ($bomLinked > 0) {
+            $msg .= " Linked to {$bomLinked} FG BOM(s).";
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function update(Request $request, GciPart $gciPart)
@@ -184,16 +242,53 @@ class GciPartController extends Controller
             'part_name' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'destination_fg_ids' => ['nullable', 'array'],
+            'destination_fg_ids.*' => ['exists:gci_parts,id'],
         ]);
+
+        $destinationFgIds = $validated['destination_fg_ids'] ?? [];
+        unset($validated['destination_fg_ids']);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
         $validated['classification'] = strtoupper(trim($validated['classification']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 
+        if ($validated['classification'] === 'RM') {
+            $validated['model'] = null;
+        }
+
         $gciPart->update($validated);
 
-        return back()->with('success', 'Part GCI updated.');
+        // Auto-link RM to new FG BOMs (skip already linked)
+        $bomLinked = 0;
+        if ($validated['classification'] === 'RM' && !empty($destinationFgIds)) {
+            $existingBomIds = BomItem::where('component_part_id', $gciPart->id)
+                ->pluck('bom_id')->toArray();
+
+            foreach ($destinationFgIds as $fgId) {
+                $bom = Bom::where('part_id', $fgId)->first();
+                if ($bom && !in_array($bom->id, $existingBomIds)) {
+                    $nextLine = ($bom->items()->max('line_no') ?? 0) + 1;
+                    BomItem::create([
+                        'bom_id' => $bom->id,
+                        'component_part_id' => $gciPart->id,
+                        'component_part_no' => $gciPart->part_no,
+                        'line_no' => $nextLine,
+                        'usage_qty' => 1,
+                        'make_or_buy' => 'buy',
+                    ]);
+                    $bomLinked++;
+                }
+            }
+        }
+
+        $msg = 'Part GCI updated.';
+        if ($bomLinked > 0) {
+            $msg .= " Linked to {$bomLinked} new FG BOM(s).";
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function destroy(GciPart $gciPart)

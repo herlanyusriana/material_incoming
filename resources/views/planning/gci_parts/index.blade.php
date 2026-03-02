@@ -75,7 +75,9 @@
                                 <th class="px-4 py-3 text-left font-semibold">Customer</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part Name</th>
-                                <th class="px-4 py-3 text-left font-semibold">Model</th>
+                                @if($classification !== 'RM')
+                                    <th class="px-4 py-3 text-left font-semibold">Model</th>
+                                @endif
                                 <th class="px-4 py-3 text-left font-semibold">Type</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Actions</th>
@@ -94,7 +96,9 @@
                                     </td>
                                     <td class="px-4 py-3 font-semibold">{{ $p->part_no }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                    @if($classification !== 'RM')
+                                        <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                    @endif
                                     <td class="px-4 py-3">
                                         @php
                                             $classColors = [
@@ -124,7 +128,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
+                                    <td colspan="{{ $classification !== 'RM' ? 7 : 6 }}" class="px-4 py-8 text-center text-slate-500">No Part GCI</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -168,7 +172,7 @@
                         <label class="text-sm font-semibold text-slate-700">Part Name</label>
                         <input name="part_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.part_name">
                     </div>
-                    <div>
+                    <div x-show="form.classification !== 'RM'" x-cloak>
                         <label class="text-sm font-semibold text-slate-700">Model</label>
                         <input name="model" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.model">
                     </div>
@@ -179,6 +183,25 @@
                             <option value="WIP">WIP (Work in Progress)</option>
                             <option value="RM">RM (Raw Materials)</option>
                         </select>
+                    </div>
+                    <div x-show="form.classification === 'RM'" x-cloak>
+                        <label class="text-sm font-semibold text-slate-700">FG Destination (BOM)</label>
+                        <div class="mt-1 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+                            <div class="px-3 py-2 sticky top-0 bg-white border-b border-slate-100">
+                                <input type="text" x-model="fgSearch" placeholder="Search FG part..." class="w-full text-sm rounded-lg border-slate-200 px-2 py-1">
+                            </div>
+                            @foreach($fgPartsWithBom as $fg)
+                                <label class="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm" x-show="!fgSearch || '{{ strtolower($fg->part_no . ' ' . $fg->part_name) }}'.includes(fgSearch.toLowerCase())">
+                                    <input type="checkbox" name="destination_fg_ids[]" value="{{ $fg->id }}" class="rounded border-slate-300 text-indigo-600 mr-2" :checked="form.destination_fg_ids.includes({{ $fg->id }})">
+                                    <span class="font-semibold text-indigo-700">{{ $fg->part_no }}</span>
+                                    <span class="ml-2 text-slate-500 truncate">{{ $fg->part_name }}</span>
+                                </label>
+                            @endforeach
+                            @if($fgPartsWithBom->isEmpty())
+                                <div class="px-3 py-4 text-center text-sm text-slate-400">No FG parts with BOM found</div>
+                            @endif
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">RM ini akan otomatis ditambahkan ke BOM FG yang dipilih.</p>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
@@ -203,7 +226,8 @@
                     importOpen: false,
                     mode: 'create',
                     formAction: @js(route('planning.gci-parts.store')),
-                    form: { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', model: '', status: 'active' },
+                    fgSearch: '',
+                    form: { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', model: '', status: 'active', destination_fg_ids: [] },
                     
                     init() {
                         const warningData = @js(session('duplicate_warning_data'));
@@ -216,7 +240,8 @@
                                 classification: warningData.classification || 'FG',
                                 part_name: warningData.part_name || '',
                                 model: warningData.model || '',
-                                status: warningData.status || 'active'
+                                status: warningData.status || 'active',
+                                destination_fg_ids: warningData.destination_fg_ids || []
                             };
                             this.modalOpen = true; // Open modal with data
 
@@ -236,15 +261,18 @@
                     openCreate() {
                         this.mode = 'create';
                         this.formAction = @js(route('planning.gci-parts.store'));
-                        // Pre-fill classification based on current view
                         const currentClassification = @js($classification ?? 'FG');
-                        this.form = { id: null, customer_id: '', part_no: '', classification: currentClassification, part_name: '', model: '', status: 'active' };
+                        this.fgSearch = '';
+                        this.form = { id: null, customer_id: '', part_no: '', classification: currentClassification, part_name: '', model: '', status: 'active', destination_fg_ids: [] };
                         this.modalOpen = true;
                     },
                     openEdit(p) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/gci-parts')) + '/' + p.id;
-                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, classification: p.classification || 'FG', part_name: p.part_name, model: p.model, status: p.status };
+                        this.fgSearch = '';
+                        const rmFgMap = @js($rmFgMap ?? []);
+                        const linkedFgs = rmFgMap[p.id] || [];
+                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, classification: p.classification || 'FG', part_name: p.part_name, model: p.model, status: p.status, destination_fg_ids: linkedFgs };
                         this.modalOpen = true;
                     },
                     openImport() {
