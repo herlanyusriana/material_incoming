@@ -324,6 +324,27 @@
         </div>
     </div>
 
+    <style>
+        .size-dropdown-wrap { position: relative; }
+        .size-dropdown-list {
+            position: absolute; top: 100%; left: 0; right: 0;
+            z-index: 9999; max-height: 220px; overflow-y: auto;
+            background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,.15), 0 4px 6px -4px rgba(0,0,0,.1);
+            display: none;
+        }
+        .size-dropdown-list.open { display: block; }
+        .size-dropdown-item {
+            padding: 6px 10px; cursor: pointer; font-size: 12px;
+            border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column;
+        }
+        .size-dropdown-item:last-child { border-bottom: none; }
+        .size-dropdown-item:hover, .size-dropdown-item.active { background: #eff6ff; }
+        .size-dropdown-item .size-main { font-weight: 600; color: #1e293b; }
+        .size-dropdown-item .size-detail { font-size: 10px; color: #94a3b8; }
+        .size-dropdown-empty { padding: 10px; text-align: center; font-size: 11px; color: #94a3b8; }
+    </style>
+
     <script>
         const partApiBase = @json(url('/vendors'));
         const partsCache = {}; // key: `${vendorId}|${normalizedTitle}` -> parts[]
@@ -722,6 +743,99 @@
             }) ?? null;
         }
 
+        function buildSizeDropdownItems(vendorId, groupTitle) {
+            const list = getPartsForGroup(vendorId, groupTitle);
+            const items = [];
+            const seen = new Set();
+            list.forEach(p => {
+                const size = String(p.size || p.register_no || '').trim();
+                const partNo = String(p.part_no || '').trim();
+                if (!size) return;
+                if (partNo && size.toLowerCase() === partNo.toLowerCase()) return;
+                const key = size.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                const unit = String(p.uom || p.unit_goods || '').trim();
+                items.push({ size, partNo, unit, label: `${size}`, detail: `${partNo} | ${unit}` });
+            });
+            return items;
+        }
+
+        function initSizeDropdown(wrap) {
+            const input = wrap.querySelector('.size-autocomplete');
+            const listEl = wrap.querySelector('.size-dropdown-list');
+            if (!input || !listEl) return;
+            let activeIdx = -1;
+            let allItems = [];
+
+            function render(filter) {
+                const q = String(filter || '').toLowerCase();
+                const filtered = q ? allItems.filter(it => it.size.toLowerCase().includes(q) || it.partNo.toLowerCase().includes(q)) : allItems;
+                listEl.innerHTML = '';
+                activeIdx = -1;
+                if (!filtered.length) {
+                    listEl.innerHTML = '<div class="size-dropdown-empty">No matching size</div>';
+                    return;
+                }
+                filtered.forEach((it, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'size-dropdown-item';
+                    div.dataset.size = it.size;
+                    div.dataset.idx = i;
+                    div.innerHTML = `<span class="size-main">${escapeHtml(it.label)}</span><span class="size-detail">${escapeHtml(it.detail)}</span>`;
+                    div.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        selectItem(it.size);
+                    });
+                    listEl.appendChild(div);
+                });
+            }
+
+            function selectItem(val) {
+                input.value = val;
+                close();
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function open() {
+                listEl.classList.add('open');
+                render(input.value);
+            }
+
+            function close() { listEl.classList.remove('open'); activeIdx = -1; }
+
+            function setActive(idx) {
+                const items = listEl.querySelectorAll('.size-dropdown-item');
+                items.forEach(el => el.classList.remove('active'));
+                if (idx >= 0 && idx < items.length) {
+                    items[idx].classList.add('active');
+                    items[idx].scrollIntoView({ block: 'nearest' });
+                    activeIdx = idx;
+                }
+            }
+
+            input.addEventListener('focus', () => { open(); });
+            input.addEventListener('input', () => { open(); render(input.value); });
+            input.addEventListener('blur', () => { setTimeout(close, 150); });
+            input.addEventListener('keydown', (e) => {
+                const items = listEl.querySelectorAll('.size-dropdown-item');
+                if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(activeIdx + 1, items.length - 1)); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(activeIdx - 1, 0)); }
+                else if (e.key === 'Enter' && activeIdx >= 0 && items[activeIdx]) {
+                    e.preventDefault();
+                    selectItem(items[activeIdx].dataset.size);
+                }
+                else if (e.key === 'Escape') { close(); }
+            });
+
+            wrap._sizeDropdown = {
+                refresh(vendorId, groupTitle) {
+                    allItems = buildSizeDropdownItems(vendorId, groupTitle);
+                    if (listEl.classList.contains('open')) render(input.value);
+                }
+            };
+        }
+
         function getUniqueMaterialTitles(vendorId) {
             if (!vendorId) return [];
             return vendorTitlesCache[vendorId] || [];
@@ -1050,13 +1164,12 @@
             const rows = groupEl.querySelectorAll('.line-row');
             rows.forEach((row) => {
                 const select = row.querySelector('.part-select');
-                const sizeInput = row.querySelector('.size-autocomplete');
-                const datalist = row.querySelector('.size-datalist');
+                const sizeWrap = row.querySelector('.size-dropdown-wrap');
                 if (!select) return;
                 const current = select.value;
                 select.innerHTML = buildPartOptions(vendorId, groupTitle, current);
-                if (datalist) {
-                    datalist.innerHTML = buildSizeOptionsHtml(vendorId, groupTitle);
+                if (sizeWrap?._sizeDropdown) {
+                    sizeWrap._sizeDropdown.refresh(vendorId, groupTitle);
                 }
                 const stillValid = Array.from(select.options).some((o) => String(o.value) === String(current));
                 if (!stillValid) {
@@ -1093,9 +1206,9 @@
                 <div class="space-y-3">
 	                    <div class="sm:flex sm:items-center sm:gap-4">
 	                        <label class="text-[11px] font-semibold text-slate-500 sm:w-44">Size</label>
-	                        <div class="mt-1 block w-full sm:mt-0 sm:flex-1">
-	                            <input type="text" name="items[${rowIndex}][size]" class="input-size size-autocomplete w-full rounded-lg border-slate-300 bg-white text-xs focus:border-blue-500 focus:ring-blue-500" placeholder="Ketik size / pilih dari suggestion" value="${escapeHtml(existing?.size ?? '')}" list="size-list-${rowIndex}" ${vendorId ? '' : 'disabled'}>
-	                            <datalist id="size-list-${rowIndex}" class="size-datalist">${buildSizeOptionsHtml(vendorId, groupTitle)}</datalist>
+	                        <div class="mt-1 block w-full sm:mt-0 sm:flex-1 size-dropdown-wrap">
+	                            <input type="text" name="items[${rowIndex}][size]" class="input-size size-autocomplete w-full rounded-lg border-slate-300 bg-white text-xs focus:border-blue-500 focus:ring-blue-500" placeholder="Ketik size / pilih dari suggestion" value="${escapeHtml(existing?.size ?? '')}" ${vendorId ? '' : 'disabled'} autocomplete="off">
+	                            <div class="size-dropdown-list"></div>
 	                            <select name="items[${rowIndex}][part_id]" class="part-select hidden" ${vendorId ? '' : 'disabled'} required>
 	                                ${buildPartOptions(vendorId, groupTitle, existing?.part_id)}
 	                            </select>
@@ -1222,6 +1335,13 @@
             `;
             rowsContainer.appendChild(row);
             rowIndex++;
+
+            // Init custom size dropdown
+            const sizeWrap = row.querySelector('.size-dropdown-wrap');
+            if (sizeWrap) {
+                initSizeDropdown(sizeWrap);
+                sizeWrap._sizeDropdown?.refresh(vendorId, groupTitle);
+            }
 
             row.querySelector('.add-line').addEventListener('click', () => {
                 const newRow = addRowToGroup(groupEl);

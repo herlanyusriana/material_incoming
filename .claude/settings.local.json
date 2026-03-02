@@ -8,7 +8,8 @@
       "Bash(ls:*)",
       "Bash(git log:*)",
       "Bash(git rm:*)",
-      "Bash(del /f nul output.txt php_path.txt qa_result.txt seeder_error.txt)"
+      "Bash(del /f nul output.txt php_path.txt qa_result.txt seeder_error.txt)",
+      "Bash(xargs grep -l \"departure\")"
     ]
   }
 }

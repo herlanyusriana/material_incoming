@@ -832,7 +832,7 @@
             {{-- Line modal --}}
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
                 x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
-                <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200/60">
+                <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200/60">
                     <div
                         class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
                         <div class="flex items-center gap-2">
@@ -860,51 +860,21 @@
                             <div class="font-semibold" x-text="lineForm.fg_label"></div>
                         </div>
 
-                        {{-- ═══ SECTION A: Component (RM) ═══ --}}
+                        {{-- ═══ Component (RM) ═══ --}}
                         <div class="space-y-3">
                             <div class="flex items-center gap-2 pb-1 border-b border-indigo-100">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 text-[10px] font-black">A</span>
-                                <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Component</span>
+                                <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Component (RM)</span>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-500">Filter Classification</label>
-                                    <select class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.classification"
-                                        @change="lineForm.component_part_id = ''; lineForm.make_or_buy = (lineForm.classification === 'RM' ? 'buy' : (lineForm.classification ? 'make' : 'buy'))">
-                                        <option value="">Semua</option>
-                                        <option value="FG">FG</option>
-                                        <option value="WIP">WIP</option>
-                                        <option value="RM">RM</option>
-                                    </select>
-                                </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div class="md:col-span-3">
-                                    <label class="text-xs font-semibold text-slate-600">Component Part <span class="text-red-500">*</span></label>
+                                    <label class="text-xs font-semibold text-slate-600">RM Part <span class="text-red-500">*</span></label>
                                     <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
                                         x-model="lineForm.component_part_id" required>
-                                        <option value="">-- Pilih Component Part --</option>
-                                        <template x-if="!lineForm.classification || lineForm.classification === 'FG'">
-                                            <optgroup label="FG (Finished Goods)">
-                                                @foreach (($fgParts ?? []) as $c)
-                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
-                                                @endforeach
-                                            </optgroup>
-                                        </template>
-                                        <template x-if="!lineForm.classification || lineForm.classification === 'WIP'">
-                                            <optgroup label="WIP (Work in Process)">
-                                                @foreach (($wipParts ?? []) as $c)
-                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
-                                                @endforeach
-                                            </optgroup>
-                                        </template>
-                                        <template x-if="!lineForm.classification || lineForm.classification === 'RM'">
-                                            <optgroup label="RM (Raw Material)">
-                                                @foreach (($rmParts ?? []) as $c)
-                                                    <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
-                                                @endforeach
-                                            </optgroup>
-                                        </template>
+                                        <option value="">-- Pilih RM Part --</option>
+                                        @foreach (($rmParts ?? []) as $c)
+                                            <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -936,40 +906,34 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600 block mb-1">Incoming Part</label>
-                                    <select name="incoming_part_id" class="w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.incoming_part_id">
-                                        <option value="">-</option>
-                                        @foreach(($incomingParts ?? []) as $ip)
-                                            <option value="{{ $ip->id }}">
-                                                {{ $ip->part_no }} — {{ $ip->part_name_gci ?: ($ip->part_name_vendor ?? '-') }}
-                                                @if($ip->vendor) [{{ $ip->vendor->name }}] @endif
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <label class="text-xs font-semibold text-slate-600">Material Spec</label>
+                                    <input type="text" name="material_spec" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.material_spec" placeholder="e.g. SPCC, SUS304">
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Scrap Factor</label>
-                                    <input type="number" step="0.01" min="0" max="1" name="scrap_factor"
-                                        class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="lineForm.scrap_factor"
-                                        placeholder="0.05 = 5%">
+                                    <label class="text-xs font-semibold text-slate-600">Material Size</label>
+                                    <input type="text" name="material_size" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.material_size" placeholder="e.g. 0.7 x 530 x C">
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Yield Factor</label>
-                                    <input type="number" step="0.01" min="0" max="1" name="yield_factor"
-                                        class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="lineForm.yield_factor"
-                                        placeholder="0.95 = 95%">
+                                    <label class="text-xs font-semibold text-slate-600">Material Name</label>
+                                    <input type="text" name="material_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.material_name">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Special</label>
+                                    <input type="text" name="special" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.special">
                                 </div>
                             </div>
                         </div>
 
-                        {{-- ═══ SECTION B: Process & WIP ═══ --}}
+                        {{-- ═══ Process & WIP ═══ --}}
                         <div class="space-y-3">
                             <div class="flex items-center gap-2 pb-1 border-b border-emerald-100">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 text-[10px] font-black">B</span>
                                 <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">Process & WIP</span>
                             </div>
 
@@ -995,14 +959,6 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Special</label>
-                                    <input type="text" name="special" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.special">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div class="md:col-span-2">
                                     <label class="text-xs font-semibold text-slate-600">WIP Part</label>
                                     <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
                                         x-model="lineForm.wip_part_id">
@@ -1011,55 +967,6 @@
                                             <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} — {{ optional($p)->part_name ?? '-' }}</option>
                                         @endforeach
                                     </select>
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP Qty</label>
-                                    <input type="number" step="any" min="0" name="wip_qty"
-                                        class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="lineForm.wip_qty">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP UOM</label>
-                                    <select name="wip_uom_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.wip_uom_id">
-                                        <option value="">-</option>
-                                        @foreach(($uoms ?? []) as $uom)
-                                            <option value="{{ optional($uom)->id }}">{{ optional($uom)->code }} - {{ optional($uom)->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP Part Name</label>
-                                    <input type="text" name="wip_part_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.wip_part_name" placeholder="Override nama WIP (opsional)">
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- ═══ SECTION C: Material Detail ═══ --}}
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2 pb-1 border-b border-amber-100">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-100 text-amber-700 text-[10px] font-black">C</span>
-                                <span class="text-xs font-bold text-amber-700 uppercase tracking-wider">Material Detail</span>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Material Size</label>
-                                    <input type="text" name="material_size" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.material_size" placeholder="e.g. 0.7 x 530 x C">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Material Spec</label>
-                                    <input type="text" name="material_spec" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.material_spec" placeholder="e.g. SPCC, SUS304">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Material Name</label>
-                                    <input type="text" name="material_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.material_name">
                                 </div>
                             </div>
                         </div>
