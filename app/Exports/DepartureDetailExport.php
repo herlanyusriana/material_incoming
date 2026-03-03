@@ -47,9 +47,8 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             'Notes (Shipment)',
             'Part No',
             'Part Name (GCI)',
-            'Part Name (Vendor)',
-            'Size',
             'Material Group',
+            'Size',
             'Qty Bundle',
             'Unit Bundle',
             'Qty Goods',
@@ -86,11 +85,10 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             $arrival->container_numbers ?? '-',
             $arrival->seal_code ?? '-',
             $arrival->notes ?? '-',
-            $part?->part_no ?? '-',
-            $part?->part_name_gci ?: ($item->gciPart?->part_name ?? '-'),
-            $part?->part_name_vendor ?? '-',
-            $item->size ?? '-',
-            $item->material_group ?? '-',
+            $part?->part_no ?: '-',
+            $part?->part_name_gci ?: ($item->gciPart?->part_name ?: '-'),
+            $item->material_group ?: '-',
+            $item->size ?: '-',
             (float)($item->qty_bundle ?? 0),
             $item->unit_bundle ?? '-',
             (float)($item->qty_goods ?? 0),
@@ -133,19 +131,18 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             'Q' => 25, // Notes (Shipment)
             'R' => 15, // Part No
             'S' => 25, // Part Name (GCI)
-            'T' => 25, // Part Name (Vendor)
+            'T' => 22, // Material Group
             'U' => 20, // Size
-            'V' => 20, // Material Group
-            'W' => 12, // Qty Bundle
-            'X' => 12, // Unit Bundle
-            'Y' => 12, // Qty Goods
-            'Z' => 12, // Unit Goods
-            'AA' => 15, // Weight Nett
-            'AB' => 15, // Weight Gross
-            'AC' => 12, // Price
-            'AD' => 10, // Currency
-            'AE' => 15, // Total Price
-            'AF' => 25, // Notes (Item)
+            'V' => 12, // Qty Bundle
+            'W' => 12, // Unit Bundle
+            'X' => 12, // Qty Goods
+            'Y' => 12, // Unit Goods
+            'Z' => 15, // Weight Nett
+            'AA' => 15, // Weight Gross
+            'AB' => 12, // Price
+            'AC' => 10, // Currency
+            'AD' => 15, // Total Price
+            'AE' => 25, // Notes (Item)
         ];
     }
 }
