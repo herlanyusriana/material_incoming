@@ -17,7 +17,7 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
     public function __construct(Arrival $arrival)
     {
         $this->arrival = $arrival;
-        $this->arrival->loadMissing(['vendor', 'trucking', 'items.part']);
+        $this->arrival->loadMissing(['vendor', 'trucking', 'items.part', 'items.gciPart']);
     }
 
     public function collection()
@@ -87,7 +87,7 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             $arrival->seal_code ?? '-',
             $arrival->notes ?? '-',
             $part->part_no ?? '-',
-            $part->part_name_gci ?? '-',
+            $part->part_name_gci ?: ($item->gciPart?->part_name ?? '-'),
             $part->part_name_vendor ?? '-',
             $item->size ?? '-',
             $item->material_group ?? '-',
