@@ -465,7 +465,7 @@ class ArrivalController extends Controller
     {
         // Keep using $arrival internally for existing views/logic
         $arrival = $departure;
-        $arrival->load(['vendor', 'creator', 'trucking', 'inspection', 'containers.inspection', 'items.part.vendor', 'items.receives']);
+        $arrival->load(['vendor', 'creator', 'trucking', 'inspection', 'containers.inspection', 'items.part.vendor', 'items.gciPart', 'items.receives']);
 
         $isReceiveComplete = !$this->hasPendingReceives($arrival);
 
