@@ -70,7 +70,7 @@
                                     <th class="px-4 py-3 text-left font-semibold w-8"></th>
                                     <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part Name</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Model</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Size</th>
                                     <th class="px-4 py-3 text-center font-semibold">Vendors</th>
                                     <th class="px-4 py-3 text-left font-semibold">Status</th>
                                     <th class="px-4 py-3 text-right font-semibold">Actions</th>
@@ -86,7 +86,7 @@
                                         </td>
                                         <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
-                                        <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-slate-700">{{ $p->size ?? '-' }}</td>
                                         <td class="px-4 py-3 text-center">
                                             <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold {{ $p->vendorLinks->count() > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">{{ $p->vendorLinks->count() }}</span>
                                         </td>
