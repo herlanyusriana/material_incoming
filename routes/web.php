@@ -473,6 +473,10 @@ Route::middleware('auth')->group(function () {
         // Material Requirement (from Production Planning BOM explosion)
         Route::get('/material-requirement', [\App\Http\Controllers\Production\MaterialRequirementController::class, 'index'])->name('material-requirement.index');
 
+        // Machine Load (Capacity Planning)
+        Route::get('/machine-load', [\App\Http\Controllers\Production\MachineLoadController::class, 'index'])->name('machine-load.index');
+        Route::get('/machine-load/{machine}', [\App\Http\Controllers\Production\MachineLoadController::class, 'show'])->name('machine-load.show');
+
         // Production Orders
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');

@@ -41,12 +41,16 @@ class MachineController extends Controller
             'group_name' => ['nullable', 'string', 'max:255'],
             'cycle_time' => ['nullable', 'numeric', 'min:0'],
             'cycle_time_unit' => ['nullable', 'string', 'in:seconds,minutes,hours'],
+            'setup_time_minutes' => ['nullable', 'numeric', 'min:0'],
+            'available_hours_per_shift' => ['nullable', 'numeric', 'min:0.5', 'max:24'],
             'is_active' => ['nullable'],
         ]);
 
         $data['is_active'] = $request->has('is_active');
         $data['cycle_time'] = $data['cycle_time'] ?? 0;
         $data['cycle_time_unit'] = $data['cycle_time_unit'] ?? 'seconds';
+        $data['setup_time_minutes'] = $data['setup_time_minutes'] ?? 0;
+        $data['available_hours_per_shift'] = $data['available_hours_per_shift'] ?? 7;
 
         Machine::create($data);
 
@@ -66,12 +70,16 @@ class MachineController extends Controller
             'group_name' => ['nullable', 'string', 'max:255'],
             'cycle_time' => ['nullable', 'numeric', 'min:0'],
             'cycle_time_unit' => ['nullable', 'string', 'in:seconds,minutes,hours'],
+            'setup_time_minutes' => ['nullable', 'numeric', 'min:0'],
+            'available_hours_per_shift' => ['nullable', 'numeric', 'min:0.5', 'max:24'],
             'is_active' => ['nullable'],
         ]);
 
         $data['is_active'] = $request->has('is_active');
         $data['cycle_time'] = $data['cycle_time'] ?? 0;
         $data['cycle_time_unit'] = $data['cycle_time_unit'] ?? 'seconds';
+        $data['setup_time_minutes'] = $data['setup_time_minutes'] ?? 0;
+        $data['available_hours_per_shift'] = $data['available_hours_per_shift'] ?? 7;
 
         $machine->update($data);
 

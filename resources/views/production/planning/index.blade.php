@@ -152,6 +152,7 @@
                                 <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK GCI</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700 text-emerald-700">PLAN QTY</th>
+                                <th class="px-3 py-3 text-right font-bold text-indigo-600">EST. HRS</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SHIFT</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">ACTION</th>
                             </tr>
@@ -160,7 +161,7 @@
                             @forelse($machineGroups as $machineKey => $group)
                                 <!-- Section Header for Machine -->
                                 <tr class="bg-slate-800 text-white">
-                                    <td colspan="10" class="px-4 py-2">
+                                    <td colspan="11" class="px-4 py-2">
                                         <div class="flex items-center gap-3">
                                             <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -170,7 +171,26 @@
                                             @if($group['process_name'] && $group['process_name'] !== '-')
                                                 <span class="px-2 py-0.5 rounded-full bg-slate-700 text-[10px] text-slate-300 border border-slate-600">{{ $group['process_name'] }}</span>
                                             @endif
-                                            <div class="ml-auto text-[11px] text-slate-400 font-medium">
+                                            <div class="ml-auto flex items-center gap-4 text-[11px] text-slate-400 font-medium">
+                                                @php
+                                                    $machineObj = $group['machine_id'] ? \App\Models\Machine::find($group['machine_id']) : null;
+                                                    $totalEstHrs = 0;
+                                                    if ($machineObj && $machineObj->cycle_time > 0) {
+                                                        foreach ($group['lines'] as $gl) {
+                                                            if ($gl->plan_qty > 0) {
+                                                                $totalEstHrs += $machineObj->estimateHours((float) $gl->plan_qty);
+                                                            }
+                                                        }
+                                                    }
+                                                    $capacityHrs = $machineObj ? (float) $machineObj->available_hours_per_shift : 7;
+                                                    $loadPct = $capacityHrs > 0 && $totalEstHrs > 0 ? round(($totalEstHrs / $capacityHrs) * 100, 1) : 0;
+                                                @endphp
+                                                @if($machineObj && $machineObj->cycle_time > 0)
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold
+                                                        {{ $loadPct > 100 ? 'bg-red-500/30 text-red-200' : ($loadPct >= 85 ? 'bg-amber-500/30 text-amber-200' : 'bg-emerald-500/30 text-emerald-200') }}">
+                                                        Load: {{ number_format($totalEstHrs, 1) }}h / {{ number_format($capacityHrs, 1) }}h ({{ $loadPct }}%)
+                                                    </span>
+                                                @endif
                                                 Plan Qty: <span class="text-white ml-1">{{ number_format($group['subtotal_plan_qty'], 0) }}</span>
                                             </div>
                                         </div>
@@ -252,7 +272,7 @@
 
                                         <!-- Expandable Detail Row (Projected Stock) -->
                                         <tr x-show="expanded" x-transition.opacity x-cloak>
-                                            <td colspan="10" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+                                            <td colspan="11" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
                                                 <div class="mb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
                                                     <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />

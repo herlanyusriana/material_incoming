@@ -308,6 +308,10 @@
                                     <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.material-requirement.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.material-requirement.*')])></span>
                                     <span class="flex-1">Material Requirement</span>
                                 </a>
+                                <a href="{{ route('production.machine-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.machine-load.*'), $subInactive => !request()->routeIs('production.machine-load.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.machine-load.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.machine-load.*')])></span>
+                                    <span class="flex-1">Machine Load</span>
+                                </a>
 
                                 {{-- Execution Section --}}
                                 <div class="pt-2 mt-2 border-t border-slate-200">

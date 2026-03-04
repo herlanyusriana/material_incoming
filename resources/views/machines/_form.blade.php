@@ -28,6 +28,16 @@
         <x-input-error :messages="$errors->get('cycle_time')" class="mt-2" />
         <x-input-error :messages="$errors->get('cycle_time_unit')" class="mt-2" />
     </div>
+    <div>
+        <x-input-label for="setup_time_minutes" value="Setup Time (minutes)" />
+        <x-text-input id="setup_time_minutes" name="setup_time_minutes" type="number" min="0" step="0.01" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" placeholder="0" value="{{ old('setup_time_minutes', $machine->setup_time_minutes ?? 0) }}" />
+        <x-input-error :messages="$errors->get('setup_time_minutes')" class="mt-2" />
+    </div>
+    <div>
+        <x-input-label for="available_hours_per_shift" value="Available Hours / Shift" />
+        <x-text-input id="available_hours_per_shift" name="available_hours_per_shift" type="number" min="0.5" max="24" step="0.5" class="mt-1 w-full rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" placeholder="7" value="{{ old('available_hours_per_shift', $machine->available_hours_per_shift ?? 7) }}" />
+        <x-input-error :messages="$errors->get('available_hours_per_shift')" class="mt-2" />
+    </div>
     <div class="flex items-end">
         <label class="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" name="is_active" value="1"
