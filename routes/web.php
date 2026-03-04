@@ -470,6 +470,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/planning/generate-mo-line', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'generateMoWoLine'])->name('planning.generate-mo-line');
         Route::get('/planning/calculations', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'getCalculations'])->name('planning.calculations');
 
+        // Material Requirement (from Production Planning BOM explosion)
+        Route::get('/material-requirement', [\App\Http\Controllers\Production\MaterialRequirementController::class, 'index'])->name('material-requirement.index');
+
         // Production Orders
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');

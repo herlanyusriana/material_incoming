@@ -304,6 +304,10 @@
                                     <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.planning.index'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.planning.index')])></span>
                                     <span class="flex-1">📋 Production Planning</span>
                                 </a>
+                                <a href="{{ route('production.material-requirement.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-requirement.*'), $subInactive => !request()->routeIs('production.material-requirement.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.material-requirement.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.material-requirement.*')])></span>
+                                    <span class="flex-1">Material Requirement</span>
+                                </a>
 
                                 {{-- Execution Section --}}
                                 <div class="pt-2 mt-2 border-t border-slate-200">
@@ -1025,6 +1029,10 @@
                             <a href="{{ route('production.planning.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.planning.index'), $subInactive => !request()->routeIs('production.planning.index')])>
                                 <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.planning.index'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.planning.index')])></span>
                                 <span class="flex-1">📋 Production Planning</span>
+                            </a>
+                            <a href="{{ route('production.material-requirement.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-requirement.*'), $subInactive => !request()->routeIs('production.material-requirement.*')])>
+                                <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.material-requirement.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.material-requirement.*')])></span>
+                                <span class="flex-1">Material Requirement</span>
                             </a>
 
                             {{-- Execution Section --}}

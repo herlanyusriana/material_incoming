@@ -64,8 +64,8 @@
                             @foreach ($arrival->items as $item)
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-6 py-4">
-                                        <div class="font-bold text-slate-900">{{ $item->part->part_no }}</div>
-                                        <div class="text-xs text-slate-500">{{ $item->part->part_name_vendor }}</div>
+                                        <div class="font-bold text-slate-900">{{ $item->part?->part_no ?? $item->gciPart?->part_no ?? '-' }}</div>
+                                        <div class="text-xs text-slate-500">{{ $item->part?->part_name_vendor ?? $item->gciPart?->part_name ?? '-' }}</div>
                                     </td>
                                     <td class="px-6 py-4 font-mono text-xs text-slate-700">{{ $item->size ?? '-' }}</td>
                                     <td class="px-6 py-4 text-right">

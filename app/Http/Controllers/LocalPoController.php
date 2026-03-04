@@ -165,7 +165,7 @@ class LocalPoController extends Controller
 
     public function show(Arrival $arrival)
     {
-        $arrival->load(['vendor', 'items.receives', 'items.part']);
+        $arrival->load(['vendor', 'items.receives', 'items.part', 'items.gciPart']);
 
         // Calculate stats
         $arrival->items->each(function ($item) {
