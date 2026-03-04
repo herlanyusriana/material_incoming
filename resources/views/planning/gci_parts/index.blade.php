@@ -155,34 +155,33 @@
                         <input type="hidden" name="_method" value="PUT">
                     </template>
 
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer (Optional)</label>
-                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.customer_id">
-                            <option value="">-- No Customer --</option>
-                            @foreach($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->code }} - {{ $c->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Part No</label>
-                        <input name="part_no" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.part_no">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Part No <span class="text-red-600">*</span></label>
+                            <input name="part_no" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.part_no">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Classification <span class="text-red-600">*</span></label>
+                            <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.classification">
+                                <option value="FG">FG (Finished Goods)</option>
+                                <option value="WIP">WIP (Work in Progress)</option>
+                                <option value="RM">RM (Raw Materials)</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Part Name</label>
                         <input name="part_name" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.part_name">
                     </div>
-                    <div x-show="form.classification !== 'RM'" x-cloak>
-                        <label class="text-sm font-semibold text-slate-700">Model</label>
-                        <input name="model" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.model">
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Classification <span class="text-red-600">*</span></label>
-                        <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.classification">
-                            <option value="FG">FG (Finished Goods)</option>
-                            <option value="WIP">WIP (Work in Progress)</option>
-                            <option value="RM">RM (Raw Materials)</option>
-                        </select>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Size</label>
+                            <input name="size" class="mt-1 w-full rounded-xl border-slate-200" placeholder="e.g. 100x50x2mm" x-model="form.size">
+                        </div>
+                        <div x-show="form.classification !== 'RM'" x-cloak>
+                            <label class="text-sm font-semibold text-slate-700">Model</label>
+                            <input name="model" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.model">
+                        </div>
                     </div>
                     <div x-show="form.classification === 'RM'" x-cloak>
                         <label class="text-sm font-semibold text-slate-700">FG Destination (BOM)</label>
@@ -202,6 +201,33 @@
                             @endif
                         </div>
                         <p class="mt-1 text-xs text-slate-500">RM ini akan otomatis ditambahkan ke BOM FG yang dipilih.</p>
+                    </div>
+                    <div x-show="form.classification === 'RM'" x-cloak>
+                        <label class="text-sm font-semibold text-slate-700">Assign Vendor</label>
+                        <div class="mt-1 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+                            <div class="px-3 py-2 sticky top-0 bg-white border-b border-slate-100">
+                                <input type="text" x-model="vendorSearch" placeholder="Search vendor..." class="w-full text-sm rounded-lg border-slate-200 px-2 py-1">
+                            </div>
+                            @foreach($vendors as $v)
+                                <label class="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm" x-show="!vendorSearch || '{{ strtolower($v->code . ' ' . $v->name) }}'.includes(vendorSearch.toLowerCase())">
+                                    <input type="checkbox" name="vendor_ids[]" value="{{ $v->id }}" class="rounded border-slate-300 text-indigo-600 mr-2" :checked="form.vendor_ids.includes({{ $v->id }})">
+                                    <span class="font-semibold text-indigo-700">{{ $v->code }}</span>
+                                    <span class="ml-2 text-slate-500 truncate">{{ $v->name }}</span>
+                                </label>
+                            @endforeach
+                            @if($vendors->isEmpty())
+                                <div class="px-3 py-4 text-center text-sm text-slate-400">No active vendors</div>
+                            @endif
+                        </div>
+                    </div>
+                    <div x-show="form.classification === 'FG' || form.classification === 'WIP'" x-cloak>
+                        <label class="text-sm font-semibold text-slate-700">Assign Customer</label>
+                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.customer_id">
+                            <option value="">-- No Customer --</option>
+                            @foreach($customers as $c)
+                                <option value="{{ $c->id }}">{{ $c->code }} - {{ $c->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
@@ -227,7 +253,8 @@
                     mode: 'create',
                     formAction: @js(route('planning.gci-parts.store')),
                     fgSearch: '',
-                    form: { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', model: '', status: 'active', destination_fg_ids: [] },
+                    vendorSearch: '',
+                    form: { id: null, customer_id: '', part_no: '', classification: 'FG', part_name: '', size: '', model: '', status: 'active', destination_fg_ids: [], vendor_ids: [] },
                     
                     init() {
                         const warningData = @js(session('duplicate_warning_data'));
@@ -239,9 +266,11 @@
                                 part_no: warningData.part_no || '',
                                 classification: warningData.classification || 'FG',
                                 part_name: warningData.part_name || '',
+                                size: warningData.size || '',
                                 model: warningData.model || '',
                                 status: warningData.status || 'active',
-                                destination_fg_ids: warningData.destination_fg_ids || []
+                                destination_fg_ids: warningData.destination_fg_ids || [],
+                                vendor_ids: warningData.vendor_ids || []
                             };
                             this.modalOpen = true; // Open modal with data
 
@@ -263,16 +292,20 @@
                         this.formAction = @js(route('planning.gci-parts.store'));
                         const currentClassification = @js($classification ?? 'FG');
                         this.fgSearch = '';
-                        this.form = { id: null, customer_id: '', part_no: '', classification: currentClassification, part_name: '', model: '', status: 'active', destination_fg_ids: [] };
+                        this.vendorSearch = '';
+                        this.form = { id: null, customer_id: '', part_no: '', classification: currentClassification, part_name: '', size: '', model: '', status: 'active', destination_fg_ids: [], vendor_ids: [] };
                         this.modalOpen = true;
                     },
                     openEdit(p) {
                         this.mode = 'edit';
                         this.formAction = @js(url('/planning/gci-parts')) + '/' + p.id;
                         this.fgSearch = '';
+                        this.vendorSearch = '';
                         const rmFgMap = @js($rmFgMap ?? []);
                         const linkedFgs = rmFgMap[p.id] || [];
-                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, classification: p.classification || 'FG', part_name: p.part_name, model: p.model, status: p.status, destination_fg_ids: linkedFgs };
+                        const partVendorMap = @js($partVendorMap ?? []);
+                        const linkedVendors = partVendorMap[p.id] || [];
+                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, classification: p.classification || 'FG', part_name: p.part_name, size: p.size || '', model: p.model, status: p.status, destination_fg_ids: linkedFgs, vendor_ids: linkedVendors };
                         this.modalOpen = true;
                     },
                     openImport() {

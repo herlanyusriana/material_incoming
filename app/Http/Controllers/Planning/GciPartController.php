@@ -8,6 +8,7 @@ use App\Imports\GciPartsImport;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\GciPart;
+use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -119,7 +120,21 @@ class GciPartController extends Controller
             }
         }
 
-        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers', 'qParam', 'fgPartsWithBom', 'rmFgMap'));
+        $vendors = Vendor::where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
+
+        // Part → linked Vendor IDs mapping (for edit pre-populate)
+        $partVendorMap = [];
+        $partIds = $parts->pluck('id')->toArray();
+        if (!empty($partIds)) {
+            $vendorLinks = DB::table('gci_part_vendor')
+                ->whereIn('gci_part_id', $partIds)
+                ->get(['gci_part_id', 'vendor_id']);
+            foreach ($vendorLinks as $vl) {
+                $partVendorMap[$vl->gci_part_id][] = $vl->vendor_id;
+            }
+        }
+
+        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers', 'qParam', 'fgPartsWithBom', 'rmFgMap', 'vendors', 'partVendorMap'));
     }
 
     public function export()
@@ -175,18 +190,23 @@ class GciPartController extends Controller
             'part_no' => ['required', 'string', 'max:100'],
             'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
+            'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'destination_fg_ids' => ['nullable', 'array'],
             'destination_fg_ids.*' => ['exists:gci_parts,id'],
+            'vendor_ids' => ['nullable', 'array'],
+            'vendor_ids.*' => ['exists:vendors,id'],
         ]);
 
         $destinationFgIds = $validated['destination_fg_ids'] ?? [];
-        unset($validated['destination_fg_ids']);
+        $vendorIds = $validated['vendor_ids'] ?? [];
+        unset($validated['destination_fg_ids'], $validated['vendor_ids']);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
         $validated['classification'] = strtoupper(trim($validated['classification']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
+        $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 
         // Clear model for RM parts
@@ -225,6 +245,11 @@ class GciPartController extends Controller
             }
         }
 
+        // Assign vendors for RM
+        if ($validated['classification'] === 'RM' && !empty($vendorIds)) {
+            $gciPart->vendors()->syncWithoutDetaching($vendorIds);
+        }
+
         $msg = 'Part GCI created.';
         if ($bomLinked > 0) {
             $msg .= " Linked to {$bomLinked} FG BOM(s).";
@@ -240,18 +265,23 @@ class GciPartController extends Controller
             'part_no' => ['required', 'string', 'max:100'],
             'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
+            'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'destination_fg_ids' => ['nullable', 'array'],
             'destination_fg_ids.*' => ['exists:gci_parts,id'],
+            'vendor_ids' => ['nullable', 'array'],
+            'vendor_ids.*' => ['exists:vendors,id'],
         ]);
 
         $destinationFgIds = $validated['destination_fg_ids'] ?? [];
-        unset($validated['destination_fg_ids']);
+        $vendorIds = $validated['vendor_ids'] ?? [];
+        unset($validated['destination_fg_ids'], $validated['vendor_ids']);
 
         $validated['part_no'] = strtoupper(trim($validated['part_no']));
         $validated['classification'] = strtoupper(trim($validated['classification']));
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
+        $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
 
         if ($validated['classification'] === 'RM') {
@@ -259,6 +289,11 @@ class GciPartController extends Controller
         }
 
         $gciPart->update($validated);
+
+        // Sync vendors for RM
+        if ($validated['classification'] === 'RM') {
+            $gciPart->vendors()->sync($vendorIds);
+        }
 
         // Auto-link RM to new FG BOMs (skip already linked)
         $bomLinked = 0;

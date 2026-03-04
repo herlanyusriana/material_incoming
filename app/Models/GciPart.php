@@ -17,6 +17,7 @@ class GciPart extends Model
         'part_no',
         'barcode',
         'part_name',
+        'size',
         'model',
         'classification',
         'status',
