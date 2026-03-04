@@ -1540,6 +1540,12 @@
                 isRestoringDraft = false;
             }
 
+            // Load vendor titles FIRST so dropdowns populate correctly
+            const vendorId = vendorIdInput.value;
+            if (vendorId) {
+                await loadParts(vendorId);
+            }
+
             if (existingItems.length) {
                 const grouped = existingItems.reduce((acc, item) => {
                     const key = item.material_group || '';
@@ -1559,11 +1565,8 @@
                 resetGroups([]);
             }
 
-            const vendorId = vendorIdInput.value;
             if (vendorId) {
-                loadParts(vendorId)
-                    .then(() => rebuildPartSelects(vendorId))
-                    .catch(() => { });
+                rebuildPartSelects(vendorId);
             }
             updateRefreshButtonState();
             requestSaveDraft();
