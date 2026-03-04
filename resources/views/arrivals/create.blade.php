@@ -1503,6 +1503,13 @@
 
             setGroupTitle(groupEl, title);
             syncGroupTitle(groupEl);
+
+            // Rebuild all group dropdowns so existing groups keep their options
+            const vendorId = vendorIdInput.value;
+            if (vendorId && vendorTitlesCache[vendorId]) {
+                rebuildMaterialTitleSelects(vendorId);
+            }
+
             if (!isRestoringDraft) requestSaveDraft();
             return groupEl;
         }
