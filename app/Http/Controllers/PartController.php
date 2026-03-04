@@ -126,7 +126,19 @@ class PartController extends Controller
         $vendors = Vendor::orderBy('vendor_name')->get();
         $customers = \App\Models\Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search'));
+        // Part → linked Vendor IDs mapping (for edit pre-populate)
+        $partVendorMap = [];
+        $partIds = $parts->pluck('id')->toArray();
+        if (!empty($partIds)) {
+            $vendorLinks = DB::table('gci_part_vendor')
+                ->whereIn('gci_part_id', $partIds)
+                ->get(['gci_part_id', 'vendor_id']);
+            foreach ($vendorLinks as $vl) {
+                $partVendorMap[$vl->gci_part_id][] = $vl->vendor_id;
+            }
+        }
+
+        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'partVendorMap'));
     }
 
     public function export(Request $request)
@@ -225,13 +237,23 @@ class PartController extends Controller
         $data = $request->validate([
             'part_no' => ['required', 'string', 'max:255'],
             'part_name' => ['nullable', 'string', 'max:255'],
+            'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'classification' => ['required', 'in:FG,WIP,RM'],
             'customer_id' => ['nullable', 'exists:customers,id'],
             'status' => ['required', 'in:active,inactive'],
+            'vendor_ids' => ['nullable', 'array'],
+            'vendor_ids.*' => ['exists:vendors,id'],
         ]);
 
-        GciPart::create($data);
+        $vendorIds = $data['vendor_ids'] ?? [];
+        unset($data['vendor_ids']);
+
+        $gciPart = GciPart::create($data);
+
+        if ($data['classification'] === 'RM' && !empty($vendorIds)) {
+            $gciPart->vendors()->syncWithoutDetaching($vendorIds);
+        }
 
         return redirect()->route('parts.index')->with('status', 'Part created.');
     }
@@ -241,13 +263,23 @@ class PartController extends Controller
         $data = $request->validate([
             'part_no' => ['required', 'string', 'max:255'],
             'part_name' => ['nullable', 'string', 'max:255'],
+            'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'classification' => ['required', 'in:FG,WIP,RM'],
             'customer_id' => ['nullable', 'exists:customers,id'],
             'status' => ['required', 'in:active,inactive'],
+            'vendor_ids' => ['nullable', 'array'],
+            'vendor_ids.*' => ['exists:vendors,id'],
         ]);
 
+        $vendorIds = $data['vendor_ids'] ?? [];
+        unset($data['vendor_ids']);
+
         $part->update($data);
+
+        if ($data['classification'] === 'RM') {
+            $part->vendors()->sync($vendorIds);
+        }
 
         return redirect()->route('parts.index')->with('status', 'Part updated.');
     }

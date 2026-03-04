@@ -377,15 +377,6 @@
                 <form :action="partAction" method="POST" class="px-5 py-4 space-y-4">
                     @csrf
                     <template x-if="partMode==='edit'"><input type="hidden" name="_method" value="PUT"></template>
-                    <div x-show="partForm.classification === 'FG'">
-                        <label class="text-sm font-semibold text-slate-700">Customer (Optional)</label>
-                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.customer_id">
-                            <option value="">— No Customer —</option>
-                            @foreach($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->code ?? '' }} — {{ $c->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm font-semibold text-slate-700">Part No <span class="text-red-500">*</span></label>
@@ -406,16 +397,43 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
+                            <label class="text-sm font-semibold text-slate-700">Size</label>
+                            <input name="size" class="mt-1 w-full rounded-xl border-slate-200 text-sm" placeholder="e.g. 100x50x2mm" x-model="partForm.size">
+                        </div>
+                        <div x-show="partForm.classification !== 'RM'" x-cloak>
                             <label class="text-sm font-semibold text-slate-700">Model</label>
                             <input name="model" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.model">
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-slate-700">Status</label>
-                            <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.status">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
+                    </div>
+                    <div x-show="partForm.classification === 'RM'" x-cloak>
+                        <label class="text-sm font-semibold text-slate-700">Assign Vendor</label>
+                        <div class="mt-1 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+                            <div class="px-3 py-2 sticky top-0 bg-white border-b border-slate-100">
+                                <input type="text" x-model="vendorSearch" placeholder="Search vendor..." class="w-full text-sm rounded-lg border-slate-200 px-2 py-1">
+                            </div>
+                            @foreach($vendors as $v)
+                                <label class="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm" x-show="!vendorSearch || '{{ strtolower($v->vendor_name) }}'.includes(vendorSearch.toLowerCase())">
+                                    <input type="checkbox" name="vendor_ids[]" value="{{ $v->id }}" class="rounded border-slate-300 text-indigo-600 mr-2" :checked="partForm.vendor_ids.includes({{ $v->id }})">
+                                    <span class="text-slate-700">{{ $v->vendor_name }}</span>
+                                </label>
+                            @endforeach
                         </div>
+                    </div>
+                    <div x-show="partForm.classification === 'FG' || partForm.classification === 'WIP'" x-cloak>
+                        <label class="text-sm font-semibold text-slate-700">Assign Customer</label>
+                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.customer_id">
+                            <option value="">-- No Customer --</option>
+                            @foreach($customers as $c)
+                                <option value="{{ $c->id }}">{{ $c->code ?? '' }} - {{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Status</label>
+                        <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.status">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
                         <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm" @click="partModal=false">Cancel</button>
@@ -528,7 +546,8 @@
                     partModal: false,
                     partMode: 'create',
                     partAction: @js(route('parts.store')),
-                    partForm: { customer_id: '', part_no: '', part_name: '', model: '', classification: @js($activeTab), status: 'active' },
+                    vendorSearch: '',
+                    partForm: { customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', vendor_ids: [] },
 
                     // Vendor Part modal
                     vpModal: false,
@@ -541,13 +560,17 @@
                     openCreatePart() {
                         this.partMode = 'create';
                         this.partAction = @js(route('parts.store'));
-                        this.partForm = { customer_id: '', part_no: '', part_name: '', model: '', classification: this.activeTab, status: 'active' };
+                        this.vendorSearch = '';
+                        this.partForm = { customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', vendor_ids: [] };
                         this.partModal = true;
                     },
                     openEditPart(p) {
                         this.partMode = 'edit';
                         this.partAction = @js(url('/parts')) + '/' + p.id;
-                        this.partForm = { customer_id: p.customer_id || '', part_no: p.part_no, part_name: p.part_name || '', model: p.model || '', classification: p.classification, status: p.status };
+                        this.vendorSearch = '';
+                        const pvMap = @js($partVendorMap ?? []);
+                        const linkedVendors = pvMap[p.id] || [];
+                        this.partForm = { customer_id: p.customer_id || '', part_no: p.part_no, part_name: p.part_name || '', size: p.size || '', model: p.model || '', classification: p.classification, status: p.status, vendor_ids: linkedVendors };
                         this.partModal = true;
                     },
 
