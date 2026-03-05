@@ -50,7 +50,14 @@ class GciPart extends Model
     protected function partName(): Attribute
     {
         return Attribute::make(
-            set: fn($value) => $value === null ? null : trim((string) $value),
+            set: function ($value) {
+                $trimmed = $value === null ? '' : trim((string) $value);
+                // Jangan biarkan part_name kosong atau cuma "-"
+                if ($trimmed === '' || $trimmed === '-') {
+                    return $this->attributes['part_no'] ?? '';
+                }
+                return $trimmed;
+            },
         );
     }
 

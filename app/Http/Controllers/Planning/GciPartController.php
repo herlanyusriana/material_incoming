@@ -7,6 +7,7 @@ use App\Exports\GciPartsExport;
 use App\Imports\GciPartsImport;
 use App\Models\Bom;
 use App\Models\BomItem;
+use App\Models\BomItemSubstitute;
 use App\Models\GciPart;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
@@ -106,17 +107,16 @@ class GciPartController extends Controller
             ->get(['id', 'part_no', 'part_name']);
 
         // RM → linked FG IDs mapping (for edit pre-populate)
+        // Load untuk semua RM parts di halaman (bukan cuma saat filter RM)
         $rmFgMap = [];
-        if ($classification === 'RM') {
-            $rmIds = $parts->pluck('id')->toArray();
-            if (!empty($rmIds)) {
-                $links = BomItem::whereIn('component_part_id', $rmIds)
-                    ->whereHas('bom')
-                    ->with('bom:id,part_id')
-                    ->get(['id', 'bom_id', 'component_part_id']);
-                foreach ($links as $link) {
-                    $rmFgMap[$link->component_part_id][] = $link->bom->part_id;
-                }
+        $rmIds = $parts->filter(fn($p) => $p->classification === 'RM')->pluck('id')->toArray();
+        if (!empty($rmIds)) {
+            $links = BomItem::whereIn('component_part_id', $rmIds)
+                ->whereHas('bom')
+                ->with('bom:id,part_id')
+                ->get(['id', 'bom_id', 'component_part_id']);
+            foreach ($links as $link) {
+                $rmFgMap[$link->component_part_id][] = $link->bom->part_id;
             }
         }
 
@@ -134,7 +134,67 @@ class GciPartController extends Controller
             }
         }
 
-        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers', 'qParam', 'fgPartsWithBom', 'rmFgMap', 'vendors', 'partVendorMap'));
+        // Substitutes FOR this part (when used as component in BOMs)
+        $partSubstitutesMap = [];
+        if (!empty($rmIds)) {
+            $subsForParts = BomItemSubstitute::query()
+                ->whereHas('bomItem', fn ($q) => $q->whereIn('component_part_id', $rmIds))
+                ->with(['bomItem.bom.part:id,part_no,part_name', 'bomItem:id,bom_id,component_part_id', 'part:id,part_no,part_name'])
+                ->get();
+
+            foreach ($subsForParts as $sub) {
+                $componentPartId = $sub->bomItem->component_part_id;
+                $partSubstitutesMap[$componentPartId][] = [
+                    'id' => $sub->id,
+                    'bom_item_id' => $sub->bom_item_id,
+                    'fg_part_id' => $sub->bomItem->bom->part->id ?? null,
+                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
+                    'substitute_part_id' => $sub->substitute_part_id,
+                    'substitute_part_no' => $sub->part->part_no ?? $sub->substitute_part_no,
+                    'substitute_part_name' => $sub->part->part_name ?? '',
+                    'ratio' => $sub->ratio,
+                    'priority' => $sub->priority,
+                    'status' => $sub->status,
+                    'notes' => $sub->notes,
+                ];
+            }
+        }
+
+        // Where this part IS a substitute for other parts
+        $partAsSubstituteMap = [];
+        if (!empty($rmIds)) {
+            $asSubstitute = BomItemSubstitute::query()
+                ->whereIn('substitute_part_id', $rmIds)
+                ->with(['bomItem.bom.part:id,part_no', 'bomItem:id,bom_id,component_part_id,component_part_no', 'bomItem.componentPart:id,part_no,part_name'])
+                ->get();
+
+            foreach ($asSubstitute as $sub) {
+                $partAsSubstituteMap[$sub->substitute_part_id][] = [
+                    'id' => $sub->id,
+                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
+                    'original_rm_part_no' => $sub->bomItem->componentPart->part_no ?? $sub->bomItem->component_part_no,
+                    'original_rm_part_name' => $sub->bomItem->componentPart->part_name ?? '',
+                    'ratio' => $sub->ratio,
+                    'priority' => $sub->priority,
+                    'status' => $sub->status,
+                ];
+            }
+        }
+
+        // All RM parts for substitute dropdown
+        $rmParts = GciPart::where('classification', 'RM')
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get(['id', 'part_no', 'part_name']);
+
+        // Counts per classification untuk tab badges
+        $classCounts = GciPart::query()
+            ->selectRaw("classification, count(*) as total")
+            ->groupBy('classification')
+            ->pluck('total', 'classification')
+            ->toArray();
+
+        return view('planning.gci_parts.index', compact('parts', 'status', 'classification', 'customers', 'qParam', 'fgPartsWithBom', 'rmFgMap', 'vendors', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'classCounts'));
     }
 
     public function export()
@@ -378,5 +438,77 @@ class GciPartController extends Controller
             // For other errors, show generic message
             return back()->with('error', 'Failed to delete part: ' . $e->getMessage());
         }
+    }
+
+    public function storeSubstitute(Request $request, GciPart $gciPart)
+    {
+        $validated = $request->validate([
+            'fg_part_id' => ['required', 'exists:gci_parts,id'],
+            'substitute_part_id' => ['required', 'exists:gci_parts,id'],
+            'ratio' => ['nullable', 'numeric', 'min:0.0001'],
+            'priority' => ['nullable', 'integer', 'min:1'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $bom = Bom::where('part_id', $validated['fg_part_id'])->latest()->first();
+        if (!$bom) {
+            return back()->with('error', 'BOM tidak ditemukan untuk FG tersebut.');
+        }
+
+        $bomItem = BomItem::where('bom_id', $bom->id)
+            ->where('component_part_id', $gciPart->id)
+            ->first();
+        if (!$bomItem) {
+            return back()->with('error', 'RM ini belum ada di BOM FG tersebut.');
+        }
+
+        $substitutePart = GciPart::find($validated['substitute_part_id']);
+
+        BomItemSubstitute::updateOrCreate(
+            [
+                'bom_item_id' => $bomItem->id,
+                'substitute_part_id' => (int) $validated['substitute_part_id'],
+            ],
+            [
+                'substitute_part_no' => $substitutePart->part_no,
+                'ratio' => $validated['ratio'] ?? 1,
+                'priority' => $validated['priority'] ?? 1,
+                'status' => $validated['status'] ?? 'active',
+                'notes' => $validated['notes'] ? trim($validated['notes']) : null,
+            ],
+        );
+
+        return back()->with('success', 'Substitute saved.');
+    }
+
+    public function updateSubstitute(Request $request, BomItemSubstitute $substitute)
+    {
+        $validated = $request->validate([
+            'substitute_part_id' => ['required', 'exists:gci_parts,id'],
+            'ratio' => ['nullable', 'numeric', 'min:0.0001'],
+            'priority' => ['nullable', 'integer', 'min:1'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $substitutePart = GciPart::find($validated['substitute_part_id']);
+
+        $substitute->update([
+            'substitute_part_id' => (int) $validated['substitute_part_id'],
+            'substitute_part_no' => $substitutePart->part_no,
+            'ratio' => $validated['ratio'] ?? 1,
+            'priority' => $validated['priority'] ?? 1,
+            'status' => $validated['status'] ?? 'active',
+            'notes' => $validated['notes'] ? trim($validated['notes']) : null,
+        ]);
+
+        return back()->with('success', 'Substitute updated.');
+    }
+
+    public function destroySubstitute(BomItemSubstitute $substitute)
+    {
+        $substitute->delete();
+        return back()->with('success', 'Substitute deleted.');
     }
 }

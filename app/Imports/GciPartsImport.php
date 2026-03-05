@@ -116,10 +116,13 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
         }
 
         if ($existingPart) {
-            // UPDATE existing part
+            // UPDATE existing part — part_name gak boleh kosong
             $updates = [];
-            if ($partName !== null) {
+            if ($partName !== null && $partName !== '' && $partName !== '-') {
                 $updates['part_name'] = $partName;
+            } elseif (empty($existingPart->part_name) || $existingPart->part_name === '-') {
+                // Existing part_name juga kosong, isi dari part_no
+                $updates['part_name'] = $partNo;
             }
             if ($model !== null) {
                 $updates['model'] = $model;

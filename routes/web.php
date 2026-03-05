@@ -341,6 +341,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/gci-parts', [PlanningGciPartController::class, 'store'])->name('gci-parts.store');
         Route::put('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'update'])->name('gci-parts.update');
         Route::delete('/gci-parts/{gciPart}', [PlanningGciPartController::class, 'destroy'])->name('gci-parts.destroy');
+        Route::post('/gci-parts/{gciPart}/substitutes', [PlanningGciPartController::class, 'storeSubstitute'])->name('gci-parts.substitutes.store');
+        Route::put('/gci-part-substitutes/{substitute}', [PlanningGciPartController::class, 'updateSubstitute'])->name('gci-part-substitutes.update');
+        Route::delete('/gci-part-substitutes/{substitute}', [PlanningGciPartController::class, 'destroySubstitute'])->name('gci-part-substitutes.destroy');
 
         Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
         Route::get('/boms/export', [PlanningBomController::class, 'export'])->name('boms.export');
