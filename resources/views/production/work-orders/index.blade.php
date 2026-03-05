@@ -54,6 +54,69 @@
             </div>
         </form>
 
+        <form method="POST" action="{{ route('production.work-orders.generate') }}" class="rounded-xl border bg-white p-4">
+            @csrf
+            <input type="hidden" name="source_type" value="manual">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-800">Quick Generate (Manual)</h3>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-500">Checklist beberapa FG, isi Qty + Date, lalu generate jadi 1 WO</span>
+                    <button type="submit" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+                        Generate 1 WO (Multi FG)
+                    </button>
+                </div>
+            </div>
+            <div class="max-h-80 overflow-y-auto rounded-lg border border-slate-200">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-3 py-2 text-center">Pick</th>
+                            <th class="px-3 py-2 text-left">FG Part</th>
+                            <th class="px-3 py-2 text-left">Qty Plan</th>
+                            <th class="px-3 py-2 text-left">Plan Date</th>
+                            <th class="px-3 py-2 text-left">Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse($fgPartsQuick as $fg)
+                            @php($i = $loop->index)
+                            <tr>
+                                <td class="px-3 py-2 text-center">
+                                    <input type="checkbox" name="lines[{{ $i }}][enabled]" value="1" class="rounded border-slate-300 text-indigo-600">
+                                    <input type="hidden" name="lines[{{ $i }}][fg_part_id]" value="{{ $fg->id }}">
+                                </td>
+                                <td class="px-3 py-2">
+                                    <div class="font-medium text-slate-900">{{ $fg->part_no }}</div>
+                                    <div class="text-xs text-slate-500">{{ $fg->part_name }}</div>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <input type="number" name="lines[{{ $i }}][qty_plan]" min="0.0001" step="0.0001"
+                                        class="w-28 rounded-lg border-slate-200 text-sm" placeholder="Qty">
+                                </td>
+                                <td class="px-3 py-2">
+                                    <input type="date" name="lines[{{ $i }}][plan_date]" value="{{ now()->format('Y-m-d') }}"
+                                        class="w-40 rounded-lg border-slate-200 text-sm">
+                                </td>
+                                <td class="px-3 py-2">
+                                    <select name="lines[{{ $i }}][priority]" class="w-24 rounded-lg border-slate-200 text-sm">
+                                        @foreach([1,2,3,4,5] as $prio)
+                                            <option value="{{ $prio }}" @selected($prio===3)>{{ $prio }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-3 py-8 text-center text-slate-500">
+                                    Tidak ada FG aktif dengan BOM aktif.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
         <div class="overflow-hidden rounded-xl border bg-white">
             <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -73,6 +136,11 @@
                             <td class="px-4 py-3">
                                 <div class="font-medium">{{ $wo->fgPart?->part_no }}</div>
                                 <div class="text-xs text-slate-500">{{ $wo->fgPart?->part_name }}</div>
+                                @if(collect(data_get($wo->source_payload_json, 'lines', []))->count() > 1)
+                                    <div class="mt-1 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                                        MULTI FG ({{ collect(data_get($wo->source_payload_json, 'lines', []))->count() }})
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-4 py-3">
                                 <div>{{ optional($wo->plan_date)->format('Y-m-d') }}</div>
@@ -106,4 +174,3 @@
         </div>
     </div>
 </x-app-layout>
-

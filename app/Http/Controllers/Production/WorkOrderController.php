@@ -43,7 +43,15 @@ class WorkOrderController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('production.work-orders.index', compact('orders', 'status', 'sourceType', 'search'));
+        $fgPartsQuick = GciPart::query()
+            ->where('classification', 'FG')
+            ->where('status', 'active')
+            ->whereHas('boms', fn($q) => $q->where('status', 'active'))
+            ->orderBy('part_no')
+            ->limit(200)
+            ->get(['id', 'part_no', 'part_name']);
+
+        return view('production.work-orders.index', compact('orders', 'status', 'sourceType', 'search', 'fgPartsQuick'));
     }
 
     public function create(): View
@@ -137,7 +145,28 @@ class WorkOrderController extends Controller
             'plan_date' => 'nullable|date',
             'priority' => 'nullable|integer|min:1|max:5',
             'remarks' => 'nullable|string|max:1000',
+            'lines' => 'nullable|array',
+            'lines.*.enabled' => 'nullable|in:1',
+            'lines.*.fg_part_id' => 'nullable|integer|exists:gci_parts,id',
+            'lines.*.qty_plan' => 'nullable|numeric|min:0.0001',
+            'lines.*.plan_date' => 'nullable|date',
+            'lines.*.priority' => 'nullable|integer|min:1|max:5',
         ]);
+
+        $manualLines = collect($payload['lines'] ?? [])
+            ->filter(fn($l) => (string) ($l['enabled'] ?? '') === '1')
+            ->map(fn($l) => [
+                'fg_part_id' => (int) ($l['fg_part_id'] ?? 0),
+                'qty_plan' => (float) ($l['qty_plan'] ?? 0),
+                'plan_date' => (string) ($l['plan_date'] ?? ''),
+                'priority' => (int) ($l['priority'] ?? ($payload['priority'] ?? 3)),
+            ])
+            ->filter(fn($l) => $l['fg_part_id'] > 0 && $l['qty_plan'] > 0 && $l['plan_date'] !== '')
+            ->values();
+
+        if (($payload['source_type'] ?? '') === 'manual' && $manualLines->count() > 1) {
+            return $this->generateMultiManual($payload, $manualLines);
+        }
 
         $resolved = $this->resolveSourceData(
             $payload['source_type'],
@@ -268,6 +297,82 @@ class WorkOrderController extends Controller
         return redirect()
             ->route('production.work-orders.show', $workOrder)
             ->with('success', 'Work Order berhasil dibuat dengan snapshot BOM dan material requirement.');
+    }
+
+    private function generateMultiManual(array $payload, \Illuminate\Support\Collection $lines): RedirectResponse
+    {
+        $userId = Auth::id();
+        $validatedLines = [];
+
+        foreach ($lines as $line) {
+            $part = GciPart::query()->whereKey($line['fg_part_id'])->first();
+            if (!$part || $part->classification !== 'FG') {
+                return back()->withInput()->with('error', 'Salah satu FG pada multi-line tidak valid.');
+            }
+            $bom = Bom::activeVersion($line['fg_part_id'], $line['plan_date']);
+            if (!$bom) {
+                return back()->withInput()->with('error', "BOM aktif tidak ditemukan untuk FG {$part->part_no} pada tanggal {$line['plan_date']}.");
+            }
+            $bom->load(['items.componentPart:id,part_no,part_name', 'items.machine:id,name', 'items.substitutes.part:id,part_no,part_name']);
+            $validatedLines[] = [
+                'part' => $part,
+                'bom' => $bom,
+                'fg_part_id' => $line['fg_part_id'],
+                'qty_plan' => $line['qty_plan'],
+                'plan_date' => Carbon::parse($line['plan_date'])->toDateString(),
+                'priority' => (int) ($line['priority'] ?? 3),
+            ];
+        }
+
+        $first = $validatedLines[0];
+        $totalQty = collect($validatedLines)->sum('qty_plan');
+        $headerPriority = (int) ($payload['priority'] ?? ($first['priority'] ?? 3));
+
+        $wo = DB::transaction(function () use ($validatedLines, $payload, $first, $totalQty, $headerPriority, $userId) {
+            $workOrder = WorkOrder::create([
+                'wo_no' => WorkOrder::generateWoNo(),
+                'fg_part_id' => $first['fg_part_id'],
+                'qty_plan' => $totalQty,
+                'plan_date' => $first['plan_date'],
+                'status' => 'open',
+                'priority' => $headerPriority,
+                'remarks' => $payload['remarks'] ?? null,
+                'source_type' => 'manual',
+                'source_ref_type' => null,
+                'source_ref_id' => null,
+                'source_payload_json' => [
+                    'source_type' => 'manual',
+                    'mode' => 'multi_fg',
+                    'lines' => collect($validatedLines)->map(fn($l) => [
+                        'fg_part_id' => $l['fg_part_id'],
+                        'fg_part_no' => $l['part']->part_no,
+                        'fg_part_name' => $l['part']->part_name,
+                        'qty_plan' => (float) $l['qty_plan'],
+                        'plan_date' => $l['plan_date'],
+                        'priority' => (int) $l['priority'],
+                    ])->values()->all(),
+                ],
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]);
+
+            foreach ($validatedLines as $line) {
+                $this->appendSnapshotsForLine($workOrder, $line['bom'], $line['part'], (float) $line['qty_plan']);
+            }
+
+            $this->logHistory($workOrder, 'created', null, [
+                'wo_no' => $workOrder->wo_no,
+                'source_type' => $workOrder->source_type,
+                'line_count' => count($validatedLines),
+                'qty_plan' => (float) $workOrder->qty_plan,
+            ], 'WO generated from manual multi FG lines.');
+
+            return $workOrder;
+        });
+
+        return redirect()
+            ->route('production.work-orders.show', $wo)
+            ->with('success', 'Work Order multi FG berhasil dibuat.');
     }
 
     public function show(WorkOrder $workOrder): View
@@ -507,5 +612,73 @@ class WorkOrderController extends Controller
             'remarks' => $remarks,
             'acted_by' => Auth::id(),
         ]);
+    }
+
+    private function appendSnapshotsForLine(WorkOrder $wo, Bom $bom, GciPart $fgPart, float $qtyPlan): void
+    {
+        $requirements = [];
+        foreach ($bom->items as $item) {
+            $netPerFg = (float) $item->net_required;
+            $substitutes = $item->substitutes
+                ->map(fn($s) => [
+                    'id' => $s->id,
+                    'part_id' => $s->substitute_part_id,
+                    'part_no' => $s->part?->part_no ?? $s->substitute_part_no,
+                    'part_name' => $s->part?->part_name ?? null,
+                    'ratio' => (float) $s->ratio,
+                    'priority' => (int) $s->priority,
+                    'status' => $s->status,
+                ])->values()->all();
+
+            $wo->bomSnapshots()->create([
+                'bom_id' => $bom->id,
+                'bom_item_id' => $item->id,
+                'line_no' => (int) ($item->line_no ?? 0),
+                'fg_part_id' => $fgPart->id,
+                'fg_part_no' => $fgPart->part_no,
+                'fg_part_name' => $fgPart->part_name,
+                'component_part_id' => $item->component_part_id,
+                'component_part_no' => $item->componentPart?->part_no ?? $item->component_part_no,
+                'component_part_name' => $item->componentPart?->part_name,
+                'usage_qty' => (float) $item->usage_qty,
+                'scrap_factor' => (float) $item->scrap_factor,
+                'yield_factor' => (float) ($item->yield_factor ?: 1),
+                'net_required_per_fg' => $netPerFg,
+                'consumption_uom' => $item->consumption_uom,
+                'process_name' => $item->process_name,
+                'machine_name' => $item->machine?->name,
+                'material_name' => $item->material_name,
+                'material_spec' => $item->material_spec,
+                'material_size' => $item->material_size,
+                'make_or_buy' => $item->make_or_buy,
+                'substitutes_json' => $substitutes,
+            ]);
+
+            $key = (string) ($item->component_part_id ?: ('PN:' . ($item->component_part_no ?? '')));
+            if (!isset($requirements[$key])) {
+                $requirements[$key] = [
+                    'component_part_id' => $item->component_part_id,
+                    'component_part_no' => $item->componentPart?->part_no ?? $item->component_part_no,
+                    'component_part_name' => $item->componentPart?->part_name,
+                    'uom' => $item->consumption_uom,
+                    'qty_per_fg' => 0,
+                ];
+            }
+            $requirements[$key]['qty_per_fg'] += $netPerFg;
+        }
+
+        foreach ($requirements as $req) {
+            $wo->requirementSnapshots()->create([
+                'fg_part_id' => $fgPart->id,
+                'fg_part_no' => $fgPart->part_no,
+                'fg_part_name' => $fgPart->part_name,
+                'component_part_id' => $req['component_part_id'],
+                'component_part_no' => $req['component_part_no'],
+                'component_part_name' => $req['component_part_name'],
+                'uom' => $req['uom'],
+                'qty_per_fg' => (float) $req['qty_per_fg'],
+                'qty_requirement' => (float) $req['qty_per_fg'] * $qtyPlan,
+            ]);
+        }
     }
 }

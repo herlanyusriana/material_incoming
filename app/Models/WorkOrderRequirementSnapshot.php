@@ -12,6 +12,9 @@ class WorkOrderRequirementSnapshot extends Model
 
     protected $fillable = [
         'work_order_id',
+        'fg_part_id',
+        'fg_part_no',
+        'fg_part_name',
         'component_part_id',
         'component_part_no',
         'component_part_name',
@@ -30,4 +33,3 @@ class WorkOrderRequirementSnapshot extends Model
         return $this->belongsTo(WorkOrder::class);
     }
 }
-

@@ -54,9 +54,13 @@ class MaterialRequirementController extends Controller
                 }
 
                 if (!isset($aggregated[$key])) {
+                    $componentPartNo = trim((string) ($item['component_part_no'] ?? ''));
+                    if ($componentPartNo === '') {
+                        $componentPartNo = trim((string) ($item['component_part']?->part_no ?? ''));
+                    }
                     $aggregated[$key] = [
                         'component_part_id' => $key,
-                        'component_part_no' => $item['component_part_no'],
+                        'component_part_no' => $componentPartNo !== '' ? $componentPartNo : '-',
                         'component_part' => $item['component_part'],
                         'make_or_buy' => strtoupper(trim($item['make_or_buy'] ?? '')),
                         'gross_qty' => 0,

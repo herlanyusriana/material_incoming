@@ -18,6 +18,10 @@
                 <div>
                     <p class="text-xs font-semibold text-slate-500">WO NUMBER</p>
                     <p class="text-lg font-bold text-slate-800">{{ $workOrder->wo_no }}</p>
+                    @php($woLines = collect(data_get($workOrder->source_payload_json, 'lines', [])))
+                    @if($woLines->count() > 1)
+                        <p class="text-sm text-indigo-700 font-semibold">Multi FG ({{ $woLines->count() }} lines)</p>
+                    @endif
                     <p class="text-sm text-slate-600">
                         {{ $workOrder->fgPart?->part_no }} - {{ $workOrder->fgPart?->part_name }}
                     </p>
@@ -113,6 +117,7 @@
                 <table class="w-full text-sm">
                     <thead class="text-xs uppercase text-slate-500">
                         <tr>
+                            <th class="px-2 py-2 text-left">FG</th>
                             <th class="px-2 py-2 text-left">Line</th>
                             <th class="px-2 py-2 text-left">Component</th>
                             <th class="px-2 py-2 text-left">Net/FG</th>
@@ -123,6 +128,10 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($workOrder->bomSnapshots as $r)
                             <tr>
+                                <td class="px-2 py-2">
+                                    <div class="font-medium">{{ $r->fg_part_no ?: $workOrder->fgPart?->part_no }}</div>
+                                    <div class="text-xs text-slate-500">{{ $r->fg_part_name ?: $workOrder->fgPart?->part_name }}</div>
+                                </td>
                                 <td class="px-2 py-2">{{ $r->line_no }}</td>
                                 <td class="px-2 py-2">
                                     <div class="font-medium">{{ $r->component_part_no }}</div>
@@ -139,7 +148,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-2 py-8 text-center text-slate-500">No BOM snapshot.</td></tr>
+                            <tr><td colspan="6" class="px-2 py-8 text-center text-slate-500">No BOM snapshot.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -149,6 +158,7 @@
                 <table class="w-full text-sm">
                     <thead class="text-xs uppercase text-slate-500">
                         <tr>
+                            <th class="px-2 py-2 text-left">FG</th>
                             <th class="px-2 py-2 text-left">Component</th>
                             <th class="px-2 py-2 text-left">Qty/FG</th>
                             <th class="px-2 py-2 text-left">Qty Requirement</th>
@@ -158,6 +168,10 @@
                         @forelse ($workOrder->requirementSnapshots as $r)
                             <tr>
                                 <td class="px-2 py-2">
+                                    <div class="font-medium">{{ $r->fg_part_no ?: $workOrder->fgPart?->part_no }}</div>
+                                    <div class="text-xs text-slate-500">{{ $r->fg_part_name ?: $workOrder->fgPart?->part_name }}</div>
+                                </td>
+                                <td class="px-2 py-2">
                                     <div class="font-medium">{{ $r->component_part_no }}</div>
                                     <div class="text-xs text-slate-500">{{ $r->component_part_name }}</div>
                                 </td>
@@ -165,7 +179,7 @@
                                 <td class="px-2 py-2 font-mono">{{ number_format((float) $r->qty_requirement, 6) }} {{ $r->uom }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-2 py-8 text-center text-slate-500">No requirement snapshot.</td></tr>
+                            <tr><td colspan="4" class="px-2 py-8 text-center text-slate-500">No requirement snapshot.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
