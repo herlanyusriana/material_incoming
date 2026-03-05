@@ -495,8 +495,19 @@
             refreshPartsBtn.disabled = !vendorIdInput.value;
         }
 
+        function resolveVendorIdFromTypedName() {
+            if (vendorIdInput.value) return vendorIdInput.value;
+            const typed = String(vendorInput?.value || '').trim().toLowerCase();
+            if (!typed) return '';
+            const exact = vendorsData.find(v => String(v.name || '').trim().toLowerCase() === typed);
+            if (!exact) return '';
+            vendorIdInput.value = String(exact.id);
+            return vendorIdInput.value;
+        }
+
         function ensureMaterialDropdownInteractive(vendorId) {
-            const hasVendor = !!String(vendorId || '').trim();
+            const resolvedVendorId = String(vendorId || resolveVendorIdFromTypedName() || '').trim();
+            const hasVendor = !!resolvedVendorId;
             document.querySelectorAll('.material-title-select').forEach((select) => {
                 if (!select) return;
                 // Force unlock when vendor already selected (race-condition safeguard).
@@ -504,6 +515,11 @@
                 if (hasVendor && (!select.options || select.options.length <= 1)) {
                     const groupEl = select.closest('.material-group');
                     if (groupEl) {
+                        // Ensure titles loaded before rebuilding this group.
+                        if (!vendorTitlesCache[resolvedVendorId]) {
+                            loadParts(resolvedVendorId, true).then(() => setGroupTitle(groupEl, getGroupTitle(groupEl)));
+                            return;
+                        }
                         setGroupTitle(groupEl, getGroupTitle(groupEl));
                     }
                 }
@@ -656,6 +672,21 @@
             if (!vendorInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
                 suggestionsBox.classList.add('hidden');
             }
+        });
+
+        // If user typed vendor name manually and then clicks material dropdown,
+        // auto-resolve vendor_id and unlock dropdown immediately.
+        groupsContainer.addEventListener('mousedown', async function (e) {
+            const select = e.target.closest('.material-title-select');
+            if (!select) return;
+            if (!vendorIdInput.value) {
+                const resolved = resolveVendorIdFromTypedName();
+                if (resolved) {
+                    updateRefreshButtonState();
+                    await loadParts(resolved, true);
+                }
+            }
+            ensureMaterialDropdownInteractive(vendorIdInput.value);
         });
 
         vendorInput.addEventListener('focus', function () {
