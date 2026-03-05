@@ -217,6 +217,11 @@
                                     <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('planning.mrp.integration-dashboard'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('planning.mrp.integration-dashboard')])></span>
                                     <span class="flex-1">MRP-Incoming Integration</span>
                                 </a>
+                                <a href="{{ route('production.work-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.work-orders.*'), $subInactive => !request()->routeIs('production.work-orders.*')])
+                                    @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.work-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.work-orders.*')])></span>
+                                    <span class="flex-1">M01 Work Orders</span>
+                                </a>
                             </div>
                         </details>
                     </div>
@@ -942,6 +947,10 @@
                             <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
                                 <span class="flex-1">MRP</span>
+                            </a>
+                            <a href="{{ route('production.work-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.work-orders.*'), $subInactive => !request()->routeIs('production.work-orders.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.work-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.work-orders.*')])></span>
+                                <span class="flex-1">M01 Work Orders</span>
                             </a>
                         </div>
                     </div>

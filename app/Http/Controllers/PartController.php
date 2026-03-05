@@ -14,6 +14,8 @@ use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Models\BomItem;
 use App\Models\BomItemSubstitute;
+use Illuminate\Database\QueryException;
+use Illuminate\Validation\Rule;
 
 class PartController extends Controller
 {
@@ -312,7 +314,7 @@ class PartController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'part_no' => ['required', 'string', 'max:255'],
+            'part_no' => ['required', 'string', 'max:255', Rule::unique('gci_parts', 'part_no')],
             'part_name' => ['nullable', 'string', 'max:255'],
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
@@ -326,10 +328,22 @@ class PartController extends Controller
         $vendorIds = $data['vendor_ids'] ?? [];
         unset($data['vendor_ids']);
 
-        $gciPart = GciPart::create($data);
+        try {
+            $gciPart = GciPart::create($data);
 
-        if ($data['classification'] === 'RM' && !empty($vendorIds)) {
-            $gciPart->vendors()->syncWithoutDetaching($vendorIds);
+            if ($data['classification'] === 'RM' && !empty($vendorIds)) {
+                $gciPart->vendors()->syncWithoutDetaching($vendorIds);
+            }
+        } catch (QueryException $e) {
+            $msg = strtolower((string) $e->getMessage());
+            if (str_contains($msg, 'gci_parts_part_no_unique') || str_contains($msg, 'duplicate')) {
+                return back()->withInput()->withErrors([
+                    'part_no' => 'Part No sudah terdaftar. Gunakan Part No lain.',
+                ]);
+            }
+            return back()->withInput()->withErrors([
+                'part_no' => 'Gagal simpan part. Periksa data lalu coba lagi.',
+            ]);
         }
 
         return redirect()->route('parts.index')->with('status', 'Part created.');
@@ -338,7 +352,7 @@ class PartController extends Controller
     public function update(Request $request, GciPart $part)
     {
         $data = $request->validate([
-            'part_no' => ['required', 'string', 'max:255'],
+            'part_no' => ['required', 'string', 'max:255', Rule::unique('gci_parts', 'part_no')->ignore($part->id)],
             'part_name' => ['nullable', 'string', 'max:255'],
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
@@ -352,10 +366,22 @@ class PartController extends Controller
         $vendorIds = $data['vendor_ids'] ?? [];
         unset($data['vendor_ids']);
 
-        $part->update($data);
+        try {
+            $part->update($data);
 
-        if ($data['classification'] === 'RM') {
-            $part->vendors()->sync($vendorIds);
+            if ($data['classification'] === 'RM') {
+                $part->vendors()->sync($vendorIds);
+            }
+        } catch (QueryException $e) {
+            $msg = strtolower((string) $e->getMessage());
+            if (str_contains($msg, 'gci_parts_part_no_unique') || str_contains($msg, 'duplicate')) {
+                return back()->withInput()->withErrors([
+                    'part_no' => 'Part No sudah terdaftar. Gunakan Part No lain.',
+                ]);
+            }
+            return back()->withInput()->withErrors([
+                'part_no' => 'Gagal update part. Periksa data lalu coba lagi.',
+            ]);
         }
 
         return redirect()->route('parts.index')->with('status', 'Part updated.');

@@ -58,6 +58,12 @@
                             <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold" @click="importOpen=true">Import</button>
                             <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold" @click="openCreatePart()">+ Add Part</button>
                         </div>
+                    @else
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('planning.boms.substitutes.export') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Export Substitute</a>
+                            <a href="{{ route('planning.boms.substitutes.template') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Template</a>
+                            <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold" @click="subImportOpen=true">Import Substitute</button>
+                        </div>
                     @endif
                 </div>
 
@@ -742,11 +748,38 @@
             </div>
         </div>
 
+        {{-- Import Substitute Modal (SUB tab) --}}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="subImportOpen" x-cloak @keydown.escape.window="subImportOpen=false">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                    <div class="text-sm font-semibold text-slate-900">Import Substitute Excel</div>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="subImportOpen=false">✕</button>
+                </div>
+                <form action="{{ route('planning.boms.substitutes.import') }}" method="POST" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+                    @csrf
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Excel File</label>
+                        <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <p class="mt-1 text-xs text-slate-500">Gunakan file dari tombol <span class="font-semibold">Export Substitute</span> atau <span class="font-semibold">Template</span>.</p>
+                    </div>
+                    <label class="flex items-center gap-2 text-xs text-slate-600">
+                        <input type="checkbox" name="auto_create_parts" value="1" class="rounded border-slate-300">
+                        Auto create RM part jika belum ada di master
+                    </label>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm" @click="subImportOpen=false">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <script>
             function partsMaster() {
                 return {
                     expanded: {},
                     importOpen: false,
+                    subImportOpen: false,
                     activeTab: @js($activeTab),
 
                     // GCI Part modal
