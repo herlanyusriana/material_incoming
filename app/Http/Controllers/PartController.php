@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Models\BomItem;
 use App\Models\BomItemSubstitute;
 
 class PartController extends Controller
@@ -138,7 +139,78 @@ class PartController extends Controller
             }
         }
 
-        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'partVendorMap'));
+        // Substitute detail maps for RM modal
+        $partSubstitutesMap = [];
+        $partAsSubstituteMap = [];
+        $rmParts = collect();
+        $rmFgMap = [];
+        $fgPartsWithBom = collect();
+
+        $rmIds = ($classification === 'RM') ? $parts->pluck('id')->toArray() : [];
+        if (!empty($rmIds)) {
+            $subsForParts = BomItemSubstitute::query()
+                ->whereHas('bomItem', fn($q) => $q->whereIn('component_part_id', $rmIds))
+                ->with(['bomItem.bom.part:id,part_no,part_name', 'bomItem:id,bom_id,component_part_id', 'part:id,part_no,part_name'])
+                ->get();
+
+            foreach ($subsForParts as $sub) {
+                $componentPartId = $sub->bomItem->component_part_id;
+                $partSubstitutesMap[$componentPartId][] = [
+                    'id' => $sub->id,
+                    'fg_part_id' => $sub->bomItem->bom->part->id ?? null,
+                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
+                    'substitute_part_id' => $sub->substitute_part_id,
+                    'substitute_part_no' => $sub->part->part_no ?? $sub->substitute_part_no,
+                    'substitute_part_name' => $sub->part->part_name ?? '',
+                    'ratio' => $sub->ratio,
+                    'priority' => $sub->priority,
+                    'status' => $sub->status,
+                    'notes' => $sub->notes,
+                ];
+            }
+
+            $asSubstitute = BomItemSubstitute::query()
+                ->whereIn('substitute_part_id', $rmIds)
+                ->with(['bomItem.bom.part:id,part_no', 'bomItem:id,bom_id,component_part_id,component_part_no', 'bomItem.componentPart:id,part_no,part_name'])
+                ->get();
+
+            foreach ($asSubstitute as $sub) {
+                $partAsSubstituteMap[$sub->substitute_part_id][] = [
+                    'id' => $sub->id,
+                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
+                    'original_rm_part_no' => $sub->bomItem->componentPart->part_no ?? $sub->bomItem->component_part_no,
+                    'original_rm_part_name' => $sub->bomItem->componentPart->part_name ?? '',
+                    'ratio' => $sub->ratio,
+                    'priority' => $sub->priority,
+                    'status' => $sub->status,
+                ];
+            }
+
+            $links = BomItem::query()
+                ->whereIn('component_part_id', $rmIds)
+                ->with('bom.part:id,part_no')
+                ->get(['id', 'bom_id', 'component_part_id']);
+            foreach ($links as $link) {
+                if ($link->bom?->part_id) {
+                    $rmFgMap[$link->component_part_id][] = $link->bom->part_id;
+                }
+            }
+            foreach ($rmFgMap as $pid => $fgIds) {
+                $rmFgMap[$pid] = array_values(array_unique($fgIds));
+            }
+
+            $rmParts = GciPart::where('classification', 'RM')
+                ->where('status', 'active')
+                ->orderBy('part_no')
+                ->get(['id', 'part_no', 'part_name']);
+
+            $fgPartsWithBom = GciPart::where('classification', 'FG')
+                ->whereHas('bom')
+                ->orderBy('part_no')
+                ->get(['id', 'part_no', 'part_name']);
+        }
+
+        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'rmFgMap', 'fgPartsWithBom'));
     }
 
     public function export(Request $request)

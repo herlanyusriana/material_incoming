@@ -369,12 +369,12 @@
 
         {{-- GCI Part Modal --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="partModal" x-cloak @keydown.escape.window="partModal=false">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+            <div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200" :class="subsOpen ? 'max-w-4xl' : 'max-w-lg'">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <div class="text-sm font-semibold text-slate-900" x-text="partMode === 'create' ? 'Add Part' : 'Edit Part'"></div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="partModal=false">✕</button>
                 </div>
-                <form :action="partAction" method="POST" class="px-5 py-4 space-y-4">
+                <form :action="partAction" method="POST" class="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
                     @csrf
                     <template x-if="partMode==='edit'"><input type="hidden" name="_method" value="PUT"></template>
                     <div class="grid grid-cols-2 gap-4">
@@ -419,6 +419,76 @@
                             @endforeach
                         </div>
                     </div>
+                    <div x-show="partMode==='edit' && partForm.classification === 'RM'" x-cloak class="rounded-xl border border-orange-200 bg-orange-50/70 overflow-hidden">
+                        <button type="button" class="w-full px-4 py-2.5 flex items-center justify-between text-left" @click="subsOpen = !subsOpen">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-orange-700 text-sm">Substitutes Detail</span>
+                                <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold" x-text="(partForm.substitutes_for || []).length"></span>
+                            </div>
+                            <span class="text-xs text-orange-700" x-text="subsOpen ? 'Hide' : 'Show'"></span>
+                        </button>
+                        <div x-show="subsOpen" class="border-t border-orange-200 px-4 py-3 space-y-3">
+                            <template x-if="(partForm.substitutes_for || []).length > 0">
+                                <div class="overflow-x-auto border border-orange-100 rounded-lg bg-white">
+                                    <table class="min-w-full text-xs">
+                                        <thead class="bg-orange-50 text-orange-700">
+                                            <tr>
+                                                <th class="text-left px-2 py-1.5 font-semibold">FG</th>
+                                                <th class="text-left px-2 py-1.5 font-semibold">Substitute</th>
+                                                <th class="text-center px-2 py-1.5 font-semibold">Ratio</th>
+                                                <th class="text-center px-2 py-1.5 font-semibold">Priority</th>
+                                                <th class="text-left px-2 py-1.5 font-semibold">Status</th>
+                                                <th class="text-right px-2 py-1.5 font-semibold">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="s in partForm.substitutes_for" :key="s.id">
+                                                <tr class="border-t border-orange-50">
+                                                    <td class="px-2 py-1.5 font-mono text-[11px]" x-text="s.fg_part_no"></td>
+                                                    <td class="px-2 py-1.5">
+                                                        <div class="font-mono font-semibold text-indigo-700" x-text="s.substitute_part_no"></div>
+                                                        <div class="text-slate-500" x-text="s.substitute_part_name || ''"></div>
+                                                    </td>
+                                                    <td class="px-2 py-1.5 text-center" x-text="s.ratio"></td>
+                                                    <td class="px-2 py-1.5 text-center" x-text="s.priority"></td>
+                                                    <td class="px-2 py-1.5">
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                                                              :class="s.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                                                              x-text="(s.status || 'inactive').toUpperCase()"></span>
+                                                    </td>
+                                                    <td class="px-2 py-1.5">
+                                                        <div class="flex justify-end gap-1">
+                                                            <button type="button" class="px-2 py-1 rounded-md border border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-[10px] font-semibold" @click="editSub(s)">Edit</button>
+                                                            <button type="button" class="px-2 py-1 rounded-md border border-red-200 text-red-700 hover:bg-red-50 text-[10px] font-semibold" @click="deleteSub(s)">Hapus</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </template>
+                            <template x-if="(partForm.substitutes_for || []).length === 0">
+                                <div class="text-slate-500 italic text-xs">Belum ada substitute</div>
+                            </template>
+
+                            <template x-if="(partForm.as_substitute || []).length > 0">
+                                <div class="rounded-lg border border-slate-200 bg-white p-2">
+                                    <div class="font-semibold text-slate-600 text-[10px] uppercase tracking-wider mb-1">Dipakai sebagai substitute untuk</div>
+                                    <template x-for="s in partForm.as_substitute" :key="s.id">
+                                        <div class="text-xs text-slate-700">
+                                            <span class="font-mono" x-text="s.fg_part_no"></span>
+                                            <span class="mx-1">-</span>
+                                            <span class="font-mono" x-text="s.original_rm_part_no"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <div class="text-[11px] text-orange-800 bg-orange-100/70 px-2 py-1.5 rounded">
+                                Management substitute bersifat per BOM FG.
+                            </div>
+                        </div>
+                    </div>
                     <div x-show="partForm.classification === 'FG' || partForm.classification === 'WIP'" x-cloak>
                         <label class="text-sm font-semibold text-slate-700">Assign Customer</label>
                         <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.customer_id">
@@ -438,6 +508,59 @@
                     <div class="flex justify-end gap-2 pt-2">
                         <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm" @click="partModal=false">Cancel</button>
                         <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">Save</button>
+                    </div>
+                </form>
+                <form x-show="partMode==='edit' && partForm.classification === 'RM' && subsOpen" x-cloak :action="subFormAction" method="POST" class="px-5 pb-5 pt-3 border-t border-slate-200 bg-slate-50 space-y-3">
+                    @csrf
+                    <template x-if="subEditId"><input type="hidden" name="_method" value="PUT"></template>
+                    <template x-if="subEditId"><input type="hidden" name="fg_part_id" :value="subForm.fg_part_id"></template>
+                    <div class="font-semibold text-slate-700 text-sm" x-text="subEditId ? 'Edit Substitute' : '+ Tambah Substitute'"></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700">BOM FG <span class="text-red-600">*</span></label>
+                            <select name="fg_part_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm" required x-model="subForm.fg_part_id" :disabled="!!subEditId">
+                                <option value="">Pilih FG...</option>
+                                <template x-for="fg in subFgOptions" :key="fg.id">
+                                    <option :value="String(fg.id)" x-text="fg.part_no + ' - ' + (fg.part_name || '')"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700">Substitute RM <span class="text-red-600">*</span></label>
+                            <select name="substitute_part_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm" required x-model="subForm.substitute_part_id">
+                                <option value="">Pilih RM...</option>
+                                @foreach(($rmParts ?? collect()) as $rm)
+                                    <option value="{{ $rm->id }}" x-show="String({{ $rm->id }}) !== String(partForm.id || '')">{{ $rm->part_no }} - {{ $rm->part_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700">Ratio</label>
+                            <input type="number" step="0.0001" min="0.0001" name="ratio" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subForm.ratio">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700">Priority</label>
+                            <input type="number" min="1" name="priority" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subForm.priority">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700">Status</label>
+                            <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subForm.status">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold" x-text="subEditId ? 'Update' : 'Tambah'"></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700">Notes</label>
+                        <input type="text" name="notes" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subForm.notes">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold" @click="cancelSubEdit()" x-show="subEditId">Batal</button>
                     </div>
                 </form>
             </div>
@@ -546,8 +669,13 @@
                     partModal: false,
                     partMode: 'create',
                     partAction: @js(route('parts.store')),
+                    subsOpen: false,
                     vendorSearch: '',
-                    partForm: { customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', vendor_ids: [] },
+                    partForm: { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', vendor_ids: [], substitutes_for: [], as_substitute: [] },
+                    subEditId: null,
+                    subFormAction: '',
+                    subForm: { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },
+                    subFgOptions: [],
 
                     // Vendor Part modal
                     vpModal: false,
@@ -560,18 +688,75 @@
                     openCreatePart() {
                         this.partMode = 'create';
                         this.partAction = @js(route('parts.store'));
+                        this.subsOpen = false;
                         this.vendorSearch = '';
-                        this.partForm = { customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', vendor_ids: [] };
+                        this.partForm = { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', vendor_ids: [], substitutes_for: [], as_substitute: [] };
+                        this.subEditId = null;
+                        this.subFormAction = '';
+                        this.subForm = { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' };
+                        this.subFgOptions = [];
                         this.partModal = true;
                     },
                     openEditPart(p) {
                         this.partMode = 'edit';
                         this.partAction = @js(url('/parts')) + '/' + p.id;
+                        this.subsOpen = false;
                         this.vendorSearch = '';
                         const pvMap = @js($partVendorMap ?? []);
+                        const partSubstitutesMap = @js($partSubstitutesMap ?? []);
+                        const partAsSubstituteMap = @js($partAsSubstituteMap ?? []);
+                        const rmFgMap = @js($rmFgMap ?? []);
+                        const fgPartsWithBom = @js($fgPartsWithBom ?? []);
+                        const fgMap = {};
+                        (fgPartsWithBom || []).forEach(fg => { fgMap[String(fg.id)] = fg; });
                         const linkedVendors = pvMap[p.id] || [];
-                        this.partForm = { customer_id: p.customer_id || '', part_no: p.part_no, part_name: p.part_name || '', size: p.size || '', model: p.model || '', classification: p.classification, status: p.status, vendor_ids: linkedVendors };
+                        const linkedFgs = (rmFgMap[p.id] || []).map(id => fgMap[String(id)]).filter(Boolean);
+                        this.subFgOptions = linkedFgs;
+                        this.partForm = {
+                            id: p.id,
+                            customer_id: p.customer_id || '',
+                            part_no: p.part_no,
+                            part_name: p.part_name || '',
+                            size: p.size || '',
+                            model: p.model || '',
+                            classification: p.classification,
+                            status: p.status,
+                            vendor_ids: linkedVendors,
+                            substitutes_for: partSubstitutesMap[p.id] || [],
+                            as_substitute: partAsSubstituteMap[p.id] || [],
+                        };
+                        this.subFormAction = @js(url('/planning/gci-parts')) + '/' + p.id + '/substitutes';
+                        this.cancelSubEdit();
                         this.partModal = true;
+                    },
+                    editSub(s) {
+                        this.subEditId = s.id;
+                        this.subFormAction = @js(url('/planning/gci-part-substitutes')) + '/' + s.id;
+                        this.subForm = {
+                            fg_part_id: String(s.fg_part_id || ''),
+                            substitute_part_id: String(s.substitute_part_id || ''),
+                            ratio: s.ratio || 1,
+                            priority: s.priority || 1,
+                            status: s.status || 'active',
+                            notes: s.notes || '',
+                        };
+                        this.subsOpen = true;
+                    },
+                    cancelSubEdit() {
+                        this.subEditId = null;
+                        if (this.partForm.id) {
+                            this.subFormAction = @js(url('/planning/gci-parts')) + '/' + this.partForm.id + '/substitutes';
+                        }
+                        this.subForm = { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' };
+                    },
+                    deleteSub(s) {
+                        if (!confirm('Hapus substitute ' + s.substitute_part_no + '?')) return;
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = @js(url('/planning/gci-part-substitutes')) + '/' + s.id;
+                        form.innerHTML = '@csrf @method("DELETE")';
+                        document.body.appendChild(form);
+                        form.submit();
                     },
 
                     openCreateVendorPart(partId) {
