@@ -891,7 +891,7 @@
 
         function buildMaterialTitleOptionsHtml(vendorId) {
             if (!vendorId) {
-                return '<option value="">Pilih vendor dulu</option>';
+                return '<option value="">Pilih Jenis Material / Part Name Vendor</option>';
             }
             if (!vendorTitlesCache[vendorId]) {
                 return '<option value="">Loading...</option>';
@@ -1495,7 +1495,7 @@
 		                    <div class="w-full">
 		                        <label class="text-xs font-semibold text-gray-700">Jenis Material / Part Name Vendor</label>
 	                        <select class="material-title-select mt-1 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
-	                            <option value="">Pilih vendor dulu</option>
+	                            <option value="">Pilih Jenis Material / Part Name Vendor</option>
 	                        </select>
 	                        <input type="text" class="material-title-custom mt-2 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs hidden" placeholder="Ketik jenis material (manual)" value="">
 	                        <p class="text-[10px] text-gray-500 mt-1">Dropdown ngambil dari <span class="font-semibold">Part Name Vendor</span> (sesuai vendor). Kalau tidak ada, pilih <span class="font-semibold">Lainnya</span> lalu ketik manual.</p>

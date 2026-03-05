@@ -82,12 +82,17 @@ class PartController extends Controller
 
             $vendors = Vendor::orderBy('vendor_name')->get();
             $customers = \App\Models\Customer::where('status', 'active')->orderBy('name')->get();
+            $rmParts = GciPart::where('classification', 'RM')
+                ->where('status', 'active')
+                ->orderBy('part_no')
+                ->get(['id', 'part_no', 'part_name']);
 
             return view('parts.index', [
                 'parts' => collect(), // empty for non-SUB sections
                 'substitutes' => $substitutes,
                 'vendors' => $vendors,
                 'customers' => $customers,
+                'rmParts' => $rmParts,
                 'classification' => 'SUB',
                 'status' => $status,
                 'search' => $search,

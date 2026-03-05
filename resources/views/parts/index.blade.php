@@ -325,6 +325,7 @@
                                     <th class="px-4 py-3 text-center font-semibold">Priority</th>
                                     <th class="px-4 py-3 text-left font-semibold">Status</th>
                                     <th class="px-4 py-3 text-left font-semibold">Notes</th>
+                                    <th class="px-4 py-3 text-right font-semibold">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -348,9 +349,31 @@
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $sub->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">{{ strtoupper($sub->status) }}</span>
                                         </td>
                                         <td class="px-4 py-3 text-xs text-slate-500 max-w-[200px] truncate" title="{{ $sub->notes }}">{{ $sub->notes ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-right">
+                                            <div class="flex justify-end gap-1">
+                                                <button type="button"
+                                                    class="px-2 py-1 text-[10px] font-semibold rounded-md border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                                    @click="openEditSubFromSubTab(@js([
+                                                        'id' => $sub->id,
+                                                        'substitute_part_id' => $sub->substitute_part_id,
+                                                        'substitute_part_no' => $sub->part?->part_no ?? $sub->substitute_part_no,
+                                                        'ratio' => $sub->ratio,
+                                                        'priority' => $sub->priority,
+                                                        'status' => $sub->status,
+                                                        'notes' => $sub->notes,
+                                                        'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '',
+                                                        'component_part_no' => $sub->bomItem->componentPart->part_no ?? $sub->bomItem->component_part_no,
+                                                    ]))">Edit</button>
+                                                <form action="{{ route('planning.gci-part-substitutes.destroy', $sub) }}" method="POST" class="inline" onsubmit="return confirm('Hapus substitute ini?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="px-2 py-1 text-[10px] font-semibold rounded-md border border-red-200 text-red-700 hover:bg-red-50">Hapus</button>
+                                                </form>
+                                            </div>
+                                        </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">No substitute parts found</td></tr>
+                                    <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No substitute parts found</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -637,6 +660,67 @@
             </div>
         </div>
 
+        {{-- Substitute Edit Modal (SUB tab) --}}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
+             x-show="subListEditOpen" x-cloak @keydown.escape.window="subListEditOpen=false">
+            <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-200">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                    <div class="text-sm font-semibold text-slate-900">Edit Substitute</div>
+                    <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="subListEditOpen=false">✕</button>
+                </div>
+                <form :action="subListEditAction" method="POST" class="px-5 py-4 space-y-3">
+                    @csrf
+                    <input type="hidden" name="_method" value="PUT">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">FG</label>
+                            <input type="text" class="mt-1 w-full rounded-lg border-slate-200 text-sm bg-slate-100" x-model="subListForm.fg_part_no" readonly>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Component RM</label>
+                            <input type="text" class="mt-1 w-full rounded-lg border-slate-200 text-sm bg-slate-100" x-model="subListForm.component_part_no" readonly>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Substitute RM</label>
+                            <select name="substitute_part_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subListForm.substitute_part_id" required>
+                                <option value="">Pilih RM...</option>
+                                @foreach(($rmParts ?? collect()) as $rm)
+                                    <option value="{{ $rm->id }}">{{ $rm->part_no }} - {{ $rm->part_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Status</label>
+                            <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subListForm.status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Ratio</label>
+                            <input type="number" step="0.0001" min="0.0001" name="ratio" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subListForm.ratio" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Priority</label>
+                            <input type="number" min="1" name="priority" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subListForm.priority" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Notes</label>
+                        <input type="text" name="notes" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="subListForm.notes">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" class="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold" @click="subListEditOpen=false">Cancel</button>
+                        <button type="submit" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         {{-- Import Modal --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="importOpen" x-cloak @keydown.escape.window="importOpen=false">
             <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200">
@@ -682,6 +766,9 @@
                     vpMode: 'create',
                     vpAction: '',
                     vpForm: { vendor_id: '', vendor_part_no: '', vendor_part_name: '', register_no: '', price: 0, uom: '', hs_code: '', quality_inspection: '', status: 'active' },
+                    subListEditOpen: false,
+                    subListEditAction: '',
+                    subListForm: { id: '', fg_part_no: '', component_part_no: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },
 
                     toggle(id) { this.expanded[id] = !this.expanded[id]; },
 
@@ -757,6 +844,20 @@
                         form.innerHTML = '@csrf @method("DELETE")';
                         document.body.appendChild(form);
                         form.submit();
+                    },
+                    openEditSubFromSubTab(s) {
+                        this.subListEditAction = @js(url('/planning/gci-part-substitutes')) + '/' + s.id;
+                        this.subListForm = {
+                            id: String(s.id || ''),
+                            fg_part_no: s.fg_part_no || '',
+                            component_part_no: s.component_part_no || '',
+                            substitute_part_id: String(s.substitute_part_id || ''),
+                            ratio: s.ratio || 1,
+                            priority: s.priority || 1,
+                            status: s.status || 'active',
+                            notes: s.notes || '',
+                        };
+                        this.subListEditOpen = true;
                     },
 
                     openCreateVendorPart(partId) {
