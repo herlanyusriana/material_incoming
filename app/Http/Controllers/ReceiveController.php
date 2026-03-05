@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use App\Models\Receive;
 use App\Models\ArrivalItem;
 use App\Models\Arrival;
+use App\Models\GciPartVendor;
 use App\Models\Inventory;
 use App\Models\LocationInventory;
 use App\Models\WarehouseLocation;
@@ -23,6 +24,25 @@ use App\Traits\LogsActivity;
 class ReceiveController extends Controller
 {
     use LogsActivity;
+
+    private function resolveVendorPartId(ArrivalItem $arrivalItem): int
+    {
+        return (int) ($arrivalItem->gci_part_vendor_id ?: $arrivalItem->part_id ?: 0);
+    }
+
+    private function resolveGciPartId(ArrivalItem $arrivalItem): ?int
+    {
+        if (!empty($arrivalItem->gci_part_id)) {
+            return (int) $arrivalItem->gci_part_id;
+        }
+
+        $vendorPartId = $this->resolveVendorPartId($arrivalItem);
+        if ($vendorPartId <= 0) {
+            return null;
+        }
+
+        return GciPartVendor::query()->whereKey($vendorPartId)->value('gci_part_id');
+    }
 
     private function normalizeTag(?string $tag): ?string
     {
@@ -189,10 +209,12 @@ class ReceiveController extends Controller
         $receives = Receive::query()
             ->select('receives.*')
             ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
-            ->join('parts', 'arrival_items.part_id', '=', 'parts.id')
+            ->leftJoin('gci_part_vendor as gpv', function ($join) {
+                $join->on('gpv.id', '=', DB::raw('COALESCE(arrival_items.gci_part_vendor_id, arrival_items.part_id)'));
+            })
             ->with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
             ->where('arrival_items.arrival_id', $arrival->id)
-            ->orderBy('parts.part_no', 'asc')
+            ->orderBy('gpv.vendor_part_no', 'asc')
             ->orderByRaw('LENGTH(receives.tag) ASC')
             ->orderBy('receives.tag', 'asc')
             ->paginate(50);
@@ -327,7 +349,8 @@ class ReceiveController extends Controller
         }
 
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
-        $partId = (int) $arrivalItem->part_id;
+        $partId = $this->resolveVendorPartId($arrivalItem);
+        $gciPartId = $this->resolveGciPartId($arrivalItem);
         $receiveQtyForInventory = 0;
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
@@ -429,7 +452,7 @@ class ReceiveController extends Controller
             if (!empty($locationAdds) && $partId) {
                 foreach ($locationAdds as $locationCode => $qty) {
                     if ($qty > 0 && is_string($locationCode) && $locationCode !== '') {
-                        LocationInventory::updateStock($partId, $locationCode, (float) $qty);
+                        LocationInventory::updateStock($partId, $locationCode, (float) $qty, null, null, $gciPartId);
                     }
                 }
             }
@@ -649,7 +672,7 @@ class ReceiveController extends Controller
                     ]);
 
                     if (($tagData['qc_status'] ?? 'pass') === 'pass') {
-                        $partId = (int) $arrivalItem->part_id;
+                        $partId = $this->resolveVendorPartId($arrivalItem);
                         $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
                         $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + $addQty;
                         if ($locationCode) {
@@ -685,9 +708,10 @@ class ReceiveController extends Controller
                 if (!$partId || empty($byLocation) || !is_array($byLocation)) {
                     continue;
                 }
+                $gciPartId = GciPartVendor::query()->whereKey((int) $partId)->value('gci_part_id');
                 foreach ($byLocation as $locationCode => $qty) {
                     if ($qty > 0 && is_string($locationCode) && $locationCode !== '') {
-                        LocationInventory::updateStock((int) $partId, $locationCode, (float) $qty);
+                        LocationInventory::updateStock((int) $partId, $locationCode, (float) $qty, null, null, $gciPartId);
                     }
                 }
             }
@@ -882,13 +906,14 @@ class ReceiveController extends Controller
             ]);
 
             // Keep location stock consistent with pass qty.
-            $partId = (int) $arrivalItem->part_id;
+            $partId = $this->resolveVendorPartId($arrivalItem);
+            $gciPartId = $this->resolveGciPartId($arrivalItem);
             if ($partId) {
                 if ($oldLocationCode && $oldContribution > 0) {
-                    LocationInventory::updateStock($partId, $oldLocationCode, -$oldContribution);
+                    LocationInventory::updateStock($partId, $oldLocationCode, -$oldContribution, null, null, $gciPartId);
                 }
                 if ($locationCode && $newContribution > 0) {
-                    LocationInventory::updateStock($partId, $locationCode, $newContribution);
+                    LocationInventory::updateStock($partId, $locationCode, $newContribution, null, null, $gciPartId);
                 }
             }
 

@@ -16,6 +16,10 @@ class MaterialRequirementController extends Controller
         $planDate = Carbon::parse($request->query('date', today()->format('Y-m-d')));
         $sortBy = $request->query('sort_by', 'component');
         $sortDir = $request->query('sort_dir', 'asc');
+        $calcMode = strtolower((string) $request->query('calc_mode', 'with_substitute'));
+        if (!in_array($calcMode, ['strict', 'with_substitute'], true)) {
+            $calcMode = 'with_substitute';
+        }
 
         $session = ProductionPlanningSession::where('plan_date', $planDate->format('Y-m-d'))->first();
 
@@ -65,11 +69,34 @@ class MaterialRequirementController extends Controller
                         'make_or_buy' => strtoupper(trim($item['make_or_buy'] ?? '')),
                         'gross_qty' => 0,
                         'uom' => $item['consumption_uom'],
+                        'substitutes' => [],
                     ];
                     $fgSources[$key] = [];
                 }
 
                 $aggregated[$key]['gross_qty'] += $item['total_qty'];
+
+                $bomItem = $item['bom_item'] ?? null;
+                if ($bomItem && $bomItem->relationLoaded('substitutes')) {
+                    foreach (($bomItem->substitutes ?? collect()) as $sub) {
+                        if (($sub->status ?? 'active') !== 'active') {
+                            continue;
+                        }
+                        if (!$sub->substitute_part_id) {
+                            continue;
+                        }
+                        $subKey = (int) $sub->substitute_part_id;
+                        if (!isset($aggregated[$key]['substitutes'][$subKey])) {
+                            $aggregated[$key]['substitutes'][$subKey] = [
+                                'part_id' => $subKey,
+                                'part_no' => $sub->part?->part_no ?? $sub->substitute_part_no ?? '-',
+                                'part_name' => $sub->part?->part_name ?? '',
+                                'ratio' => (float) ($sub->ratio ?? 1),
+                                'priority' => (int) ($sub->priority ?? 1),
+                            ];
+                        }
+                    }
+                }
 
                 // Track FG sources (unique by part id)
                 $fgId = $item['fg_part']->id;
@@ -83,15 +110,39 @@ class MaterialRequirementController extends Controller
 
             // Load stock on hand for all component parts
             $componentIds = array_keys($aggregated);
-            $stockMap = GciInventory::whereIn('gci_part_id', $componentIds)
+            $substituteIds = collect($aggregated)
+                ->flatMap(fn($a) => array_keys($a['substitutes'] ?? []))
+                ->map(fn($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+            $allStockIds = collect(array_merge($componentIds, $substituteIds))
+                ->map(fn($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $stockMap = GciInventory::whereIn('gci_part_id', $allStockIds)
                 ->selectRaw('gci_part_id, SUM(on_hand) as total_on_hand')
                 ->groupBy('gci_part_id')
                 ->pluck('total_on_hand', 'gci_part_id');
 
             // Build final requirements collection
             foreach ($aggregated as $key => $agg) {
-                $stockOnHand = $stockMap[$key] ?? 0;
-                $netQty = max(0, $agg['gross_qty'] - $stockOnHand);
+                $stockOnHand = (float) ($stockMap[$key] ?? 0);
+                $substituteDetails = collect($agg['substitutes'] ?? [])
+                    ->sortBy('priority')
+                    ->map(function ($sub) use ($stockMap) {
+                        $sub['stock_on_hand'] = (float) ($stockMap[$sub['part_id']] ?? 0);
+                        return $sub;
+                    })
+                    ->values();
+                $substituteStock = (float) $substituteDetails->sum('stock_on_hand');
+                $totalStock = $stockOnHand + $substituteStock;
+                $effectiveStock = $calcMode === 'strict' ? $stockOnHand : $totalStock;
+                $netQty = max(0, $agg['gross_qty'] - $effectiveStock);
                 $isBuyItem = in_array($agg['make_or_buy'], ['BUY', 'B', 'PURCHASE']);
 
                 $requirements->push([
@@ -102,10 +153,14 @@ class MaterialRequirementController extends Controller
                     'make_or_buy' => $agg['make_or_buy'] ?: 'N/A',
                     'gross_qty' => $agg['gross_qty'],
                     'stock_on_hand' => $stockOnHand,
+                    'substitute_stock' => $substituteStock,
+                    'total_stock_on_hand' => $totalStock,
+                    'effective_stock_on_hand' => $effectiveStock,
                     'net_qty' => $netQty,
                     'uom' => $agg['uom'],
                     'status' => !$isBuyItem ? 'N/A' : ($netQty <= 0 ? 'available' : 'shortage'),
                     'fg_sources' => array_values($fgSources[$key]),
+                    'substitutes' => $substituteDetails->all(),
                 ]);
             }
 
@@ -137,6 +192,7 @@ class MaterialRequirementController extends Controller
             'totalComponents',
             'totalShortage',
             'totalFgPlanned',
+            'calcMode',
         ));
     }
 }

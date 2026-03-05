@@ -497,15 +497,6 @@ Route::middleware('auth')->group(function () {
         Route::put('/orders/{productionOrder}/downtimes/{downtime}', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'update'])->name('downtimes.update');
         Route::delete('/orders/{productionOrder}/downtimes/{downtime}', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'destroy'])->name('downtimes.destroy');
 
-        // M01 Work Orders
-        Route::get('/work-orders', [\App\Http\Controllers\Production\WorkOrderController::class, 'index'])->name('work-orders.index');
-        Route::get('/work-orders/create', [\App\Http\Controllers\Production\WorkOrderController::class, 'create'])->name('work-orders.create');
-        Route::get('/work-orders/create-data', [\App\Http\Controllers\Production\WorkOrderController::class, 'createData'])->name('work-orders.create-data');
-        Route::post('/work-orders/generate', [\App\Http\Controllers\Production\WorkOrderController::class, 'generate'])->name('work-orders.generate');
-        Route::get('/work-orders/{workOrder}', [\App\Http\Controllers\Production\WorkOrderController::class, 'show'])->name('work-orders.show');
-        Route::put('/work-orders/{workOrder}', [\App\Http\Controllers\Production\WorkOrderController::class, 'update'])->name('work-orders.update');
-        Route::patch('/work-orders/{workOrder}/status', [\App\Http\Controllers\Production\WorkOrderController::class, 'updateStatus'])->name('work-orders.status');
-
         // Material Availability
         Route::get('/material-availability', [\App\Http\Controllers\Production\MaterialAvailabilityController::class, 'index'])->name('material-availability.index');
         Route::get('/material-availability/{order}', [\App\Http\Controllers\Production\MaterialAvailabilityController::class, 'show'])->name('material-availability.show');

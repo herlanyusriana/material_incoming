@@ -24,9 +24,14 @@ class InventoryController extends Controller
         // --- RM Data ---
         $rmPartId = $request->query('rm_part_id');
         $rmQ = trim((string) $request->query('rm_q', ''));
-        $rmParts = Part::query()->orderBy('part_no')->get();
+        $rmParts = Part::query()
+            ->whereNotNull('part_no')
+            ->orderBy('part_no')
+            ->get();
 
         $inventories = Inventory::query()
+            ->whereNotNull('part_id')
+            ->whereHas('part')
             ->with('part')
             ->when($rmPartId, fn($q) => $q->where('part_id', $rmPartId))
             ->when($rmQ !== '', function ($qr) use ($rmQ) {

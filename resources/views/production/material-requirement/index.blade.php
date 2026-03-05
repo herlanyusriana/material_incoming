@@ -25,6 +25,15 @@
                         <input type="date" name="date" value="{{ $planDate->format('Y-m-d') }}"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             onchange="this.form.submit()">
+                        <input type="hidden" name="sort_by" value="{{ $sortBy }}">
+                        <input type="hidden" name="sort_dir" value="{{ $sortDir }}">
+                        <label class="text-sm font-semibold text-slate-600 ml-2">MODE:</label>
+                        <select name="calc_mode"
+                            class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            onchange="this.form.submit()">
+                            <option value="strict" @selected($calcMode === 'strict')>1. Strict</option>
+                            <option value="with_substitute" @selected($calcMode === 'with_substitute')>2. With Substitute</option>
+                        </select>
                     </form>
 
                     @if($session)
@@ -64,7 +73,7 @@
                         <thead>
                             <tr class="bg-slate-50 border-b-2 border-slate-900">
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[120px]">
-                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'sort_by' => 'component', 'sort_dir' => $sortBy === 'component' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
+                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'calc_mode' => $calcMode, 'sort_by' => 'component', 'sort_dir' => $sortBy === 'component' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
                                         class="hover:text-indigo-600 inline-flex items-center gap-1">
                                         Component Part No
                                         @if($sortBy === 'component')
@@ -79,7 +88,7 @@
                                     Class
                                 </th>
                                 <th class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[70px]">
-                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'sort_by' => 'type', 'sort_dir' => $sortBy === 'type' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
+                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'calc_mode' => $calcMode, 'sort_by' => 'type', 'sort_dir' => $sortBy === 'type' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
                                         class="hover:text-indigo-600 inline-flex items-center gap-1">
                                         Type
                                         @if($sortBy === 'type')
@@ -93,8 +102,11 @@
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[100px]">
                                     Stock On Hand
                                 </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[170px]">
+                                    Substitutes
+                                </th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[100px]">
-                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'sort_by' => 'net_qty', 'sort_dir' => $sortBy === 'net_qty' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
+                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'calc_mode' => $calcMode, 'sort_by' => 'net_qty', 'sort_dir' => $sortBy === 'net_qty' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
                                         class="hover:text-indigo-600 inline-flex items-center gap-1">
                                         Net Req
                                         @if($sortBy === 'net_qty')
@@ -106,7 +118,7 @@
                                     UOM
                                 </th>
                                 <th class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[80px]">
-                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'sort_by' => 'status', 'sort_dir' => $sortBy === 'status' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
+                                    <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'calc_mode' => $calcMode, 'sort_by' => 'status', 'sort_dir' => $sortBy === 'status' && $sortDir === 'asc' ? 'desc' : 'asc']) }}"
                                         class="hover:text-indigo-600 inline-flex items-center gap-1">
                                         Status
                                         @if($sortBy === 'status')
@@ -156,6 +168,18 @@
                                     <td class="px-4 py-3 text-right font-mono text-xs font-medium text-slate-700 border-x border-slate-100">
                                         {{ number_format($req['stock_on_hand'], 2) }}
                                     </td>
+                                    <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">
+                                        @if(!empty($req['substitutes']))
+                                            @foreach($req['substitutes'] as $sub)
+                                                <div class="inline-flex items-center gap-1 mr-2 mb-1">
+                                                    <span class="font-mono font-semibold text-slate-700">{{ $sub['part_no'] }}</span>
+                                                    <span class="text-slate-400">({{ number_format($sub['stock_on_hand'] ?? 0, 2) }})</span>
+                                                </div>
+                                            @endforeach
+                                        @else
+                                            <span class="text-slate-400">-</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-right font-mono text-xs font-bold border-x border-slate-100 {{ $req['net_qty'] > 0 && $req['status'] === 'shortage' ? 'text-red-600' : 'text-slate-700' }}">
                                         {{ number_format($req['net_qty'], 2) }}
                                     </td>
@@ -182,7 +206,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-6 py-20 text-center text-slate-500 bg-white">
+                                    <td colspan="11" class="px-6 py-20 text-center text-slate-500 bg-white">
                                         <div class="flex flex-col items-center">
                                             <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

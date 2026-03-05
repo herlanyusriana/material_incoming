@@ -14,7 +14,12 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
 {
     public function collection()
     {
-        return Inventory::with('part')->orderBy('part_id')->get();
+        return Inventory::query()
+            ->whereNotNull('part_id')
+            ->whereHas('part')
+            ->with('part')
+            ->orderBy('part_id')
+            ->get();
     }
 
     public function headings(): array

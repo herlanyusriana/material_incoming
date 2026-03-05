@@ -202,11 +202,11 @@
                                 <a href="{{ route('planning.boms.substitutes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.substitutes.index'), $subInactive => !request()->routeIs('planning.boms.substitutes.index')])
                                     @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-rose-500' => request()->routeIs('planning.boms.substitutes.index'), 'bg-slate-300 group-hover:bg-rose-400' => !request()->routeIs('planning.boms.substitutes.index')])></span>
-                                    <span class="flex-1">🔗 Substitute Mapping</span>
+                                    <span class="flex-1">?? Substitute Mapping</span>
                                 </a>
                                 <a href="{{ route('planning.boms.explosion-search') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.explosion*'), $subInactive => !request()->routeIs('planning.boms.explosion*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('planning.boms.explosion*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('planning.boms.explosion*')])></span>
-                                    <span class="flex-1">🌳 BOM Explosion</span>
+                                    <span class="flex-1">?? BOM Explosion</span>
                                 </a>
                                 <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
@@ -216,11 +216,6 @@
                                     @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('planning.mrp.integration-dashboard'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('planning.mrp.integration-dashboard')])></span>
                                     <span class="flex-1">MRP-Incoming Integration</span>
-                                </a>
-                                <a href="{{ route('production.work-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.work-orders.*'), $subInactive => !request()->routeIs('production.work-orders.*')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.work-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.work-orders.*')])></span>
-                                    <span class="flex-1">M01 Work Orders</span>
                                 </a>
                             </div>
                         </details>
@@ -307,7 +302,7 @@
                                 </div>
                                 <a href="{{ route('production.planning.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.planning.index'), $subInactive => !request()->routeIs('production.planning.index')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.planning.index'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.planning.index')])></span>
-                                    <span class="flex-1">📋 Production Planning</span>
+                                    <span class="flex-1">?? Production Planning</span>
                                 </a>
                                 <a href="{{ route('production.material-requirement.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-requirement.*'), $subInactive => !request()->routeIs('production.material-requirement.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.material-requirement.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.material-requirement.*')])></span>
@@ -328,44 +323,6 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                     <span class="flex-1">Production Orders</span>
                                 </a>
-                                <a href="{{ route('production.work-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.work-orders.*'), $subInactive => !request()->routeIs('production.work-orders.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.work-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.work-orders.*')])></span>
-                                    <span class="flex-1">Work Order & Kanban Release</span>
-                                </a>
-                                <a href="{{ route('production.material-availability.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-availability.*'), $subInactive => !request()->routeIs('production.material-availability.*')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.material-availability.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.material-availability.*')])></span>
-                                    <span class="flex-1">Material Availability</span>
-                                </a>
-                                <a href="{{ route('production.start-production.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.start-production.*'), $subInactive => !request()->routeIs('production.start-production.*')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.start-production.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.start-production.*')])></span>
-                                    <span class="flex-1">Start Production</span>
-                                </a>
-                                <a href="{{ route('production.qc-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qc-inspection.*'), $subInactive => !request()->routeIs('production.qc-inspection.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.qc-inspection.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.qc-inspection.*')])></span>
-                                    <span class="flex-1">QC Inspection</span>
-                                </a>
-                                <a href="{{ route('production.mass-production.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.mass-production.*'), $subInactive => !request()->routeIs('production.mass-production.*')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.mass-production.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.mass-production.*')])></span>
-                                    <span class="flex-1">Mass Production</span>
-                                </a>
-                                <a href="{{ route('production.in-process-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.in-process-inspection.*'), $subInactive => !request()->routeIs('production.in-process-inspection.*')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.in-process-inspection.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.in-process-inspection.*')])></span>
-                                    <span class="flex-1">In-Process Inspection</span>
-                                </a>
-                                <a href="{{ route('production.finish-production.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.finish-production.*'), $subInactive => !request()->routeIs('production.finish-production.*')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.finish-production.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.finish-production.*')])></span>
-                                    <span class="flex-1">Finish Production</span>
-                                </a>
-                                </a>
-                                <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
-                                    <span class="flex-1">GCI Operator Dashboard</span>
-                                </a>
                             </div>
                         </details>
                     </div>
@@ -375,14 +332,6 @@
                         </div>
                         <ol class="list-decimal list-inside space-y-0.5 text-[12px] text-slate-600">
                             <li>Production Orders</li>
-                            <li>Work Order &amp; Kanban Release</li>
-                            <li>Material Availability</li>
-                            <li>Start Production</li>
-                            <li>QC Inspection</li>
-                            <li>Mass Production</li>
-                            <li>In-Process Inspection</li>
-                            <li>Finish Production</li>
-                            <li>Final Inspection → Kanban Update &amp; Inventory</li>
                         </ol>
                     </div>
                 </div>
@@ -942,15 +891,11 @@
                             </a>
                             <a href="{{ route('planning.boms.substitutes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.substitutes.index'), $subInactive => !request()->routeIs('planning.boms.substitutes.index')])>
                                 <span @class([$subDotBase, 'bg-rose-500' => request()->routeIs('planning.boms.substitutes.index'), 'bg-slate-300 group-hover:bg-rose-400' => !request()->routeIs('planning.boms.substitutes.index')])></span>
-                                <span class="flex-1">🔗 Substitute Mapping</span>
+                                <span class="flex-1">?? Substitute Mapping</span>
                             </a>
                             <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
                                 <span class="flex-1">MRP</span>
-                            </a>
-                            <a href="{{ route('production.work-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.work-orders.*'), $subInactive => !request()->routeIs('production.work-orders.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.work-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.work-orders.*')])></span>
-                                <span class="flex-1">M01 Work Orders</span>
                             </a>
                         </div>
                     </div>
@@ -1041,7 +986,7 @@
                             </div>
                             <a href="{{ route('production.planning.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.planning.index'), $subInactive => !request()->routeIs('production.planning.index')])>
                                 <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.planning.index'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.planning.index')])></span>
-                                <span class="flex-1">📋 Production Planning</span>
+                                <span class="flex-1">?? Production Planning</span>
                             </a>
                             <a href="{{ route('production.material-requirement.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-requirement.*'), $subInactive => !request()->routeIs('production.material-requirement.*')])>
                                 <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.material-requirement.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.material-requirement.*')])></span>
@@ -1056,42 +1001,6 @@
                             <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                 <span class="flex-1">Production Orders</span>
-                            </a>
-                            <a href="{{ route('production.work-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.work-orders.*'), $subInactive => !request()->routeIs('production.work-orders.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.work-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.work-orders.*')])></span>
-                                <span class="flex-1">Work Order & Kanban Release</span>
-                            </a>
-                            <a href="{{ route('production.material-availability.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-availability.*'), $subInactive => !request()->routeIs('production.material-availability.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.material-availability.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.material-availability.*')])></span>
-                                <span class="flex-1">Material Availability</span>
-                            </a>
-                            <a href="{{ route('production.start-production.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.start-production.*'), $subInactive => !request()->routeIs('production.start-production.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.start-production.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.start-production.*')])></span>
-                                <span class="flex-1">Start Production</span>
-                            </a>
-                            <a href="{{ route('production.qc-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qc-inspection.*'), $subInactive => !request()->routeIs('production.qc-inspection.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.qc-inspection.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.qc-inspection.*')])></span>
-                                <span class="flex-1">QC Inspection</span>
-                            </a>
-                            <a href="{{ route('production.mass-production.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.mass-production.*'), $subInactive => !request()->routeIs('production.mass-production.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.mass-production.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.mass-production.*')])></span>
-                                <span class="flex-1">Mass Production</span>
-                            </a>
-                            <a href="{{ route('production.in-process-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.in-process-inspection.*'), $subInactive => !request()->routeIs('production.in-process-inspection.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.in-process-inspection.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.in-process-inspection.*')])></span>
-                                <span class="flex-1">In-Process Inspection</span>
-                            </a>
-                            <a href="{{ route('production.finish-production.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.finish-production.*'), $subInactive => !request()->routeIs('production.finish-production.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.finish-production.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.finish-production.*')])></span>
-                                <span class="flex-1">Finish Production</span>
-                            </a>
-                            <a href="{{ route('production.final-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.final-inspection.*'), $subInactive => !request()->routeIs('production.final-inspection.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.final-inspection.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.final-inspection.*')])></span>
-                                <span class="flex-1">Final Inspection → Kanban Update & Inventory</span>
-                            </a>
-                            <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
-                                <span class="flex-1">GCI Operator Dashboard</span>
                             </a>
                         </div>
                     </div>
@@ -1457,7 +1366,7 @@
             </svg>
             <span x-show="!sidebarCollapsed" x-cloak>Profile</span>
         </a>
-        <div class="mt-3 px-2 text-xs text-slate-400" x-show="!sidebarCollapsed" x-cloak>© {{ date('Y') }} Geum Cheon
+        <div class="mt-3 px-2 text-xs text-slate-400" x-show="!sidebarCollapsed" x-cloak>� {{ date('Y') }} Geum Cheon
             Indo</div>
     </div>
 </aside>

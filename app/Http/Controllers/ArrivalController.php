@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Arrival;
 use App\Models\ArrivalContainer;
 use App\Models\ArrivalItem;
+use App\Models\GciPartVendor;
 use App\Models\Part;
 use App\Models\Vendor;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -150,7 +151,8 @@ class ArrivalController extends Controller
                 if ($item instanceof ArrivalItem) {
                     $hsCodeModel = $item->part?->hs_code;
                 } elseif (is_array($item) && !empty($item['part_id'])) {
-                    $hsCodeModel = Part::find($item['part_id'])?->hs_code;
+                    $hsCodeModel = GciPartVendor::find($item['part_id'])?->hs_code
+                        ?? Part::find($item['part_id'])?->hs_code;
                 }
 
                 return $hsCodeModel ? strtoupper(trim((string) $hsCodeModel)) : null;
@@ -301,7 +303,7 @@ class ArrivalController extends Controller
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.material_group' => ['nullable', 'string', 'max:255'],
-            'items.*.part_id' => ['required', 'exists:parts,id'],
+            'items.*.part_id' => ['required', 'exists:gci_part_vendor,id'],
             'items.*.size' => ['nullable', 'string', 'max:100'],
             'items.*.qty_bundle' => ['nullable', 'integer', 'min:0'],
             'items.*.unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX', 'BAG', 'ROLL'])],
@@ -404,16 +406,18 @@ class ArrivalController extends Controller
                     continue;
                 }
 
-                $part = Part::find($item['part_id']);
-                if ($part && $part->vendor_id != $vendorId) {
+                $vendorPart = GciPartVendor::find($item['part_id']);
+                if ($vendorPart && (int) $vendorPart->vendor_id !== (int) $vendorId) {
                     throw ValidationException::withMessages([
-                        "items.{$index}.part_id" => "Part {$part->part_no} does not belong to the selected vendor.",
+                        "items.{$index}.part_id" => "Part {$vendorPart->vendor_part_no} does not belong to the selected vendor.",
                     ]);
                 }
 
                 $arrival->items()->create([
+                    // Backward compatibility: keep legacy part_id filled with vendor-part id.
                     'part_id' => $item['part_id'],
-                    'gci_part_id' => $part?->gci_part_id,
+                    'gci_part_vendor_id' => $item['part_id'],
+                    'gci_part_id' => $vendorPart?->gci_part_id,
                     'material_group' => $item['material_group'] ?? null,
                     'size' => $item['size'] ?? null,
                     'qty_bundle' => $item['qty_bundle'] ?? 0,
@@ -724,7 +728,7 @@ class ArrivalController extends Controller
 
         $data = $request->validate([
             'material_group' => ['nullable', 'string', 'max:255'],
-            'part_id' => ['required', 'exists:parts,id'],
+            'part_id' => ['required', 'exists:gci_part_vendor,id'],
             'size' => ['nullable', 'string', 'max:100'],
             'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX', 'BAG', 'ROLL'])],
             'qty_bundle' => ['nullable', 'integer', 'min:0'],
@@ -736,10 +740,10 @@ class ArrivalController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $part = Part::find($data['part_id']);
-        if ($part && (int) $part->vendor_id !== (int) $arrival->vendor_id) {
+        $vendorPart = GciPartVendor::find($data['part_id']);
+        if ($vendorPart && (int) $vendorPart->vendor_id !== (int) $arrival->vendor_id) {
             throw ValidationException::withMessages([
-                'part_id' => "Part {$part->part_no} does not belong to the selected vendor.",
+                'part_id' => "Part {$vendorPart->vendor_part_no} does not belong to the selected vendor.",
             ]);
         }
 
@@ -768,8 +772,10 @@ class ArrivalController extends Controller
         $price = $this->formatMilli($priceMilli);
 
         $arrival->items()->create([
+            // Backward compatibility: keep legacy part_id filled with vendor-part id.
             'part_id' => $data['part_id'],
-            'gci_part_id' => $part?->gci_part_id,
+            'gci_part_vendor_id' => $data['part_id'],
+            'gci_part_id' => $vendorPart?->gci_part_id,
             'material_group' => $data['material_group'] ?? null,
             'size' => $data['size'] ?? null,
             'unit_bundle' => $data['unit_bundle'] ?? null,
