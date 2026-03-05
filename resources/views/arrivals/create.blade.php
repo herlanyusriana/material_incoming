@@ -495,6 +495,21 @@
             refreshPartsBtn.disabled = !vendorIdInput.value;
         }
 
+        function ensureMaterialDropdownInteractive(vendorId) {
+            const hasVendor = !!String(vendorId || '').trim();
+            document.querySelectorAll('.material-title-select').forEach((select) => {
+                if (!select) return;
+                // Force unlock when vendor already selected (race-condition safeguard).
+                select.disabled = !hasVendor;
+                if (hasVendor && (!select.options || select.options.length <= 1)) {
+                    const groupEl = select.closest('.material-group');
+                    if (groupEl) {
+                        setGroupTitle(groupEl, getGroupTitle(groupEl));
+                    }
+                }
+            });
+        }
+
         function loadDraftData() {
             try {
                 const raw = localStorage.getItem(draftStorageKey);
@@ -633,6 +648,7 @@
             updateRefreshButtonState();
             await loadParts(item.dataset.id, true);
             resetGroups([]);
+            ensureMaterialDropdownInteractive(item.dataset.id);
             requestSaveDraft();
         });
 
@@ -657,6 +673,7 @@
             updateRefreshButtonState();
             await loadParts(match.id, true);
             resetGroups([]);
+            ensureMaterialDropdownInteractive(match.id);
             requestSaveDraft();
         });
 
@@ -1567,6 +1584,7 @@
 
             if (vendorId) {
                 rebuildPartSelects(vendorId);
+                ensureMaterialDropdownInteractive(vendorId);
             }
             updateRefreshButtonState();
             requestSaveDraft();
