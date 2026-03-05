@@ -1213,6 +1213,7 @@
             const rows = groupEl.querySelectorAll('.line-row');
             rows.forEach((row) => {
                 const select = row.querySelector('.part-select');
+                const sizeInput = row.querySelector('.input-size');
                 const sizeWrap = row.querySelector('.size-dropdown-wrap');
                 if (!select) return;
                 const current = select.value;
