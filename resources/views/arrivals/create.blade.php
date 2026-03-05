@@ -962,7 +962,8 @@
             const normalized = (title || '').trim();
             const titles = getUniqueMaterialTitles(vendorId);
             select.innerHTML = buildMaterialTitleOptionsHtml(vendorId);
-            select.disabled = !vendorId;
+            // Keep dropdown always interactive; vendor validation is handled separately.
+            select.disabled = false;
 
             if (!normalized) {
                 select.value = '';
