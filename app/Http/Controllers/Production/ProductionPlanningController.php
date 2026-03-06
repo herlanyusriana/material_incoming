@@ -528,6 +528,47 @@ class ProductionPlanningController extends Controller
         return response()->json($result);
     }
 
+    /**
+     * Pull plan_qty from Delivery Requirement (OutgoingDailyPlanCell) for the session's plan date
+     */
+    public function pullFromDeliveryRequirement(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|exists:production_planning_sessions,id',
+        ]);
+
+        $session = ProductionPlanningSession::findOrFail($request->session_id);
+        $planDate = Carbon::parse($session->plan_date)->format('Y-m-d');
+
+        // Sum delivery requirement qty per gci_part_id for the plan date
+        $requirements = DB::table('outgoing_daily_plan_cells as c')
+            ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'c.row_id')
+            ->where('c.plan_date', $planDate)
+            ->whereNotNull('r.gci_part_id')
+            ->where('c.qty', '>', 0)
+            ->select('r.gci_part_id', DB::raw('SUM(c.qty) as total_qty'))
+            ->groupBy('r.gci_part_id')
+            ->pluck('total_qty', 'r.gci_part_id');
+
+        if ($requirements->isEmpty()) {
+            return back()->with('error', "Tidak ada delivery requirement untuk tanggal {$planDate}.");
+        }
+
+        $updated = 0;
+        $lines = ProductionPlanningLine::where('session_id', $session->id)->get();
+
+        foreach ($lines as $line) {
+            $reqQty = $requirements->get($line->gci_part_id);
+            if ($reqQty && $reqQty > 0) {
+                $line->update(['plan_qty' => $reqQty]);
+                $updated++;
+            }
+        }
+
+        return redirect()->route('production.planning.index', ['date' => $planDate])
+            ->with('success', "Delivery requirement berhasil ditarik untuk {$updated} planning lines (tanggal {$planDate}).");
+    }
+
     // ==========================================
     // PRIVATE HELPER METHODS
     // ==========================================
