@@ -67,6 +67,9 @@
                                 Model</th>
                             <th
                                 class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
+                                GCI Stock</th>
+                            <th
+                                class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                 Cust. Stock</th>
                             <th
                                 class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
@@ -108,6 +111,10 @@
 
                                 <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">
                                     {{ $req->gci_part?->model ?? '-' }}
+                                </td>
+
+                                <td class="px-4 py-3 text-right font-medium text-teal-700 border-x border-slate-100">
+                                    {{ number_format($req->gci_stock ?? 0) }}
                                 </td>
 
                                 <td class="px-4 py-3 text-right font-medium text-slate-500 border-x border-slate-100">

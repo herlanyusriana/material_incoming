@@ -698,6 +698,19 @@ class OutgoingController extends Controller
             })
             ->values();
 
+        // Load GCI Stock (on_hand from gci_inventories) for all relevant part IDs
+        $allPartIds = $requirements->pluck('gci_part')->filter()->pluck('id')->unique()->values();
+        $gciStockMap = [];
+        if ($allPartIds->isNotEmpty()) {
+            $gciStockMap = \App\Models\GciInventory::whereIn('gci_part_id', $allPartIds->all())
+                ->pluck('on_hand', 'gci_part_id')
+                ->all();
+        }
+        $requirements = $requirements->map(function (object $r) use ($gciStockMap): object {
+            $r->gci_stock = (float) ($gciStockMap[$r->gci_part?->id ?? 0] ?? 0);
+            return $r;
+        })->values();
+
         // Pagination Logic
         $page = $request->query('page', 1);
         $perPage = 50;
