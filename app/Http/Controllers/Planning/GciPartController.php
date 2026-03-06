@@ -268,6 +268,7 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
+        $validated['customer_id'] = $validated['customer_id'] ?: null;
 
         // Clear model & customer for RM parts
         if ($validated['classification'] === 'RM') {
@@ -344,6 +345,7 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
+        $validated['customer_id'] = $validated['customer_id'] ?: null;
 
         if ($validated['classification'] === 'RM') {
             $validated['model'] = null;
