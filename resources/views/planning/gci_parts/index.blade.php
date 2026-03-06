@@ -101,6 +101,7 @@
                                 <th class="px-4 py-3 text-left font-semibold">Customer</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                 <th class="px-4 py-3 text-left font-semibold">Part Name</th>
+                                <th class="px-4 py-3 text-left font-semibold">Size</th>
                                 <th class="px-4 py-3 text-left font-semibold">Model</th>
                                 <th class="px-4 py-3 text-left font-semibold">Tipe</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
@@ -120,6 +121,7 @@
                                     </td>
                                     <td class="px-4 py-3 font-semibold font-mono text-slate-900">{{ $p->part_no }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $p->part_name }}</td>
+                                    <td class="px-4 py-3 text-slate-600 text-xs">{{ $p->size ?? '-' }}</td>
                                     <td class="px-4 py-3 text-slate-600 text-xs">{{ $p->model ?? '-' }}</td>
                                     <td class="px-4 py-3">
                                         @php
@@ -150,7 +152,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                                    <td colspan="8" class="px-4 py-8 text-center text-slate-500">
                                         Tidak ada Part GCI{{ $classification ? ' (' . $classification . ')' : '' }}
                                     </td>
                                 </tr>
@@ -187,7 +189,8 @@
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-slate-700">Classification <span class="text-red-600">*</span></label>
-                            <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.classification">
+                            <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.classification"
+                                @change="if (form.classification === 'RM') { form.customer_id = ''; form.model = ''; } else { form.vendor_ids = []; form.destination_fg_ids = []; }">
                                 <option value="FG">FG (Finished Goods)</option>
                                 <option value="WIP">WIP (Work in Progress)</option>
                                 <option value="RM">RM (Raw Materials)</option>
@@ -469,15 +472,28 @@
                         this.fgSearch = '';
                         this.vendorSearch = '';
                         const rmFgMap = @js($rmFgMap ?? []);
-                        const linkedFgs = rmFgMap[p.id] || [];
+                        const linkedFgs = (rmFgMap[p.id] || []).map(Number);
                         const partVendorMap = @js($partVendorMap ?? []);
-                        const linkedVendors = partVendorMap[p.id] || [];
+                        const linkedVendors = (partVendorMap[p.id] || []).map(Number);
                         const partSubstitutesMap = @js($partSubstitutesMap ?? []);
                         const partAsSubstituteMap = @js($partAsSubstituteMap ?? []);
                         this.subsOpen = false;
                         this.cancelSubEdit();
                         this.subFormAction = @js(url('/planning/gci-parts')) + '/' + p.id + '/substitutes';
-                        this.form = { id: p.id, customer_id: p.customer_id || '', part_no: p.part_no, classification: p.classification || 'FG', part_name: p.part_name, size: p.size || '', model: p.model, status: p.status, destination_fg_ids: linkedFgs, vendor_ids: linkedVendors, substitutes_for: partSubstitutesMap[p.id] || [], as_substitute: partAsSubstituteMap[p.id] || [] };
+                        this.form = {
+                            id: p.id,
+                            customer_id: p.customer_id ? String(p.customer_id) : '',
+                            part_no: p.part_no || '',
+                            classification: p.classification || 'FG',
+                            part_name: p.part_name || '',
+                            size: p.size || '',
+                            model: p.model || '',
+                            status: p.status || 'active',
+                            destination_fg_ids: linkedFgs,
+                            vendor_ids: linkedVendors,
+                            substitutes_for: partSubstitutesMap[p.id] || [],
+                            as_substitute: partAsSubstituteMap[p.id] || [],
+                        };
                         this.modalOpen = true;
                     },
                     openImport() {

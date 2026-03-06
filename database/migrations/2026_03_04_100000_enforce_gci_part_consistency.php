@@ -32,48 +32,44 @@ return new class extends Migration {
         // location_inventory: backfill gci_part_id dari part_id
         DB::statement("
             UPDATE location_inventory li
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor gpv
-            WHERE gpv.id = li.part_id
-              AND li.gci_part_id IS NULL
+            JOIN gci_part_vendor gpv ON gpv.id = li.part_id
+            SET li.gci_part_id = gpv.gci_part_id
+            WHERE li.gci_part_id IS NULL
               AND li.part_id IS NOT NULL
         ");
 
         // arrival_items: backfill gci_part_id dari part_id
         DB::statement("
             UPDATE arrival_items ai
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor gpv
-            WHERE gpv.id = ai.part_id
-              AND ai.gci_part_id IS NULL
+            JOIN gci_part_vendor gpv ON gpv.id = ai.part_id
+            SET ai.gci_part_id = gpv.gci_part_id
+            WHERE ai.gci_part_id IS NULL
               AND ai.part_id IS NOT NULL
         ");
 
         // arrival_items: backfill gci_part_vendor_id dari part_id
         DB::statement("
-            UPDATE arrival_items ai
-            SET gci_part_vendor_id = ai.part_id
-            WHERE ai.gci_part_vendor_id IS NULL
-              AND ai.part_id IS NOT NULL
+            UPDATE arrival_items
+            SET gci_part_vendor_id = part_id
+            WHERE gci_part_vendor_id IS NULL
+              AND part_id IS NOT NULL
         ");
 
         // bin_transfers: backfill gci_part_id dari part_id
         DB::statement("
             UPDATE bin_transfers bt
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor gpv
-            WHERE gpv.id = bt.part_id
-              AND bt.gci_part_id IS NULL
+            JOIN gci_part_vendor gpv ON gpv.id = bt.part_id
+            SET bt.gci_part_id = gpv.gci_part_id
+            WHERE bt.gci_part_id IS NULL
               AND bt.part_id IS NOT NULL
         ");
 
         // location_inventory_adjustments: backfill gci_part_id dari part_id
         DB::statement("
             UPDATE location_inventory_adjustments lia
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor gpv
-            WHERE gpv.id = lia.part_id
-              AND lia.gci_part_id IS NULL
+            JOIN gci_part_vendor gpv ON gpv.id = lia.part_id
+            SET lia.gci_part_id = gpv.gci_part_id
+            WHERE lia.gci_part_id IS NULL
               AND lia.part_id IS NOT NULL
         ");
 
@@ -161,9 +157,8 @@ return new class extends Migration {
             FROM location_inventory li
             WHERE li.gci_part_id IS NOT NULL
             GROUP BY li.gci_part_id
-            ON CONFLICT (gci_part_id)
-            DO UPDATE SET
-                on_hand = EXCLUDED.on_hand,
+            ON DUPLICATE KEY UPDATE
+                on_hand = VALUES(on_hand),
                 as_of_date = CURRENT_DATE,
                 updated_at = NOW()
         ");
