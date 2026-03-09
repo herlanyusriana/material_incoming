@@ -331,15 +331,17 @@
 	        </script>
 	        <script>
 	            document.addEventListener('DOMContentLoaded', () => {
-                    // Initialize Tom Select
+                    // Initialize Tom Select (opt-in only)
                     window.initTomSelect = function(container = document) {
+                        const autoSelector = 'select[data-tomselect]:not([data-remote])';
                         const selects = container instanceof HTMLSelectElement 
                             ? [container] 
-                            : (container.querySelectorAll ? container.querySelectorAll('select:not(.no-search):not([data-remote])') : []);
+                            : (container.querySelectorAll ? container.querySelectorAll(autoSelector) : []);
                         
                         selects.forEach(el => {
                             if (el.tomselect || el.classList.contains('tomselected')) return;
                             if (el.multiple) return; 
+                            if (container !== el && !el.matches(autoSelector)) return;
                             
                             new TomSelect(el, {
                                 create: false,
@@ -349,11 +351,6 @@
                                 },
                                 allowEmptyOption: true,
                                 dropdownParent: 'body',
-                                closeAfterSelect: false,
-                                onItemAdd: function () {
-                                    // Keep dropdown open for quick reselection without extra clicks.
-                                    this.open();
-                                },
                             });
                         });
                     };
@@ -396,9 +393,6 @@
                             },
                             placeholder: el.getAttribute('placeholder') || 'Type to search...',
                             allowEmptyOption: true,
-                            onItemAdd: function () {
-                                this.open();
-                            },
                         });
                     };
 
@@ -411,9 +405,11 @@
                                 mutation.addedNodes.forEach((node) => {
                                     if (node.nodeType === 1) { // ELEMENT_NODE
                                         if (node.tagName === 'SELECT') {
-                                            initTomSelect(node);
+                                            if (node.matches('select[data-tomselect]:not([data-remote])')) {
+                                                initTomSelect(node);
+                                            }
                                         } else if (node.querySelectorAll) {
-                                            const found = node.querySelectorAll('select:not(.no-search):not([data-remote])');
+                                            const found = node.querySelectorAll('select[data-tomselect]:not([data-remote])');
                                             if (found.length > 0) {
                                                 initTomSelect(node);
                                             }

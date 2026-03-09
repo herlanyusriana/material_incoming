@@ -29,13 +29,18 @@
                         <input type="date" name="date" value="{{ $planDate->format('Y-m-d') }}"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             onchange="this.form.submit()">
-                        <select name="source_mode"
-                            class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            onchange="this.form.submit()">
-                            <option value="delivery" {{ ($sourceMode ?? 'delivery') === 'delivery' ? 'selected' : '' }}>Pull Delivery Req</option>
-                            <option value="raw" {{ ($sourceMode ?? 'delivery') === 'raw' ? 'selected' : '' }}>Raw Daily Plan</option>
-                        </select>
+                        <input type="hidden" name="source_mode" value="{{ $sourceMode ?? 'delivery' }}">
                     </form>
+                    <div class="inline-flex items-center rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+                        <a href="{{ route('production.planning.index', ['date' => $planDate->format('Y-m-d'), 'source_mode' => 'delivery']) }}"
+                            class="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold transition-all {{ ($sourceMode ?? 'delivery') === 'delivery' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100' }}">
+                            Pull
+                        </a>
+                        <a href="{{ route('production.planning.index', ['date' => $planDate->format('Y-m-d'), 'source_mode' => 'raw']) }}"
+                            class="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold transition-all {{ ($sourceMode ?? 'delivery') === 'raw' ? 'bg-orange-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100' }}">
+                            Raw
+                        </a>
+                    </div>
 
                     @if($session)
                         <span
@@ -102,7 +107,7 @@
                             @csrf
                             <input type="hidden" name="session_id" value="{{ $session->id }}">
                             <button type="submit"
-                                class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-cyan-600 hover:to-blue-700 transition-all"
+                                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-700 transition-all whitespace-nowrap"
                                 onclick="return confirm('Tarik plan qty dari Delivery Requirement untuk tanggal {{ $planDate->format('d M Y') }}? Plan qty yang sudah ada akan di-overwrite.')">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -113,7 +118,7 @@
                         </form>
 
                         <button @click="generateMoAll({{ $session->id }})"
-                                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700 transition-all whitespace-nowrap">
+                                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 to-blue-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-sky-600 hover:to-blue-700 transition-all whitespace-nowrap">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
