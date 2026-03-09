@@ -91,9 +91,23 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
 
                 for ($d = 1; $d <= 31; $d++) {
                     $key = (string) $d;
-                    // Support new date-format headers (e.g., '2026-03-01')
-                    $dateKey = $this->period . '-' . str_pad($d, 2, '0', STR_PAD_LEFT);
-                    $raw = $data[$dateKey] ?? $data[$key] ?? null;
+                    $keyPad = str_pad($d, 2, '0', STR_PAD_LEFT);
+                    $dateKeyDash = $this->period . '-' . $keyPad;
+                    $dateKeyUnder = $this->period . '_' . $keyPad;
+
+                    $raw = $data[$dateKeyDash] ?? $data[$dateKeyUnder] ?? $data[$key] ?? $data[$keyPad] ?? null;
+
+                    if ($raw === null) {
+                        // Support for Excel serial date numbers using accurate conversion
+                        try {
+                            $dateObj = \Carbon\Carbon::parse($dateKeyDash);
+                            $excelDate = \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($dateObj);
+                            $serialKey = (string) (is_float($excelDate) ? floor($excelDate) : $excelDate);
+                            $raw = $data[$serialKey] ?? null;
+                        } catch (\Throwable $e) {
+                        }
+                    }
+
                     $qty = 0;
                     if ($raw !== null && $raw !== '') {
                         $qty = is_numeric($raw) ? (float) $raw : 0;
