@@ -57,14 +57,13 @@ class DeliveryRequirementsStockAtCustomerTest extends TestCase
             'qty' => 100,
         ]);
 
-        $payload = [
-            'period' => $date->format('Y-m'),
+        StockAtCustomer::create([
+            'stock_date' => $date->toDateString(),
             'customer_id' => $customer->id,
             'gci_part_id' => $fg->id,
             'part_no' => $fg->part_no,
-        ];
-        $payload['day_' . (int) $date->format('j')] = 30;
-        StockAtCustomer::create($payload);
+            'qty' => 30,
+        ]);
 
         $resp = $this->actingAs($user)->get(route('outgoing.delivery-requirements', [
             'date_from' => $date->toDateString(),
@@ -75,7 +74,7 @@ class DeliveryRequirementsStockAtCustomerTest extends TestCase
         $requirements = collect($resp->viewData('requirements'));
         $this->assertNotEmpty($requirements->all());
 
-        $req = $requirements->first(fn ($r) => (string) ($r->gci_part?->part_no ?? '') === 'FG-001' || (string) ($r->customer_part_no ?? '') === 'FG-001');
+        $req = $requirements->first(fn($r) => (string) ($r->gci_part?->part_no ?? '') === 'FG-001' || (string) ($r->customer_part_no ?? '') === 'FG-001');
         $this->assertNotNull($req);
         $this->assertSame(100.0, (float) ($req->gross_qty ?? 0));
         $this->assertSame(30.0, (float) ($req->stock_at_customer ?? 0));

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\OutgoingDailyPlanningExport;
 use App\Exports\OutgoingDailyPlanningTemplateExport;
 use App\Exports\StockAtCustomersExport;
+use App\Exports\StockAtCustomersTemplateExport;
 use App\Imports\StockAtCustomersImport;
 use App\Models\OutgoingDeliveryPlanningLine;
 use App\Models\OutgoingPickingFg;
@@ -389,13 +390,13 @@ class OutgoingController extends Controller
             ->filter(fn($cell) => (float) ($cell->remaining_qty ?? 0) > 0)
             ->values();
 
-        // Stock at Customers (consignment) map: period|customer_id|gci_part_id => record.
+        // Stock at Customers (consignment) map: stock_date|customer_id|gci_part_id => qty.
         // We'll subtract available stock from requirements, allocating stock to the latest sequence first
         // so earlier sequences remain prioritized.
-        $periods = $cells
+        $stockDates = $cells
             ->pluck('plan_date')
             ->filter()
-            ->map(fn($d) => $d->format('Y-m'))
+            ->map(fn($d) => $d->format('Y-m-d'))
             ->unique()
             ->values();
 
@@ -414,33 +415,27 @@ class OutgoingController extends Controller
             ->values();
 
         $stockMap = [];
-        if ($periods->isNotEmpty() && $customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
+        if ($stockDates->isNotEmpty() && $customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
             $stockMap = StockAtCustomer::query()
-                ->whereIn('period', $periods->all())
+                ->whereIn('stock_date', $stockDates->all())
                 ->whereIn('customer_id', $customerIds->all())
                 ->whereIn('gci_part_id', $partIds->all())
                 ->get()
                 ->mapWithKeys(function ($rec) {
-                    $k = (string) $rec->period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
+                    $k = $rec->stock_date->format('Y-m-d') . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
                     return [$k => $rec];
                 })
                 ->all();
         }
 
         $getStockAtCustomer = function (Carbon $date, int $customerId, int $gciPartId) use ($stockMap): float {
-            $period = $date->format('Y-m');
-            $day = (int) $date->format('j');
-            if ($day < 1 || $day > 31) {
-                return 0.0;
-            }
-
-            $k = $period . '|' . $customerId . '|' . $gciPartId;
+            $k = $date->format('Y-m-d') . '|' . $customerId . '|' . $gciPartId;
             $rec = $stockMap[$k] ?? null;
             if (!$rec) {
                 return 0.0;
             }
 
-            return (float) ($rec->{'day_' . $day} ?? 0);
+            return (float) ($rec->qty ?? 0);
         };
 
         // Group cells by row_id (each row = unique customer part entry)
@@ -588,17 +583,17 @@ class OutgoingController extends Controller
         // Also add PO part IDs to stock calculation collections
         $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
         $poCustomerIds = $poItems->map(fn($i) => $i->part?->customers->first()?->id)->filter()->unique();
-        $poPeriods = $poItems->pluck('delivery_date')->filter()->map(fn($d) => $d->format('Y-m'))->unique();
+        $poStockDates = $poItems->pluck('delivery_date')->filter()->map(fn($d) => $d->format('Y-m-d'))->unique();
 
-        if ($poPeriods->isNotEmpty() && $poCustomerIds->isNotEmpty() && $poPartIds->isNotEmpty()) {
+        if ($poStockDates->isNotEmpty() && $poCustomerIds->isNotEmpty() && $poPartIds->isNotEmpty()) {
             /** @var \Illuminate\Support\Collection $poStockRecords */
             $poStockRecords = StockAtCustomer::query()
-                ->whereIn('period', $poPeriods->all())
+                ->whereIn('stock_date', $poStockDates->all())
                 ->whereIn('customer_id', $poCustomerIds->all())
                 ->whereIn('gci_part_id', $poPartIds->all())
                 ->get();
             foreach ($poStockRecords as $rec) {
-                $k = (string) $rec->period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
+                $k = $rec->stock_date->format('Y-m-d') . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
                 if (!isset($stockMap[$k])) {
                     $stockMap[$k] = $rec;
                 }
@@ -775,28 +770,27 @@ class OutgoingController extends Controller
             ->values();
 
         // Stock at customer map
-        $periods = $cells->pluck('plan_date')->filter()->map(fn($d) => $d->format('Y-m'))->unique()->values();
+        $stockDates = $cells->pluck('plan_date')->filter()->map(fn($d) => $d->format('Y-m-d'))->unique()->values();
         $customerIds = $cells->map(fn($c) => $c->row?->gciPart?->customers->first()?->id)->filter()->map(fn($v) => (int) $v)->unique()->values();
         $partIds = $cells->map(fn($c) => $c->row?->gci_part_id)->filter()->map(fn($v) => (int) $v)->unique()->values();
 
         $stockMap = [];
-        if ($periods->isNotEmpty() && $customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
+        if ($stockDates->isNotEmpty() && $customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
             $stockMap = StockAtCustomer::query()
-                ->whereIn('period', $periods->all())
+                ->whereIn('stock_date', $stockDates->all())
                 ->whereIn('customer_id', $customerIds->all())
                 ->whereIn('gci_part_id', $partIds->all())
                 ->get()
-                ->mapWithKeys(fn($rec) => [(string) $rec->period . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id => $rec])
+                ->mapWithKeys(fn($rec) => [$rec->stock_date->format('Y-m-d') . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id => $rec])
                 ->all();
         }
 
         $getStock = function (Carbon $date, int $custId, int $partId) use ($stockMap): float {
-            $k = $date->format('Y-m') . '|' . $custId . '|' . $partId;
+            $k = $date->format('Y-m-d') . '|' . $custId . '|' . $partId;
             $rec = $stockMap[$k] ?? null;
             if (!$rec)
                 return 0.0;
-            $day = (int) $date->format('j');
-            return ($day >= 1 && $day <= 31) ? (float) ($rec->{'day_' . $day} ?? 0) : 0.0;
+            return (float) ($rec->qty ?? 0);
         };
 
         $days = $this->daysBetween($dateFrom, $dateTo);
@@ -1001,14 +995,13 @@ class OutgoingController extends Controller
         $allPartIds = $allPartIds->filter(fn($id) => $parts->has($id))->values();
 
         // ── 5. Stock at Customer ──
-        $period = $selectedDate->format('Y-m');
-        $dayCol = 'day_' . (int) $selectedDate->format('j');
+        $stockDateStr = $selectedDate->format('Y-m-d');
 
-        $stockMap = StockAtCustomer::where('period', $period)
+        $stockMap = StockAtCustomer::where('stock_date', $stockDateStr)
             ->whereIn('gci_part_id', $allPartIds)
             ->get()
             ->groupBy('gci_part_id')
-            ->map(fn($recs) => $recs->sum(fn($r) => (float) ($r->{$dayCol} ?? 0)));
+            ->map(fn($recs) => $recs->sum(fn($r) => (float) ($r->qty ?? 0)));
 
         // ── 6. Standard Packing ──
         $stdPackMap = StandardPacking::whereIn('gci_part_id', $allPartIds)
@@ -1361,6 +1354,8 @@ class OutgoingController extends Controller
         $period = $request->input('period', now()->format('Y-m'));
         $date = CarbonImmutable::parse($period . '-01');
         $daysInMonth = $date->daysInMonth;
+        $startDate = $date->format('Y-m-d');
+        $endDate = $date->endOfMonth()->format('Y-m-d');
 
         // Build days as associative: day_number => formatted date string
         $days = [];
@@ -1368,13 +1363,49 @@ class OutgoingController extends Controller
             $days[$d] = $date->setDay($d)->format('d/m');
         }
 
-        $records = StockAtCustomer::query()
+        // Fetch all row-per-date records for this period
+        $rawRecords = StockAtCustomer::query()
             ->with(['customer', 'part'])
-            ->where('period', $period)
+            ->whereBetween('stock_date', [$startDate, $endDate])
             ->orderBy('customer_id')
             ->orderBy('part_no')
-            ->paginate(50)
-            ->appends(['period' => $period]);
+            ->orderBy('stock_date')
+            ->get();
+
+        // Pivot: group by customer_id + part_no → single row with day_1..day_N
+        $grouped = [];
+        foreach ($rawRecords as $rec) {
+            $key = $rec->customer_id . '|' . $rec->part_no;
+            if (!isset($grouped[$key])) {
+                $obj = new \stdClass();
+                $obj->customer_id = $rec->customer_id;
+                $obj->part_no = $rec->part_no;
+                $obj->part_name = $rec->part_name;
+                $obj->model = $rec->model;
+                $obj->status = $rec->status;
+                $obj->customer = $rec->customer;
+                $obj->part = $rec->part;
+                // Initialize all days to 0
+                for ($d = 1; $d <= $daysInMonth; $d++) {
+                    $obj->{'day_' . $d} = 0;
+                }
+                $grouped[$key] = $obj;
+            }
+            $dayNum = (int) $rec->stock_date->format('j');
+            $grouped[$key]->{'day_' . $dayNum} = (float) $rec->qty;
+        }
+
+        // Paginate the pivoted collection
+        $page = $request->input('page', 1);
+        $perPage = 50;
+        $items = collect(array_values($grouped));
+        $records = new LengthAwarePaginator(
+            $items->forPage($page, $perPage),
+            $items->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         return view('outgoing.stock_at_customers', compact('period', 'days', 'records'));
     }
@@ -1383,7 +1414,7 @@ class OutgoingController extends Controller
     {
         $period = $request->input('period', now()->format('Y-m'));
         return Excel::download(
-            new StockAtCustomersExport($period),
+            new StockAtCustomersTemplateExport($period),
             "stock_at_customers_template_{$period}.xlsx"
         );
     }

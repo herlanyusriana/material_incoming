@@ -742,17 +742,16 @@ class ProductionPlanningController extends Controller
      */
     private function getFgStockLg(Carbon $date): array
     {
-        $period = $date->format('Y-m');
-        $dayColumn = 'day_' . (int) $date->format('j');
+        $dateStr = $date->format('Y-m-d');
 
-        $stocks = StockAtCustomer::where('period', $period)->get();
+        $stocks = StockAtCustomer::where('stock_date', $dateStr)->get();
 
         $result = [];
         foreach ($stocks as $stock) {
             if (!isset($result[$stock->gci_part_id])) {
                 $result[$stock->gci_part_id] = 0;
             }
-            $result[$stock->gci_part_id] += (float) ($stock->{$dayColumn} ?? 0);
+            $result[$stock->gci_part_id] += (float) ($stock->qty ?? 0);
         }
 
         return $result;

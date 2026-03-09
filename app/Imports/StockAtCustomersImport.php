@@ -16,8 +16,75 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
     public int $skippedRows = 0;
     public array $failures = [];
 
+    private ?array $headingDayMap = null;
+
     public function __construct(private readonly string $period)
     {
+    }
+
+    /**
+     * Build a map of heading key → day number (1-31) for the current period.
+     * Handles: plain day numbers ("1", "01"), date strings ("2026-03-01", "2026_03_01"),
+     * and Excel serial date numbers that WithHeadingRow turns into integer keys.
+     */
+    private function buildHeadingDayMap(array $keys): array
+    {
+        $map = [];
+        $knownTextKeys = ['customer', 'part_no', 'part_name', 'model', 'status'];
+        $periodYear = (int) substr($this->period, 0, 4);
+        $periodMonth = (int) substr($this->period, 5, 2);
+        $daysInMonth = \Carbon\Carbon::create($periodYear, $periodMonth, 1)->daysInMonth;
+
+        foreach ($keys as $key) {
+            $k = (string) $key;
+
+            // Skip known non-date columns
+            if (in_array($k, $knownTextKeys, true)) {
+                continue;
+            }
+
+            // 1) Plain day number: "1"-"31" or "01"-"31"
+            if (preg_match('/^0*(\d{1,2})$/', $k, $m)) {
+                $day = (int) $m[1];
+                if ($day >= 1 && $day <= $daysInMonth && !isset($map[$k])) {
+                    // Only accept if it's clearly a day number (1-31), not a serial date (>31)
+                    if ($day <= 31) {
+                        $map[$k] = $day;
+                        continue;
+                    }
+                }
+            }
+
+            // 2) Date string variants: "2026-03-01", "2026_03_01"
+            $normalized = str_replace('_', '-', $k);
+            if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $normalized, $m)) {
+                $y = (int) $m[1];
+                $mo = (int) $m[2];
+                $day = (int) $m[3];
+                if ($y === $periodYear && $mo === $periodMonth && $day >= 1 && $day <= $daysInMonth) {
+                    $map[$k] = $day;
+                    continue;
+                }
+            }
+
+            // 3) Excel serial date number (integer > 31, typically 40000-60000 range)
+            if (is_numeric($k) && (int) $k > 31) {
+                try {
+                    $dateObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((int) $k);
+                    $y = (int) $dateObj->format('Y');
+                    $mo = (int) $dateObj->format('m');
+                    $day = (int) $dateObj->format('j');
+                    if ($y === $periodYear && $mo === $periodMonth && $day >= 1 && $day <= $daysInMonth) {
+                        $map[$k] = $day;
+                        continue;
+                    }
+                } catch (\Throwable $e) {
+                    // Not a valid serial date
+                }
+            }
+        }
+
+        return $map;
     }
 
     private function normalizeUpper(?string $value): ?string
@@ -41,6 +108,9 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
 
     public function collection(Collection $rows)
     {
+        $periodYear = (int) substr($this->period, 0, 4);
+        $periodMonth = (int) substr($this->period, 5, 2);
+
         foreach ($rows as $idx => $row) {
             try {
                 $data = is_array($row) ? $row : $row->toArray();
@@ -75,55 +145,48 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
                         'classification' => 'FG',
                         'status' => 'active',
                     ]);
-                } else {
-                    // Keep master data untouched; only store text columns in stock record.
                 }
 
-                $payload = [
-                    'period' => $this->period,
-                    'customer_id' => $customer->id,
-                    'gci_part_id' => $gciPart->id,
-                    'part_no' => $partNo,
-                    'part_name' => $partName,
-                    'model' => $model,
-                    'status' => $status,
-                ];
+                // Build heading→day map once from the first data row's keys
+                if ($this->headingDayMap === null) {
+                    $this->headingDayMap = $this->buildHeadingDayMap(array_keys($data));
+                }
 
-                for ($d = 1; $d <= 31; $d++) {
-                    $key = (string) $d;
-                    $keyPad = str_pad($d, 2, '0', STR_PAD_LEFT);
-                    $dateKeyDash = $this->period . '-' . $keyPad;
-                    $dateKeyUnder = str_replace('-', '_', $this->period) . '_' . $keyPad;
-                    $dateKeySlug = \Illuminate\Support\Str::slug($dateKeyDash, '_');
-
-                    $raw = $data[$dateKeySlug] ?? $data[$dateKeyUnder] ?? $data[$dateKeyDash] ?? $data[$key] ?? $data[$keyPad] ?? null;
-
-                    if ($raw === null) {
-                        // Support for Excel serial date numbers using accurate conversion
-                        try {
-                            $dateObj = \Carbon\Carbon::parse($dateKeyDash);
-                            $excelDate = \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($dateObj);
-                            $serialKey = (string) (is_float($excelDate) ? floor($excelDate) : $excelDate);
-                            $raw = $data[$serialKey] ?? null;
-                        } catch (\Throwable $e) {
-                        }
-                    }
-
+                // Insert/update one row per day (row-per-date schema)
+                foreach ($this->headingDayMap as $heading => $dayNum) {
+                    $raw = $data[$heading] ?? null;
                     $qty = 0;
                     if ($raw !== null && $raw !== '') {
                         $qty = is_numeric($raw) ? (float) $raw : 0;
                     }
-                    $payload['day_' . $d] = $qty;
-                }
 
-                StockAtCustomer::query()->updateOrCreate(
-                    [
-                        'period' => $this->period,
-                        'customer_id' => $customer->id,
-                        'part_no' => $partNo,
-                    ],
-                    $payload,
-                );
+                    $stockDate = sprintf('%04d-%02d-%02d', $periodYear, $periodMonth, $dayNum);
+
+                    if ($qty == 0) {
+                        // Delete existing zero rows to keep table lean
+                        StockAtCustomer::query()
+                            ->where('stock_date', $stockDate)
+                            ->where('customer_id', $customer->id)
+                            ->where('part_no', $partNo)
+                            ->delete();
+                        continue;
+                    }
+
+                    StockAtCustomer::query()->updateOrCreate(
+                        [
+                            'stock_date' => $stockDate,
+                            'customer_id' => $customer->id,
+                            'part_no' => $partNo,
+                        ],
+                        [
+                            'gci_part_id' => $gciPart->id,
+                            'part_name' => $partName,
+                            'model' => $model,
+                            'status' => $status,
+                            'qty' => $qty,
+                        ],
+                    );
+                }
 
                 $this->rowCount++;
             } catch (\Throwable $e) {
@@ -132,4 +195,3 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
         }
     }
 }
-
