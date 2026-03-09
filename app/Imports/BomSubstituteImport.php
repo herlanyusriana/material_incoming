@@ -186,12 +186,15 @@ class BomSubstituteImport implements ToCollection, WithHeadingRow
             if ($this->autoCreateParts) {
                 if (!$subPart) {
                     $subPart = GciPart::query()->create([
-                        'customer_id' => $fgPart ? $fgPart->customer_id : null,
                         'part_no' => $subPartNo,
                         'part_name' => !empty($row['substitute_part_name']) ? $row['substitute_part_name'] : $subPartNo,
                         'classification' => 'RM',
                         'status' => 'active',
                     ]);
+                    $fgCustomerId = $fgPart?->customers()->first()?->id;
+                    if ($fgCustomerId) {
+                        $subPart->customers()->attach($fgCustomerId);
+                    }
                 }
             }
 

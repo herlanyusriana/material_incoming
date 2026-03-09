@@ -251,12 +251,15 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
                 $this->missingWipParts[$wipPartNo] = true;
                 if ($this->autoCreateParts) {
                     $wip = GciPart::query()->create([
-                        'customer_id' => $fg->customer_id,
                         'part_no' => $wipPartNo,
                         'part_name' => $wipPartName ?: ($processName ?: $wipPartNo),
                         'classification' => 'WIP',
                         'status' => 'active',
                     ]);
+                    $fgCustomerId = $fg->customers()->first()?->id;
+                    if ($fgCustomerId) {
+                        $wip->customers()->attach($fgCustomerId);
+                    }
                 }
             }
             if ($wip) {
@@ -270,12 +273,15 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
                 $this->missingComponentParts[$rmPartNo] = true;
                 if ($this->autoCreateParts) {
                     $rm = GciPart::query()->create([
-                        'customer_id' => $fg->customer_id,
                         'part_no' => $rmPartNo,
                         'part_name' => $materialName ?: $rmPartNo,
                         'classification' => 'RM',
                         'status' => 'active',
                     ]);
+                    $fgCustomerId = $fg->customers()->first()?->id;
+                    if ($fgCustomerId) {
+                        $rm->customers()->attach($fgCustomerId);
+                    }
                 }
             }
             if ($rm) {

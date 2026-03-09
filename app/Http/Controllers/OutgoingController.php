@@ -587,7 +587,7 @@ class OutgoingController extends Controller
 
         // Also add PO part IDs to stock calculation collections
         $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
-        $poCustomerIds = $poItems->map(fn($i) => $i->part?->customer_id)->filter()->unique();
+        $poCustomerIds = $poItems->map(fn($i) => $i->part?->customers->first()?->id)->filter()->unique();
         $poPeriods = $poItems->pluck('delivery_date')->filter()->map(fn($d) => $d->format('Y-m'))->unique();
 
         if ($poPeriods->isNotEmpty() && $poCustomerIds->isNotEmpty() && $poPartIds->isNotEmpty()) {

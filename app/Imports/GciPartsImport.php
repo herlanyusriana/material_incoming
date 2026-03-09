@@ -104,9 +104,9 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
         // Find existing part by part_no + customer
         $query = GciPart::where('part_no', $partNo);
         if ($customer) {
-            $query->where('customer_id', $customer->id);
+            $query->whereHas('customers', fn($q) => $q->where('customers.id', $customer->id));
         } else {
-            $query->whereNull('customer_id');
+            $query->whereDoesntHave('customers');
         }
         $existingPart = $query->first();
 
@@ -131,11 +131,10 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
                 $updates['status'] = $status;
             }
             $updates['classification'] = $classification;
-            if ($customer) {
-                $updates['customer_id'] = $customer->id;
-            }
-
             $existingPart->update($updates);
+            if ($customer) {
+                $existingPart->customers()->syncWithoutDetaching([$customer->id]);
+            }
             $this->updatedCount++;
 
             $part = $existingPart;
@@ -147,8 +146,10 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
             $part->part_name = $partName ?? $partNo;
             $part->model = $model;
             $part->status = ($status !== '' && in_array($status, ['active', 'inactive'], true)) ? $status : 'active';
-            $part->customer_id = $customer?->id;
             $part->save();
+            if ($customer) {
+                $part->customers()->attach($customer->id);
+            }
             $this->createdCount++;
         }
 

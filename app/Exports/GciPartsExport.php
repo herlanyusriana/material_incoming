@@ -14,7 +14,7 @@ class GciPartsExport implements FromCollection, WithHeadings, WithStyles, WithCo
     public function collection()
     {
         $parts = GciPart::with([
-            'customer',
+            'customers',
             'bom.items.componentPart',
             'bom.items.substitutes.part',
         ])

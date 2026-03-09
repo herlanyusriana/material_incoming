@@ -21,7 +21,7 @@ class PartsExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 
     public function collection()
     {
-        return GciPart::with(['customer', 'vendorLinks.vendor'])
+        return GciPart::with(['customers', 'vendorLinks.vendor'])
             ->when($this->classification, fn($q) => $q->where('classification', strtoupper($this->classification)))
             ->orderBy('classification')
             ->orderBy('part_no')

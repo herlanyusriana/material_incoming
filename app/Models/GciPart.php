@@ -30,6 +30,14 @@ class GciPart extends Model
         return $this->belongsToMany(Customer::class);
     }
 
+    /**
+     * Get the first associated customer (backward-compatible accessor).
+     */
+    public function getCustomerAttribute(): ?Customer
+    {
+        return $this->customers->first();
+    }
+
     private static function upperOrNull(mixed $value): mixed
     {
         if ($value === null) {

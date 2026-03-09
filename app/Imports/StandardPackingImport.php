@@ -38,7 +38,7 @@ class StandardPackingImport implements ToCollection, WithHeadingRow, SkipsEmptyR
             // 2. Resolve Part (Strict by Customer if detected, otherwise simple match if unique)
             $partQuery = GciPart::where('part_no', $partNo);
             if ($customer) {
-                $partQuery->where('customer_id', $customer->id);
+                $partQuery->whereHas('customers', fn($q) => $q->where('customers.id', $customer->id));
             }
             $part = $partQuery->first();
 
