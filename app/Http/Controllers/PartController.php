@@ -102,7 +102,7 @@ class PartController extends Controller
         }
 
         // Classification-specific eager loading
-        $eagerLoads = ['customer'];
+        $eagerLoads = ['customers'];
         if ($classification === 'RM') {
             $eagerLoads[] = 'vendorLinks.vendor';
         } elseif ($classification === 'FG') {
@@ -319,7 +319,8 @@ class PartController extends Controller
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'classification' => ['required', 'in:FG,WIP,RM'],
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['exists:customers,id'],
             'status' => ['required', 'in:active,inactive'],
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
@@ -328,8 +329,15 @@ class PartController extends Controller
         $vendorIds = $data['vendor_ids'] ?? [];
         unset($data['vendor_ids']);
 
+        $customerIds = $data['customer_ids'] ?? [];
+        unset($data['customer_ids']);
+
         try {
             $gciPart = GciPart::create($data);
+
+            if (in_array($data['classification'], ['FG', 'WIP']) && !empty($customerIds)) {
+                $gciPart->customers()->syncWithoutDetaching($customerIds);
+            }
 
             if ($data['classification'] === 'RM' && !empty($vendorIds)) {
                 $gciPart->vendors()->syncWithoutDetaching($vendorIds);
@@ -357,7 +365,8 @@ class PartController extends Controller
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'classification' => ['required', 'in:FG,WIP,RM'],
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['exists:customers,id'],
             'status' => ['required', 'in:active,inactive'],
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
@@ -366,8 +375,15 @@ class PartController extends Controller
         $vendorIds = $data['vendor_ids'] ?? [];
         unset($data['vendor_ids']);
 
+        $customerIds = $data['customer_ids'] ?? [];
+        unset($data['customer_ids']);
+
         try {
             $part->update($data);
+
+            if (in_array($data['classification'], ['FG', 'WIP'])) {
+                $part->customers()->sync($customerIds);
+            }
 
             if ($data['classification'] === 'RM') {
                 $part->vendors()->sync($vendorIds);

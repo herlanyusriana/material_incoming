@@ -776,7 +776,7 @@ class OutgoingController extends Controller
 
         // Stock at customer map
         $periods = $cells->pluck('plan_date')->filter()->map(fn($d) => $d->format('Y-m'))->unique()->values();
-        $customerIds = $cells->map(fn($c) => $c->row?->gciPart?->customer_id)->filter()->map(fn($v) => (int) $v)->unique()->values();
+        $customerIds = $cells->map(fn($c) => $c->row?->gciPart?->customers->first()?->id)->filter()->map(fn($v) => (int) $v)->unique()->values();
         $partIds = $cells->map(fn($c) => $c->row?->gci_part_id)->filter()->map(fn($v) => (int) $v)->unique()->values();
 
         $stockMap = [];
@@ -968,7 +968,7 @@ class OutgoingController extends Controller
             ->whereNotNull('gci_part_id')
             ->whereColumn('fulfilled_qty', '<', 'qty')
             ->whereDate('delivery_date', $dateStr)
-            ->with(['part', 'part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->with(['part', 'part.customers', 'part.standardPacking', 'outgoingPo'])
             ->get();
 
         $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
@@ -990,7 +990,7 @@ class OutgoingController extends Controller
         }
 
         // ── 4. Load FG Part master data (only active FG parts) ──
-        $parts = GciPart::with('customer')
+        $parts = GciPart::with('customers')
             ->whereIn('id', $allPartIds)
             ->where('classification', 'FG')
             ->where('status', 'active')
@@ -1148,7 +1148,7 @@ class OutgoingController extends Controller
 
             $rows->push((object) [
                 'gci_part_id' => $partId,
-                'customer_id' => $part->customer_id ?? 0,
+                'customer_id' => $part->customers->first()?->id ?? 0,
                 'category' => $category,
                 'fg_part_name' => $part->part_name ?? '-',
                 'fg_part_no' => $part->part_no ?? '-',
@@ -1212,7 +1212,7 @@ class OutgoingController extends Controller
 
             $rows->push((object) [
                 'gci_part_id' => $partId,
-                'customer_id' => $part->customer_id ?? 0,
+                'customer_id' => $part->customers->first()?->id ?? 0,
                 'category' => 'NON LG',
                 'fg_part_name' => $part->part_name ?? '-',
                 'fg_part_no' => $part->part_no ?? '-',

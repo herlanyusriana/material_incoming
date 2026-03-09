@@ -12,7 +12,7 @@ class StandardPackingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = \App\Models\StandardPacking::with(['part.customer']);
+        $query = \App\Models\StandardPacking::with(['part.customers']);
 
         if ($request->has('search')) {
             $search = $request->search;

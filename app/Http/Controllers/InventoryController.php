@@ -56,7 +56,7 @@ class InventoryController extends Controller
             $gciPerPage = 200;
 
         $gciQuery = GciInventory::query()
-            ->with('part.customer')
+            ->with('part.customers')
             ->when($gciClass !== '', fn($q) => $q->whereHas('part', fn($qp) => $qp->where('classification', $gciClass)))
             ->when(in_array($gciStatus, ['active', 'inactive'], true), fn($q) => $q->whereHas('part', fn($qp) => $qp->where('status', $gciStatus)))
             ->when($gciSearch !== '', function ($q) use ($gciSearch) {

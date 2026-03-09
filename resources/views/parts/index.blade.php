@@ -202,9 +202,9 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3">
-                                            @if($p->customer)
-                                                <span class="font-bold text-blue-700">{{ $p->customer->code ?? '' }}</span>
-                                                <div class="text-[10px] text-slate-500">{{ $p->customer->name }}</div>
+                                            @if($p->customers && $p->customers->isNotEmpty())
+                                                <span class="font-bold text-blue-700">{{ $p->customers->pluck('code')->filter()->implode(', ') }}</span>
+                                                <div class="text-[10px] text-slate-500">{{ $p->customers->pluck('name')->implode(', ') }}</div>
                                             @else
                                                 <span class="text-slate-400 italic text-xs">—</span>
                                             @endif
@@ -519,13 +519,15 @@
                         </div>
                     </div>
                     <div x-show="partForm.classification === 'FG' || partForm.classification === 'WIP'" x-cloak>
-                        <label class="text-sm font-semibold text-slate-700">Assign Customer</label>
-                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.customer_id">
-                            <option value="">-- No Customer --</option>
+                        <label class="text-sm font-semibold text-slate-700">Assign Customers</label>
+                        <div class="mt-1 border border-slate-200 rounded-xl max-h-40 overflow-y-auto bg-white">
                             @foreach($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->code ?? '' }} - {{ $c->name }}</option>
+                                <label class="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm">
+                                    <input type="checkbox" name="customer_ids[]" value="{{ $c->id }}" class="rounded border-slate-300 text-indigo-600 mr-2" :checked="(partForm.customer_ids || []).includes({{ $c->id }})">
+                                    <span class="text-slate-700">{{ $c->code ?? '' }} - {{ $c->name }}</span>
+                                </label>
                             @endforeach
-                        </select>
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
@@ -788,7 +790,7 @@
                     partAction: @js(route('parts.store')),
                     subsOpen: false,
                     vendorSearch: '',
-                    partForm: { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', vendor_ids: [], substitutes_for: [], as_substitute: [] },
+                    partForm: { id: null, customer_ids: [], part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', vendor_ids: [], substitutes_for: [], as_substitute: [] },
                     subEditId: null,
                     subFormAction: '',
                     subForm: { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },

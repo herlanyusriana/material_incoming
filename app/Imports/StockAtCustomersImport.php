@@ -93,9 +93,10 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
                     $key = (string) $d;
                     $keyPad = str_pad($d, 2, '0', STR_PAD_LEFT);
                     $dateKeyDash = $this->period . '-' . $keyPad;
-                    $dateKeyUnder = $this->period . '_' . $keyPad;
+                    $dateKeyUnder = str_replace('-', '_', $this->period) . '_' . $keyPad;
+                    $dateKeySlug = \Illuminate\Support\Str::slug($dateKeyDash, '_');
 
-                    $raw = $data[$dateKeyDash] ?? $data[$dateKeyUnder] ?? $data[$key] ?? $data[$keyPad] ?? null;
+                    $raw = $data[$dateKeySlug] ?? $data[$dateKeyUnder] ?? $data[$dateKeyDash] ?? $data[$key] ?? $data[$keyPad] ?? null;
 
                     if ($raw === null) {
                         // Support for Excel serial date numbers using accurate conversion

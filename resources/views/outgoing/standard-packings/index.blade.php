@@ -130,7 +130,7 @@
                         @forelse($packings as $item)
                                             <tr class="hover:bg-slate-50 transition-colors">
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                                    {{ $item->part->customer->name ?? '-' }}</td>
+                                                    {{ $item->part && $item->part->customers->isNotEmpty() ? $item->part->customers->pluck('name')->implode(', ') : '-' }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                                                     {{ $item->part->part_no }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ $item->part->part_name }}</td>

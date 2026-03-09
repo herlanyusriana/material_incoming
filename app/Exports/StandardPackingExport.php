@@ -15,7 +15,7 @@ class StandardPackingExport implements FromCollection, WithHeadings, WithMapping
      */
     public function collection()
     {
-        return StandardPacking::with('part.customer')->get();
+        return StandardPacking::with('part.customers')->get();
     }
 
     public function headings(): array
@@ -39,7 +39,7 @@ class StandardPackingExport implements FromCollection, WithHeadings, WithMapping
     public function map($row): array
     {
         return [
-            $row->part->customer->name ?? '',
+            $row->part->customers->pluck('name')->implode(', ') ?? '',
             $row->part->part_no,
             $row->part->part_name,
             $row->part->model,

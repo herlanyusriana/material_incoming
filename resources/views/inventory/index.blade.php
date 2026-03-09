@@ -81,7 +81,8 @@
                                 <option value="">All Parts</option>
                                 @foreach ($rmParts as $p)
                                     <option value="{{ $p->id }}" @selected((string) $rmPartId === (string) $p->id)>
-                                        {{ $p->part_no }}</option>
+                                        {{ $p->part_no }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -281,7 +282,8 @@
                                 <td class="px-4 py-3">
                                     <div class="font-bold font-mono text-indigo-700">{{ $p?->part_no ?? '-' }}</div>
                                     <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
-                                        {{ $p?->customer?->name ?? 'No Customer' }}</div>
+                                        {{ $p?->customers->pluck('name')->implode(', ') ?: 'No Customer' }}
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="font-semibold text-slate-800">{{ $p?->part_name ?? '-' }}</div>

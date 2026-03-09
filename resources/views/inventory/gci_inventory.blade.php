@@ -25,7 +25,7 @@
                     @foreach($tabs as $val => $label)
                         <a href="{{ route('inventory.gci.index', array_merge(request()->except(['classification', 'page']), $val ? ['classification' => $val] : [])) }}"
                             class="px-4 py-2 rounded-t-xl text-sm font-bold transition-all
-                                    {{ $classification === $val ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                                        {{ $classification === $val ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                             {{ $label }}
                         </a>
                     @endforeach
@@ -99,7 +99,8 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3">
                                     <div class="font-mono font-semibold text-slate-900">{{ $p?->part_no ?? '-' }}</div>
-                                    <div class="text-xs text-slate-500">{{ $p?->customer?->name ?? '' }}</div>
+                                    <div class="text-xs text-slate-500">
+                                        {{ $p?->customers->pluck('name')->implode(', ') ?: '' }}</div>
                                 </td>
                                 <td class="px-4 py-3 text-slate-700">{{ $p?->part_name ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $p?->model ?? '-' }}</td>
@@ -112,9 +113,11 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono font-semibold text-slate-900">
-                                    {{ formatNumber((float) ($row->on_hand ?? 0)) }}</td>
+                                    {{ formatNumber((float) ($row->on_hand ?? 0)) }}
+                                </td>
                                 <td class="px-4 py-3 text-right font-mono text-slate-700">
-                                    {{ formatNumber((float) ($row->on_order ?? 0)) }}</td>
+                                    {{ formatNumber((float) ($row->on_order ?? 0)) }}
+                                </td>
                                 <td class="px-4 py-3">
                                     <input type="text" value="{{ $p?->default_location ?? '' }}"
                                         class="border border-slate-200 rounded-lg px-2 py-1 text-xs w-24 font-mono focus:outline-none focus:border-indigo-400 location-input"

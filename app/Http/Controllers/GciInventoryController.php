@@ -24,7 +24,7 @@ class GciInventoryController extends Controller
         }
 
         $query = GciInventory::query()
-            ->with('part.customer')
+            ->with('part.customers')
             ->when($classification !== '', fn($q) => $q->whereHas('part', fn($qp) => $qp->where('classification', $classification)))
             ->when(in_array($status, ['active', 'inactive'], true), fn($q) => $q->whereHas('part', fn($qp) => $qp->where('status', $status)))
             ->when($search !== '', function ($q) use ($search) {
