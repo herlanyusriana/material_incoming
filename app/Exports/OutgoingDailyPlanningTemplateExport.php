@@ -15,6 +15,7 @@ class OutgoingDailyPlanningTemplateExport implements FromArray, WithHeadings, Wi
     public function __construct(
         private readonly Carbon $dateFrom,
         private readonly Carbon $dateTo,
+        private readonly string $partType = 'customer', // 'customer' or 'fg'
     ) {
     }
 
@@ -26,7 +27,7 @@ class OutgoingDailyPlanningTemplateExport implements FromArray, WithHeadings, Wi
 
         return [
             array_merge(
-                [1, 'NR1', 'COVER ASSY - MODEL X', '123-456-789'],
+                [1, '123-456-789'],
                 $first ? [140] : [],
             ),
         ];
@@ -34,12 +35,10 @@ class OutgoingDailyPlanningTemplateExport implements FromArray, WithHeadings, Wi
 
     public function headings(): array
     {
-        // New Column Structure: No, Line, Customer Part Name, Customer Part No
-        $headings = ['No', 'LINE', 'CUSTOMER PART NAME', 'CUSTOMER PART NO'];
+        // Simplified: No, Customer Part No, then date Qty columns
+        $headings = ['No', 'CUSTOMER PART NO'];
         foreach ($this->days() as $d) {
             $date = $d->format('Y-m-d');
-            // Simplified to just Qty per date usually, but keeping compatible just in case user wants seq
-            // Based on user screenshot, it's just "Plan Qty"
             $headings[] = "{$date} Qty";
         }
         return $headings;
@@ -54,12 +53,9 @@ class OutgoingDailyPlanningTemplateExport implements FromArray, WithHeadings, Wi
 
     public function columnWidths(): array
     {
-        // Basic widths; day columns will auto-fit in Excel anyway.
         $widths = [
             'A' => 5,  // No
-            'B' => 10, // Line
-            'C' => 30, // Customer Part Name
-            'D' => 25, // Customer Part No
+            'B' => 25, // Customer Part No
         ];
         return $widths;
     }
