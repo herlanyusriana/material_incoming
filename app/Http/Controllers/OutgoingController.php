@@ -421,19 +421,46 @@ class OutgoingController extends Controller
             ->unique()
             ->values();
 
-        $stockMap = [];       // keyed by "date|customer_id|gci_part_id"
-        $stockMapByPn = [];   // keyed by "date|customer_id|part_no" (fallback)
-        if ($stockDates->isNotEmpty() && $customerIds->isNotEmpty()) {
-            $stockRecords = StockAtCustomer::query()
-                ->whereIn('stock_date', $stockDates->all())
-                ->whereIn('customer_id', $customerIds->all())
-                ->where(function ($q) use ($partIds, $partNos) {
-                    $q->whereIn('gci_part_id', $partIds->all());
+        $stockMap = [];          // keyed by "date|customer_id|gci_part_id"
+        $stockMapByPn = [];      // keyed by "date|customer_id|part_no"
+        $stockMapByPnOnly = [];  // keyed by "date|part_no" (no customer filter — last resort)
+        if ($stockDates->isNotEmpty() && ($partIds->isNotEmpty() || $partNos->isNotEmpty())) {
+            $stockQuery = StockAtCustomer::query()
+                ->whereIn('stock_date', $stockDates->all());
+
+            // Filter by customer if we know any, otherwise fetch all matching parts
+            if ($customerIds->isNotEmpty()) {
+                $stockQuery->where(function ($q) use ($customerIds, $partIds, $partNos) {
+                    // Records matching known customers + parts
+                    $q->where(function ($q2) use ($customerIds, $partIds, $partNos) {
+                        $q2->whereIn('customer_id', $customerIds->all())
+                            ->where(function ($q3) use ($partIds, $partNos) {
+                                if ($partIds->isNotEmpty()) {
+                                    $q3->whereIn('gci_part_id', $partIds->all());
+                                }
+                                if ($partNos->isNotEmpty()) {
+                                    $q3->orWhereIn('part_no', $partNos->all());
+                                }
+                            });
+                    });
+                    // Also fetch by part_no for any customer (for rows where customer is unknown)
                     if ($partNos->isNotEmpty()) {
                         $q->orWhereIn('part_no', $partNos->all());
                     }
-                })
-                ->get();
+                });
+            } else {
+                // No customer IDs known at all — fetch by parts only
+                $stockQuery->where(function ($q) use ($partIds, $partNos) {
+                    if ($partIds->isNotEmpty()) {
+                        $q->whereIn('gci_part_id', $partIds->all());
+                    }
+                    if ($partNos->isNotEmpty()) {
+                        $q->orWhereIn('part_no', $partNos->all());
+                    }
+                });
+            }
+
+            $stockRecords = $stockQuery->get();
 
             foreach ($stockRecords as $rec) {
                 $dateStr = $rec->stock_date->format('Y-m-d');
@@ -446,23 +473,47 @@ class OutgoingController extends Controller
                 if ($rec->part_no) {
                     $kpn = $dateStr . '|' . $custId . '|' . $rec->part_no;
                     $stockMapByPn[$kpn] = $rec;
+
+                    // Also index without customer for fallback
+                    $kpnOnly = $dateStr . '|' . $rec->part_no;
+                    if (!isset($stockMapByPnOnly[$kpnOnly])) {
+                        $stockMapByPnOnly[$kpnOnly] = $rec;
+                    }
                 }
             }
         }
 
-        $getStockAtCustomer = function (Carbon $date, int $customerId, int $gciPartId, ?string $partNo = null) use ($stockMap, $stockMapByPn): float {
+        $getStockAtCustomer = function (Carbon $date, int $customerId, int $gciPartId, ?string $partNo = null) use ($stockMap, $stockMapByPn, $stockMapByPnOnly): float {
             $dateStr = $date->format('Y-m-d');
-            // Primary: match by gci_part_id
-            $k = $dateStr . '|' . $customerId . '|' . $gciPartId;
-            $rec = $stockMap[$k] ?? null;
 
-            // Fallback: match by part_no
-            if (!$rec && $partNo) {
-                $kpn = $dateStr . '|' . $customerId . '|' . $partNo;
-                $rec = $stockMapByPn[$kpn] ?? null;
+            // 1) Primary: match by customer_id + gci_part_id
+            if ($customerId > 0 && $gciPartId > 0) {
+                $k = $dateStr . '|' . $customerId . '|' . $gciPartId;
+                $rec = $stockMap[$k] ?? null;
+                if ($rec) {
+                    return (float) ($rec->qty ?? 0);
+                }
             }
 
-            return (float) ($rec->qty ?? 0);
+            // 2) Fallback: match by customer_id + part_no
+            if ($customerId > 0 && $partNo) {
+                $kpn = $dateStr . '|' . $customerId . '|' . $partNo;
+                $rec = $stockMapByPn[$kpn] ?? null;
+                if ($rec) {
+                    return (float) ($rec->qty ?? 0);
+                }
+            }
+
+            // 3) Last resort: match by part_no only (customer unknown in daily plan)
+            if ($partNo) {
+                $kpnOnly = $dateStr . '|' . $partNo;
+                $rec = $stockMapByPnOnly[$kpnOnly] ?? null;
+                if ($rec) {
+                    return (float) ($rec->qty ?? 0);
+                }
+            }
+
+            return 0.0;
         };
 
         // Group cells by row_id (each row = unique customer part entry)
@@ -640,6 +691,10 @@ class OutgoingController extends Controller
                     if (!isset($stockMapByPn[$kpn])) {
                         $stockMapByPn[$kpn] = $rec;
                     }
+                    $kpnOnly = $dateStr . '|' . $rec->part_no;
+                    if (!isset($stockMapByPnOnly[$kpnOnly])) {
+                        $stockMapByPnOnly[$kpnOnly] = $rec;
+                    }
                 }
             }
         }
@@ -655,7 +710,7 @@ class OutgoingController extends Controller
 
                 $stockTotal = 0.0;
                 $partNo = $r->gci_part?->part_no;
-                if ($date && $custId > 0 && ($partId > 0 || $partNo)) {
+                if ($date && ($partId > 0 || $partNo)) {
                     $stockTotal = $getStockAtCustomer($date, $custId, $partId, $partNo);
                 }
 
