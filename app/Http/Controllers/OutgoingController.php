@@ -360,7 +360,7 @@ class OutgoingController extends Controller
         // Fetch planned cells within range (we will subtract fulfillments below)
         /** @var \Illuminate\Support\Collection $cells */
         $cells = OutgoingDailyPlanCell::query()
-            ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
+            ->with(['row.gciPart.customers', 'row.gciPart.standardPacking'])
             ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('plan_date', '<=', $dateTo->format('Y-m-d'))
             ->get();
@@ -748,7 +748,7 @@ class OutgoingController extends Controller
         // Build requirements using same logic as deliveryRequirements (without pagination)
         /** @var \Illuminate\Support\Collection $cells */
         $cells = OutgoingDailyPlanCell::query()
-            ->with(['row.gciPart.customer', 'row.gciPart.standardPacking'])
+            ->with(['row.gciPart.customers', 'row.gciPart.standardPacking'])
             ->whereDate('plan_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('plan_date', '<=', $dateTo->format('Y-m-d'))
             ->get();
