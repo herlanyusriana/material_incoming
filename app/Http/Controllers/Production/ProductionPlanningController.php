@@ -328,6 +328,19 @@ class ProductionPlanningController extends Controller
             return back()->with('error', 'No planning lines with production quantity and sequence found');
         }
 
+        $missingMachineLines = $lines->filter(fn($line) => empty($line->machine_id));
+        if ($missingMachineLines->isNotEmpty()) {
+            $parts = $missingMachineLines
+                ->take(5)
+                ->map(fn($line) => $line->gciPart?->part_no ?: ('LINE-' . $line->id))
+                ->implode(', ');
+            $extra = $missingMachineLines->count() > 5
+                ? ' +' . ($missingMachineLines->count() - 5) . ' line lainnya'
+                : '';
+
+            return back()->with('error', 'Assign machine dulu sebelum generate WO. Line belum assign: ' . $parts . $extra . '.');
+        }
+
         DB::beginTransaction();
         try {
             $generated = 0;
@@ -424,6 +437,10 @@ class ProductionPlanningController extends Controller
 
         if (!$line->production_sequence) {
             return back()->with('error', 'Production sequence harus diisi terlebih dahulu.');
+        }
+
+        if (empty($line->machine_id)) {
+            return back()->with('error', 'Machine harus di-assign terlebih dahulu sebelum generate WO.');
         }
 
         $existingWo = ProductionOrder::where('planning_line_id', $line->id)->first();

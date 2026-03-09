@@ -4,10 +4,7 @@ namespace App\Http\Controllers\Outgoing;
 
 use App\Http\Controllers\Controller;
 use App\Models\OutgoingPickingFg;
-use App\Models\OutgoingDeliveryPlanningLine;
 use App\Models\DeliveryOrder;
-use App\Models\GciPart;
-use App\Models\GciInventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -201,65 +198,68 @@ class PickingFgController extends Controller
         $dateStr = Carbon::parse($request->delivery_date)->toDateString();
         $source = $request->input('source', 'daily_plan');
 
-        $query = OutgoingPickingFg::where('delivery_date', $dateStr)
+        $baseQuery = OutgoingPickingFg::where('delivery_date', $dateStr)
             ->where('gci_part_id', $request->gci_part_id);
 
         if ($request->delivery_order_id) {
-            $query->where('delivery_order_id', $request->delivery_order_id);
+            $baseQuery->where('delivery_order_id', $request->delivery_order_id);
         } else {
-            $query->where('source', $source);
+            $baseQuery->where('source', $source);
         }
 
-        $pick = $query->firstOrCreate(
-            [],
-            [
-                'qty_plan' => 0,
-                'created_by' => Auth::id(),
-                'delivery_order_id' => $request->delivery_order_id,
-                'source' => $source,
-            ]
-        );
-
-        // Determine status based on qty
-        $qtyPicked = (int) $request->qty_picked;
-        if ($qtyPicked <= 0) {
-            $status = 'pending';
-        } elseif ($qtyPicked >= $pick->qty_plan) {
-            $status = 'completed';
-        } else {
-            $status = 'picking';
+        $pickId = (clone $baseQuery)->value('id');
+        if (!$pickId) {
+            return response()->json(['success' => false, 'message' => 'Picking record not found'], 404);
         }
 
-        $pick->update([
-            'qty_picked' => $qtyPicked,
-            'status' => $status,
-            'pick_location' => $request->pick_location,
-            'notes' => $request->notes,
-            'picked_by' => Auth::id(),
-            'picked_at' => $qtyPicked > 0 ? now() : null,
-        ]);
+        [$status, $qtyPicked, $qtyRemaining, $progressPercent] = DB::transaction(function () use ($pickId, $request) {
+            $pick = OutgoingPickingFg::whereKey($pickId)->lockForUpdate()->firstOrFail();
 
-        // Check if all items for this DO are completed
-        if ($pick->delivery_order_id) {
-            $pendingCount = OutgoingPickingFg::where('delivery_order_id', $pick->delivery_order_id)
-                ->where('status', '!=', 'completed')
-                ->count();
-
-            if ($pendingCount === 0) {
-                DeliveryOrder::where('id', $pick->delivery_order_id)->update(['status' => 'completed']);
-            } else {
-                DeliveryOrder::where('id', $pick->delivery_order_id)
-                    ->where('status', 'completed')
-                    ->update(['status' => 'picking']);
+            $qtyPicked = (int) $request->qty_picked;
+            if ($qtyPicked > (int) $pick->qty_plan) {
+                $qtyPicked = (int) $pick->qty_plan;
             }
-        }
+
+            if ($qtyPicked <= 0) {
+                $status = 'pending';
+            } elseif ($qtyPicked >= (int) $pick->qty_plan) {
+                $status = 'completed';
+            } else {
+                $status = 'picking';
+            }
+
+            $pick->update([
+                'qty_picked' => $qtyPicked,
+                'status' => $status,
+                'pick_location' => $request->pick_location,
+                'notes' => $request->notes,
+                'picked_by' => Auth::id(),
+                'picked_at' => $qtyPicked > 0 ? now() : null,
+            ]);
+
+            if ($pick->delivery_order_id) {
+                $pendingCount = OutgoingPickingFg::where('delivery_order_id', $pick->delivery_order_id)
+                    ->where('status', '!=', 'completed')
+                    ->count();
+
+                if ($pendingCount === 0) {
+                    DeliveryOrder::where('id', $pick->delivery_order_id)->update(['status' => 'completed']);
+                } else {
+                    DeliveryOrder::where('id', $pick->delivery_order_id)
+                        ->where('status', 'completed')
+                        ->update(['status' => 'picking']);
+                }
+            }
+
+            return [$status, $qtyPicked, max(0, (int) $pick->qty_plan - $qtyPicked), $pick->progress_percent];
+        });
 
         return response()->json([
             'success' => true,
             'status' => $status,
             'qty_picked' => $qtyPicked,
-            'qty_remaining' => max(0, $pick->qty_plan - $qtyPicked),
-            'progress_percent' => $pick->progress_percent,
+            'qty_remaining' => $qtyRemaining,
+            'progress_percent' => $progressPercent,
         ]);
     }
 

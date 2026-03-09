@@ -173,6 +173,7 @@
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">PART NO</th>
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">PART NAME</th>
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">MODEL</th>
+                                <th class="px-3 py-3 text-left font-bold text-slate-700">MACHINE</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK LG</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK GCI</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
@@ -186,7 +187,7 @@
                             @forelse($machineGroups as $machineKey => $group)
                                 <!-- Section Header for Machine -->
                                 <tr class="bg-slate-800 text-white">
-                                    <td colspan="11" class="px-4 py-2">
+                                    <td colspan="12" class="px-4 py-2">
                                         <div class="flex items-center gap-3">
                                             <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -242,6 +243,18 @@
                                             <td class="px-3 py-2 text-[11px] text-slate-500 whitespace-nowrap">
                                                 {{ $line->gciPart->model ?? '-' }}
                                             </td>
+                                            <td class="px-3 py-2">
+                                                <select
+                                                    class="w-44 text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1.5 font-semibold text-slate-700 transition-all cursor-pointer"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'machine_id')">
+                                                    <option value="">Assign...</option>
+                                                    @foreach($machines as $machine)
+                                                        <option value="{{ $machine->id }}" {{ (int) $line->machine_id === (int) $machine->id ? 'selected' : '' }}>
+                                                            {{ $machine->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
                                             <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
                                                 {{ number_format((float) $line->stock_fg_lg, 0) }}
                                             </td>
@@ -278,12 +291,18 @@
                                                             title="{{ $line->productionOrders->first()->production_order_number }}">
                                                             WO
                                                         </span>
-                                                    @elseif($line->plan_qty > 0 && $line->production_sequence)
+                                                    @elseif($line->plan_qty > 0 && $line->production_sequence && $line->machine_id)
                                                         <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
                                                                 class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
                                                                 title="Generate WO for this part">
                                                                 WO
                                                         </button>
+                                                    @elseif($line->plan_qty > 0 && $line->production_sequence && !$line->machine_id)
+                                                        <span
+                                                            class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-rose-100 text-rose-700 border border-rose-200"
+                                                            title="Assign machine terlebih dahulu">
+                                                            No MC
+                                                        </span>
                                                     @endif
                                                     <button @click="deleteLine({{ $line->id }})"
                                                         class="p-1 rounded text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Remove part">
@@ -297,7 +316,7 @@
 
                                         <!-- Expandable Detail Row (Projected Stock) -->
                                         <tr x-show="expanded" x-transition.opacity x-cloak>
-                                            <td colspan="11" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+                                            <td colspan="12" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
                                                 <div class="mb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
                                                     <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
@@ -336,7 +355,7 @@
                                 @endforeach
                             @empty
                                 <tr>
-                                    <td colspan="{{ 10 + count($dateRange) }}"
+                                    <td colspan="12"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center gap-3">
                                             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -355,7 +374,7 @@
                             @if(!empty($machineGroups))
                                 {{-- Grand Total Row --}}
                                 <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
-                                    <td colspan="4" class="px-4 py-3 text-right text-slate-700">
+                                    <td colspan="5" class="px-4 py-3 text-right text-slate-700">
                                         Grand Total ({{ $totalParts }} parts)
                                     </td>
                                     <td class="px-3 py-3 text-right font-mono text-slate-800">
@@ -396,21 +415,26 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">2</span>
-                            Fill qty production &amp; sequence
+                            Assign machine for each part
                         </li>
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">3</span>
-                            Fill Shift 1, 2 or 3
+                            Fill qty production &amp; sequence
                         </li>
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">4</span>
-                            Generate MO/WO
+                            Fill Shift 1, 2 or 3
                         </li>
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">5</span>
+                            Generate MO/WO
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span
+                                class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">6</span>
                             Check Material &amp; Dies availability
                         </li>
                     </ol>
@@ -562,7 +586,7 @@
                     },
 
                     async updateLineField(event, lineId, field) {
-                        const value = event.target.value;
+                        const value = event.target.value === '' ? null : event.target.value;
                         try {
                             const res = await fetch(`/production/planning/line/${lineId}`, {
                                 method: 'PUT',
@@ -575,6 +599,11 @@
                             const data = await res.json();
                             if (!data.success) {
                                 alert('Update failed');
+                                return;
+                            }
+
+                            if (field === 'machine_id') {
+                                window.location.reload();
                             }
                         } catch (e) {
                             console.error('Update error:', e);

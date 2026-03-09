@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryOrder;
 use App\Models\OutgoingPickingFg;
-use App\Models\OutgoingDeliveryPlanningLine;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PickingFgApiController extends Controller
 {
@@ -73,7 +73,8 @@ class PickingFgApiController extends Controller
     {
         $request->validate(['part_no' => 'required|string', 'date' => 'required|date']);
 
-        $part = GciPart::where('part_no', $request->part_no)->first();
+        $partNo = trim((string) $request->part_no);
+        $part = GciPart::where('part_no', $partNo)->first();
         if (!$part) {
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
@@ -122,20 +123,29 @@ class PickingFgApiController extends Controller
             'delivery_order_id' => 'nullable|integer|exists:delivery_orders,id',
         ]);
 
-        $part = GciPart::where('part_no', $request->part_no)->first();
+        $partNo = trim((string) $request->part_no);
+        $part = GciPart::where('part_no', $partNo)->first();
         if (!$part) {
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
 
-        $pickCount = OutgoingPickingFg::where('delivery_date', $request->date)
+        $openPicksQuery = OutgoingPickingFg::where('delivery_date', $request->date)
             ->where('gci_part_id', $part->id)
-            ->count();
+            ->where('status', '!=', 'completed');
+
+        $pickCount = (clone $openPicksQuery)->count();
 
         if ($pickCount > 1 && !$request->delivery_order_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Part exists in multiple DOs. Please specify delivery_order_id.',
                 'require_do_selection' => true,
+                'options' => (clone $openPicksQuery)->with('deliveryOrder')->get()->map(fn($p) => [
+                    'delivery_order_id' => $p->delivery_order_id,
+                    'do_no' => $p->deliveryOrder?->do_no,
+                    'trip_no' => $p->deliveryOrder?->trip_no,
+                    'qty_remaining' => $p->qty_remaining,
+                ])->values(),
             ], 422);
         }
 
@@ -144,38 +154,73 @@ class PickingFgApiController extends Controller
 
         if ($request->delivery_order_id) {
             $query->where('delivery_order_id', $request->delivery_order_id);
+        } elseif ($pickCount === 1) {
+            $singleOpen = (clone $openPicksQuery)->first();
+            if ($singleOpen) {
+                $query->where('id', $singleOpen->id);
+            }
         }
 
-        $pick = $query->first();
+        $result = DB::transaction(function () use ($query, $request, $part) {
+            $pick = $query->lockForUpdate()->first();
+            if (!$pick) {
+                return response()->json(['success' => false, 'message' => 'Picking record not found'], 404);
+            }
 
-        if (!$pick) {
-            return response()->json(['success' => false, 'message' => 'Picking record not found'], 404);
-        }
+            $remainingBefore = max(0, (int) $pick->qty_plan - (int) $pick->qty_picked);
+            if ($remainingBefore <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This picking task is already completed.',
+                ], 422);
+            }
 
-        $newQty = $pick->qty_picked + $request->qty;
+            $requestedQty = (int) $request->qty;
+            $appliedQty = min($requestedQty, $remainingBefore);
+            $newQty = (int) $pick->qty_picked + $appliedQty;
 
-        $pick->update([
-            'qty_picked' => $newQty,
-            'status' => ($newQty >= $pick->qty_plan) ? 'completed' : 'picking',
-            'pick_location' => $request->location ?: $pick->pick_location,
-            'picked_by' => Auth::id(),
-            'picked_at' => now(),
-        ]);
+            $pick->update([
+                'qty_picked' => $newQty,
+                'status' => ($newQty >= (int) $pick->qty_plan) ? 'completed' : 'picking',
+                'pick_location' => $request->location ?: $pick->pick_location,
+                'picked_by' => Auth::id(),
+                'picked_at' => now(),
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pick updated',
-            'data' => [
-                'id' => $pick->id,
-                'part_no' => $part->part_no,
-                'part_name' => $part->part_name,
-                'qty_picked' => (int) $pick->qty_picked,
-                'qty_plan' => (int) $pick->qty_plan,
-                'qty_remaining' => $pick->qty_remaining,
-                'status' => $pick->status,
-                'progress' => $pick->progress_percent,
-                'do_no' => $pick->deliveryOrder?->do_no,
-            ]
-        ]);
+            if ($pick->delivery_order_id) {
+                $pendingCount = OutgoingPickingFg::where('delivery_order_id', $pick->delivery_order_id)
+                    ->where('status', '!=', 'completed')
+                    ->count();
+
+                if ($pendingCount === 0) {
+                    DeliveryOrder::where('id', $pick->delivery_order_id)->update(['status' => 'completed']);
+                } else {
+                    DeliveryOrder::where('id', $pick->delivery_order_id)
+                        ->where('status', 'completed')
+                        ->update(['status' => 'picking']);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pick updated',
+                'data' => [
+                    'id' => $pick->id,
+                    'part_no' => $part->part_no,
+                    'part_name' => $part->part_name,
+                    'qty_picked' => (int) $pick->qty_picked,
+                    'qty_plan' => (int) $pick->qty_plan,
+                    'qty_remaining' => $pick->qty_remaining,
+                    'status' => $pick->status,
+                    'progress' => $pick->progress_percent,
+                    'do_no' => $pick->deliveryOrder?->do_no,
+                    'requested_qty' => $requestedQty,
+                    'applied_qty' => $appliedQty,
+                    'rejected_qty' => max(0, $requestedQty - $appliedQty),
+                ]
+            ]);
+        });
+
+        return $result;
     }
 }
