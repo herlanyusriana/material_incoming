@@ -19,8 +19,7 @@
                         </div>
                         GCI PLANNING PRODUKSI
                     </h1>
-                    <p class="mt-1 text-sm text-slate-500">Production Planning by Machine (from BOM) — Daily Planning
-                        Production</p>
+                    <p class="mt-1 text-sm text-slate-500">Production Planning by Machine (from BOM) - Requirement source can be Delivery Requirement (pull) or Raw Daily Plan</p>
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
@@ -30,6 +29,12 @@
                         <input type="date" name="date" value="{{ $planDate->format('Y-m-d') }}"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             onchange="this.form.submit()">
+                        <select name="source_mode"
+                            class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            onchange="this.form.submit()">
+                            <option value="delivery" {{ ($sourceMode ?? 'delivery') === 'delivery' ? 'selected' : '' }}>Pull Delivery Req</option>
+                            <option value="raw" {{ ($sourceMode ?? 'delivery') === 'raw' ? 'selected' : '' }}>Raw Daily Plan</option>
+                        </select>
                     </form>
 
                     @if($session)
@@ -57,20 +62,20 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex w-full lg:w-auto items-center justify-end gap-2 flex-wrap">
                     @if(!$session)
                         <form action="{{ route('production.planning.create-session') }}" method="POST"
-                            class="flex items-center gap-2">
+                            class="flex items-center gap-2 shrink-0">
                             @csrf
                             <input type="hidden" name="plan_date" value="{{ $planDate->format('Y-m-d') }}">
-                            <select name="planning_days" class="rounded-lg border-slate-300 text-sm shadow-sm">
+                            <select name="planning_days" class="h-10 rounded-lg border-slate-300 text-sm shadow-sm">
                                 <option value="7" selected>7 Days</option>
                                 <option value="5">5 Days</option>
                                 <option value="10">10 Days</option>
                                 <option value="14">14 Days</option>
                             </select>
                             <button type="submit"
-                                class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-700 transition-all">
+                                class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-700 transition-all">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
@@ -78,11 +83,12 @@
                             </button>
                         </form>
                     @else
-                        <form action="{{ route('production.planning.auto-populate') }}" method="POST" class="inline">
+                        <form action="{{ route('production.planning.auto-populate') }}" method="POST" class="shrink-0">
                             @csrf
                             <input type="hidden" name="session_id" value="{{ $session->id }}">
+                            <input type="hidden" name="source_mode" value="{{ $sourceMode ?? 'delivery' }}">
                             <button type="submit"
-                                class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-fuchsia-600 hover:to-violet-700 transition-all"
+                                class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-fuchsia-600 hover:to-violet-700 transition-all whitespace-nowrap"
                                 onclick="return confirm('Auto-populate planning lines from FG parts with BOM? Machine will be auto-filled from BOM data.')">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -107,7 +113,7 @@
                         </form>
 
                         <button @click="generateMoAll({{ $session->id }})"
-                                class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700 transition-all">
+                                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-amber-600 hover:to-orange-700 transition-all whitespace-nowrap">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -116,7 +122,7 @@
                         </button>
 
                         <button @click="showAddPartModal = true"
-                            class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-slate-600 to-slate-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-slate-700 hover:to-slate-800 transition-all">
+                            class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-slate-600 to-slate-700 px-4 text-sm font-semibold text-white shadow-sm hover:from-slate-700 hover:to-slate-800 transition-all whitespace-nowrap">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
@@ -535,6 +541,7 @@
                                 body: JSON.stringify({
                                     session_id: {{ $session ? $session->id : 'null' }},
                                     gci_part_id: part.id,
+                                    source_mode: @js($sourceMode ?? 'delivery'),
                                 }),
                             });
                             const data = await res.json();

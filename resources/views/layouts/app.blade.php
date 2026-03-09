@@ -41,6 +41,16 @@
                     margin-top: 4px !important;
                     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
                     border: 1px solid #e2e8f0 !important;
+                    z-index: 99999 !important;
+                }
+                .ts-dropdown,
+                .ts-wrapper .ts-dropdown {
+                    max-height: 280px;
+                    overflow-y: auto;
+                }
+                .ts-wrapper,
+                .ts-control {
+                    overflow: visible !important;
                 }
                 .ts-dropdown .active {
                     background-color: #f1f5f9 !important;
@@ -338,6 +348,12 @@
                                     direction: "asc"
                                 },
                                 allowEmptyOption: true,
+                                dropdownParent: 'body',
+                                closeAfterSelect: false,
+                                onItemAdd: function () {
+                                    // Keep dropdown open for quick reselection without extra clicks.
+                                    this.open();
+                                },
                             });
                         });
                     };
@@ -351,6 +367,8 @@
                             valueField: options.valueField || 'id',
                             labelField: options.labelField || 'part_no',
                             searchField: options.searchField || ['part_no', 'part_name', 'model'],
+                            dropdownParent: 'body',
+                            closeAfterSelect: false,
                             load: function(query, callback) {
                                 if (!query.length) return callback();
                                 const searchUrl = new URL(url, window.location.origin);
@@ -378,6 +396,9 @@
                             },
                             placeholder: el.getAttribute('placeholder') || 'Type to search...',
                             allowEmptyOption: true,
+                            onItemAdd: function () {
+                                this.open();
+                            },
                         });
                     };
 

@@ -14,6 +14,8 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Machine;
 use App\Models\OutgoingDailyPlan;
+use App\Models\OutgoingDailyPlanCell;
+use App\Models\OutgoingDeliveryPlanningLine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -27,6 +29,10 @@ class ProductionPlanningController extends Controller
     {
         $planDate = $request->get('date', now()->format('Y-m-d'));
         $planDate = Carbon::parse($planDate);
+        $sourceMode = strtolower((string) $request->get('source_mode', 'delivery'));
+        if (!in_array($sourceMode, ['delivery', 'raw'], true)) {
+            $sourceMode = 'delivery';
+        }
 
         // Get or create session
         $session = ProductionPlanningSession::where('plan_date', $planDate->format('Y-m-d'))->first();
@@ -64,7 +70,7 @@ class ProductionPlanningController extends Controller
         }
 
         // Get daily planning data from outgoing
-        $dailyPlanData = $this->getDailyPlanningData($planDate);
+        $dailyPlanData = $this->getDailyPlanningData($planDate, $sourceMode);
 
         // Get FG stock data
         $fgStockLg = $this->getFgStockLg($planDate);
@@ -105,7 +111,8 @@ class ProductionPlanningController extends Controller
             'grandTotalFgLg',
             'grandTotalFgGci',
             'grandTotalPlanQty',
-            'totalParts'
+            'totalParts',
+            'sourceMode'
         ));
     }
 
@@ -141,6 +148,11 @@ class ProductionPlanningController extends Controller
         ]);
 
         $session = ProductionPlanningSession::findOrFail($request->session_id);
+        $sourceMode = strtolower((string) $request->input('source_mode', 'delivery'));
+        if (!in_array($sourceMode, ['delivery', 'raw'], true)) {
+            $sourceMode = 'delivery';
+        }
+        $deliveryRequirements = $this->getDailyPlanningData(Carbon::parse($session->plan_date), $sourceMode);
 
         // Get FG stock data
         $fgStockLg = $this->getFgStockLg(Carbon::parse($session->plan_date));
@@ -195,13 +207,17 @@ class ProductionPlanningController extends Controller
                     'process_name' => $processName,
                     'stock_fg_lg' => $fgStockLg[$part->id] ?? 0,
                     'stock_fg_gci' => $fgStockGci[$part->id] ?? 0,
+                    'plan_qty' => (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
                     'sort_order' => $sortOrder,
                 ]);
             }
 
             DB::commit();
 
-            return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
+            return redirect()->route('production.planning.index', [
+                'date' => Carbon::parse($session->plan_date)->format('Y-m-d'),
+                'source_mode' => $sourceMode,
+            ])
                 ->with('success', 'Planning lines auto-populated from BOM data. ' . $parts->count() . ' FG parts processed.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -244,6 +260,11 @@ class ProductionPlanningController extends Controller
         $sortOrder = ProductionPlanningLine::where('session_id', $request->session_id)->max('sort_order') + 1;
 
         $session = ProductionPlanningSession::findOrFail($request->session_id);
+        $sourceMode = strtolower((string) $request->input('source_mode', 'delivery'));
+        if (!in_array($sourceMode, ['delivery', 'raw'], true)) {
+            $sourceMode = 'delivery';
+        }
+        $deliveryRequirements = $this->getDailyPlanningData(Carbon::parse($session->plan_date), $sourceMode);
         $fgStockLg = $this->getFgStockLg(Carbon::parse($session->plan_date));
         $fgStockGci = $this->getFgStockGci();
 
@@ -269,6 +290,7 @@ class ProductionPlanningController extends Controller
             'process_name' => $processName,
             'stock_fg_lg' => $fgStockLg[$request->gci_part_id] ?? 0,
             'stock_fg_gci' => $fgStockGci[$request->gci_part_id] ?? 0,
+            'plan_qty' => (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
             'sort_order' => $sortOrder,
         ]);
 
@@ -496,7 +518,11 @@ class ProductionPlanningController extends Controller
             $dateRange[] = $planDate->copy()->addDays($i)->format('Y-m-d');
         }
 
-        $dailyRequirements = $this->getDailyRequirements($planDate, $planningDays);
+        $sourceMode = strtolower((string) $request->get('source_mode', 'delivery'));
+        if (!in_array($sourceMode, ['delivery', 'raw'], true)) {
+            $sourceMode = 'delivery';
+        }
+        $dailyRequirements = $this->getDailyRequirements($planDate, $planningDays, $sourceMode);
 
         $result = [];
         foreach ($lines as $line) {
@@ -574,34 +600,57 @@ class ProductionPlanningController extends Controller
     // ==========================================
 
     /**
-     * Get daily planning data from outgoing module
+     * Get delivery requirement baseline (from outgoing delivery planning lines).
+     * This is the agreed requirement source used by Delivery Requirement/Delivery Plan.
      */
-    private function getDailyPlanningData(Carbon $planDate): array
+    private function getDailyPlanningData(Carbon $planDate, string $sourceMode = 'delivery'): array
     {
-        $plans = OutgoingDailyPlan::where('date_from', '<=', $planDate)
-            ->where('date_to', '>=', $planDate)
-            ->with(['rows.cells', 'rows.gciPart'])
+        if ($sourceMode === 'raw') {
+            $dateStr = $planDate->format('Y-m-d');
+            $cells = OutgoingDailyPlanCell::query()
+                ->with('row')
+                ->whereDate('plan_date', $dateStr)
+                ->where('qty', '>', 0)
+                ->get();
+
+            $data = [];
+            foreach ($cells as $cell) {
+                $partId = (int) ($cell->row->gci_part_id ?? 0);
+                if ($partId <= 0) {
+                    continue;
+                }
+                if (!isset($data[$partId])) {
+                    $data[$partId] = ['total_qty' => 0];
+                }
+                $data[$partId]['total_qty'] += (int) $cell->qty;
+            }
+            return $data;
+        }
+
+        $dateStr = $planDate->format('Y-m-d');
+        $lines = OutgoingDeliveryPlanningLine::query()
+            ->whereDate('delivery_date', $dateStr)
             ->get();
 
         $data = [];
-        foreach ($plans as $plan) {
-            foreach ($plan->rows as $row) {
-                if (!$row->gci_part_id)
-                    continue;
-                $partId = $row->gci_part_id;
-
-                if (!isset($data[$partId])) {
-                    $data[$partId] = [
-                        'part' => $row->gciPart,
-                        'total_qty' => 0,
-                        'production_line' => $row->production_line,
-                    ];
-                }
-
-                foreach ($row->cells as $cell) {
-                    $data[$partId]['total_qty'] += (int) $cell->qty;
-                }
+        foreach ($lines as $line) {
+            $partId = (int) ($line->gci_part_id ?? 0);
+            if ($partId <= 0) {
+                continue;
             }
+
+            $qty = 0;
+            for ($t = 1; $t <= 14; $t++) {
+                $qty += (int) ($line->{"trip_{$t}"} ?? 0);
+            }
+
+            if (!isset($data[$partId])) {
+                $data[$partId] = [
+                    'total_qty' => 0,
+                ];
+            }
+
+            $data[$partId]['total_qty'] += $qty;
         }
 
         return $data;
@@ -610,37 +659,62 @@ class ProductionPlanningController extends Controller
     /**
      * Get daily requirements for a date range
      */
-    private function getDailyRequirements(Carbon $startDate, int $days): array
+    private function getDailyRequirements(Carbon $startDate, int $days, string $sourceMode = 'delivery'): array
     {
         $endDate = $startDate->copy()->addDays($days - 1);
         $requirements = [];
 
-        $plans = OutgoingDailyPlan::where('date_from', '<=', $endDate)
-            ->where('date_to', '>=', $startDate)
-            ->with(['rows.cells', 'rows.gciPart'])
-            ->get();
+        if ($sourceMode === 'raw') {
+            $cells = OutgoingDailyPlanCell::query()
+                ->with('row')
+                ->whereDate('plan_date', '>=', $startDate->format('Y-m-d'))
+                ->whereDate('plan_date', '<=', $endDate->format('Y-m-d'))
+                ->where('qty', '>', 0)
+                ->get();
 
-        foreach ($plans as $plan) {
-            foreach ($plan->rows as $row) {
-                if (!$row->gci_part_id)
+            foreach ($cells as $cell) {
+                $partId = (int) ($cell->row->gci_part_id ?? 0);
+                if ($partId <= 0) {
                     continue;
-                $partId = $row->gci_part_id;
+                }
 
+                $dateKey = Carbon::parse($cell->plan_date)->format('Y-m-d');
                 if (!isset($requirements[$partId])) {
                     $requirements[$partId] = [];
                 }
-
-                foreach ($row->cells as $cell) {
-                    $cellDate = $cell->plan_date ?? null;
-                    if ($cellDate) {
-                        $dateKey = Carbon::parse($cellDate)->format('Y-m-d');
-                        if (!isset($requirements[$partId][$dateKey])) {
-                            $requirements[$partId][$dateKey] = 0;
-                        }
-                        $requirements[$partId][$dateKey] += (int) $cell->qty;
-                    }
+                if (!isset($requirements[$partId][$dateKey])) {
+                    $requirements[$partId][$dateKey] = 0;
                 }
+                $requirements[$partId][$dateKey] += (int) $cell->qty;
             }
+
+            return $requirements;
+        }
+
+        $lines = OutgoingDeliveryPlanningLine::query()
+            ->whereDate('delivery_date', '>=', $startDate->format('Y-m-d'))
+            ->whereDate('delivery_date', '<=', $endDate->format('Y-m-d'))
+            ->get();
+
+        foreach ($lines as $line) {
+            $partId = (int) ($line->gci_part_id ?? 0);
+            if ($partId <= 0) {
+                continue;
+            }
+
+            $dateKey = Carbon::parse($line->delivery_date)->format('Y-m-d');
+            if (!isset($requirements[$partId])) {
+                $requirements[$partId] = [];
+            }
+            if (!isset($requirements[$partId][$dateKey])) {
+                $requirements[$partId][$dateKey] = 0;
+            }
+
+            $qty = 0;
+            for ($t = 1; $t <= 14; $t++) {
+                $qty += (int) ($line->{"trip_{$t}"} ?? 0);
+            }
+            $requirements[$partId][$dateKey] += $qty;
         }
 
         return $requirements;

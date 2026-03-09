@@ -326,17 +326,24 @@
 
     <style>
         .size-dropdown-wrap { position: relative; }
+        .material-group,
+        .group-rows,
+        .line-row {
+            overflow: visible;
+        }
         .size-dropdown-list {
             position: absolute; top: 100%; left: 0; right: 0;
             z-index: 9999; max-height: 220px; overflow-y: auto;
             background: #fff; border: 1px solid #cbd5e1; border-radius: 0.5rem;
             box-shadow: 0 10px 25px -5px rgba(0,0,0,.15), 0 4px 6px -4px rgba(0,0,0,.1);
-            display: none;
+            margin-top: 4px; display: none;
         }
+        .size-dropdown-wrap.dropdown-active { z-index: 70; }
         .size-dropdown-list.open { display: block; }
         .size-dropdown-item {
             padding: 6px 10px; cursor: pointer; font-size: 12px;
             border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column;
+            white-space: nowrap;
         }
         .size-dropdown-item:last-child { border-bottom: none; }
         .size-dropdown-item:hover, .size-dropdown-item.active { background: #eff6ff; }
@@ -815,6 +822,7 @@
             if (!input || !listEl) return;
             let activeIdx = -1;
             let allItems = [];
+            let preventBlurClose = false;
 
             function render(filter) {
                 const q = String(filter || '').toLowerCase();
@@ -841,16 +849,24 @@
 
             function selectItem(val) {
                 input.value = val;
-                close();
                 input.dispatchEvent(new Event('change', { bubbles: true }));
+                // Keep dropdown open for fast re-selection/editing.
+                open();
+                input.focus();
+                input.select();
             }
 
             function open() {
+                wrap.classList.add('dropdown-active');
                 listEl.classList.add('open');
                 render(input.value);
             }
 
-            function close() { listEl.classList.remove('open'); activeIdx = -1; }
+            function close() {
+                wrap.classList.remove('dropdown-active');
+                listEl.classList.remove('open');
+                activeIdx = -1;
+            }
 
             function setActive(idx) {
                 const items = listEl.querySelectorAll('.size-dropdown-item');
@@ -863,8 +879,15 @@
             }
 
             input.addEventListener('focus', () => { open(); });
+            input.addEventListener('click', () => { open(); });
             input.addEventListener('input', () => { open(); render(input.value); });
-            input.addEventListener('blur', () => { setTimeout(close, 150); });
+            input.addEventListener('blur', () => {
+                if (preventBlurClose) {
+                    preventBlurClose = false;
+                    return;
+                }
+                setTimeout(close, 180);
+            });
             input.addEventListener('keydown', (e) => {
                 const items = listEl.querySelectorAll('.size-dropdown-item');
                 if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(activeIdx + 1, items.length - 1)); }
@@ -874,6 +897,16 @@
                     selectItem(items[activeIdx].dataset.size);
                 }
                 else if (e.key === 'Escape') { close(); }
+            });
+
+            listEl.addEventListener('mousedown', () => {
+                preventBlurClose = true;
+            });
+
+            document.addEventListener('mousedown', (e) => {
+                if (!wrap.contains(e.target)) {
+                    close();
+                }
             });
 
             wrap._sizeDropdown = {

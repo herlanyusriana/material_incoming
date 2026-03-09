@@ -464,6 +464,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('production')->name('production.')->group(function () {
         // Production Planning (GCI Planning Produksi)
         Route::get('/planning', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'index'])->name('planning.index');
+        Route::redirect('/planning/pull-delivery-requirement', '/production/planning?source_mode=delivery')
+            ->name('planning.pull-delivery-requirement');
         Route::post('/planning/create-session', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'createSession'])->name('planning.create-session');
         Route::post('/planning/auto-populate', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'autoPopulate'])->name('planning.auto-populate');
         Route::post('/planning/add-line', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'addLine'])->name('planning.add-line');
