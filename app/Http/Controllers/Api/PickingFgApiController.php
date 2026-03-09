@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryNote;
 use App\Models\DeliveryOrder;
-use App\Models\DnItem;
 use App\Models\OutgoingPickingFg;
 use App\Models\GciPart;
 use Illuminate\Http\Request;
@@ -18,17 +17,35 @@ class PickingFgApiController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
 
-        $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo', 'deliveryOrder'])
+        $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo', 'deliveryOrder.deliveryNotes'])
             ->where('delivery_date', $date)
             ->get();
 
+        // Filter out picks whose DO already has a Delivery Note
+        $picks = $picks->filter(function ($p) {
+            if ($p->delivery_order_id && $p->deliveryOrder) {
+                return $p->deliveryOrder->deliveryNotes->isEmpty();
+            }
+            return true;
+        })->values();
+
         $lastUpdated = $picks->max('updated_at');
+
+        // Pre-compute DO completion status
+        $doCompletedMap = [];
+        $doIds = $picks->pluck('delivery_order_id')->filter()->unique()->toArray();
+        foreach ($doIds as $doId) {
+            $pendingCount = OutgoingPickingFg::where('delivery_order_id', $doId)
+                ->where('status', '!=', 'completed')
+                ->count();
+            $doCompletedMap[$doId] = $pendingCount === 0;
+        }
 
         return response()->json([
             'success' => true,
             'date' => $date,
             'last_updated' => $lastUpdated?->toIso8601String(),
-            'data' => $picks->map(function ($p) {
+            'data' => $picks->map(function ($p) use ($doCompletedMap) {
                 return [
                     'id' => $p->id,
                     'part_id' => $p->gci_part_id,
@@ -46,6 +63,7 @@ class PickingFgApiController extends Controller
                     'delivery_order_id' => $p->delivery_order_id,
                     'do_no' => $p->deliveryOrder?->do_no,
                     'trip_no' => $p->deliveryOrder?->trip_no,
+                    'do_completed' => $doCompletedMap[$p->delivery_order_id] ?? false,
                     'updated_at' => $p->updated_at?->toIso8601String(),
                 ];
             })
@@ -189,7 +207,7 @@ class PickingFgApiController extends Controller
                 'picked_at' => now(),
             ]);
 
-            $dnCreated = null;
+            $doCompleted = false;
 
             if ($pick->delivery_order_id) {
                 $pendingCount = OutgoingPickingFg::where('delivery_order_id', $pick->delivery_order_id)
@@ -198,9 +216,7 @@ class PickingFgApiController extends Controller
 
                 if ($pendingCount === 0) {
                     DeliveryOrder::where('id', $pick->delivery_order_id)->update(['status' => 'completed']);
-
-                    // Auto-create Delivery Note
-                    $dnCreated = $this->autoCreateDeliveryNote($pick->delivery_order_id);
+                    $doCompleted = true;
                 } else {
                     DeliveryOrder::where('id', $pick->delivery_order_id)
                         ->where('status', 'completed')
@@ -208,102 +224,30 @@ class PickingFgApiController extends Controller
                 }
             }
 
-            $responseData = [
-                'id' => $pick->id,
-                'part_no' => $part->part_no,
-                'part_name' => $part->part_name,
-                'qty_picked' => (int) $pick->qty_picked,
-                'qty_plan' => (int) $pick->qty_plan,
-                'qty_remaining' => $pick->qty_remaining,
-                'status' => $pick->status,
-                'progress' => $pick->progress_percent,
-                'do_no' => $pick->deliveryOrder?->do_no,
-                'requested_qty' => $requestedQty,
-                'applied_qty' => $appliedQty,
-                'rejected_qty' => max(0, $requestedQty - $appliedQty),
-            ];
-
-            if ($dnCreated) {
-                $responseData['dn_created'] = [
-                    'dn_no' => $dnCreated->dn_no,
-                    'created_at' => $dnCreated->created_at->format('d M Y H:i'),
-                ];
-            }
-
             return response()->json([
                 'success' => true,
-                'message' => $dnCreated
-                    ? 'Pick updated. Delivery Note ' . $dnCreated->dn_no . ' auto-created!'
+                'message' => $doCompleted
+                    ? 'Pick updated. DO completed - ready to create Delivery Note!'
                     : 'Pick updated',
-                'data' => $responseData,
+                'data' => [
+                    'id' => $pick->id,
+                    'part_no' => $part->part_no,
+                    'part_name' => $part->part_name,
+                    'qty_picked' => (int) $pick->qty_picked,
+                    'qty_plan' => (int) $pick->qty_plan,
+                    'qty_remaining' => $pick->qty_remaining,
+                    'status' => $pick->status,
+                    'progress' => $pick->progress_percent,
+                    'do_no' => $pick->deliveryOrder?->do_no,
+                    'requested_qty' => $requestedQty,
+                    'applied_qty' => $appliedQty,
+                    'rejected_qty' => max(0, $requestedQty - $appliedQty),
+                    'do_completed' => $doCompleted,
+                ],
             ]);
         });
 
         return $result;
     }
 
-    private function autoCreateDeliveryNote(int $deliveryOrderId): ?DeliveryNote
-    {
-        // Skip if DN already exists for this DO
-        $alreadyExists = DeliveryNote::whereHas('deliveryOrders', function ($q) use ($deliveryOrderId) {
-            $q->where('delivery_order_id', $deliveryOrderId);
-        })->exists();
-
-        if ($alreadyExists) {
-            return null;
-        }
-
-        $do = DeliveryOrder::find($deliveryOrderId);
-        if (!$do) {
-            return null;
-        }
-
-        $completedPicks = OutgoingPickingFg::with('part')
-            ->where('delivery_order_id', $deliveryOrderId)
-            ->where('status', 'completed')
-            ->get();
-
-        if ($completedPicks->isEmpty()) {
-            return null;
-        }
-
-        $dn = DeliveryNote::create([
-            'customer_id' => $do->customer_id,
-            'delivery_date' => $do->do_date ?? now()->toDateString(),
-            'status' => 'ready_to_ship',
-            'notes' => 'Auto-created from completed Picking FG (DO: ' . $do->do_no . ') at ' . now()->format('d M Y H:i'),
-            'created_by' => Auth::id(),
-        ]);
-
-        foreach ($completedPicks as $pick) {
-            DnItem::create([
-                'dn_id' => $dn->id,
-                'gci_part_id' => $pick->gci_part_id,
-                'qty' => $pick->qty_picked,
-                'outgoing_po_item_id' => $pick->outgoing_po_item_id,
-            ]);
-        }
-
-        $dn->deliveryOrders()->sync([$deliveryOrderId]);
-
-        $dn->transaction_no = DeliveryNote::generateTransactionNo($dn->delivery_date->toDateString());
-        $dn->save();
-
-        // Auto-link production orders for traceability (FIFO)
-        $gciPartIds = $completedPicks->pluck('gci_part_id')->unique()->toArray();
-        if (!empty($gciPartIds)) {
-            $woIds = \App\Models\ProductionOrder::whereIn('gci_part_id', $gciPartIds)
-                ->whereNotNull('transaction_no')
-                ->orderBy('created_at', 'asc')
-                ->limit(20)
-                ->pluck('id')
-                ->toArray();
-
-            if (!empty($woIds)) {
-                $dn->productionOrders()->sync($woIds);
-            }
-        }
-
-        return $dn;
-    }
 }
