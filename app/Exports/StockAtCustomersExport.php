@@ -49,9 +49,10 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
     public function headings(): array
     {
         $base = ['customer', 'part_no', 'part_name', 'model', 'status'];
-        $daysInMonth = CarbonImmutable::parse($this->period . '-01')->daysInMonth;
+        $date = CarbonImmutable::parse($this->period . '-01');
+        $daysInMonth = $date->daysInMonth;
         for ($d = 1; $d <= $daysInMonth; $d++) {
-            $base[] = (string) $d;
+            $base[] = $date->setDay($d)->format('Y-m-d');
         }
         return $base;
     }

@@ -91,7 +91,9 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
 
                 for ($d = 1; $d <= 31; $d++) {
                     $key = (string) $d;
-                    $raw = $data[$key] ?? null;
+                    // Support new date-format headers (e.g., '2026-03-01')
+                    $dateKey = $this->period . '-' . str_pad($d, 2, '0', STR_PAD_LEFT);
+                    $raw = $data[$dateKey] ?? $data[$key] ?? null;
                     $qty = 0;
                     if ($raw !== null && $raw !== '') {
                         $qty = is_numeric($raw) ? (float) $raw : 0;

@@ -1360,7 +1360,13 @@ class OutgoingController extends Controller
     {
         $period = $request->input('period', now()->format('Y-m'));
         $date = CarbonImmutable::parse($period . '-01');
-        $days = range(1, $date->daysInMonth);
+        $daysInMonth = $date->daysInMonth;
+
+        // Build days as associative: day_number => formatted date string
+        $days = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $days[$d] = $date->setDay($d)->format('d/m');
+        }
 
         $records = StockAtCustomer::query()
             ->with(['customer', 'part'])
