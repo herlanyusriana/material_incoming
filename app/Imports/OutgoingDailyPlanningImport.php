@@ -21,6 +21,16 @@ class OutgoingDailyPlanningImport implements ToCollection
     /** @var list<string> */
     public array $createdParts = [];
 
+    /** Optional date range for numeric column headers (1, 2, 3...) */
+    public ?Carbon $planDateFrom = null;
+    public ?Carbon $planDateTo = null;
+
+    public function __construct(?Carbon $planDateFrom = null, ?Carbon $planDateTo = null)
+    {
+        $this->planDateFrom = $planDateFrom;
+        $this->planDateTo = $planDateTo;
+    }
+
     /**
      * Parse date column header.
      *
@@ -155,11 +165,12 @@ class OutgoingDailyPlanningImport implements ToCollection
 
             $candNoIdx = $candidateIdx['no'] ?? $candidateIdx['number'] ?? $candidateIdx['#'] ?? $candidateIdx['no '] ?? null;
 
-            if ($candProductionLineIdx !== null && $candPartNoIdx !== null) {
+            // production_line is now optional — only part_no is required
+            if ($candPartNoIdx !== null) {
                 $headerRow = $candidate;
                 $headers = $candidateHeaders;
                 $colIdx = $candidateIdx;
-                $productionLineIdx = $candProductionLineIdx;
+                $productionLineIdx = $candProductionLineIdx; // may be null
                 $partNoIdx = $candPartNoIdx;
                 $noIdx = $candNoIdx;
                 $headerRowPos = $i;
@@ -167,12 +178,12 @@ class OutgoingDailyPlanningImport implements ToCollection
             }
         }
 
-        if ($headerRow === null || $productionLineIdx === null || $partNoIdx === null) {
+        if ($headerRow === null || $partNoIdx === null) {
             $first = $rows->first();
             $firstHeaders = $first ? array_map(fn($v) => trim((string) $v), $this->rowValues($first)) : [];
             $preview = array_slice(array_filter($firstHeaders, fn($v) => (string) $v !== ''), 0, 12);
             $this->failures[] =
-                "Header kolom 'production_line/LINE' atau 'part_no/Part No' tidak ditemukan. " .
+                "Header kolom 'part_no/Part No' atau 'customer part no' tidak ditemukan. " .
                 "Saran: download template Daily Planning. " .
                 (!empty($preview) ? ("Header row pertama terbaca: " . implode(' | ', $preview)) : '');
             return;
@@ -188,13 +199,29 @@ class OutgoingDailyPlanningImport implements ToCollection
             if ($raw === '') {
                 continue;
             }
-            $parsed = $this->parseDateColumnHeader($raw);
-            if (!$parsed) {
+            // Skip known non-date columns
+            $normKey = $this->norm($raw);
+            if (in_array($normKey, ['no', 'number', 'production line', 'line', 'productionline', 'part no', 'part number', 'part', 'partno', 'customer', 'customer part no', 'part name', 'model', 'status'], true)) {
                 continue;
             }
-            [$date, $kind] = $parsed;
-            $dateCols[$date] ??= ['seq' => -1, 'qty' => -1];
-            $dateCols[$date][$kind] = $idx;
+
+            $parsed = $this->parseDateColumnHeader($raw);
+            if ($parsed) {
+                [$date, $kind] = $parsed;
+                $dateCols[$date] ??= ['seq' => -1, 'qty' => -1];
+                $dateCols[$date][$kind] = $idx;
+                continue;
+            }
+
+            // Support numeric column headers (1, 2, 3...) mapped to plan date range
+            if ($this->planDateFrom && preg_match('/^\d+$/', $raw)) {
+                $dayOffset = (int) $raw - 1;
+                if ($dayOffset >= 0) {
+                    $date = $this->planDateFrom->copy()->addDays($dayOffset)->format('Y-m-d');
+                    $dateCols[$date] ??= ['seq' => -1, 'qty' => -1];
+                    $dateCols[$date]['qty'] = $idx;
+                }
+            }
         }
 
         $dates = array_keys($dateCols);
@@ -203,14 +230,16 @@ class OutgoingDailyPlanningImport implements ToCollection
 
         foreach ($rows as $index => $row) {
             $arr = $this->rowValues($row);
-            $productionLine = strtoupper(trim((string) ($arr[$productionLineIdx] ?? '')));
+            $productionLine = $productionLineIdx !== null
+                ? strtoupper(trim((string) ($arr[$productionLineIdx] ?? '')))
+                : '';
             $partNo = $this->normalizePartNo($arr[$partNoIdx] ?? '');
             $rowNo = $this->parseIntOrNull($noIdx !== null ? ($arr[$noIdx] ?? null) : null);
 
             // Use logical row number (2 for header + index + 1)
             $excelRow = $index + 2;
 
-            if ($productionLine === '' && $partNo === '') {
+            if ($partNo === '') {
                 continue;
             }
 
@@ -226,6 +255,10 @@ class OutgoingDailyPlanningImport implements ToCollection
 
                 if ($customerPart) {
                     $customerPartId = $customerPart->id;
+                    // Auto-fill production_line from CustomerPart if not in Excel
+                    if ($productionLine === '' && !empty($customerPart->line)) {
+                        $productionLine = strtoupper(trim($customerPart->line));
+                    }
                     // Get ALL FG components (not just first)
                     $fgComponents = \App\Models\CustomerPartComponent::query()
                         ->where('customer_part_id', $customerPart->id)

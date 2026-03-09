@@ -60,7 +60,10 @@
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-slate-600 font-semibold">{{ $dn->customer->name }}</td>
-                                <td class="px-5 py-4 text-slate-600">{{ $dn->delivery_date->format('d M Y') }}</td>
+                                <td class="px-5 py-4 text-slate-600">
+                                    <div>{{ $dn->delivery_date->format('d M Y') }}</div>
+                                    <div class="text-[10px] text-slate-400">Created {{ $dn->created_at->format('d M Y H:i') }}</div>
+                                </td>
                                 <td class="px-5 py-4 text-slate-600">
                                     <div class="flex flex-wrap gap-1">
                                         @foreach ($dn->items->take(2) as $item)

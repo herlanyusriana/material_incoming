@@ -51,6 +51,8 @@
                     <form action="{{ route('outgoing.daily-planning.import') }}" method="POST" enctype="multipart/form-data"
                         class="flex items-center gap-2">
                         @csrf
+                        <input type="hidden" name="date_from" value="{{ $dateFrom->toDateString() }}">
+                        <input type="hidden" name="date_to" value="{{ $dateTo->toDateString() }}">
                         <label
                             class="cursor-pointer inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                             <span>Import Excel</span>

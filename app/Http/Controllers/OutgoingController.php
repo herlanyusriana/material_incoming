@@ -181,9 +181,14 @@ class OutgoingController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
         ]);
 
-        $import = new OutgoingDailyPlanningImport();
+        $planDateFrom = $request->date_from ? \Carbon\Carbon::parse($request->date_from) : null;
+        $planDateTo = $request->date_to ? \Carbon\Carbon::parse($request->date_to) : null;
+
+        $import = new OutgoingDailyPlanningImport($planDateFrom, $planDateTo);
         Excel::import($import, $request->file('file'));
 
         if (!empty($import->failures)) {

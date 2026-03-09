@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Outgoing;
 use App\Http\Controllers\Controller;
 use App\Models\OutgoingPickingFg;
 use App\Models\DeliveryOrder;
+use App\Models\DeliveryNote;
+use App\Models\DnItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -53,12 +55,29 @@ class PickingFgController extends Controller
             return $p->delivery_order_id ?? 0;
         });
 
-        $doList = $grouped->map(function ($items, $doId) {
+        // Preload existing DNs for completed DOs
+        $doIds = $grouped->keys()->filter()->toArray();
+        $dnByDoId = [];
+        if (!empty($doIds)) {
+            $dns = DeliveryNote::whereHas('deliveryOrders', function ($q) use ($doIds) {
+                $q->whereIn('delivery_order_id', $doIds);
+            })->with('deliveryOrders')->get();
+
+            foreach ($dns as $dn) {
+                foreach ($dn->deliveryOrders as $linkedDo) {
+                    $dnByDoId[$linkedDo->id] = $dn;
+                }
+            }
+        }
+
+        $doList = $grouped->map(function ($items, $doId) use ($dnByDoId) {
             $first = $items->first();
             $doNo = $first->deliveryOrder?->do_no;
             $tripNo = $first->deliveryOrder?->trip_no;
             $source = $first->source;
             $poNo = $source === 'po' ? ($first->outgoingPoItem?->outgoingPo?->po_no ?? 'N/A') : null;
+
+            $linkedDn = $dnByDoId[$doId] ?? null;
 
             return (object) [
                 'do_id' => $doId ?: null,
@@ -73,6 +92,9 @@ class PickingFgController extends Controller
                     ? round(($items->sum('qty_picked') / $items->sum('qty_plan')) * 100)
                     : 0,
                 'status' => $this->identifyGroupStatus($items),
+                'dn_id' => $linkedDn?->id,
+                'dn_no' => $linkedDn?->dn_no,
+                'dn_created_at' => $linkedDn?->created_at,
                 'rows' => $items->map(function ($p) {
                     return (object) [
                         'id' => $p->id,
@@ -156,6 +178,72 @@ class PickingFgController extends Controller
             ],
             'do_list' => $doList,
         ]);
+    }
+
+    /**
+     * Auto-create a Delivery Note when all picking for a DO is completed.
+     */
+    private function autoCreateDeliveryNote(int $deliveryOrderId): void
+    {
+        // Skip if a DN already exists for this DO
+        $alreadyExists = DeliveryNote::whereHas('deliveryOrders', function ($q) use ($deliveryOrderId) {
+            $q->where('delivery_order_id', $deliveryOrderId);
+        })->exists();
+
+        if ($alreadyExists) {
+            return;
+        }
+
+        $do = DeliveryOrder::find($deliveryOrderId);
+        if (!$do) {
+            return;
+        }
+
+        $completedPicks = OutgoingPickingFg::with('part')
+            ->where('delivery_order_id', $deliveryOrderId)
+            ->where('status', 'completed')
+            ->get();
+
+        if ($completedPicks->isEmpty()) {
+            return;
+        }
+
+        $dn = DeliveryNote::create([
+            'customer_id' => $do->customer_id,
+            'delivery_date' => $do->do_date ?? now()->toDateString(),
+            'status' => 'ready_to_ship',
+            'notes' => 'Auto-created from completed Picking FG (DO: ' . $do->do_no . ') at ' . now()->format('d M Y H:i'),
+            'created_by' => Auth::id(),
+        ]);
+
+        foreach ($completedPicks as $pick) {
+            DnItem::create([
+                'dn_id' => $dn->id,
+                'gci_part_id' => $pick->gci_part_id,
+                'qty' => $pick->qty_picked,
+                'outgoing_po_item_id' => $pick->outgoing_po_item_id,
+            ]);
+        }
+
+        $dn->deliveryOrders()->sync([$deliveryOrderId]);
+
+        $dn->transaction_no = DeliveryNote::generateTransactionNo($dn->delivery_date->toDateString());
+        $dn->save();
+
+        // Auto-link production orders for traceability (FIFO)
+        $gciPartIds = $completedPicks->pluck('gci_part_id')->unique()->toArray();
+        if (!empty($gciPartIds)) {
+            $woIds = \App\Models\ProductionOrder::whereIn('gci_part_id', $gciPartIds)
+                ->whereNotNull('transaction_no')
+                ->orderBy('created_at', 'asc')
+                ->limit(20)
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($woIds)) {
+                $dn->productionOrders()->sync($woIds);
+            }
+        }
     }
 
     private function identifyGroupStatus($items)
@@ -244,6 +332,9 @@ class PickingFgController extends Controller
 
                 if ($pendingCount === 0) {
                     DeliveryOrder::where('id', $pick->delivery_order_id)->update(['status' => 'completed']);
+
+                    // Auto-create Delivery Note when all picking for this DO is completed
+                    $this->autoCreateDeliveryNote($pick->delivery_order_id);
                 } else {
                     DeliveryOrder::where('id', $pick->delivery_order_id)
                         ->where('status', 'completed')

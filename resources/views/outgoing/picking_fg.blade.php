@@ -309,11 +309,22 @@
                                     </div>
                                     
                                     @if($so->status === 'completed')
-                                        <a href="{{ route('outgoing.delivery-notes.create', ['delivery_order_ids' => $so->do_id]) }}" 
-                                           class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2">
-                                           <span>Create Delivery</span>
-                                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                        </a>
+                                        @if($so->dn_id)
+                                            <a href="{{ route('outgoing.delivery-notes.show', $so->dn_id) }}"
+                                               class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2">
+                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                               <span class="flex flex-col text-left leading-tight">
+                                                   <span>{{ $so->dn_no }}</span>
+                                                   <span class="text-[9px] font-medium text-emerald-200">{{ $so->dn_created_at?->format('d M Y H:i') }}</span>
+                                               </span>
+                                            </a>
+                                        @else
+                                            <a href="{{ route('outgoing.delivery-notes.create', ['delivery_order_ids' => $so->do_id]) }}"
+                                               class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2">
+                                               <span>Create Delivery</span>
+                                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                            </a>
+                                        @endif
                                     @else
                                         <div class="w-32">
                                             <div class="flex items-center justify-between mb-1">
