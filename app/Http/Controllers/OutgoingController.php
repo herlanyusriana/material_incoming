@@ -658,6 +658,74 @@ class OutgoingController extends Controller
             ]);
         }
 
+        // --- CONSOLIDATION LOGIC BY PART NO ---
+        $lines = $lines->groupBy(function ($item) {
+            $date = $item->date->format('Y-m-d');
+            $custId = $item->customer?->id ?? 0;
+            $gciId = $item->gci_part?->id ?? 0;
+            // If gci_id is unknown, we group by part_no string as fallback
+            $unmappedPn = !$gciId ? ($item->customer_part_no ?? 'UNKNOWN') : '';
+            return "$date|$custId|$gciId|$unmappedPn";
+        })->map(function ($group) {
+            $first = $group->first();
+            $consolidated = clone $first;
+
+            if ($group->count() > 1) {
+                $consolidated->gross_qty = $group->sum('gross_qty');
+
+                $allSeqs = [];
+                $allRowIds = [];
+                $allPoNos = [];
+                $allPartNos = [];
+                $allPartNames = [];
+
+                foreach ($group as $item) {
+                    if (!empty($item->sequences_consolidated)) {
+                        $allSeqs = array_merge($allSeqs, $item->sequences_consolidated);
+                    }
+                    if (!empty($item->source_row_ids)) {
+                        $allRowIds = array_merge($allRowIds, $item->source_row_ids);
+                    }
+                    if (isset($item->po_no) && $item->po_no) {
+                        $allPoNos[] = $item->po_no;
+                    }
+                    if ($item->customer_part_no) {
+                        $allPartNos[] = $item->customer_part_no;
+                    }
+                    if ($item->customer_part_name) {
+                        $allPartNames[] = $item->customer_part_name;
+                    }
+                }
+
+                $consolidated->sequences_consolidated = array_values(array_unique($allSeqs));
+                if (!empty($consolidated->sequences_consolidated)) {
+                    $consolidated->sequence = min($consolidated->sequences_consolidated);
+                }
+
+                $consolidated->source_row_ids = array_values(array_unique($allRowIds));
+
+                $uniquePoNos = array_values(array_unique(array_filter($allPoNos)));
+                if (!empty($uniquePoNos)) {
+                    $consolidated->po_no = implode(', ', $uniquePoNos);
+                    // Keep source as 'po' if it was already, else maybe mark as mixed if needed
+                }
+
+                $uniquePartNos = array_values(array_unique(array_filter($allPartNos)));
+                if (count($uniquePartNos) > 1) {
+                    $consolidated->customer_part_no = implode(', ', $uniquePartNos);
+                }
+
+                $uniquePartNames = array_values(array_unique(array_filter($allPartNames)));
+                if (count($uniquePartNames) > 1) {
+                    $consolidated->customer_part_name = implode(', ', $uniquePartNames);
+                }
+            }
+
+            return $consolidated;
+        })->values();
+
+        // Also add PO part IDs to stock calculation collections
+
         // Also add PO part IDs to stock calculation collections
         $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
         $poPartNos = $poItems->map(fn($i) => $i->part?->part_no)->filter()->unique();
@@ -970,6 +1038,52 @@ class OutgoingController extends Controller
                 'po_no' => $poItem->outgoingPo?->po_no,
             ]);
         }
+
+        // --- CONSOLIDATION LOGIC BY PART NO ---
+        $lines = $lines->groupBy(function ($item) {
+            $date = $item->date->format('Y-m-d');
+            $custId = $item->customer?->id ?? 0;
+            $gciId = $item->gci_part?->id ?? 0;
+            $unmappedPn = !$gciId ? ($item->customer_part_name ?? 'UNKNOWN') : '';
+            return "$date|$custId|$gciId|$unmappedPn";
+        })->map(function ($group) {
+            $first = $group->first();
+            $consolidated = clone $first;
+
+            if ($group->count() > 1) {
+                $consolidated->gross_qty = $group->sum('gross_qty');
+
+                $allRowIds = [];
+                $allPoNos = [];
+                $allNames = [];
+
+                foreach ($group as $item) {
+                    if (!empty($item->source_row_ids)) {
+                        $allRowIds = array_merge($allRowIds, $item->source_row_ids);
+                    }
+                    if (isset($item->po_no) && $item->po_no) {
+                        $allPoNos[] = $item->po_no;
+                    }
+                    if ($item->customer_part_name) {
+                        $allNames[] = $item->customer_part_name;
+                    }
+                }
+
+                $consolidated->source_row_ids = array_values(array_unique($allRowIds));
+
+                $uniquePoNos = array_values(array_unique(array_filter($allPoNos)));
+                if (!empty($uniquePoNos)) {
+                    $consolidated->po_no = implode(', ', $uniquePoNos);
+                }
+
+                $uniqueNames = array_values(array_unique(array_filter($allNames)));
+                if (count($uniqueNames) > 1) {
+                    $consolidated->customer_part_name = implode(', ', $uniqueNames);
+                }
+            }
+
+            return $consolidated;
+        })->values();
 
         /** @var \Illuminate\Support\Collection $requirements */
         $requirements = $lines->map(function (object $r) use ($getStock): object {
