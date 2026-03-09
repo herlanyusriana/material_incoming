@@ -252,7 +252,7 @@
         </div>
 
         {{-- DO Lists --}}
-        @if($soList->isEmpty())
+        @if($doList->isEmpty())
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
                 <div class="text-slate-400 text-sm italic">
                     @if($filterStatus || $filterSearch)
@@ -268,8 +268,8 @@
             </div>
         @else
             <div class="space-y-6">
-                @foreach($soList as $so)
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-so-id="{{ $so->so_id }}">
+                @foreach($doList as $so)
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-do-id="{{ $so->do_id }}">
                         {{-- DO Header Card --}}
                         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -282,7 +282,7 @@
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <span class="text-lg font-black text-slate-900">
-                                                {{ $so->so_no ?? ($so->source === 'po' ? $so->po_no : 'DAILY PLAN') }}
+                                                {{ $so->do_no ?? ($so->source === 'po' ? $so->po_no : 'DAILY PLAN') }}
                                             </span>
                                             @if($so->trip_no)
                                                 <span class="px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-[10px] font-black border border-orange-200 uppercase">
@@ -294,8 +294,8 @@
                                             </span>
                                         </div>
                                         <div class="text-xs text-slate-500 font-medium">
-                                            @if($so->so_no)
-                                                Delivery Order Identity <span class="text-slate-300 mx-1">•</span>
+                                            @if($so->do_no)
+                                                Delivery Order Identity <span class="text-slate-300 mx-1">&bull;</span>
                                             @endif
                                             {{ $so->items_count }} Parts to pick
                                         </div>
@@ -309,7 +309,7 @@
                                     </div>
                                     
                                     @if($so->status === 'completed')
-                                        <a href="{{ route('outgoing.delivery-notes.create', ['sales_order_ids' => $so->so_id]) }}" 
+                                        <a href="{{ route('outgoing.delivery-notes.create', ['delivery_order_ids' => $so->do_id]) }}" 
                                            class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2">
                                            <span>Create Delivery</span>
                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
@@ -318,10 +318,10 @@
                                         <div class="w-32">
                                             <div class="flex items-center justify-between mb-1">
                                                 <span class="text-[10px] font-bold text-slate-500 uppercase">Progress</span>
-                                                <span class="text-[10px] font-black text-indigo-600" id="so-pct-{{ $so->so_id }}">{{ $so->progress_percent }}%</span>
+                                                <span class="text-[10px] font-black text-indigo-600" id="do-pct-{{ $so->do_id }}">{{ $so->progress_percent }}%</span>
                                             </div>
                                             <div class="progress-bar-bg">
-                                                <div class="progress-bar-fill" id="so-progress-{{ $so->so_id }}" style="width: {{ $so->progress_percent }}%; background: {{ $so->progress_percent >= 100 ? '#16a34a' : ($so->progress_percent > 0 ? '#6366f1' : '#e2e8f0') }};"></div>
+                                                <div class="progress-bar-fill" id="do-progress-{{ $so->do_id }}" style="width: {{ $so->progress_percent }}%; background: {{ $so->progress_percent >= 100 ? '#16a34a' : ($so->progress_percent > 0 ? '#6366f1' : '#e2e8f0') }};"></div>
                                             </div>
                                         </div>
                                     @endif
@@ -329,7 +329,7 @@
                             </div>
                         </div>
 
-                        {{-- Parts Table for this SO --}}
+                        {{-- Parts Table for this DO --}}
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs">
                                 <thead>
@@ -364,7 +364,7 @@
                                             <td class="px-4 py-3 text-center bg-emerald-50/30">
                                                 <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
                                                     class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}"
-                                                    data-source="{{ $row->source }}" data-sales-order-id="{{ $row->sales_order_id }}"
+                                                    data-source="{{ $row->source }}" data-delivery-order-id="{{ $row->delivery_order_id }}"
                                                     onchange="savePick(this)" id="pick-input-{{ $rowKey }}">
                                             </td>
                                             <td class="px-4 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
@@ -443,7 +443,7 @@
             const rowKey = input.dataset.rowKey;
             const partId = input.dataset.partId;
             const source = input.dataset.source || 'daily_plan';
-            const soId = input.dataset.salesOrderId || null;
+            const deliveryOrderId = input.dataset.deliveryOrderId || null;
             const qtyPicked = parseInt(input.value) || 0;
             const qtyPlan = parseInt(document.getElementById(`row-${rowKey}`).dataset.qtyPlan) || 0;
             const location = document.getElementById(`loc-${rowKey}`)?.value || '';
@@ -462,7 +462,7 @@
                         delivery_date: DELIVERY_DATE,
                         gci_part_id: partId,
                         source: source,
-                        sales_order_id: soId,
+                        delivery_order_id: deliveryOrderId,
                         qty_picked: qtyPicked,
                         pick_location: location,
                     })
@@ -531,7 +531,7 @@
                 if (lastUpdated && data.last_updated && data.last_updated !== lastUpdated) {
                     // Data changed - update stats and rows
                     updateStats(data.stats);
-                    updateRows(data.so_list);
+                    updateRows(data.do_list);
                 }
                 lastUpdated = data.last_updated;
 
@@ -561,21 +561,21 @@
             }
         }
 
-        function updateRows(soList) {
-            if (!soList) return;
-            soList.forEach(so => {
-                // Update SO-level progress
-                const soPctEl = document.getElementById(`so-pct-${so.so_id}`);
-                if (soPctEl) soPctEl.textContent = so.progress_percent + '%';
-                const soProgEl = document.getElementById(`so-progress-${so.so_id}`);
-                if (soProgEl) {
-                    soProgEl.style.width = so.progress_percent + '%';
-                    soProgEl.style.background = so.progress_percent >= 100 ? '#16a34a' : (so.progress_percent > 0 ? '#6366f1' : '#e2e8f0');
+        function updateRows(doList) {
+            if (!doList) return;
+            doList.forEach(deliveryOrder => {
+                // Update DO-level progress
+                const doPctEl = document.getElementById(`do-pct-${deliveryOrder.do_id}`);
+                if (doPctEl) doPctEl.textContent = deliveryOrder.progress_percent + '%';
+                const doProgEl = document.getElementById(`do-progress-${deliveryOrder.do_id}`);
+                if (doProgEl) {
+                    doProgEl.style.width = deliveryOrder.progress_percent + '%';
+                    doProgEl.style.background = deliveryOrder.progress_percent >= 100 ? '#16a34a' : (deliveryOrder.progress_percent > 0 ? '#6366f1' : '#e2e8f0');
                 }
 
                 // Update individual rows
-                if (so.rows) {
-                    so.rows.forEach(row => {
+                if (deliveryOrder.rows) {
+                    deliveryOrder.rows.forEach(row => {
                         const rowKey = row.id;
                         const input = document.getElementById(`pick-input-${rowKey}`);
                         // Only update if input is not focused (user not editing)
