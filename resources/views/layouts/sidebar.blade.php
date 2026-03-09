@@ -323,6 +323,10 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                     <span class="flex-1">Production Orders</span>
                                 </a>
+                                <a href="{{ route('production.qdc-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qdc-history.*'), $subInactive => !request()->routeIs('production.qdc-history.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-amber-600' => request()->routeIs('production.qdc-history.*'), 'bg-slate-300 group-hover:bg-amber-400' => !request()->routeIs('production.qdc-history.*')])></span>
+                                    <span class="flex-1">QDC History</span>
+                                </a>
                             </div>
                         </details>
                     </div>
@@ -1366,7 +1370,7 @@
             </svg>
             <span x-show="!sidebarCollapsed" x-cloak>Profile</span>
         </a>
-        <div class="mt-3 px-2 text-xs text-slate-400" x-show="!sidebarCollapsed" x-cloak>© {{ date('Y') }} Geum Cheon
+        <div class="mt-3 px-2 text-xs text-slate-400" x-show="!sidebarCollapsed" x-cloak>ï¿½ {{ date('Y') }} Geum Cheon
             Indo</div>
     </div>
 </aside>

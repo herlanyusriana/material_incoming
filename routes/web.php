@@ -500,6 +500,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/gci-dashboard', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'index'])->name('gci-dashboard.index');
         Route::get('/gci-dashboard/{id}', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'show'])->name('gci-dashboard.show');
 
+        // QDC History (all downtime records)
+        Route::get('/qdc-history', [\App\Http\Controllers\Production\QdcHistoryController::class, 'index'])->name('qdc-history.index');
+
         // Production Downtimes (QDC, Breaks, etc.)
         Route::post('/orders/{productionOrder}/downtimes', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'store'])->name('downtimes.store');
         Route::put('/orders/{productionOrder}/downtimes/{downtime}', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'update'])->name('downtimes.update');

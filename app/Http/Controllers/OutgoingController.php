@@ -414,25 +414,52 @@ class OutgoingController extends Controller
             ->unique()
             ->values();
 
-        $stockMap = [];
-        if ($stockDates->isNotEmpty() && $customerIds->isNotEmpty() && $partIds->isNotEmpty()) {
-            $stockMap = StockAtCustomer::query()
+        // Build part_no list for fallback matching (stock may be imported with part_no only)
+        $partNos = $cells
+            ->map(fn($c) => $c->row?->gciPart?->part_no)
+            ->filter(fn($v) => $v !== null && $v !== '')
+            ->unique()
+            ->values();
+
+        $stockMap = [];       // keyed by "date|customer_id|gci_part_id"
+        $stockMapByPn = [];   // keyed by "date|customer_id|part_no" (fallback)
+        if ($stockDates->isNotEmpty() && $customerIds->isNotEmpty()) {
+            $stockRecords = StockAtCustomer::query()
                 ->whereIn('stock_date', $stockDates->all())
                 ->whereIn('customer_id', $customerIds->all())
-                ->whereIn('gci_part_id', $partIds->all())
-                ->get()
-                ->mapWithKeys(function ($rec) {
-                    $k = $rec->stock_date->format('Y-m-d') . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
-                    return [$k => $rec];
+                ->where(function ($q) use ($partIds, $partNos) {
+                    $q->whereIn('gci_part_id', $partIds->all());
+                    if ($partNos->isNotEmpty()) {
+                        $q->orWhereIn('part_no', $partNos->all());
+                    }
                 })
-                ->all();
+                ->get();
+
+            foreach ($stockRecords as $rec) {
+                $dateStr = $rec->stock_date->format('Y-m-d');
+                $custId = (int) $rec->customer_id;
+
+                if ($rec->gci_part_id) {
+                    $k = $dateStr . '|' . $custId . '|' . (int) $rec->gci_part_id;
+                    $stockMap[$k] = $rec;
+                }
+                if ($rec->part_no) {
+                    $kpn = $dateStr . '|' . $custId . '|' . $rec->part_no;
+                    $stockMapByPn[$kpn] = $rec;
+                }
+            }
         }
 
-        $getStockAtCustomer = function (Carbon $date, int $customerId, int $gciPartId) use ($stockMap): float {
-            $k = $date->format('Y-m-d') . '|' . $customerId . '|' . $gciPartId;
+        $getStockAtCustomer = function (Carbon $date, int $customerId, int $gciPartId, ?string $partNo = null) use ($stockMap, $stockMapByPn): float {
+            $dateStr = $date->format('Y-m-d');
+            // Primary: match by gci_part_id
+            $k = $dateStr . '|' . $customerId . '|' . $gciPartId;
             $rec = $stockMap[$k] ?? null;
-            if (!$rec) {
-                return 0.0;
+
+            // Fallback: match by part_no
+            if (!$rec && $partNo) {
+                $kpn = $dateStr . '|' . $customerId . '|' . $partNo;
+                $rec = $stockMapByPn[$kpn] ?? null;
             }
 
             return (float) ($rec->qty ?? 0);
@@ -582,20 +609,37 @@ class OutgoingController extends Controller
 
         // Also add PO part IDs to stock calculation collections
         $poPartIds = $poItems->pluck('gci_part_id')->filter()->unique();
+        $poPartNos = $poItems->map(fn($i) => $i->part?->part_no)->filter()->unique();
         $poCustomerIds = $poItems->map(fn($i) => $i->part?->customers->first()?->id)->filter()->unique();
         $poStockDates = $poItems->pluck('delivery_date')->filter()->map(fn($d) => $d->format('Y-m-d'))->unique();
 
-        if ($poStockDates->isNotEmpty() && $poCustomerIds->isNotEmpty() && $poPartIds->isNotEmpty()) {
+        if ($poStockDates->isNotEmpty() && $poCustomerIds->isNotEmpty()) {
             /** @var \Illuminate\Support\Collection $poStockRecords */
             $poStockRecords = StockAtCustomer::query()
                 ->whereIn('stock_date', $poStockDates->all())
                 ->whereIn('customer_id', $poCustomerIds->all())
-                ->whereIn('gci_part_id', $poPartIds->all())
+                ->where(function ($q) use ($poPartIds, $poPartNos) {
+                    $q->whereIn('gci_part_id', $poPartIds->all());
+                    if ($poPartNos->isNotEmpty()) {
+                        $q->orWhereIn('part_no', $poPartNos->all());
+                    }
+                })
                 ->get();
             foreach ($poStockRecords as $rec) {
-                $k = $rec->stock_date->format('Y-m-d') . '|' . (int) $rec->customer_id . '|' . (int) $rec->gci_part_id;
-                if (!isset($stockMap[$k])) {
-                    $stockMap[$k] = $rec;
+                $dateStr = $rec->stock_date->format('Y-m-d');
+                $custId = (int) $rec->customer_id;
+
+                if ($rec->gci_part_id) {
+                    $k = $dateStr . '|' . $custId . '|' . (int) $rec->gci_part_id;
+                    if (!isset($stockMap[$k])) {
+                        $stockMap[$k] = $rec;
+                    }
+                }
+                if ($rec->part_no) {
+                    $kpn = $dateStr . '|' . $custId . '|' . $rec->part_no;
+                    if (!isset($stockMapByPn[$kpn])) {
+                        $stockMapByPn[$kpn] = $rec;
+                    }
                 }
             }
         }
@@ -610,8 +654,9 @@ class OutgoingController extends Controller
                 $partId = (int) ($r->gci_part?->id ?? 0);
 
                 $stockTotal = 0.0;
-                if ($date && $custId > 0 && $partId > 0) {
-                    $stockTotal = $getStockAtCustomer($date, $custId, $partId);
+                $partNo = $r->gci_part?->part_no;
+                if ($date && $custId > 0 && ($partId > 0 || $partNo)) {
+                    $stockTotal = $getStockAtCustomer($date, $custId, $partId, $partNo);
                 }
 
                 $gross = (float) ($r->gross_qty ?? 0);

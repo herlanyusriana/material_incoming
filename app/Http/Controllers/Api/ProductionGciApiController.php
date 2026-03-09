@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Machine;
+use App\Models\ProductionOrder;
 use App\Models\ProductionGciWorkOrder;
 use App\Models\ProductionGciHourlyReport;
 use App\Models\ProductionGciDowntime;
@@ -67,6 +69,26 @@ class ProductionGciApiController extends Controller
 
             if (!empty($data['downtimes'])) {
                 foreach ($data['downtimes'] as $dtParams) {
+                    // New format: machine-based downtimes (from Flutter downtime-only app)
+                    if (isset($dtParams['machineId'])) {
+                        ProductionGciDowntime::updateOrCreate(
+                            ['offline_id' => $dtParams['id']],
+                            [
+                                'production_gci_work_order_id' => null,
+                                'machine_id' => $dtParams['machineId'],
+                                'machine_name' => $dtParams['machineName'] ?? null,
+                                'shift' => $dtParams['shift'] ?? null,
+                                'start_time' => $dtParams['startTime'],
+                                'end_time' => $dtParams['endTime'],
+                                'duration_minutes' => $dtParams['durationMinutes'],
+                                'reason' => $dtParams['reason'],
+                                'notes' => $dtParams['notes'] ?? null,
+                            ]
+                        );
+                        continue;
+                    }
+
+                    // Legacy format: work-order-based downtimes
                     $woId = $woMap[$dtParams['workOrderId']] ?? ProductionGciWorkOrder::where('offline_id', $dtParams['workOrderId'])->value('id');
 
                     if ($woId) {
@@ -110,5 +132,40 @@ class ProductionGciApiController extends Controller
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function machines()
+    {
+        $machines = Machine::active()
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'group_name', 'cycle_time', 'cycle_time_unit']);
+
+        return response()->json(['data' => $machines]);
+    }
+
+    public function workOrders(Request $request)
+    {
+        $machineId = $request->query('machine_id');
+        $date = $request->query('date', now()->toDateString());
+
+        $query = ProductionOrder::with('part:id,part_no,part_name,model')
+            ->whereDate('planned_start_date', $date)
+            ->orderBy('transaction_no');
+
+        if ($machineId) {
+            $query->where('machine_id', $machineId);
+        }
+
+        $orders = $query->get()->map(fn($o) => [
+            'id' => $o->id,
+            'transaction_no' => $o->transaction_no,
+            'part_no' => $o->part?->part_no,
+            'part_name' => $o->part?->part_name,
+            'model' => $o->part?->model,
+            'qty' => $o->qty,
+            'status' => $o->status,
+        ]);
+
+        return response()->json(['data' => $orders]);
     }
 }
