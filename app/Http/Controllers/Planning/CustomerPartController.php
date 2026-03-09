@@ -25,7 +25,7 @@ class CustomerPartController extends Controller
         $search = $request->query('search');
 
         $customers = Customer::query()->orderBy('code')->get();
-        $parts = GciPart::query()->orderBy('part_no')->get();
+        $parts = GciPart::query()->where('classification', 'FG')->orderBy('part_no')->get();
 
         $customerParts = CustomerPart::query()
             ->with(['customer', 'components.part'])

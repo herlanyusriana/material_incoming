@@ -182,7 +182,7 @@
         {{-- Create/Edit Modal (Added) --}}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
             x-show="modalOpen" x-cloak @keydown.escape.window="close()">
-            <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <h3 class="text-lg font-bold text-slate-900"
                         x-text="mode === 'create' ? 'Create Customer Part' : 'Edit Customer Part'"></h3>
@@ -279,7 +279,7 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
             x-show="compModalOpen" x-cloak @keydown.escape.window="closeComponentModal()">
             <div
-                class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col max-h-[90vh]">
+                class="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col max-h-[90vh]">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <div>
                         <div class="text-xs text-slate-500 uppercase font-bold tracking-wider"
@@ -446,7 +446,6 @@
                                 create: false,
                                 placeholder: 'Search Part GCI...',
                                 allowEmptyOption: true,
-                                controlInput: null,
                                 dropdownParent: 'body'
                             });
 
@@ -454,7 +453,6 @@
                                 create: false,
                                 placeholder: 'Search Part GCI to link...',
                                 allowEmptyOption: true,
-                                controlInput: null,
                                 dropdownParent: 'body'
                             });
                         });
