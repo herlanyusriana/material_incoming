@@ -9,28 +9,26 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
- * Empty template for Stock at Customers import.
- * Downloads a spreadsheet with headers only (customer, part_no, part_name, model, status, 1..N days).
+ * Empty template for Stock at Customers import (7-day window).
+ * Downloads a spreadsheet with headers only: customer, part_no, part_name, model, status, date1..date7.
  */
 class StockAtCustomersTemplateExport implements FromArray, WithHeadings, WithStyles
 {
-    public function __construct(private readonly string $period)
+    public function __construct(private readonly string $startDate)
     {
     }
 
     public function array(): array
     {
-        // Return an empty array — template has headers only
         return [];
     }
 
     public function headings(): array
     {
         $base = ['customer', 'part_no', 'part_name', 'model', 'status'];
-        $date = CarbonImmutable::parse($this->period . '-01');
-        $daysInMonth = $date->daysInMonth;
-        for ($d = 1; $d <= $daysInMonth; $d++) {
-            $base[] = (string) $d;
+        $start = CarbonImmutable::parse($this->startDate);
+        for ($i = 0; $i < 7; $i++) {
+            $base[] = $start->addDays($i)->format('Y-m-d');
         }
         return $base;
     }

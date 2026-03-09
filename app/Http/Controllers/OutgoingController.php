@@ -1351,28 +1351,28 @@ class OutgoingController extends Controller
 
     public function stockAtCustomers(Request $request)
     {
-        $period = $request->input('period', now()->format('Y-m'));
-        $date = CarbonImmutable::parse($period . '-01');
-        $daysInMonth = $date->daysInMonth;
-        $startDate = $date->format('Y-m-d');
-        $endDate = $date->endOfMonth()->format('Y-m-d');
+        $startDate = CarbonImmutable::parse($request->input('start_date', now()->format('Y-m-d')));
+        $endDate = $startDate->addDays(6); // 7-day window
+        $startStr = $startDate->format('Y-m-d');
+        $endStr = $endDate->format('Y-m-d');
 
-        // Build days as associative: day_number => formatted date string
+        // Build days: date string => formatted label
         $days = [];
-        for ($d = 1; $d <= $daysInMonth; $d++) {
-            $days[$d] = $date->setDay($d)->format('d/m');
+        for ($i = 0; $i < 7; $i++) {
+            $d = $startDate->addDays($i);
+            $days[$d->format('Y-m-d')] = $d->format('d/m');
         }
 
-        // Fetch all row-per-date records for this period
+        // Fetch all row-per-date records for this 7-day range
         $rawRecords = StockAtCustomer::query()
             ->with(['customer', 'part'])
-            ->whereBetween('stock_date', [$startDate, $endDate])
+            ->whereBetween('stock_date', [$startStr, $endStr])
             ->orderBy('customer_id')
             ->orderBy('part_no')
             ->orderBy('stock_date')
             ->get();
 
-        // Pivot: group by customer_id + part_no → single row with day_1..day_N
+        // Pivot: group by customer_id + part_no → single row with date keys
         $grouped = [];
         foreach ($rawRecords as $rec) {
             $key = $rec->customer_id . '|' . $rec->part_no;
@@ -1386,13 +1386,15 @@ class OutgoingController extends Controller
                 $obj->customer = $rec->customer;
                 $obj->part = $rec->part;
                 // Initialize all days to 0
-                for ($d = 1; $d <= $daysInMonth; $d++) {
-                    $obj->{'day_' . $d} = 0;
+                foreach ($days as $dateKey => $label) {
+                    $obj->{$dateKey} = 0;
                 }
                 $grouped[$key] = $obj;
             }
-            $dayNum = (int) $rec->stock_date->format('j');
-            $grouped[$key]->{'day_' . $dayNum} = (float) $rec->qty;
+            $dateKey = $rec->stock_date->format('Y-m-d');
+            if (isset($days[$dateKey])) {
+                $grouped[$key]->{$dateKey} = (float) $rec->qty;
+            }
         }
 
         // Paginate the pivoted collection
@@ -1407,24 +1409,24 @@ class OutgoingController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        return view('outgoing.stock_at_customers', compact('period', 'days', 'records'));
+        return view('outgoing.stock_at_customers', compact('startDate', 'endDate', 'days', 'records'));
     }
 
     public function stockAtCustomersTemplate(Request $request)
     {
-        $period = $request->input('period', now()->format('Y-m'));
+        $startDate = $request->input('start_date', now()->format('Y-m-d'));
         return Excel::download(
-            new StockAtCustomersTemplateExport($period),
-            "stock_at_customers_template_{$period}.xlsx"
+            new StockAtCustomersTemplateExport($startDate),
+            "stock_at_customers_template_{$startDate}.xlsx"
         );
     }
 
     public function stockAtCustomersExport(Request $request)
     {
-        $period = $request->input('period', now()->format('Y-m'));
+        $startDate = $request->input('start_date', now()->format('Y-m-d'));
         return Excel::download(
-            new StockAtCustomersExport($period),
-            "stock_at_customers_{$period}.xlsx"
+            new StockAtCustomersExport($startDate),
+            "stock_at_customers_{$startDate}.xlsx"
         );
     }
 
@@ -1432,10 +1434,10 @@ class OutgoingController extends Controller
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv',
-            'period' => 'required|date_format:Y-m',
+            'start_date' => 'required|date',
         ]);
 
-        $import = new StockAtCustomersImport($request->period);
+        $import = new StockAtCustomersImport($request->start_date);
         Excel::import($import, $request->file('file'));
 
         $msg = "Imported {$import->rowCount} rows.";

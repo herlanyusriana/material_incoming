@@ -16,24 +16,32 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
     public int $skippedRows = 0;
     public array $failures = [];
 
-    private ?array $headingDayMap = null;
+    private ?array $headingDateMap = null;
 
-    public function __construct(private readonly string $period)
+    /**
+     * @param string $startDate  Start date in Y-m-d format (7-day window)
+     */
+    public function __construct(private readonly string $startDate)
     {
     }
 
     /**
-     * Build a map of heading key → day number (1-31) for the current period.
-     * Handles: plain day numbers ("1", "01"), date strings ("2026-03-01", "2026_03_01"),
-     * and Excel serial date numbers that WithHeadingRow turns into integer keys.
+     * Build a map of heading key → actual date string (Y-m-d) for the 7-day window.
+     * Handles: date strings ("2026-03-09", "2026_03_09"),
+     * Excel serial date numbers, and plain day numbers (matched to the 7-day range).
      */
-    private function buildHeadingDayMap(array $keys): array
+    private function buildHeadingDateMap(array $keys): array
     {
         $map = [];
         $knownTextKeys = ['customer', 'part_no', 'part_name', 'model', 'status'];
-        $periodYear = (int) substr($this->period, 0, 4);
-        $periodMonth = (int) substr($this->period, 5, 2);
-        $daysInMonth = \Carbon\Carbon::create($periodYear, $periodMonth, 1)->daysInMonth;
+
+        $start = \Carbon\CarbonImmutable::parse($this->startDate);
+        // Build set of valid dates in the 7-day window
+        $validDates = [];
+        for ($i = 0; $i < 7; $i++) {
+            $d = $start->addDays($i);
+            $validDates[$d->format('Y-m-d')] = true;
+        }
 
         foreach ($keys as $key) {
             $k = (string) $key;
@@ -43,43 +51,39 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
                 continue;
             }
 
-            // 1) Plain day number: "1"-"31" or "01"-"31"
-            if (preg_match('/^0*(\d{1,2})$/', $k, $m)) {
-                $day = (int) $m[1];
-                if ($day >= 1 && $day <= $daysInMonth && !isset($map[$k])) {
-                    // Only accept if it's clearly a day number (1-31), not a serial date (>31)
-                    if ($day <= 31) {
-                        $map[$k] = $day;
-                        continue;
-                    }
-                }
-            }
-
-            // 2) Date string variants: "2026-03-01", "2026_03_01"
+            // 1) Date string variants: "2026-03-09", "2026_03_09"
             $normalized = str_replace('_', '-', $k);
             if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $normalized, $m)) {
-                $y = (int) $m[1];
-                $mo = (int) $m[2];
-                $day = (int) $m[3];
-                if ($y === $periodYear && $mo === $periodMonth && $day >= 1 && $day <= $daysInMonth) {
-                    $map[$k] = $day;
+                $dateStr = $m[1] . '-' . $m[2] . '-' . $m[3];
+                if (isset($validDates[$dateStr])) {
+                    $map[$k] = $dateStr;
                     continue;
                 }
             }
 
-            // 3) Excel serial date number (integer > 31, typically 40000-60000 range)
+            // 2) Excel serial date number (integer > 31, typically 40000-60000 range)
             if (is_numeric($k) && (int) $k > 31) {
                 try {
                     $dateObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((int) $k);
-                    $y = (int) $dateObj->format('Y');
-                    $mo = (int) $dateObj->format('m');
-                    $day = (int) $dateObj->format('j');
-                    if ($y === $periodYear && $mo === $periodMonth && $day >= 1 && $day <= $daysInMonth) {
-                        $map[$k] = $day;
+                    $dateStr = $dateObj->format('Y-m-d');
+                    if (isset($validDates[$dateStr])) {
+                        $map[$k] = $dateStr;
                         continue;
                     }
                 } catch (\Throwable $e) {
                     // Not a valid serial date
+                }
+            }
+
+            // 3) Plain day number: "9", "09" etc. — match against 7-day window
+            if (preg_match('/^0*(\d{1,2})$/', $k, $m)) {
+                $dayNum = (int) $m[1];
+                foreach ($validDates as $dateStr => $_) {
+                    $d = \Carbon\CarbonImmutable::parse($dateStr);
+                    if ((int) $d->format('j') === $dayNum) {
+                        $map[$k] = $dateStr;
+                        break; // take the first match
+                    }
                 }
             }
         }
@@ -108,9 +112,6 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
 
     public function collection(Collection $rows)
     {
-        $periodYear = (int) substr($this->period, 0, 4);
-        $periodMonth = (int) substr($this->period, 5, 2);
-
         foreach ($rows as $idx => $row) {
             try {
                 $data = is_array($row) ? $row : $row->toArray();
@@ -147,20 +148,18 @@ class StockAtCustomersImport implements ToCollection, WithHeadingRow, SkipsEmpty
                     ]);
                 }
 
-                // Build heading→day map once from the first data row's keys
-                if ($this->headingDayMap === null) {
-                    $this->headingDayMap = $this->buildHeadingDayMap(array_keys($data));
+                // Build heading→date map once from the first data row's keys
+                if ($this->headingDateMap === null) {
+                    $this->headingDateMap = $this->buildHeadingDateMap(array_keys($data));
                 }
 
                 // Insert/update one row per day (row-per-date schema)
-                foreach ($this->headingDayMap as $heading => $dayNum) {
+                foreach ($this->headingDateMap as $heading => $stockDate) {
                     $raw = $data[$heading] ?? null;
                     $qty = 0;
                     if ($raw !== null && $raw !== '') {
                         $qty = is_numeric($raw) ? (float) $raw : 0;
                     }
-
-                    $stockDate = sprintf('%04d-%02d-%02d', $periodYear, $periodMonth, $dayNum);
 
                     if ($qty == 0) {
                         // Delete existing zero rows to keep table lean

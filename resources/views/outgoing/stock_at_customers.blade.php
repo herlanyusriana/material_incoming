@@ -11,16 +11,16 @@
                 </div>
                 <div>
                     <div class="text-2xl md:text-3xl font-black text-slate-900">Stock at Customers</div>
-                    <div class="mt-1 text-sm text-slate-600">Consignment / stock record per customer & part (kolom
-                        tanggal 1..31)</div>
+                    <div class="mt-1 text-sm text-slate-600">Consignment / stock record per customer & part (7 hari)
+                    </div>
                 </div>
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
                 <form method="GET" action="{{ route('outgoing.stock-at-customers') }}" class="flex items-end gap-2">
                     <div>
-                        <div class="text-xs font-semibold text-slate-500 mb-1">Period</div>
-                        <input type="month" name="period" value="{{ $period }}"
+                        <div class="text-xs font-semibold text-slate-500 mb-1">Start Date</div>
+                        <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}"
                             class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                     </div>
                     <button
@@ -28,11 +28,11 @@
                 </form>
 
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('outgoing.stock-at-customers.template', ['period' => $period]) }}"
+                    <a href="{{ route('outgoing.stock-at-customers.template', ['start_date' => $startDate->format('Y-m-d')]) }}"
                         class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         Template
                     </a>
-                    <a href="{{ route('outgoing.stock-at-customers.export', ['period' => $period]) }}"
+                    <a href="{{ route('outgoing.stock-at-customers.export', ['start_date' => $startDate->format('Y-m-d')]) }}"
                         class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         Export
                     </a>
@@ -62,13 +62,13 @@
             <div>
                 <div class="text-lg font-black text-slate-900">Upload / Import</div>
                 <div class="mt-1 text-sm text-slate-600">Format kolom: customer, part_no, part_name, model, status,
-                    1..31</div>
+                    tanggal1..tanggal7</div>
             </div>
 
             <form method="POST" action="{{ route('outgoing.stock-at-customers.import') }}" enctype="multipart/form-data"
                 class="flex flex-col gap-2 sm:flex-row sm:items-end">
                 @csrf
-                <input type="hidden" name="period" value="{{ $period }}">
+                <input type="hidden" name="start_date" value="{{ $startDate->format('Y-m-d') }}">
                 <div>
                     <div class="text-xs font-semibold text-slate-500 mb-1">File</div>
                     <input type="file" name="file" accept=".xlsx,.xls,.csv"
@@ -84,7 +84,9 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div class="text-sm font-semibold text-slate-700">
-                Data period <span class="font-black text-slate-900">{{ $period }}</span>
+                Data <span class="font-black text-slate-900">{{ $startDate->format('d M Y') }}</span>
+                &mdash;
+                <span class="font-black text-slate-900">{{ $endDate->format('d M Y') }}</span>
             </div>
             <div class="text-sm text-slate-500">
                 {{ $records->total() }} rows
@@ -100,7 +102,7 @@
                         <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[140px]">Part Name</th>
                         <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[100px]">Model</th>
                         <th class="px-4 py-3 text-left font-bold text-slate-700 min-w-[80px]">Status</th>
-                        @foreach($days as $dayNum => $dateLabel)
+                        @foreach($days as $dateKey => $dateLabel)
                             <th class="px-3 py-3 text-right font-bold text-slate-700 min-w-[60px]">{{ $dateLabel }}</th>
                         @endforeach
                     </tr>
@@ -109,15 +111,18 @@
                     @forelse($records as $rec)
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">
-                            {{ $rec->customer?->name ?? '-' }}</td>
+                            {{ $rec->customer?->name ?? '-' }}
+                        </td>
                         <td class="px-4 py-3 font-black text-slate-900 whitespace-nowrap">{{ $rec->part_no }}</td>
                         <td class="px-4 py-3 text-slate-700 whitespace-nowrap">
-                            {{ $rec->part_name ?: ($rec->part?->part_name ?? '') }}</td>
+                            {{ $rec->part_name ?: ($rec->part?->part_name ?? '') }}
+                        </td>
                         <td class="px-4 py-3 text-slate-600 whitespace-nowrap">
-                            {{ $rec->model ?: ($rec->part?->model ?? '') }}</td>
+                            {{ $rec->model ?: ($rec->part?->model ?? '') }}
+                        </td>
                         <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ $rec->status ?? '' }}</td>
-                        @foreach($days as $dayNum => $dateLabel)
-                        @php($v = (float) ($rec->{'day_' . $dayNum} ?? 0))
+                        @foreach($days as $dateKey => $dateLabel)
+                        @php($v = (float) ($rec->{$dateKey} ?? 0))
                         <td
                             class="px-3 py-3 text-right text-slate-700 {{ $v > 0 ? 'font-semibold' : 'text-slate-400' }}">
                             {{ $v > 0 ? number_format($v, 0) : '-' }}
@@ -127,7 +132,7 @@
                     @empty
                     <tr>
                         <td colspan="{{ 5 + count($days) }}" class="px-6 py-12 text-center text-slate-500 italic">Belum
-                            ada data untuk period ini.</td>
+                            ada data untuk periode ini.</td>
                     </tr>
                     @endforelse
                 </tbody>

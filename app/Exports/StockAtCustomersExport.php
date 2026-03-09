@@ -4,7 +4,6 @@ namespace App\Exports;
 
 use Carbon\CarbonImmutable;
 use App\Models\StockAtCustomer;
-use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -12,27 +11,33 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
 {
-    public function __construct(private readonly string $period)
+    public function __construct(private readonly string $startDate)
     {
     }
 
     public function array(): array
     {
-        $date = CarbonImmutable::parse($this->period . '-01');
-        $daysInMonth = $date->daysInMonth;
-        $startDate = $date->format('Y-m-d');
-        $endDate = $date->endOfMonth()->format('Y-m-d');
+        $start = CarbonImmutable::parse($this->startDate);
+        $end = $start->addDays(6);
+        $startStr = $start->format('Y-m-d');
+        $endStr = $end->format('Y-m-d');
 
-        // Fetch all rows for this period and group by customer+part
+        // Build date keys for 7 days
+        $dateKeys = [];
+        for ($i = 0; $i < 7; $i++) {
+            $dateKeys[] = $start->addDays($i)->format('Y-m-d');
+        }
+
+        // Fetch all rows for this 7-day range and group by customer+part
         $records = StockAtCustomer::query()
             ->with(['customer', 'part'])
-            ->whereBetween('stock_date', [$startDate, $endDate])
+            ->whereBetween('stock_date', [$startStr, $endStr])
             ->orderBy('customer_id')
             ->orderBy('part_no')
             ->orderBy('stock_date')
             ->get();
 
-        // Pivot: group by customer_id + part_no, then spread qty across day columns
+        // Pivot: group by customer_id + part_no, then spread qty across date columns
         $grouped = [];
         foreach ($records as $rec) {
             $key = $rec->customer_id . '|' . $rec->part_no;
@@ -43,11 +48,13 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
                     'part_name' => $rec->part_name ?: ($rec->part?->part_name ?? ''),
                     'model' => $rec->model ?: ($rec->part?->model ?? ''),
                     'status' => $rec->status ?? '',
-                    'days' => array_fill(1, $daysInMonth, 0),
+                    'days' => array_fill_keys($dateKeys, 0),
                 ];
             }
-            $dayNum = (int) $rec->stock_date->format('j');
-            $grouped[$key]['days'][$dayNum] = (float) $rec->qty;
+            $dateKey = $rec->stock_date->format('Y-m-d');
+            if (isset($grouped[$key]['days'][$dateKey])) {
+                $grouped[$key]['days'][$dateKey] = (float) $rec->qty;
+            }
         }
 
         $rows = [];
@@ -59,8 +66,8 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
                 $item['model'],
                 $item['status'],
             ];
-            for ($d = 1; $d <= $daysInMonth; $d++) {
-                $row[] = $item['days'][$d];
+            foreach ($dateKeys as $dk) {
+                $row[] = $item['days'][$dk];
             }
             $rows[] = $row;
         }
@@ -71,11 +78,9 @@ class StockAtCustomersExport implements FromArray, WithHeadings, WithStyles
     public function headings(): array
     {
         $base = ['customer', 'part_no', 'part_name', 'model', 'status'];
-        $date = CarbonImmutable::parse($this->period . '-01');
-        $daysInMonth = $date->daysInMonth;
-        for ($d = 1; $d <= $daysInMonth; $d++) {
-            // Use plain day number to prevent Excel from auto-converting to Date format
-            $base[] = (string) $d;
+        $start = CarbonImmutable::parse($this->startDate);
+        for ($i = 0; $i < 7; $i++) {
+            $base[] = $start->addDays($i)->format('Y-m-d');
         }
         return $base;
     }
