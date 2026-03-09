@@ -48,23 +48,23 @@ class GciPartController extends Controller
 
         return response()->json($query->get());
     }
-    
+
     public function getBomInfo(GciPart $gciPart)
     {
         $bom = \App\Models\Bom::where('part_id', $gciPart->id)->latest()->first();
-        
+
         if (!$bom) {
             return response()->json(['success' => false, 'message' => 'No BOM found']);
         }
-        
+
         // Try to get from first WIP item, otherwise from first item
         $bomItems = $bom->items()->orderBy('line_no')->get();
         $targetItem = $bomItems->firstWhere('wip_part_id', '!=', null) ?? $bomItems->first();
-        
+
         if (!$targetItem) {
             return response()->json(['success' => false, 'message' => 'No BOM items found']);
         }
-        
+
         return response()->json([
             'success' => true,
             'bom' => [
@@ -77,16 +77,16 @@ class GciPartController extends Controller
     public function index(Request $request)
     {
         $status = $request->query('status');
-        
+
         // Get classification from route default or query param
         $classification = $request->route('classification') ?? $request->query('classification');
 
         $qParam = trim((string) $request->query('q', ''));
 
         $parts = GciPart::query()
-            ->with('customer')
-            ->when($status, fn ($q) => $q->where('status', $status))
-            ->when($classification, fn ($q) => $q->where('classification', strtoupper($classification)))
+            ->with('customers')
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->when($classification, fn($q) => $q->where('classification', strtoupper($classification)))
             ->when($qParam, function ($query) use ($qParam) {
                 $query->where(function ($sub) use ($qParam) {
                     $sub->where('part_no', 'like', "%{$qParam}%")
@@ -138,7 +138,7 @@ class GciPartController extends Controller
         $partSubstitutesMap = [];
         if (!empty($rmIds)) {
             $subsForParts = BomItemSubstitute::query()
-                ->whereHas('bomItem', fn ($q) => $q->whereIn('component_part_id', $rmIds))
+                ->whereHas('bomItem', fn($q) => $q->whereIn('component_part_id', $rmIds))
                 ->with(['bomItem.bom.part:id,part_no,part_name', 'bomItem:id,bom_id,component_part_id', 'part:id,part_no,part_name'])
                 ->get();
 
@@ -246,7 +246,8 @@ class GciPartController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['exists:customers,id'],
             'part_no' => ['required', 'string', 'max:100'],
             'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
@@ -268,12 +269,13 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
-        $validated['customer_id'] = $validated['customer_id'] ?: null;
+
+        $customerIds = $request->input('customer_ids', []);
 
         // Clear model & customer for RM parts
         if ($validated['classification'] === 'RM') {
             $validated['model'] = null;
-            $validated['customer_id'] = null;
+            $customerIds = [];
         }
 
         if (!$request->boolean('confirm_duplicate')) {
@@ -286,6 +288,10 @@ class GciPartController extends Controller
         }
 
         $gciPart = GciPart::create($validated);
+
+        if (!empty($customerIds)) {
+            $gciPart->customers()->sync($customerIds);
+        }
 
         // Auto-link RM to FG BOMs
         $bomLinked = 0;
@@ -323,7 +329,8 @@ class GciPartController extends Controller
     public function update(Request $request, GciPart $gciPart)
     {
         $validated = $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['exists:customers,id'],
             'part_no' => ['required', 'string', 'max:100'],
             'classification' => ['required', Rule::in(['FG', 'WIP', 'RM'])],
             'part_name' => ['nullable', 'string', 'max:255'],
@@ -345,14 +352,16 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
-        $validated['customer_id'] = $validated['customer_id'] ?: null;
+
+        $customerIds = $request->input('customer_ids', []);
 
         if ($validated['classification'] === 'RM') {
             $validated['model'] = null;
-            $validated['customer_id'] = null;
+            $customerIds = [];
         }
 
         $gciPart->update($validated);
+        $gciPart->customers()->sync($customerIds);
 
         // Sync vendors for RM
         if ($validated['classification'] === 'RM') {
@@ -399,7 +408,7 @@ class GciPartController extends Controller
             // Check if it's a foreign key constraint error
             if ($e->getCode() === '23000') {
                 $references = [];
-                
+
                 // Check common tables that might reference this part
                 if (DB::table('boms')->where('part_id', $gciPart->id)->exists()) {
                     $references[] = 'BOM (Bill of Materials)';
@@ -431,14 +440,14 @@ class GciPartController extends Controller
                 if (DB::table('bom_item_substitutes')->where('substitute_part_id', $gciPart->id)->exists()) {
                     $references[] = 'BOM Item Substitutes';
                 }
-                
-                $msg = 'Cannot delete part "' . $gciPart->part_no . '" because it is still referenced by: ' 
-                    . implode(', ', $references) 
+
+                $msg = 'Cannot delete part "' . $gciPart->part_no . '" because it is still referenced by: '
+                    . implode(', ', $references)
                     . '. Please remove these references first or set the part status to inactive instead.';
-                
+
                 return back()->with('error', $msg);
             }
-            
+
             // For other errors, show generic message
             return back()->with('error', 'Failed to delete part: ' . $e->getMessage());
         }

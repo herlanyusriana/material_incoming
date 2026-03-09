@@ -382,7 +382,7 @@ class ReceiveController extends Controller
         // }
         // -------------------------------
 
-        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
+        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $gciPartId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
             $locationAdds = [];
             foreach ($validated['tags'] as $tagData) {
                 if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {

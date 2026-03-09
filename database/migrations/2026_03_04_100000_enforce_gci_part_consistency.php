@@ -31,19 +31,21 @@ return new class extends Migration {
 
         // location_inventory: backfill gci_part_id dari part_id
         DB::statement("
-            UPDATE location_inventory li
-            JOIN gci_part_vendor gpv ON gpv.id = li.part_id
-            SET li.gci_part_id = gpv.gci_part_id
-            WHERE li.gci_part_id IS NULL
+            UPDATE location_inventory AS li
+            SET gci_part_id = gpv.gci_part_id
+            FROM gci_part_vendor AS gpv
+            WHERE gpv.id = li.part_id
+              AND li.gci_part_id IS NULL
               AND li.part_id IS NOT NULL
         ");
 
         // arrival_items: backfill gci_part_id dari part_id
         DB::statement("
-            UPDATE arrival_items ai
-            JOIN gci_part_vendor gpv ON gpv.id = ai.part_id
-            SET ai.gci_part_id = gpv.gci_part_id
-            WHERE ai.gci_part_id IS NULL
+            UPDATE arrival_items AS ai
+            SET gci_part_id = gpv.gci_part_id
+            FROM gci_part_vendor AS gpv
+            WHERE gpv.id = ai.part_id
+              AND ai.gci_part_id IS NULL
               AND ai.part_id IS NOT NULL
         ");
 
@@ -57,19 +59,21 @@ return new class extends Migration {
 
         // bin_transfers: backfill gci_part_id dari part_id
         DB::statement("
-            UPDATE bin_transfers bt
-            JOIN gci_part_vendor gpv ON gpv.id = bt.part_id
-            SET bt.gci_part_id = gpv.gci_part_id
-            WHERE bt.gci_part_id IS NULL
+            UPDATE bin_transfers AS bt
+            SET gci_part_id = gpv.gci_part_id
+            FROM gci_part_vendor AS gpv 
+            WHERE gpv.id = bt.part_id
+              AND bt.gci_part_id IS NULL
               AND bt.part_id IS NOT NULL
         ");
 
         // location_inventory_adjustments: backfill gci_part_id dari part_id
         DB::statement("
-            UPDATE location_inventory_adjustments lia
-            JOIN gci_part_vendor gpv ON gpv.id = lia.part_id
-            SET lia.gci_part_id = gpv.gci_part_id
-            WHERE lia.gci_part_id IS NULL
+            UPDATE location_inventory_adjustments AS lia
+            SET gci_part_id = gpv.gci_part_id
+            FROM gci_part_vendor AS gpv
+            WHERE gpv.id = lia.part_id
+              AND lia.gci_part_id IS NULL
               AND lia.part_id IS NOT NULL
         ");
 
@@ -99,10 +103,12 @@ return new class extends Migration {
         // STEP 4: Enforce NOT NULL constraints
         // ═══════════════════════════════════════════════════════
 
-        // gci_parts.part_name → NOT NULL dengan default part_no
-        Schema::table('gci_parts', function (Blueprint $table) {
-            $table->string('part_name', 255)->nullable(false)->default('')->change();
-        });
+        // gci_parts.part_name → NOT NULL dengan default part_no (or empty string)
+        try {
+            DB::statement("ALTER TABLE gci_parts ALTER COLUMN part_name SET DEFAULT '', ALTER COLUMN part_name SET NOT NULL");
+        } catch (\Throwable $e) {
+            // Probably already NOT NULL
+        }
 
         // location_inventory.gci_part_id → NOT NULL
         // Perlu drop unique constraint dulu, alter, lalu recreate
@@ -157,10 +163,10 @@ return new class extends Migration {
             FROM location_inventory li
             WHERE li.gci_part_id IS NOT NULL
             GROUP BY li.gci_part_id
-            ON DUPLICATE KEY UPDATE
-                on_hand = VALUES(on_hand),
-                as_of_date = CURRENT_DATE,
-                updated_at = NOW()
+            ON CONFLICT (gci_part_id) DO UPDATE SET
+                on_hand = EXCLUDED.on_hand,
+                as_of_date = EXCLUDED.as_of_date,
+                updated_at = EXCLUDED.updated_at
         ");
     }
 

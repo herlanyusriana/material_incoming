@@ -13,7 +13,6 @@ class GciPart extends Model
     protected $table = 'gci_parts';
 
     protected $fillable = [
-        'customer_id',
         'part_no',
         'barcode',
         'part_name',
@@ -23,11 +22,12 @@ class GciPart extends Model
         'status',
         'net_weight',
         'gross_weight',
+        'default_location',
     ];
 
-    public function customer()
+    public function customers()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsToMany(Customer::class);
     }
 
     private static function upperOrNull(mixed $value): mixed

@@ -23,7 +23,7 @@ class Customer extends Model
 
     public function gciParts()
     {
-        return $this->hasMany(GciPart::class);
+        return $this->belongsToMany(GciPart::class);
     }
 
     public function stockAtCustomers()

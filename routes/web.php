@@ -161,6 +161,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
     Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
+    // GCI Inventory (Internal Parts - FG, WIP, RM)
+    Route::get('/inventory/gci', [GciInventoryController::class, 'index'])->name('inventory.gci.index');
+    Route::get('/inventory/gci/export', [GciInventoryController::class, 'export'])->name('inventory.gci.export');
+    Route::post('/inventory/gci/update-location', [GciInventoryController::class, 'updateLocation'])->name('inventory.gci.update-location');
+
     // Inventory Transfers (Bridge between Logistics and Production)
     Route::get('/inventory/transfers', [\App\Http\Controllers\InventoryTransferController::class, 'index'])->name('inventory.transfers.index');
     Route::get('/inventory/transfers/create', [\App\Http\Controllers\InventoryTransferController::class, 'create'])->name('inventory.transfers.create');

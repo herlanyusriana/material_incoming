@@ -400,7 +400,7 @@ class OutgoingController extends Controller
             ->values();
 
         $customerIds = $cells
-            ->map(fn($c) => $c->row?->gciPart?->customer_id)
+            ->map(fn($c) => $c->row?->customerPart?->customer_id ?? $c->row?->gciPart?->customers->first()?->id)
             ->filter(fn($v) => $v !== null)
             ->map(fn($v) => (int) $v)
             ->unique()
@@ -507,7 +507,7 @@ class OutgoingController extends Controller
 
                 $lines->push((object) [
                     'date' => $day->copy(),
-                    'customer' => $gciPart->customer,
+                    'customer' => $row->customerPart?->customer ?? $gciPart->customers->first(),
                     'gci_part' => $gciPart,
                     'customer_part_no' => $row->part_no ?? $gciPart->part_no,  // Show row's part_no (customer part)
                     'customer_part_name' => $gciPart->part_name,
@@ -552,7 +552,7 @@ class OutgoingController extends Controller
             ->whereNotNull('delivery_date')
             ->whereDate('delivery_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('delivery_date', '<=', $dateTo->format('Y-m-d'))
-            ->with(['part', 'part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->with(['part', 'part.customers', 'part.standardPacking', 'outgoingPo'])
             ->get();
 
         foreach ($poItems as $poItem) {
@@ -568,7 +568,7 @@ class OutgoingController extends Controller
 
             $lines->push((object) [
                 'date' => $poItem->delivery_date->copy(),
-                'customer' => $gciPart->customer,
+                'customer' => $poItem->outgoingPo?->customer ?? $gciPart->customers->first(),
                 'gci_part' => $gciPart,
                 'customer_part_no' => $poItem->vendor_part_name ?? $gciPart->part_no,
                 'customer_part_name' => $gciPart->part_name,
@@ -833,7 +833,7 @@ class OutgoingController extends Controller
 
                 $lines->push((object) [
                     'date' => $day->copy(),
-                    'customer' => $gciPart->customer,
+                    'customer' => $row->customerPart?->customer ?? $gciPart->customers->first(),
                     'gci_part' => $gciPart,
                     'customer_part_name' => $gciPart->part_name,
                     'unmapped' => false,
@@ -852,7 +852,7 @@ class OutgoingController extends Controller
             ->whereNotNull('delivery_date')
             ->whereDate('delivery_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('delivery_date', '<=', $dateTo->format('Y-m-d'))
-            ->with(['part', 'part.customer', 'part.standardPacking', 'outgoingPo'])
+            ->with(['part', 'part.customers', 'part.standardPacking', 'outgoingPo'])
             ->get();
 
         foreach ($poItems as $poItem) {
@@ -865,7 +865,7 @@ class OutgoingController extends Controller
 
             $lines->push((object) [
                 'date' => $poItem->delivery_date->copy(),
-                'customer' => $gciPart->customer,
+                'customer' => $poItem->outgoingPo?->customer ?? $gciPart->customers->first(),
                 'gci_part' => $gciPart,
                 'customer_part_name' => $gciPart->part_name,
                 'unmapped' => false,

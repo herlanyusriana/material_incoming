@@ -3,14 +3,13 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         // Parts with BOM → FG
         DB::statement("
-            UPDATE gci_parts gp
-            SET gp.classification = 'FG'
+            UPDATE gci_parts AS gp
+            SET classification = 'FG'
             WHERE (gp.classification IS NULL OR TRIM(gp.classification) = '')
               AND EXISTS (SELECT 1 FROM boms WHERE boms.part_id = gp.id)
         ");

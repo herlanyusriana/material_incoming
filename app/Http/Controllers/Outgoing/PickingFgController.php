@@ -96,6 +96,18 @@ class PickingFgController extends Controller
                 'dn_no' => $linkedDn?->dn_no,
                 'dn_created_at' => $linkedDn?->created_at,
                 'rows' => $items->map(function ($p) {
+                    // Build expected location info
+                    $expectedLocation = $p->part->default_location ?? null;
+                    $stockLocations = \App\Models\LocationInventory::where('gci_part_id', $p->gci_part_id)
+                        ->where('qty_on_hand', '>', 0)
+                        ->orderByDesc('qty_on_hand')
+                        ->limit(3)
+                        ->get()
+                        ->map(fn($loc) => [
+                            'code' => $loc->location_code,
+                            'qty' => (float) $loc->qty_on_hand,
+                        ])->toArray();
+
                     return (object) [
                         'id' => $p->id,
                         'gci_part_id' => $p->gci_part_id,
@@ -112,6 +124,8 @@ class PickingFgController extends Controller
                         'progress_percent' => $p->progress_percent,
                         'source' => $p->source,
                         'delivery_order_id' => $p->delivery_order_id,
+                        'expected_location' => $expectedLocation,
+                        'stock_locations' => $stockLocations,
                     ];
                 })
             ];

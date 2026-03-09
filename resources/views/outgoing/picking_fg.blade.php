@@ -394,8 +394,22 @@
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3">
-                                                <input type="text" value="{{ $row->pick_location }}" placeholder="Loc..."
-                                                    class="border border-slate-200 rounded-lg px-2 py-1 text-[11px] w-20 focus:outline-none focus:border-indigo-400"
+                                                @if($row->expected_location)
+                                                    <div class="text-[10px] font-black text-indigo-600 mb-0.5" title="Default Location">
+                                                        📍 {{ $row->expected_location }}
+                                                    </div>
+                                                @endif
+                                                @if(!empty($row->stock_locations))
+                                                    @foreach($row->stock_locations as $sl)
+                                                        <div class="text-[9px] text-slate-500 font-mono">
+                                                            {{ $sl['code'] }} <span class="text-slate-400">({{ number_format($sl['qty']) }})</span>
+                                                        </div>
+                                                    @endforeach
+                                                @elseif(!$row->expected_location)
+                                                    <span class="text-[9px] text-slate-300 italic">No loc</span>
+                                                @endif
+                                                <input type="text" value="{{ $row->pick_location ?: ($row->expected_location ?? '') }}" placeholder="Loc..."
+                                                    class="border border-slate-200 rounded-lg px-2 py-1 text-[11px] w-20 focus:outline-none focus:border-indigo-400 mt-1"
                                                     onchange="savePick(document.getElementById('pick-input-{{ $rowKey }}'))"
                                                     id="loc-{{ $rowKey }}">
                                             </td>

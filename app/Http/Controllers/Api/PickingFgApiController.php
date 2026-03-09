@@ -46,6 +46,16 @@ class PickingFgApiController extends Controller
             'date' => $date,
             'last_updated' => $lastUpdated?->toIso8601String(),
             'data' => $picks->map(function ($p) use ($doCompletedMap) {
+                $stockLocations = \App\Models\LocationInventory::where('gci_part_id', $p->gci_part_id)
+                    ->where('qty_on_hand', '>', 0)
+                    ->orderByDesc('qty_on_hand')
+                    ->limit(3)
+                    ->get()
+                    ->map(fn($loc) => [
+                        'code' => $loc->location_code,
+                        'qty' => (float) $loc->qty_on_hand,
+                    ])->toArray();
+
                 return [
                     'id' => $p->id,
                     'part_id' => $p->gci_part_id,
@@ -57,6 +67,8 @@ class PickingFgApiController extends Controller
                     'qty_remaining' => $p->qty_remaining,
                     'status' => $p->status,
                     'location' => $p->pick_location,
+                    'expected_location' => $p->part->default_location ?? null,
+                    'stock_locations' => $stockLocations,
                     'progress' => $p->progress_percent,
                     'source' => $p->source ?? 'daily_plan',
                     'po_no' => $p->outgoingPoItem?->outgoingPo?->po_no,
@@ -119,6 +131,7 @@ class PickingFgApiController extends Controller
                 'part_no' => $part->part_no,
                 'part_name' => $part->part_name,
                 'model' => $part->model ?? '-',
+                'expected_location' => $part->default_location ?? null,
             ],
             'picks' => $picks->map(fn($p) => [
                 'id' => $p->id,
@@ -139,7 +152,7 @@ class PickingFgApiController extends Controller
             'date' => 'required|date',
             'part_no' => 'required|string',
             'qty' => 'required|integer|min:1',
-            'location' => 'nullable|string',
+            'location' => 'required|string|max:100',
             'delivery_order_id' => 'nullable|integer|exists:delivery_orders,id',
         ]);
 
