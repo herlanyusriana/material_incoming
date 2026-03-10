@@ -84,7 +84,7 @@ class QdcHistoryController extends Controller
             ]);
         }
 
-        $allDowntimes = $woDowntimes->merge($appDowntimes)
+        $allDowntimes = collect($woDowntimes->all())->merge($appDowntimes->all())
             ->sortByDesc('date')
             ->values();
 
