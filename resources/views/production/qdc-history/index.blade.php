@@ -88,6 +88,7 @@
                             <th class="px-4 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">End</th>
                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Duration</th>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Notes</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Refill</th>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Operator</th>
                         </tr>
                     </thead>
@@ -176,12 +177,20 @@
                                     {{ $dt->notes ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">
+                                    @if($dt->refill_part_no)
+                                        <span class="font-mono font-semibold text-blue-700">{{ $dt->refill_part_no }}</span>
+                                        <span class="text-slate-400">x{{ number_format($dt->refill_qty ?? 0) }}</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100">
                                     {{ $dt->operator }}
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-6 py-20 text-center text-slate-500 bg-white">
+                                <td colspan="11" class="px-6 py-20 text-center text-slate-500 bg-white">
                                     <div class="flex flex-col items-center">
                                         <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

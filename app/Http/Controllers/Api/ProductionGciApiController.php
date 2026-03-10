@@ -84,6 +84,9 @@ class ProductionGciApiController extends Controller
                                 'reason' => $dtParams['reason'],
                                 'operator_name' => $dtParams['operatorName'] ?? null,
                                 'notes' => $dtParams['notes'] ?? null,
+                                'refill_part_no' => $dtParams['refillPartNo'] ?? null,
+                                'refill_part_name' => $dtParams['refillPartName'] ?? null,
+                                'refill_qty' => $dtParams['refillQty'] ?? null,
                             ]
                         );
                         continue;
@@ -142,6 +145,28 @@ class ProductionGciApiController extends Controller
             ->get(['id', 'code', 'name', 'group_name', 'cycle_time', 'cycle_time_unit']);
 
         return response()->json(['data' => $machines]);
+    }
+
+    public function parts(Request $request)
+    {
+        $search = $request->query('search', '');
+        $classification = $request->query('classification', 'RM');
+
+        $query = \App\Models\GciPart::where('status', 'active')
+            ->where('classification', $classification);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('part_no', 'like', "%{$search}%")
+                  ->orWhere('part_name', 'like', "%{$search}%");
+            });
+        }
+
+        $parts = $query->orderBy('part_no')
+            ->limit(50)
+            ->get(['id', 'part_no', 'part_name', 'size', 'model']);
+
+        return response()->json(['data' => $parts]);
     }
 
     public function workOrders(Request $request)

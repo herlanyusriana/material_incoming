@@ -148,6 +148,7 @@
                         <th>End</th>
                         <th>Duration (min)</th>
                         <th>Notes</th>
+                        <th>Refill</th>
                         <th>Operator</th>
                     </tr>
                 </thead>
@@ -184,6 +185,13 @@
                                 {{ $dt->duration_minutes !== null ? number_format($dt->duration_minutes) : '-' }}
                             </td>
                             <td style="max-width: 120px; overflow: hidden;">{{ Str::limit($dt->notes, 40) ?? '-' }}</td>
+                            <td>
+                                @if($dt->refill_part_no)
+                                    {{ $dt->refill_part_no }} x{{ number_format($dt->refill_qty ?? 0) }}
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td>{{ $dt->operator }}</td>
                         </tr>
                     @endforeach

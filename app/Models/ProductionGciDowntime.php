@@ -18,6 +18,9 @@ class ProductionGciDowntime extends Model
         'reason',
         'operator_name',
         'notes',
+        'refill_part_no',
+        'refill_part_name',
+        'refill_qty',
         'offline_id',
     ];
 

@@ -49,6 +49,9 @@ class QdcHistoryController extends Controller
                 'notes' => $dt->notes,
                 'operator' => $dt->creator?->name ?? '-',
                 'shift' => null,
+                'refill_part_no' => null,
+                'refill_part_name' => null,
+                'refill_qty' => null,
             ]);
         }
 
@@ -82,6 +85,9 @@ class QdcHistoryController extends Controller
                 'notes' => $dt->notes,
                 'operator' => $dt->operator_name ?? '-',
                 'shift' => $dt->shift,
+                'refill_part_no' => $dt->refill_part_no,
+                'refill_part_name' => $dt->refill_part_name,
+                'refill_qty' => $dt->refill_qty,
             ]);
         }
 
