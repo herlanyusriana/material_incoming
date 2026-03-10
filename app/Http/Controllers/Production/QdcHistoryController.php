@@ -91,9 +91,9 @@ class QdcHistoryController extends Controller
         // Paginate manually
         $page = (int) $request->query('page', 1);
         $perPage = 50;
-        $paginatedItems = $allDowntimes->forPage($page, $perPage);
+        $paginatedItems = $allDowntimes->forPage($page, $perPage)->values();
         $downtimes = new \Illuminate\Pagination\LengthAwarePaginator(
-            $paginatedItems, $allDowntimes->count(), $perPage, $page,
+            $paginatedItems->all(), $allDowntimes->count(), $perPage, $page,
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
