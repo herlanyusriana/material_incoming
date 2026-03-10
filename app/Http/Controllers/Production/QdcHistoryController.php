@@ -5,17 +5,18 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionDowntime;
 use App\Models\ProductionGciDowntime;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class QdcHistoryController extends Controller
 {
-    public function index(Request $request)
+    private function getDowntimes(Request $request)
     {
         $dateFrom = $request->query('date_from', now()->subDays(7)->toDateString());
         $dateTo = $request->query('date_to', now()->toDateString());
         $category = $request->query('category');
         $machine = $request->query('machine');
-        $source = $request->query('source', 'all'); // 'all', 'wo', 'app'
+        $source = $request->query('source', 'all');
 
         // Production Order downtimes
         $woDowntimes = collect();
@@ -79,7 +80,7 @@ class QdcHistoryController extends Controller
                 'end_time' => $dt->end_time,
                 'duration_minutes' => $dt->duration_minutes,
                 'notes' => $dt->notes,
-                'operator' => '-',
+                'operator' => $dt->operator_name ?? '-',
                 'shift' => $dt->shift,
             ]);
         }
@@ -87,6 +88,21 @@ class QdcHistoryController extends Controller
         $allDowntimes = collect($woDowntimes->all())->merge($appDowntimes->all())
             ->sortByDesc('date')
             ->values();
+
+        return [
+            'allDowntimes' => $allDowntimes,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'category' => $category,
+            'machine' => $machine,
+            'source' => $source,
+        ];
+    }
+
+    public function index(Request $request)
+    {
+        $result = $this->getDowntimes($request);
+        $allDowntimes = $result['allDowntimes'];
 
         // Paginate manually
         $page = (int) $request->query('page', 1);
@@ -107,8 +123,44 @@ class QdcHistoryController extends Controller
         $machines = \App\Models\Machine::orderBy('name')->get(['id', 'name']);
 
         return view('production.qdc-history.index', compact(
-            'downtimes', 'dateFrom', 'dateTo', 'category', 'machine', 'source',
-            'categories', 'machines',
-        ));
+            'downtimes', 'categories', 'machines',
+        ) + $result);
+    }
+
+    public function pdf(Request $request)
+    {
+        $result = $this->getDowntimes($request);
+        $downtimes = $result['allDowntimes'];
+
+        $totalMinutes = $downtimes->sum('duration_minutes');
+        $totalCount = $downtimes->count();
+
+        // Summary by category
+        $byCategory = $downtimes->groupBy('category')->map(fn($items, $cat) => (object) [
+            'category' => $cat,
+            'count' => $items->count(),
+            'total_minutes' => $items->sum('duration_minutes'),
+        ])->sortByDesc('total_minutes')->values();
+
+        // Summary by machine
+        $byMachine = $downtimes->groupBy('machine_name')->map(fn($items, $machine) => (object) [
+            'machine' => $machine,
+            'count' => $items->count(),
+            'total_minutes' => $items->sum('duration_minutes'),
+        ])->sortByDesc('total_minutes')->values();
+
+        $machineName = null;
+        if ($result['machine']) {
+            $machineName = \App\Models\Machine::find($result['machine'])?->name;
+        }
+
+        $pdf = Pdf::loadView('production.qdc-history.pdf', compact(
+            'downtimes', 'totalMinutes', 'totalCount', 'byCategory', 'byMachine', 'machineName',
+        ) + $result);
+
+        $pdf->setPaper('a4', 'landscape');
+
+        $filename = 'QDC_History_' . $result['dateFrom'] . '_to_' . $result['dateTo'] . '.pdf';
+        return $pdf->download($filename);
     }
 }

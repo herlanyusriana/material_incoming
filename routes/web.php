@@ -502,6 +502,7 @@ Route::middleware('auth')->group(function () {
 
         // QDC History (all downtime records)
         Route::get('/qdc-history', [\App\Http\Controllers\Production\QdcHistoryController::class, 'index'])->name('qdc-history.index');
+        Route::get('/qdc-history/pdf', [\App\Http\Controllers\Production\QdcHistoryController::class, 'pdf'])->name('qdc-history.pdf');
 
         // Production Downtimes (QDC, Breaks, etc.)
         Route::post('/orders/{productionOrder}/downtimes', [\App\Http\Controllers\Production\ProductionDowntimeController::class, 'store'])->name('downtimes.store');

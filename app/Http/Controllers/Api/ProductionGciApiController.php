@@ -82,6 +82,7 @@ class ProductionGciApiController extends Controller
                                 'end_time' => $dtParams['endTime'],
                                 'duration_minutes' => $dtParams['durationMinutes'],
                                 'reason' => $dtParams['reason'],
+                                'operator_name' => $dtParams['operatorName'] ?? null,
                                 'notes' => $dtParams['notes'] ?? null,
                             ]
                         );

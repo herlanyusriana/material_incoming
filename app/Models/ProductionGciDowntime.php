@@ -16,6 +16,7 @@ class ProductionGciDowntime extends Model
         'end_time',
         'duration_minutes',
         'reason',
+        'operator_name',
         'notes',
         'offline_id',
     ];
