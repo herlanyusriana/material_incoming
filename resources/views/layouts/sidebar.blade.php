@@ -1006,6 +1006,14 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                 <span class="flex-1">Production Orders</span>
                             </a>
+                            <a href="{{ route('production.machine-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.machine-load.*'), $subInactive => !request()->routeIs('production.machine-load.*')])>
+                                <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.machine-load.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.machine-load.*')])></span>
+                                <span class="flex-1">Machine Load</span>
+                            </a>
+                            <a href="{{ route('production.qdc-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qdc-history.*'), $subInactive => !request()->routeIs('production.qdc-history.*')])>
+                                <span @class([$subDotBase, 'bg-amber-600' => request()->routeIs('production.qdc-history.*'), 'bg-slate-300 group-hover:bg-amber-400' => !request()->routeIs('production.qdc-history.*')])></span>
+                                <span class="flex-1">QDC History</span>
+                            </a>
                         </div>
                     </div>
                 </details>
