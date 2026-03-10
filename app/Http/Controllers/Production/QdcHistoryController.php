@@ -130,24 +130,27 @@ class QdcHistoryController extends Controller
     public function pdf(Request $request)
     {
         $result = $this->getDowntimes($request);
-        $downtimes = $result['allDowntimes'];
+        $allDowntimes = $result['allDowntimes'];
 
-        $totalMinutes = $downtimes->sum('duration_minutes');
-        $totalCount = $downtimes->count();
+        $totalMinutes = $allDowntimes->sum('duration_minutes');
+        $totalCount = $allDowntimes->count();
 
-        // Summary by category
-        $byCategory = $downtimes->groupBy('category')->map(fn($items, $cat) => (object) [
-            'category' => $cat,
-            'count' => $items->count(),
-            'total_minutes' => $items->sum('duration_minutes'),
-        ])->sortByDesc('total_minutes')->values();
+        // Group by machine
+        $machineGroups = $allDowntimes->groupBy('machine_name')->map(function ($items, $machineName) {
+            $byCategory = $items->groupBy('category')->map(fn($catItems, $cat) => (object) [
+                'category' => $cat,
+                'count' => $catItems->count(),
+                'total_minutes' => $catItems->sum('duration_minutes'),
+            ])->sortByDesc('total_minutes')->values();
 
-        // Summary by machine
-        $byMachine = $downtimes->groupBy('machine_name')->map(fn($items, $machine) => (object) [
-            'machine' => $machine,
-            'count' => $items->count(),
-            'total_minutes' => $items->sum('duration_minutes'),
-        ])->sortByDesc('total_minutes')->values();
+            return (object) [
+                'machine_name' => $machineName,
+                'downtimes' => $items->sortByDesc('date')->values(),
+                'count' => $items->count(),
+                'total_minutes' => $items->sum('duration_minutes'),
+                'by_category' => $byCategory,
+            ];
+        })->sortByDesc('total_minutes')->values();
 
         $machineName = null;
         if ($result['machine']) {
@@ -155,7 +158,7 @@ class QdcHistoryController extends Controller
         }
 
         $pdf = Pdf::loadView('production.qdc-history.pdf', compact(
-            'downtimes', 'totalMinutes', 'totalCount', 'byCategory', 'byMachine', 'machineName',
+            'machineGroups', 'totalMinutes', 'totalCount', 'machineName',
         ) + $result);
 
         $pdf->setPaper('a4', 'landscape');
