@@ -86,7 +86,7 @@
                             <th class="px-4 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Category</th>
                             <th class="px-4 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Start</th>
                             <th class="px-4 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">End</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Duration (min)</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Duration</th>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Notes</th>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200">Operator</th>
                         </tr>
@@ -156,8 +156,21 @@
                                         {{ $dt->end_time ?? '-' }}
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold text-xs border-x border-slate-100 {{ $dt->duration_minutes ? 'text-slate-900' : 'text-amber-600' }}">
-                                    {{ $dt->duration_minutes !== null ? number_format($dt->duration_minutes) : 'Running' }}
+                                <td class="px-4 py-3 text-right font-bold font-mono text-xs border-x border-slate-100 {{ $dt->duration_minutes !== null ? 'text-slate-900' : 'text-amber-600' }}">
+                                    @if($dt->start_time && $dt->end_time)
+                                        @php
+                                            $start = \Carbon\Carbon::parse($dt->start_time);
+                                            $end = \Carbon\Carbon::parse($dt->end_time);
+                                            $diffSec = $end->diffInSeconds($start);
+                                            $m = intdiv($diffSec, 60);
+                                            $s = $diffSec % 60;
+                                        @endphp
+                                        {{ $m }}m {{ str_pad($s, 2, '0', STR_PAD_LEFT) }}s
+                                    @elseif($dt->duration_minutes !== null)
+                                        {{ $dt->duration_minutes }}m
+                                    @else
+                                        Running
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3 text-xs text-slate-600 border-x border-slate-100 max-w-[200px] truncate" title="{{ $dt->notes }}">
                                     {{ $dt->notes ?? '-' }}
