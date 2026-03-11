@@ -62,6 +62,10 @@
                         class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all">
                         Export
                     </a>
+                    <button onclick="document.getElementById('importModal').classList.remove('hidden')"
+                        class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all">
+                        Import
+                    </button>
                 </div>
             </div>
 
@@ -192,6 +196,37 @@
                     </div>
                 @endif
             </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50" onclick="if(event.target===this)this.classList.add('hidden')">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-black text-slate-900">Import Inventory</h3>
+                <button onclick="document.getElementById('importModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form action="{{ route('inventory.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Excel File</label>
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required
+                        class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 space-y-1">
+                    <p class="font-bold text-slate-600">Format kolom:</p>
+                    <p>part_no | on_hand | on_order | as_of_date</p>
+                    <p class="text-slate-400">Part no harus sesuai dengan data GCI Parts yang sudah ada.</p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')"
+                        class="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-sm">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm">Import</button>
+                </div>
+            </form>
         </div>
     </div>
 </x-app-layout>

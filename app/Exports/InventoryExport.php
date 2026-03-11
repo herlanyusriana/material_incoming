@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Models\Inventory;
+use App\Models\GciInventory;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -14,33 +14,43 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
 {
     public function collection()
     {
-        return Inventory::query()
-            ->whereNotNull('part_id')
+        return GciInventory::query()
+            ->with('part.customers')
             ->whereHas('part')
-            ->with('part')
-            ->orderBy('part_id')
+            ->join('gci_parts as gp', 'gp.id', '=', 'gci_inventories.gci_part_id')
+            ->orderByRaw("FIELD(gp.classification, 'RM', 'WIP', 'FG')")
+            ->orderBy('gp.part_no')
+            ->select('gci_inventories.*')
             ->get();
     }
 
     public function headings(): array
     {
         return [
-            'part_no',
-            'part_name_gci',
-            'on_hand',
-            'on_order',
-            'as_of_date',
+            'Part No',
+            'Part Name',
+            'Model',
+            'Classification',
+            'Customer',
+            'On Hand',
+            'On Order',
+            'As Of Date',
         ];
     }
 
     public function map($inventory): array
     {
+        $part = $inventory->part;
+
         return [
-            $inventory->part->part_no ?? '',
-            $inventory->part->part_name_gci ?? '',
+            $part?->part_no ?? '',
+            $part?->part_name ?? '',
+            $part?->model ?? '',
+            $part?->classification ?? '',
+            $part?->customers->pluck('name')->implode(', ') ?? '',
             $inventory->on_hand,
             $inventory->on_order,
-            optional($inventory->as_of_date)->format('Y-m-d'),
+            $inventory->as_of_date ? \Carbon\Carbon::parse($inventory->as_of_date)->format('Y-m-d') : '',
         ];
     }
 
@@ -54,11 +64,14 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
     public function columnWidths(): array
     {
         return [
-            'A' => 18,
+            'A' => 20,
             'B' => 32,
-            'C' => 14,
-            'D' => 14,
-            'E' => 14,
+            'C' => 20,
+            'D' => 16,
+            'E' => 24,
+            'F' => 14,
+            'G' => 14,
+            'H' => 14,
         ];
     }
 }

@@ -2,9 +2,8 @@
 
 namespace App\Imports;
 
-use App\Models\Inventory;
-use App\Models\Part;
-use Illuminate\Validation\Rule;
+use App\Models\GciInventory;
+use App\Models\GciPart;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -49,15 +48,10 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
     public function model(array $row)
     {
         $partNo = $this->firstNonEmpty($row, ['part_no', 'part_number']);
-        $partId = $this->firstNonEmpty($row, ['part_id']);
 
         $part = null;
-        if ($partId !== null && is_numeric($partId)) {
-            $part = Part::find((int) $partId);
-        }
-
-        if (!$part && $partNo) {
-            $part = Part::where('part_no', $partNo)->first();
+        if ($partNo) {
+            $part = GciPart::where('part_no', $partNo)->first();
         }
 
         if (!$part) {
@@ -71,8 +65,8 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
         $onHand = $onHandRaw !== null ? (float) $onHandRaw : 0;
         $onOrder = $onOrderRaw !== null ? (float) $onOrderRaw : 0;
 
-        Inventory::updateOrCreate(
-            ['part_id' => $part->id],
+        GciInventory::updateOrCreate(
+            ['gci_part_id' => $part->id],
             [
                 'on_hand' => $onHand,
                 'on_order' => $onOrder,
@@ -86,9 +80,8 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
-            'part_no' => ['required_without:part_id', 'nullable', 'string', 'max:255'],
-            'part_number' => ['required_without:part_id', 'nullable', 'string', 'max:255'],
-            'part_id' => ['required_without_all:part_no,part_number', 'nullable', 'integer', Rule::exists('parts', 'id')],
+            'part_no' => ['nullable', 'string', 'max:255'],
+            'part_number' => ['nullable', 'string', 'max:255'],
             'on_hand' => 'nullable|numeric|min:0',
             'on_order' => 'nullable|numeric|min:0',
             'as_of_date' => 'nullable|date',
