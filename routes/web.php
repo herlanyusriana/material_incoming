@@ -145,9 +145,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
 
     Route::get('/local-pos', [LocalPoController::class, 'index'])->name('local-pos.index');
+    Route::get('/local-pos/export', [LocalPoController::class, 'export'])->name('local-pos.export');
     Route::get('/local-pos/create', [LocalPoController::class, 'create'])->name('local-pos.create');
     Route::post('/local-pos', [LocalPoController::class, 'store'])->name('local-pos.store');
     Route::get('/local-pos/{arrival}', [LocalPoController::class, 'show'])->name('local-pos.show');
+    Route::get('/local-pos/{arrival}/export', [LocalPoController::class, 'exportDetail'])->name('local-pos.export-detail');
     Route::get('/local-pos/{arrival}/edit', [LocalPoController::class, 'edit'])->name('local-pos.edit');
     Route::put('/local-pos/{arrival}', [LocalPoController::class, 'update'])->name('local-pos.update');
     Route::delete('/local-pos/{arrival}', [LocalPoController::class, 'destroy'])->name('local-pos.destroy');

@@ -12,6 +12,9 @@
                         <p class="text-sm text-slate-600 mt-1">Vendor: {{ $arrival->vendor->vendor_name }}</p>
                     </div>
                     <div class="flex items-center gap-2">
+                        <a href="{{ route('local-pos.export-detail', $arrival) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            Export Excel
+                        </a>
                         <a href="{{ route('local-pos.edit', $arrival) }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
                             Edit PO
                         </a>

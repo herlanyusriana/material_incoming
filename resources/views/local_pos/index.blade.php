@@ -35,9 +35,14 @@
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
-                    <a href="{{ route('local-pos.create') }}" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
-                        + Create Local PO
-                    </a>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('local-pos.export') }}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+                            Export Excel
+                        </a>
+                        <a href="{{ route('local-pos.create') }}" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
+                            + Create Local PO
+                        </a>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">

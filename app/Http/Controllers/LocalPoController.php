@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Arrival;
 use App\Models\Part;
 use App\Models\Vendor;
+use App\Exports\LocalPoExport;
+use App\Exports\LocalPoDetailExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LocalPoController extends Controller
 {
@@ -296,6 +299,21 @@ class LocalPoController extends Controller
         });
 
         return redirect()->route('local-pos.index')->with('success', 'Local PO updated successfully.');
+    }
+
+    public function export()
+    {
+        $filename = 'local_po_' . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new LocalPoExport(), $filename);
+    }
+
+    public function exportDetail(Arrival $arrival)
+    {
+        $poNo = preg_replace('/[^A-Za-z0-9_-]/', '_', $arrival->invoice_no ?? 'PO');
+        $filename = 'local_po_' . $poNo . '_' . date('Y-m-d') . '.xlsx';
+
+        return Excel::download(new LocalPoDetailExport($arrival), $filename);
     }
 
     public function destroy(Arrival $arrival)
