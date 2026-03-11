@@ -15,12 +15,20 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
     public function collection()
     {
         return GciInventory::query()
-            ->with('part.customers')
+            ->with('part')
             ->whereHas('part')
             ->join('gci_parts as gp', 'gp.id', '=', 'gci_inventories.gci_part_id')
+            ->addSelect(['gci_inventories.*'])
+            ->addSelect(['latest_batch' => \App\Models\Receive::query()
+                ->select('receives.tag')
+                ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
+                ->whereColumn('arrival_items.gci_part_id', 'gci_inventories.gci_part_id')
+                ->whereNotNull('receives.tag')
+                ->orderByDesc('receives.created_at')
+                ->limit(1),
+            ])
             ->orderByRaw("FIELD(gp.classification, 'RM', 'WIP', 'FG')")
             ->orderBy('gp.part_no')
-            ->select('gci_inventories.*')
             ->get();
     }
 
@@ -31,7 +39,7 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
             'Part Name',
             'Model',
             'Classification',
-            'Customer',
+            'Batch No',
             'On Hand',
             'On Order',
             'As Of Date',
@@ -47,7 +55,7 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
             $part?->part_name ?? '',
             $part?->model ?? '',
             $part?->classification ?? '',
-            $part?->customers->pluck('name')->implode(', ') ?? '',
+            $inventory->latest_batch ?? '',
             $inventory->on_hand,
             $inventory->on_order,
             $inventory->as_of_date ? \Carbon\Carbon::parse($inventory->as_of_date)->format('Y-m-d') : '',

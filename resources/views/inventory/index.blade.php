@@ -133,7 +133,7 @@
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Part No</th>
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Name / Model</th>
                                 <th class="px-4 py-3 text-center font-black text-slate-600 uppercase tracking-wider text-xs">Class</th>
-                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Customer</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Batch No</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Hand</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Order</th>
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">As Of</th>
@@ -161,9 +161,7 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
-                                            {{ $p?->customers->pluck('name')->implode(', ') ?: '-' }}
-                                        </div>
+                                        <span class="font-mono text-xs text-slate-700">{{ $inv->latest_batch ?? '-' }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded shadow-sm border border-slate-200">
@@ -179,7 +177,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-12 text-center border-2 border-dashed border-slate-200 rounded-xl">
+                                    <td colspan="7" class="px-4 py-12 text-center">
                                         <p class="text-slate-500 font-semibold mb-1">No {{ $classification }} inventory found</p>
                                         <p class="text-xs text-slate-400">Try adjusting your filters.</p>
                                     </td>
