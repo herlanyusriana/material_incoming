@@ -20,47 +20,24 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $activeTab = $request->query('tab', 'rm');
+        if (!in_array($activeTab, ['rm', 'wip', 'fg'])) {
+            $activeTab = 'rm';
+        }
 
-        // --- RM Data ---
-        $rmPartId = $request->query('rm_part_id');
-        $rmQ = trim((string) $request->query('rm_q', ''));
-        $rmParts = Part::query()
-            ->whereNotNull('part_no')
-            ->orderBy('part_no')
-            ->get();
+        $search = trim((string) $request->query('search', ''));
+        $status = strtolower(trim((string) $request->query('status', '')));
+        $perPage = max(10, min(200, (int) $request->query('per_page', 25)));
 
-        $inventories = Inventory::query()
-            ->whereNotNull('part_id')
-            ->whereHas('part')
-            ->with('part')
-            ->when($rmPartId, fn($q) => $q->where('part_id', $rmPartId))
-            ->when($rmQ !== '', function ($qr) use ($rmQ) {
-                $qr->whereHas('part', function ($qp) use ($rmQ) {
-                    $qp->where('part_no', 'like', '%' . $rmQ . '%')
-                        ->orWhere('part_name_gci', 'like', '%' . $rmQ . '%')
-                        ->orWhere('register_no', 'like', '%' . $rmQ . '%');
-                });
-            })
-            ->orderBy(Part::select('part_no')->whereColumn('parts.id', 'inventories.part_id'))
-            ->paginate(25, ['*'], 'rm_page')
-            ->withQueryString();
+        // Map tab to classification
+        $classificationMap = ['rm' => 'RM', 'wip' => 'WIP', 'fg' => 'FG'];
+        $classification = $classificationMap[$activeTab];
 
-        // --- FG/WIP Data ---
-        $gciSearch = trim((string) $request->query('gci_search', ''));
-        $gciClass = strtoupper(trim((string) $request->query('gci_class', '')));
-        $gciStatus = strtolower(trim((string) $request->query('gci_status', '')));
-        $gciPerPage = (int) $request->query('gci_per_page', 25);
-        if ($gciPerPage < 10)
-            $gciPerPage = 10;
-        if ($gciPerPage > 200)
-            $gciPerPage = 200;
-
-        $gciQuery = GciInventory::query()
+        $query = GciInventory::query()
             ->with('part.customers')
-            ->when($gciClass !== '', fn($q) => $q->whereHas('part', fn($qp) => $qp->where('classification', $gciClass)))
-            ->when(in_array($gciStatus, ['active', 'inactive'], true), fn($q) => $q->whereHas('part', fn($qp) => $qp->where('status', $gciStatus)))
-            ->when($gciSearch !== '', function ($q) use ($gciSearch) {
-                $s = strtoupper($gciSearch);
+            ->whereHas('part', fn($qp) => $qp->where('classification', $classification))
+            ->when(in_array($status, ['active', 'inactive'], true), fn($q) => $q->whereHas('part', fn($qp) => $qp->where('status', $status)))
+            ->when($search !== '', function ($q) use ($search) {
+                $s = strtoupper($search);
                 $q->whereHas('part', function ($qp) use ($s) {
                     $qp->where('part_no', 'like', '%' . $s . '%')
                         ->orWhere('part_name', 'like', '%' . $s . '%')
@@ -70,23 +47,26 @@ class InventoryController extends Controller
             ->orderByDesc('on_hand')
             ->orderBy('gci_part_id');
 
-        $gciRows = $gciQuery->paginate($gciPerPage, ['*'], 'gci_page')->withQueryString();
-        $gciPartsForModal = GciPart::where('status', 'active')->orderBy('part_no')->get();
+        $rows = $query->paginate($perPage)->withQueryString();
+
+        // Summary counts per classification
+        $summary = GciInventory::query()
+            ->selectRaw("
+                SUM(CASE WHEN gp.classification = 'RM' THEN 1 ELSE 0 END) as rm_count,
+                SUM(CASE WHEN gp.classification = 'WIP' THEN 1 ELSE 0 END) as wip_count,
+                SUM(CASE WHEN gp.classification = 'FG' THEN 1 ELSE 0 END) as fg_count
+            ")
+            ->join('gci_parts as gp', 'gp.id', '=', 'gci_inventories.gci_part_id')
+            ->first();
 
         return view('inventory.index', compact(
             'activeTab',
-            // RM
-            'inventories',
-            'rmParts',
-            'rmPartId',
-            'rmQ',
-            // GCI
-            'gciRows',
-            'gciSearch',
-            'gciClass',
-            'gciStatus',
-            'gciPerPage',
-            'gciPartsForModal'
+            'rows',
+            'search',
+            'status',
+            'perPage',
+            'classification',
+            'summary'
         ));
     }
 
