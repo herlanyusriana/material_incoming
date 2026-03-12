@@ -65,14 +65,21 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
         $onHand = $onHandRaw !== null ? (float) $onHandRaw : 0;
         $onOrder = $onOrderRaw !== null ? (float) $onOrderRaw : 0;
 
-        GciInventory::updateOrCreate(
-            ['gci_part_id' => $part->id],
-            [
+        $inventory = GciInventory::where('gci_part_id', $part->id)->first();
+        if ($inventory) {
+            $inventory->update([
+                'on_hand' => $inventory->on_hand + $onHand,
+                'on_order' => $inventory->on_order + $onOrder,
+                'as_of_date' => $asOfDate ?: $inventory->as_of_date,
+            ]);
+        } else {
+            GciInventory::create([
+                'gci_part_id' => $part->id,
                 'on_hand' => $onHand,
                 'on_order' => $onOrder,
                 'as_of_date' => $asOfDate ?: null,
-            ]
-        );
+            ]);
+        }
 
         return null;
     }
