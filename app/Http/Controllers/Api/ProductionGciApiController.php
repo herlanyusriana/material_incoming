@@ -201,39 +201,36 @@ class ProductionGciApiController extends Controller
         $machineId = $request->query('machine_id');
         $date = $request->query('date', now()->toDateString());
 
+        $machineIdInt = (int) $machineId;
         $query = ProductionOrder::with('part:id,part_no,part_name,model')
-            ->where(function($q) use ($date, $machineId) {
-                // 1. Show all WOs for the selected date
+            ->where('machine_id', $machineIdInt)
+            ->where(function($q) use ($date) {
+                // 1. Show all WOs for the selected date for this machine
                 $q->whereDate('plan_date', $date);
                 
-                // 2. OR show backlog: WOs that are released or in production or kanban_released
-                // even if the date is in the past, so they don't disappear from APK
+                // 2. OR show backlog for this machine: WOs that are released, in production, or kanban_released
                 $q->orWhereIn('status', ['kanban_released', 'released', 'in_production']);
             })
             ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled', 'completed'])
             ->orderBy('plan_date', 'asc')
             ->orderBy('production_sequence', 'asc');
 
-        if ($machineId) {
-            $query->where('machine_id', $machineId);
-        }
-
         $orders = $query->get()->map(fn($o) => [
-            'id' => $o->id,
-            'wo_number' => $o->production_order_number,
-            'transaction_no' => $o->transaction_no,
-            'part_no' => $o->part?->part_no,
-            'part_name' => $o->part?->part_name,
-            'model' => $o->part?->model,
+            'id' => (int) $o->id,
+            'wo_number' => (string) ($o->production_order_number ?? $o->transaction_no ?? '-'),
+            'transaction_no' => (string) $o->transaction_no,
+            'part_no' => (string) ($o->part?->part_no ?? '-'),
+            'part_name' => (string) ($o->part?->part_name ?? '-'),
+            'model' => (string) ($o->part?->model ?? '-'),
             'qty_planned' => (float) $o->qty_planned,
             'qty_actual' => (float) ($o->qty_actual ?? 0),
             'qty_ng' => (float) ($o->qty_ng ?? 0),
-            'status' => $o->status,
-            'workflow_stage' => $o->workflow_stage,
-            'shift' => $o->shift,
-            'production_sequence' => $o->production_sequence,
-            'start_time' => $o->start_time,
-            'end_time' => $o->end_time,
+            'status' => (string) $o->status,
+            'workflow_stage' => (string) $o->workflow_stage,
+            'shift' => (string) $o->shift,
+            'production_sequence' => $o->production_sequence !== null ? (int) $o->production_sequence : null,
+            'start_time' => $o->start_time ? (string) $o->start_time : null,
+            'end_time' => $o->end_time ? (string) $o->end_time : null,
         ]);
 
         return response()->json(['data' => $orders]);
