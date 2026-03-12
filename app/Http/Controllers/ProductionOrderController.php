@@ -127,49 +127,78 @@ class ProductionOrderController extends Controller
 
     public function checkMaterial(ProductionOrder $order)
     {
-        // Logic to check BOM vs Inventory
-        $part = $order->part;
-        $bom = Bom::where('part_id', $part->id)->latest()->first(); // Assuming latest BOM
+        // 1. Find active BOM for this part
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
 
         if (!$bom) {
-            return back()->with('error', 'No BOM found for this part.');
+            return back()->with('error', 'Tidak ada BOM aktif untuk part ini. Buat BOM terlebih dahulu.');
         }
 
-        $bomItems = $bom->items;
-        $missingMaterials = [];
-        $isAvailable = true;
+        // 2. Get material requirements from BOM explosion
+        // This method handles recursive requirements and aggregates by part_no
+        $requirements = $bom->getTotalMaterialRequirements($order->qty_planned);
 
-        foreach ($bomItems as $item) {
-            $requiredQty = $item->usage_qty * $order->qty_planned;
-            // Check inventory (GciInventory)
-            $currentStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
-
-            if ($currentStock < $requiredQty) {
-                $isAvailable = false;
-                $missingMaterials[] = [
-                    'part' => $item->componentPart?->part_no ?? 'Unknown',
-                    'required' => $requiredQty,
-                    'available' => $currentStock,
-                ];
-            }
+        if (empty($requirements)) {
+            return back()->with('error', 'BOM tidak memiliki komponen/material. Periksa BOM.');
         }
 
-        if ($isAvailable) {
-            if ($order->status === 'planned') {
-                return back()->with('error', 'Kanban belum di-release. Release dulu sebelum check material.');
+        // 3. Check each material against inventory
+        $results = [];
+        $allAvailable = true;
+
+        foreach ($requirements as $req) {
+            $partNo = $req['part_no'];
+            $part = $req['part'];
+            $needed = round($req['total_qty'], 4);
+            $makeOrBuy = strtolower($req['make_or_buy'] ?? 'buy');
+
+            // Skip free-issue items (provided by customer)
+            if ($makeOrBuy === 'free_issue') {
+                continue;
             }
-            if (in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold'], true)) {
-                // Require machine/die info for flow parity (best-effort).
-                if (!$order->process_name || !$order->machine_id) {
-                    $order->update(['status' => 'resource_hold', 'workflow_stage' => 'resource_check']);
-                    return back()->with('error', 'Machine/Process belum diisi. Isi dulu lalu ulangi check.');
-                }
-                $order->update(['status' => 'released', 'workflow_stage' => 'ready']);
+
+            // Get inventory (on_hand)
+            $inventory = GciInventory::where('gci_part_id', $part?->id)->first();
+            $onHand = $inventory ? (float) $inventory->on_hand : 0;
+
+            $sufficient = $onHand >= $needed;
+            $shortage = $sufficient ? 0 : round($needed - $onHand, 4);
+
+            if (!$sufficient) {
+                $allAvailable = false;
             }
-            return back()->with('success', 'Material check passed! Order released.');
+
+            $results[] = [
+                'part_no' => $partNo,
+                'part_name' => $part?->part_name ?? '-',
+                'needed' => $needed,
+                'on_hand' => $onHand,
+                'sufficient' => $sufficient,
+                'shortage' => $shortage,
+                'uom' => $req['uom'] ?? '-',
+            ];
+        }
+
+        // 4. Update WO status based on result
+        if ($allAvailable) {
+            $order->update([
+                'status' => 'released',
+                'workflow_stage' => 'material_ready',
+            ]);
+
+            return back()->with('success', 'Semua material tersedia! WO status diperbarui ke RELEASED.')
+                         ->with('material_check', $results);
         } else {
-            $order->update(['status' => 'material_hold', 'workflow_stage' => 'material_check']);
-            return back()->with('error', 'Material check failed.')->with('missing_materials', $missingMaterials);
+            $order->update([
+                'status' => 'material_hold',
+                'workflow_stage' => 'material_check',
+            ]);
+
+            $shortItems = array_filter($results, fn($r) => !$r['sufficient']);
+            $shortList = implode(', ', array_map(fn($r) => "{$r['part_no']} (kurang {$r['shortage']})", $shortItems));
+
+            return back()->with('error', "Material tidak cukup: {$shortList}")
+                         ->with('material_check', $results);
         }
     }
 
@@ -308,80 +337,5 @@ class ProductionOrderController extends Controller
 
         return back()->with('success', 'Kanban updated and inventory posted.');
     }
-
-    public function checkMaterial(ProductionOrder $order)
-    {
-        // 1. Find active BOM for this part
-        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
-
-        if (!$bom) {
-            return back()->with('error', 'Tidak ada BOM aktif untuk part ini. Buat BOM terlebih dahulu.');
-        }
-
-        // 2. Get material requirements from BOM explosion
-        $requirements = $bom->getTotalMaterialRequirements($order->qty_planned);
-
-        if (empty($requirements)) {
-            return back()->with('error', 'BOM tidak memiliki komponen/material. Periksa BOM.');
-        }
-
-        // 3. Check each material against inventory
-        $results = [];
-        $allAvailable = true;
-
-        foreach ($requirements as $req) {
-            $partNo = $req['part_no'];
-            $part = $req['part'];
-            $needed = round($req['total_qty'], 4);
-            $makeOrBuy = strtolower($req['make_or_buy'] ?? 'buy');
-
-            // Skip free-issue items
-            if ($makeOrBuy === 'free_issue') {
-                continue;
-            }
-
-            // Get inventory
-            $inventory = GciInventory::where('gci_part_id', $part?->id)->first();
-            $onHand = $inventory ? (float) $inventory->on_hand : 0;
-
-            $sufficient = $onHand >= $needed;
-            $shortage = $sufficient ? 0 : round($needed - $onHand, 4);
-
-            if (!$sufficient) {
-                $allAvailable = false;
-            }
-
-            $results[] = [
-                'part_no' => $partNo,
-                'part_name' => $part?->part_name ?? '-',
-                'needed' => $needed,
-                'on_hand' => $onHand,
-                'sufficient' => $sufficient,
-                'shortage' => $shortage,
-                'uom' => $req['uom'] ?? '-',
-            ];
-        }
-
-        // 4. Update WO status based on result
-        if ($allAvailable) {
-            $order->update([
-                'status' => 'released',
-                'workflow_stage' => 'material_ready',
-            ]);
-
-            return back()->with('success', 'Semua material tersedia! WO status → RELEASED.')
-                         ->with('material_check', $results);
-        } else {
-            $order->update([
-                'status' => 'material_hold',
-                'workflow_stage' => 'material_check',
-            ]);
-
-            $shortItems = array_filter($results, fn($r) => !$r['sufficient']);
-            $shortList = implode(', ', array_map(fn($r) => "{$r['part_no']} (kurang {$r['shortage']})", $shortItems));
-
-            return back()->with('error', "Material tidak cukup: {$shortList}")
-                         ->with('material_check', $results);
-        }
-    }
 }
+
