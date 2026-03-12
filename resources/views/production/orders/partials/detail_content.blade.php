@@ -118,14 +118,52 @@
              
             <h3 class="text-lg font-semibold mb-4">Actions</h3>
             
-            @if($order->status == 'planned' || $order->status == 'material_hold')
+            @if($order->status == 'planned' || $order->status == 'material_hold' || $order->status == 'released')
                 <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-100">
-                    <h4 class="font-medium text-indigo-900 mb-2">Material Check Required</h4>
-                    <p class="text-sm text-indigo-700 mb-4">Validate BOM materials against inventory before releasing.</p>
+                    <h4 class="font-medium text-indigo-900 mb-2 font-black uppercase tracking-wide text-xs">Material Check</h4>
+                    
+                    @if(session('material_check'))
+                        <div class="mb-4 overflow-hidden border border-indigo-200 rounded-lg bg-white">
+                            <table class="min-w-full divide-y divide-gray-200 text-[10px]">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-2 py-1.5 text-left font-bold text-gray-500 uppercase">Part No</th>
+                                        <th class="px-2 py-1.5 text-right font-bold text-gray-500 uppercase">Needed</th>
+                                        <th class="px-2 py-1.5 text-right font-bold text-gray-500 uppercase">Stock</th>
+                                        <th class="px-2 py-1.5 text-center font-bold text-gray-500 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach(session('material_check') as $item)
+                                        <tr>
+                                            <td class="px-2 py-1.5 font-medium text-gray-900">
+                                                {{ $item['part_no'] }}
+                                                <div class="text-[8px] text-gray-400 truncate w-24">{{ $item['part_name'] }}</div>
+                                            </td>
+                                            <td class="px-2 py-1.5 text-right font-semibold">{{ number_format($item['needed'], 2) }}</td>
+                                            <td class="px-2 py-1.5 text-right {{ $item['sufficient'] ? 'text-emerald-600' : 'text-rose-600 font-bold' }}">
+                                                {{ number_format($item['on_hand'], 2) }}
+                                            </td>
+                                            <td class="px-2 py-1.5 text-center">
+                                                @if($item['sufficient'])
+                                                    <span class="text-emerald-500 font-black">✓</span>
+                                                @else
+                                                    <span class="text-rose-500 font-black">⚠</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-xs text-indigo-700 mb-4">Validate BOM materials against inventory before releasing.</p>
+                    @endif
+
                     <form action="{{ route('production.orders.check-material', $order) }}" method="POST">
                         @csrf
-                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Check Availability
+                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-indigo-200 rounded-md shadow-sm text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                            {{ $order->status == 'material_hold' ? 'Re-check Material' : 'Check Availability' }}
                         </button>
                     </form>
                 </div>

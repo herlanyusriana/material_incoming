@@ -195,9 +195,8 @@ class ProductionOrderController extends Controller
             ]);
 
             $shortItems = array_filter($results, fn($r) => !$r['sufficient']);
-            $shortList = implode(', ', array_map(fn($r) => "{$r['part_no']} (kurang {$r['shortage']})", $shortItems));
-
-            return back()->with('error', "Material tidak cukup: {$shortList}")
+            $shortCount = count($shortItems);
+            return back()->with('error', "Material tidak cukup ($shortCount item kurang). Periksa tabel di bawah.")
                          ->with('material_check', $results);
         }
     }

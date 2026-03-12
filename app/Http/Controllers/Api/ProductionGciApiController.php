@@ -202,10 +202,17 @@ class ProductionGciApiController extends Controller
         $date = $request->query('date', now()->toDateString());
 
         $query = ProductionOrder::with('part:id,part_no,part_name,model')
-            ->whereDate('plan_date', $date)
-            ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled'])
-            ->orderBy('production_sequence')
-            ->orderBy('transaction_no');
+            ->where(function($q) use ($date, $machineId) {
+                // 1. Show all WOs for the selected date
+                $q->whereDate('plan_date', $date);
+                
+                // 2. OR show backlog: WOs that are released or in production or kanban_released
+                // even if the date is in the past, so they don't disappear from APK
+                $q->orWhereIn('status', ['kanban_released', 'released', 'in_production']);
+            })
+            ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled', 'completed'])
+            ->orderBy('plan_date', 'asc')
+            ->orderBy('production_sequence', 'asc');
 
         if ($machineId) {
             $query->where('machine_id', $machineId);
