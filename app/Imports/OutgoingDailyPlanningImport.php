@@ -228,6 +228,8 @@ class OutgoingDailyPlanningImport implements ToCollection
         sort($dates);
         $this->dates = $dates;
 
+        $results = [];
+
         foreach ($rows as $index => $row) {
             $arr = $this->rowValues($row);
             $productionLine = $productionLineIdx !== null
@@ -236,36 +238,29 @@ class OutgoingDailyPlanningImport implements ToCollection
             $partNo = $this->normalizePartNo($arr[$partNoIdx] ?? '');
             $rowNo = $this->parseIntOrNull($noIdx !== null ? ($arr[$noIdx] ?? null) : null);
 
-            // Use logical row number (2 for header + index + 1)
-            $excelRow = $index + 2;
-
             if ($partNo === '') {
                 continue;
             }
 
             // Resolve part_no to a Customer Part ID or GCI Part ID (FG only)
-            $gciPartIds = [];  // Changed to array to support multiple components
+            $gciPartIds = [];
             $customerPartId = null;
 
             if ($partNo !== '') {
-                // Try customer part mapping first as requested ("harus customer part")
                 $customerPart = \App\Models\CustomerPart::query()
                     ->where('customer_part_no', $partNo)
                     ->first();
 
                 if ($customerPart) {
                     $customerPartId = $customerPart->id;
-                    // Auto-fill production_line from CustomerPart if not in Excel
                     if ($productionLine === '' && !empty($customerPart->line)) {
                         $productionLine = strtoupper(trim($customerPart->line));
                     }
-                    // Get ALL FG components (not just first)
                     $fgComponents = \App\Models\CustomerPartComponent::query()
                         ->where('customer_part_id', $customerPart->id)
                         ->whereHas('part', function ($q) {
                             $q->where('classification', 'FG');
                         })
-                        ->with('part')
                         ->get();
 
                     foreach ($fgComponents as $fgComponent) {
@@ -275,7 +270,6 @@ class OutgoingDailyPlanningImport implements ToCollection
                         ];
                     }
                 } else {
-                    // Try direct GCI Part lookup (FG only)
                     $cleanPartNo = str_replace(['-', ' ', '/', '.', '_'], '', $partNo);
                     $gciPart = GciPart::query()
                         ->where('classification', 'FG')
@@ -291,9 +285,6 @@ class OutgoingDailyPlanningImport implements ToCollection
                             'usage_qty' => 1.0,
                         ];
                     } else {
-                        // DO NOT Auto-create.
-                        // Leave gciPartIds empty.
-                        // Add to "unmapped" notification list.
                         $this->createdParts[] = $partNo . " (UNMAPPED - Not found in Customer Parts or GCI Parts)";
                     }
                 }
@@ -309,33 +300,38 @@ class OutgoingDailyPlanningImport implements ToCollection
                 $cells[$date] = ['seq' => $seq, 'qty' => $qty];
             }
 
-            // Create a row for EACH GCI Part component (explode)
-            if (empty($gciPartIds)) {
-                // No mapping found - create single row with null gci_part_id
-                $this->rows[] = [
-                    'row_no' => $rowNo,
-                    'production_line' => $productionLine,
-                    'part_no' => $partNo,
-                    'customer_part_id' => $customerPartId,
-                    'gci_part_id' => null,
-                    'usage_qty' => 1.0,
-                    'cells' => $cells,
-                ];
-            } else {
-                // Create one row per GCI Part component
-                foreach ($gciPartIds as $gciPartData) {
-                    $this->rows[] = [
+            $partData = !empty($gciPartIds) ? $gciPartIds : [['id' => null, 'usage_qty' => 1.0]];
+
+            foreach ($partData as $pd) {
+                $gciId = $pd['id'];
+                $key = "{$productionLine}|{$partNo}|" . ($gciId ?? 'NULL') . "|" . ($customerPartId ?? 'NULL');
+
+                if (!isset($results[$key])) {
+                    $results[$key] = [
                         'row_no' => $rowNo,
                         'production_line' => $productionLine,
                         'part_no' => $partNo,
                         'customer_part_id' => $customerPartId,
-                        'gci_part_id' => $gciPartData['id'],
-                        'usage_qty' => $gciPartData['usage_qty'],
-                        'cells' => $cells,
+                        'gci_part_id' => $gciId,
+                        'usage_qty' => $pd['usage_qty'],
+                        'cells' => [],
                     ];
+                }
+
+                foreach ($cells as $date => $cell) {
+                    if (!isset($results[$key]['cells'][$date])) {
+                        $results[$key]['cells'][$date] = ['seq' => $cell['seq'], 'qty' => 0];
+                    }
+                    if ($cell['qty'] !== null) {
+                        $results[$key]['cells'][$date]['qty'] += (int) $cell['qty'];
+                    }
+                    if ($results[$key]['cells'][$date]['seq'] === null) {
+                        $results[$key]['cells'][$date]['seq'] = $cell['seq'];
+                    }
                 }
             }
         }
+        $this->rows = array_values($results);
     }
 
     public function dateFrom(): ?Carbon
