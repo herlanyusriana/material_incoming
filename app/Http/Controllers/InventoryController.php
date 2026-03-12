@@ -44,13 +44,15 @@ class InventoryController extends Controller
                         ->orWhere('model', 'like', '%' . $s . '%');
                 });
             })
-            ->addSelect(['latest_batch' => \App\Models\Receive::query()
-                ->select('receives.tag')
-                ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
-                ->whereColumn('arrival_items.gci_part_id', 'gci_inventories.gci_part_id')
-                ->whereNotNull('receives.tag')
-                ->orderByDesc('receives.created_at')
-                ->limit(1),
+            ->addSelect([
+                '*',
+                'latest_batch_received' => \App\Models\Receive::query()
+                    ->select('receives.tag')
+                    ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
+                    ->whereColumn('arrival_items.gci_part_id', 'gci_inventories.gci_part_id')
+                    ->whereNotNull('receives.tag')
+                    ->orderByDesc('receives.created_at')
+                    ->limit(1),
             ])
             ->orderByDesc('on_hand')
             ->orderBy('gci_part_id');

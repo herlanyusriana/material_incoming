@@ -61,6 +61,7 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
         $onHandRaw = $this->firstNonEmpty($row, ['on_hand']);
         $onOrderRaw = $this->firstNonEmpty($row, ['on_order']);
         $asOfDate = $this->firstNonEmpty($row, ['as_of_date']);
+        $batchNo = $this->firstNonEmpty($row, ['batch', 'batch_no']);
 
         $onHand = $onHandRaw !== null ? (float) $onHandRaw : 0;
         $onOrder = $onOrderRaw !== null ? (float) $onOrderRaw : 0;
@@ -70,11 +71,13 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
             $inventory->update([
                 'on_hand' => $inventory->on_hand + $onHand,
                 'on_order' => $inventory->on_order + $onOrder,
+                'batch_no' => $batchNo ?: $inventory->batch_no,
                 'as_of_date' => $asOfDate ?: $inventory->as_of_date,
             ]);
         } else {
             GciInventory::create([
                 'gci_part_id' => $part->id,
+                'batch_no' => $batchNo,
                 'on_hand' => $onHand,
                 'on_order' => $onOrder,
                 'as_of_date' => $asOfDate ?: null,
@@ -91,6 +94,8 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
             'part_number' => ['nullable', 'string', 'max:255'],
             'on_hand' => 'nullable|numeric|min:0',
             'on_order' => 'nullable|numeric|min:0',
+            'batch' => 'nullable|string|max:255',
+            'batch_no' => 'nullable|string|max:255',
             'as_of_date' => 'nullable|date',
         ];
     }

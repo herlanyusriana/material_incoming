@@ -161,7 +161,7 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <span class="font-mono text-xs text-slate-700">{{ $inv->latest_batch ?? '-' }}</span>
+                                        <span class="font-mono text-xs text-slate-700">{{ $inv->batch_no ?? ($inv->latest_batch_received ?? '-') }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded shadow-sm border border-slate-200">
@@ -215,7 +215,7 @@
                 </div>
                 <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 space-y-1">
                     <p class="font-bold text-slate-600">Format kolom:</p>
-                    <p>part_no | on_hand | on_order | as_of_date</p>
+                    <p>part_no | on_hand | on_order | batch_no | as_of_date</p>
                     <p class="text-slate-400">Part no harus sesuai dengan data GCI Parts yang sudah ada.</p>
                 </div>
                 <div class="flex justify-end gap-2">

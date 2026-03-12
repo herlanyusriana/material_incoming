@@ -11,6 +11,7 @@ class GciInventory extends Model
 
     protected $fillable = [
         'gci_part_id',
+        'batch_no',
         'on_hand',
         'on_order',
         'as_of_date',
