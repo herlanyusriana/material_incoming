@@ -1033,7 +1033,7 @@
                             {{-- Monitoring Section --}}
                             <div class="pt-2 mt-2 border-t border-slate-200">
                                 <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                    Monitoring & KPI</div>
+                                    Monitoring & Performance</div>
                             </div>
                             <a href="{{ route('production.wo-monitoring.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.wo-monitoring.*'), $subInactive => !request()->routeIs('production.wo-monitoring.*')])>
                                 <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
@@ -1041,7 +1041,7 @@
                             </a>
                             <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')])>
                                 <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>
-                                <span class="flex-1">Operator KPI</span>
+                                <span class="flex-1">Operator Performance</span>
                             </a>
                             <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')])>
                                 <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('production.gci-dashboard.*')])></span>

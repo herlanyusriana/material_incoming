@@ -87,7 +87,10 @@
                     $totalNG = $workOrder->hourlyReports->sum('ng');
                     $totalTarget = $workOrder->hourlyReports->sum('target');
                     $efficiency = $totalTarget > 0 ? round(($totalActual / $totalTarget) * 100) : 0;
-                    $totalDowntime = $workOrder->downtimes->sum('duration_minutes');
+                    $qdcReasons = ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial', 'Ganti Tipe/Setting'];
+                    $totalDowntime = $workOrder->downtimes->where('reason', '!=', 'Istirahat')
+                        ->reject(fn($dt) => in_array($dt->reason, $qdcReasons))
+                        ->sum('duration_minutes');
                 @endphp
                 <div class="p-6 text-center">
                     <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Total Actual</div>

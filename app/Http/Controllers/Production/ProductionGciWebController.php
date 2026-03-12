@@ -90,18 +90,26 @@ class ProductionGciWebController extends Controller
             }
 
             $op = &$operatorMap[$name];
-            $op['total_downtime_minutes'] += $dt->duration_minutes ?? 0;
-            $op['downtime_count']++;
+            
+            // Only count as downtime if it's not 'Istirahat' and not a QDC category
+            $qdcReasons = ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial', 'Ganti Tipe/Setting'];
+            if ($dt->reason !== 'Istirahat' && !in_array($dt->reason, $qdcReasons)) {
+                $op['total_downtime_minutes'] += $dt->duration_minutes ?? 0;
+                $op['downtime_count']++;
+            } else {
+                // Record break/QDC time separately (not penalizing efficiency score as downtime)
+            }
 
-            // Track downtime reasons
+            // Track all reasons for the breakdown chart/list
             $reason = $dt->reason ?? 'Lainnya';
             if (!isset($op['downtime_reasons'][$reason])) {
                 $op['downtime_reasons'][$reason] = 0;
             }
             $op['downtime_reasons'][$reason] += $dt->duration_minutes ?? 0;
 
-            // Track QDC sessions
-            if ($dt->reason === 'Ganti Tipe/Setting') {
+            // Track QDC sessions (Planned activities)
+            $qdcReasons = ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial', 'Ganti Tipe/Setting'];
+            if (in_array($dt->reason, $qdcReasons)) {
                 $op['qdc_count']++;
                 $notes = json_decode($dt->notes, true);
                 if ($notes && isset($notes['duration_seconds'])) {

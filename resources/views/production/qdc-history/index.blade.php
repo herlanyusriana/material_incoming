@@ -110,6 +110,7 @@
                                     'ganti tipe/setting' => 'bg-orange-100 text-orange-700',
                                     'perbaikan coil' => 'bg-red-100 text-red-600',
                                     'cleaning' => 'bg-green-100 text-green-700',
+                                    'istirahat' => 'bg-sky-50 text-sky-500 border border-sky-100',
                                 ];
                                 $badgeClass = $categoryColors[$catLower] ?? 'bg-slate-100 text-slate-700';
                             @endphp

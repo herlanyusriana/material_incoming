@@ -380,7 +380,10 @@ class ProductionGciApiController extends Controller
                 ->whereDate('start_time', $date)
                 ->get();
 
-            $totalDowntimeMinutes = $downtimes->sum('duration_minutes');
+            $qdcReasons = ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial', 'Ganti Tipe/Setting'];
+            $totalDowntimeMinutes = $downtimes->where('reason', '!=', 'Istirahat')
+                ->reject(fn($dt) => in_array($dt->reason, $qdcReasons))
+                ->sum('duration_minutes');
 
             // Get hourly reports for orders on this machine
             $orderIds = $orders->pluck('id');
