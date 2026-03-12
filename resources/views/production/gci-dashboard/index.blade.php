@@ -76,8 +76,15 @@
                                         {{ \Carbon\Carbon::parse($wo->date)->format('d M Y') }}</div>
                                     <div class="text-xs text-slate-500">Shift {{ $wo->shift }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-sm font-semibold text-indigo-600">
-                                    {{ $wo->order_no }}
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-semibold text-indigo-600">{{ $wo->order_no }}</span>
+                                        @if($wo->status === 'in_production')
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-700 animate-pulse border border-emerald-200">
+                                                RUNNING
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm text-slate-900 font-medium">{{ $wo->type_model }}</div>

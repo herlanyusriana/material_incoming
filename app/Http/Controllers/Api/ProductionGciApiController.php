@@ -52,16 +52,18 @@ class ProductionGciApiController extends Controller
                 foreach ($data['hourly_reports'] as $hrParams) {
                     // New format: direct production_order_id from Android app
                     if (isset($hrParams['productionOrderId'])) {
-                        ProductionGciHourlyReport::updateOrCreate(
-                            ['offline_id' => $hrParams['id']],
-                            [
-                                'production_order_id' => $hrParams['productionOrderId'],
-                                'time_range' => $hrParams['timeRange'],
-                                'target' => $hrParams['target'],
-                                'actual' => $hrParams['actual'],
-                                'ng' => $hrParams['ng'],
-                            ]
-                        );
+                    ProductionGciHourlyReport::updateOrCreate(
+                        [
+                            'offline_id' => $hrParams['id'],
+                            'production_order_id' => $hrParams['productionOrderId'],
+                        ],
+                        [
+                            'time_range' => $hrParams['timeRange'],
+                            'target' => $hrParams['target'],
+                            'actual' => $hrParams['actual'],
+                            'ng' => $hrParams['ng'],
+                        ]
+                    );
 
                         // Update production order actual totals
                         $po = ProductionOrder::find($hrParams['productionOrderId']);
@@ -99,10 +101,12 @@ class ProductionGciApiController extends Controller
                     // New format: machine-based downtimes (from Flutter downtime-only app)
                     if (isset($dtParams['machineId'])) {
                         ProductionGciDowntime::updateOrCreate(
-                            ['offline_id' => $dtParams['id']],
+                            [
+                                'offline_id' => $dtParams['id'],
+                                'machine_id' => $dtParams['machineId'],
+                            ],
                             [
                                 'production_gci_work_order_id' => null,
-                                'machine_id' => $dtParams['machineId'],
                                 'machine_name' => $dtParams['machineName'] ?? null,
                                 'shift' => $dtParams['shift'] ?? null,
                                 'start_time' => $dtParams['startTime'],
