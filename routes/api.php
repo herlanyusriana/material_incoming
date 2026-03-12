@@ -12,6 +12,11 @@ Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiC
 Route::get('/production-gci/machines', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machines']);
 Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrders']);
 Route::get('/production-gci/parts', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'parts']);
+Route::post('/production-gci/wo/{id}/start', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startWo']);
+Route::post('/production-gci/wo/{id}/finish', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'finishWo']);
+Route::get('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'getHourlyReports']);
+Route::post('/production-gci/qdc-session', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'storeQdcSession']);
+Route::get('/production-gci/wo-monitoring', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'woMonitoringData']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);

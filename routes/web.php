@@ -502,6 +502,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/gci-dashboard', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'index'])->name('gci-dashboard.index');
         Route::get('/gci-dashboard/{id}', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'show'])->name('gci-dashboard.show');
 
+        // WO Monitoring Dashboard (real-time)
+        Route::get('/wo-monitoring', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'woMonitoring'])->name('wo-monitoring.index');
+
+        // Operator KPI Dashboard
+        Route::get('/operator-kpi', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpi'])->name('operator-kpi.index');
+        Route::get('/operator-kpi/data', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpiData'])->name('operator-kpi.data');
+
         // QDC History (all downtime records)
         Route::get('/qdc-history', [\App\Http\Controllers\Production\QdcHistoryController::class, 'index'])->name('qdc-history.index');
         Route::get('/qdc-history/pdf', [\App\Http\Controllers\Production\QdcHistoryController::class, 'pdf'])->name('qdc-history.pdf');

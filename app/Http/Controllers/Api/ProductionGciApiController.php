@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Machine;
 use App\Models\ProductionOrder;
+use App\Models\ProductionInspection;
 use App\Models\ProductionGciWorkOrder;
 use App\Models\ProductionGciHourlyReport;
 use App\Models\ProductionGciDowntime;
@@ -49,7 +50,33 @@ class ProductionGciApiController extends Controller
 
             if (!empty($data['hourly_reports'])) {
                 foreach ($data['hourly_reports'] as $hrParams) {
-                    // Attempt to resolve WO ID, fallback to finding by offline_id if not in array
+                    // New format: direct production_order_id from Android app
+                    if (isset($hrParams['productionOrderId'])) {
+                        ProductionGciHourlyReport::updateOrCreate(
+                            ['offline_id' => $hrParams['id']],
+                            [
+                                'production_order_id' => $hrParams['productionOrderId'],
+                                'time_range' => $hrParams['timeRange'],
+                                'target' => $hrParams['target'],
+                                'actual' => $hrParams['actual'],
+                                'ng' => $hrParams['ng'],
+                            ]
+                        );
+
+                        // Update production order actual totals
+                        $po = ProductionOrder::find($hrParams['productionOrderId']);
+                        if ($po) {
+                            $totalActual = ProductionGciHourlyReport::where('production_order_id', $po->id)->sum('actual');
+                            $totalNg = ProductionGciHourlyReport::where('production_order_id', $po->id)->sum('ng');
+                            $po->update([
+                                'qty_actual' => $totalActual,
+                                'qty_ng' => $totalNg,
+                            ]);
+                        }
+                        continue;
+                    }
+
+                    // Legacy format: work-order-based hourly reports
                     $woId = $woMap[$hrParams['workOrderId']] ?? ProductionGciWorkOrder::where('offline_id', $hrParams['workOrderId'])->value('id');
 
                     if ($woId) {
@@ -175,7 +202,9 @@ class ProductionGciApiController extends Controller
         $date = $request->query('date', now()->toDateString());
 
         $query = ProductionOrder::with('part:id,part_no,part_name,model')
-            ->whereDate('planned_start_date', $date)
+            ->whereDate('plan_date', $date)
+            ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled'])
+            ->orderBy('production_sequence')
             ->orderBy('transaction_no');
 
         if ($machineId) {
@@ -184,14 +213,206 @@ class ProductionGciApiController extends Controller
 
         $orders = $query->get()->map(fn($o) => [
             'id' => $o->id,
+            'wo_number' => $o->production_order_number,
             'transaction_no' => $o->transaction_no,
             'part_no' => $o->part?->part_no,
             'part_name' => $o->part?->part_name,
             'model' => $o->part?->model,
-            'qty' => $o->qty,
+            'qty_planned' => (float) $o->qty_planned,
+            'qty_actual' => (float) ($o->qty_actual ?? 0),
+            'qty_ng' => (float) ($o->qty_ng ?? 0),
             'status' => $o->status,
+            'workflow_stage' => $o->workflow_stage,
+            'shift' => $o->shift,
+            'production_sequence' => $o->production_sequence,
+            'start_time' => $o->start_time,
+            'end_time' => $o->end_time,
         ]);
 
         return response()->json(['data' => $orders]);
+    }
+
+    /**
+     * Start a WO from Android app (operator starts production)
+     */
+    public function startWo(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+
+        // Allow starting from planned, kanban_released, or released status
+        if (in_array($order->status, ['completed', 'cancelled'])) {
+            return response()->json(['message' => 'WO sudah selesai atau dibatalkan'], 422);
+        }
+
+        if ($order->status === 'in_production') {
+            return response()->json(['message' => 'WO sudah berjalan', 'data' => $order], 200);
+        }
+
+        $order->update([
+            'status' => 'in_production',
+            'workflow_stage' => 'mass_production',
+            'start_time' => $order->start_time ?? now(),
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $order->fresh()]);
+    }
+
+    /**
+     * Finish a WO from Android app
+     */
+    public function finishWo(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+
+        if ($order->status !== 'in_production') {
+            return response()->json(['message' => 'WO belum dimulai'], 422);
+        }
+
+        // Sum actual from hourly reports
+        $totalActual = ProductionGciHourlyReport::where('production_order_id', $id)->sum('actual');
+        $totalNg = ProductionGciHourlyReport::where('production_order_id', $id)->sum('ng');
+
+        $order->update([
+            'status' => 'in_production',
+            'workflow_stage' => 'final_inspection',
+            'end_time' => now(),
+            'qty_actual' => $totalActual > 0 ? $totalActual : $order->qty_actual,
+            'qty_ng' => $totalNg > 0 ? $totalNg : ($order->qty_ng ?? 0),
+        ]);
+
+        // Create final inspection if not exists
+        if (!$order->inspections()->where('type', 'final')->exists()) {
+            ProductionInspection::create([
+                'production_order_id' => $order->id,
+                'type' => 'final',
+                'status' => 'pending',
+            ]);
+        }
+
+        return response()->json(['status' => 'success', 'data' => $order->fresh()]);
+    }
+
+    /**
+     * Get hourly reports for a specific WO
+     */
+    public function getHourlyReports($id)
+    {
+        $reports = ProductionGciHourlyReport::where('production_order_id', $id)
+            ->orderBy('time_range')
+            ->get();
+
+        return response()->json(['data' => $reports]);
+    }
+
+    /**
+     * Store QDC timer session from Android app
+     */
+    public function storeQdcSession(Request $request)
+    {
+        $data = $request->validate([
+            'machine_id' => 'required|integer',
+            'machine_name' => 'nullable|string',
+            'operator_name' => 'nullable|string',
+            'shift' => 'nullable|string',
+            'part_from' => 'nullable|string',
+            'part_to' => 'nullable|string',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'duration_seconds' => 'required|integer',
+            'internal_seconds' => 'nullable|integer',
+            'external_seconds' => 'nullable|integer',
+            'checklist' => 'nullable|array',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Store as a downtime record with reason = 'QDC / Die Change'
+        $durationMinutes = intval(ceil($data['duration_seconds'] / 60));
+
+        ProductionGciDowntime::create([
+            'machine_id' => $data['machine_id'],
+            'machine_name' => $data['machine_name'] ?? null,
+            'shift' => $data['shift'] ?? null,
+            'operator_name' => $data['operator_name'] ?? null,
+            'start_time' => $data['start_time'],
+            'end_time' => $data['end_time'],
+            'duration_minutes' => $durationMinutes,
+            'reason' => 'Ganti Tipe/Setting',
+            'notes' => json_encode([
+                'type' => 'qdc_session',
+                'part_from' => $data['part_from'],
+                'part_to' => $data['part_to'],
+                'duration_seconds' => $data['duration_seconds'],
+                'internal_seconds' => $data['internal_seconds'] ?? 0,
+                'external_seconds' => $data['external_seconds'] ?? 0,
+                'checklist' => $data['checklist'] ?? [],
+                'notes' => $data['notes'] ?? '',
+            ]),
+        ]);
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * WO Monitoring data for WEB dashboard (JSON endpoint)
+     */
+    public function woMonitoringData(Request $request)
+    {
+        $date = $request->query('date', now()->toDateString());
+        $shift = $request->query('shift');
+
+        $machines = Machine::active()->orderBy('name')->get();
+
+        $result = [];
+        foreach ($machines as $machine) {
+            $query = ProductionOrder::with('part:id,part_no,part_name,model')
+                ->where('machine_id', $machine->id)
+                ->whereDate('plan_date', $date)
+                ->orderBy('production_sequence');
+
+            $orders = $query->get();
+
+            // Get downtimes for this machine today
+            $downtimes = ProductionGciDowntime::where('machine_id', $machine->id)
+                ->whereDate('start_time', $date)
+                ->get();
+
+            $totalDowntimeMinutes = $downtimes->sum('duration_minutes');
+
+            // Get hourly reports for orders on this machine
+            $orderIds = $orders->pluck('id');
+            $hourlyReports = ProductionGciHourlyReport::whereIn('production_order_id', $orderIds)->get();
+
+            $result[] = [
+                'machine' => [
+                    'id' => $machine->id,
+                    'name' => $machine->name,
+                    'code' => $machine->code,
+                ],
+                'orders' => $orders->map(fn($o) => [
+                    'id' => $o->id,
+                    'wo_number' => $o->production_order_number,
+                    'part_no' => $o->part?->part_no,
+                    'part_name' => $o->part?->part_name,
+                    'model' => $o->part?->model,
+                    'qty_planned' => (float) $o->qty_planned,
+                    'qty_actual' => (float) ($o->qty_actual ?? 0),
+                    'qty_ng' => (float) ($o->qty_ng ?? 0),
+                    'status' => $o->status,
+                    'start_time' => $o->start_time,
+                    'end_time' => $o->end_time,
+                    'shift' => $o->shift,
+                    'hourly' => $hourlyReports->where('production_order_id', $o->id)->map(fn($h) => [
+                        'time_range' => $h->time_range,
+                        'target' => (int) $h->target,
+                        'actual' => (int) $h->actual,
+                        'ng' => (int) $h->ng,
+                    ])->values(),
+                ]),
+                'total_downtime_minutes' => $totalDowntimeMinutes,
+                'downtime_count' => $downtimes->count(),
+            ];
+        }
+
+        return response()->json(['data' => $result, 'date' => $date]);
     }
 }
