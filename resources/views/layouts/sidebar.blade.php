@@ -319,9 +319,28 @@
                                         class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                         Execution</div>
                                 </div>
-                                <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')]) @click="mobileSidebarOpen = false">
+                                 <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                     <span class="flex-1">Production Orders</span>
+                                </a>
+
+                                {{-- Monitoring Section --}}
+                                <div class="pt-2 mt-2 border-t border-slate-200">
+                                    <div
+                                        class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                        Monitoring & KPI</div>
+                                </div>
+                                <a href="{{ route('production.wo-monitoring.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.wo-monitoring.*'), $subInactive => !request()->routeIs('production.wo-monitoring.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
+                                    <span class="flex-1">Live WO Monitoring</span>
+                                </a>
+                                <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>
+                                    <span class="flex-1">Operator KPI</span>
+                                </a>
+                                <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
+                                    <span class="flex-1">Work Order Logs (APK)</span>
                                 </a>
                                 <a href="{{ route('production.qdc-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qdc-history.*'), $subInactive => !request()->routeIs('production.qdc-history.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-amber-600' => request()->routeIs('production.qdc-history.*'), 'bg-slate-300 group-hover:bg-amber-400' => !request()->routeIs('production.qdc-history.*')])></span>
@@ -1009,6 +1028,24 @@
                             <a href="{{ route('production.machine-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.machine-load.*'), $subInactive => !request()->routeIs('production.machine-load.*')])>
                                 <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.machine-load.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.machine-load.*')])></span>
                                 <span class="flex-1">Machine Load</span>
+                            </a>
+
+                            {{-- Monitoring Section --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Monitoring & KPI</div>
+                            </div>
+                            <a href="{{ route('production.wo-monitoring.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.wo-monitoring.*'), $subInactive => !request()->routeIs('production.wo-monitoring.*')])>
+                                <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
+                                <span class="flex-1">Live WO Monitoring</span>
+                            </a>
+                            <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')])>
+                                <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>
+                                <span class="flex-1">Operator KPI</span>
+                            </a>
+                            <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')])>
+                                <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
+                                <span class="flex-1">Work Order Logs (APK)</span>
                             </a>
                             <a href="{{ route('production.qdc-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qdc-history.*'), $subInactive => !request()->routeIs('production.qdc-history.*')])>
                                 <span @class([$subDotBase, 'bg-amber-600' => request()->routeIs('production.qdc-history.*'), 'bg-slate-300 group-hover:bg-amber-400' => !request()->routeIs('production.qdc-history.*')])></span>
