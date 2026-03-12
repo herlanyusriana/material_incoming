@@ -8,7 +8,7 @@
         <div class="mb-6 flex flex-col md:flex-row md:items-center md::justify-between gap-4">
             <nav class="flex" aria-label="Breadcrumb">
                 <ol class="inline-flex items-center space-x-1 md:space-x-3 text-sm text-slate-500">
-                    <li><a href="{{ route('gci-dashboard.index') }}"
+                    <li><a href="{{ route('production.gci-dashboard.index') }}"
                             class="hover:text-indigo-600 transition-colors">Dashboard</a></li>
                     <li>
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -22,7 +22,7 @@
             </nav>
 
             <div class="flex gap-2">
-                <a href="{{ route('gci-dashboard.index') }}"
+                <a href="{{ route('production.gci-dashboard.index') }}"
                     class="inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

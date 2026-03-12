@@ -114,7 +114,7 @@
                                     {{ $wo->created_at->format('H:i:s d/m') }}
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <a href="{{ route('gci-dashboard.show', $wo->id) }}"
+                                    <a href="{{ route('production.gci-dashboard.show', $wo->id) }}"
                                         class="inline-flex items-center justify-center h-8 px-4 text-xs font-bold text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-all">
                                         View Report
                                     </a>
