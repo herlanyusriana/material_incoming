@@ -308,4 +308,80 @@ class ProductionOrderController extends Controller
 
         return back()->with('success', 'Kanban updated and inventory posted.');
     }
+
+    public function checkMaterial(ProductionOrder $order)
+    {
+        // 1. Find active BOM for this part
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+
+        if (!$bom) {
+            return back()->with('error', 'Tidak ada BOM aktif untuk part ini. Buat BOM terlebih dahulu.');
+        }
+
+        // 2. Get material requirements from BOM explosion
+        $requirements = $bom->getTotalMaterialRequirements($order->qty_planned);
+
+        if (empty($requirements)) {
+            return back()->with('error', 'BOM tidak memiliki komponen/material. Periksa BOM.');
+        }
+
+        // 3. Check each material against inventory
+        $results = [];
+        $allAvailable = true;
+
+        foreach ($requirements as $req) {
+            $partNo = $req['part_no'];
+            $part = $req['part'];
+            $needed = round($req['total_qty'], 4);
+            $makeOrBuy = strtolower($req['make_or_buy'] ?? 'buy');
+
+            // Skip free-issue items
+            if ($makeOrBuy === 'free_issue') {
+                continue;
+            }
+
+            // Get inventory
+            $inventory = GciInventory::where('gci_part_id', $part?->id)->first();
+            $onHand = $inventory ? (float) $inventory->on_hand : 0;
+
+            $sufficient = $onHand >= $needed;
+            $shortage = $sufficient ? 0 : round($needed - $onHand, 4);
+
+            if (!$sufficient) {
+                $allAvailable = false;
+            }
+
+            $results[] = [
+                'part_no' => $partNo,
+                'part_name' => $part?->part_name ?? '-',
+                'needed' => $needed,
+                'on_hand' => $onHand,
+                'sufficient' => $sufficient,
+                'shortage' => $shortage,
+                'uom' => $req['uom'] ?? '-',
+            ];
+        }
+
+        // 4. Update WO status based on result
+        if ($allAvailable) {
+            $order->update([
+                'status' => 'released',
+                'workflow_stage' => 'material_ready',
+            ]);
+
+            return back()->with('success', 'Semua material tersedia! WO status → RELEASED.')
+                         ->with('material_check', $results);
+        } else {
+            $order->update([
+                'status' => 'material_hold',
+                'workflow_stage' => 'material_check',
+            ]);
+
+            $shortItems = array_filter($results, fn($r) => !$r['sufficient']);
+            $shortList = implode(', ', array_map(fn($r) => "{$r['part_no']} (kurang {$r['shortage']})", $shortItems));
+
+            return back()->with('error', "Material tidak cukup: {$shortList}")
+                         ->with('material_check', $results);
+        }
+    }
 }
