@@ -47,7 +47,7 @@ class PickingFgApiController extends Controller
             'date' => $date,
             'last_updated' => $lastUpdated?->toIso8601String(),
             'data' => $picks->map(function ($p) use ($doCompletedMap) {
-                $stockLocations = \App\Models\LocationInventory::where('gci_part_id', $p->gci_part_id)
+                $stockLocations = LocationInventory::where('gci_part_id', $p->gci_part_id)
                     ->where('qty_on_hand', '>', 0)
                     ->orderByDesc('qty_on_hand')
                     ->limit(3)
