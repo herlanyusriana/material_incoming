@@ -80,28 +80,28 @@
                 </div>
                 
                 <div class="space-y-3 max-h-96 overflow-y-auto">
-                    @forelse($salesOrders as $so)
+                    @forelse($deliveryOrders as $do)
                         <div class="border border-slate-200 rounded-lg p-4 bg-white hover:bg-slate-25 transition-colors">
                             <div class="flex items-start">
                                 <input type="checkbox" 
-                                       name="sales_order_ids[]" 
-                                       value="{{ $so->id }}" 
-                                       id="so_{{ $so->id }}"
+                                       name="delivery_order_ids[]" 
+                                       value="{{ $do->id }}" 
+                                       id="do_{{ $do->id }}"
                                        class="mt-1 h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 sales-order-checkbox">
-                                <label for="so_{{ $so->id }}" class="ml-3 flex-1">
+                                <label for="do_{{ $do->id }}" class="ml-3 flex-1">
                                     <div class="flex justify-between">
                                         <div>
-                                            <div class="font-medium text-slate-900">{{ $so->order_number }}</div>
-                                            <div class="text-sm text-slate-500">{{ $so->customer->name ?? 'N/A' }}</div>
+                                            <div class="font-medium text-slate-900">{{ $do->do_no }}</div>
+                                            <div class="text-sm text-slate-500">{{ $do->customer->name ?? 'N/A' }}</div>
                                         </div>
                                         <div class="text-right">
-                                            <div class="text-sm font-medium text-slate-900">{{ $so->items->count() }} items</div>
-                                            <div class="text-sm text-slate-500">{{ $so->status }}</div>
+                                            <div class="text-sm font-medium text-slate-900">{{ $do->items->count() }} items</div>
+                                            <div class="text-sm text-slate-500">{{ $do->status }}</div>
                                         </div>
                                     </div>
                                     
                                     <div class="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                        @foreach($so->items as $item)
+                                        @foreach($do->items as $item)
                                             <div class="text-xs bg-slate-100 rounded px-2 py-1">
                                                 {{ $item->part->part_no ?? 'N/A' }} - {{ $item->quantity }} {{ $item->unit }}
                                             </div>

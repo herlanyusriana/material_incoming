@@ -241,6 +241,22 @@ class PickingFgApiController extends Controller
 
                 if ($pendingCount === 0) {
                     DeliveryOrder::where('id', $pick->delivery_order_id)->update(['status' => 'completed']);
+                    
+                    // Auto-create Delivery Note (Surat Jalan)
+                    $do = DeliveryOrder::find($pick->delivery_order_id);
+                    $service = app(\App\Services\DeliveryOutgoingService::class);
+                    $deliveryNote = $service->createDeliveryNote(
+                        [$do->id],
+                        $do->customer_id,
+                        null, // truck_id later
+                        null, // driver_id later
+                        [
+                            'delivery_date' => $do->delivery_date ?? now()->toDateString(),
+                            'notes' => 'Auto-generated from mobile picking',
+                            'created_by' => Auth::id(),
+                        ]
+                    );
+                    
                     $doCompleted = true;
                 } else {
                     DeliveryOrder::where('id', $pick->delivery_order_id)

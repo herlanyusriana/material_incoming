@@ -35,6 +35,7 @@ class QdcHistoryController extends Controller
         'Cleaning',
         'Briefing',
         'Trial',
+        'Istirahat',
     ];
 
     private function getDowntimes(Request $request, ?string $type = null)
@@ -128,7 +129,8 @@ class QdcHistoryController extends Controller
             });
         } elseif ($type === 'qdc') {
             $allDowntimes = $allDowntimes->filter(function ($dt) {
-                return in_array($dt->category, self::QDC_REASONS);
+                $cat = strtolower($dt->category ?? '');
+                return in_array($dt->category, self::QDC_REASONS) || $cat === 'istirahat';
             });
         }
 
