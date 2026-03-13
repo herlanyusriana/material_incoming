@@ -431,6 +431,7 @@ class PartController extends Controller
         ]);
 
         $data['gci_part_id'] = $part->id;
+        $data['price'] = $data['price'] ?? 0;
         $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
 
         GciPartVendor::create($data);
@@ -452,6 +453,7 @@ class PartController extends Controller
             'status' => ['required', 'in:active,inactive'],
         ]);
 
+        $data['price'] = $data['price'] ?? 0;
         $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
 
         $vendorPart->update($data);

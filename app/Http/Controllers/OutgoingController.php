@@ -244,6 +244,62 @@ class OutgoingController extends Controller
         return redirect()->route('outgoing.daily-planning', ['plan_id' => $plan?->id])->with('success', $msg);
     }
 
+    public function storeRow(Request $request, OutgoingDailyPlan $plan)
+    {
+        $request->validate([
+            'part_no' => 'required|string',
+            'production_line' => 'required|string',
+        ]);
+
+        $partNo = $this->normalizePartNo($request->part_no);
+        $line = strtoupper(trim($request->production_line));
+
+        // Resolve mapping
+        $gciPartId = $this->resolveFgPartIdFromPartNo($partNo);
+        $customerPartId = CustomerPart::where('customer_part_no', $partNo)->value('id');
+
+        // Check if exists to avoid double entries in the same plan
+        $row = OutgoingDailyPlanRow::where('plan_id', $plan->id)
+            ->where('part_no', $partNo)
+            ->where('production_line', $line)
+            ->first();
+
+        if (!$row) {
+            OutgoingDailyPlanRow::create([
+                'plan_id' => $plan->id,
+                'part_no' => $partNo,
+                'production_line' => $line,
+                'gci_part_id' => $gciPartId,
+                'customer_part_id' => $customerPartId,
+                'row_no' => ($plan->rows()->max('row_no') ?? 0) + 1,
+            ]);
+        }
+
+        return back()->with('success', 'Row added/updated.');
+    }
+
+    public function updateCell(Request $request)
+    {
+        $request->validate([
+            'row_id' => 'required|integer',
+            'date' => 'required|date',
+            'field' => 'required|string|in:qty,seq',
+            'value' => 'nullable|numeric',
+        ]);
+
+        $cell = OutgoingDailyPlanCell::updateOrCreate(
+            [
+                'row_id' => $request->row_id,
+                'plan_date' => $request->date,
+            ],
+            [
+                $request->field => $request->value ?? 0,
+            ]
+        );
+
+        return response()->json(['success' => true]);
+    }
+
     public function customerPo()
     {
         return view('outgoing.customer_po');
@@ -1764,6 +1820,61 @@ class OutgoingController extends Controller
                         }
                     }
                 });
+        }
+
+        // Step 3: CONSOLIDATION - Sum duplicate rows (same plan, line, and part_no)
+        $planIdsToProcess = [];
+        if ($planId) {
+            $planIdsToProcess[] = $planId;
+        } else {
+            $planIdsToProcess = OutgoingDailyPlanCell::query()
+                ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
+                ->whereDate('outgoing_daily_plan_cells.plan_date', '>=', $dateFrom->toDateString())
+                ->whereDate('outgoing_daily_plan_cells.plan_date', '<=', $dateTo->toDateString())
+                ->where('outgoing_daily_plan_cells.qty', '>', 0)
+                ->distinct()
+                ->pluck('r.plan_id')
+                ->all();
+        }
+
+        if (!empty($planIdsToProcess)) {
+            DB::transaction(function () use ($planIdsToProcess) {
+                foreach ($planIdsToProcess as $pid) {
+                    $duplicateRows = OutgoingDailyPlanRow::where('plan_id', $pid)
+                        ->select('production_line', 'part_no')
+                        ->groupBy('production_line', 'part_no')
+                        ->havingRaw('COUNT(*) > 1')
+                        ->get();
+
+                    foreach ($duplicateRows as $dup) {
+                        $allRows = OutgoingDailyPlanRow::where('plan_id', $pid)
+                            ->where('production_line', $dup->production_line)
+                            ->where('part_no', $dup->part_no)
+                            ->orderBy('id')
+                            ->get();
+
+                        if ($allRows->count() < 2) continue;
+
+                        $primary = $allRows->shift();
+                        foreach ($allRows as $duplicate) {
+                            $dupCells = OutgoingDailyPlanCell::where('row_id', $duplicate->id)->get();
+                            foreach ($dupCells as $dupCell) {
+                                $targetCell = OutgoingDailyPlanCell::firstOrCreate(
+                                    ['row_id' => $primary->id, 'plan_date' => $dupCell->plan_date],
+                                    ['qty' => 0, 'seq' => $dupCell->seq]
+                                );
+                                $targetCell->qty += $dupCell->qty;
+                                if ($targetCell->seq === null) {
+                                    $targetCell->seq = $dupCell->seq;
+                                }
+                                $targetCell->save();
+                                $dupCell->delete();
+                            }
+                            $duplicate->delete();
+                        }
+                    }
+                }
+            });
         }
     }
 
