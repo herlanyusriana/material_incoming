@@ -232,6 +232,17 @@ class PickingFgApiController extends Controller
                 'picked_at' => now(),
             ]);
 
+            // DECREMENT WAREHOUSE STOCK
+            if ($appliedQty > 0 && $request->location) {
+                \App\Models\LocationInventory::updateStock(
+                    $part->id, 
+                    strtoupper(trim($request->location)), 
+                    -$appliedQty,
+                    null, // batch_no
+                    'Picking FG: ' . ($pick->deliveryOrder?->do_no ?? 'N/A')
+                );
+            }
+
             $doCompleted = false;
 
             if ($pick->delivery_order_id) {

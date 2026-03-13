@@ -23,19 +23,24 @@ class WarehouseStockController extends Controller
         }
 
         $query = LocationInventory::query()
-            ->with(['part', 'location'])
+            ->with(['part', 'gciPart', 'location'])
             ->when($onlyPositive, fn ($q) => $q->where('qty_on_hand', '>', 0))
             ->when($location !== '', fn ($q) => $q->where('location_code', $location))
             ->when($search !== '', function ($q) use ($search) {
                 $s = strtoupper($search);
-                $q->whereHas('part', function ($qp) use ($s) {
-                    $qp->where('part_no', 'like', '%' . $s . '%')
-                        ->orWhere('part_name_gci', 'like', '%' . $s . '%')
-                        ->orWhere('part_name_vendor', 'like', '%' . $s . '%');
-                })->orWhere('location_code', 'like', '%' . $s . '%');
+                $q->where(function ($qq) use ($s) {
+                    $qq->whereHas('part', function ($qp) use ($s) {
+                        $qp->where('part_no', 'like', '%' . $s . '%')
+                            ->orWhere('part_name_gci', 'like', '%' . $s . '%')
+                            ->orWhere('part_name_vendor', 'like', '%' . $s . '%');
+                    })->orWhereHas('gciPart', function ($qg) use ($s) {
+                        $qg->where('part_no', 'like', '%' . $s . '%')
+                            ->orWhere('part_name', 'like', '%' . $s . '%');
+                    })->orWhere('location_code', 'like', '%' . $s . '%');
+                });
             })
             ->orderBy('location_code')
-            ->orderBy('part_id');
+            ->orderBy('gci_part_id');
 
         $records = $query->paginate($perPage)->withQueryString();
 
@@ -73,32 +78,33 @@ class WarehouseStockController extends Controller
             $perPage = 200;
         }
 
+        // For reconcile, we want to check both Inventory (vendor parts) and GciInventory (master parts)
+        // Since LocationInventory tracks both, we'll reconcile by gci_part_id which is common to all.
         $locationSums = LocationInventory::query()
-            ->selectRaw('part_id, SUM(qty_on_hand) as loc_qty')
-            ->groupBy('part_id');
+            ->selectRaw('gci_part_id, SUM(qty_on_hand) as loc_qty')
+            ->groupBy('gci_part_id');
 
-        $query = Inventory::query()
+        $query = \App\Models\GciInventory::query()
             ->select([
-                'inventories.part_id',
-                'inventories.on_hand',
+                'gci_inventories.gci_part_id',
+                'gci_inventories.on_hand',
                 DB::raw('COALESCE(ls.loc_qty, 0) as loc_qty'),
-                DB::raw('(COALESCE(inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) as diff_qty'),
+                DB::raw('(COALESCE(gci_inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) as diff_qty'),
             ])
             ->leftJoinSub($locationSums, 'ls', function ($join) {
-                $join->on('ls.part_id', '=', 'inventories.part_id');
+                $join->on('ls.gci_part_id', '=', 'gci_inventories.gci_part_id');
             })
-            ->with('part')
-            ->when($onlyDiff, fn ($q) => $q->whereRaw('(COALESCE(inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) != 0'))
+            ->with('gciPart')
+            ->when($onlyDiff, fn ($q) => $q->whereRaw('(COALESCE(gci_inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) != 0'))
             ->when($search !== '', function ($q) use ($search) {
                 $s = strtoupper($search);
-                $q->whereHas('part', function ($qp) use ($s) {
+                $q->whereHas('gciPart', function ($qp) use ($s) {
                     $qp->where('part_no', 'like', '%' . $s . '%')
-                        ->orWhere('part_name_gci', 'like', '%' . $s . '%')
-                        ->orWhere('part_name_vendor', 'like', '%' . $s . '%');
+                        ->orWhere('part_name', 'like', '%' . $s . '%');
                 });
             })
-            ->orderByRaw('ABS(COALESCE(inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) DESC')
-            ->orderBy('inventories.part_id');
+            ->orderByRaw('ABS(COALESCE(gci_inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) DESC')
+            ->orderBy('gci_inventories.gci_part_id');
 
         $rows = $query->paginate($perPage)->withQueryString();
 

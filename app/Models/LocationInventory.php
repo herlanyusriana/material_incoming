@@ -124,7 +124,12 @@ class LocationInventory extends Model
         // Resolve ke gci_part_id kalau bisa
         if (!$gciPartId) {
             $part = Part::find($partId);
-            $gciPartId = $part?->gci_part_id;
+            if ($part) {
+                $gciPartId = $part->gci_part_id;
+            } else {
+                // If not found in Part view, maybe the ID is already a GciPart ID
+                $gciPartId = GciPart::where('id', $partId)->value('id');
+            }
         }
 
         $q = self::query()
@@ -167,6 +172,13 @@ class LocationInventory extends Model
             $part = Part::find($partId);
             if ($part && $part->gci_part_id) {
                 $gciPartId = $part->gci_part_id;
+            } else {
+                // Fallback: Check if partId is actually a GciPart ID
+                $gci = GciPart::find($partId);
+                if ($gci) {
+                    $gciPartId = $gci->id;
+                    $partId = null; // Clear it to avoid storing GCI ID in vendor part column
+                }
             }
         }
 

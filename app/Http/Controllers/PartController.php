@@ -27,12 +27,8 @@ class PartController extends Controller
     {
         $q = trim((string) $request->query('q', ''));
         $limit = (int) $request->query('limit', 20);
-        if ($limit < 5) {
-            $limit = 5;
-        }
-        if ($limit > 50) {
-            $limit = 50;
-        }
+        if ($limit < 5) $limit = 5;
+        if ($limit > 50) $limit = 50;
 
         if (mb_strlen($q) < 2) {
             return response()->json([]);
@@ -40,21 +36,40 @@ class PartController extends Controller
 
         $inStock = $request->boolean('in_stock');
 
-        $query = Part::query()
-            ->select(['id', 'part_no', 'register_no', 'part_name_gci', 'part_name_vendor'])
+        $query = GciPart::query()
+            ->select(['id', 'part_no', 'part_name', 'classification'])
             ->when($inStock, function ($qr) {
+                // Check stock in location_inventory using gci_part_id
                 $qr->whereHas('locationInventory', fn($q) => $q->where('qty_on_hand', '>', 0));
             })
             ->where(function ($qr) use ($q) {
                 $qr->where('part_no', 'like', '%' . $q . '%')
-                    ->orWhere('register_no', 'like', '%' . $q . '%')
-                    ->orWhere('part_name_gci', 'like', '%' . $q . '%')
-                    ->orWhere('part_name_vendor', 'like', '%' . $q . '%');
+                    ->orWhere('part_name', 'like', '%' . $q . '%')
+                    ->orWhereHas('vendorLinks', function ($vq) use ($q) {
+                        $vq->where('vendor_part_no', 'like', '%' . $q . '%')
+                            ->orWhere('vendor_part_name', 'like', '%' . $q . '%')
+                            ->orWhere('register_no', 'like', '%' . $q . '%');
+                    });
             })
+            ->with(['vendorLinks' => function ($vq) {
+                $vq->select(['gci_part_id', 'vendor_part_no', 'vendor_part_name', 'register_no'])->limit(1);
+            }])
             ->orderBy('part_no')
             ->limit($limit);
 
-        return response()->json($query->get());
+        $results = $query->get()->map(function ($part) {
+            $vl = $part->vendorLinks->first();
+            return [
+                'id' => $part->id, // GCI Part ID
+                'part_no' => $part->part_no,
+                'part_name_gci' => $part->part_name,
+                'part_name_vendor' => $vl ? $vl->vendor_part_name : null,
+                'register_no' => $vl ? $vl->register_no : null,
+                'classification' => $part->classification,
+            ];
+        });
+
+        return response()->json($results);
     }
 
     /**

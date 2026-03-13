@@ -316,6 +316,7 @@ class PickingFgController extends Controller
 
         [$status, $qtyPicked, $qtyRemaining, $progressPercent] = DB::transaction(function () use ($pickId, $request) {
             $pick = OutgoingPickingFg::whereKey($pickId)->lockForUpdate()->firstOrFail();
+            $qtyBefore = (int) $pick->qty_picked;
 
             $qtyPicked = (int) $request->qty_picked;
             if ($qtyPicked > (int) $pick->qty_plan) {
@@ -338,6 +339,18 @@ class PickingFgController extends Controller
                 'picked_by' => Auth::id(),
                 'picked_at' => $qtyPicked > 0 ? now() : null,
             ]);
+
+            // DECREMENT WAREHOUSE STOCK
+            $delta = (float) $qtyPicked - (float) $qtyBefore;
+            if ($delta != 0 && $request->pick_location) {
+                \App\Models\LocationInventory::updateStock(
+                    $pick->gci_part_id,
+                    strtoupper(trim($request->pick_location)),
+                    -$delta,
+                    null,
+                    'Picking FG (Web): ' . ($pick->deliveryOrder?->do_no ?? 'N/A')
+                );
+            }
 
             if ($pick->delivery_order_id) {
                 $pendingCount = OutgoingPickingFg::where('delivery_order_id', $pick->delivery_order_id)

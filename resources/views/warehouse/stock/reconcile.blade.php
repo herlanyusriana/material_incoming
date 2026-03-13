@@ -71,8 +71,8 @@
                                 @endphp
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3">
-                                        <div class="font-semibold text-slate-900">{{ $row->part?->part_no ?? '-' }}</div>
-                                        <div class="text-xs text-slate-500">{{ $row->part?->part_name_gci ?? ($row->part?->part_name_vendor ?? '') }}</div>
+                                        <div class="font-semibold text-slate-900">{{ $row->gciPart?->part_no ?? ($row->part?->part_no ?? '-') }}</div>
+                                        <div class="text-xs text-slate-500">{{ $row->gciPart?->part_name ?? ($row->part?->part_name_gci ?? ($row->part?->part_name_vendor ?? '')) }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-right font-mono text-sm text-slate-900">{{ formatNumber($inv) }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-sm text-slate-900">{{ formatNumber($loc) }}</td>

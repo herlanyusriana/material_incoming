@@ -21,11 +21,14 @@ class BinTransferController extends Controller
      */
     public function index(Request $request)
     {
-        $query = BinTransfer::with(['part', 'fromLocation', 'toLocation', 'creator']);
+        $query = BinTransfer::with(['part', 'gciPart', 'fromLocation', 'toLocation', 'creator']);
 
         // Filters
         if ($request->filled('part_id')) {
-            $query->where('part_id', $request->part_id);
+            $pid = $request->part_id;
+            $query->where(function($q) use ($pid) {
+                $q->where('part_id', $pid)->orWhere('gci_part_id', $pid);
+            });
         }
 
         if ($request->filled('location')) {
@@ -75,7 +78,7 @@ class BinTransferController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'part_id' => ['required', 'exists:parts,id'],
+            'part_id' => ['required'], // parts.id or gci_parts.id
             'from_location_code' => [
                 'required',
                 'string',
@@ -111,9 +114,21 @@ class BinTransferController extends Controller
                 // 3. Increment target location
                 LocationInventory::updateStock($partId, $toLocation, $qty);
 
-                // 4. Log transfer
+                // 4. Resolve gci_part_id and log transfer
+                $gciPartId = null;
+                $p = Part::find($partId);
+                if ($p) {
+                    $gciPartId = $p->gci_part_id;
+                } else {
+                    $gciPartId = \App\Models\GciPart::where('id', $partId)->value('id');
+                    if (!$gciPartId) {
+                        throw new \Exception("Part ID {$partId} not found in master list.");
+                    }
+                }
+
                 $transfer = BinTransfer::create([
-                    'part_id' => $partId,
+                    'part_id' => $p ? $partId : null,
+                    'gci_part_id' => $gciPartId,
                     'from_location_code' => $fromLocation,
                     'to_location_code' => $toLocation,
                     'qty' => $qty,
@@ -125,7 +140,8 @@ class BinTransferController extends Controller
 
                 // 5. Mirror to Adjustment History so movement is visible in one place.
                 $payload = [
-                    'part_id' => $partId,
+                    'part_id' => $p ? $partId : null,
+                    'gci_part_id' => $gciPartId,
                     'location_code' => strtoupper(trim((string) $fromLocation)),
                     'batch_no' => null,
                     // Keep qty_before/after referencing the FROM side for consistency with existing UI.
@@ -171,7 +187,7 @@ class BinTransferController extends Controller
      */
     public function show(BinTransfer $binTransfer)
     {
-        $binTransfer->load(['part', 'fromLocation', 'toLocation', 'creator']);
+        $binTransfer->load(['part', 'gciPart', 'fromLocation', 'toLocation', 'creator']);
 
         // Get current stock at both locations
         $currentFromStock = LocationInventory::getStockByLocation(
@@ -193,7 +209,7 @@ class BinTransferController extends Controller
     public function getLocationStock(Request $request)
     {
         $request->validate([
-            'part_id' => ['required', 'exists:parts,id'],
+            'part_id' => ['required'],
             'location_code' => ['required', 'string'],
         ]);
 
@@ -215,7 +231,7 @@ class BinTransferController extends Controller
     public function getPartLocations(Request $request)
     {
         $request->validate([
-            'part_id' => ['required', 'exists:parts,id'],
+            'part_id' => ['required'],
         ]);
 
         $locations = LocationInventory::getLocationsForPart($request->part_id);
@@ -237,7 +253,7 @@ class BinTransferController extends Controller
      */
     public function printLabel(BinTransfer $binTransfer)
     {
-        $binTransfer->load(['part', 'fromLocation', 'toLocation', 'creator']);
+        $binTransfer->load(['part', 'gciPart', 'fromLocation', 'toLocation', 'creator']);
 
         $warehouseLocation = WarehouseLocation::where('location_code', $binTransfer->to_location_code)->first();
 
@@ -245,8 +261,8 @@ class BinTransferController extends Controller
         $payload = [
             'type' => 'BIN_TRANSFER_LABEL',
             'transfer_id' => $binTransfer->id,
-            'part_no' => (string) ($binTransfer->part->part_no ?? ''),
-            'part_name' => (string) ($binTransfer->part->part_name_gci ?? ''),
+            'part_no' => (string) ($binTransfer->gciPart->part_no ?? ($binTransfer->part->part_no ?? '')),
+            'part_name' => (string) ($binTransfer->gciPart->part_name ?? ($binTransfer->part->part_name_gci ?? '')),
             'from_location' => (string) $binTransfer->from_location_code,
             'to_location' => (string) $binTransfer->to_location_code,
             'warehouse' => [

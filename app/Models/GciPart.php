@@ -160,4 +160,14 @@ class GciPart extends Model
     {
         return $this->hasMany(CustomerPartComponent::class, 'gci_part_id');
     }
+
+    public function locationInventory()
+    {
+        return $this->hasMany(LocationInventory::class, 'gci_part_id');
+    }
+
+    public function gciInventory()
+    {
+        return $this->hasOne(GciInventory::class, 'gci_part_id');
+    }
 }

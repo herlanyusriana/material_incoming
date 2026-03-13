@@ -116,11 +116,11 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
-                                        <div class="font-semibold text-slate-900">{{ $rec->part?->part_no ?? '-' }}</div>
-                                        <div class="text-xs text-slate-500">Part ID: {{ $rec->part_id }}</div>
+                                        <div class="font-semibold text-slate-900">{{ $rec->part?->part_no ?? ($rec->gciPart?->part_no ?? '-') }}</div>
+                                        <div class="text-xs text-slate-500">Master ID: {{ $rec->gci_part_id }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-slate-700">
-                                        {{ $rec->part?->part_name_gci ?? ($rec->part?->part_name_vendor ?? '-') }}
+                                        {{ $rec->part?->part_name_gci ?? ($rec->part?->part_name_vendor ?? ($rec->gciPart?->part_name ?? '-')) }}
                                     </td>
                                     <td class="px-4 py-3">
                                         <span class="font-mono text-xs text-slate-700">{{ $rec->batch_no ?? '-' }}</span>
