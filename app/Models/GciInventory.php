@@ -22,6 +22,11 @@ class GciInventory extends Model
         return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
 
+    public function gciPart()
+    {
+        return $this->belongsTo(GciPart::class, 'gci_part_id');
+    }
+
     /**
      * Reserve material: move qty from on_hand to on_order.
      */
