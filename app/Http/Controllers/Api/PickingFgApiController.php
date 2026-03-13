@@ -7,6 +7,7 @@ use App\Models\DeliveryNote;
 use App\Models\DeliveryOrder;
 use App\Models\OutgoingPickingFg;
 use App\Models\GciPart;
+use App\Models\LocationInventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -124,6 +125,16 @@ class PickingFgApiController extends Controller
             ], 404);
         }
 
+        $stockLocations = LocationInventory::where('gci_part_id', $part->id)
+            ->where('qty_on_hand', '>', 0)
+            ->orderByDesc('qty_on_hand')
+            ->limit(5)
+            ->get()
+            ->map(fn($loc) => [
+                'code' => $loc->location_code,
+                'qty' => (float) $loc->qty_on_hand,
+            ])->toArray();
+
         return response()->json([
             'success' => true,
             'part' => [
@@ -132,6 +143,7 @@ class PickingFgApiController extends Controller
                 'part_name' => $part->part_name,
                 'model' => $part->model ?? '-',
                 'expected_location' => $part->default_location ?? null,
+                'stock_locations' => $stockLocations,
             ],
             'picks' => $picks->map(fn($p) => [
                 'id' => $p->id,

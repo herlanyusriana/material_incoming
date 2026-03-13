@@ -10,7 +10,34 @@ use Illuminate\Http\Request;
 
 class QdcHistoryController extends Controller
 {
-    private function getDowntimes(Request $request)
+    // Downtime = masalah mesin/teknis
+    private const DOWNTIME_REASONS = [
+        'Mesin Rusak',
+        'Robot Trouble',
+        'Dies Trouble',
+        'Material NG Quality',
+        'Tooling Trouble',
+        'Listrik Trouble / Mati Lampu',
+        'Maintenance',
+        'Breakdown Mesin',
+        'Perbaikan Coil',
+        'Material Kendor/Jatuh',
+        'Tunggu Material',
+        'Quality Check',
+    ];
+
+    // QDC = aktivitas rutin/planned
+    private const QDC_REASONS = [
+        'Ganti Type',
+        'Ganti Tipe/Setting',
+        'Ganti Material / Reffil Material',
+        'Cleaning Machine',
+        'Cleaning',
+        'Briefing',
+        'Trial',
+    ];
+
+    private function getDowntimes(Request $request, ?string $type = null)
     {
         $dateFrom = $request->query('date_from', now()->subDays(7)->toDateString());
         $dateTo = $request->query('date_to', now()->toDateString());
@@ -91,9 +118,21 @@ class QdcHistoryController extends Controller
             ]);
         }
 
-        $allDowntimes = collect($woDowntimes->all())->merge($appDowntimes->all())
-            ->sortByDesc('date')
-            ->values();
+        $allDowntimes = collect($woDowntimes->all())->merge($appDowntimes->all());
+
+        // Filter by type (downtime vs qdc)
+        if ($type === 'downtime') {
+            $allDowntimes = $allDowntimes->filter(function ($dt) {
+                $cat = $dt->category;
+                return !in_array($cat, self::QDC_REASONS) && strtolower($cat) !== 'istirahat' && strtolower($cat) !== 'lainnya';
+            });
+        } elseif ($type === 'qdc') {
+            $allDowntimes = $allDowntimes->filter(function ($dt) {
+                return in_array($dt->category, self::QDC_REASONS);
+            });
+        }
+
+        $allDowntimes = $allDowntimes->sortByDesc('date')->values();
 
         return [
             'allDowntimes' => $allDowntimes,
@@ -102,12 +141,23 @@ class QdcHistoryController extends Controller
             'category' => $category,
             'machine' => $machine,
             'source' => $source,
+            'type' => $type,
         ];
+    }
+
+    public function downtimeIndex(Request $request)
+    {
+        return $this->buildIndex($request, 'downtime');
     }
 
     public function index(Request $request)
     {
-        $result = $this->getDowntimes($request);
+        return $this->buildIndex($request, 'qdc');
+    }
+
+    private function buildIndex(Request $request, string $type)
+    {
+        $result = $this->getDowntimes($request, $type);
         $allDowntimes = $result['allDowntimes'];
 
         // Paginate manually
@@ -119,23 +169,44 @@ class QdcHistoryController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        // Collect unique categories from both sources
-        $categories = ProductionDowntime::select('category')->distinct()->pluck('category')
-            ->merge(ProductionGciDowntime::select('reason')->distinct()->pluck('reason'))
-            ->unique()
-            ->sort()
-            ->values();
+        // Categories based on type
+        if ($type === 'downtime') {
+            $categories = collect(self::DOWNTIME_REASONS);
+        } elseif ($type === 'qdc') {
+            $categories = collect(self::QDC_REASONS);
+        } else {
+            $categories = ProductionDowntime::select('category')->distinct()->pluck('category')
+                ->merge(ProductionGciDowntime::select('reason')->distinct()->pluck('reason'))
+                ->unique()
+                ->sort()
+                ->values();
+        }
 
         $machines = \App\Models\Machine::orderBy('name')->get(['id', 'name']);
 
+        $totalMinutes = $allDowntimes->sum('duration_minutes');
+        $totalCount = $allDowntimes->count();
+
+        $routePrefix = $type === 'downtime' ? 'production.downtime-history' : 'production.qdc-history';
+
         return view('production.qdc-history.index', compact(
-            'downtimes', 'categories', 'machines',
+            'downtimes', 'categories', 'machines', 'type', 'routePrefix', 'totalMinutes', 'totalCount',
         ) + $result);
+    }
+
+    public function downtimePdf(Request $request)
+    {
+        return $this->buildPdf($request, 'downtime');
     }
 
     public function pdf(Request $request)
     {
-        $result = $this->getDowntimes($request);
+        return $this->buildPdf($request, 'qdc');
+    }
+
+    private function buildPdf(Request $request, string $type)
+    {
+        $result = $this->getDowntimes($request, $type);
         $allDowntimes = $result['allDowntimes'];
 
         $totalMinutes = $allDowntimes->sum('duration_minutes');
@@ -163,13 +234,15 @@ class QdcHistoryController extends Controller
             $machineName = \App\Models\Machine::find($result['machine'])?->name;
         }
 
+        $title = $type === 'downtime' ? 'Downtime_History' : 'QDC_History';
+
         $pdf = Pdf::loadView('production.qdc-history.pdf', compact(
-            'machineGroups', 'totalMinutes', 'totalCount', 'machineName',
+            'machineGroups', 'totalMinutes', 'totalCount', 'machineName', 'type',
         ) + $result);
 
         $pdf->setPaper('a4', 'landscape');
 
-        $filename = 'QDC_History_' . $result['dateFrom'] . '_to_' . $result['dateTo'] . '.pdf';
+        $filename = $title . '_' . $result['dateFrom'] . '_to_' . $result['dateTo'] . '.pdf';
         return $pdf->download($filename);
     }
 }

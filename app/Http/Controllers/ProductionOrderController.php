@@ -181,12 +181,40 @@ class ProductionOrderController extends Controller
 
         // 4. Update WO status based on result
         if ($allAvailable) {
+            // Reserve materials: move from on_hand to on_order
+            $reservedMaterials = [];
+            foreach ($requirements as $req) {
+                $makeOrBuy = strtolower($req['make_or_buy'] ?? 'buy');
+                if ($makeOrBuy === 'free_issue') {
+                    continue;
+                }
+
+                $part = $req['part'];
+                $needed = round($req['total_qty'], 4);
+                if (!$part?->id || $needed <= 0) {
+                    continue;
+                }
+
+                $inventory = GciInventory::firstOrCreate(
+                    ['gci_part_id' => $part->id],
+                    ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+                );
+                $inventory->reserve($needed);
+
+                $reservedMaterials[] = [
+                    'gci_part_id' => $part->id,
+                    'part_no' => $req['part_no'],
+                    'qty' => $needed,
+                ];
+            }
+
             $order->update([
                 'status' => 'released',
                 'workflow_stage' => 'material_ready',
+                'reserved_materials' => $reservedMaterials,
             ]);
 
-            return back()->with('success', 'Semua material tersedia! WO status diperbarui ke RELEASED.')
+            return back()->with('success', 'Semua material tersedia & direservasi! WO status diperbarui ke RELEASED.')
                          ->with('material_check', $results);
         } else {
             $order->update([
@@ -303,28 +331,63 @@ class ProductionOrderController extends Controller
             );
             $fgInv->increment('qty_on_hand', $qtyGood);
 
-            // Decrement Components (Backflush) based on BOM net_required, skip free_issue.
-            $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
-            if ($bom) {
-                foreach ($bom->items as $item) {
-                    $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
-                    if ($mob === 'free_issue') {
-                        continue;
-                    }
-                    $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
-                    if ($consumedQty <= 0) {
-                        continue;
-                    }
+            // Backflush components
+            $reserved = $order->reserved_materials;
 
-                    $compInv = GciInventory::firstOrCreate(
-                        ['gci_part_id' => $item->component_part_id],
-                        ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-                    );
-                    $newOnHand = (float) ($compInv->on_hand ?? 0) - $consumedQty;
-                    $compInv->update([
-                        'on_hand' => $newOnHand,
-                        'as_of_date' => now()->toDateString(),
-                    ]);
+            if (!empty($reserved)) {
+                // Reservation-based: consume from on_order, return excess to on_hand
+                $reservedMap = collect($reserved)->keyBy('gci_part_id');
+                $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
+
+                if ($bom) {
+                    foreach ($bom->items as $item) {
+                        $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+                        if ($mob === 'free_issue') {
+                            continue;
+                        }
+
+                        $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
+                        $partId = $item->component_part_id;
+                        $reservedQty = (float) ($reservedMap[$partId]['qty'] ?? 0);
+
+                        $compInv = GciInventory::firstOrCreate(
+                            ['gci_part_id' => $partId],
+                            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+                        );
+
+                        // Consume what was used from on_order
+                        $compInv->consume(min($consumedQty, $reservedQty));
+
+                        // Return excess reservation to on_hand (produced less than planned)
+                        $excess = $reservedQty - $consumedQty;
+                        if ($excess > 0) {
+                            $compInv->release($excess);
+                        }
+                    }
+                }
+
+                $order->update(['reserved_materials' => null]);
+            } else {
+                // Legacy: no reservation, backflush directly from on_hand
+                $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
+                if ($bom) {
+                    foreach ($bom->items as $item) {
+                        $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+                        if ($mob === 'free_issue') {
+                            continue;
+                        }
+                        $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
+                        if ($consumedQty <= 0) {
+                            continue;
+                        }
+
+                        $compInv = GciInventory::firstOrCreate(
+                            ['gci_part_id' => $item->component_part_id],
+                            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+                        );
+                        $compInv->decrement('on_hand', $consumedQty);
+                        $compInv->update(['as_of_date' => now()->toDateString()]);
+                    }
                 }
             }
 
@@ -335,6 +398,33 @@ class ProductionOrderController extends Controller
         });
 
         return back()->with('success', 'Kanban updated and inventory posted.');
+    }
+
+    public function cancel(ProductionOrder $order)
+    {
+        if ($order->status === 'completed') {
+            return back()->with('error', 'Cannot cancel a completed order.');
+        }
+
+        DB::transaction(function () use ($order) {
+            // Release reserved materials back to on_hand
+            $reserved = $order->reserved_materials;
+            if (!empty($reserved)) {
+                foreach ($reserved as $mat) {
+                    $compInv = GciInventory::where('gci_part_id', $mat['gci_part_id'])->first();
+                    if ($compInv) {
+                        $compInv->release((float) $mat['qty']);
+                    }
+                }
+                $order->update(['reserved_materials' => null]);
+            }
+
+            $order->update([
+                'status' => 'cancelled',
+            ]);
+        });
+
+        return back()->with('success', 'Work order cancelled. Reserved materials returned to inventory.');
     }
 }
 

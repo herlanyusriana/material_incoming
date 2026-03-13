@@ -139,31 +139,72 @@ class ProductionGciWebController extends Controller
             }
         }
 
-        // Map hourly reports to operators via machine + date match from downtimes
+        // Map hourly reports to operators
+        // Use operator_name from hourly report directly if available, fallback to machine+date match
         foreach ($hourlyReports as $hr) {
             $po = $hr->productionOrder;
             if (!$po) continue;
 
-            // Find operator who worked on this machine on this date
-            $matchingDt = $downtimes->first(function ($dt) use ($po) {
-                return $dt->machine_id == $po->machine_id
-                    && substr($dt->start_time, 0, 10) === $po->plan_date;
-            });
+            $name = $hr->operator_name;
 
-            if (!$matchingDt) continue;
+            // Fallback: match via downtimes if operator_name not set on hourly report
+            if (!$name) {
+                $matchingDt = $downtimes->first(function ($dt) use ($po) {
+                    return $dt->machine_id == $po->machine_id
+                        && substr($dt->start_time, 0, 10) === $po->plan_date;
+                });
+                $name = $matchingDt?->operator_name;
+            }
 
-            $name = $matchingDt->operator_name;
-            if (!isset($operatorMap[$name])) continue;
+            if (!$name) continue;
+
+            if (!isset($operatorMap[$name])) {
+                $operatorMap[$name] = [
+                    'name' => $name,
+                    'total_output' => 0,
+                    'total_ng' => 0,
+                    'total_target' => 0,
+                    'total_downtime_minutes' => 0,
+                    'downtime_count' => 0,
+                    'qdc_count' => 0,
+                    'qdc_total_seconds' => 0,
+                    'wo_count' => 0,
+                    'days_worked' => [],
+                    'machines_used' => [],
+                    'downtime_reasons' => [],
+                ];
+            }
 
             $op = &$operatorMap[$name];
             $op['total_output'] += $hr->actual ?? 0;
             $op['total_ng'] += $hr->ng ?? 0;
             $op['total_target'] += $hr->target ?? 0;
+
+            // Track days from hourly reports too
+            $day = $po->plan_date;
+            if ($day && !in_array($day, $op['days_worked'])) {
+                $op['days_worked'][] = $day;
+            }
         }
 
-        // Also count from production orders directly
+        // Count WO per operator from hourly reports (more accurate than downtime matching)
+        $woOperatorTracked = [];
+        foreach ($hourlyReports as $hr) {
+            $name = $hr->operator_name;
+            $poId = $hr->production_order_id;
+            if (!$name || !$poId) continue;
+
+            $key = "{$name}_{$poId}";
+            if (isset($woOperatorTracked[$key])) continue;
+            $woOperatorTracked[$key] = true;
+
+            if (isset($operatorMap[$name])) {
+                $operatorMap[$name]['wo_count']++;
+            }
+        }
+
+        // Fallback: count WOs from orders for operators without hourly report data
         foreach ($orders as $order) {
-            // Find operator from matching downtimes
             $matchingDt = $downtimes->first(function ($dt) use ($order) {
                 return $dt->machine_id == $order->machine_id
                     && substr($dt->start_time, 0, 10) === $order->plan_date;
@@ -173,6 +214,10 @@ class ProductionGciWebController extends Controller
 
             $name = $matchingDt->operator_name;
             if (!isset($operatorMap[$name])) continue;
+
+            $key = "{$name}_{$order->id}";
+            if (isset($woOperatorTracked[$key])) continue;
+            $woOperatorTracked[$key] = true;
 
             $operatorMap[$name]['wo_count']++;
         }

@@ -21,5 +21,35 @@ class GciInventory extends Model
     {
         return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
-}
 
+    /**
+     * Reserve material: move qty from on_hand to on_order.
+     */
+    public function reserve(float $qty): void
+    {
+        $this->decrement('on_hand', $qty);
+        $this->increment('on_order', $qty);
+        $this->update(['as_of_date' => now()->toDateString()]);
+    }
+
+    /**
+     * Release reservation: move qty from on_order back to on_hand.
+     */
+    public function release(float $qty): void
+    {
+        $releaseQty = min($qty, (float) $this->on_order);
+        $this->increment('on_hand', $releaseQty);
+        $this->decrement('on_order', $releaseQty);
+        $this->update(['as_of_date' => now()->toDateString()]);
+    }
+
+    /**
+     * Consume reserved material: remove qty from on_order (already deducted from on_hand).
+     */
+    public function consume(float $qty): void
+    {
+        $consumeQty = min($qty, (float) $this->on_order);
+        $this->decrement('on_order', $consumeQty);
+        $this->update(['as_of_date' => now()->toDateString()]);
+    }
+}

@@ -10,7 +10,8 @@
       "Bash(git rm:*)",
       "Bash(del /f nul output.txt php_path.txt qa_result.txt seeder_error.txt)",
       "Bash(xargs grep -l \"departure\")",
-      "Bash(ssh -o StrictHostKeyChecking=no herla@incoming.nooneasku.online \"tail -100 /var/www/material_incoming/storage/logs/laravel.log\")"
+      "Bash(ssh -o StrictHostKeyChecking=no herla@incoming.nooneasku.online \"tail -100 /var/www/material_incoming/storage/logs/laravel.log\")",
+      "Bash(flutter analyze:*)"
     ]
   }
 }

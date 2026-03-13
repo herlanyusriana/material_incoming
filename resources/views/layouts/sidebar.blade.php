@@ -342,6 +342,10 @@
                                     <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
                                     <span class="flex-1">Work Order Logs (APK)</span>
                                 </a>
+                                <a href="{{ route('production.downtime-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.downtime-history.*'), $subInactive => !request()->routeIs('production.downtime-history.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-red-600' => request()->routeIs('production.downtime-history.*'), 'bg-slate-300 group-hover:bg-red-400' => !request()->routeIs('production.downtime-history.*')])></span>
+                                    <span class="flex-1">Downtime History</span>
+                                </a>
                                 <a href="{{ route('production.qdc-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qdc-history.*'), $subInactive => !request()->routeIs('production.qdc-history.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-amber-600' => request()->routeIs('production.qdc-history.*'), 'bg-slate-300 group-hover:bg-amber-400' => !request()->routeIs('production.qdc-history.*')])></span>
                                     <span class="flex-1">QDC History</span>
@@ -1046,6 +1050,10 @@
                             <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')])>
                                 <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
                                 <span class="flex-1">Work Order Logs (APK)</span>
+                            </a>
+                            <a href="{{ route('production.downtime-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.downtime-history.*'), $subInactive => !request()->routeIs('production.downtime-history.*')])>
+                                <span @class([$subDotBase, 'bg-red-600' => request()->routeIs('production.downtime-history.*'), 'bg-slate-300 group-hover:bg-red-400' => !request()->routeIs('production.downtime-history.*')])></span>
+                                <span class="flex-1">Downtime History</span>
                             </a>
                             <a href="{{ route('production.qdc-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qdc-history.*'), $subInactive => !request()->routeIs('production.qdc-history.*')])>
                                 <span @class([$subDotBase, 'bg-amber-600' => request()->routeIs('production.qdc-history.*'), 'bg-slate-300 group-hover:bg-amber-400' => !request()->routeIs('production.qdc-history.*')])></span>

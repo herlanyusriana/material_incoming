@@ -99,30 +99,63 @@ class FinalInspectionController extends Controller
             );
             $fgInv->increment('qty_on_hand', $qtyGood);
             
-            // Backflush components from BOM
-            $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
-            if ($bom) {
-                foreach ($bom->items as $item) {
-                    $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
-                    if ($mob === 'free_issue') {
-                        continue;
+            // Backflush components
+            $reserved = $order->reserved_materials;
+
+            if (!empty($reserved)) {
+                // Reservation-based: consume from on_order, return excess to on_hand
+                $reservedMap = collect($reserved)->keyBy('gci_part_id');
+                $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
+
+                if ($bom) {
+                    foreach ($bom->items as $item) {
+                        $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+                        if ($mob === 'free_issue') {
+                            continue;
+                        }
+
+                        $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
+                        $partId = $item->component_part_id;
+                        $reservedQty = (float) ($reservedMap[$partId]['qty'] ?? 0);
+
+                        $compInv = GciInventory::firstOrCreate(
+                            ['gci_part_id' => $partId],
+                            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+                        );
+
+                        // Consume what was used from on_order
+                        $compInv->consume(min($consumedQty, $reservedQty));
+
+                        // Return excess reservation to on_hand (produced less than planned)
+                        $excess = $reservedQty - $consumedQty;
+                        if ($excess > 0) {
+                            $compInv->release($excess);
+                        }
                     }
-                    
-                    $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
-                    if ($consumedQty <= 0) {
-                        continue;
+                }
+
+                $order->update(['reserved_materials' => null]);
+            } else {
+                // Legacy: no reservation, backflush directly from on_hand
+                $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
+                if ($bom) {
+                    foreach ($bom->items as $item) {
+                        $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
+                        if ($mob === 'free_issue') {
+                            continue;
+                        }
+                        $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
+                        if ($consumedQty <= 0) {
+                            continue;
+                        }
+
+                        $compInv = GciInventory::firstOrCreate(
+                            ['gci_part_id' => $item->component_part_id],
+                            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+                        );
+                        $compInv->decrement('on_hand', $consumedQty);
+                        $compInv->update(['as_of_date' => now()->toDateString()]);
                     }
-                    
-                    $compInv = GciInventory::firstOrCreate(
-                        ['gci_part_id' => $item->component_part_id],
-                        ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-                    );
-                    
-                    $newOnHand = (float) ($compInv->on_hand ?? 0) - $consumedQty;
-                    $compInv->update([
-                        'on_hand' => $newOnHand,
-                        'as_of_date' => now()->toDateString(),
-                    ]);
                 }
             }
             

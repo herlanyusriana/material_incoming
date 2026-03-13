@@ -14,6 +14,10 @@ class ProductionOrder extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'reserved_materials' => 'array',
+    ];
+
     /**
      * Generate a unique transaction number for production orders.
      * Format: WO{4-digit sequence per day}{DDMMYY} — 12 characters total

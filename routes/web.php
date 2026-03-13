@@ -496,6 +496,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/{order}/start', [\App\Http\Controllers\ProductionOrderController::class, 'startProduction'])->name('orders.start');
         Route::post('/orders/{order}/finish', [\App\Http\Controllers\ProductionOrderController::class, 'finishProduction'])->name('orders.finish');
         Route::post('/orders/{order}/kanban-update', [\App\Http\Controllers\ProductionOrderController::class, 'kanbanUpdate'])->name('orders.kanban-update');
+        Route::post('/orders/{order}/cancel', [\App\Http\Controllers\ProductionOrderController::class, 'cancel'])->name('orders.cancel');
 
         // GCI Operator Dashboard (From Flutter App Sync)
         Route::get('/gci-dashboard', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'index'])->name('gci-dashboard.index');
@@ -508,7 +509,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/operator-kpi', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpi'])->name('operator-kpi.index');
         Route::get('/operator-kpi/data', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpiData'])->name('operator-kpi.data');
 
-        // QDC History (all downtime records)
+        // Downtime History (machine breakdowns & troubles)
+        Route::get('/downtime-history', [\App\Http\Controllers\Production\QdcHistoryController::class, 'downtimeIndex'])->name('downtime-history.index');
+        Route::get('/downtime-history/pdf', [\App\Http\Controllers\Production\QdcHistoryController::class, 'downtimePdf'])->name('downtime-history.pdf');
+
+        // QDC History (planned activities: changeover, cleaning, etc.)
         Route::get('/qdc-history', [\App\Http\Controllers\Production\QdcHistoryController::class, 'index'])->name('qdc-history.index');
         Route::get('/qdc-history/pdf', [\App\Http\Controllers\Production\QdcHistoryController::class, 'pdf'])->name('qdc-history.pdf');
 

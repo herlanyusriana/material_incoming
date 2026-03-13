@@ -62,6 +62,8 @@ class ProductionGciApiController extends Controller
                             'target' => $hrParams['target'],
                             'actual' => $hrParams['actual'],
                             'ng' => $hrParams['ng'],
+                            'operator_name' => $hrParams['operatorName'] ?? null,
+                            'shift' => $hrParams['shift'] ?? null,
                         ]
                     );
 
@@ -307,7 +309,15 @@ class ProductionGciApiController extends Controller
     {
         $reports = ProductionGciHourlyReport::where('production_order_id', $id)
             ->orderBy('time_range')
-            ->get();
+            ->get()
+            ->map(fn($r) => [
+                'time_range' => $r->time_range,
+                'target' => $r->target,
+                'actual' => $r->actual,
+                'ng' => $r->ng,
+                'operator_name' => $r->operator_name,
+                'shift' => $r->shift,
+            ]);
 
         return response()->json(['data' => $reports]);
     }

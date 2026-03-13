@@ -1,19 +1,41 @@
 <x-app-layout>
     <x-slot name="header">
-        QDC History
+        {{ $type === 'downtime' ? 'Downtime History' : 'QDC History' }}
     </x-slot>
 
+    @php
+        $isDowntime = $type === 'downtime';
+        $pageTitle = $isDowntime ? 'Downtime History' : 'QDC History';
+        $pageDesc = $isDowntime
+            ? 'Machine breakdown & trouble records'
+            : 'Planned activity records (changeover, cleaning, briefing, etc)';
+        $accentColor = $isDowntime ? 'red' : 'amber';
+    @endphp
+
     <div class="space-y-6">
+        {{-- Header --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-black text-slate-900">QDC History</h1>
-                    <p class="mt-1 text-sm text-slate-500">Downtime records from production orders & operator app</p>
+                    <h1 class="text-2xl md:text-3xl font-black text-slate-900">{{ $pageTitle }}</h1>
+                    <p class="mt-1 text-sm text-slate-500">{{ $pageDesc }}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-{{ $accentColor }}-50 text-{{ $accentColor }}-700 font-bold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                            {{ $totalCount }} records
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            {{ number_format($totalMinutes) }} min
+                        </span>
+                    </div>
                 </div>
             </div>
 
             <div class="mt-6 flex flex-wrap gap-4 items-end border-t border-slate-100 pt-6">
-                <form action="{{ route('production.qdc-history.index') }}" method="GET"
+                <form action="{{ route($routePrefix . '.index') }}" method="GET"
                     class="flex flex-wrap items-end gap-3">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
@@ -32,7 +54,7 @@
                             <option value="">All</option>
                             @foreach ($categories as $cat)
                                 <option value="{{ $cat }}" {{ $category === $cat ? 'selected' : '' }}>
-                                    {{ ucfirst($cat) }}
+                                    {{ $cat }}
                                 </option>
                             @endforeach
                         </select>
@@ -63,7 +85,7 @@
                         Filter
                     </button>
                 </form>
-                <a href="{{ route('production.qdc-history.pdf', request()->query()) }}"
+                <a href="{{ route($routePrefix . '.pdf', request()->query()) }}"
                     class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -74,6 +96,7 @@
             </div>
         </div>
 
+        {{-- Table --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm border-collapse">
@@ -97,19 +120,25 @@
                             @php
                                 $catLower = strtolower($dt->category ?? '');
                                 $categoryColors = [
-                                    'qdc' => 'bg-amber-100 text-amber-700',
-                                    'breakdown' => 'bg-red-100 text-red-700',
+                                    'mesin rusak' => 'bg-red-100 text-red-700',
+                                    'robot trouble' => 'bg-red-100 text-red-700',
+                                    'dies trouble' => 'bg-red-100 text-red-700',
+                                    'tooling trouble' => 'bg-red-100 text-red-700',
+                                    'listrik trouble / mati lampu' => 'bg-red-100 text-red-700',
                                     'breakdown mesin' => 'bg-red-100 text-red-700',
-                                    'material' => 'bg-blue-100 text-blue-700',
-                                    'refill material' => 'bg-blue-100 text-blue-700',
-                                    'material kendor/jatuh' => 'bg-blue-100 text-blue-700',
-                                    'tunggu material' => 'bg-blue-100 text-blue-700',
-                                    'quality' => 'bg-purple-100 text-purple-700',
-                                    'quality check' => 'bg-purple-100 text-purple-700',
-                                    'changeover' => 'bg-orange-100 text-orange-700',
-                                    'ganti tipe/setting' => 'bg-orange-100 text-orange-700',
                                     'perbaikan coil' => 'bg-red-100 text-red-600',
+                                    'material ng quality' => 'bg-purple-100 text-purple-700',
+                                    'quality check' => 'bg-purple-100 text-purple-700',
+                                    'maintenance' => 'bg-teal-100 text-teal-700',
+                                    'tunggu material' => 'bg-blue-100 text-blue-700',
+                                    'material kendor/jatuh' => 'bg-blue-100 text-blue-700',
+                                    'ganti type' => 'bg-amber-100 text-amber-700',
+                                    'ganti tipe/setting' => 'bg-amber-100 text-amber-700',
+                                    'ganti material / reffil material' => 'bg-amber-100 text-amber-700',
+                                    'cleaning machine' => 'bg-green-100 text-green-700',
                                     'cleaning' => 'bg-green-100 text-green-700',
+                                    'briefing' => 'bg-indigo-100 text-indigo-700',
+                                    'trial' => 'bg-orange-100 text-orange-700',
                                     'istirahat' => 'bg-sky-50 text-sky-500 border border-sky-100',
                                 ];
                                 $badgeClass = $categoryColors[$catLower] ?? 'bg-slate-100 text-slate-700';
@@ -197,7 +226,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        <p class="text-lg font-bold text-slate-400 uppercase tracking-widest">No downtime records found</p>
+                                        <p class="text-lg font-bold text-slate-400 uppercase tracking-widest">No records found</p>
                                     </div>
                                 </td>
                             </tr>
