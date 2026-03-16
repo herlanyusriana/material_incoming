@@ -8,6 +8,7 @@ use App\Models\ProductionOrder;
 use App\Models\Bom;
 use App\Models\GciInventory;
 use App\Models\FgInventory;
+use App\Models\LocationInventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -98,7 +99,21 @@ class FinalInspectionController extends Controller
                 ['qty_on_hand' => 0]
             );
             $fgInv->increment('qty_on_hand', $qtyGood);
-            
+
+            // Add FG to LocationInventory (stock by location)
+            $part = $order->part;
+            $defaultLocation = $part?->default_location;
+            if ($defaultLocation && $qtyGood > 0) {
+                LocationInventory::updateStock(
+                    null,
+                    strtoupper(trim($defaultLocation)),
+                    $qtyGood,
+                    null,
+                    now()->toDateString(),
+                    $order->gci_part_id
+                );
+            }
+
             // Backflush components
             $reserved = $order->reserved_materials;
 

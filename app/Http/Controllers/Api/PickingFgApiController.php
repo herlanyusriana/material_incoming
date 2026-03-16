@@ -50,11 +50,12 @@ class PickingFgApiController extends Controller
                 $stockLocations = LocationInventory::where('gci_part_id', $p->gci_part_id)
                     ->where('qty_on_hand', '>', 0)
                     ->orderByDesc('qty_on_hand')
-                    ->limit(3)
+                    ->limit(5)
                     ->get()
                     ->map(fn($loc) => [
                         'code' => $loc->location_code,
                         'qty' => (float) $loc->qty_on_hand,
+                        'batch_no' => $loc->batch_no,
                     ])->toArray();
 
                 return [
@@ -133,6 +134,7 @@ class PickingFgApiController extends Controller
             ->map(fn($loc) => [
                 'code' => $loc->location_code,
                 'qty' => (float) $loc->qty_on_hand,
+                'batch_no' => $loc->batch_no,
             ])->toArray();
 
         return response()->json([
@@ -165,6 +167,7 @@ class PickingFgApiController extends Controller
             'part_no' => 'required|string',
             'qty' => 'required|integer|min:1',
             'location' => 'required|string|max:100',
+            'batch_no' => 'nullable|string|max:255',
             'delivery_order_id' => 'nullable|integer|exists:delivery_orders,id',
         ]);
 
@@ -234,12 +237,14 @@ class PickingFgApiController extends Controller
 
             // DECREMENT WAREHOUSE STOCK
             if ($appliedQty > 0 && $request->location) {
+                $batchNo = $request->batch_no ? strtoupper(trim($request->batch_no)) : null;
                 \App\Models\LocationInventory::updateStock(
-                    $part->id, 
-                    strtoupper(trim($request->location)), 
+                    null,
+                    strtoupper(trim($request->location)),
                     -$appliedQty,
-                    null, // batch_no
-                    'Picking FG: ' . ($pick->deliveryOrder?->do_no ?? 'N/A')
+                    $batchNo,
+                    'Picking FG: ' . ($pick->deliveryOrder?->do_no ?? 'N/A'),
+                    $part->id
                 );
             }
 
