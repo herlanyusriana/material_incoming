@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Inventory;
 use App\Models\LocationInventory;
 use App\Imports\LocationInventoryImport;
+use App\Exports\LocationStockExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -126,6 +127,21 @@ class WarehouseStockController extends Controller
         Excel::import($import, $request->file('file'));
 
         return back()->with('success', "Import selesai: {$import->imported} rows imported, {$import->skipped} skipped.");
+    }
+
+    public function export(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $location = strtoupper(trim((string) $request->query('location', '')));
+        $classification = strtoupper(trim((string) $request->query('classification', '')));
+        $onlyPositive = (bool) $request->boolean('only_positive', true);
+
+        $filename = 'stock_location_' . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(
+            new LocationStockExport($search, $location, $classification, $onlyPositive),
+            $filename
+        );
     }
 }
 

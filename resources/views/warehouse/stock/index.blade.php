@@ -23,6 +23,9 @@
                         <div class="text-sm text-slate-500">Source: <span class="font-mono">location_inventory</span></div>
                     </div>
                     <div class="flex items-center gap-2">
+                        <a href="{{ route('warehouse.stock.export', request()->query()) }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 text-sm">
+                            Export Excel
+                        </a>
                         <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 text-sm">
                             Import Stock
                         </button>
