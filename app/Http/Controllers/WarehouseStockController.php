@@ -15,6 +15,7 @@ class WarehouseStockController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $location = strtoupper(trim((string) $request->query('location', '')));
+        $classification = strtoupper(trim((string) $request->query('classification', '')));
         $onlyPositive = (bool) $request->boolean('only_positive', true);
         $perPage = (int) $request->query('per_page', 50);
         if ($perPage < 10) {
@@ -28,6 +29,7 @@ class WarehouseStockController extends Controller
             ->with(['part', 'gciPart', 'location'])
             ->when($onlyPositive, fn ($q) => $q->where('qty_on_hand', '>', 0))
             ->when($location !== '', fn ($q) => $q->where('location_code', $location))
+            ->when(in_array($classification, ['RM', 'WIP', 'FG'], true), fn ($q) => $q->whereHas('gciPart', fn ($qg) => $qg->where('classification', $classification)))
             ->when($search !== '', function ($q) use ($search) {
                 $s = strtoupper($search);
                 $q->where(function ($qq) use ($s) {
@@ -61,6 +63,7 @@ class WarehouseStockController extends Controller
             'records',
             'search',
             'location',
+            'classification',
             'onlyPositive',
             'perPage',
             'totalsByLocation',

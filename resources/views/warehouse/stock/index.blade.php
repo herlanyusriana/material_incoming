@@ -53,6 +53,15 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Classification</label>
+                            <select name="classification" class="w-full rounded-lg border-slate-300 text-sm">
+                                <option value="">All</option>
+                                @foreach(['RM','WIP','FG'] as $c)
+                                    <option value="{{ $c }}" @selected(($classification ?? '') === $c)>{{ $c }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="flex items-end gap-2">
                             <label class="inline-flex items-center gap-2 text-sm text-slate-700">
                                 <input type="hidden" name="only_positive" value="0">
@@ -94,6 +103,7 @@
                         <thead class="bg-slate-50">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">Class</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Name</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch</th>
@@ -118,9 +128,15 @@
                                             </div>
                                         @endif
                                     </td>
+                                    <td class="px-4 py-3 text-center">
+                                        @php $cls = $rec->gciPart?->classification ?? ''; @endphp
+                                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold uppercase
+                                            {{ $cls === 'FG' ? 'bg-emerald-100 text-emerald-700' : ($cls === 'WIP' ? 'bg-amber-100 text-amber-700' : ($cls === 'RM' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500')) }}">
+                                            {{ $cls ?: '-' }}
+                                        </span>
+                                    </td>
                                     <td class="px-4 py-3">
-                                        <div class="font-semibold text-slate-900">{{ $rec->part?->part_no ?? ($rec->gciPart?->part_no ?? '-') }}</div>
-                                        <div class="text-xs text-slate-500">Master ID: {{ $rec->gci_part_id }}</div>
+                                        <div class="font-semibold text-slate-900">{{ $rec->gciPart?->part_no ?? ($rec->part?->part_no ?? '-') }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-slate-700">
                                         {{ $rec->part?->part_name_gci ?? ($rec->part?->part_name_vendor ?? ($rec->gciPart?->part_name ?? '-')) }}
@@ -140,7 +156,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center text-slate-500">No records.</td>
+                                    <td colspan="8" class="px-6 py-12 text-center text-slate-500">No records.</td>
                                 </tr>
                             @endforelse
                         </tbody>
