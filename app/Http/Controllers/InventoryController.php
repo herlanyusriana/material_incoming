@@ -14,6 +14,7 @@ use Illuminate\Validation\Rule;
 use App\Exports\InventoryExport;
 use App\Exports\GciInventoryExport;
 use App\Imports\InventoryImport;
+use App\Imports\LocationInventoryImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class InventoryController extends Controller
@@ -180,9 +181,10 @@ class InventoryController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ]);
 
-        Excel::import(new InventoryImport(), $validated['file']);
+        $import = new LocationInventoryImport();
+        Excel::import($import, $validated['file']);
 
-        return back()->with('success', 'Inventory imported.');
+        return back()->with('success', "Import selesai: {$import->imported} rows imported, {$import->skipped} skipped.");
     }
 
     public function searchReceives(Request $request)

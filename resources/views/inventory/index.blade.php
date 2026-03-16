@@ -230,8 +230,8 @@
                 </div>
                 <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 space-y-1">
                     <p class="font-bold text-slate-600">Format kolom:</p>
-                    <p>part_no | on_hand | on_order | batch_no | as_of_date</p>
-                    <p class="text-slate-400">Part no harus sesuai dengan data GCI Parts yang sudah ada.</p>
+                    <p><span class="font-mono bg-white px-1 rounded">part_no</span> | <span class="font-mono bg-white px-1 rounded">location_code</span> | <span class="font-mono bg-white px-1 rounded">qty</span> | <span class="font-mono bg-white px-1 rounded">batch_no</span></p>
+                    <p class="text-slate-400">Part no harus sesuai dengan data GCI Parts. Location code harus diisi. Gunakan Export untuk dapat template.</p>
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')"

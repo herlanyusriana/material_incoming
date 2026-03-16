@@ -43,26 +43,39 @@ class GciInventoryExport implements FromArray, WithHeadings, WithStyles, WithCol
                 continue;
             }
 
-            // Get locations with stock
-            $locations = LocationInventory::where('gci_part_id', $inv->gci_part_id)
+            // Get all location records for this part
+            $locRecords = LocationInventory::where('gci_part_id', $inv->gci_part_id)
                 ->where('qty_on_hand', '>', 0)
                 ->orderByDesc('qty_on_hand')
-                ->get()
-                ->map(fn($l) => $l->location_code . ' (' . number_format((float) $l->qty_on_hand) . ')')
-                ->implode(', ');
+                ->get();
 
-            $rows[] = [
-                $part->part_no,
-                $part->part_name,
-                $part->model ?? '',
-                strtoupper($part->classification ?? ''),
-                $part->status ?? '',
-                (float) ($inv->on_hand ?? 0),
-                (float) ($inv->on_order ?? 0),
-                $part->default_location ?? '',
-                $locations ?: '-',
-                $inv->as_of_date ? \Carbon\Carbon::parse($inv->as_of_date)->format('Y-m-d') : '',
-            ];
+            if ($locRecords->isEmpty()) {
+                // No location stock — export one row with default_location (can be filled in by user)
+                $rows[] = [
+                    $part->part_no,
+                    $part->part_name,
+                    $part->model ?? '',
+                    strtoupper($part->classification ?? ''),
+                    $part->default_location ?? '',
+                    '',  // location_code — user fills this in
+                    (float) ($inv->on_hand ?? 0),
+                    '',  // batch_no
+                ];
+            } else {
+                // One row per location — directly re-importable
+                foreach ($locRecords as $loc) {
+                    $rows[] = [
+                        $part->part_no,
+                        $part->part_name,
+                        $part->model ?? '',
+                        strtoupper($part->classification ?? ''),
+                        $part->default_location ?? '',
+                        $loc->location_code,
+                        (float) $loc->qty_on_hand,
+                        $loc->batch_no ?? '',
+                    ];
+                }
+            }
         }
 
         return $rows;
@@ -71,16 +84,14 @@ class GciInventoryExport implements FromArray, WithHeadings, WithStyles, WithCol
     public function headings(): array
     {
         return [
-            'Part No',
-            'Part Name',
-            'Model',
-            'Classification',
-            'Status',
-            'On Hand',
-            'On Order',
-            'Default Location',
-            'Stock Locations',
-            'As Of Date',
+            'part_no',
+            'part_name',
+            'model',
+            'classification',
+            'default_location',
+            'location_code',
+            'qty',
+            'batch_no',
         ];
     }
 
@@ -94,16 +105,14 @@ class GciInventoryExport implements FromArray, WithHeadings, WithStyles, WithCol
     public function columnWidths(): array
     {
         return [
-            'A' => 18,
+            'A' => 20,
             'B' => 30,
             'C' => 15,
             'D' => 14,
-            'E' => 10,
-            'F' => 12,
+            'E' => 16,
+            'F' => 16,
             'G' => 12,
             'H' => 16,
-            'I' => 30,
-            'J' => 12,
         ];
     }
 }
