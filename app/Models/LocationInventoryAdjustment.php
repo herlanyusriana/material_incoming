@@ -19,6 +19,8 @@ class LocationInventoryAdjustment extends Model
         'from_batch_no',
         'to_batch_no',
         'action_type',
+        'transaction_type',
+        'source_reference',
         'qty_before',
         'qty_after',
         'qty_change',

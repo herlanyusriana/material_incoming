@@ -84,7 +84,7 @@ class StockOpnameController extends Controller
 
         DB::transaction(function () use ($session) {
             foreach ($session->items as $item) {
-                // Here we would perform the actual stock adjustment in FgInventory or similar
+                // Here we would perform the actual stock adjustment via LocationInventory
                 // For now, we'll mark the item as adjusted (if we had a column) or just complete the session
             }
 

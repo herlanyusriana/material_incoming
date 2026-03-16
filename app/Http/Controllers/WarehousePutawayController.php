@@ -97,11 +97,11 @@ class WarehousePutawayController extends Controller
             }
 
             if ($oldLocationCode !== '' && $oldLocationCode !== $newLocationCode) {
-                LocationInventory::updateStock($partId, $oldLocationCode, -$qtyContribution);
+                LocationInventory::updateStock($partId, $oldLocationCode, -$qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}");
             }
 
             if ($oldLocationCode === '' || $oldLocationCode !== $newLocationCode) {
-                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution);
+                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}");
             }
 
             $receive->update(['location_code' => $newLocationCode]);
@@ -169,7 +169,7 @@ class WarehousePutawayController extends Controller
                     continue;
                 }
 
-                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution);
+                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}");
                 $receive->update(['location_code' => $newLocationCode]);
                 $updated++;
             }

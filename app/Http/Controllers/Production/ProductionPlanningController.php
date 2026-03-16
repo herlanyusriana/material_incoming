@@ -8,7 +8,6 @@ use App\Models\ProductionPlanningLine;
 use App\Models\ProductionOrder;
 use App\Models\GciPart;
 use App\Models\GciInventory;
-use App\Models\FgInventory;
 use App\Models\StockAtCustomer;
 use App\Models\Bom;
 use App\Models\BomItem;

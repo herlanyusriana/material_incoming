@@ -597,15 +597,6 @@
                             </svg>
                             <span class="ml-3 flex-1">Inventory Receives</span>
                         </a>
-                        <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')]) @click="mobileSidebarOpen = false">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
-                            </svg>
-                            <span class="ml-3 flex-1">Inventory Transfers</span>
-                        </a>
                         {{-- GCI Inventory hidden --}}
                     </div>
                 </div>
@@ -1296,15 +1287,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
                         </svg>
                         <span class="ml-3 flex-1">Inventory Receives</span>
-                    </a>
-                    <a href="{{ route('inventory.transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.transfers.*'), $navInactive => !request()->routeIs('inventory.transfers.*')])>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h8" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 3h5v5" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 3l-6 6" />
-                        </svg>
-                        <span class="ml-3 flex-1">Inventory Transfers</span>
                     </a>
                     {{-- GCI Inventory hidden --}}
                 </div>

@@ -456,7 +456,7 @@ class ReceiveController extends Controller
             if (!empty($locationAdds) && $partId) {
                 foreach ($locationAdds as $entry) {
                     if ($entry['qty'] > 0) {
-                        LocationInventory::updateStock($partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId);
+                        LocationInventory::updateStock($partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId, 'RECEIVE', null);
                     }
                 }
             }
@@ -718,7 +718,7 @@ class ReceiveController extends Controller
                 $gciPartId = GciPartVendor::query()->whereKey((int) $partId)->value('gci_part_id');
                 foreach ($byLocation as $entry) {
                     if ($entry['qty'] > 0) {
-                        LocationInventory::updateStock((int) $partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId);
+                        LocationInventory::updateStock((int) $partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId, 'RECEIVE', null);
                     }
                 }
             }
@@ -917,10 +917,10 @@ class ReceiveController extends Controller
             $gciPartId = $this->resolveGciPartId($arrivalItem);
             if ($partId) {
                 if ($oldLocationCode && $oldContribution > 0) {
-                    LocationInventory::updateStock($partId, $oldLocationCode, -$oldContribution, null, null, $gciPartId);
+                    LocationInventory::updateStock($partId, $oldLocationCode, -$oldContribution, null, null, $gciPartId, 'RECEIVE', null);
                 }
                 if ($locationCode && $newContribution > 0) {
-                    LocationInventory::updateStock($partId, $locationCode, $newContribution, null, null, $gciPartId);
+                    LocationInventory::updateStock($partId, $locationCode, $newContribution, null, null, $gciPartId, 'RECEIVE', null);
                 }
             }
 

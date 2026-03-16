@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Exports\GciInventoryExport;
 use App\Models\GciInventory;
 use App\Models\GciPart;
-use App\Models\FgInventory;
 use App\Models\LocationInventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,23 +87,23 @@ class GciInventoryController extends Controller
     }
 
     /**
-     * Sync FG stock that exists in fg_inventory but not in location_inventory
+     * Sync GCI inventory stock that exists in gci_inventories but not yet in location_inventory
      * into the specified location.
      */
     private function syncFgStockToLocation(int $gciPartId, string $locationCode, ?string $oldLocation): float
     {
-        $fgInv = FgInventory::where('gci_part_id', $gciPartId)->first();
-        if (!$fgInv || $fgInv->qty_on_hand <= 0) {
+        $gciInv = GciInventory::where('gci_part_id', $gciPartId)->first();
+        if (!$gciInv || $gciInv->on_hand <= 0) {
             return 0;
         }
 
-        $fgQty = (float) $fgInv->qty_on_hand;
+        $summaryQty = (float) $gciInv->on_hand;
 
         // Sum current LocationInventory for this part (all locations)
         $locTotal = (float) LocationInventory::where('gci_part_id', $gciPartId)->sum('qty_on_hand');
 
-        // Only sync the gap (FG stock not yet in any location)
-        $gap = $fgQty - $locTotal;
+        // Only sync the gap (stock not yet in any location)
+        $gap = $summaryQty - $locTotal;
         if ($gap <= 0) {
             return 0;
         }
@@ -115,7 +114,9 @@ class GciInventoryController extends Controller
             $gap,
             null,
             null,
-            $gciPartId
+            $gciPartId,
+            'SYNC',
+            'Location assignment'
         );
 
         return $gap;

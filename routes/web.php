@@ -168,11 +168,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventory/gci/export', [GciInventoryController::class, 'export'])->name('inventory.gci.export');
     Route::post('/inventory/gci/update-location', [GciInventoryController::class, 'updateLocation'])->name('inventory.gci.update-location');
 
-    // Inventory Transfers (Bridge between Logistics and Production)
-    Route::get('/inventory/transfers', [\App\Http\Controllers\InventoryTransferController::class, 'index'])->name('inventory.transfers.index');
-    Route::get('/inventory/transfers/create', [\App\Http\Controllers\InventoryTransferController::class, 'create'])->name('inventory.transfers.create');
-    Route::post('/inventory/transfers', [\App\Http\Controllers\InventoryTransferController::class, 'store'])->name('inventory.transfers.store');
-    Route::post('/inventory/transfers/auto-sync', [\App\Http\Controllers\InventoryTransferController::class, 'autoSync'])->name('inventory.transfers.auto-sync');
 
     Route::get('/inventory/locations', [WarehouseLocationController::class, 'index'])->name('inventory.locations.index');
     Route::post('/inventory/locations', [WarehouseLocationController::class, 'store'])->name('inventory.locations.store');

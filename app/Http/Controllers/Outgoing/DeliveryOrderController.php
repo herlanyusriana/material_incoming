@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
-use App\Models\FgInventory;
 use App\Models\GciPart;
+use App\Models\LocationInventory;
 use App\Models\DeliveryOrder;
 use App\Models\DeliveryOrderItem;
 use Illuminate\Http\Request;
@@ -242,11 +242,20 @@ class DeliveryOrderController extends Controller
 
                 $item->update(['qty_shipped' => (float) $item->qty_shipped + $qtyToShip]);
 
-                $inventory = FgInventory::firstOrCreate(
-                    ['gci_part_id' => (int) $item->gci_part_id],
-                    ['qty_on_hand' => 0]
-                );
-                $inventory->decrement('qty_on_hand', $qtyToShip);
+                // Deduct dari LocationInventory (source of truth) → auto-sync ke gci_inventories
+                $gciPart = GciPart::find((int) $item->gci_part_id);
+                $defaultLoc = $gciPart?->default_location;
+                if ($defaultLoc && $qtyToShip > 0) {
+                    LocationInventory::consumeStock(
+                        null,
+                        strtoupper(trim($defaultLoc)),
+                        (float) $qtyToShip,
+                        null,
+                        (int) $item->gci_part_id,
+                        'DELIVERY',
+                        'DN#' . ($dn->dn_no ?? 'N/A')
+                    );
+                }
             }
 
             $do->refresh();

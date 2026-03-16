@@ -109,10 +109,10 @@ class BinTransferController extends Controller
                 }
 
                 // 2. Decrement source location
-                LocationInventory::updateStock($partId, $fromLocation, -$qty);
+                LocationInventory::updateStock($partId, $fromLocation, -$qty, null, null, null, 'TRANSFER', "BIN:{$fromLocation}->{$toLocation}");
 
                 // 3. Increment target location
-                LocationInventory::updateStock($partId, $toLocation, $qty);
+                LocationInventory::updateStock($partId, $toLocation, $qty, null, null, null, 'TRANSFER', "BIN:{$fromLocation}->{$toLocation}");
 
                 // 4. Resolve gci_part_id and log transfer
                 $gciPartId = null;

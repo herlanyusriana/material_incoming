@@ -143,27 +143,6 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                    <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                        <div class="text-sm font-semibold text-slate-900">Recent Transfers to Production</div>
-                        <a href="{{ route('inventory.transfers.index') }}" class="text-xs font-semibold text-indigo-700 hover:text-indigo-900">Open</a>
-                    </div>
-                    <div class="p-5 space-y-3">
-                        @forelse($recentInventoryTransfers as $t)
-                            <div class="text-sm">
-                                <div class="flex items-center justify-between">
-                                    <div class="font-semibold text-slate-900">{{ $t->part?->part_no ?? '-' }}</div>
-                                    <div class="text-xs text-slate-500">{{ $t->created_at?->format('Y-m-d H:i') }}</div>
-                                </div>
-                                <div class="text-xs text-slate-500">
-                                    → {{ $t->gciPart?->part_no ?? '-' }} • Qty: {{ number_format((float) $t->qty, 4) }}
-                                </div>
-                            </div>
-                        @empty
-                            <div class="text-sm text-slate-600">No transfers yet.</div>
-                        @endforelse
-                    </div>
-                </div>
             </div>
         </div>
     </div>

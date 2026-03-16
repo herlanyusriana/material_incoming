@@ -147,8 +147,8 @@ class WarehouseStockAdjustmentController extends Controller
                 }
 
                 // Move stock between explicit batches (updateStock resolves gci_part_id internally)
-                LocationInventory::updateStock($partId, $fromLocation, -$qtyMove, $fromBatch);
-                LocationInventory::updateStock($partId, $toLocation, $qtyMove, $toBatch);
+                LocationInventory::updateStock($partId, $fromLocation, -$qtyMove, $fromBatch, null, null, 'ADJUSTMENT', "ADJ:{$fromLocation}->{$toLocation}");
+                LocationInventory::updateStock($partId, $toLocation, $qtyMove, $toBatch, null, null, 'ADJUSTMENT', "ADJ:{$fromLocation}->{$toLocation}");
 
                 // Resolve gci_part_id for adjustment record
                 $gciPartId = null;

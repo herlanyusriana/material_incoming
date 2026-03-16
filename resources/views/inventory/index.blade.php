@@ -54,11 +54,7 @@
 
                 <!-- Global Actions -->
                 <div class="flex flex-wrap items-center gap-2">
-                    <a href="{{ route('inventory.transfers.index') }}"
-                        class="px-4 py-2.5 rounded-xl border-2 border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-all focus:ring-2 focus:ring-slate-200">
-                        Transfers
-                    </a>
-                    <a href="{{ route('inventory.export') }}"
+<a href="{{ route('inventory.export') }}"
                         class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all">
                         Export
                     </a>

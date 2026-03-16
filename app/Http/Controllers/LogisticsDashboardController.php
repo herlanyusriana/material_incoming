@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Arrival;
 use App\Models\BinTransfer;
-use App\Models\InventoryTransfer;
 use App\Models\LocationInventory;
 use App\Models\Receive;
 use Illuminate\Http\Request;
@@ -53,18 +52,12 @@ class LogisticsDashboardController extends Controller
             ->limit(10)
             ->get();
 
-        $recentInventoryTransfers = InventoryTransfer::with(['part', 'gciPart', 'creator'])
-            ->latest()
-            ->limit(10)
-            ->get();
-
         return view('logistics.dashboard', compact(
             'pendingArrivals',
             'qcCounts',
             'recentReceives',
             'topLocations',
             'recentBinTransfers',
-            'recentInventoryTransfers',
         ));
     }
 }

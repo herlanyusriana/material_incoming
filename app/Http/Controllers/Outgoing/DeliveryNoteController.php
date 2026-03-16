@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\CustomerPo;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
-use App\Models\FgInventory;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
 use App\Models\Driver;
@@ -397,22 +396,19 @@ class DeliveryNoteController extends Controller
             $deliveryNote->update(['status' => self::STATUS_SHIPPED]);
 
             foreach ($deliveryNote->items as $item) {
+                // Deduct dari LocationInventory (source of truth) → auto-sync ke gci_inventories
                 $loc = strtoupper(trim((string) ($item->kitting_location_code ?? '')));
-                if ($loc !== '' && Schema::hasTable('location_inventory') && Schema::hasTable('warehouse_locations')) {
-                    $gciPartNo = (string) ($item->part?->part_no ?? '');
-                    $mappedPart = Part::query()->where('part_no', $gciPartNo)->first();
-                    if (!$mappedPart) {
-                        throw new \Exception("Part master (parts) tidak ditemukan untuk FG {$gciPartNo}. Tidak bisa deduct stok per lokasi.");
-                    }
-                    LocationInventory::consumeStock((int) $mappedPart->id, $loc, (float) $item->qty);
+                if ($loc !== '' && $item->gci_part_id) {
+                    LocationInventory::consumeStock(
+                        null,
+                        $loc,
+                        (float) $item->qty,
+                        null,
+                        $item->gci_part_id,
+                        'DELIVERY',
+                        'DN#' . $deliveryNote->dn_no
+                    );
                 }
-
-                $inventory = FgInventory::firstOrCreate(
-                    ['gci_part_id' => $item->gci_part_id],
-                    ['qty_on_hand' => 0]
-                );
-
-                $inventory->decrement('qty_on_hand', $item->qty);
 
                 // Update PO item fulfilled qty
                 if ($item->outgoing_po_item_id) {

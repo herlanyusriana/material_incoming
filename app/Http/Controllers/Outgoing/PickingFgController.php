@@ -344,11 +344,14 @@ class PickingFgController extends Controller
             $delta = (float) $qtyPicked - (float) $qtyBefore;
             if ($delta != 0 && $request->pick_location) {
                 \App\Models\LocationInventory::updateStock(
-                    $pick->gci_part_id,
+                    null,
                     strtoupper(trim($request->pick_location)),
                     -$delta,
                     null,
-                    'Picking FG (Web): ' . ($pick->deliveryOrder?->do_no ?? 'N/A')
+                    null,
+                    $pick->gci_part_id,
+                    'PICKING',
+                    'DO#' . ($pick->deliveryOrder?->do_no ?? 'N/A')
                 );
             }
 

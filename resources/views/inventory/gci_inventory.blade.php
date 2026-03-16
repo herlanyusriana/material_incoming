@@ -71,10 +71,6 @@
                             </svg>
                             Export Excel
                         </a>
-                        <a href="{{ route('inventory.transfers.index') }}"
-                            class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">
-                            Inventory Transfers
-                        </a>
                     </div>
                 </div>
 

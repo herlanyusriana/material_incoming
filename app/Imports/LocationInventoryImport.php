@@ -51,7 +51,7 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
 
         $batchNo = $row['batch_no'] ?? $row['batch'] ?? null;
 
-        LocationInventory::updateStock(null, $locationCode, $qty, $batchNo, null, $part->id);
+        LocationInventory::updateStock(null, $locationCode, $qty, $batchNo, null, $part->id, 'IMPORT', 'Excel import');
 
         $this->imported++;
         return null;

@@ -7,7 +7,6 @@ use App\Models\ProductionInspection;
 use App\Models\ProductionOrder;
 use App\Models\Bom;
 use App\Models\GciInventory;
-use App\Models\FgInventory;
 use App\Models\LocationInventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -93,14 +92,7 @@ class FinalInspectionController extends Controller
                 'workflow_stage' => 'stock_update',
             ]);
             
-            // Update FG Inventory
-            $fgInv = FgInventory::firstOrCreate(
-                ['gci_part_id' => $order->gci_part_id],
-                ['qty_on_hand' => 0]
-            );
-            $fgInv->increment('qty_on_hand', $qtyGood);
-
-            // Add FG to LocationInventory (stock by location)
+            // Add FG to LocationInventory (source of truth) → auto-sync ke gci_inventories via boot event
             $part = $order->part;
             $defaultLocation = $part?->default_location;
             if ($defaultLocation && $qtyGood > 0) {
@@ -110,7 +102,9 @@ class FinalInspectionController extends Controller
                     $qtyGood,
                     null,
                     now()->toDateString(),
-                    $order->gci_part_id
+                    $order->gci_part_id,
+                    'PRODUCTION_OUTPUT',
+                    'PROD#' . $order->order_no
                 );
             }
 

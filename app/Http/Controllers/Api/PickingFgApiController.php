@@ -243,8 +243,10 @@ class PickingFgApiController extends Controller
                     strtoupper(trim($request->location)),
                     -$appliedQty,
                     $batchNo,
-                    'Picking FG: ' . ($pick->deliveryOrder?->do_no ?? 'N/A'),
-                    $part->id
+                    null,
+                    $part->id,
+                    'PICKING',
+                    'DO#' . ($pick->deliveryOrder?->do_no ?? 'N/A')
                 );
             }
 

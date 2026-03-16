@@ -6,6 +6,7 @@ use App\Models\ProductionOrder;
 use App\Models\ProductionInspection;
 use App\Models\GciPart;
 use App\Models\GciInventory;
+use App\Models\LocationInventory;
 use App\Models\Bom;
 use App\Models\Machine;
 use Illuminate\Http\Request;
@@ -324,12 +325,21 @@ class ProductionOrderController extends Controller
                 'workflow_stage' => 'stock_update',
             ]);
 
-            // Update Inventory
-            $fgInv = \App\Models\FgInventory::firstOrCreate(
-                ['gci_part_id' => $order->gci_part_id],
-                ['qty_on_hand' => 0]
-            );
-            $fgInv->increment('qty_on_hand', $qtyGood);
+            // Add FG to LocationInventory (source of truth) → auto-sync ke gci_inventories via boot event
+            $part = $order->part;
+            $defaultLocation = $part?->default_location;
+            if ($defaultLocation && $qtyGood > 0) {
+                LocationInventory::updateStock(
+                    null,
+                    strtoupper(trim($defaultLocation)),
+                    $qtyGood,
+                    null,
+                    now()->toDateString(),
+                    $order->gci_part_id,
+                    'PRODUCTION_OUTPUT',
+                    'PROD#' . $order->order_no
+                );
+            }
 
             // Backflush components
             $reserved = $order->reserved_materials;

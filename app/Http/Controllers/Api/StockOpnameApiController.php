@@ -7,7 +7,6 @@ use App\Models\StockOpnameSession;
 use App\Models\StockOpnameItem;
 use App\Models\GciPart;
 use App\Models\WarehouseLocation;
-use App\Models\FgInventory;
 use App\Exports\StockOpnameExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;

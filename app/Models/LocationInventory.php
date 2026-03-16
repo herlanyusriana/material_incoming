@@ -158,8 +158,11 @@ class LocationInventory extends Model
      *
      * gci_part_id is the PRIMARY reference (required).
      * part_id (vendor part) is optional — hanya untuk tracking vendor.
+     *
+     * @param string|null $transactionType  RECEIVE, PRODUCTION_OUTPUT, BACKFLUSH, PICKING, DELIVERY, TRANSFER, ADJUSTMENT, IMPORT, SYNC
+     * @param string|null $sourceReference  e.g. "PO#123", "PROD#789", "DN#456"
      */
-    public static function updateStock(?int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null, ?int $gciPartId = null): void
+    public static function updateStock(?int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null): void
     {
         $locationCode = strtoupper(trim($locationCode));
         $batchNo = $batchNo !== null ? strtoupper(trim($batchNo)) : null;
@@ -208,13 +211,17 @@ class LocationInventory extends Model
             $record->part_id = $partId;
         }
 
-        $newQty = (float) $record->qty_on_hand + $qtyChange;
+        $qtyBefore = (float) $record->qty_on_hand;
+        $newQty = $qtyBefore + $qtyChange;
 
         if ($newQty < 0) {
             throw new \Exception("Cannot reduce stock below zero. Current: {$record->qty_on_hand}, Change: {$qtyChange}");
         }
 
         $record->update(['qty_on_hand' => $newQty]);
+
+        // Auto-log transaction
+        self::logTransaction($partId, $gciPartId, $locationCode, $batchNo, $qtyBefore, $newQty, $qtyChange, $transactionType, $sourceReference);
     }
 
     /**
@@ -222,7 +229,7 @@ class LocationInventory extends Model
      * Selalu pakai gci_part_id sebagai primary reference.
      * Consume dari stock FIFO (production_date terlama dulu).
      */
-    public static function consumeStock(?int $partId, string $locationCode, float $qty, ?string $batchNo = null, ?int $gciPartId = null): void
+    public static function consumeStock(?int $partId, string $locationCode, float $qty, ?string $batchNo = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null): void
     {
         $qty = (float) $qty;
         if ($qty <= 0) {
@@ -249,7 +256,7 @@ class LocationInventory extends Model
 
         // Kalau batch specific, langsung kurangi
         if ($batchNo !== null) {
-            self::updateStock($partId, $locationCode, -$qty, $batchNo, null, $gciPartId);
+            self::updateStock($partId, $locationCode, -$qty, $batchNo, null, $gciPartId, $transactionType, $sourceReference);
             return;
         }
 
@@ -279,6 +286,9 @@ class LocationInventory extends Model
             $take = min($available, $remaining);
             $row->update(['qty_on_hand' => $available - $take]);
             $remaining -= $take;
+
+            // Log each FIFO consumption
+            self::logTransaction($partId, $gciPartId, $locationCode, $row->batch_no, $available, $available - $take, -$take, $transactionType, $sourceReference);
         }
 
         if ($remaining > 0) {
@@ -311,6 +321,27 @@ class LocationInventory extends Model
         }
 
         return $q->get();
+    }
+
+    /**
+     * Log a stock transaction to location_inventory_adjustments.
+     */
+    protected static function logTransaction(?int $partId, ?int $gciPartId, string $locationCode, ?string $batchNo, float $qtyBefore, float $qtyAfter, float $qtyChange, ?string $transactionType = null, ?string $sourceReference = null): void
+    {
+        LocationInventoryAdjustment::create([
+            'part_id' => $partId,
+            'gci_part_id' => $gciPartId,
+            'location_code' => $locationCode,
+            'batch_no' => $batchNo,
+            'action_type' => 'stock_movement',
+            'transaction_type' => $transactionType,
+            'source_reference' => $sourceReference,
+            'qty_before' => $qtyBefore,
+            'qty_after' => $qtyAfter,
+            'qty_change' => $qtyChange,
+            'adjusted_at' => now(),
+            'created_by' => auth()->id(),
+        ]);
     }
 
     /**

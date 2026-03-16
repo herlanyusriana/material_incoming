@@ -178,14 +178,14 @@ class WarehouseScanningController extends Controller
             // If it was already at another warehouse location, subtract from there
             if ($oldLocation) {
                 try {
-                    LocationInventory::updateStock($partId, $oldLocation, -$qty, $batchNo, null, $gciPartId);
+                    LocationInventory::updateStock($partId, $oldLocation, -$qty, $batchNo, null, $gciPartId, 'PUTAWAY', "TAG:{$tagNo}");
                 } catch (\Exception $e) {
                     Log::warning("Could not subtract stock from old location {$oldLocation} for tag {$tagNo}: " . $e->getMessage());
                 }
             }
 
             // Add to new location
-            LocationInventory::updateStock($partId, $locationCode, $qty, $batchNo, null, $gciPartId);
+            LocationInventory::updateStock($partId, $locationCode, $qty, $batchNo, null, $gciPartId, 'PUTAWAY', "TAG:{$tagNo}");
 
             DB::commit();
 

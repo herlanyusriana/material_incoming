@@ -94,7 +94,10 @@ class InventoryApiController extends Controller
                 $to,
                 $request->qty,
                 $request->batch_no,
-                $request->gci_part_id
+                null,
+                $request->gci_part_id,
+                'TRANSFER',
+                "API BIN:{$from}->{$to}"
             );
 
             // TODO: Log the transfer in an activity log table if needed
