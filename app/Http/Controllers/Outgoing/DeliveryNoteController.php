@@ -507,4 +507,23 @@ class DeliveryNoteController extends Controller
 
         return view('outgoing.delivery_notes.packing_list', compact('delivery_note'));
     }
+
+    public function printInvoice(DeliveryNote $delivery_note)
+    {
+        $delivery_note->load([
+            'customer',
+            'items.part.standardPacking',
+            'items.customerPo',
+            'items.outgoingPoItem.outgoingPo'
+        ]);
+
+        // Generate invoice number: sequence/GCI-ACC/F/month/year
+        $seq = str_pad((string) $delivery_note->id, 3, '0', STR_PAD_LEFT);
+        $month = $delivery_note->delivery_date->format('n');
+        $romanMonth = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][$month];
+        $year = $delivery_note->delivery_date->format('Y');
+        $invoiceNo = "{$seq}/GCI-ACC/F/{$romanMonth}/{$year}";
+
+        return view('outgoing.delivery_notes.invoice', compact('delivery_note', 'invoiceNo'));
+    }
 }

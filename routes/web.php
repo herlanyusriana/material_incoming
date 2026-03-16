@@ -294,6 +294,7 @@ Route::middleware('auth')->group(function () {
         Route::post('delivery-notes/{delivery_note}/ship', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'ship'])->name('delivery-notes.ship');
         Route::get('delivery-notes/{delivery_note}/print', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'print'])->name('delivery-notes.print');
         Route::get('delivery-notes/{delivery_note}/packing-list', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'printPackingList'])->name('delivery-notes.packing-list');
+        Route::get('delivery-notes/{delivery_note}/invoice', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'printInvoice'])->name('delivery-notes.print-invoice');
 
         Route::get('standard-packings/template', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'template'])->name('standard-packings.template');
         Route::get('standard-packings/export', [\App\Http\Controllers\Outgoing\StandardPackingController::class, 'export'])->name('standard-packings.export');

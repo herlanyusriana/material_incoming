@@ -16,10 +16,22 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    {{-- Print buttons --}}
                     <a href="{{ route('outgoing.delivery-notes.print', $deliveryNote) }}" target="_blank"
-                        class="px-6 py-2 rounded-xl border-2 border-emerald-500 text-emerald-600 font-black hover:bg-emerald-50 transition-all active:scale-95">
-                        PRINT SURAT JALAN
+                        class="px-4 py-2 rounded-xl border-2 border-indigo-400 text-indigo-600 font-black hover:bg-indigo-50 transition-all active:scale-95 text-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Print SJ
+                    </a>
+                    <a href="{{ route('outgoing.delivery-notes.packing-list', $deliveryNote) }}" target="_blank"
+                        class="px-4 py-2 rounded-xl border-2 border-emerald-400 text-emerald-600 font-black hover:bg-emerald-50 transition-all active:scale-95 text-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Print PL
+                    </a>
+                    <a href="{{ route('outgoing.delivery-notes.print-invoice', $deliveryNote) }}" target="_blank"
+                        class="px-4 py-2 rounded-xl border-2 border-amber-400 text-amber-600 font-black hover:bg-amber-50 transition-all active:scale-95 text-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                        Print Invoice
                     </a>
 
                     @php
