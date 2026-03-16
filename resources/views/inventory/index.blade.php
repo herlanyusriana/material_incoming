@@ -162,9 +162,17 @@
                                         <span class="font-mono text-xs text-slate-700">{{ $inv->batch_no ?? ($inv->latest_batch_received ?? '-') }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded shadow-sm border border-slate-200">
-                                            {{ formatNumber((float) ($inv->on_hand ?? 0)) }}
-                                        </span>
+                                        @if($activeTab === 'fg')
+                                            <input type="number" step="any" min="0"
+                                                value="{{ (float) ($inv->on_hand ?? 0) }}"
+                                                data-inv-id="{{ $inv->id }}"
+                                                onchange="saveStock(this)"
+                                                class="w-24 text-right font-mono font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded border border-slate-300 focus:border-indigo-400 focus:outline-none text-sm">
+                                        @else
+                                            <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded shadow-sm border border-slate-200">
+                                                {{ formatNumber((float) ($inv->on_hand ?? 0)) }}
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-mono text-slate-500">{{ formatNumber((float) ($inv->on_order ?? 0)) }}</span>
@@ -235,6 +243,42 @@
         </div>
     </div>
     <script>
+        async function saveStock(input) {
+            const invId = input.dataset.invId;
+            if (!invId) return;
+
+            input.style.background = '#fef9c3';
+
+            try {
+                const res = await fetch('{{ route("inventory.gci.update-stock") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        gci_inventory_id: invId,
+                        on_hand: parseFloat(input.value) || 0,
+                    }),
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    input.style.background = '#dcfce7';
+                    setTimeout(() => { input.style.background = ''; }, 800);
+                } else {
+                    alert(data.message || 'Gagal update stock.');
+                    input.style.background = '#fee2e2';
+                    setTimeout(() => { input.style.background = ''; }, 1500);
+                }
+            } catch (e) {
+                console.error('Save stock failed:', e);
+                input.style.background = '#fee2e2';
+                setTimeout(() => { input.style.background = ''; }, 1500);
+            }
+        }
+
         async function saveLocation(el) {
             const partId = el.dataset.partId;
             if (!partId) return;

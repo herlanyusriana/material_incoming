@@ -167,6 +167,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventory/gci', fn() => redirect()->route('inventory.index'))->name('inventory.gci.index');
     Route::get('/inventory/gci/export', [GciInventoryController::class, 'export'])->name('inventory.gci.export');
     Route::post('/inventory/gci/update-location', [GciInventoryController::class, 'updateLocation'])->name('inventory.gci.update-location');
+    Route::post('/inventory/gci/update-stock', [GciInventoryController::class, 'updateStock'])->name('inventory.gci.update-stock');
 
 
     Route::get('/inventory/locations', [WarehouseLocationController::class, 'index'])->name('inventory.locations.index');

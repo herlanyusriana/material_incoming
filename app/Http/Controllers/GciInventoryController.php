@@ -87,6 +87,68 @@ class GciInventoryController extends Controller
     }
 
     /**
+     * Update FG stock on_hand manually (for testing outgoing flow).
+     * Adjusts both gci_inventories and location_inventory.
+     */
+    public function updateStock(Request $request)
+    {
+        $request->validate([
+            'gci_inventory_id' => 'required|integer|exists:gci_inventories,id',
+            'on_hand' => 'required|numeric|min:0',
+        ]);
+
+        $inv = GciInventory::findOrFail($request->gci_inventory_id);
+        $part = GciPart::find($inv->gci_part_id);
+
+        if (!$part || $part->classification !== 'FG') {
+            return response()->json(['success' => false, 'message' => 'Hanya FG yang bisa diedit manual.'], 422);
+        }
+
+        $oldQty = (float) $inv->on_hand;
+        $newQty = (float) $request->on_hand;
+        $diff = $newQty - $oldQty;
+
+        DB::transaction(function () use ($inv, $newQty, $diff, $part) {
+            $inv->update([
+                'on_hand' => $newQty,
+                'as_of_date' => now()->toDateString(),
+            ]);
+
+            // Sync to location_inventory if default_location is set
+            $loc = $part->default_location;
+            if ($loc && abs($diff) > 0.0001) {
+                if ($diff > 0) {
+                    LocationInventory::updateStock(
+                        null,
+                        strtoupper(trim($loc)),
+                        $diff,
+                        null,
+                        now()->toDateString(),
+                        $part->id,
+                        'ADJUSTMENT',
+                        'Manual FG edit'
+                    );
+                } else {
+                    LocationInventory::consumeStock(
+                        null,
+                        strtoupper(trim($loc)),
+                        abs($diff),
+                        null,
+                        $part->id,
+                        'ADJUSTMENT',
+                        'Manual FG edit'
+                    );
+                }
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'on_hand' => $newQty,
+        ]);
+    }
+
+    /**
      * Sync GCI inventory stock that exists in gci_inventories but not yet in location_inventory
      * into the specified location.
      */
