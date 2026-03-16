@@ -54,7 +54,7 @@
 
                 <!-- Global Actions -->
                 <div class="flex flex-wrap items-center gap-2">
-<a href="{{ route('inventory.export') }}"
+                    <a href="{{ route('inventory.gci.export', array_filter(['classification' => strtoupper($activeTab), 'status' => $status, 'search' => $search])) }}"
                         class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all">
                         Export
                     </a>
@@ -132,6 +132,7 @@
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Batch No</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Hand</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Order</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Default Loc</th>
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">As Of</th>
                             </tr>
                         </thead>
@@ -141,6 +142,7 @@
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-4 py-3">
                                         <div class="font-bold font-mono text-indigo-700">{{ $p?->part_no ?? '-' }}</div>
+                                        <div class="text-xs text-slate-400">{{ $p?->customers->pluck('name')->implode(', ') ?: '' }}</div>
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="font-semibold text-slate-800">{{ $p?->part_name ?? '-' }}</div>
@@ -167,13 +169,22 @@
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-mono text-slate-500">{{ formatNumber((float) ($inv->on_order ?? 0)) }}</span>
                                     </td>
+                                    <td class="px-4 py-3">
+                                        <select data-part-id="{{ $p?->id }}" onchange="saveLocation(this)"
+                                            class="border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:border-indigo-400 w-28">
+                                            <option value="">—</option>
+                                            @foreach($warehouseLocations as $loc)
+                                                <option value="{{ $loc }}" @selected(($p?->default_location ?? '') === $loc)>{{ $loc }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
                                     <td class="px-4 py-3 text-slate-500 text-xs font-medium">
                                         {{ $inv->as_of_date ? \Carbon\Carbon::parse($inv->as_of_date)->format('d M Y') : '-' }}
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-12 text-center">
+                                    <td colspan="8" class="px-4 py-12 text-center">
                                         <p class="text-slate-500 font-semibold mb-1">No {{ $classification }} inventory found</p>
                                         <p class="text-xs text-slate-400">Try adjusting your filters.</p>
                                     </td>
@@ -223,4 +234,43 @@
             </form>
         </div>
     </div>
+    <script>
+        async function saveLocation(el) {
+            const partId = el.dataset.partId;
+            if (!partId) return;
+
+            el.style.background = '#fef9c3';
+
+            try {
+                const res = await fetch('{{ route("inventory.gci.update-location") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        gci_part_id: partId,
+                        default_location: el.value.trim() || null,
+                    }),
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    el.style.background = '#dcfce7';
+                    if (data.synced_qty > 0) {
+                        alert('Location saved. ' + data.synced_qty + ' qty synced to Stock by Location.');
+                    }
+                    setTimeout(() => { el.style.background = ''; }, 800);
+                } else {
+                    el.style.background = '#fee2e2';
+                    setTimeout(() => { el.style.background = ''; }, 1500);
+                }
+            } catch (e) {
+                console.error('Save location failed:', e);
+                el.style.background = '#fee2e2';
+                setTimeout(() => { el.style.background = ''; }, 1500);
+            }
+        }
+    </script>
 </x-app-layout>

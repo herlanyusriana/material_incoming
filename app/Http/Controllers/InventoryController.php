@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Inventory;
 use App\Models\GciInventory;
-use App\Models\Part;
 use App\Models\GciPart;
+use App\Models\Part;
 use App\Models\Receive;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use App\Exports\InventoryExport;
+use App\Exports\GciInventoryExport;
 use App\Imports\InventoryImport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -33,7 +34,7 @@ class InventoryController extends Controller
         $classification = $classificationMap[$activeTab];
 
         $query = GciInventory::query()
-            ->with('part')
+            ->with('part.customers')
             ->whereHas('part', fn($qp) => $qp->where('classification', $classification))
             ->when(in_array($status, ['active', 'inactive'], true), fn($q) => $q->whereHas('part', fn($qp) => $qp->where('status', $status)))
             ->when($search !== '', function ($q) use ($search) {
@@ -59,6 +60,11 @@ class InventoryController extends Controller
 
         $rows = $query->paginate($perPage)->withQueryString();
 
+        // Warehouse locations for default_location dropdown
+        $warehouseLocations = Schema::hasTable('warehouse_locations')
+            ? WarehouseLocation::where('status', 'ACTIVE')->orderBy('location_code')->pluck('location_code')->all()
+            : [];
+
         // Summary counts per classification
         $summary = GciInventory::query()
             ->selectRaw("
@@ -76,7 +82,8 @@ class InventoryController extends Controller
             'status',
             'perPage',
             'classification',
-            'summary'
+            'summary',
+            'warehouseLocations'
         ));
     }
 

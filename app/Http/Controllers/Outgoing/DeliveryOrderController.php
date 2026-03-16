@@ -185,6 +185,29 @@ class DeliveryOrderController extends Controller
             return back()->with('error', 'No quantities to ship.');
         }
 
+        // Hard validation: block if default_location missing or stock insufficient
+        $stockErrors = [];
+        $itemsById = $deliveryOrder->items->keyBy('id');
+        foreach ($qtyByItemId as $itemId => $qtyToShip) {
+            $item = $itemsById->get((int) $itemId);
+            if (!$item) {
+                continue;
+            }
+            $gciPart = GciPart::find((int) $item->gci_part_id);
+            $defaultLoc = $gciPart?->default_location;
+            if (!$defaultLoc) {
+                $stockErrors[] = ($gciPart->part_no ?? "ID:{$item->gci_part_id}") . " — default_location belum diset.";
+                continue;
+            }
+            $available = LocationInventory::getStockByLocation(0, strtoupper(trim($defaultLoc)), null, (int) $item->gci_part_id);
+            if ($available + 1e-9 < $qtyToShip) {
+                $stockErrors[] = ($gciPart->part_no ?? "ID:{$item->gci_part_id}") . " di {$defaultLoc} — need {$qtyToShip}, available {$available}";
+            }
+        }
+        if (!empty($stockErrors)) {
+            return back()->with('error', 'Stok tidak cukup untuk shipment: ' . implode('; ', $stockErrors));
+        }
+
         $dn = null;
 
         DB::transaction(function () use ($deliveryOrder, $qtyByItemId, $request, &$dn) {

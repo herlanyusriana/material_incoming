@@ -163,8 +163,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
     Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
-    // GCI Inventory (Internal Parts - FG, WIP, RM)
-    Route::get('/inventory/gci', [GciInventoryController::class, 'index'])->name('inventory.gci.index');
+    // GCI Inventory — index merged into /inventory, keep API endpoints
+    Route::get('/inventory/gci', fn() => redirect()->route('inventory.index'))->name('inventory.gci.index');
     Route::get('/inventory/gci/export', [GciInventoryController::class, 'export'])->name('inventory.gci.export');
     Route::post('/inventory/gci/update-location', [GciInventoryController::class, 'updateLocation'])->name('inventory.gci.update-location');
 

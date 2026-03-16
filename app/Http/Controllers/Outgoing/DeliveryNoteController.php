@@ -107,6 +107,23 @@ class DeliveryNoteController extends Controller
             'production_order_ids.*' => ['integer', 'exists:production_orders,id'],
         ]);
 
+        // Soft validation: warn if FG stock insufficient (still allow creation)
+        $stockWarnings = [];
+        $qtyByPart = [];
+        foreach ($validated['items'] as $item) {
+            $partId = (int) $item['gci_part_id'];
+            $qtyByPart[$partId] = ($qtyByPart[$partId] ?? 0) + (float) $item['qty'];
+        }
+        foreach ($qtyByPart as $gciPartId => $requiredQty) {
+            $totalStock = (float) LocationInventory::where('gci_part_id', $gciPartId)
+                ->where('qty_on_hand', '>', 0)
+                ->sum('qty_on_hand');
+            if ($totalStock + 1e-9 < $requiredQty) {
+                $part = GciPart::find($gciPartId);
+                $stockWarnings[] = ($part->part_no ?? "ID:{$gciPartId}") . " — need {$requiredQty}, available {$totalStock}";
+            }
+        }
+
         DB::transaction(function () use ($validated) {
             $doIds = collect($validated['items'])->pluck('delivery_order_id')->filter()->unique();
 
@@ -159,7 +176,13 @@ class DeliveryNoteController extends Controller
             }
         });
 
-        return redirect()->route('outgoing.delivery-notes.index')->with('success', 'Delivery Note created.');
+        $msg = 'Delivery Note created.';
+        if (!empty($stockWarnings)) {
+            $msg .= ' ⚠ Stok FG kurang: ' . implode('; ', $stockWarnings);
+            return redirect()->route('outgoing.delivery-notes.index')->with('warning', $msg);
+        }
+
+        return redirect()->route('outgoing.delivery-notes.index')->with('success', $msg);
     }
 
     public function show(DeliveryNote $deliveryNote)
@@ -391,6 +414,28 @@ class DeliveryNoteController extends Controller
         }
 
         $deliveryNote->loadMissing(['items.part']);
+
+        // Hard validation: block shipment if stock insufficient
+        $errors = [];
+        foreach ($deliveryNote->items as $item) {
+            $loc = strtoupper(trim((string) ($item->kitting_location_code ?? '')));
+            if ($loc === '') {
+                $partNo = $item->part?->part_no ?? "ID:{$item->gci_part_id}";
+                $errors[] = "{$partNo} — kitting location belum diset.";
+                continue;
+            }
+            if (!$item->gci_part_id) {
+                continue;
+            }
+            $available = LocationInventory::getStockByLocation(0, $loc, null, $item->gci_part_id);
+            if ($available + 1e-9 < (float) $item->qty) {
+                $partNo = $item->part?->part_no ?? "ID:{$item->gci_part_id}";
+                $errors[] = "{$partNo} di {$loc} — need {$item->qty}, available {$available}";
+            }
+        }
+        if (!empty($errors)) {
+            return back()->with('error', 'Stok tidak cukup untuk shipment: ' . implode('; ', $errors));
+        }
 
         DB::transaction(function () use ($deliveryNote) {
             $deliveryNote->update(['status' => self::STATUS_SHIPPED]);
