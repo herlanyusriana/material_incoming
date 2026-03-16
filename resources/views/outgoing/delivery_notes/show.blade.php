@@ -47,7 +47,7 @@
                         };
                     @endphp
                     <span class="px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider {{ $statusClasses }}">
-                        {{ $deliveryNote->status }}
+                        {{ str_replace('_', ' ', $deliveryNote->status) }}
                     </span>
 
                     @if ($deliveryNote->status === 'draft')
@@ -88,17 +88,77 @@
                             </button>
                         </form>
                     @elseif ($deliveryNote->status === 'ready_to_ship')
-                        <form action="{{ route('outgoing.delivery-notes.ship', $deliveryNote) }}" method="POST"
-                            onsubmit="return confirm('SHIP this delivery note? Inventory will be deducted.')">
-                            @csrf
-                            <button type="submit"
-                                class="px-6 py-2 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all active:scale-95">
-                                SHIP NOW
-                            </button>
-                        </form>
+                        <button type="button" onclick="document.getElementById('ship-panel').classList.toggle('hidden')"
+                            class="px-6 py-2 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all active:scale-95">
+                            SHIP NOW
+                        </button>
                     @endif
                 </div>
             </div>
+
+            {{-- Ship assignment panel --}}
+            @if ($deliveryNote->status === 'ready_to_ship')
+                <div id="ship-panel" class="hidden bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 mb-2">
+                    <h3 class="font-black text-emerald-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        Assign Driver & Truck
+                    </h3>
+                    <form action="{{ route('outgoing.delivery-notes.ship', $deliveryNote) }}" method="POST"
+                        onsubmit="return confirm('SHIP this delivery note? Inventory will be deducted.')">
+                        @csrf
+                        <div class="flex flex-wrap items-end gap-4">
+                            <div>
+                                <label class="block text-xs font-black text-emerald-800 mb-1">Driver</label>
+                                <select name="driver_id" required
+                                    class="rounded-xl border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm font-semibold w-48">
+                                    <option value="">Pilih driver...</option>
+                                    @foreach ($drivers as $driver)
+                                        <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-black text-emerald-800 mb-1">Truck</label>
+                                <select name="truck_id" required
+                                    class="rounded-xl border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm font-semibold w-48">
+                                    <option value="">Pilih truck...</option>
+                                    @foreach ($trucks as $truck)
+                                        <option value="{{ $truck->id }}">{{ $truck->plate_no }} ({{ $truck->type }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit"
+                                class="px-6 py-2 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 shadow-lg transition-all active:scale-95">
+                                CONFIRM SHIP
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            @endif
+
+            {{-- Shipped info --}}
+            @if ($deliveryNote->status === 'shipped' && ($deliveryNote->driver || $deliveryNote->truck))
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-2 flex flex-wrap gap-6 text-sm">
+                    @if ($deliveryNote->driver)
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Driver</span>
+                            <p class="font-bold text-slate-900">{{ $deliveryNote->driver->name }}</p>
+                        </div>
+                    @endif
+                    @if ($deliveryNote->truck)
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Truck</span>
+                            <p class="font-bold text-slate-900">{{ $deliveryNote->truck->plate_no }} ({{ $deliveryNote->truck->type }})</p>
+                        </div>
+                    @endif
+                    @if ($deliveryNote->shipped_at)
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Shipped At</span>
+                            <p class="font-bold text-slate-900">{{ $deliveryNote->shipped_at->format('d M Y H:i') }}</p>
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">

@@ -25,12 +25,16 @@ class DeliveryNote extends Model
         'delivery_plan_id',
         'delivery_stop_id',
         'delivery_order_id',
+        'driver_id',
+        'truck_id',
+        'shipped_at',
     ];
 
     protected $casts = [
         'delivery_date' => 'date',
         'delivered_at' => 'datetime',
         'assigned_at' => 'datetime',
+        'shipped_at' => 'datetime',
     ];
 
     public function getDeliveryNoteFileUrlAttribute(): ?string
@@ -97,7 +101,15 @@ class DeliveryNote extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class);
+    }
 
+    public function truck()
+    {
+        return $this->belongsTo(Truck::class);
+    }
 
     public function items()
     {

@@ -187,7 +187,7 @@ class DeliveryNoteController extends Controller
 
     public function show(DeliveryNote $deliveryNote)
     {
-        $deliveryNote->load(['customer', 'items.part', 'items.customerPo', 'items.picker']);
+        $deliveryNote->load(['customer', 'items.part', 'items.customerPo', 'items.picker', 'driver', 'truck']);
 
         $kittingLocationsByItem = [];
         if (Schema::hasTable('warehouse_locations') && Schema::hasTable('location_inventory')) {
@@ -227,7 +227,10 @@ class DeliveryNoteController extends Controller
             }
         }
 
-        return view('outgoing.delivery_notes.show', compact('deliveryNote', 'kittingLocationsByItem'));
+        $drivers = Driver::where('status', 'available')->orderBy('name')->get();
+        $trucks = Truck::where('status', 'available')->orderBy('plate_no')->get();
+
+        return view('outgoing.delivery_notes.show', compact('deliveryNote', 'kittingLocationsByItem', 'drivers', 'trucks'));
     }
 
     public function pickingScan(DeliveryNote $deliveryNote)
@@ -403,7 +406,7 @@ class DeliveryNoteController extends Controller
         return back()->with('success', 'Kitting process completed. Ready to pick.');
     }
 
-    public function ship(DeliveryNote $deliveryNote)
+    public function ship(Request $request, DeliveryNote $deliveryNote)
     {
         if ($deliveryNote->status === self::STATUS_SHIPPED) {
             return back()->with('error', 'Delivery Note already shipped.');
@@ -412,6 +415,14 @@ class DeliveryNoteController extends Controller
         if ($deliveryNote->status !== self::STATUS_READY_TO_SHIP) {
             return back()->with('error', 'Delivery Note must be ready to ship before shipping.');
         }
+
+        $request->validate([
+            'driver_id' => 'required|exists:drivers,id',
+            'truck_id' => 'required|exists:trucks,id',
+        ], [
+            'driver_id.required' => 'Pilih driver terlebih dahulu.',
+            'truck_id.required' => 'Pilih truck terlebih dahulu.',
+        ]);
 
         $deliveryNote->loadMissing(['items.part']);
 
@@ -437,8 +448,13 @@ class DeliveryNoteController extends Controller
             return back()->with('error', 'Stok tidak cukup untuk shipment: ' . implode('; ', $errors));
         }
 
-        DB::transaction(function () use ($deliveryNote) {
-            $deliveryNote->update(['status' => self::STATUS_SHIPPED]);
+        DB::transaction(function () use ($deliveryNote, $request) {
+            $deliveryNote->update([
+                'status' => self::STATUS_SHIPPED,
+                'driver_id' => $request->driver_id,
+                'truck_id' => $request->truck_id,
+                'shipped_at' => now(),
+            ]);
 
             foreach ($deliveryNote->items as $item) {
                 // Deduct dari LocationInventory (source of truth) → auto-sync ke gci_inventories
