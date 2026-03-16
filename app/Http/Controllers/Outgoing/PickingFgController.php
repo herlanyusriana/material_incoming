@@ -341,18 +341,36 @@ class PickingFgController extends Controller
             ]);
 
             // DECREMENT WAREHOUSE STOCK
+            // Use consumeStock (FIFO) for decrement, updateStock for increment (qty correction)
             $delta = (float) $qtyPicked - (float) $qtyBefore;
             if ($delta != 0 && $request->pick_location) {
-                \App\Models\LocationInventory::updateStock(
-                    null,
-                    strtoupper(trim($request->pick_location)),
-                    -$delta,
-                    null,
-                    null,
-                    $pick->gci_part_id,
-                    'PICKING',
-                    'DO#' . ($pick->deliveryOrder?->do_no ?? 'N/A')
-                );
+                $locationCode = strtoupper(trim($request->pick_location));
+                $ref = 'DO#' . ($pick->deliveryOrder?->do_no ?? 'N/A');
+
+                if ($delta > 0) {
+                    // Picking more → consume stock (FIFO across batches)
+                    \App\Models\LocationInventory::consumeStock(
+                        null,
+                        $locationCode,
+                        $delta,
+                        null,
+                        $pick->gci_part_id,
+                        'PICKING',
+                        $ref
+                    );
+                } else {
+                    // Reducing picked qty → return stock back (use updateStock with null batch)
+                    \App\Models\LocationInventory::updateStock(
+                        null,
+                        $locationCode,
+                        -$delta, // positive value to add back
+                        null,
+                        null,
+                        $pick->gci_part_id,
+                        'PICKING_REVERSAL',
+                        $ref
+                    );
+                }
             }
 
             if ($pick->delivery_order_id) {

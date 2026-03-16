@@ -501,11 +501,13 @@
                     setTimeout(() => { input.style.background = ''; }, 800);
                 } else {
                     input.style.background = '#fee2e2';
+                    alert('Save failed: ' + (data.message || 'Unknown error'));
                     setTimeout(() => { input.style.background = ''; }, 1500);
                 }
             } catch (e) {
                 console.error('Save failed:', e);
                 input.style.background = '#fee2e2';
+                alert('Connection error: ' + e.message);
                 setTimeout(() => { input.style.background = ''; }, 1500);
             }
         }

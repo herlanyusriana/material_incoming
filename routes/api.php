@@ -40,6 +40,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/status', [\App\Http\Controllers\Api\PickingFgApiController::class, 'status']);
         Route::get('/lookup', [\App\Http\Controllers\Api\PickingFgApiController::class, 'lookupPart']);
         Route::post('/pick', [\App\Http\Controllers\Api\PickingFgApiController::class, 'updatePick']);
+
+        // DO-based picking flow (scan-friendly)
+        Route::get('/delivery-orders', [\App\Http\Controllers\Api\PickingFgApiController::class, 'deliveryOrders']);
+        Route::get('/delivery-orders/{id}', [\App\Http\Controllers\Api\PickingFgApiController::class, 'deliveryOrderDetail']);
+        Route::post('/scan-location', [\App\Http\Controllers\Api\PickingFgApiController::class, 'scanLocation']);
+        Route::post('/scan-part', [\App\Http\Controllers\Api\PickingFgApiController::class, 'scanPart']);
     });
 
     // Warehouse Scanning & Putaway
