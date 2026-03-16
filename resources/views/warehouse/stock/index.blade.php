@@ -23,6 +23,9 @@
                         <div class="text-sm text-slate-500">Source: <span class="font-mono">location_inventory</span></div>
                     </div>
                     <div class="flex items-center gap-2">
+                        <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 text-sm">
+                            Import Stock
+                        </button>
                         <a href="{{ route('warehouse.stock.reconcile') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
                             Reconcile
                         </a>
@@ -150,6 +153,33 @@
                     </div>
                 @endif
             </div>
+        </div>
+    </div>
+    {{-- Import Modal --}}
+    <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-slate-900">Import Location Stock</h3>
+                <button onclick="document.getElementById('importModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+            </div>
+            <form action="{{ route('warehouse.stock.import') }}" method="POST" enctype="multipart/form-data" class="px-6 py-4 space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Excel File (.xlsx / .csv)</label>
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
+                </div>
+                <div class="bg-slate-50 rounded-lg p-3 text-xs text-slate-600 space-y-1">
+                    <p class="font-semibold text-slate-700">Format kolom:</p>
+                    <p><span class="font-mono font-bold">part_no</span> — Part number (GCI Parts)</p>
+                    <p><span class="font-mono font-bold">location_code</span> — Kode lokasi warehouse (atau <span class="font-mono">location</span>)</p>
+                    <p><span class="font-mono font-bold">qty</span> — Jumlah (ditambahkan ke stock existing)</p>
+                    <p><span class="font-mono font-bold">batch_no</span> — Batch/tag (opsional)</p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">Import</button>
+                </div>
+            </form>
         </div>
     </div>
 </x-app-layout>

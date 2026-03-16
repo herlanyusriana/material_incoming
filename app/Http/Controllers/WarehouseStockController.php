@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Inventory;
 use App\Models\LocationInventory;
+use App\Imports\LocationInventoryImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class WarehouseStockController extends Controller
 {
@@ -109,6 +111,18 @@ class WarehouseStockController extends Controller
         $rows = $query->paginate($perPage)->withQueryString();
 
         return view('warehouse.stock.reconcile', compact('rows', 'search', 'onlyDiff', 'perPage'));
+    }
+
+    public function importLocationStock(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        $import = new LocationInventoryImport();
+        Excel::import($import, $request->file('file'));
+
+        return back()->with('success', "Import selesai: {$import->imported} rows imported, {$import->skipped} skipped.");
     }
 }
 

@@ -206,6 +206,7 @@ Route::middleware('auth')->group(function () {
         // Warehouse stock (by location)
         Route::get('/stock', [\App\Http\Controllers\WarehouseStockController::class, 'index'])->name('stock.index');
         Route::get('/stock/reconcile', [\App\Http\Controllers\WarehouseStockController::class, 'reconcile'])->name('stock.reconcile');
+        Route::post('/stock/import', [\App\Http\Controllers\WarehouseStockController::class, 'importLocationStock'])->name('stock.import');
 
         // Warehouse stock adjustments
         Route::get('/stock-adjustments', [\App\Http\Controllers\WarehouseStockAdjustmentController::class, 'index'])->name('stock-adjustments.index');

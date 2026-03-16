@@ -383,7 +383,7 @@ class ReceiveController extends Controller
         // -------------------------------
 
         DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $gciPartId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
-            $locationAdds = [];
+            $locationAdds = []; // key: "locationCode|tag"
             foreach ($validated['tags'] as $tagData) {
                 if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
                     throw new HttpResponseException(back()->withInput()->withErrors([
@@ -404,8 +404,10 @@ class ReceiveController extends Controller
                     }
                 }
 
+                $tag = $this->normalizeTag($tagData['tag'] ?? null);
+
                 $arrivalItem->receives()->create([
-                    'tag' => $tagData['tag'],
+                    'tag' => $tag,
                     'qty' => $tagData['qty'],
                     'bundle_unit' => $tagData['bundle_unit'] ?? null,
                     'bundle_qty' => $tagData['bundle_qty'] ?? 0,
@@ -425,7 +427,9 @@ class ReceiveController extends Controller
                     $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
                     $receiveQtyForInventory += $addQty;
                     if ($locationCode) {
-                        $locationAdds[$locationCode] = ($locationAdds[$locationCode] ?? 0) + $addQty;
+                        $key = $locationCode . '|' . ($tag ?? '');
+                        $locationAdds[$key] = ($locationAdds[$key] ?? ['location' => $locationCode, 'tag' => $tag, 'qty' => 0]);
+                        $locationAdds[$key]['qty'] += $addQty;
                     }
                 }
             }
@@ -448,11 +452,11 @@ class ReceiveController extends Controller
                 }
             }
 
-            // Putaway: update stock per location (pass only).
+            // Putaway: update stock per location+tag (pass only).
             if (!empty($locationAdds) && $partId) {
-                foreach ($locationAdds as $locationCode => $qty) {
-                    if ($qty > 0 && is_string($locationCode) && $locationCode !== '') {
-                        LocationInventory::updateStock($partId, $locationCode, (float) $qty, null, null, $gciPartId);
+                foreach ($locationAdds as $entry) {
+                    if ($entry['qty'] > 0) {
+                        LocationInventory::updateStock($partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId);
                     }
                 }
             }
@@ -676,7 +680,10 @@ class ReceiveController extends Controller
                         $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
                         $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + $addQty;
                         if ($locationCode) {
-                            $locationAdds[$partId][$locationCode] = ($locationAdds[$partId][$locationCode] ?? 0) + $addQty;
+                            $tag = $this->normalizeTag($tagData['tag'] ?? null);
+                            $key = $locationCode . '|' . ($tag ?? '');
+                            $locationAdds[$partId][$key] = ($locationAdds[$partId][$key] ?? ['location' => $locationCode, 'tag' => $tag, 'qty' => 0]);
+                            $locationAdds[$partId][$key]['qty'] += $addQty;
                         }
                     }
                 }
@@ -703,15 +710,15 @@ class ReceiveController extends Controller
                 }
             }
 
-            // Putaway: update stock per location (pass only).
+            // Putaway: update stock per location+tag (pass only).
             foreach ($locationAdds as $partId => $byLocation) {
                 if (!$partId || empty($byLocation) || !is_array($byLocation)) {
                     continue;
                 }
                 $gciPartId = GciPartVendor::query()->whereKey((int) $partId)->value('gci_part_id');
-                foreach ($byLocation as $locationCode => $qty) {
-                    if ($qty > 0 && is_string($locationCode) && $locationCode !== '') {
-                        LocationInventory::updateStock((int) $partId, $locationCode, (float) $qty, null, null, $gciPartId);
+                foreach ($byLocation as $entry) {
+                    if ($entry['qty'] > 0) {
+                        LocationInventory::updateStock((int) $partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId);
                     }
                 }
             }

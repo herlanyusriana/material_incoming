@@ -170,19 +170,22 @@ class WarehouseScanningController extends Controller
 
             // 2. Adjust LocationInventory
             $partId = $receive->arrivalItem->part_id;
+            $gciPartId = $receive->arrivalItem->gci_part_id
+                ?: \App\Models\GciPartVendor::query()->whereKey((int) $partId)->value('gci_part_id');
             $qty = (float) $receive->qty;
+            $batchNo = $tagNo; // Use tag as batch identifier
 
             // If it was already at another warehouse location, subtract from there
             if ($oldLocation) {
                 try {
-                    LocationInventory::updateStock($partId, $oldLocation, -$qty);
+                    LocationInventory::updateStock($partId, $oldLocation, -$qty, $batchNo, null, $gciPartId);
                 } catch (\Exception $e) {
                     Log::warning("Could not subtract stock from old location {$oldLocation} for tag {$tagNo}: " . $e->getMessage());
                 }
             }
 
             // Add to new location
-            LocationInventory::updateStock($partId, $locationCode, $qty);
+            LocationInventory::updateStock($partId, $locationCode, $qty, $batchNo, null, $gciPartId);
 
             DB::commit();
 
