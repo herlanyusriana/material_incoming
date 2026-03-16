@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Exports\GciInventoryExport;
 use App\Models\GciInventory;
 use App\Models\GciPart;
+use App\Models\FgInventory;
+use App\Models\LocationInventory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class GciInventoryController extends Controller
@@ -66,14 +69,56 @@ class GciInventoryController extends Controller
         ]);
 
         $part = GciPart::findOrFail($request->gci_part_id);
-        $part->update([
-            'default_location' => $request->default_location ? strtoupper(trim($request->default_location)) : null,
-        ]);
+        $newLocation = $request->default_location ? strtoupper(trim($request->default_location)) : null;
+        $oldLocation = $part->default_location;
+
+        $part->update(['default_location' => $newLocation]);
+
+        // Sync existing FG stock to LocationInventory when location is set
+        $synced = 0;
+        if ($newLocation) {
+            $synced = $this->syncFgStockToLocation($part->id, $newLocation, $oldLocation);
+        }
 
         return response()->json([
             'success' => true,
             'default_location' => $part->default_location,
+            'synced_qty' => $synced,
         ]);
+    }
+
+    /**
+     * Sync FG stock that exists in fg_inventory but not in location_inventory
+     * into the specified location.
+     */
+    private function syncFgStockToLocation(int $gciPartId, string $locationCode, ?string $oldLocation): float
+    {
+        $fgInv = FgInventory::where('gci_part_id', $gciPartId)->first();
+        if (!$fgInv || $fgInv->qty_on_hand <= 0) {
+            return 0;
+        }
+
+        $fgQty = (float) $fgInv->qty_on_hand;
+
+        // Sum current LocationInventory for this part (all locations)
+        $locTotal = (float) LocationInventory::where('gci_part_id', $gciPartId)->sum('qty_on_hand');
+
+        // Only sync the gap (FG stock not yet in any location)
+        $gap = $fgQty - $locTotal;
+        if ($gap <= 0) {
+            return 0;
+        }
+
+        LocationInventory::updateStock(
+            null,
+            $locationCode,
+            $gap,
+            null,
+            null,
+            $gciPartId
+        );
+
+        return $gap;
     }
 }
 

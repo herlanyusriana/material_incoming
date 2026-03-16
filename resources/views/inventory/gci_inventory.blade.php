@@ -170,6 +170,9 @@
                     if (data.default_location) {
                         input.value = data.default_location;
                     }
+                    if (data.synced_qty > 0) {
+                        alert('Location saved. ' + data.synced_qty + ' qty synced to Stock by Location.');
+                    }
                     setTimeout(() => { input.style.background = ''; }, 800);
                 } else {
                     input.style.background = '#fee2e2';
