@@ -329,7 +329,7 @@ class PickingFgApiController extends Controller
             'location_code' => 'required|string|max:100',
         ]);
 
-        $locationCode = strtoupper(trim($request->location_code));
+        $locationCode = $this->parseLocationCode($request->location_code);
 
         // Validate location exists
         $location = WarehouseLocation::where('location_code', $locationCode)->first();
@@ -406,7 +406,7 @@ class PickingFgApiController extends Controller
             'part_code' => 'required|string|max:255',
         ]);
 
-        $locationCode = strtoupper(trim($request->location_code));
+        $locationCode = $this->parseLocationCode($request->location_code);
         $partCode = strtoupper(trim($request->part_code));
 
         // Find part by barcode or part_no
@@ -511,7 +511,7 @@ class PickingFgApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
 
-        $locationCode = strtoupper(trim($request->location));
+        $locationCode = $this->parseLocationCode($request->location);
 
         // Validate stock exists at this location
         $stockCheck = LocationInventory::where('gci_part_id', $part->id)
@@ -627,5 +627,20 @@ class PickingFgApiController extends Controller
         });
 
         return $result;
+    }
+
+    /**
+     * Parse location code from raw input (may be JSON QR payload or plain text).
+     */
+    private function parseLocationCode(?string $raw): string
+    {
+        $raw = trim((string) $raw);
+        if (str_starts_with($raw, '{')) {
+            $json = json_decode($raw, true);
+            if (is_array($json) && isset($json['location_code'])) {
+                return strtoupper(trim($json['location_code']));
+            }
+        }
+        return strtoupper($raw);
     }
 }
