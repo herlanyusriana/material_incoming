@@ -82,22 +82,33 @@ class SubconController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        // Auto-generate order number
-        $today = now()->format('Ymd');
-        $lastOrder = SubconOrder::where('order_no', 'like', "SC-{$today}-%")
-            ->orderByDesc('order_no')
-            ->first();
-        $seq = $lastOrder
-            ? ((int) substr($lastOrder->order_no, -3)) + 1
-            : 1;
-        $validated['order_no'] = sprintf('SC-%s-%03d', $today, $seq);
-        $validated['status'] = 'sent';
-        $validated['created_by'] = Auth::id();
+        try {
+            return DB::transaction(function () use ($validated) {
+                // Auto-generate order number with lock to prevent race condition
+                $today = now()->format('Ymd');
+                $lastOrder = SubconOrder::where('order_no', 'like', "SC-{$today}-%")
+                    ->lockForUpdate()
+                    ->orderByDesc('order_no')
+                    ->first();
+                $seq = $lastOrder
+                    ? ((int) substr($lastOrder->order_no, -3)) + 1
+                    : 1;
+                $validated['order_no'] = sprintf('SC-%s-%03d', $today, $seq);
+                $validated['status'] = 'sent';
+                $validated['created_by'] = Auth::id();
 
-        SubconOrder::create($validated);
+                SubconOrder::create($validated);
 
-        return redirect()->route('subcon.index')
-            ->with('success', "Subcon Order {$validated['order_no']} created.");
+                return redirect()->route('subcon.index')
+                    ->with('success', "Subcon Order {$validated['order_no']} created.");
+            });
+        } catch (\Throwable $e) {
+            \Log::error('Subcon Order create failed', [
+                'error' => $e->getMessage(),
+                'input' => $request->except('_token'),
+            ]);
+            return back()->withInput()->with('error', 'Gagal membuat order: ' . $e->getMessage());
+        }
     }
 
     public function show(SubconOrder $subconOrder)

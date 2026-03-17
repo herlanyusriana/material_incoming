@@ -9,6 +9,7 @@ use App\Models\GciPart;
 use App\Models\OspOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class OspController extends Controller
 {
@@ -74,21 +75,32 @@ class OspController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $today = now()->format('Ymd');
-        $lastOrder = OspOrder::where('order_no', 'like', "OSP-{$today}-%")
-            ->orderByDesc('order_no')
-            ->first();
-        $seq = $lastOrder
-            ? ((int) substr($lastOrder->order_no, -3)) + 1
-            : 1;
-        $validated['order_no'] = sprintf('OSP-%s-%03d', $today, $seq);
-        $validated['status'] = 'received';
-        $validated['created_by'] = Auth::id();
+        try {
+            return DB::transaction(function () use ($validated) {
+                $today = now()->format('Ymd');
+                $lastOrder = OspOrder::where('order_no', 'like', "OSP-{$today}-%")
+                    ->lockForUpdate()
+                    ->orderByDesc('order_no')
+                    ->first();
+                $seq = $lastOrder
+                    ? ((int) substr($lastOrder->order_no, -3)) + 1
+                    : 1;
+                $validated['order_no'] = sprintf('OSP-%s-%03d', $today, $seq);
+                $validated['status'] = 'received';
+                $validated['created_by'] = Auth::id();
 
-        OspOrder::create($validated);
+                OspOrder::create($validated);
 
-        return redirect()->route('outgoing.osp.index')
-            ->with('success', "OSP Order {$validated['order_no']} created.");
+                return redirect()->route('outgoing.osp.index')
+                    ->with('success', "OSP Order {$validated['order_no']} created.");
+            });
+        } catch (\Throwable $e) {
+            \Log::error('OSP Order create failed', [
+                'error' => $e->getMessage(),
+                'input' => $request->except('_token'),
+            ]);
+            return back()->withInput()->with('error', 'Gagal membuat order: ' . $e->getMessage());
+        }
     }
 
     public function show(OspOrder $ospOrder)

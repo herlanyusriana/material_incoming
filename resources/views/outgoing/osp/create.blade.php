@@ -16,6 +16,12 @@
             <form action="{{ route('outgoing.osp.store') }}" method="POST" class="space-y-6 max-w-2xl">
                 @csrf
 
+                @if (session('error'))
+                    <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 font-semibold">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
                 @if ($errors->any())
                     <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
                         <ul class="list-disc pl-4">
