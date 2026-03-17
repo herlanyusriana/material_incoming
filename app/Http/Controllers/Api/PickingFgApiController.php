@@ -637,8 +637,11 @@ class PickingFgApiController extends Controller
         $raw = trim((string) $raw);
         if (str_starts_with($raw, '{')) {
             $json = json_decode($raw, true);
-            if (is_array($json) && isset($json['location_code'])) {
-                return strtoupper(trim($json['location_code']));
+            if (is_array($json)) {
+                $code = $json['location_code'] ?? $json['LOCATION'] ?? $json['location'] ?? $json['code'] ?? null;
+                if ($code) {
+                    return strtoupper(trim($code));
+                }
             }
         }
         return strtoupper($raw);
