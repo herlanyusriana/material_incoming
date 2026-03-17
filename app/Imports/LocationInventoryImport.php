@@ -16,7 +16,7 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
 
     public function prepareForValidation(array $data, int $index): array
     {
-        foreach (['part_no', 'location', 'location_code'] as $key) {
+        foreach (['part_no', 'location', 'location_code', 'stock_locations'] as $key) {
             if (array_key_exists($key, $data)) {
                 $raw = trim((string) ($data[$key] ?? ''));
                 $data[$key] = $raw === '' ? null : strtoupper($raw);
@@ -36,8 +36,8 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
     public function model(array $row)
     {
         $partNo = $row['part_no'] ?? null;
-        $locationCode = $row['location_code'] ?? $row['location'] ?? null;
-        $targetQty = (float) ($row['qty'] ?? $row['qty_on_hand'] ?? 0);
+        $locationCode = $row['location_code'] ?? $row['location'] ?? $row['stock_locations'] ?? null;
+        $targetQty = (float) ($row['qty'] ?? $row['qty_on_hand'] ?? $row['on_hand'] ?? 0);
 
         if (!$partNo || !$locationCode) {
             $this->skipped++;
@@ -100,6 +100,8 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
             'location' => ['nullable', 'string', 'max:50'],
             'qty' => ['nullable', 'numeric', 'min:0'],
             'qty_on_hand' => ['nullable', 'numeric', 'min:0'],
+            'on_hand' => ['nullable', 'numeric', 'min:0'],
+            'stock_locations' => ['nullable', 'string', 'max:50'],
             'batch_no' => ['nullable', 'string', 'max:255'],
             'batch' => ['nullable', 'string', 'max:255'],
         ];
