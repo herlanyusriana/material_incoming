@@ -184,7 +184,12 @@ class InventoryController extends Controller
         $import = new LocationInventoryImport();
         Excel::import($import, $validated['file']);
 
-        return back()->with('success', "Import selesai: {$import->imported} rows imported, {$import->skipped} skipped.");
+        $msg = "Import selesai: {$import->imported} rows updated, {$import->skipped} skipped.";
+        if ($import->created > 0) {
+            $msg .= " {$import->created} new parts created.";
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function searchReceives(Request $request)

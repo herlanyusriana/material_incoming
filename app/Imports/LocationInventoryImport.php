@@ -12,6 +12,7 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
 {
     public int $imported = 0;
     public int $skipped = 0;
+    public int $created = 0;
 
     public function prepareForValidation(array $data, int $index): array
     {
@@ -36,22 +37,56 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
     {
         $partNo = $row['part_no'] ?? null;
         $locationCode = $row['location_code'] ?? $row['location'] ?? null;
-        $qty = (float) ($row['qty'] ?? $row['qty_on_hand'] ?? 0);
+        $targetQty = (float) ($row['qty'] ?? $row['qty_on_hand'] ?? 0);
 
-        if (!$partNo || !$locationCode || $qty <= 0) {
+        if (!$partNo || !$locationCode) {
             $this->skipped++;
             return null;
         }
 
-        $part = GciPart::where('part_no', $partNo)->first();
-        if (!$part) {
+        if ($targetQty < 0) {
             $this->skipped++;
             return null;
+        }
+
+        // Find or create GciPart
+        $part = GciPart::where('part_no', $partNo)->first();
+        if (!$part) {
+            $partName = $row['part_name'] ?? null;
+            if (!$partName) {
+                $this->skipped++;
+                return null;
+            }
+
+            $part = GciPart::create([
+                'part_no' => $partNo,
+                'part_name' => $partName,
+                'model' => $row['model'] ?? null,
+                'classification' => $row['classification'] ?? 'fg',
+                'status' => 'active',
+                'default_location' => $row['default_location'] ?? $locationCode,
+            ]);
+            $this->created++;
         }
 
         $batchNo = $row['batch_no'] ?? $row['batch'] ?? null;
 
-        LocationInventory::updateStock(null, $locationCode, $qty, $batchNo, null, $part->id, 'IMPORT', 'Excel import');
+        // Get current stock at this exact location+batch combo
+        $current = LocationInventory::where('gci_part_id', $part->id)
+            ->where('location_code', strtoupper(trim($locationCode)))
+            ->where('batch_no', $batchNo)
+            ->first();
+
+        $currentQty = $current ? (float) $current->qty_on_hand : 0;
+        $delta = $targetQty - $currentQty;
+
+        // Skip if nothing to change
+        if (abs($delta) < 0.0001) {
+            $this->skipped++;
+            return null;
+        }
+
+        LocationInventory::updateStock(null, $locationCode, $delta, $batchNo, null, $part->id, 'IMPORT', 'Excel import');
 
         $this->imported++;
         return null;
