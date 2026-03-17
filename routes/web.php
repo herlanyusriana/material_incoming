@@ -507,6 +507,7 @@ Route::middleware('auth')->group(function () {
         // Operator KPI Dashboard
         Route::get('/operator-kpi', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpi'])->name('operator-kpi.index');
         Route::get('/operator-kpi/data', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpiData'])->name('operator-kpi.data');
+        Route::get('/operator-kpi/pdf', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpiPdf'])->name('operator-kpi.pdf');
 
         // Downtime History (machine breakdowns & troubles)
         Route::get('/downtime-history', [\App\Http\Controllers\Production\QdcHistoryController::class, 'downtimeIndex'])->name('downtime-history.index');

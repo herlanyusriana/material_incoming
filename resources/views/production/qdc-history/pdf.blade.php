@@ -45,7 +45,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>QDC Downtime Report</h1>
+        <h1>{{ $type === 'downtime' ? 'Machine Downtime Report' : 'QDC Activity Report' }}</h1>
         <p>{{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} &mdash; {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}</p>
     </div>
 
@@ -201,7 +201,7 @@
     @endforeach
 
     <div class="footer">
-        Generated on {{ now()->format('d M Y H:i') }} | QDC Downtime Report
+        Generated on {{ now()->format('d M Y H:i') }} | {{ $type === 'downtime' ? 'Machine Downtime Report' : 'QDC Activity Report' }}
     </div>
 </body>
 </html>

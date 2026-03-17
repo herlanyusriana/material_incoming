@@ -1,49 +1,49 @@
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="header">
+        Operator Performance
+    </x-slot>
 
-@section('title', 'Operator Performance — Production')
-
-@section('content')
-    <div class="max-w-full mx-auto">
+    <div class="space-y-6">
         {{-- Header --}}
-        <div class="mb-6">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                        <div
-                            class="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
-                            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                            </svg>
-                        </div>
-                        OPERATOR PERFORMANCE
-                    </h1>
+                    <h1 class="text-2xl md:text-3xl font-black text-slate-900">Operator Performance</h1>
                     <p class="mt-1 text-sm text-slate-500">Performa operator berdasarkan data produksi dari Android App.</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3 py-2">
-                        <label class="text-xs font-semibold text-slate-500">Dari</label>
+                    <div class="flex items-center gap-2 bg-slate-50 rounded-xl border border-slate-200 px-4 py-2.5">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Dari</label>
                         <input type="date" id="dateFrom" value="{{ $from }}"
-                            class="border-0 text-sm p-0 focus:ring-0" />
-                        <label class="text-xs font-semibold text-slate-500 ml-2">Sampai</label>
+                            class="border-0 bg-transparent text-sm p-0 focus:ring-0 font-semibold" />
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-2">Sampai</label>
                         <input type="date" id="dateTo" value="{{ $to }}"
-                            class="border-0 text-sm p-0 focus:ring-0" />
+                            class="border-0 bg-transparent text-sm p-0 focus:ring-0 font-semibold" />
                         <button onclick="fetchKpiData()"
-                            class="ml-2 px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition">
+                            class="ml-3 px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition">
                             Tampilkan
                         </button>
                     </div>
+                    <button onclick="downloadPdf()"
+                        class="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        PDF
+                    </button>
                 </div>
             </div>
         </div>
 
         {{-- Summary Cards --}}
-        <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 animate-pulse">
-                <div class="h-4 bg-slate-100 rounded w-20 mb-2"></div>
+        <div id="summaryCards" class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            @for($i = 0; $i < 5; $i++)
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 animate-pulse">
+                <div class="h-3 bg-slate-100 rounded w-20 mb-3"></div>
                 <div class="h-8 bg-slate-100 rounded w-16"></div>
             </div>
+            @endfor
         </div>
 
         {{-- Operator Table --}}
@@ -55,18 +55,18 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse" id="kpiTable">
                     <thead>
-                        <tr class="bg-slate-50/50 border-b border-slate-200">
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider w-12">#</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Operator</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">Hari</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">WO</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Output</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Target</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">Efisiensi</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">NG Rate</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">Downtime</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">QDC</th>
-                            <th class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-center">Score</th>
+                        <tr class="bg-slate-50 border-b-2 border-slate-900">
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider w-12">#</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider">Operator</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-center">Hari</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-center">WO</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-right">Output</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-right">Target</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-center">Efisiensi</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-center">NG Rate</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-center">Downtime</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-center">QDC</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-900 uppercase tracking-wider text-center">Score</th>
                         </tr>
                     </thead>
                     <tbody id="kpiBody" class="divide-y divide-slate-100">
@@ -84,13 +84,13 @@
             </div>
         </div>
 
-        {{-- Downtime Breakdown (expandable per operator) --}}
-        <div id="detailPanel" class="mt-6 hidden">
+        {{-- Detail Panel --}}
+        <div id="detailPanel" class="hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
                     <h2 class="text-sm font-bold text-slate-700" id="detailTitle">Detail Operator</h2>
                     <button onclick="document.getElementById('detailPanel').classList.add('hidden')"
-                        class="text-xs text-slate-400 hover:text-slate-600">✕ Tutup</button>
+                        class="text-xs text-slate-400 hover:text-slate-600 font-bold">Tutup</button>
                 </div>
                 <div class="p-6" id="detailContent"></div>
             </div>
@@ -115,23 +115,28 @@
                 });
         }
 
+        function downloadPdf() {
+            const from = document.getElementById('dateFrom').value;
+            const to = document.getElementById('dateTo').value;
+            window.open(`/production/operator-kpi/pdf?from=${from}&to=${to}`, '_blank');
+        }
+
         function renderSummary(s) {
             const container = document.getElementById('summaryCards');
             container.innerHTML = `
-                ${summaryCard('Operator', s.total_operators, 'from-blue-500 to-indigo-600', '👷')}
-                ${summaryCard('Total Output', s.total_output.toLocaleString(), 'from-emerald-500 to-teal-600', '📦')}
-                ${summaryCard('Total NG', s.total_ng.toLocaleString(), 'from-rose-500 to-red-600', '❌')}
-                ${summaryCard('Total DT', s.total_downtime + ' mnt', 'from-amber-500 to-orange-600', '⏱️')}
-                ${summaryCard('Avg Efisiensi', s.avg_efficiency + '%', 'from-violet-500 to-purple-600', '📊')}
+                ${summaryCard('Operator', s.total_operators, 'indigo')}
+                ${summaryCard('Total Output', s.total_output.toLocaleString(), 'emerald')}
+                ${summaryCard('Total NG', s.total_ng.toLocaleString(), 'red')}
+                ${summaryCard('Total Downtime', s.total_downtime + ' mnt', 'amber')}
+                ${summaryCard('Avg Efisiensi', s.avg_efficiency + '%', 'violet')}
             `;
         }
 
-        function summaryCard(label, value, gradient, emoji) {
+        function summaryCard(label, value, color) {
             return `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
-                    <div class="absolute top-2 right-3 text-2xl opacity-20">${emoji}</div>
-                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">${label}</div>
-                    <div class="text-2xl font-black text-slate-900">${value}</div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">${label}</div>
+                    <div class="text-3xl font-black text-${color}-600">${value}</div>
                 </div>
             `;
         }
@@ -145,7 +150,7 @@
             }
 
             body.innerHTML = data.map(op => {
-                const medal = op.rank <= 3 ? ['🥇','🥈','🥉'][op.rank-1] : op.rank;
+                const medal = op.rank <= 3 ? ['<span class="text-2xl">1</span>','<span class="text-xl text-slate-500">2</span>','<span class="text-lg text-amber-700">3</span>'][op.rank-1] : op.rank;
                 const effColor = op.efficiency >= 90 ? 'text-emerald-600 bg-emerald-50' :
                     (op.efficiency >= 70 ? 'text-amber-600 bg-amber-50' : 'text-rose-600 bg-rose-50');
                 const ngColor = op.ng_rate <= 1 ? 'text-emerald-600' :
@@ -159,7 +164,7 @@
 
                 return `
                     <tr class="hover:bg-slate-50/50 transition-colors cursor-pointer" onclick="showDetail(${JSON.stringify(op).replace(/"/g, '&quot;')})">
-                        <td class="px-4 py-3 text-lg font-black text-center">${medal}</td>
+                        <td class="px-4 py-3 text-center font-black">${medal}</td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <div class="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
@@ -214,20 +219,17 @@
             panel.classList.remove('hidden');
             title.textContent = `Detail: ${op.name}`;
 
-            // Build downtime reason breakdown
             const reasons = op.downtime_reasons || {};
             const reasonRows = Object.entries(reasons).sort((a,b) => b[1] - a[1]).map(([reason, minutes]) => {
                 const pct = op.total_downtime_minutes > 0 ? Math.round((minutes / op.total_downtime_minutes) * 100) : 0;
                 return `
-                    <div class="flex items-center gap-3 py-2">
-                        <div class="flex-1">
-                            <div class="flex justify-between mb-1">
-                                <span class="text-sm text-slate-700 font-medium">${reason}</span>
-                                <span class="text-xs text-slate-500 font-bold">${minutes} mnt (${pct}%)</span>
-                            </div>
-                            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-amber-500 rounded-full" style="width: ${pct}%"></div>
-                            </div>
+                    <div class="py-2">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm text-slate-700 font-medium">${reason}</span>
+                            <span class="text-xs text-slate-500 font-bold">${minutes} mnt (${pct}%)</span>
+                        </div>
+                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-amber-500 rounded-full" style="width: ${pct}%"></div>
                         </div>
                     </div>
                 `;
@@ -284,11 +286,9 @@
                 </div>
             `;
 
-            // Scroll to detail
             panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // Initial load
         fetchKpiData();
     </script>
-@endsection
+</x-app-layout>

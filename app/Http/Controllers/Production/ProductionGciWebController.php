@@ -8,6 +8,7 @@ use App\Models\ProductionGciWorkOrder;
 use App\Models\ProductionGciDowntime;
 use App\Models\ProductionGciHourlyReport;
 use App\Models\ProductionOrder;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 
 class ProductionGciWebController extends Controller
@@ -296,5 +297,21 @@ class ProductionGciWebController extends Controller
             'from' => $from,
             'to' => $to,
         ]);
+    }
+
+    public function operatorKpiPdf(Request $request)
+    {
+        $response = $this->operatorKpiData($request);
+        $json = json_decode($response->getContent(), true);
+
+        $data = $json['data'] ?? [];
+        $summary = $json['summary'] ?? [];
+        $from = $json['from'];
+        $to = $json['to'];
+
+        $pdf = Pdf::loadView('production.operator-kpi.pdf', compact('data', 'summary', 'from', 'to'));
+        $pdf->setPaper('a4', 'landscape');
+
+        return $pdf->download("Operator_KPI_{$from}_to_{$to}.pdf");
     }
 }

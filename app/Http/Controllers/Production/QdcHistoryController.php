@@ -189,10 +189,43 @@ class QdcHistoryController extends Controller
         $totalMinutes = $allDowntimes->sum('duration_minutes');
         $totalCount = $allDowntimes->count();
 
+        // Category breakdown for chart
+        $categoryBreakdown = $allDowntimes->groupBy('category')->map(function ($items, $cat) {
+            return [
+                'category' => $cat,
+                'count' => $items->count(),
+                'minutes' => (int) $items->sum('duration_minutes'),
+            ];
+        })->sortByDesc('minutes')->values();
+
+        // Machine breakdown for chart
+        $machineBreakdown = $allDowntimes->groupBy('machine_name')->map(function ($items, $name) {
+            return [
+                'machine' => $name,
+                'count' => $items->count(),
+                'minutes' => (int) $items->sum('duration_minutes'),
+            ];
+        })->sortByDesc('minutes')->values();
+
+        // Daily trend
+        $dailyTrend = $allDowntimes->groupBy(function ($dt) {
+            return $dt->date?->format('Y-m-d') ?? 'unknown';
+        })->map(function ($items, $date) {
+            return [
+                'date' => $date,
+                'count' => $items->count(),
+                'minutes' => (int) $items->sum('duration_minutes'),
+            ];
+        })->sortKeys()->values();
+
+        $totalMachines = $allDowntimes->pluck('machine_name')->unique()->count();
+
         $routePrefix = $type === 'downtime' ? 'production.downtime-history' : 'production.qdc-history';
 
         return view('production.qdc-history.index', compact(
-            'downtimes', 'categories', 'machines', 'type', 'routePrefix', 'totalMinutes', 'totalCount',
+            'downtimes', 'categories', 'machines', 'type', 'routePrefix',
+            'totalMinutes', 'totalCount', 'totalMachines',
+            'categoryBreakdown', 'machineBreakdown', 'dailyTrend',
         ) + $result);
     }
 
