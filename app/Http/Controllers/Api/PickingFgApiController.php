@@ -326,7 +326,7 @@ class PickingFgApiController extends Controller
         $request->validate([
             'delivery_order_id' => 'required|integer|exists:delivery_orders,id',
             'date' => 'required|date',
-            'location_code' => 'required|string|max:50',
+            'location_code' => 'required|string|max:100',
         ]);
 
         $locationCode = strtoupper(trim($request->location_code));
@@ -402,7 +402,7 @@ class PickingFgApiController extends Controller
         $request->validate([
             'delivery_order_id' => 'required|integer|exists:delivery_orders,id',
             'date' => 'required|date',
-            'location_code' => 'required|string|max:50',
+            'location_code' => 'required|string|max:100',
             'part_code' => 'required|string|max:255',
         ]);
 
