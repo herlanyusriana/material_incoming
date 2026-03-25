@@ -69,7 +69,7 @@ class ProductionOrderController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $query = ProductionOrder::query()
-            ->with(['part', 'fgSupplier'])
+            ->with(['part', 'fgSupplier', 'fgHandoverUser'])
             ->where(function ($builder) {
                 $builder->whereNotNull('kanban_updated_at')
                     ->orWhereNotNull('fg_supplied_to_wh_at');
@@ -87,6 +87,8 @@ class ProductionOrderController extends Controller
                 ->whereNull('fg_supplied_to_wh_at');
         } elseif ($supplyStatus === 'supplied') {
             $query->whereNotNull('fg_supplied_to_wh_at');
+        } elseif ($supplyStatus === 'handed_over') {
+            $query->whereNotNull('fg_handed_over_to_wh_at');
         }
 
         if ($q !== '') {
@@ -439,6 +441,31 @@ class ProductionOrderController extends Controller
         ]);
 
         return back()->with('success', 'Serah terima material ke production berhasil dicatat.');
+    }
+
+    public function handoverFinishedGoodsToWarehouse(Request $request, ProductionOrder $order)
+    {
+        $validated = $request->validate([
+            'fg_handover_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if (!$order->fg_supplied_to_wh_at) {
+            return back()->with('error', 'Production supply ke warehouse belum diposting. Lakukan supply FG dulu sebelum serah terima.');
+        }
+
+        if ($order->fg_handed_over_to_wh_at) {
+            return back()->with('error', 'Serah terima FG ke warehouse untuk WO ini sudah tercatat.');
+        }
+
+        $order->update([
+            'fg_handed_over_to_wh_at' => now(),
+            'fg_handed_over_to_wh_by' => Auth::id(),
+            'fg_handover_notes' => isset($validated['fg_handover_notes']) && trim((string) $validated['fg_handover_notes']) !== ''
+                ? trim((string) $validated['fg_handover_notes'])
+                : null,
+        ]);
+
+        return back()->with('success', 'Serah terima FG ke warehouse berhasil dicatat.');
     }
 
     public function releaseKanban(ProductionOrder $order)

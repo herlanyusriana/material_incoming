@@ -229,7 +229,7 @@
 
                 @if(in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold', 'released'], true) && $order->material_issued_at)
                     <div class="p-4 bg-blue-50 rounded border border-blue-200 mb-4">
-                        <h4 class="font-medium mb-2">3. Serah Terima Production</h4>
+                        <h4 class="font-medium mb-2">3. Serah Terima WH to Production</h4>
                         @if($order->material_handed_over_at)
                             <p class="text-sm text-blue-800">
                                 Serah terima tercatat pada {{ $order->material_handed_over_at->format('d M Y H:i') }}
@@ -333,6 +333,37 @@
                     </div>
                 @endif
 
+                @if($order->fg_supplied_to_wh_at)
+                    <div class="p-4 bg-cyan-50 rounded border border-cyan-200 mb-4">
+                        <h4 class="font-medium mb-2">7. Serah Terima Production to WH</h4>
+                        @if($order->fg_handed_over_to_wh_at)
+                            <p class="text-sm text-cyan-800">
+                                Serah terima FG tercatat pada {{ $order->fg_handed_over_to_wh_at->format('d M Y H:i') }}
+                                @if($order->fgHandoverUser)
+                                    oleh {{ $order->fgHandoverUser->name }}
+                                @endif
+                            </p>
+                            @if($order->fg_handover_notes)
+                                <p class="mt-2 text-sm text-cyan-700">Catatan: {{ $order->fg_handover_notes }}</p>
+                            @endif
+                        @else
+                            <p class="text-sm text-cyan-800 mb-3">Konfirmasi bahwa FG hasil produksi ini sudah diserahterimakan dari production ke warehouse.</p>
+                            <form action="{{ route('production.orders.fg-handover-wh', $order) }}" method="POST" class="space-y-3">
+                                @csrf
+                                <div>
+                                    <label class="block text-xs font-semibold text-cyan-700 mb-1">Catatan Serah Terima</label>
+                                    <textarea name="fg_handover_notes" rows="3" class="w-full rounded-md border-cyan-200 shadow-sm" placeholder="Opsional: pallet, shift, operator, checker, atau kondisi FG.">{{ old('fg_handover_notes') }}</textarea>
+                                </div>
+                                <button type="submit"
+                                    class="w-full px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700"
+                                    onclick="return confirm('Catat serah terima FG ini ke warehouse?');">
+                                    Konfirmasi Serah Terima FG
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+
                 @if($order->status == 'released')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">4. Start Production</h4>
@@ -414,6 +445,20 @@
                     @if($order->fg_supply_notes)
                         <div class="mt-4 rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
                             {{ $order->fg_supply_notes }}
+                        </div>
+                    @endif
+                    @if($order->fg_handed_over_to_wh_at)
+                        <div class="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-800">
+                            <div class="font-semibold">Serah Terima ke Warehouse</div>
+                            <div class="mt-1">
+                                {{ $order->fg_handed_over_to_wh_at->format('d M Y H:i') }}
+                                @if($order->fgHandoverUser)
+                                    oleh {{ $order->fgHandoverUser->name }}
+                                @endif
+                            </div>
+                            @if($order->fg_handover_notes)
+                                <div class="mt-2">{{ $order->fg_handover_notes }}</div>
+                            @endif
                         </div>
                     @endif
                 </div>

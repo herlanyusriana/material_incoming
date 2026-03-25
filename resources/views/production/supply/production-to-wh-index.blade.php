@@ -6,7 +6,7 @@
     <div class="space-y-6">
         <div>
             <h1 class="text-2xl font-bold text-slate-900">Production Supply to WH</h1>
-            <p class="mt-1 text-sm text-slate-500">Daftar WO yang sudah selesai Kanban Update dan siap, atau sudah pernah, supply FG ke warehouse.</p>
+            <p class="mt-1 text-sm text-slate-500">Daftar WO yang sudah selesai Kanban Update dan siap, atau sudah pernah, supply FG ke warehouse berikut status serah terimanya.</p>
         </div>
 
         <form method="GET" class="rounded-xl border bg-white p-4 shadow-sm">
@@ -21,6 +21,7 @@
                         <option value="">All</option>
                         <option value="pending" @selected($supplyStatus === 'pending')>Pending Supply</option>
                         <option value="supplied" @selected($supplyStatus === 'supplied')>Supplied</option>
+                        <option value="handed_over" @selected($supplyStatus === 'handed_over')>Handed Over</option>
                     </select>
                 </div>
                 <div>
@@ -46,6 +47,7 @@
                         <th class="px-6 py-4 font-semibold">Kanban Update</th>
                         <th class="px-6 py-4 font-semibold">FG Supply to WH</th>
                         <th class="px-6 py-4 font-semibold">Location / Qty</th>
+                        <th class="px-6 py-4 font-semibold">Serah Terima to WH</th>
                         <th class="px-6 py-4 text-right font-semibold">Action</th>
                     </tr>
                 </thead>
@@ -81,6 +83,14 @@
                                 <div class="text-sm font-medium text-slate-900">{{ $order->fg_supply_location_code ?: '-' }}</div>
                                 <div class="text-xs text-slate-500">{{ number_format((float) ($order->fg_supply_qty ?? 0), 2) }}</div>
                             </td>
+                            <td class="px-6 py-4">
+                                @if($order->fg_handed_over_to_wh_at)
+                                    <div class="text-sm font-medium text-cyan-700">{{ $order->fg_handed_over_to_wh_at->format('d M Y H:i') }}</div>
+                                    <div class="text-xs text-slate-500">{{ $order->fgHandoverUser?->name ?? '-' }}</div>
+                                @else
+                                    <span class="text-xs italic text-slate-400">Belum serah terima</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-right">
                                 <a href="{{ route('production.orders.show', $order) }}"
                                     class="text-xs font-semibold uppercase tracking-wide text-indigo-600 hover:text-indigo-900">
@@ -90,7 +100,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-500">Belum ada data Production Supply to WH.</td>
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-500">Belum ada data Production Supply to WH.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -6,7 +6,7 @@
     <div class="space-y-6">
         <div>
             <h1 class="text-2xl font-bold text-slate-900">WH Supply to Production</h1>
-            <p class="mt-1 text-sm text-slate-500">Daftar WO yang sudah punya material request tambahan atau BOM request, termasuk status supply dan serah terimanya.</p>
+            <p class="mt-1 text-sm text-slate-500">Daftar WO yang sudah punya material request tambahan atau BOM request, termasuk status WH supply dan serah terima ke production.</p>
         </div>
 
         <form method="GET" class="rounded-xl border bg-white p-4 shadow-sm">
@@ -46,7 +46,7 @@
                         <th class="px-6 py-4 font-semibold">Plan Date</th>
                         <th class="px-6 py-4 font-semibold">Material Request</th>
                         <th class="px-6 py-4 font-semibold">WH Supply</th>
-                        <th class="px-6 py-4 font-semibold">Serah Terima</th>
+                        <th class="px-6 py-4 font-semibold">Serah Terima to Production</th>
                         <th class="px-6 py-4 text-right font-semibold">Action</th>
                     </tr>
                 </thead>
