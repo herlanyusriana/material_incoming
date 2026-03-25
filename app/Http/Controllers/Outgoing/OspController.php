@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Outgoing;
 use App\Http\Controllers\Controller;
 use App\Models\BomItem;
 use App\Models\Customer;
-use App\Models\GciPart;
 use App\Models\LocationInventory;
 use App\Models\OspOrder;
 use Illuminate\Http\Request;
@@ -146,21 +145,45 @@ class OspController extends Controller
             return back()->with('error', 'Qty outgoing OSP melebihi qty dokumen OSP.');
         }
 
-        $defaultLocation = strtoupper(trim((string) ($ospOrder->gciPart?->default_location ?? '')));
-        if ($defaultLocation === '') {
-            return back()->with('error', 'Default location FG belum diset. OSP outgoing tidak bisa memotong inventory.');
+        $ospOrder->loadMissing([
+            'bomItem.incomingPart',
+            'bomItem.componentPart',
+            'bomItem.substitutes.incomingPart',
+            'gciPart',
+        ]);
+
+        $bomItem = $ospOrder->bomItem;
+        if (!$bomItem) {
+            return back()->with('error', 'BOM item OSP belum terhubung. Dokumen OSP tidak bisa memotong RM.');
         }
 
-        DB::transaction(function () use ($ospOrder, $qtyShipped, $validated, $defaultLocation) {
-            LocationInventory::consumeStock(
-                null,
-                $defaultLocation,
-                $qtyShipped,
-                null,
-                (int) $ospOrder->gci_part_id,
-                'OSP_OUTGOING',
-                $ospOrder->order_no
-            );
+        $makeOrBuy = strtolower(trim((string) ($bomItem->make_or_buy ?? '')));
+        if ($makeOrBuy !== 'free_issue') {
+            return back()->with('error', 'BOM item OSP ini bukan FREE ISSUE. OSP outgoing hanya boleh memotong RM OSP/free issue.');
+        }
+
+        $requiredQty = round((float) ($bomItem->net_required ?? $bomItem->usage_qty ?? 0) * $qtyShipped, 4);
+        if ($requiredQty <= 0) {
+            return back()->with('error', 'Qty kebutuhan RM OSP dari BOM tidak valid.');
+        }
+
+        [$allocations, $shortageQty] = $this->buildOspMaterialAllocations($bomItem, $requiredQty);
+        if ($shortageQty > 0) {
+            return back()->with('error', 'Stok RM OSP/free issue tidak cukup. Shortage: ' . number_format($shortageQty, 4));
+        }
+
+        DB::transaction(function () use ($ospOrder, $qtyShipped, $validated, $allocations) {
+            foreach ($allocations as $allocation) {
+                LocationInventory::consumeStock(
+                    (int) $allocation['part_id'],
+                    (string) $allocation['location_code'],
+                    (float) $allocation['request_qty'],
+                    $allocation['batch_no'] !== '' ? (string) $allocation['batch_no'] : null,
+                    null,
+                    'OSP_OUTGOING',
+                    $ospOrder->order_no
+                );
+            }
 
             $ospOrder->update([
                 'qty_shipped' => $qtyShipped,
@@ -170,5 +193,86 @@ class OspController extends Controller
         });
 
         return back()->with('success', 'Order marked as shipped.');
+    }
+
+    private function buildOspMaterialAllocations(BomItem $bomItem, float $requiredQty): array
+    {
+        $candidateParts = collect();
+
+        if ($bomItem->incomingPart) {
+            $candidateParts->push([
+                'type' => 'primary',
+                'part_id' => (int) $bomItem->incomingPart->id,
+                'part_no' => (string) ($bomItem->incomingPart->part_no ?? '-'),
+                'part_name' => (string) ($bomItem->incomingPart->part_name ?? '-'),
+            ]);
+        }
+
+        foreach (($bomItem->substitutes ?? collect()) as $substitute) {
+            if (!$substitute->incomingPart) {
+                continue;
+            }
+
+            $candidateParts->push([
+                'type' => 'substitute',
+                'part_id' => (int) $substitute->incomingPart->id,
+                'part_no' => (string) ($substitute->incomingPart->part_no ?? $substitute->substitute_part_no ?? '-'),
+                'part_name' => (string) ($substitute->incomingPart->part_name ?? $substitute->part?->part_name ?? '-'),
+            ]);
+        }
+
+        $candidateParts = $candidateParts
+            ->filter(fn ($part) => !empty($part['part_id']))
+            ->unique('part_id')
+            ->values();
+
+        if ($candidateParts->isEmpty()) {
+            return [[], $requiredQty];
+        }
+
+        $remaining = round($requiredQty, 4);
+        $allocations = [];
+
+        foreach ($candidateParts as $candidate) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $stocks = LocationInventory::query()
+                ->where('part_id', $candidate['part_id'])
+                ->where('qty_on_hand', '>', 0)
+                ->orderByRaw('production_date IS NULL')
+                ->orderBy('production_date')
+                ->orderBy('batch_no')
+                ->orderBy('location_code')
+                ->get();
+
+            foreach ($stocks as $stock) {
+                if ($remaining <= 0) {
+                    break;
+                }
+
+                $available = (float) $stock->qty_on_hand;
+                if ($available <= 0) {
+                    continue;
+                }
+
+                $pickedQty = min($available, $remaining);
+                $remaining = round($remaining - $pickedQty, 4);
+
+                $allocations[] = [
+                    'source_type' => $candidate['type'],
+                    'part_id' => (int) $candidate['part_id'],
+                    'part_no' => (string) $candidate['part_no'],
+                    'part_name' => (string) $candidate['part_name'],
+                    'location_code' => (string) $stock->location_code,
+                    'batch_no' => (string) ($stock->batch_no ?? ''),
+                    'qty_on_hand' => $available,
+                    'request_qty' => $pickedQty,
+                ];
+            }
+        }
+
+        return [$allocations, max(0, round($remaining, 4))];
     }
 }
