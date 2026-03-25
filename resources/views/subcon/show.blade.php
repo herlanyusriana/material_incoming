@@ -67,6 +67,19 @@
                     <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Created By</div>
                     <div class="mt-1 text-slate-900">{{ $subconOrder->creator->name ?? '-' }}</div>
                 </div>
+                <div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">WH Send Location</div>
+                    <div class="mt-1 text-slate-900 font-semibold">{{ $subconOrder->send_location_code ?? '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Stock Sent Posted</div>
+                    <div class="mt-1 text-slate-900">
+                        {{ $subconOrder->sent_posted_at?->format('d/m/Y H:i') ?? '-' }}
+                        @if($subconOrder->sender)
+                            <span class="text-slate-500">by {{ $subconOrder->sender->name }}</span>
+                        @endif
+                    </div>
+                </div>
             </div>
 
             {{-- Qty Summary --}}
@@ -123,6 +136,11 @@
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 max-w-xs" />
                     </div>
                     <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">WH Receive Location <span class="text-red-500">*</span></label>
+                        <input type="text" name="receive_location_code" required value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
+                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 max-w-xs" />
+                    </div>
+                    <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
                         <textarea name="notes" rows="2"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -149,6 +167,7 @@
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Date</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Qty Good</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Qty Rejected</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">WH Receive</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Notes</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">By</th>
                         </tr>
@@ -160,8 +179,48 @@
                                 <td class="px-4 py-3 text-center text-slate-700">{{ $rec->received_date->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 text-right font-mono text-emerald-700 font-bold">{{ number_format($rec->qty_good) }}</td>
                                 <td class="px-4 py-3 text-right font-mono {{ $rec->qty_rejected > 0 ? 'text-red-600' : 'text-slate-400' }}">{{ number_format($rec->qty_rejected) }}</td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <div class="font-semibold">{{ $rec->receive_location_code ?? '-' }}</div>
+                                    <div class="text-xs text-slate-400">{{ $rec->posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</div>
+                                </td>
                                 <td class="px-4 py-3 text-slate-600">{{ $rec->notes ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $rec->creator->name ?? '-' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+        @if(isset($traceability) && $traceability->isNotEmpty())
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-bold text-slate-900">Traceability / Movement History</h2>
+                </div>
+                <table class="w-full text-sm divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Time</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Type</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Location</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">Qty Change</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">By</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($traceability as $move)
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 text-slate-700">{{ $move->adjusted_at?->format('d/m/Y H:i') ?? '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold {{ ($move->transaction_type ?? '') === 'SUBCON_SEND' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }}">
+                                        {{ $move->transaction_type ?? '-' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-slate-700">{{ $move->location_code ?? '-' }}</td>
+                                <td class="px-4 py-3 text-right font-mono {{ (float) $move->qty_change < 0 ? 'text-red-600' : 'text-emerald-700' }}">
+                                    {{ number_format((float) $move->qty_change, 4) }}
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">{{ $move->creator->name ?? '-' }}</td>
                             </tr>
                         @endforeach
                     </tbody>

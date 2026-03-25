@@ -44,7 +44,7 @@ class OspController extends Controller
     {
         $customers = Customer::orderBy('name')->get(['id', 'name']);
 
-        // Get parts from BOM items where special='OSP' and make_or_buy='free_issue'
+        // OSP parts must use a dedicated outgoing document flow, separate from normal FG outgoing.
         $ospParts = BomItem::where('special', 'OSP')
             ->where('make_or_buy', 'free_issue')
             ->whereNotNull('wip_part_id')

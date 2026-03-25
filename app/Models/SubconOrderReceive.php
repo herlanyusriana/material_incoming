@@ -14,12 +14,15 @@ class SubconOrderReceive extends Model
         'qty_good',
         'qty_rejected',
         'received_date',
+        'receive_location_code',
+        'posted_to_wh_at',
         'notes',
         'created_by',
     ];
 
     protected $casts = [
         'received_date' => 'date',
+        'posted_to_wh_at' => 'datetime',
         'qty_good' => 'decimal:4',
         'qty_rejected' => 'decimal:4',
     ];

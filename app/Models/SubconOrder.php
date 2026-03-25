@@ -23,6 +23,9 @@ class SubconOrder extends Model
         'received_date',
         'status',
         'notes',
+        'send_location_code',
+        'sent_posted_at',
+        'sent_posted_by',
         'created_by',
     ];
 
@@ -30,6 +33,7 @@ class SubconOrder extends Model
         'sent_date' => 'date',
         'expected_return_date' => 'date',
         'received_date' => 'date',
+        'sent_posted_at' => 'datetime',
         'qty_sent' => 'decimal:4',
         'qty_received' => 'decimal:4',
         'qty_rejected' => 'decimal:4',
@@ -58,6 +62,11 @@ class SubconOrder extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function sender()
+    {
+        return $this->belongsTo(User::class, 'sent_posted_by');
     }
 
     public function getQtyOutstandingAttribute(): float

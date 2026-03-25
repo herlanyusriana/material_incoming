@@ -91,6 +91,14 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">WH Send Location <span class="text-red-500">*</span></label>
+                    <input type="text" name="send_location_code" required value="{{ old('send_location_code') }}"
+                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        placeholder="Contoh: WIP-A01" />
+                    <p class="mt-1 text-xs text-slate-500">Lokasi warehouse asal saat WH kirim WIP ke vendor subcon.</p>
+                </div>
+
                 {{-- Notes --}}
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">Notes</label>

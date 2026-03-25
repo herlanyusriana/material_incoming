@@ -13,6 +13,10 @@
             </div>
         @endif
 
+        <div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm text-indigo-900">
+            OSP adalah jalur dokumen outgoing yang terpisah. Part fisiknya tetap sama, misalnya `FG A`, tetapi jika transaksinya OSP maka harus dibuat dengan dokumen OSP, bukan outgoing normal.
+        </div>
+
         {{-- Stats Cards --}}
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -67,7 +71,7 @@
 
                 <a href="{{ route('outgoing.osp.create') }}"
                     class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-700 text-center">
-                    + New OSP Order
+                    + New OSP Document
                 </a>
             </div>
         </div>
@@ -81,10 +85,10 @@
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Order No</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Customer</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Part</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Material Rcvd</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Assembled</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Shipped</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Rcvd Date</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">OSP Qty</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">Progress</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">Outgoing</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">Doc Date</th>
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Action</th>
                         </tr>

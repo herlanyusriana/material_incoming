@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\BomItem;
 use App\Models\GciPart;
+use App\Models\LocationInventory;
+use App\Models\LocationInventoryAdjustment;
 use App\Models\SubconOrder;
 use App\Models\SubconOrderReceive;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class SubconController extends Controller
 {
@@ -79,6 +82,7 @@ class SubconController extends Controller
             'qty_sent' => 'required|numeric|min:0.0001',
             'sent_date' => 'required|date',
             'expected_return_date' => 'nullable|date|after_or_equal:sent_date',
+            'send_location_code' => ['required', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -96,8 +100,21 @@ class SubconController extends Controller
                 $validated['order_no'] = sprintf('SC-%s-%03d', $today, $seq);
                 $validated['status'] = 'sent';
                 $validated['created_by'] = Auth::id();
+                $validated['send_location_code'] = strtoupper(trim((string) $validated['send_location_code']));
+                $validated['sent_posted_at'] = now();
+                $validated['sent_posted_by'] = Auth::id();
 
-                SubconOrder::create($validated);
+                $order = SubconOrder::create($validated);
+
+                LocationInventory::consumeStock(
+                    null,
+                    $validated['send_location_code'],
+                    (float) $validated['qty_sent'],
+                    null,
+                    (int) $validated['gci_part_id'],
+                    'SUBCON_SEND',
+                    $order->order_no
+                );
 
                 return redirect()->route('subcon.index')
                     ->with('success', "Subcon Order {$validated['order_no']} created.");
@@ -113,9 +130,14 @@ class SubconController extends Controller
 
     public function show(SubconOrder $subconOrder)
     {
-        $subconOrder->load(['vendor', 'gciPart', 'bomItem', 'receives.creator', 'creator']);
+        $subconOrder->load(['vendor', 'gciPart', 'bomItem', 'receives.creator', 'creator', 'sender']);
+        $traceability = LocationInventoryAdjustment::with(['creator'])
+            ->where('source_reference', $subconOrder->order_no)
+            ->orderBy('adjusted_at')
+            ->orderBy('id')
+            ->get();
 
-        return view('subcon.show', compact('subconOrder'));
+        return view('subcon.show', compact('subconOrder', 'traceability'));
     }
 
     public function receive(Request $request, SubconOrder $subconOrder)
@@ -128,14 +150,30 @@ class SubconController extends Controller
             'qty_good' => 'required|numeric|min:0',
             'qty_rejected' => 'nullable|numeric|min:0',
             'received_date' => 'required|date',
+            'receive_location_code' => ['required', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
             'notes' => 'nullable|string|max:1000',
         ]);
 
         $validated['qty_rejected'] = $validated['qty_rejected'] ?? 0;
         $validated['created_by'] = Auth::id();
+        $validated['receive_location_code'] = strtoupper(trim((string) $validated['receive_location_code']));
+        $validated['posted_to_wh_at'] = now();
 
         DB::transaction(function () use ($subconOrder, $validated) {
-            $subconOrder->receives()->create($validated);
+            $receive = $subconOrder->receives()->create($validated);
+
+            if ((float) $validated['qty_good'] > 0) {
+                LocationInventory::updateStock(
+                    null,
+                    $validated['receive_location_code'],
+                    (float) $validated['qty_good'],
+                    null,
+                    $validated['received_date'],
+                    (int) $subconOrder->gci_part_id,
+                    'SUBCON_RECEIVE',
+                    $subconOrder->order_no
+                );
+            }
 
             $subconOrder->increment('qty_received', $validated['qty_good']);
             $subconOrder->increment('qty_rejected', $validated['qty_rejected']);
