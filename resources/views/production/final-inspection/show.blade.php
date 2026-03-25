@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Final Inspection - {{ $inspection->productionOrder->production_order_number }}
+        Final Inspection - {{ $inspection->productionOrder->production_order_number ?: ($inspection->productionOrder->transaction_no ?: ('WO#' . $inspection->productionOrder->id)) }}
     </x-slot>
 
     <div class="space-y-6">
@@ -21,7 +21,7 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                     <label class="text-xs font-semibold text-slate-600">Order Number</label>
-                    <p class="text-sm font-medium">{{ $inspection->productionOrder->production_order_number }}</p>
+                    <p class="text-sm font-medium">{{ $inspection->productionOrder->production_order_number ?: ($inspection->productionOrder->transaction_no ?: ('WO#' . $inspection->productionOrder->id)) }}</p>
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-slate-600">Part</label>
@@ -87,7 +87,7 @@
         <!-- Kanban Update Form (Only if inspection passed) -->
         @if($inspection->status === 'pass')
             <div class="bg-white border rounded-xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold mb-4">Kanban Update & Inventory Posting</h3>
+                <h3 class="text-lg font-semibold mb-4">Kanban Update</h3>
                 
                 @if($inspection->productionOrder->kanban_updated_at)
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -95,13 +95,14 @@
                             <strong>✓ Kanban Updated</strong><br>
                             Updated at: {{ $inspection->productionOrder->kanban_updated_at->format('d M Y H:i') }}<br>
                             Good Qty: {{ number_format($inspection->productionOrder->qty_actual) }}<br>
-                            NG Qty: {{ number_format($inspection->productionOrder->qty_ng ?? 0) }}
+                            NG Qty: {{ number_format($inspection->productionOrder->qty_ng ?? 0) }}<br>
+                            Next step: Production Supply to WH
                         </p>
                     </div>
                 @else
                     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                         <p class="text-sm text-yellow-800">
-                            <strong>Important:</strong> This will update FG inventory and backflush component materials based on BOM.
+                            <strong>Important:</strong> Ini akan update hasil produksi, backflush material, dan commit FG ke on-order. Posting stok fisik warehouse dilakukan di step <strong>Production Supply to WH</strong>.
                         </p>
                     </div>
 
@@ -112,7 +113,7 @@
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-2">Good Quantity *</label>
                                 <input type="number" name="qty_good" value="{{ $inspection->productionOrder->qty_actual }}" step="0.01" min="0" class="w-full rounded-lg border-slate-200" required>
-                                <p class="text-xs text-slate-500 mt-1">Quantity to add to FG inventory</p>
+                                <p class="text-xs text-slate-500 mt-1">Quantity hasil final yang akan dipakai untuk kanban update</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-2">NG Quantity</label>
@@ -125,8 +126,8 @@
                             <a href="{{ route('production.final-inspection.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50">
                                 Back to List
                             </a>
-                            <button type="submit" onclick="return confirm('This will update inventory. Are you sure?')" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm font-semibold">
-                                Update Kanban & Post Inventory
+                            <button type="submit" onclick="return confirm('Proses kanban update untuk WO ini? Posting stok fisik ke warehouse dilakukan di step berikutnya.')" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm font-semibold">
+                                Update Kanban
                             </button>
                         </div>
                     </form>
