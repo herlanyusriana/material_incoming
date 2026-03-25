@@ -576,7 +576,7 @@
                                 </a>
                                 <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
-                                    <span class="flex-1">Vendor Receive to WH</span>
+                                    <span class="flex-1">WH Receive Subcon</span>
                                 </a>
                                 <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
@@ -1279,7 +1279,7 @@
                             </a>
                             <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
-                                <span class="flex-1">Vendor Receive to WH</span>
+                                <span class="flex-1">WH Receive Subcon</span>
                             </a>
                             <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
