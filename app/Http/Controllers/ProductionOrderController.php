@@ -101,7 +101,7 @@ class ProductionOrderController extends Controller
             $order->save();
         }
 
-        // Save traceability: WO ↔ SO
+        // Save traceability: WO <-> SO
         if (!empty($validated['arrival_ids'])) {
             $order->arrivals()->sync($validated['arrival_ids']);
         }
@@ -119,6 +119,7 @@ class ProductionOrderController extends Controller
             'materialRequester',
             'materialIssuer',
             'materialHandoverUser',
+            'fgSupplier',
             'mrpRun',
             'dailyPlanCell.row.plan',
             'arrivals',
@@ -439,7 +440,7 @@ class ProductionOrderController extends Controller
             return back()->with('error', 'Final inspection must be PASS before Kanban Update.');
         }
 
-        if (!in_array($order->workflow_stage, ['final_inspection', 'kanban_update', 'stock_update'], true)) {
+        if (!in_array($order->workflow_stage, ['final_inspection', 'kanban_update', 'stock_update', 'warehouse_supply'], true)) {
             return back()->with('error', 'Order is not ready for Kanban Update.');
         }
 
@@ -452,24 +453,8 @@ class ProductionOrderController extends Controller
                 'qty_ng' => $qtyNg,
                 'kanban_updated_at' => now(),
                 'kanban_updated_by' => Auth::id(),
-                'workflow_stage' => 'stock_update',
+                'workflow_stage' => 'warehouse_supply',
             ]);
-
-            // Add FG to LocationInventory (source of truth) → auto-sync ke gci_inventories via boot event
-            $part = $order->part;
-            $defaultLocation = $part?->default_location;
-            if ($defaultLocation && $qtyGood > 0) {
-                LocationInventory::updateStock(
-                    null,
-                    strtoupper(trim($defaultLocation)),
-                    $qtyGood,
-                    null,
-                    now()->toDateString(),
-                    $order->gci_part_id,
-                    'PRODUCTION_OUTPUT',
-                    'PROD#' . $order->order_no
-                );
-            }
 
             // Backflush components
             $reserved = $order->reserved_materials;
@@ -533,11 +518,68 @@ class ProductionOrderController extends Controller
 
             $order->update([
                 'status' => 'completed',
+                'workflow_stage' => 'warehouse_supply',
+            ]);
+        });
+
+        return back()->with('success', 'Kanban updated. FG siap disupply ke warehouse.');
+    }
+
+    public function supplyFinishedGoodsToWarehouse(Request $request, ProductionOrder $order)
+    {
+        $validated = $request->validate([
+            'fg_supply_location_code' => ['nullable', 'string', 'max:50'],
+            'fg_supply_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if (!$order->kanban_updated_at) {
+            return back()->with('error', 'Kanban Update belum dilakukan. Supply FG ke warehouse diblokir.');
+        }
+
+        if ($order->fg_supplied_to_wh_at) {
+            return back()->with('error', 'Production supply ke warehouse untuk WO ini sudah pernah diposting.');
+        }
+
+        $qtyGood = (float) ($order->qty_actual ?? 0);
+        if ($qtyGood <= 0) {
+            return back()->with('error', 'Qty good masih nol. Tidak ada FG yang bisa disupply ke warehouse.');
+        }
+
+        $defaultLocation = strtoupper(trim((string) ($order->part?->default_location ?? '')));
+        $targetLocation = strtoupper(trim((string) ($validated['fg_supply_location_code'] ?? '')));
+        if ($targetLocation === '') {
+            $targetLocation = $defaultLocation;
+        }
+
+        if ($targetLocation === '') {
+            return back()->with('error', 'Default location FG belum diset. Tentukan lokasi warehouse dulu.');
+        }
+
+        DB::transaction(function () use ($order, $qtyGood, $targetLocation, $validated) {
+            LocationInventory::updateStock(
+                null,
+                $targetLocation,
+                $qtyGood,
+                null,
+                now()->toDateString(),
+                $order->gci_part_id,
+                'PRODUCTION_OUTPUT',
+                'PROD#' . ($order->production_order_number ?: $order->id)
+            );
+
+            $order->update([
+                'fg_supplied_to_wh_at' => now(),
+                'fg_supplied_to_wh_by' => Auth::id(),
+                'fg_supply_location_code' => $targetLocation,
+                'fg_supply_qty' => $qtyGood,
+                'fg_supply_notes' => isset($validated['fg_supply_notes']) && trim((string) ($validated['fg_supply_notes'] ?? '')) !== ''
+                    ? trim((string) $validated['fg_supply_notes'])
+                    : null,
                 'workflow_stage' => 'finished',
             ]);
         });
 
-        return back()->with('success', 'Kanban updated and inventory posted.');
+        return back()->with('success', 'Production supply ke warehouse berhasil diposting.');
     }
 
     public function cancel(ProductionOrder $order)

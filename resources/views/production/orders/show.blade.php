@@ -258,7 +258,7 @@
 
                 @if($order->workflow_stage == 'kanban_update')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
-                        <h4 class="font-medium mb-2">5. Kanban Update → Inventory</h4>
+                        <h4 class="font-medium mb-2">5. Kanban Update</h4>
                         <form action="{{ route('production.orders.kanban-update', $order) }}" method="POST"
                             class="space-y-3">
                             @csrf
@@ -278,9 +278,49 @@
                             </div>
                             <button type="submit"
                                 class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-                                Post Kanban &amp; Update Inventory
+                                Post Kanban
                             </button>
                         </form>
+                    </div>
+                @endif
+
+                @if($order->status == 'completed' && $order->kanban_updated_at)
+                    <div class="p-4 bg-violet-50 rounded border border-violet-200 mb-4">
+                        <h4 class="font-medium mb-2">6. Production Supply to WH</h4>
+                        @if($order->fg_supplied_to_wh_at)
+                            <p class="text-sm text-violet-800">
+                                FG sudah disupply ke warehouse pada {{ $order->fg_supplied_to_wh_at->format('d M Y H:i') }}
+                                @if($order->fgSupplier)
+                                    oleh {{ $order->fgSupplier->name }}
+                                @endif
+                            </p>
+                            <p class="mt-2 text-sm text-violet-700">
+                                Lokasi: <span class="font-semibold">{{ $order->fg_supply_location_code ?? '-' }}</span>
+                                | Qty: <span class="font-semibold">{{ number_format((float) ($order->fg_supply_qty ?? 0), 4) }}</span>
+                            </p>
+                            @if($order->fg_supply_notes)
+                                <p class="mt-2 text-sm text-violet-700">Catatan: {{ $order->fg_supply_notes }}</p>
+                            @endif
+                        @else
+                            <p class="text-sm text-violet-800 mb-3">Posting hasil produksi FG ke warehouse setelah Kanban Update selesai.</p>
+                            <form action="{{ route('production.orders.fg-supply-wh', $order) }}" method="POST" class="space-y-3">
+                                @csrf
+                                <div>
+                                    <label class="block text-xs font-semibold text-violet-700 mb-1">Lokasi Warehouse</label>
+                                    <input type="text" name="fg_supply_location_code" value="{{ old('fg_supply_location_code', $order->part->default_location ?? '') }}"
+                                        class="w-full rounded-md border-violet-200 shadow-sm" placeholder="Contoh: FG-A01">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-violet-700 mb-1">Catatan Supply</label>
+                                    <textarea name="fg_supply_notes" rows="3" class="w-full rounded-md border-violet-200 shadow-sm" placeholder="Opsional: trolley, shift, pallet, atau catatan supply.">{{ old('fg_supply_notes') }}</textarea>
+                                </div>
+                                <button type="submit"
+                                    class="w-full px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700"
+                                    onclick="return confirm('Post hasil produksi FG ini ke warehouse?');">
+                                    Post Production Supply to WH
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 @endif
 
@@ -332,6 +372,43 @@
                     </div>
                 @endif
             </div>
+
+            @if($order->fg_supplied_to_wh_at)
+                <div class="bg-white border rounded-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold">FG Supply to Warehouse</h3>
+                            <p class="text-sm text-gray-500">
+                                Supplied at:
+                                {{ $order->fg_supplied_to_wh_at?->format('d M Y H:i') ?? '-' }}
+                                @if($order->fgSupplier)
+                                    by {{ $order->fgSupplier->name }}
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div class="rounded-lg border p-4 bg-slate-50">
+                            <div class="text-xs uppercase tracking-wide text-slate-500">FG Part</div>
+                            <div class="mt-1 font-semibold text-slate-900">{{ $order->part->part_no ?? '-' }}</div>
+                            <div class="text-xs text-slate-500">{{ $order->part->part_name ?? '-' }}</div>
+                        </div>
+                        <div class="rounded-lg border p-4 bg-slate-50">
+                            <div class="text-xs uppercase tracking-wide text-slate-500">Warehouse Location</div>
+                            <div class="mt-1 font-semibold text-slate-900">{{ $order->fg_supply_location_code ?? '-' }}</div>
+                        </div>
+                        <div class="rounded-lg border p-4 bg-slate-50">
+                            <div class="text-xs uppercase tracking-wide text-slate-500">Supply Qty</div>
+                            <div class="mt-1 font-semibold text-slate-900">{{ number_format((float) ($order->fg_supply_qty ?? 0), 4) }}</div>
+                        </div>
+                    </div>
+                    @if($order->fg_supply_notes)
+                        <div class="mt-4 rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
+                            {{ $order->fg_supply_notes }}
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             @if(!empty($order->material_request_lines))
                 <div class="bg-white border rounded-lg shadow-sm p-6">
