@@ -161,14 +161,35 @@ class SubconController extends Controller
             'qty_good' => 'required|numeric|min:0',
             'qty_rejected' => 'nullable|numeric|min:0',
             'received_date' => 'required|date',
-            'receive_location_code' => ['required', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
+            'receive_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
+            'reject_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $validated['qty_rejected'] = $validated['qty_rejected'] ?? 0;
+        $validated['qty_good'] = (float) ($validated['qty_good'] ?? 0);
+        $validated['qty_rejected'] = (float) ($validated['qty_rejected'] ?? 0);
+
+        if ($validated['qty_good'] <= 0 && $validated['qty_rejected'] <= 0) {
+            return back()->withInput()->with('error', 'Isi minimal Qty Good atau Qty Rejected lebih dari nol.');
+        }
+
+        if ($validated['qty_good'] > 0 && empty($validated['receive_location_code'])) {
+            return back()->withInput()->with('error', 'WH Receive Location wajib diisi jika Qty Good lebih dari nol.');
+        }
+
+        if ($validated['qty_rejected'] > 0 && empty($validated['reject_location_code'])) {
+            return back()->withInput()->with('error', 'WH Reject Location wajib diisi jika Qty Rejected lebih dari nol.');
+        }
+
         $validated['created_by'] = Auth::id();
-        $validated['receive_location_code'] = strtoupper(trim((string) $validated['receive_location_code']));
-        $validated['posted_to_wh_at'] = now();
+        $validated['receive_location_code'] = !empty($validated['receive_location_code'])
+            ? strtoupper(trim((string) $validated['receive_location_code']))
+            : null;
+        $validated['reject_location_code'] = !empty($validated['reject_location_code'])
+            ? strtoupper(trim((string) $validated['reject_location_code']))
+            : null;
+        $validated['posted_to_wh_at'] = $validated['qty_good'] > 0 ? now() : null;
+        $validated['reject_posted_to_wh_at'] = $validated['qty_rejected'] > 0 ? now() : null;
 
         DB::transaction(function () use ($subconOrder, $validated) {
             $receive = $subconOrder->receives()->create($validated);
@@ -182,6 +203,19 @@ class SubconController extends Controller
                     $validated['received_date'],
                     (int) $subconOrder->gci_part_id,
                     'SUBCON_RECEIVE',
+                    $subconOrder->order_no
+                );
+            }
+
+            if ((float) $validated['qty_rejected'] > 0) {
+                LocationInventory::updateStock(
+                    null,
+                    $validated['reject_location_code'],
+                    (float) $validated['qty_rejected'],
+                    null,
+                    $validated['received_date'],
+                    (int) $subconOrder->gci_part_id,
+                    'SUBCON_REJECT_RECEIVE',
                     $subconOrder->order_no
                 );
             }

@@ -121,24 +121,33 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span></label>
-                            <input type="number" name="qty_good" step="0.0001" min="0" required
+                            <input type="number" name="qty_good" step="0.0001" min="0" value="{{ old('qty_good', 0) }}" required
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
-                            <input type="number" name="qty_rejected" step="0.0001" min="0" value="0"
+                            <input type="number" name="qty_rejected" step="0.0001" min="0" value="{{ old('qty_rejected', 0) }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Received Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="received_date" required value="{{ now()->toDateString() }}"
+                        <input type="date" name="received_date" required value="{{ old('received_date', now()->toDateString()) }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 max-w-xs" />
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">WH Receive Location <span class="text-red-500">*</span></label>
-                        <input type="text" name="receive_location_code" required value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
-                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 max-w-xs" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">WH Receive Good Location</label>
+                            <input type="text" name="receive_location_code" value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                            <div class="mt-1 text-xs text-slate-500">Wajib jika Qty Good lebih dari nol.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">WH Reject Location</label>
+                            <input type="text" name="reject_location_code" value="{{ old('reject_location_code') }}"
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                            <div class="mt-1 text-xs text-slate-500">Gunakan lokasi NG / reject / rework jika Qty Rejected lebih dari nol.</div>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
@@ -167,7 +176,8 @@
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Date</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Qty Good</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Qty Rejected</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">WH Receive</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">WH Good Receive</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">WH Reject Receive</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Notes</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">By</th>
                         </tr>
@@ -182,6 +192,10 @@
                                 <td class="px-4 py-3 text-slate-600">
                                     <div class="font-semibold">{{ $rec->receive_location_code ?? '-' }}</div>
                                     <div class="text-xs text-slate-400">{{ $rec->posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <div class="font-semibold">{{ $rec->reject_location_code ?? '-' }}</div>
+                                    <div class="text-xs text-slate-400">{{ $rec->reject_posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</div>
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">{{ $rec->notes ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $rec->creator->name ?? '-' }}</td>
@@ -212,7 +226,13 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 text-slate-700">{{ $move->adjusted_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold {{ ($move->transaction_type ?? '') === 'SUBCON_SEND' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }}">
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold {{
+                                        match($move->transaction_type ?? '') {
+                                            'SUBCON_SEND' => 'bg-amber-100 text-amber-700',
+                                            'SUBCON_REJECT_RECEIVE' => 'bg-rose-100 text-rose-700',
+                                            default => 'bg-emerald-100 text-emerald-700',
+                                        }
+                                    }}">
                                         {{ $move->transaction_type ?? '-' }}
                                     </span>
                                 </td>
