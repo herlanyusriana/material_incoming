@@ -24,7 +24,7 @@
                     <h1 class="text-2xl font-black text-slate-900">{{ $ospOrder->order_no }}</h1>
                     <div class="mt-1 text-sm text-slate-600">OSP Outgoing Document Detail</div>
                 </div>
-                <div class="flex gap-2 items-center">
+                <div class="flex flex-wrap gap-2 items-center justify-end">
                     @php
                         $statusColors = [
                             'received' => 'bg-blue-100 text-blue-700',
@@ -34,6 +34,18 @@
                             'cancelled' => 'bg-red-100 text-red-700',
                         ];
                     @endphp
+                    <a href="{{ route('outgoing.osp.print-dn', $ospOrder) }}" target="_blank"
+                        class="inline-flex items-center rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+                        Print DN
+                    </a>
+                    <a href="{{ route('outgoing.osp.print-pl', $ospOrder) }}" target="_blank"
+                        class="inline-flex items-center rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+                        Print PL
+                    </a>
+                    <a href="{{ route('outgoing.osp.print-invoice', $ospOrder) }}" target="_blank"
+                        class="inline-flex items-center rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                        Print Invoice
+                    </a>
                     <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold {{ $statusColors[$ospOrder->status] ?? '' }}">
                         {{ ucfirst(str_replace('_', ' ', $ospOrder->status)) }}
                     </span>

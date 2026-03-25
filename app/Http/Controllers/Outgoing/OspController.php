@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Outgoing;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Customer;
 use App\Models\LocationInventory;
@@ -108,6 +109,27 @@ class OspController extends Controller
         $ospOrder->load(['customer', 'gciPart', 'bomItem', 'creator']);
 
         return view('outgoing.osp.show', compact('ospOrder'));
+    }
+
+    public function printDeliveryNote(OspOrder $ospOrder)
+    {
+        $payload = $this->buildPrintPayload($ospOrder);
+
+        return view('outgoing.osp.print_dn', $payload);
+    }
+
+    public function printPackingList(OspOrder $ospOrder)
+    {
+        $payload = $this->buildPrintPayload($ospOrder);
+
+        return view('outgoing.osp.print_packing_list', $payload);
+    }
+
+    public function printInvoice(OspOrder $ospOrder)
+    {
+        $payload = $this->buildPrintPayload($ospOrder);
+
+        return view('outgoing.osp.print_invoice', $payload);
     }
 
     public function updateProgress(Request $request, OspOrder $ospOrder)
@@ -274,5 +296,80 @@ class OspController extends Controller
         }
 
         return [$allocations, max(0, round($remaining, 4))];
+    }
+
+    private function buildPrintPayload(OspOrder $ospOrder): array
+    {
+        $ospOrder->loadMissing([
+            'customer',
+            'gciPart',
+            'creator',
+            'bomItem.bom.items.incomingPart',
+            'bomItem.bom.items.componentPart',
+            'bomItem.bom.items.substitutes.incomingPart',
+        ]);
+
+        $printQty = (float) ($ospOrder->qty_shipped > 0 ? $ospOrder->qty_shipped : $ospOrder->qty_received_material);
+        $bom = $ospOrder->bomItem?->bom ?: Bom::activeVersion($ospOrder->gci_part_id, $ospOrder->received_date);
+
+        $bomItems = collect($bom?->items ?? [])
+            ->filter(fn (BomItem $item) => $this->isOspMaterialItem($item))
+            ->values();
+
+        if ($bomItems->isEmpty() && $ospOrder->bomItem && $this->isOspMaterialItem($ospOrder->bomItem)) {
+            $ospOrder->loadMissing([
+                'bomItem.incomingPart',
+                'bomItem.componentPart',
+                'bomItem.substitutes.incomingPart',
+            ]);
+            $bomItems = collect([$ospOrder->bomItem]);
+        }
+
+        $lines = $bomItems->map(function (BomItem $item, int $index) use ($printQty) {
+            $incomingPart = $item->incomingPart;
+            $fallbackPart = $item->componentPart;
+            $partNo = (string) ($incomingPart?->part_no ?? $fallbackPart?->part_no ?? $item->component_part_no ?? '-');
+            $partName = (string) ($incomingPart?->part_name ?? $fallbackPart?->part_name ?? $item->material_name ?? '-');
+            $uom = (string) ($item->consumption_uom ?? $incomingPart?->uom ?? $fallbackPart?->uom ?? 'PCS');
+            $unitPrice = round((float) ($incomingPart?->price ?? 0), 3);
+            $requiredQty = round((float) ($item->net_required ?? $item->usage_qty ?? 0) * $printQty, 4);
+
+            return [
+                'no' => $index + 1,
+                'part_no' => $partNo,
+                'part_name' => $partName,
+                'description' => trim(implode(' | ', array_filter([
+                    $partName,
+                    $item->material_spec,
+                    $item->material_size,
+                ]))),
+                'uom' => $uom,
+                'material_type' => strtoupper(trim((string) ($item->make_or_buy ?? '')) ?: 'N/A'),
+                'special' => strtoupper(trim((string) ($item->special ?? '')) ?: '-'),
+                'qty' => $requiredQty,
+                'unit_price' => $unitPrice,
+                'amount' => round($requiredQty * $unitPrice, 2),
+            ];
+        })->values();
+
+        return [
+            'ospOrder' => $ospOrder,
+            'lines' => $lines,
+            'printQty' => $printQty,
+            'deliveryNoteNo' => 'DN-OSP-' . $ospOrder->order_no,
+            'packingListNo' => 'PL-OSP-' . $ospOrder->order_no,
+            'invoiceNo' => 'INV-OSP-' . $ospOrder->order_no,
+            'currency' => 'IDR',
+            'totalQty' => round((float) $lines->sum('qty'), 4),
+            'totalAmount' => round((float) $lines->sum('amount'), 2),
+        ];
+    }
+
+    private function isOspMaterialItem(BomItem $item): bool
+    {
+        $makeOrBuy = strtolower(trim((string) ($item->make_or_buy ?? '')));
+        $special = strtoupper(trim((string) ($item->special ?? '')));
+
+        return $makeOrBuy === 'free_issue' || $special === 'OSP';
     }
 }

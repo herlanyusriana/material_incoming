@@ -306,6 +306,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/osp/create', [OspController::class, 'create'])->name('osp.create');
         Route::post('/osp', [OspController::class, 'store'])->name('osp.store');
         Route::get('/osp/{ospOrder}', [OspController::class, 'show'])->name('osp.show');
+        Route::get('/osp/{ospOrder}/print-dn', [OspController::class, 'printDeliveryNote'])->name('osp.print-dn');
+        Route::get('/osp/{ospOrder}/print-pl', [OspController::class, 'printPackingList'])->name('osp.print-pl');
+        Route::get('/osp/{ospOrder}/print-invoice', [OspController::class, 'printInvoice'])->name('osp.print-invoice');
         Route::post('/osp/{ospOrder}/progress', [OspController::class, 'updateProgress'])->name('osp.progress');
         Route::post('/osp/{ospOrder}/ship', [OspController::class, 'ship'])->name('osp.ship');
     });

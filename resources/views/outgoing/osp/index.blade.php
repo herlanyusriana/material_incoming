@@ -123,7 +123,12 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-center">
-                                    <a href="{{ route('outgoing.osp.show', $order) }}" class="text-indigo-600 hover:text-indigo-800 font-semibold text-xs">View</a>
+                                    <div class="flex flex-wrap items-center justify-center gap-2">
+                                        <a href="{{ route('outgoing.osp.show', $order) }}" class="text-indigo-600 hover:text-indigo-800 font-semibold text-xs">View</a>
+                                        <a href="{{ route('outgoing.osp.print-dn', $order) }}" target="_blank" class="text-slate-600 hover:text-slate-900 font-semibold text-xs">Print DN</a>
+                                        <a href="{{ route('outgoing.osp.print-pl', $order) }}" target="_blank" class="text-slate-600 hover:text-slate-900 font-semibold text-xs">Print PL</a>
+                                        <a href="{{ route('outgoing.osp.print-invoice', $order) }}" target="_blank" class="text-slate-600 hover:text-slate-900 font-semibold text-xs">Print Invoice</a>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
