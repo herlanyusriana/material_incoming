@@ -448,6 +448,8 @@ class ProductionOrderController extends Controller
         $qtyNg = (float) ($validated['qty_ng'] ?? 0);
 
         DB::transaction(function () use ($order, $qtyGood, $qtyNg) {
+            $previousQtyActual = (float) ($order->qty_actual ?? 0);
+
             $order->update([
                 'qty_actual' => $qtyGood,
                 'qty_ng' => $qtyNg,
@@ -455,6 +457,17 @@ class ProductionOrderController extends Controller
                 'kanban_updated_by' => Auth::id(),
                 'workflow_stage' => 'warehouse_supply',
             ]);
+
+            $fgInventory = GciInventory::firstOrCreate(
+                ['gci_part_id' => $order->gci_part_id],
+                ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+            );
+            $fgDelta = round($qtyGood - $previousQtyActual, 4);
+            if ($fgDelta > 0) {
+                $fgInventory->commitOrder($fgDelta);
+            } elseif ($fgDelta < 0) {
+                $fgInventory->releaseOrder(abs($fgDelta));
+            }
 
             // Backflush components
             $reserved = $order->reserved_materials;
@@ -556,6 +569,12 @@ class ProductionOrderController extends Controller
         }
 
         DB::transaction(function () use ($order, $qtyGood, $targetLocation, $validated) {
+            $fgInventory = GciInventory::firstOrCreate(
+                ['gci_part_id' => $order->gci_part_id],
+                ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+            );
+            $fgInventory->consume($qtyGood);
+
             LocationInventory::updateStock(
                 null,
                 $targetLocation,

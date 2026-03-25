@@ -57,4 +57,25 @@ class GciInventory extends Model
         $this->decrement('on_order', $consumeQty);
         $this->update(['as_of_date' => now()->toDateString()]);
     }
+
+    public function commitOrder(float $qty): void
+    {
+        if ($qty <= 0) {
+            return;
+        }
+
+        $this->increment('on_order', $qty);
+        $this->update(['as_of_date' => now()->toDateString()]);
+    }
+
+    public function releaseOrder(float $qty): void
+    {
+        if ($qty <= 0) {
+            return;
+        }
+
+        $releaseQty = min($qty, (float) $this->on_order);
+        $this->decrement('on_order', $releaseQty);
+        $this->update(['as_of_date' => now()->toDateString()]);
+    }
 }

@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\GciPart;
+use App\Models\GciInventory;
 use App\Models\LocationInventory;
 use App\Models\DeliveryOrder;
 use App\Models\DeliveryOrderItem;
@@ -76,6 +77,8 @@ class DeliveryOrderController extends Controller
                     'qty_ordered' => $item['qty'],
                     'qty_shipped' => 0,
                 ]);
+
+                $this->commitFgOrderQty((int) $item['part_id'], (float) $item['qty']);
             }
 
             DB::commit();
@@ -132,6 +135,12 @@ class DeliveryOrderController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
+            $deliveryOrder->loadMissing('items');
+            foreach ($deliveryOrder->items as $existingItem) {
+                $remainingReserved = max(0, (float) $existingItem->qty_ordered - (float) ($existingItem->qty_shipped ?? 0));
+                $this->releaseFgOrderQty((int) $existingItem->gci_part_id, $remainingReserved);
+            }
+
             $deliveryOrder->items()->delete();
 
             foreach ($validated['items'] as $item) {
@@ -141,6 +150,8 @@ class DeliveryOrderController extends Controller
                     'qty_ordered' => $item['qty'],
                     'qty_shipped' => 0,
                 ]);
+
+                $this->commitFgOrderQty((int) $item['part_id'], (float) $item['qty']);
             }
 
             DB::commit();
@@ -157,7 +168,17 @@ class DeliveryOrderController extends Controller
             return back()->with('error', 'Only draft DO can be deleted.');
         }
 
-        $deliveryOrder->delete();
+        DB::transaction(function () use ($deliveryOrder) {
+            $deliveryOrder->loadMissing('items');
+
+            foreach ($deliveryOrder->items as $item) {
+                $remainingReserved = max(0, (float) $item->qty_ordered - (float) ($item->qty_shipped ?? 0));
+                $this->releaseFgOrderQty((int) $item->gci_part_id, $remainingReserved);
+            }
+
+            $deliveryOrder->delete();
+        });
+
         return redirect()->route('outgoing.delivery-orders.index')->with('success', 'Delivery Order deleted.');
     }
 
@@ -264,6 +285,7 @@ class DeliveryOrderController extends Controller
                 ]);
 
                 $item->update(['qty_shipped' => (float) $item->qty_shipped + $qtyToShip]);
+                $this->consumeFgOrderQty((int) $item->gci_part_id, (float) $qtyToShip);
 
                 // Deduct dari LocationInventory (source of truth) → auto-sync ke gci_inventories
                 $gciPart = GciPart::find((int) $item->gci_part_id);
@@ -296,5 +318,43 @@ class DeliveryOrderController extends Controller
         return redirect()
             ->route('outgoing.delivery-orders.show', $deliveryOrder)
             ->with('success', 'DN created: ' . ($dn?->dn_no ?? ''));
+    }
+
+    private function commitFgOrderQty(int $gciPartId, float $qty): void
+    {
+        if ($gciPartId <= 0 || $qty <= 0) {
+            return;
+        }
+
+        $inventory = GciInventory::firstOrCreate(
+            ['gci_part_id' => $gciPartId],
+            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+        );
+        $inventory->commitOrder($qty);
+    }
+
+    private function releaseFgOrderQty(int $gciPartId, float $qty): void
+    {
+        if ($gciPartId <= 0 || $qty <= 0) {
+            return;
+        }
+
+        $inventory = GciInventory::where('gci_part_id', $gciPartId)->first();
+        if ($inventory) {
+            $inventory->releaseOrder($qty);
+        }
+    }
+
+    private function consumeFgOrderQty(int $gciPartId, float $qty): void
+    {
+        if ($gciPartId <= 0 || $qty <= 0) {
+            return;
+        }
+
+        $inventory = GciInventory::firstOrCreate(
+            ['gci_part_id' => $gciPartId],
+            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+        );
+        $inventory->consume($qty);
     }
 }
