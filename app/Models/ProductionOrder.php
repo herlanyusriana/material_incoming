@@ -16,6 +16,11 @@ class ProductionOrder extends Model
 
     protected $casts = [
         'reserved_materials' => 'array',
+        'material_request_lines' => 'array',
+        'material_requested_at' => 'datetime',
+        'material_issue_lines' => 'array',
+        'material_issued_at' => 'datetime',
+        'material_handed_over_at' => 'datetime',
     ];
 
     /**
@@ -55,6 +60,21 @@ class ProductionOrder extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function materialRequester()
+    {
+        return $this->belongsTo(User::class, 'material_requested_by');
+    }
+
+    public function materialIssuer()
+    {
+        return $this->belongsTo(User::class, 'material_issued_by');
+    }
+
+    public function materialHandoverUser()
+    {
+        return $this->belongsTo(User::class, 'material_handed_over_by');
     }
 
     public function inspections()
@@ -108,5 +128,3 @@ class ProductionOrder extends Model
         return $this->downtimes()->sum('duration_minutes') ?? 0;
     }
 }
-
-

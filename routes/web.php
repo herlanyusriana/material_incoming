@@ -492,6 +492,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');
         Route::post('/orders/{order}/check-material', [\App\Http\Controllers\ProductionOrderController::class, 'checkMaterial'])->name('orders.check-material');
+        Route::post('/orders/{order}/material-request', [\App\Http\Controllers\ProductionOrderController::class, 'createMaterialRequest'])->name('orders.material-request');
+        Route::post('/orders/{order}/material-issue', [\App\Http\Controllers\ProductionOrderController::class, 'issueMaterial'])->name('orders.material-issue');
+        Route::post('/orders/{order}/material-handover', [\App\Http\Controllers\ProductionOrderController::class, 'handoverMaterial'])->name('orders.material-handover');
         Route::post('/orders/{order}/start', [\App\Http\Controllers\ProductionOrderController::class, 'startProduction'])->name('orders.start');
         Route::post('/orders/{order}/finish', [\App\Http\Controllers\ProductionOrderController::class, 'finishProduction'])->name('orders.finish');
         Route::post('/orders/{order}/kanban-update', [\App\Http\Controllers\ProductionOrderController::class, 'kanbanUpdate'])->name('orders.kanban-update');

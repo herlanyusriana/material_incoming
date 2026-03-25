@@ -8,8 +8,10 @@ use App\Models\GciPart;
 use App\Models\GciInventory;
 use App\Models\LocationInventory;
 use App\Models\Bom;
+use App\Models\BomItem;
 use App\Models\Machine;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -114,6 +116,9 @@ class ProductionOrderController extends Controller
             'machine',
             'inspections.inspector',
             'creator',
+            'materialRequester',
+            'materialIssuer',
+            'materialHandoverUser',
             'mrpRun',
             'dailyPlanCell.row.plan',
             'arrivals',
@@ -230,6 +235,123 @@ class ProductionOrderController extends Controller
         }
     }
 
+    public function createMaterialRequest(ProductionOrder $order)
+    {
+        $requestLines = $this->buildMaterialRequestLines($order);
+
+        if (empty($requestLines)) {
+            return back()->with('error', 'Tidak ada RM BUY yang bisa dibuatkan material request dari BOM ini.');
+        }
+
+        $order->update([
+            'material_request_lines' => $requestLines,
+            'material_requested_at' => now(),
+            'material_requested_by' => Auth::id(),
+        ]);
+
+        $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
+        $message = $shortageCount > 0
+            ? "Material request dibuat dengan {$shortageCount} item masih shortage."
+            : 'Material request berhasil dibuat dari stok RM yang tersedia.';
+
+        return back()->with('success', $message);
+    }
+
+    public function issueMaterial(ProductionOrder $order)
+    {
+        $requestLines = collect($order->material_request_lines ?? []);
+
+        if ($requestLines->isEmpty()) {
+            return back()->with('error', 'Buat material request terlebih dahulu sebelum issue material.');
+        }
+
+        if ($order->material_issued_at) {
+            return back()->with('error', 'WH supply untuk work order ini sudah pernah diposting.');
+        }
+
+        $shortageCount = $requestLines->where('shortage_qty', '>', 0)->count();
+        if ($shortageCount > 0) {
+            return back()->with('error', 'Masih ada shortage pada material request. WH supply diblokir.');
+        }
+
+        $issueLines = [];
+        $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
+
+        DB::transaction(function () use ($order, $requestLines, &$issueLines, $sourceReference) {
+            foreach ($requestLines as $line) {
+                $issuedAllocations = [];
+
+                foreach (($line['allocations'] ?? []) as $allocation) {
+                    $partId = (int) ($allocation['part_id'] ?? 0);
+                    $locationCode = (string) ($allocation['location_code'] ?? '');
+                    $batchNo = (string) ($allocation['batch_no'] ?? '');
+                    $qty = (float) ($allocation['request_qty'] ?? 0);
+
+                    if ($partId <= 0 || $locationCode === '' || $qty <= 0) {
+                        continue;
+                    }
+
+                    LocationInventory::consumeStock(
+                        $partId,
+                        $locationCode,
+                        $qty,
+                        $batchNo !== '' ? $batchNo : null,
+                        null,
+                        'PRODUCTION_ISSUE',
+                        $sourceReference
+                    );
+
+                    $issuedAllocations[] = array_merge($allocation, [
+                        'issued_qty' => $qty,
+                    ]);
+                }
+
+                $issueLines[] = [
+                    'component_gci_part_id' => (int) ($line['component_gci_part_id'] ?? 0),
+                    'component_part_no' => (string) ($line['component_part_no'] ?? '-'),
+                    'component_part_name' => (string) ($line['component_part_name'] ?? '-'),
+                    'uom' => (string) ($line['uom'] ?? '-'),
+                    'required_qty' => (float) ($line['required_qty'] ?? 0),
+                    'issued_qty' => collect($issuedAllocations)->sum('issued_qty'),
+                    'allocations' => $issuedAllocations,
+                ];
+            }
+
+            $order->update([
+                'material_issue_lines' => $issueLines,
+                'material_issued_at' => now(),
+                'material_issued_by' => Auth::id(),
+            ]);
+        });
+
+        return back()->with('success', 'WH supply ke production berhasil diposting dari inventory lokasi.');
+    }
+
+    public function handoverMaterial(Request $request, ProductionOrder $order)
+    {
+        $validated = $request->validate([
+            'handover_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if (empty($order->material_issue_lines) || !$order->material_issued_at) {
+            return back()->with('error', 'WH supply belum diposting. Lakukan supply material dulu sebelum serah terima.');
+        }
+
+        if ($order->material_handed_over_at) {
+            return back()->with('error', 'Serah terima material untuk work order ini sudah tercatat.');
+        }
+
+        $order->update([
+            'material_handed_over_at' => now(),
+            'material_handed_over_by' => Auth::id(),
+            'material_handover_notes' => isset($validated['handover_notes']) && trim((string) $validated['handover_notes']) !== ''
+                ? trim((string) $validated['handover_notes'])
+                : null,
+        ]);
+
+        return back()->with('success', 'Serah terima material ke production berhasil dicatat.');
+    }
+
     public function releaseKanban(ProductionOrder $order)
     {
         if ($order->status !== 'planned') {
@@ -252,6 +374,14 @@ class ProductionOrderController extends Controller
     {
         if ($order->status !== 'released') {
             return back()->with('error', 'Order must be Released to start.');
+        }
+
+        if (!empty($order->material_request_lines) && !$order->material_issued_at) {
+            return back()->with('error', 'Material request sudah ada, tapi WH supply belum diposting. Lakukan supply material dulu.');
+        }
+
+        if ($order->material_issued_at && !$order->material_handed_over_at) {
+            return back()->with('error', 'WH supply sudah diposting, tapi serah terima ke production belum dicatat.');
         }
 
         $order->update([
@@ -436,5 +566,138 @@ class ProductionOrderController extends Controller
 
         return back()->with('success', 'Work order cancelled. Reserved materials returned to inventory.');
     }
-}
 
+    private function buildMaterialRequestLines(ProductionOrder $order): array
+    {
+        $order->loadMissing(['part']);
+
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+        if (!$bom) {
+            return [];
+        }
+
+        $bomItems = $bom->items()
+            ->with([
+                'componentPart',
+                'incomingPart',
+                'substitutes.part',
+                'substitutes.incomingPart',
+            ])
+            ->get();
+
+        $lines = [];
+
+        foreach ($bomItems as $item) {
+            $makeOrBuy = strtoupper(trim((string) ($item->make_or_buy ?? '')));
+            if (!in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE'], true)) {
+                continue;
+            }
+
+            $requiredQty = round((float) ($item->net_required ?? $item->usage_qty ?? 0) * (float) $order->qty_planned, 4);
+            if ($requiredQty <= 0) {
+                continue;
+            }
+
+            $candidateParts = collect();
+            if ($item->incomingPart) {
+                $candidateParts->push([
+                    'type' => 'primary',
+                    'part_id' => (int) $item->incomingPart->id,
+                    'part_no' => (string) ($item->incomingPart->part_no ?? '-'),
+                    'part_name' => (string) ($item->incomingPart->part_name ?? '-'),
+                ]);
+            }
+
+            foreach (($item->substitutes ?? collect()) as $substitute) {
+                if (!$substitute->incomingPart) {
+                    continue;
+                }
+
+                $candidateParts->push([
+                    'type' => 'substitute',
+                    'part_id' => (int) $substitute->incomingPart->id,
+                    'part_no' => (string) ($substitute->incomingPart->part_no ?? $substitute->substitute_part_no ?? '-'),
+                    'part_name' => (string) ($substitute->incomingPart->part_name ?? $substitute->part?->part_name ?? '-'),
+                ]);
+            }
+
+            $candidateParts = $candidateParts
+                ->filter(fn ($part) => !empty($part['part_id']))
+                ->unique('part_id')
+                ->values();
+
+            if ($candidateParts->isEmpty()) {
+                $lines[] = [
+                    'component_gci_part_id' => (int) ($item->component_part_id ?? 0),
+                    'component_part_no' => (string) ($item->componentPart?->part_no ?? $item->component_part_no ?? '-'),
+                    'component_part_name' => (string) ($item->componentPart?->part_name ?? '-'),
+                    'uom' => (string) ($item->consumption_uom ?? $item->componentPart?->uom ?? 'PCS'),
+                    'required_qty' => $requiredQty,
+                    'available_qty' => 0,
+                    'shortage_qty' => $requiredQty,
+                    'allocations' => [],
+                    'notes' => 'Incoming RM part belum dipetakan pada BOM.',
+                ];
+                continue;
+            }
+
+            $remaining = $requiredQty;
+            $allocations = [];
+
+            foreach ($candidateParts as $candidate) {
+                if ($remaining <= 0) {
+                    break;
+                }
+
+                $stocks = LocationInventory::query()
+                    ->where('part_id', $candidate['part_id'])
+                    ->where('qty_on_hand', '>', 0)
+                    ->orderByRaw('production_date IS NULL')
+                    ->orderBy('production_date')
+                    ->orderBy('batch_no')
+                    ->orderBy('location_code')
+                    ->get();
+
+                foreach ($stocks as $stock) {
+                    if ($remaining <= 0) {
+                        break;
+                    }
+
+                    $available = (float) $stock->qty_on_hand;
+                    if ($available <= 0) {
+                        continue;
+                    }
+
+                    $pickedQty = min($available, $remaining);
+                    $remaining = round($remaining - $pickedQty, 4);
+
+                    $allocations[] = [
+                        'source_type' => $candidate['type'],
+                        'part_id' => $candidate['part_id'],
+                        'part_no' => $candidate['part_no'],
+                        'part_name' => $candidate['part_name'],
+                        'location_code' => (string) $stock->location_code,
+                        'batch_no' => (string) ($stock->batch_no ?? ''),
+                        'qty_on_hand' => $available,
+                        'request_qty' => $pickedQty,
+                    ];
+                }
+            }
+
+            $availableQty = collect($allocations)->sum('request_qty');
+            $lines[] = [
+                'component_gci_part_id' => (int) ($item->component_part_id ?? 0),
+                'component_part_no' => (string) ($item->componentPart?->part_no ?? $item->component_part_no ?? '-'),
+                'component_part_name' => (string) ($item->componentPart?->part_name ?? '-'),
+                'uom' => (string) ($item->consumption_uom ?? $item->componentPart?->uom ?? 'PCS'),
+                'required_qty' => $requiredQty,
+                'available_qty' => $availableQty,
+                'shortage_qty' => max(0, round($requiredQty - $availableQty, 4)),
+                'allocations' => $allocations,
+                'notes' => null,
+            ];
+        }
+
+        return $lines;
+    }
+}

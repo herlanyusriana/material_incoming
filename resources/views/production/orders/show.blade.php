@@ -180,6 +180,75 @@
                     </div>
                 @endif
 
+                @if(in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold', 'released'], true))
+                    <div class="p-4 bg-amber-50 rounded border border-amber-200 mb-4">
+                        <h4 class="font-medium mb-2">RM Material Request</h4>
+                        <p class="text-sm text-amber-800 mb-3">Buat snapshot permintaan RM berdasarkan BOM BUY item dan stok `location_inventory` yang tersedia.</p>
+                        <form action="{{ route('production.orders.material-request', $order) }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="w-full px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">
+                                {{ !empty($order->material_request_lines) ? 'Refresh Material Request' : 'Create Material Request' }}
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
+                @if(in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold', 'released'], true) && !empty($order->material_request_lines))
+                    <div class="p-4 bg-emerald-50 rounded border border-emerald-200 mb-4">
+                        <h4 class="font-medium mb-2">2. WH Supply to Production</h4>
+                        @if($order->material_issued_at)
+                            <p class="text-sm text-emerald-800">
+                                WH supply sudah diposting pada {{ $order->material_issued_at->format('d M Y H:i') }}
+                                @if($order->materialIssuer)
+                                    oleh {{ $order->materialIssuer->name }}
+                                @endif
+                            </p>
+                        @else
+                            <p class="text-sm text-emerald-800 mb-3">Posting supply RM dari warehouse ke production berdasarkan WO dan alokasi lokasi/batch pada material request.</p>
+                            <form action="{{ route('production.orders.material-issue', $order) }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                    class="w-full px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                                    onclick="return confirm('WH supply ini akan mengurangi stock RM dari location inventory sesuai WO. Lanjutkan?');">
+                                    Post WH Supply
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+
+                @if(in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold', 'released'], true) && $order->material_issued_at)
+                    <div class="p-4 bg-blue-50 rounded border border-blue-200 mb-4">
+                        <h4 class="font-medium mb-2">3. Serah Terima Production</h4>
+                        @if($order->material_handed_over_at)
+                            <p class="text-sm text-blue-800">
+                                Serah terima tercatat pada {{ $order->material_handed_over_at->format('d M Y H:i') }}
+                                @if($order->materialHandoverUser)
+                                    oleh {{ $order->materialHandoverUser->name }}
+                                @endif
+                            </p>
+                            @if($order->material_handover_notes)
+                                <p class="mt-2 text-sm text-blue-700">Catatan: {{ $order->material_handover_notes }}</p>
+                            @endif
+                        @else
+                            <p class="text-sm text-blue-800 mb-3">Konfirmasi bahwa material WO ini sudah diserahkan dari warehouse ke production.</p>
+                            <form action="{{ route('production.orders.material-handover', $order) }}" method="POST" class="space-y-3">
+                                @csrf
+                                <div>
+                                    <label class="block text-xs font-semibold text-blue-700 mb-1">Catatan Serah Terima</label>
+                                    <textarea name="handover_notes" rows="3" class="w-full rounded-md border-blue-200 shadow-sm" placeholder="Opsional: catatan penerimaan, shift, line, atau kondisi material.">{{ old('handover_notes') }}</textarea>
+                                </div>
+                                <button type="submit"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    onclick="return confirm('Catat serah terima material WO ini ke production?');">
+                                    Konfirmasi Serah Terima
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+
                 @if($order->workflow_stage == 'final_inspection')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">4. Final Inspection</h4>
@@ -217,8 +286,8 @@
 
                 @if($order->status == 'released')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
-                        <h4 class="font-medium mb-2">2. Start Production</h4>
-                        <p class="text-sm text-gray-600 mb-3">Materials Reserved. Determine to start production.</p>
+                        <h4 class="font-medium mb-2">4. Start Production</h4>
+                        <p class="text-sm text-gray-600 mb-3">Mulai produksi setelah WH supply dan serah terima material WO selesai.</p>
                         <form action="{{ route('production.orders.start', $order) }}" method="POST">
                             @csrf
                             <button type="submit"
@@ -263,6 +332,162 @@
                     </div>
                 @endif
             </div>
+
+            @if(!empty($order->material_request_lines))
+                <div class="bg-white border rounded-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold">RM Material Request</h3>
+                            <p class="text-sm text-gray-500">
+                                Last request:
+                                {{ $order->material_requested_at?->format('d M Y H:i') ?? '-' }}
+                                @if($order->materialRequester)
+                                    by {{ $order->materialRequester->name }}
+                                @endif
+                            </p>
+                        </div>
+                        <div class="text-sm font-medium text-slate-600">
+                            {{ collect($order->material_request_lines)->count() }} item
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-lg">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-600">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">RM Component</th>
+                                    <th class="px-4 py-3 text-center">UOM</th>
+                                    <th class="px-4 py-3 text-right">Required</th>
+                                    <th class="px-4 py-3 text-right">Allocated</th>
+                                    <th class="px-4 py-3 text-right">Shortage</th>
+                                    <th class="px-4 py-3 text-left">Source Inventory</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach($order->material_request_lines as $line)
+                                    <tr class="align-top">
+                                        <td class="px-4 py-3">
+                                            <div class="font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                            <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                            @if(!empty($line['notes']))
+                                                <div class="mt-1 text-xs text-amber-700">{{ $line['notes'] }}</div>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-center">{{ $line['uom'] ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-right font-mono">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">
+                                            {{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            @if(!empty($line['allocations']))
+                                                <div class="space-y-2">
+                                                    @foreach($line['allocations'] as $allocation)
+                                                        <div class="rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                                                            <div class="text-xs font-semibold text-slate-900">
+                                                                {{ $allocation['part_no'] ?? '-' }} | {{ $allocation['location_code'] ?? '-' }}
+                                                                @if(!empty($allocation['batch_no']))
+                                                                    | Batch {{ $allocation['batch_no'] }}
+                                                                @endif
+                                                            </div>
+                                                            <div class="text-xs text-slate-600">
+                                                                Request {{ number_format((float) ($allocation['request_qty'] ?? 0), 4) }}
+                                                                dari stock {{ number_format((float) ($allocation['qty_on_hand'] ?? 0), 4) }}
+                                                                @if(($allocation['source_type'] ?? 'primary') === 'substitute')
+                                                                    <span class="ml-1 inline-flex rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">SUB</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <span class="text-sm text-slate-400">No stock allocation</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
+            @if(!empty($order->material_issue_lines))
+                <div class="bg-white border rounded-lg shadow-sm p-6">
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold">WH Supply History</h3>
+                            <p class="text-sm text-gray-500">
+                                Supplied at:
+                                {{ $order->material_issued_at?->format('d M Y H:i') ?? '-' }}
+                                @if($order->materialIssuer)
+                                    by {{ $order->materialIssuer->name }}
+                                @endif
+                            </p>
+                            @if($order->material_handed_over_at)
+                                <p class="text-sm text-blue-600 mt-1">
+                                    Serah terima:
+                                    {{ $order->material_handed_over_at->format('d M Y H:i') }}
+                                    @if($order->materialHandoverUser)
+                                        oleh {{ $order->materialHandoverUser->name }}
+                                    @endif
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-lg">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-600">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">RM Component</th>
+                                    <th class="px-4 py-3 text-center">UOM</th>
+                                    <th class="px-4 py-3 text-right">Required</th>
+                                    <th class="px-4 py-3 text-right">Supplied</th>
+                                    <th class="px-4 py-3 text-left">Supply Source</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach($order->material_issue_lines as $line)
+                                    <tr class="align-top">
+                                        <td class="px-4 py-3">
+                                            <div class="font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                            <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">{{ $line['uom'] ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-right font-mono">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['issued_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3">
+                                            @if(!empty($line['allocations']))
+                                                <div class="space-y-2">
+                                                    @foreach($line['allocations'] as $allocation)
+                                                        <div class="rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                                                            <div class="text-xs font-semibold text-slate-900">
+                                                                {{ $allocation['part_no'] ?? '-' }} | {{ $allocation['location_code'] ?? '-' }}
+                                                                @if(!empty($allocation['batch_no']))
+                                                                    | Batch {{ $allocation['batch_no'] }}
+                                                                @endif
+                                                            </div>
+                                                            <div class="text-xs text-slate-600">
+                                                                Supplied {{ number_format((float) ($allocation['issued_qty'] ?? 0), 4) }}
+                                                                @if(($allocation['source_type'] ?? 'primary') === 'substitute')
+                                                                    <span class="ml-1 inline-flex rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">SUB</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <span class="text-sm text-slate-400">No supply allocation</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Right: Inspections & History -->
