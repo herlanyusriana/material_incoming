@@ -486,6 +486,10 @@ Route::middleware('auth')->group(function () {
 
         // Material Requirement (from Production Planning BOM explosion)
         Route::get('/material-requirement', [\App\Http\Controllers\Production\MaterialRequirementController::class, 'index'])->name('material-requirement.index');
+        Route::get('/material-request', [\App\Http\Controllers\Production\MaterialRequestController::class, 'index'])->name('material-request.index');
+        Route::get('/material-request/create', [\App\Http\Controllers\Production\MaterialRequestController::class, 'create'])->name('material-request.create');
+        Route::post('/material-request', [\App\Http\Controllers\Production\MaterialRequestController::class, 'store'])->name('material-request.store');
+        Route::get('/material-request/{materialRequest}', [\App\Http\Controllers\Production\MaterialRequestController::class, 'show'])->name('material-request.show');
 
         // Machine Load (Capacity Planning)
         Route::get('/machine-load', [\App\Http\Controllers\Production\MachineLoadController::class, 'index'])->name('machine-load.index');

@@ -129,6 +129,11 @@ class ProductionOrder extends Model
         return $this->hasMany(ProductionDowntime::class, 'production_order_id');
     }
 
+    public function additionalMaterialRequests()
+    {
+        return $this->hasMany(ProductionMaterialRequest::class, 'production_order_id');
+    }
+
     public function getTotalDowntimeMinutesAttribute()
     {
         return $this->downtimes()->sum('duration_minutes') ?? 0;

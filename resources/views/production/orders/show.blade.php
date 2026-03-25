@@ -194,6 +194,15 @@
                     </div>
                 @endif
 
+                <div class="p-4 bg-indigo-50 rounded border border-indigo-200 mb-4">
+                    <h4 class="font-medium mb-2">Additional Material Request</h4>
+                    <p class="text-sm text-indigo-800 mb-3">Ajukan material tambahan di luar kebutuhan standar WO, misalnya untuk shortage, rework, trial, atau kebutuhan line aktual.</p>
+                    <a href="{{ route('production.material-request.create', ['production_order_id' => $order->id]) }}"
+                        class="inline-flex w-full items-center justify-center rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
+                        Create Additional Request
+                    </a>
+                </div>
+
                 @if(in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold', 'released'], true) && !empty($order->material_request_lines))
                     <div class="p-4 bg-emerald-50 rounded border border-emerald-200 mb-4">
                         <h4 class="font-medium mb-2">2. WH Supply to Production</h4>
