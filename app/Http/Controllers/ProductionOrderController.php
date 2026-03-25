@@ -17,6 +17,94 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductionOrderController extends Controller
 {
+    public function warehouseSupplyIndex(Request $request)
+    {
+        $month = trim((string) $request->query('month', ''));
+        $supplyStatus = trim((string) $request->query('supply_status', ''));
+        $q = trim((string) $request->query('q', ''));
+
+        $query = ProductionOrder::query()
+            ->with(['part', 'materialIssuer', 'materialHandoverUser'])
+            ->where(function ($builder) {
+                $builder->whereNotNull('material_requested_at')
+                    ->orWhereNotNull('material_issued_at');
+            })
+            ->orderByDesc('plan_date')
+            ->orderByDesc('id');
+
+        if ($month !== '' && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $query->whereYear('plan_date', substr($month, 0, 4))
+                ->whereMonth('plan_date', substr($month, 5, 2));
+        }
+
+        if ($supplyStatus === 'pending') {
+            $query->whereNotNull('material_requested_at')
+                ->whereNull('material_issued_at');
+        } elseif ($supplyStatus === 'supplied') {
+            $query->whereNotNull('material_issued_at');
+        } elseif ($supplyStatus === 'handed_over') {
+            $query->whereNotNull('material_handed_over_at');
+        }
+
+        if ($q !== '') {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('production_order_number', 'like', '%' . $q . '%')
+                    ->orWhere('transaction_no', 'like', '%' . $q . '%')
+                    ->orWhereHas('part', function ($partQuery) use ($q) {
+                        $partQuery->where('part_no', 'like', '%' . $q . '%')
+                            ->orWhere('part_name', 'like', '%' . $q . '%');
+                    });
+            });
+        }
+
+        $orders = $query->paginate(15)->withQueryString();
+
+        return view('production.supply.wh-to-production-index', compact('orders', 'month', 'supplyStatus', 'q'));
+    }
+
+    public function productionSupplyWhIndex(Request $request)
+    {
+        $month = trim((string) $request->query('month', ''));
+        $supplyStatus = trim((string) $request->query('supply_status', ''));
+        $q = trim((string) $request->query('q', ''));
+
+        $query = ProductionOrder::query()
+            ->with(['part', 'fgSupplier'])
+            ->where(function ($builder) {
+                $builder->whereNotNull('kanban_updated_at')
+                    ->orWhereNotNull('fg_supplied_to_wh_at');
+            })
+            ->orderByDesc('plan_date')
+            ->orderByDesc('id');
+
+        if ($month !== '' && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $query->whereYear('plan_date', substr($month, 0, 4))
+                ->whereMonth('plan_date', substr($month, 5, 2));
+        }
+
+        if ($supplyStatus === 'pending') {
+            $query->whereNotNull('kanban_updated_at')
+                ->whereNull('fg_supplied_to_wh_at');
+        } elseif ($supplyStatus === 'supplied') {
+            $query->whereNotNull('fg_supplied_to_wh_at');
+        }
+
+        if ($q !== '') {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('production_order_number', 'like', '%' . $q . '%')
+                    ->orWhere('transaction_no', 'like', '%' . $q . '%')
+                    ->orWhereHas('part', function ($partQuery) use ($q) {
+                        $partQuery->where('part_no', 'like', '%' . $q . '%')
+                            ->orWhere('part_name', 'like', '%' . $q . '%');
+                    });
+            });
+        }
+
+        $orders = $query->paginate(15)->withQueryString();
+
+        return view('production.supply.production-to-wh-index', compact('orders', 'month', 'supplyStatus', 'q'));
+    }
+
     public function index(Request $request)
     {
         $dateFrom = $request->query('date_from');

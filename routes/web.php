@@ -490,6 +490,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-request/create', [\App\Http\Controllers\Production\MaterialRequestController::class, 'create'])->name('material-request.create');
         Route::post('/material-request', [\App\Http\Controllers\Production\MaterialRequestController::class, 'store'])->name('material-request.store');
         Route::get('/material-request/{materialRequest}', [\App\Http\Controllers\Production\MaterialRequestController::class, 'show'])->name('material-request.show');
+        Route::get('/warehouse-supply', [\App\Http\Controllers\ProductionOrderController::class, 'warehouseSupplyIndex'])->name('warehouse-supply.index');
+        Route::get('/production-supply-wh', [\App\Http\Controllers\ProductionOrderController::class, 'productionSupplyWhIndex'])->name('production-supply-wh.index');
 
         // Machine Load (Capacity Planning)
         Route::get('/machine-load', [\App\Http\Controllers\Production\MachineLoadController::class, 'index'])->name('machine-load.index');
