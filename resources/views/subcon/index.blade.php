@@ -89,6 +89,7 @@
                     <thead class="bg-slate-50">
                         <tr>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Order No</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Vendor</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Part</th>
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Process</th>
@@ -106,6 +107,7 @@
                                 <td class="px-4 py-3 font-mono font-bold text-indigo-600">
                                     <a href="{{ route('subcon.show', $order) }}">{{ $order->order_no }}</a>
                                 </td>
+                                <td class="px-4 py-3 text-slate-700 font-semibold">{{ $order->contract_no ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-700">{{ $order->vendor->vendor_name ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-700">
                                     {{ $order->gciPart->part_name ?? '-' }}
@@ -142,7 +144,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
+                                <td colspan="11" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -218,6 +218,7 @@
                 <table class="w-full text-sm divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Time</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Type</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Location</th>
@@ -228,6 +229,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @foreach ($traceability as $move)
                             <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 text-slate-700 font-semibold">{{ $subconOrder->contract_no ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-700">{{ $move->adjusted_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold {{
