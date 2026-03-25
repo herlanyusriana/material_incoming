@@ -12,6 +12,7 @@ use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class SubconController extends Controller
@@ -52,7 +53,11 @@ class SubconController extends Controller
 
     public function create()
     {
-        $vendors = Vendor::orderBy('vendor_name')->get(['id', 'vendor_name', 'vendor_code']);
+        $vendorColumns = ['id', 'vendor_name'];
+        if (Schema::hasColumn('vendors', 'vendor_code')) {
+            $vendorColumns[] = 'vendor_code';
+        }
+        $vendors = Vendor::orderBy('vendor_name')->get($vendorColumns);
 
         // Get WIP parts that are used in BOM items with special='T'
         $subconParts = BomItem::where('special', 'T')

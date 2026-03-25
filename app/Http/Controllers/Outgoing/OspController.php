@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BomItem;
 use App\Models\Customer;
 use App\Models\GciPart;
+use App\Models\LocationInventory;
 use App\Models\OspOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -139,11 +140,34 @@ class OspController extends Controller
             'shipped_date' => 'required|date',
         ]);
 
-        $ospOrder->update([
-            'qty_shipped' => $validated['qty_shipped'],
-            'shipped_date' => $validated['shipped_date'],
-            'status' => 'shipped',
-        ]);
+        $qtyShipped = (float) $validated['qty_shipped'];
+        $qtyAvailableForOsp = (float) $ospOrder->qty_received_material;
+        if ($qtyShipped > $qtyAvailableForOsp) {
+            return back()->with('error', 'Qty outgoing OSP melebihi qty dokumen OSP.');
+        }
+
+        $defaultLocation = strtoupper(trim((string) ($ospOrder->gciPart?->default_location ?? '')));
+        if ($defaultLocation === '') {
+            return back()->with('error', 'Default location FG belum diset. OSP outgoing tidak bisa memotong inventory.');
+        }
+
+        DB::transaction(function () use ($ospOrder, $qtyShipped, $validated, $defaultLocation) {
+            LocationInventory::consumeStock(
+                null,
+                $defaultLocation,
+                $qtyShipped,
+                null,
+                (int) $ospOrder->gci_part_id,
+                'OSP_OUTGOING',
+                $ospOrder->order_no
+            );
+
+            $ospOrder->update([
+                'qty_shipped' => $qtyShipped,
+                'shipped_date' => $validated['shipped_date'],
+                'status' => 'shipped',
+            ]);
+        });
 
         return back()->with('success', 'Order marked as shipped.');
     }

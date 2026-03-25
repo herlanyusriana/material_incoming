@@ -40,7 +40,7 @@
                         <option value="">Select Vendor</option>
                         @foreach ($vendors as $v)
                             <option value="{{ $v->id }}" @selected(old('vendor_id') == $v->id)>
-                                {{ $v->vendor_code }} — {{ $v->vendor_name }}
+                                {{ !empty($v->vendor_code) ? $v->vendor_code . ' - ' : '' }}{{ $v->vendor_name }}
                             </option>
                         @endforeach
                     </select>
@@ -141,3 +141,4 @@
         }
     </script>
 @endsection
+
