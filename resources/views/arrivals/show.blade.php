@@ -197,6 +197,14 @@
                                 </span>
 		                    </div>
 	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Nomor PEN:</span>
+	                        <span class="text-slate-900">{{ $arrival->pen_no ?: '-' }}</span>
+	                    </div>
+	                    <div class="flex items-start gap-2">
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">Nomor AJU:</span>
+	                        <span class="text-slate-900">{{ $arrival->aju_no ?: '-' }}</span>
+	                    </div>
+	                    <div class="flex items-start gap-2">
 	                        <span class="font-semibold text-slate-700 min-w-[100px]">Price Term:</span>
 	                        <span class="text-slate-900">{{ $arrival->price_term ?: '-' }}</span>
 	                    </div>

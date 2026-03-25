@@ -195,6 +195,18 @@
                             @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
+                            <label for="pen_no" class="text-sm font-medium text-gray-700">Nomor PEN</label>
+                            <input type="text" id="pen_no" name="pen_no" value="{{ old('pen_no') }}" placeholder="Nomor PEN"
+                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            @error('pen_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="space-y-1">
+                            <label for="aju_no" class="text-sm font-medium text-gray-700">Nomor AJU</label>
+                            <input type="text" id="aju_no" name="aju_no" value="{{ old('aju_no') }}" placeholder="Nomor AJU"
+                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            @error('aju_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="space-y-1">
                             <label for="bl_status" class="text-sm font-medium text-gray-700">Bill of Lading
                                 Status</label>
                             <select id="bl_status" name="bl_status"

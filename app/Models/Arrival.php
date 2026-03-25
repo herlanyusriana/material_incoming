@@ -24,6 +24,8 @@ class Arrival extends Model
         'ETA',
         'ETA_GCI',
         'bill_of_lading',
+        'pen_no',
+        'aju_no',
         'bill_of_lading_status',
         'bill_of_lading_file',
         'delivery_note_file',
