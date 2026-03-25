@@ -52,10 +52,21 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($orders as $order)
+                        @php
+                            $woLabel = $order->production_order_number ?: ($order->transaction_no ?: ('WO#' . $order->id));
+                        @endphp
                         <tr class="hover:bg-slate-50">
                             <td class="px-6 py-4">
-                                <div class="font-semibold text-slate-900">{{ $order->production_order_number }}</div>
-                                <div class="text-xs text-slate-500">{{ $order->transaction_no ?: '-' }}</div>
+                                <div class="font-semibold text-slate-900">{{ $woLabel }}</div>
+                                <div class="text-xs text-slate-500">
+                                    @if($order->production_order_number && $order->transaction_no)
+                                        {{ $order->transaction_no }}
+                                    @elseif($order->production_order_number)
+                                        Transaction No belum ada
+                                    @else
+                                        {{ $order->transaction_no ? 'Transaction No: ' . $order->transaction_no : 'Fallback WO dari ID order' }}
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="font-semibold text-slate-900">{{ $order->part?->part_no ?? '-' }}</div>
