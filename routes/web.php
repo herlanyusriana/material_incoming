@@ -569,6 +569,7 @@ Route::middleware('auth')->group(function () {
 
         // Final Inspection & Kanban Update
         Route::get('/final-inspection', [\App\Http\Controllers\Production\FinalInspectionController::class, 'index'])->name('final-inspection.index');
+        Route::get('/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanIndex'])->name('kanban-update.index');
         Route::get('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'show'])->name('final-inspection.show');
         Route::put('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'update'])->name('final-inspection.update');
         Route::post('/final-inspection/{order}/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanUpdate'])->name('final-inspection.kanban-update');

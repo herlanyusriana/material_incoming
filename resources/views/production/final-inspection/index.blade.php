@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        Final Inspection & Kanban Update
+        {{ $pageTitle ?? 'Final Inspection & Kanban Update' }}
     </x-slot>
 
     <div class="space-y-6">
         <div class="flex justify-between items-center">
             <div>
-                <h2 class="text-xl font-semibold text-slate-800">Final Inspections</h2>
-                <p class="mt-1 text-sm text-slate-500">Daftar WO yang sudah finish production dan masuk tahap final inspection sebelum kanban update.</p>
+                <h2 class="text-xl font-semibold text-slate-800">{{ $pageTitle ?? 'Final Inspections' }}</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ $pageDescription ?? 'Daftar WO final inspection.' }}</p>
             </div>
         </div>
 
@@ -25,17 +25,28 @@
 
         <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600">Status</label>
-                    <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
-                        <option value="">All</option>
-                        <option value="pending" @selected($status === 'pending')>Pending</option>
-                        <option value="pass" @selected($status === 'pass')>Pass</option>
-                        <option value="fail" @selected($status === 'fail')>Fail</option>
-                    </select>
-                </div>
+                @if(($mode ?? 'inspection') === 'kanban')
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600">Kanban Status</label>
+                        <select name="kanban_status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                            <option value="">All</option>
+                            <option value="pending" @selected(($kanbanStatus ?? 'pending') === 'pending')>Pending Update</option>
+                            <option value="updated" @selected(($kanbanStatus ?? '') === 'updated')>Updated</option>
+                        </select>
+                    </div>
+                @else
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600">Status</label>
+                        <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                            <option value="">All</option>
+                            <option value="pending" @selected($status === 'pending')>Pending</option>
+                            <option value="pass" @selected($status === 'pass')>Pass</option>
+                            <option value="fail" @selected($status === 'fail')>Fail</option>
+                        </select>
+                    </div>
+                @endif
                 <div class="flex gap-2">
-                    <a href="{{ route('production.final-inspection.index') }}" class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
+                    <a href="{{ ($mode ?? 'inspection') === 'kanban' ? route('production.kanban-update.index') : route('production.final-inspection.index') }}" class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
                     <button class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800">Apply</button>
                 </div>
             </div>
@@ -88,7 +99,7 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <a href="{{ route('production.final-inspection.show', $inspection) }}" class="text-indigo-600 hover:text-indigo-900 font-medium text-xs uppercase tracking-wide">
-                                    {{ $inspection->status === 'pending' ? 'Inspect' : 'View / Update Kanban' }}
+                                    {{ ($mode ?? 'inspection') === 'kanban' ? 'Open Kanban' : ($inspection->status === 'pending' ? 'Inspect' : 'View / Update Kanban') }}
                                 </a>
                             </td>
                         </tr>
