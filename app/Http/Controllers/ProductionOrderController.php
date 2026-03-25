@@ -210,6 +210,7 @@ class ProductionOrderController extends Controller
             'materialIssuer',
             'materialHandoverUser',
             'fgSupplier',
+            'fgHandoverUser',
             'mrpRun',
             'dailyPlanCell.row.plan',
             'arrivals',

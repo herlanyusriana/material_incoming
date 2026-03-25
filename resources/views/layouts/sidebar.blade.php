@@ -335,6 +335,10 @@
                                     <span @class([$subDotBase, 'bg-cyan-600' => request()->routeIs('production.production-supply-wh.*'), 'bg-slate-300 group-hover:bg-cyan-400' => !request()->routeIs('production.production-supply-wh.*')])></span>
                                     <span class="flex-1">Production Supply to WH</span>
                                 </a>
+                                <a href="{{ route('production.final-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.final-inspection.*'), $subInactive => !request()->routeIs('production.final-inspection.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-orange-600' => request()->routeIs('production.final-inspection.*'), 'bg-slate-300 group-hover:bg-orange-400' => !request()->routeIs('production.final-inspection.*')])></span>
+                                    <span class="flex-1">Final Inspection</span>
+                                </a>
 
                                 {{-- Monitoring Section --}}
                                 <div class="pt-2 mt-2 border-t border-slate-200">
@@ -1046,6 +1050,10 @@
                             <a href="{{ route('production.production-supply-wh.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.production-supply-wh.*'), $subInactive => !request()->routeIs('production.production-supply-wh.*')])>
                                 <span @class([$subDotBase, 'bg-cyan-600' => request()->routeIs('production.production-supply-wh.*'), 'bg-slate-300 group-hover:bg-cyan-400' => !request()->routeIs('production.production-supply-wh.*')])></span>
                                 <span class="flex-1">Production Supply to WH</span>
+                            </a>
+                            <a href="{{ route('production.final-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.final-inspection.*'), $subInactive => !request()->routeIs('production.final-inspection.*')])>
+                                <span @class([$subDotBase, 'bg-orange-600' => request()->routeIs('production.final-inspection.*'), 'bg-slate-300 group-hover:bg-orange-400' => !request()->routeIs('production.final-inspection.*')])></span>
+                                <span class="flex-1">Final Inspection</span>
                             </a>
                             <a href="{{ route('production.machine-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.machine-load.*'), $subInactive => !request()->routeIs('production.machine-load.*')])>
                                 <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.machine-load.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.machine-load.*')])></span>

@@ -8,6 +8,13 @@
         @endif
     </x-slot>
 
+    @php
+        $finalInspection = $order->inspections
+            ->where('type', 'final')
+            ->sortByDesc('id')
+            ->first();
+    @endphp
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left: Order Details & Workflow Actions -->
         <div class="space-y-6">
@@ -259,9 +266,37 @@
                 @endif
 
                 @if($order->workflow_stage == 'final_inspection')
-                    <div class="p-4 bg-slate-50 rounded border mb-4">
+                    <div class="p-4 bg-orange-50 rounded border border-orange-200 mb-4">
                         <h4 class="font-medium mb-2">4. Final Inspection</h4>
-                        <p class="text-sm text-gray-600">Complete Final Inspection, then do Kanban Update.</p>
+                        @if($finalInspection)
+                            <div class="space-y-2 text-sm">
+                                <p class="text-orange-800">
+                                    Status:
+                                    <span class="font-semibold uppercase">{{ $finalInspection->status ?? 'pending' }}</span>
+                                </p>
+                                <p class="text-orange-700">
+                                    Inspector:
+                                    <span class="font-semibold">{{ $finalInspection->inspector?->name ?? '-' }}</span>
+                                </p>
+                                <p class="text-orange-700">
+                                    Inspected at:
+                                    <span class="font-semibold">{{ $finalInspection->inspected_at?->format('d M Y H:i') ?? '-' }}</span>
+                                </p>
+                                @if($finalInspection->notes)
+                                    <p class="text-orange-700">Catatan: {{ $finalInspection->notes }}</p>
+                                @endif
+                            </div>
+                            <a href="{{ route('production.final-inspection.show', $finalInspection) }}"
+                                class="mt-3 inline-flex w-full items-center justify-center rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">
+                                Open Final Inspection
+                            </a>
+                        @else
+                            <p class="text-sm text-orange-800 mb-3">Final Inspection belum dibuat untuk WO ini.</p>
+                            <a href="{{ route('production.final-inspection.index') }}"
+                                class="inline-flex w-full items-center justify-center rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">
+                                Open Final Inspection List
+                            </a>
+                        @endif
                     </div>
                 @endif
 
@@ -836,6 +871,58 @@
                         <div class="p-6 text-center text-gray-500 italic">No inspections recorded yet.</div>
                     @endforelse
                 </div>
+
+                @if($finalInspection)
+                    <div class="bg-white border rounded-lg shadow-sm p-6">
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold">Final Inspection</h3>
+                                <p class="text-sm text-gray-500">Status inspeksi final untuk WO ini.</p>
+                            </div>
+                            <a href="{{ route('production.final-inspection.show', $finalInspection) }}"
+                                class="inline-flex items-center justify-center rounded bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">
+                                Open Inspection Form
+                            </a>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                            <div class="rounded-lg border p-4 bg-slate-50">
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Status</div>
+                                <div class="mt-1">
+                                    @php
+                                        $inspectionStatus = strtolower((string) ($finalInspection->status ?? 'pending'));
+                                        $inspectionClass = match($inspectionStatus) {
+                                            'pass' => 'bg-emerald-100 text-emerald-700',
+                                            'fail' => 'bg-rose-100 text-rose-700',
+                                            default => 'bg-amber-100 text-amber-700',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $inspectionClass }}">
+                                        {{ strtoupper($inspectionStatus) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="rounded-lg border p-4 bg-slate-50">
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Inspector</div>
+                                <div class="mt-1 font-semibold text-slate-900">{{ $finalInspection->inspector?->name ?? '-' }}</div>
+                            </div>
+                            <div class="rounded-lg border p-4 bg-slate-50">
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Inspected At</div>
+                                <div class="mt-1 font-semibold text-slate-900">{{ $finalInspection->inspected_at?->format('d M Y H:i') ?? '-' }}</div>
+                            </div>
+                            <div class="rounded-lg border p-4 bg-slate-50">
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Inspected Qty</div>
+                                <div class="mt-1 font-semibold text-slate-900">{{ number_format((float) ($finalInspection->inspected_qty ?? 0), 2) }}</div>
+                            </div>
+                        </div>
+
+                        @if($finalInspection->notes)
+                            <div class="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800">
+                                {{ $finalInspection->notes }}
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
 
         </div>

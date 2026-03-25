@@ -5,7 +5,10 @@
 
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-slate-800">Final Inspections</h2>
+            <div>
+                <h2 class="text-xl font-semibold text-slate-800">Final Inspections</h2>
+                <p class="mt-1 text-sm text-slate-500">Daftar WO yang sudah finish production dan masuk tahap final inspection sebelum kanban update.</p>
+            </div>
         </div>
 
         @if(session('success'))

@@ -21,6 +21,9 @@ class FinalInspectionController extends Controller
         $query = ProductionInspection::query()
             ->with(['productionOrder.part', 'inspector'])
             ->where('type', 'final')
+            ->whereHas('productionOrder', function ($orderQuery) {
+                $orderQuery->whereIn('workflow_stage', ['final_inspection', 'kanban_update', 'warehouse_supply', 'finished']);
+            })
             ->when($status !== '', fn($q) => $q->where('status', $status))
             ->latest();
         
