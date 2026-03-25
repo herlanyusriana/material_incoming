@@ -46,6 +46,14 @@
                     </select>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Nomor Kontrak <span class="text-red-500">*</span></label>
+                    <input type="text" name="contract_no" required value="{{ old('contract_no') }}"
+                        class="w-full rounded-lg border-slate-300 text-sm uppercase focus:border-indigo-500 focus:ring-indigo-500"
+                        placeholder="Masukkan nomor kontrak vendor/subcon" />
+                    <p class="mt-1 text-xs text-slate-500">Wajib diisi saat WH kirim ke vendor.</p>
+                </div>
+
                 {{-- WIP Part --}}
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">WIP Part <span class="text-red-500">*</span></label>
@@ -110,7 +118,7 @@
                 <div class="flex gap-3">
                     <button type="submit"
                         class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
-                        Create Order
+                        Create WH Send
                     </button>
                     <a href="{{ route('subcon.index') }}"
                         class="rounded-lg bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">

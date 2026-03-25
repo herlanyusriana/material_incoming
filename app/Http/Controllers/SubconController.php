@@ -86,6 +86,7 @@ class SubconController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'contract_no' => 'required|string|max:100',
             'vendor_id' => ['required', Rule::exists('vendors', 'id')->where(fn ($q) => $q->where('vendor_type', 'tolling'))],
             'gci_part_id' => 'required|exists:gci_parts,id',
             'bom_item_id' => 'nullable|exists:bom_items,id',
@@ -109,6 +110,7 @@ class SubconController extends Controller
                     ? ((int) substr($lastOrder->order_no, -3)) + 1
                     : 1;
                 $validated['order_no'] = sprintf('SC-%s-%03d', $today, $seq);
+                $validated['contract_no'] = strtoupper(trim((string) $validated['contract_no']));
                 $validated['status'] = 'sent';
                 $validated['created_by'] = Auth::id();
                 $validated['send_location_code'] = strtoupper(trim((string) $validated['send_location_code']));

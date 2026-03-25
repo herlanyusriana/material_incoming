@@ -11,6 +11,7 @@ class SubconOrder extends Model
 
     protected $fillable = [
         'order_no',
+        'contract_no',
         'vendor_id',
         'gci_part_id',
         'bom_item_id',
