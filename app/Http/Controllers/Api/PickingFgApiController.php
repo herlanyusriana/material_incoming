@@ -117,10 +117,18 @@ class PickingFgApiController extends Controller
     {
         $request->validate(['part_no' => 'required|string', 'date' => 'required|date']);
 
-        $partNo = trim((string) $request->part_no);
-        $part = GciPart::where('part_no', $partNo)
-            ->orWhere('barcode', $partNo)
-            ->first();
+        $pickPartIds = OutgoingPickingFg::where('delivery_date', $request->date)
+            ->where('status', '!=', 'completed')
+            ->pluck('gci_part_id')
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $part = $this->resolveFgPartByCode((string) $request->part_no, $pickPartIds)
+            ?? $this->resolveFgPartByCode((string) $request->part_no);
+
         if (!$part) {
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
         }
@@ -407,27 +415,45 @@ class PickingFgApiController extends Controller
         ]);
 
         $locationCode = $this->parseLocationCode($request->location_code);
-        $partCode = strtoupper(trim($request->part_code));
+        $pendingPicks = OutgoingPickingFg::with('part')
+            ->where('delivery_order_id', $request->delivery_order_id)
+            ->where('delivery_date', $request->date)
+            ->where('status', '!=', 'completed')
+            ->get();
 
-        // Find part by barcode or part_no
-        $part = GciPart::where('barcode', $partCode)
-            ->orWhere('part_no', $partCode)
-            ->first();
-
-        if (!$part) {
+        if ($pendingPicks->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => "Part not found: {$partCode}",
+                'message' => 'No pending picks for this DO.',
             ], 404);
         }
 
-        // Check if this part has a pending pick in this DO
-        $pick = OutgoingPickingFg::where('delivery_order_id', $request->delivery_order_id)
-            ->where('delivery_date', $request->date)
-            ->where('gci_part_id', $part->id)
-            ->where('status', '!=', 'completed')
-            ->first();
+        $doPartIds = $pendingPicks->pluck('gci_part_id')
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
+        $part = $this->resolveFgPartByCode((string) $request->part_code, $doPartIds);
+
+        if (!$part) {
+            $globalPart = $this->resolveFgPartByCode((string) $request->part_code);
+
+            if ($globalPart) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Part {$globalPart->part_no} is not in this DO or already completed.",
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Part not found: ' . $this->parsePartCode($request->part_code),
+            ], 404);
+        }
+
+        $pick = $pendingPicks->firstWhere('gci_part_id', $part->id);
         if (!$pick) {
             return response()->json([
                 'success' => false,
@@ -502,10 +528,17 @@ class PickingFgApiController extends Controller
             'batch_no' => 'nullable|string|max:255',
         ]);
 
-        $partNo = strtoupper(trim((string) $request->part_no));
-        $part = GciPart::where('part_no', $partNo)
-            ->orWhere('barcode', $partNo)
-            ->first();
+        $doPartIds = OutgoingPickingFg::where('delivery_order_id', $request->delivery_order_id)
+            ->where('delivery_date', $request->date)
+            ->pluck('gci_part_id')
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $part = $this->resolveFgPartByCode((string) $request->part_no, $doPartIds)
+            ?? $this->resolveFgPartByCode((string) $request->part_no);
 
         if (!$part) {
             return response()->json(['success' => false, 'message' => 'Part not found'], 404);
@@ -645,5 +678,104 @@ class PickingFgApiController extends Controller
             }
         }
         return strtoupper($raw);
+    }
+
+    /**
+     * Parse part code from raw input (plain string or JSON QR payload).
+     */
+    private function parsePartCode(?string $raw): string
+    {
+        $raw = trim((string) $raw);
+        if (str_starts_with($raw, '{') && str_ends_with($raw, '}')) {
+            $json = json_decode($raw, true);
+            if (is_array($json)) {
+                $code = $json['part_no'] ?? $json['barcode'] ?? $json['code'] ?? null;
+                if ($code !== null) {
+                    $raw = (string) $code;
+                }
+            }
+        }
+
+        $raw = str_replace("\u{00A0}", ' ', $raw);
+
+        return strtoupper(trim($raw));
+    }
+
+    /**
+     * Resolve a FG part from a scanned code.
+     * Prefers exact barcode/part_no matches, then falls back to a loose normalized match.
+     */
+    private function resolveFgPartByCode(string $rawCode, array $allowedPartIds = []): ?GciPart
+    {
+        $rawCode = trim($rawCode);
+        $allowedPartIds = array_values(array_unique(array_map('intval', array_filter($allowedPartIds))));
+
+        if ($rawCode === '') {
+            return null;
+        }
+
+        if (str_starts_with($rawCode, '{') && str_ends_with($rawCode, '}')) {
+            $json = json_decode($rawCode, true);
+            if (is_array($json) && !empty($json['gci_part_id'])) {
+                $partById = GciPart::find((int) $json['gci_part_id']);
+                if ($partById && (empty($allowedPartIds) || in_array((int) $partById->id, $allowedPartIds, true))) {
+                    return $partById;
+                }
+            }
+        }
+
+        $partCode = $this->parsePartCode($rawCode);
+        if ($partCode === '') {
+            return null;
+        }
+
+        $baseQuery = GciPart::query();
+        if (!empty($allowedPartIds)) {
+            $baseQuery->whereIn('id', $allowedPartIds);
+        }
+
+        $exactMatch = (clone $baseQuery)
+            ->where(function ($query) use ($partCode) {
+                $query->whereRaw('UPPER(TRIM(part_no)) = ?', [$partCode])
+                    ->orWhereRaw('UPPER(TRIM(barcode)) = ?', [$partCode]);
+            })
+            ->orderByRaw(
+                'CASE WHEN UPPER(TRIM(barcode)) = ? THEN 0 WHEN UPPER(TRIM(part_no)) = ? THEN 1 ELSE 2 END',
+                [$partCode, $partCode]
+            )
+            ->first();
+
+        if ($exactMatch) {
+            return $exactMatch;
+        }
+
+        $looseCode = $this->normalizeLoosePartCode($partCode);
+        if ($looseCode === '') {
+            return null;
+        }
+
+        $normalizedBarcodeSql = $this->normalizedLooseSql('barcode');
+        $normalizedPartNoSql = $this->normalizedLooseSql('part_no');
+
+        return (clone $baseQuery)
+            ->where(function ($query) use ($looseCode, $normalizedBarcodeSql, $normalizedPartNoSql) {
+                $query->whereRaw("{$normalizedBarcodeSql} = ?", [$looseCode])
+                    ->orWhereRaw("{$normalizedPartNoSql} = ?", [$looseCode]);
+            })
+            ->orderByRaw(
+                "CASE WHEN {$normalizedBarcodeSql} = ? THEN 0 WHEN {$normalizedPartNoSql} = ? THEN 1 ELSE 2 END",
+                [$looseCode, $looseCode]
+            )
+            ->first();
+    }
+
+    private function normalizeLoosePartCode(string $code): string
+    {
+        return preg_replace('/[-\s\/._]+/', '', strtoupper(trim($code))) ?? '';
+    }
+
+    private function normalizedLooseSql(string $column): string
+    {
+        return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER(TRIM(COALESCE({$column}, ''))), '-', ''), ' ', ''), '/', ''), '.', ''), '_', '')";
     }
 }

@@ -8,48 +8,93 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Enforce data consistency: gci_part_id as single source of truth.
  *
- * 1. Cleanup gci_parts.part_name yang kosong/null → isi dari part_no
- * 2. Backfill gci_part_id yang NULL di semua tabel transaksi (resolve dari part_id)
- * 3. Tambah NOT NULL constraint di gci_part_id & part_name
+ * 1. Cleanup empty/null gci_parts.part_name values
+ * 2. Backfill missing gci_part_id values in transactional tables from part_id
+ * 3. Remove orphan records that still cannot be resolved
+ * 4. Tighten nullable constraints where possible
+ * 5. Resync gci_inventories from location_inventory
  */
 return new class extends Migration {
     public function up(): void
     {
-        // ═══════════════════════════════════════════════════════
-        // STEP 1: Cleanup gci_parts.part_name yang kosong
-        // ═══════════════════════════════════════════════════════
+        $driver = DB::getDriverName();
+
         DB::statement("
             UPDATE gci_parts
             SET part_name = part_no
             WHERE part_name IS NULL OR TRIM(part_name) = '' OR TRIM(part_name) = '-'
         ");
 
-        // ═══════════════════════════════════════════════════════
-        // STEP 2: Backfill gci_part_id di semua tabel transaksi
-        //         Resolve dari part_id → gci_part_vendor.gci_part_id
-        // ═══════════════════════════════════════════════════════
+        if ($driver === 'pgsql') {
+            DB::statement("
+                UPDATE location_inventory AS li
+                SET gci_part_id = gpv.gci_part_id
+                FROM gci_part_vendor AS gpv
+                WHERE gpv.id = li.part_id
+                  AND li.gci_part_id IS NULL
+                  AND li.part_id IS NOT NULL
+            ");
 
-        // location_inventory: backfill gci_part_id dari part_id
-        DB::statement("
-            UPDATE location_inventory AS li
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor AS gpv
-            WHERE gpv.id = li.part_id
-              AND li.gci_part_id IS NULL
-              AND li.part_id IS NOT NULL
-        ");
+            DB::statement("
+                UPDATE arrival_items AS ai
+                SET gci_part_id = gpv.gci_part_id
+                FROM gci_part_vendor AS gpv
+                WHERE gpv.id = ai.part_id
+                  AND ai.gci_part_id IS NULL
+                  AND ai.part_id IS NOT NULL
+            ");
 
-        // arrival_items: backfill gci_part_id dari part_id
-        DB::statement("
-            UPDATE arrival_items AS ai
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor AS gpv
-            WHERE gpv.id = ai.part_id
-              AND ai.gci_part_id IS NULL
-              AND ai.part_id IS NOT NULL
-        ");
+            DB::statement("
+                UPDATE bin_transfers AS bt
+                SET gci_part_id = gpv.gci_part_id
+                FROM gci_part_vendor AS gpv
+                WHERE gpv.id = bt.part_id
+                  AND bt.gci_part_id IS NULL
+                  AND bt.part_id IS NOT NULL
+            ");
 
-        // arrival_items: backfill gci_part_vendor_id dari part_id
+            DB::statement("
+                UPDATE location_inventory_adjustments AS lia
+                SET gci_part_id = gpv.gci_part_id
+                FROM gci_part_vendor AS gpv
+                WHERE gpv.id = lia.part_id
+                  AND lia.gci_part_id IS NULL
+                  AND lia.part_id IS NOT NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE location_inventory li
+                INNER JOIN gci_part_vendor gpv ON gpv.id = li.part_id
+                SET li.gci_part_id = gpv.gci_part_id
+                WHERE li.gci_part_id IS NULL
+                  AND li.part_id IS NOT NULL
+            ");
+
+            DB::statement("
+                UPDATE arrival_items ai
+                INNER JOIN gci_part_vendor gpv ON gpv.id = ai.part_id
+                SET ai.gci_part_id = gpv.gci_part_id
+                WHERE ai.gci_part_id IS NULL
+                  AND ai.part_id IS NOT NULL
+            ");
+
+            DB::statement("
+                UPDATE bin_transfers bt
+                INNER JOIN gci_part_vendor gpv ON gpv.id = bt.part_id
+                SET bt.gci_part_id = gpv.gci_part_id
+                WHERE bt.gci_part_id IS NULL
+                  AND bt.part_id IS NOT NULL
+            ");
+
+            DB::statement("
+                UPDATE location_inventory_adjustments lia
+                INNER JOIN gci_part_vendor gpv ON gpv.id = lia.part_id
+                SET lia.gci_part_id = gpv.gci_part_id
+                WHERE lia.gci_part_id IS NULL
+                  AND lia.part_id IS NOT NULL
+            ");
+        }
+
         DB::statement("
             UPDATE arrival_items
             SET gci_part_vendor_id = part_id
@@ -57,122 +102,84 @@ return new class extends Migration {
               AND part_id IS NOT NULL
         ");
 
-        // bin_transfers: backfill gci_part_id dari part_id
-        DB::statement("
-            UPDATE bin_transfers AS bt
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor AS gpv 
-            WHERE gpv.id = bt.part_id
-              AND bt.gci_part_id IS NULL
-              AND bt.part_id IS NOT NULL
-        ");
-
-        // location_inventory_adjustments: backfill gci_part_id dari part_id
-        DB::statement("
-            UPDATE location_inventory_adjustments AS lia
-            SET gci_part_id = gpv.gci_part_id
-            FROM gci_part_vendor AS gpv
-            WHERE gpv.id = lia.part_id
-              AND lia.gci_part_id IS NULL
-              AND lia.part_id IS NOT NULL
-        ");
-
-        // ═══════════════════════════════════════════════════════
-        // STEP 3: Hapus record yang masih NULL gci_part_id
-        //         (orphan data yang gak bisa di-resolve)
-        // ═══════════════════════════════════════════════════════
-
-        // Log orphan counts sebelum hapus
         $orphanLi = DB::table('location_inventory')->whereNull('gci_part_id')->count();
-        $orphanAi = DB::table('arrival_items')->whereNull('gci_part_id')->count();
-        $orphanBt = DB::table('bin_transfers')->whereNull('gci_part_id')->count();
-        $orphanLia = DB::table('location_inventory_adjustments')->whereNull('gci_part_id')->count();
 
         if ($orphanLi > 0) {
-            // Set qty ke 0 dulu supaya gak affect stock summary
             DB::table('location_inventory')->whereNull('gci_part_id')->update(['qty_on_hand' => 0]);
             DB::table('location_inventory')->whereNull('gci_part_id')->delete();
         }
 
-        // arrival_items, bin_transfers, adjustments: hapus orphan
         DB::table('arrival_items')->whereNull('gci_part_id')->delete();
         DB::table('bin_transfers')->whereNull('gci_part_id')->delete();
         DB::table('location_inventory_adjustments')->whereNull('gci_part_id')->delete();
 
-        // ═══════════════════════════════════════════════════════
-        // STEP 4: Enforce NOT NULL constraints
-        // ═══════════════════════════════════════════════════════
-
-        // gci_parts.part_name → NOT NULL dengan default part_no (or empty string)
         try {
-            DB::statement("ALTER TABLE gci_parts ALTER COLUMN part_name SET DEFAULT '', ALTER COLUMN part_name SET NOT NULL");
+            if ($driver === 'pgsql') {
+                DB::statement("ALTER TABLE gci_parts ALTER COLUMN part_name SET DEFAULT '', ALTER COLUMN part_name SET NOT NULL");
+            } else {
+                DB::statement("ALTER TABLE gci_parts MODIFY part_name VARCHAR(255) NOT NULL DEFAULT ''");
+            }
         } catch (\Throwable $e) {
-            // Probably already NOT NULL
+            // Ignore if the column is already aligned or the engine rejects the change.
         }
 
-        // location_inventory.gci_part_id → NOT NULL
-        // Perlu drop unique constraint dulu, alter, lalu recreate
         try {
             Schema::table('location_inventory', function (Blueprint $table) {
                 $table->unsignedBigInteger('gci_part_id')->nullable(false)->change();
             });
         } catch (\Throwable $e) {
-            // Mungkin sudah NOT NULL
+            // Ignore if already not-null or cannot be changed safely on this environment.
         }
 
-        // arrival_items.gci_part_id → NOT NULL
         try {
             Schema::table('arrival_items', function (Blueprint $table) {
                 $table->unsignedBigInteger('gci_part_id')->nullable(false)->change();
             });
         } catch (\Throwable $e) {
-            // Mungkin sudah NOT NULL
+            // Ignore if already not-null or cannot be changed safely on this environment.
         }
 
-        // bin_transfers.gci_part_id → NOT NULL
         try {
             Schema::table('bin_transfers', function (Blueprint $table) {
                 $table->unsignedBigInteger('gci_part_id')->nullable(false)->change();
             });
         } catch (\Throwable $e) {
-            // Mungkin sudah NOT NULL
+            // Ignore if already not-null or cannot be changed safely on this environment.
         }
 
-        // location_inventory_adjustments.gci_part_id → NOT NULL
         try {
             Schema::table('location_inventory_adjustments', function (Blueprint $table) {
                 $table->unsignedBigInteger('gci_part_id')->nullable(false)->change();
             });
         } catch (\Throwable $e) {
-            // Mungkin sudah NOT NULL
+            // Ignore if already not-null or cannot be changed safely on this environment.
         }
 
-        // ═══════════════════════════════════════════════════════
-        // STEP 5: Sync gci_inventories dari location_inventory
-        //         Supaya summary inventory konsisten
-        // ═══════════════════════════════════════════════════════
-        DB::statement("
-            INSERT INTO gci_inventories (gci_part_id, on_hand, on_order, as_of_date, created_at, updated_at)
-            SELECT
-                li.gci_part_id,
-                SUM(li.qty_on_hand),
-                0,
-                CURRENT_DATE,
-                NOW(),
-                NOW()
-            FROM location_inventory li
-            WHERE li.gci_part_id IS NOT NULL
-            GROUP BY li.gci_part_id
-            ON CONFLICT (gci_part_id) DO UPDATE SET
-                on_hand = EXCLUDED.on_hand,
-                as_of_date = EXCLUDED.as_of_date,
-                updated_at = EXCLUDED.updated_at
-        ");
+        $inventoryRows = DB::table('location_inventory as li')
+            ->selectRaw('li.gci_part_id, SUM(li.qty_on_hand) as on_hand')
+            ->whereNotNull('li.gci_part_id')
+            ->groupBy('li.gci_part_id')
+            ->get();
+
+        $now = now();
+        $today = $now->toDateString();
+
+        foreach ($inventoryRows as $row) {
+            DB::table('gci_inventories')->updateOrInsert(
+                ['gci_part_id' => $row->gci_part_id],
+                [
+                    'on_hand' => $row->on_hand,
+                    'on_order' => 0,
+                    'as_of_date' => $today,
+                    'updated_at' => $now,
+                    'created_at' => $now,
+                ]
+            );
+        }
     }
 
     public function down(): void
     {
-        // Revert NOT NULL constraints back to NULLABLE
         Schema::table('gci_parts', function (Blueprint $table) {
             $table->string('part_name', 255)->nullable()->default(null)->change();
         });
