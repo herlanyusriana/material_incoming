@@ -46,7 +46,10 @@ class SubconController extends Controller
             coalesce(sum(case when status in ('sent','partial') then qty_sent - qty_received - qty_rejected else 0 end), 0) as total_outstanding
         ")->first();
 
-        $vendors = Vendor::orderBy('vendor_name')->get(['id', 'vendor_name']);
+        $vendors = Vendor::query()
+            ->where('vendor_type', 'tolling')
+            ->orderBy('vendor_name')
+            ->get(['id', 'vendor_name']);
 
         return view('subcon.index', compact('orders', 'stats', 'vendors'));
     }
@@ -57,7 +60,10 @@ class SubconController extends Controller
         if (Schema::hasColumn('vendors', 'vendor_code')) {
             $vendorColumns[] = 'vendor_code';
         }
-        $vendors = Vendor::orderBy('vendor_name')->get($vendorColumns);
+        $vendors = Vendor::query()
+            ->where('vendor_type', 'tolling')
+            ->orderBy('vendor_name')
+            ->get($vendorColumns);
 
         // Get WIP parts that are used in BOM items with special='T'
         $subconParts = BomItem::where('special', 'T')
@@ -80,7 +86,7 @@ class SubconController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'vendor_id' => 'required|exists:vendors,id',
+            'vendor_id' => ['required', Rule::exists('vendors', 'id')->where(fn ($q) => $q->where('vendor_type', 'tolling'))],
             'gci_part_id' => 'required|exists:gci_parts,id',
             'bom_item_id' => 'nullable|exists:bom_items,id',
             'process_type' => 'required|string|max:50',
