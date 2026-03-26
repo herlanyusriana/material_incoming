@@ -210,9 +210,9 @@
             </tr>
 
             {{-- Items --}}
-            @foreach($delivery_note->items as $index => $item)
-                @php
-                    $price = $item->outgoingPoItem?->price ?? $item->customerPo?->price ?? 0;
+                @foreach($delivery_note->items as $index => $item)
+                    @php
+                    $price = $resolvedUnitPrices[$item->id] ?? $item->outgoingPoItem?->price ?? $item->customerPo?->price ?? 0;
                     $price = (float) $price;
                     $qty = (float) $item->qty;
                     $amount = $qty * $price;

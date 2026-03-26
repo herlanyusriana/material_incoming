@@ -8,6 +8,7 @@ use App\Models\BomItem;
 use App\Models\Customer;
 use App\Models\LocationInventory;
 use App\Models\OspOrder;
+use App\Models\PricingMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -325,13 +326,28 @@ class OspController extends Controller
             $bomItems = collect([$ospOrder->bomItem]);
         }
 
-        $lines = $bomItems->map(function (BomItem $item, int $index) use ($printQty) {
+        $resolvedCurrency = null;
+
+        $lines = $bomItems->map(function (BomItem $item, int $index) use ($printQty, $ospOrder, &$resolvedCurrency) {
             $incomingPart = $item->incomingPart;
             $fallbackPart = $item->componentPart;
             $partNo = (string) ($incomingPart?->part_no ?? $fallbackPart?->part_no ?? $item->component_part_no ?? '-');
             $partName = (string) ($incomingPart?->part_name ?? $fallbackPart?->part_name ?? $item->material_name ?? '-');
             $uom = (string) ($item->consumption_uom ?? $incomingPart?->uom ?? $fallbackPart?->uom ?? 'PCS');
-            $unitPrice = round((float) ($incomingPart?->price ?? 0), 3);
+            $pricing = PricingMaster::resolveCurrentPrice(
+                (int) ($incomingPart?->gci_part_id ?? $fallbackPart?->id ?? 0),
+                'osp_price',
+                ['customer_id' => $ospOrder->customer_id],
+                $ospOrder->shipped_date ?? $ospOrder->received_date
+            ) ?? PricingMaster::resolveCurrentPrice(
+                (int) ($incomingPart?->gci_part_id ?? $fallbackPart?->id ?? 0),
+                'purchase_price',
+                ['customer_id' => $ospOrder->customer_id],
+                $ospOrder->shipped_date ?? $ospOrder->received_date
+            );
+
+            $unitPrice = round((float) ($pricing?->price ?? $incomingPart?->price ?? 0), 3);
+            $resolvedCurrency = $resolvedCurrency ?: ($pricing?->currency ?? 'IDR');
             $requiredQty = round((float) ($item->net_required ?? $item->usage_qty ?? 0) * $printQty, 4);
 
             return [
@@ -359,7 +375,7 @@ class OspController extends Controller
             'deliveryNoteNo' => 'DN-OSP-' . $ospOrder->order_no,
             'packingListNo' => 'PL-OSP-' . $ospOrder->order_no,
             'invoiceNo' => 'INV-OSP-' . $ospOrder->order_no,
-            'currency' => 'IDR',
+            'currency' => $resolvedCurrency ?: 'IDR',
             'totalQty' => round((float) $lines->sum('qty'), 4),
             'totalAmount' => round((float) $lines->sum('amount'), 2),
         ];

@@ -9,6 +9,7 @@ use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
+use App\Models\PricingMaster;
 use App\Models\Driver;
 use App\Models\OutgoingPickingFg;
 use App\Models\Part;
@@ -540,6 +541,18 @@ class DeliveryNoteController extends Controller
         $year = $delivery_note->delivery_date->format('Y');
         $invoiceNo = "{$seq}/GCI-ACC/F/{$romanMonth}/{$year}";
 
-        return view('outgoing.delivery_notes.invoice', compact('delivery_note', 'invoiceNo'));
+        $resolvedUnitPrices = [];
+        foreach ($delivery_note->items as $item) {
+            $pricing = PricingMaster::resolveCurrentPrice(
+                (int) $item->gci_part_id,
+                'selling_price',
+                ['customer_id' => $delivery_note->customer_id],
+                $delivery_note->delivery_date
+            );
+
+            $resolvedUnitPrices[$item->id] = (float) ($pricing?->price ?? $item->outgoingPoItem?->price ?? $item->customerPo?->price ?? 0);
+        }
+
+        return view('outgoing.delivery_notes.invoice', compact('delivery_note', 'invoiceNo', 'resolvedUnitPrices'));
     }
 }
