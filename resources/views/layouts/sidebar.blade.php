@@ -108,15 +108,23 @@
                             </div>
                         </details>
 
-                        <a href="{{ route('pricing.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('pricing.*'), $navInactive => !request()->routeIs('pricing.*')]) @click="mobileSidebarOpen = false">
+                        <a href="{{ route('pricing.create') }}" @class([$navLinkBase, $navActive => request()->routeIs('pricing.create'), $navInactive => !request()->routeIs('pricing.create')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span class="ml-3">Pricing Add New</span>
+                        </a>
+
+                        <a href="{{ route('pricing.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('pricing.index'), $navInactive => !request()->routeIs('pricing.index')]) @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.29 7L12 12l8.71-5" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 22V12" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z" />
                             </svg>
-                            <span class="ml-3">Parts Master</span>
+                            <span class="ml-3">Pricing Master List</span>
                         </a>
 
                         <a href="{{ route('parts.index') }}" @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive]) @click="mobileSidebarOpen = false">
@@ -125,7 +133,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z" />
                             </svg>
-                            <span class="ml-3">Pricing Master</span>
+                            <span class="ml-3">Parts Master</span>
                         </a>
 
                         <a href="{{ route('planning.boms.index') }}" @class([$navLinkBase, $navActive => $bomsActive, $navInactive => !$bomsActive]) @click="mobileSidebarOpen = false">
@@ -852,13 +860,21 @@
                         <span x-show="!sidebarCollapsed" x-cloak>Parts Master</span>
                     </a>
 
-                    <a href="{{ route('pricing.index') }}" title="Pricing Master" @class([$navLinkBase, $navActive => request()->routeIs('pricing.*'), $navInactive => !request()->routeIs('pricing.*')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                    <a href="{{ route('pricing.create') }}" title="Pricing Add New" @class([$navLinkBase, $navActive => request()->routeIs('pricing.create'), $navInactive => !request()->routeIs('pricing.create')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>Pricing Add New</span>
+                    </a>
+
+                    <a href="{{ route('pricing.index') }}" title="Pricing Master List" @class([$navLinkBase, $navActive => request()->routeIs('pricing.index'), $navInactive => !request()->routeIs('pricing.index')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z" />
                         </svg>
-                        <span x-show="!sidebarCollapsed" x-cloak>Pricing Master</span>
+                        <span x-show="!sidebarCollapsed" x-cloak>Pricing Master List</span>
                     </a>
 
                     <a href="{{ route('planning.boms.index') }}" title="BOM Master" @class([$navLinkBase, $navActive => $bomsActive, $navInactive => !$bomsActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">

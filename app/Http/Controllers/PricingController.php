@@ -10,6 +10,11 @@ use Illuminate\Http\Request;
 
 class PricingController extends Controller
 {
+    public function create()
+    {
+        return view('pricing.create', $this->formData());
+    }
+
     public function index(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
@@ -41,14 +46,10 @@ class PricingController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('pricing.index', [
+        return view('pricing.index', array_merge($this->formData(), [
             'prices' => $prices,
-            'parts' => GciPart::where('status', 'active')->orderBy('classification')->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'classification']),
-            'vendors' => Vendor::where('status', 'active')->orderBy('vendor_name')->get(['id', 'vendor_name']),
-            'customers' => Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']),
-            'priceTypes' => PricingMaster::PRICE_TYPES,
             'filters' => compact('search', 'priceType', 'classification', 'status'),
-        ]);
+        ]));
     }
 
     public function store(Request $request)
@@ -95,5 +96,15 @@ class PricingController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
+    }
+
+    private function formData(): array
+    {
+        return [
+            'parts' => GciPart::where('status', 'active')->orderBy('classification')->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'classification']),
+            'vendors' => Vendor::where('status', 'active')->orderBy('vendor_name')->get(['id', 'vendor_name']),
+            'customers' => Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']),
+            'priceTypes' => PricingMaster::PRICE_TYPES,
+        ];
     }
 }

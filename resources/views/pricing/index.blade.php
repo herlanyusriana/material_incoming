@@ -31,96 +31,14 @@
         <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ $errors->first() }}</div>
     @endif
 
-    <div class="grid gap-6 xl:grid-cols-[1.1fr,2fr]">
-        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-100 px-6 py-4">
-                <h2 class="text-lg font-bold text-slate-900">Add Pricing</h2>
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Pricing Master List</h2>
             </div>
-            <form action="{{ route('pricing.store') }}" method="POST" class="space-y-4 p-6">
-                @csrf
-                <div>
-                    <label class="text-sm font-semibold text-slate-700">Part</label>
-                    <select name="gci_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                        <option value="">Select part...</option>
-                        @foreach($parts as $part)
-                            <option value="{{ $part->id }}">{{ $part->classification }} - {{ $part->part_no }} - {{ $part->part_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Price Type</label>
-                        <select name="price_type" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                            @foreach($priceTypes as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Currency</label>
-                        <input type="text" name="currency" value="IDR" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                    </div>
-                </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Vendor</label>
-                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                            <option value="">General / no vendor</option>
-                            @foreach($vendors as $vendor)
-                                <option value="{{ $vendor->id }}">{{ $vendor->vendor_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer</label>
-                        <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                            <option value="">General / no customer</option>
-                            @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="grid gap-4 md:grid-cols-3">
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Price</label>
-                        <input type="number" name="price" step="0.001" min="0" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">UOM</label>
-                        <input type="text" name="uom" class="mt-1 w-full rounded-xl border-slate-200 text-sm" placeholder="PCS / KG">
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Min Qty</label>
-                        <input type="number" name="min_qty" step="0.001" min="0" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                    </div>
-                </div>
-                <div class="grid gap-4 md:grid-cols-3">
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Effective From</label>
-                        <input type="date" name="effective_from" value="{{ now()->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Effective To</label>
-                        <input type="date" name="effective_to" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Status</label>
-                        <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-sm font-semibold text-slate-700">Notes</label>
-                    <textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border-slate-200 text-sm" placeholder="Optional notes"></textarea>
-                </div>
-                <button class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Save Pricing</button>
-            </form>
+            <a href="{{ route('pricing.create') }}" class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Add New Pricing</a>
         </div>
-
-        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="rounded-3xl bg-white shadow-sm">
             <div class="border-b border-slate-100 px-6 py-4">
                 <form method="GET" class="grid gap-3 lg:grid-cols-5">
                     <input name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="Search part, vendor, customer">
