@@ -272,8 +272,8 @@ class GciPartController extends Controller
 
         $customerIds = $request->input('customer_ids', []);
 
-        // Clear model & customer for RM parts
-        if ($validated['classification'] === 'RM') {
+        // Customer assignment only applies to FG. RM/WIP stay internal.
+        if (in_array($validated['classification'], ['RM', 'WIP'], true)) {
             $validated['model'] = null;
             $customerIds = [];
         }
@@ -355,7 +355,7 @@ class GciPartController extends Controller
 
         $customerIds = $request->input('customer_ids', []);
 
-        if ($validated['classification'] === 'RM') {
+        if (in_array($validated['classification'], ['RM', 'WIP'], true)) {
             $validated['model'] = null;
             $customerIds = [];
         }

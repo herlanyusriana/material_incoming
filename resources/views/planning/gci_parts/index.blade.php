@@ -220,7 +220,7 @@
                                     class="text-red-600">*</span></label>
                             <select name="classification" class="mt-1 w-full rounded-xl border-slate-200" required
                                 x-model="form.classification"
-                                @change="if (form.classification === 'RM') { form.customer_id = ''; form.model = ''; } else { form.vendor_ids = []; form.destination_fg_ids = []; }">
+                                @change="if (form.classification === 'RM' || form.classification === 'WIP') { form.customer_ids = []; form.model = ''; } else { form.vendor_ids = []; form.destination_fg_ids = []; }">
                                 <option value="FG">FG (Finished Goods)</option>
                                 <option value="WIP">WIP (Work in Progress)</option>
                                 <option value="RM">RM (Raw Materials)</option>
@@ -387,7 +387,7 @@
                         </div>
                     </div>
 
-                    <div x-show="form.classification === 'FG' || form.classification === 'WIP'" x-cloak>
+                    <div x-show="form.classification === 'FG'" x-cloak>
                         <label class="text-sm font-semibold text-slate-700">Assign Customers</label>
                         <div class="mt-1 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
                             @foreach($customers as $c)
