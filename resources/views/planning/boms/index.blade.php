@@ -517,6 +517,12 @@
                                                     'material_name' => $item->material_name,
                                                     'special' => $item->special,
                                                     'component_part_id' => $item->component_part_id,
+                                                    'component_part_label' => $item->componentPart?->part_no
+                                                        ? ($item->componentPart->part_no . ' - ' . ($item->componentPart->part_name ?? '-'))
+                                                        : ($item->component_part_no ?: '-'),
+                                                    'wip_part_label' => $item->wipPart?->part_no
+                                                        ? ($item->wipPart->part_no . ' - ' . ($item->wipPart->part_name ?? '-'))
+                                                        : ($item->wip_part_no ?: '-'),
                                                     'incoming_part_id' => $item->incoming_part_id,
                                                     'make_or_buy' => $item->make_or_buy,
                                                     'usage_qty' => $item->usage_qty,
@@ -565,9 +571,11 @@
                                                 'material_name' => null,
                                                 'special' => null,
                                                 'component_part_id' => null,
+                                                'component_part_label' => '',
                                                 'incoming_part_id' => null,
                                                 'make_or_buy' => 'buy',
                                                 'usage_qty' => 1,
+                                                'wip_part_label' => '',
                                             ]))">
                                             + Add Line
                                         </button>
@@ -869,13 +877,22 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div class="md:col-span-3">
                                     <label class="text-xs font-semibold text-slate-600">RM Part <span class="text-red-500">*</span></label>
-                                    <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.component_part_id" required>
-                                        <option value="">-- Pilih RM Part --</option>
-                                        @foreach (($rmParts ?? []) as $c)
-                                            <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
-                                        @endforeach
-                                    </select>
+                                    <template x-if="lineForm.mode === 'edit'">
+                                        <div>
+                                            <input type="hidden" name="component_part_id" :value="lineForm.component_part_id">
+                                            <div class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                                                x-text="lineForm.component_part_label || '-'"></div>
+                                        </div>
+                                    </template>
+                                    <template x-if="lineForm.mode !== 'edit'">
+                                        <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                            x-model="lineForm.component_part_id" required>
+                                            <option value="">-- Pilih RM Part --</option>
+                                            @foreach (($rmParts ?? []) as $c)
+                                                <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
+                                            @endforeach
+                                        </select>
+                                    </template>
                                 </div>
                             </div>
 
@@ -960,13 +977,22 @@
                                 </div>
                                 <div>
                                     <label class="text-xs font-semibold text-slate-600">WIP Part</label>
-                                    <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.wip_part_id">
-                                        <option value="">-</option>
-                                        @foreach(($wipParts ?? []) as $p)
-                                            <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} — {{ optional($p)->part_name ?? '-' }}</option>
-                                        @endforeach
-                                    </select>
+                                    <template x-if="lineForm.mode === 'edit'">
+                                        <div>
+                                            <input type="hidden" name="wip_part_id" :value="lineForm.wip_part_id">
+                                            <div class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                                                x-text="lineForm.wip_part_label || '-'"></div>
+                                        </div>
+                                    </template>
+                                    <template x-if="lineForm.mode !== 'edit'">
+                                        <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                            x-model="lineForm.wip_part_id">
+                                            <option value="">-</option>
+                                            @foreach(($wipParts ?? []) as $p)
+                                                <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} — {{ optional($p)->part_name ?? '-' }}</option>
+                                            @endforeach
+                                        </select>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -1029,6 +1055,7 @@
                             material_name: '',
                             special: '',
                             component_part_id: '',
+                            component_part_label: '',
                             incoming_part_id: '',
                             make_or_buy: 'buy',
                             usage_qty: '1',
@@ -1036,6 +1063,7 @@
                             wip_uom_id: '',
                             scrap_factor: 0,
                             yield_factor: 1,
+                            wip_part_label: '',
                         },
                         openCreate() { this.modalOpen = true; },
                         closeCreate() { this.modalOpen = false; },
@@ -1082,6 +1110,7 @@
                                 process_name: payload.process_name ?? '',
                                 machine_id: payload.machine_id ?? '',
                                 wip_part_id: payload.wip_part_id ?? '',
+                                wip_part_label: payload.wip_part_label ?? '',
                                 wip_qty: payload.wip_qty ?? '',
                                 wip_uom: payload.wip_uom ?? '',
                                 wip_part_name: payload.wip_part_name ?? '',
@@ -1090,6 +1119,7 @@
                                 material_name: payload.material_name ?? '',
                                 special: payload.special ?? '',
                                 component_part_id: payload.component_part_id ?? '',
+                                component_part_label: payload.component_part_label ?? '',
                                 incoming_part_id: payload.incoming_part_id ?? '',
                                 make_or_buy: payload.make_or_buy ?? 'buy',
                                 usage_qty: payload.usage_qty ?? '1',

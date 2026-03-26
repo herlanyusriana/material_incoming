@@ -520,12 +520,6 @@ class BomController extends Controller
             $componentPartNo = null;
         }
 
-        if ($componentPartId <= 0 && !$componentPartNo) {
-            return back()->withInput()->withErrors([
-                'component_part_id' => 'Component Part wajib diisi (pilih dari list atau isi Part No).',
-            ]);
-        }
-
         $incomingPartId = isset($validated['incoming_part_id']) ? (int) ($validated['incoming_part_id'] ?? 0) : 0;
 
         $payload = [
@@ -559,6 +553,21 @@ class BomController extends Controller
                 ->where('id', $bomItemId)
                 ->firstOrFail();
 
+            if ($componentPartId <= 0 && !$componentPartNo) {
+                $componentPartId = (int) ($item->component_part_id ?? 0);
+                $componentPartNo = $item->component_part_no ?: null;
+            }
+
+            if ($incomingPartId <= 0) {
+                $incomingPartId = (int) ($item->incoming_part_id ?? 0);
+            }
+
+            if (empty($validated['wip_part_id']) && !array_key_exists('wip_part_id', $validated)) {
+                $payload['wip_part_id'] = $item->wip_part_id;
+            } elseif (empty($validated['wip_part_id'])) {
+                $payload['wip_part_id'] = $item->wip_part_id;
+            }
+
             // If the edit form didn't provide any UOM selection, preserve existing values.
             // This avoids accidentally clearing legacy string-based UOMs when *_uom_id is empty.
             if ($consumptionUomId <= 0 && $consumptionUomCode === null) {
@@ -573,6 +582,12 @@ class BomController extends Controller
             ]));
 
             return back()->with('success', 'BOM line updated.');
+        }
+
+        if ($componentPartId <= 0 && !$componentPartNo) {
+            return back()->withInput()->withErrors([
+                'component_part_id' => 'Component Part wajib diisi (pilih dari list atau isi Part No).',
+            ]);
         }
 
         if ($payload['line_no'] === null) {
