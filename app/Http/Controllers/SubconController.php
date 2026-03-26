@@ -20,11 +20,28 @@ class SubconController extends Controller
 {
     public function index(Request $request)
     {
+        return $this->buildIndexResponse($request, 'receive');
+    }
+
+    public function receiveIndex(Request $request)
+    {
+        return $this->buildIndexResponse($request, 'receive');
+    }
+
+    public function traceabilityIndex(Request $request)
+    {
+        return $this->buildIndexResponse($request, 'traceability');
+    }
+
+    private function buildIndexResponse(Request $request, string $mode)
+    {
         $query = SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'creator'])
             ->orderByDesc('created_at');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        } elseif ($mode === 'receive') {
+            $query->whereIn('status', ['sent', 'partial']);
         }
         if ($request->filled('vendor_id')) {
             $query->where('vendor_id', $request->vendor_id);
@@ -34,6 +51,10 @@ class SubconController extends Controller
         }
         if ($request->filled('date_to')) {
             $query->where('sent_date', '<=', $request->date_to);
+        }
+
+        if ($mode === 'receive') {
+            $query->whereRaw('(qty_sent - qty_received - qty_rejected) > 0');
         }
 
         $orders = $query->paginate(25)->withQueryString();
@@ -52,7 +73,12 @@ class SubconController extends Controller
             ->orderBy('vendor_name')
             ->get(['id', 'vendor_name']);
 
-        return view('subcon.index', compact('orders', 'stats', 'vendors'));
+        $pageTitle = $mode === 'traceability' ? 'Subcon Traceability' : 'WH Receive Subcon';
+        $pageDescription = $mode === 'traceability'
+            ? 'Histori dan audit trail send / receive / reject untuk order subcon.'
+            : 'Daftar order subcon yang masih outstanding dan siap diterima kembali dari vendor.';
+
+        return view('subcon.index', compact('orders', 'stats', 'vendors', 'mode', 'pageTitle', 'pageDescription'));
     }
 
     public function create()

@@ -599,12 +599,12 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.create')])></span>
                                     <span class="flex-1">WH Send to Vendor</span>
                                 </a>
-                                <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
+                                <a href="{{ route('subcon.receive-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.receive-index'), $subInactive => !request()->routeIs('subcon.receive-index')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.receive-index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.receive-index')])></span>
                                     <span class="flex-1">WH Receive Subcon</span>
                                 </a>
-                                <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
+                                <a href="{{ route('subcon.traceability-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), $subInactive => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])></span>
                                     <span class="flex-1">Subcon Traceability</span>
                                 </a>
                             </div>
@@ -1330,12 +1330,12 @@
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.create')])></span>
                                 <span class="flex-1">WH Send to Vendor</span>
                             </a>
-                            <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
+                            <a href="{{ route('subcon.receive-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.receive-index'), $subInactive => !request()->routeIs('subcon.receive-index')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.receive-index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.receive-index')])></span>
                                 <span class="flex-1">WH Receive Subcon</span>
                             </a>
-                            <a href="{{ route('subcon.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), $subInactive => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.show') || request()->routeIs('subcon.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.show') || request()->routeIs('subcon.index'))])></span>
+                            <a href="{{ route('subcon.traceability-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), $subInactive => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])></span>
                                 <span class="flex-1">Subcon Traceability</span>
                             </a>
                         </div>

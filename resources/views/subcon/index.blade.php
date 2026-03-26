@@ -2,6 +2,11 @@
 
 @section('content')
     <div class="space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h1 class="text-2xl font-black text-slate-900">{{ $pageTitle ?? 'Subcon Orders' }}</h1>
+            <div class="mt-1 text-sm text-slate-600">{{ $pageDescription ?? 'Subcon order list.' }}</div>
+        </div>
+
         @if (session('success'))
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
                 {{ session('success') }}
@@ -40,7 +45,7 @@
         {{-- Filters --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col gap-4">
-                <form action="{{ route('subcon.index') }}" method="GET" class="flex flex-wrap items-end gap-3">
+                <form action="{{ ($mode ?? 'receive') === 'traceability' ? route('subcon.traceability-index') : route('subcon.receive-index') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
                         <select name="status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -73,6 +78,15 @@
                         class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">
                         Filter
                     </button>
+                    @if (($mode ?? 'receive') === 'receive')
+                        <a href="{{ route('subcon.receive-index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                            Reset
+                        </a>
+                    @else
+                        <a href="{{ route('subcon.traceability-index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                            Reset
+                        </a>
+                    @endif
                 </form>
             </div>
         </div>
@@ -140,7 +154,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <div class="flex items-center justify-center gap-2 text-xs">
-                                        <a href="{{ route('subcon.show', $order) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">View</a>
+                                        <a href="{{ route('subcon.show', $order) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">{{ ($mode ?? 'receive') === 'receive' ? 'Receive' : 'Trace' }}</a>
                                         <a href="{{ route('subcon.print-sj', $order) }}" target="_blank" class="font-semibold text-slate-600 hover:text-slate-900">SJ</a>
                                         <a href="{{ route('subcon.print-pl', $order) }}" target="_blank" class="font-semibold text-slate-600 hover:text-slate-900">PL</a>
                                         <a href="{{ route('subcon.print-invoice', $order) }}" target="_blank" class="font-semibold text-slate-600 hover:text-slate-900">INV</a>
