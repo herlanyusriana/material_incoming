@@ -207,7 +207,51 @@ class OutgoingController extends Controller
         }
 
         $plan = null;
-        DB::transaction(function () use ($import, $dateFrom, $dateTo, &$plan) {
+        $replacedDates = 0;
+        DB::transaction(function () use ($import, $dateFrom, $dateTo, &$plan, &$replacedDates) {
+            $affectedPlanIds = OutgoingDailyPlanCell::query()
+                ->join('outgoing_daily_plan_rows as rows', 'rows.id', '=', 'outgoing_daily_plan_cells.row_id')
+                ->whereBetween('outgoing_daily_plan_cells.plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->distinct()
+                ->pluck('rows.plan_id')
+                ->all();
+
+            $replacedDates = OutgoingDailyPlanCell::query()
+                ->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->distinct('plan_date')
+                ->count('plan_date');
+
+            OutgoingDailyPlanCell::query()
+                ->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->delete();
+
+            if (!empty($affectedPlanIds)) {
+                OutgoingDailyPlanRow::query()
+                    ->whereIn('plan_id', $affectedPlanIds)
+                    ->doesntHave('cells')
+                    ->delete();
+
+                foreach ($affectedPlanIds as $affectedPlanId) {
+                    $remainingDates = OutgoingDailyPlanCell::query()
+                        ->join('outgoing_daily_plan_rows as rows', 'rows.id', '=', 'outgoing_daily_plan_cells.row_id')
+                        ->where('rows.plan_id', $affectedPlanId)
+                        ->selectRaw('MIN(outgoing_daily_plan_cells.plan_date) as min_date, MAX(outgoing_daily_plan_cells.plan_date) as max_date')
+                        ->first();
+
+                    if (!$remainingDates || !$remainingDates->min_date || !$remainingDates->max_date) {
+                        OutgoingDailyPlan::query()->whereKey($affectedPlanId)->delete();
+                        continue;
+                    }
+
+                    OutgoingDailyPlan::query()
+                        ->whereKey($affectedPlanId)
+                        ->update([
+                            'date_from' => $remainingDates->min_date,
+                            'date_to' => $remainingDates->max_date,
+                        ]);
+                }
+            }
+
             $plan = OutgoingDailyPlan::create([
                 'date_from' => $dateFrom->toDateString(),
                 'date_to' => $dateTo->toDateString(),
@@ -237,6 +281,9 @@ class OutgoingController extends Controller
         });
 
         $msg = 'Daily planning berhasil diimport.';
+        if ($replacedDates > 0) {
+            $msg .= '<br><br><strong>Refresh Planning:</strong> tanggal planning lama yang overlap sudah di-reset dan diganti upload terbaru untuk ' . $replacedDates . ' hari.';
+        }
         if (!empty($import->createdParts)) {
             $msg .= '<br><br><strong>Info Unmapped Parts:</strong> ' . count($import->createdParts) . ' part tidak ter-mapping:<br>' . implode('<br>', array_slice($import->createdParts, 0, 10)) . (count($import->createdParts) > 10 ? '<br>...' : '');
         }
