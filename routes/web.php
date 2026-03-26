@@ -529,6 +529,9 @@ Route::middleware('auth')->group(function () {
         // WO Monitoring Dashboard (real-time)
         Route::get('/wo-monitoring', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'woMonitoring'])->name('wo-monitoring.index');
 
+        // Plant Performance Dashboard
+        Route::get('/plant-performance', [\App\Http\Controllers\Production\PlantPerformanceController::class, 'index'])->name('plant-performance.index');
+
         // Operator KPI Dashboard
         Route::get('/operator-kpi', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpi'])->name('operator-kpi.index');
         Route::get('/operator-kpi/data', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpiData'])->name('operator-kpi.data');
