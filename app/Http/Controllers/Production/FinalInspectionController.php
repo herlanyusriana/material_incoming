@@ -61,7 +61,8 @@ class FinalInspectionController extends Controller
             ->with(['productionOrder.part', 'inspector'])
             ->where('type', 'final')
             ->whereHas('productionOrder', function ($orderQuery) {
-                $orderQuery->whereIn('workflow_stage', ['final_inspection', 'kanban_update', 'warehouse_supply', 'finished']);
+                $orderQuery->whereNotNull('gci_part_id')
+                    ->whereIn('workflow_stage', ['final_inspection', 'kanban_update', 'warehouse_supply', 'finished']);
             });
     }
     

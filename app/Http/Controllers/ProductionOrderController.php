@@ -546,6 +546,10 @@ class ProductionOrderController extends Controller
 
     public function kanbanUpdate(Request $request, ProductionOrder $order)
     {
+        if (!$order->gci_part_id || !$order->part) {
+            return back()->with('error', 'WO ini belum punya FG master part (gci_part_id). Lengkapi data part WO dulu sebelum Kanban Update.');
+        }
+
         $validated = $request->validate([
             'qty_good' => ['required', 'numeric', 'min:0'],
             'qty_ng' => ['nullable', 'numeric', 'min:0'],
@@ -656,6 +660,10 @@ class ProductionOrderController extends Controller
 
     public function supplyFinishedGoodsToWarehouse(Request $request, ProductionOrder $order)
     {
+        if (!$order->gci_part_id || !$order->part) {
+            return back()->with('error', 'WO ini belum punya FG master part (gci_part_id). Lengkapi data part WO dulu sebelum Production Supply to WH.');
+        }
+
         $validated = $request->validate([
             'fg_supply_location_code' => ['nullable', 'string', 'max:50'],
             'fg_supply_notes' => ['nullable', 'string', 'max:1000'],
