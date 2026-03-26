@@ -18,9 +18,12 @@
                         <a href="{{ route('warehouse.stock.index') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
                             Stock by Location
                         </a>
-                        <a href="{{ route('warehouse.stock-adjustments.create') }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
-                            + Adjustment
-                        </a>
+                        @php($canCreateAdjustment = in_array(strtolower((string) (auth()->user()?->role ?? '')), ['admin', 'ppic'], true))
+                        @if($canCreateAdjustment)
+                            <a href="{{ route('warehouse.stock-adjustments.create') }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
+                                + Adjustment
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -98,4 +101,3 @@
         </div>
     </div>
 </x-app-layout>
-

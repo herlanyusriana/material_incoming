@@ -16,6 +16,21 @@ use Illuminate\Validation\Rule;
 
 class WarehouseStockAdjustmentController extends Controller
 {
+    private const AUTHORITY_ROLES = ['admin', 'ppic'];
+    private const EVENT_TYPES = [
+        'stock_opname',
+        'audit_correction',
+        'system_posting_fix',
+        'damage_loss_confirmation',
+        'month_end_cutoff',
+    ];
+
+    private function ensureAdjustmentAuthority(): void
+    {
+        $role = strtolower((string) (auth()->user()?->role ?? ''));
+        abort_unless(in_array($role, self::AUTHORITY_ROLES, true), 403, 'Stock adjustment hanya boleh dilakukan oleh authority tertentu.');
+    }
+
     public function index(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
@@ -71,122 +86,50 @@ class WarehouseStockAdjustmentController extends Controller
 
         $adjustments = $query->paginate($perPage)->withQueryString();
 
-        return view('warehouse.stock.adjustments_index', compact('adjustments', 'search', 'location', 'dateFrom', 'dateTo', 'perPage', 'hasMoveFields'));
+        $canCreateAdjustment = in_array(strtolower((string) (auth()->user()?->role ?? '')), self::AUTHORITY_ROLES, true);
+
+        return view('warehouse.stock.adjustments_index', compact('adjustments', 'search', 'location', 'dateFrom', 'dateTo', 'perPage', 'hasMoveFields', 'canCreateAdjustment'));
     }
 
     public function create()
     {
-        $locations = WarehouseLocation::query()->where('status', 'ACTIVE')->orderBy('location_code')->get();
+        $this->ensureAdjustmentAuthority();
 
-        return view('warehouse.stock.adjustments_create', compact('locations'));
+        $locations = WarehouseLocation::query()->where('status', 'ACTIVE')->orderBy('location_code')->get();
+        $eventTypes = self::EVENT_TYPES;
+
+        return view('warehouse.stock.adjustments_create', compact('locations', 'eventTypes'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'action_type' => ['nullable', 'in:adjustment,move'],
-            'part_id' => ['required'], // Could be parts.id (vendor) or gci_parts.id (master)
+        $this->ensureAdjustmentAuthority();
 
-            // Adjustment fields
+        $validated = $request->validate([
+            'part_id' => ['required'], // Could be parts.id (vendor) or gci_parts.id (master)
+            'event_type' => ['required', Rule::in(self::EVENT_TYPES)],
+
             'location_code' => [
-                'required_if:action_type,adjustment',
-                'nullable',
+                'required',
                 'string',
                 'max:50',
                 Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE')),
             ],
             'batch_no' => ['nullable', 'string', 'max:255'],
-            'qty_after' => ['required_if:action_type,adjustment', 'nullable', 'numeric', 'min:0'],
-
-            // Move fields (explicit from/to so history is readable)
-            'from_location_code' => [
-                'required_if:action_type,move',
-                'nullable',
-                'string',
-                'max:50',
-                Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE')),
-            ],
-            'to_location_code' => [
-                'required_if:action_type,move',
-                'nullable',
-                'string',
-                'max:50',
-                'different:from_location_code',
-                Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE')),
-            ],
-            'from_batch_no' => ['required_if:action_type,move', 'nullable', 'string', 'max:255'],
-            'to_batch_no' => ['required_if:action_type,move', 'nullable', 'string', 'max:255'],
-            'qty_move' => ['required_if:action_type,move', 'nullable', 'numeric', 'min:0.0001'],
-
+            'qty_after' => ['required', 'numeric', 'min:0'],
             'adjusted_at' => ['nullable', 'date'],
-            'reason' => ['nullable', 'string', 'max:1000'],
+            'reason' => ['required', 'string', 'max:1000'],
         ]);
-
-        $actionType = strtolower(trim((string) ($validated['action_type'] ?? 'adjustment')));
         $partId = (int) $validated['part_id'];
         $hasMoveFields = Schema::hasColumn('location_inventory_adjustments', 'from_location_code')
             && Schema::hasColumn('location_inventory_adjustments', 'to_location_code');
         $hasActionType = Schema::hasColumn('location_inventory_adjustments', 'action_type');
+        $hasEventType = Schema::hasColumn('location_inventory_adjustments', 'event_type');
 
         // Normalize date input
         $adjustedAt = isset($validated['adjusted_at']) && $validated['adjusted_at']
             ? Carbon::parse($validated['adjusted_at'])
             : now();
-
-        if ($actionType === 'move') {
-            $fromLocation = strtoupper(trim((string) $validated['from_location_code']));
-            $toLocation = strtoupper(trim((string) $validated['to_location_code']));
-            $fromBatch = strtoupper(trim((string) $validated['from_batch_no']));
-            $toBatch = strtoupper(trim((string) $validated['to_batch_no']));
-            $qtyMove = (float) $validated['qty_move'];
-
-            DB::transaction(function () use ($partId, $fromLocation, $toLocation, $fromBatch, $toBatch, $qtyMove, $adjustedAt, $validated, $hasMoveFields, $hasActionType) {
-                $sourceBefore = LocationInventory::getStockByLocation($partId, $fromLocation, $fromBatch);
-                if ($sourceBefore < $qtyMove) {
-                    throw new \Exception("Insufficient stock at {$fromLocation} batch {$fromBatch}. Available: {$sourceBefore}, Requested: {$qtyMove}");
-                }
-
-                // Move stock between explicit batches (updateStock resolves gci_part_id internally)
-                LocationInventory::updateStock($partId, $fromLocation, -$qtyMove, $fromBatch, null, null, 'ADJUSTMENT', "ADJ:{$fromLocation}->{$toLocation}");
-                LocationInventory::updateStock($partId, $toLocation, $qtyMove, $toBatch, null, null, 'ADJUSTMENT', "ADJ:{$fromLocation}->{$toLocation}");
-
-                // Resolve gci_part_id for adjustment record
-                $gciPartId = null;
-                $part = Part::find($partId);
-                if ($part) {
-                    $gciPartId = $part->gci_part_id;
-                } else {
-                    $gciPartId = GciPart::where('id', $partId)->value('id');
-                }
-
-                $payload = [
-                    'part_id' => $part ? $partId : null,
-                    'gci_part_id' => $gciPartId,
-                    // Keep legacy columns populated for compatibility with older UIs.
-                    'location_code' => $fromLocation,
-                    'batch_no' => $fromBatch,
-                    'qty_before' => $sourceBefore,
-                    'qty_after' => $sourceBefore - $qtyMove,
-                    'qty_change' => 0 - $qtyMove,
-                    'reason' => $validated['reason'] ?? null,
-                    'adjusted_at' => $adjustedAt,
-                    'created_by' => auth()->id(),
-                ];
-                if ($hasMoveFields) {
-                    $payload['from_location_code'] = $fromLocation;
-                    $payload['to_location_code'] = $toLocation;
-                    $payload['from_batch_no'] = $fromBatch;
-                    $payload['to_batch_no'] = $toBatch;
-                }
-                if ($hasActionType) {
-                    $payload['action_type'] = 'move';
-                }
-
-                LocationInventoryAdjustment::query()->create($payload);
-            });
-
-            return redirect()->route('warehouse.stock-adjustments.index')->with('success', 'Stock move saved.');
-        }
 
         $locationCode = strtoupper(trim((string) $validated['location_code']));
         $batchNo = isset($validated['batch_no']) && trim((string) $validated['batch_no']) !== ''
@@ -194,7 +137,7 @@ class WarehouseStockAdjustmentController extends Controller
             : null;
         $qtyAfter = (float) $validated['qty_after'];
 
-        DB::transaction(function () use ($partId, $locationCode, $batchNo, $qtyAfter, $adjustedAt, $validated, $hasMoveFields, $hasActionType) {
+        DB::transaction(function () use ($partId, $locationCode, $batchNo, $qtyAfter, $adjustedAt, $validated, $hasMoveFields, $hasActionType, $hasEventType) {
             // Resolve gci_part_id
             $gciPartId = null;
             $p = Part::find($partId);
@@ -244,7 +187,7 @@ class WarehouseStockAdjustmentController extends Controller
                     'qty_before' => $qtyBefore,
                     'qty_after' => $qtyAfter,
                     'qty_change' => $qtyChange,
-                    'reason' => $validated['reason'] ?? null,
+                    'reason' => $validated['reason'],
                     'adjusted_at' => $adjustedAt,
                     'created_by' => auth()->id(),
                 ]);
@@ -261,6 +204,9 @@ class WarehouseStockAdjustmentController extends Controller
                         if ($hasActionType) {
                             $update['action_type'] = 'adjustment';
                         }
+                        if ($hasEventType) {
+                            $update['event_type'] = $validated['event_type'];
+                        }
                         if ($update) {
                             $adj->update($update);
                         }
@@ -268,28 +214,49 @@ class WarehouseStockAdjustmentController extends Controller
                 }
             } else {
                 // No batch specified: adjust total qty at location (all batches combined)
-                $locInv = LocationInventory::query()
-                    ->where('gci_part_id', $gciPartId)
+                $rows = LocationInventory::query()
                     ->where('location_code', $locationCode)
+                    ->when($gciPartId, fn ($q) => $q->where('gci_part_id', $gciPartId))
+                    ->when(!$gciPartId && $p, fn ($q) => $q->where('part_id', $partId))
                     ->lockForUpdate()
-                    ->first();
+                    ->get();
 
-                $qtyBefore = $locInv ? (float) $locInv->qty_on_hand : 0.0;
+                $qtyBefore = (float) $rows->sum('qty_on_hand');
                 $qtyChange = $qtyAfter - $qtyBefore;
 
-                if (!$locInv) {
+                if ($rows->isEmpty()) {
                     $locInv = LocationInventory::query()->create([
                         'gci_part_id' => $gciPartId,
                         'part_id' => $p ? $partId : null,
                         'location_code' => $locationCode,
                         'qty_on_hand' => 0,
                     ]);
+                    $rows = collect([$locInv]);
                 }
 
-                $locInv->update([
-                    'qty_on_hand' => $qtyAfter,
-                    'last_counted_at' => $adjustedAt,
-                ]);
+                $remainingQty = $qtyAfter;
+                foreach ($rows->sortBy(fn ($row) => [$row->production_date ?? '9999-12-31', $row->batch_no ?? '']) as $row) {
+                    $nextQty = max(min($remainingQty, (float) $row->qty_on_hand), 0);
+                    if ($remainingQty > (float) $row->qty_on_hand) {
+                        $nextQty = (float) $row->qty_on_hand;
+                    }
+                    $row->update([
+                        'qty_on_hand' => $nextQty,
+                        'last_counted_at' => $adjustedAt,
+                    ]);
+                    $remainingQty -= $nextQty;
+                }
+                if ($remainingQty > 0 && $rows->isNotEmpty()) {
+                    $seed = $rows->first();
+                    LocationInventory::query()->create([
+                        'gci_part_id' => $gciPartId ?: $seed->gci_part_id,
+                        'part_id' => $p ? $partId : $seed->part_id,
+                        'location_code' => $locationCode,
+                        'batch_no' => null,
+                        'qty_on_hand' => $remainingQty,
+                        'last_counted_at' => $adjustedAt,
+                    ]);
+                }
 
                 // Summary is auto-synced by model.
 
@@ -301,7 +268,7 @@ class WarehouseStockAdjustmentController extends Controller
                     'qty_before' => $qtyBefore,
                     'qty_after' => $qtyAfter,
                     'qty_change' => $qtyChange,
-                    'reason' => $validated['reason'] ?? null,
+                    'reason' => $validated['reason'],
                     'adjusted_at' => $adjustedAt,
                     'created_by' => auth()->id(),
                 ]);
@@ -317,6 +284,9 @@ class WarehouseStockAdjustmentController extends Controller
                         if ($hasActionType) {
                             $update['action_type'] = 'adjustment';
                         }
+                        if ($hasEventType) {
+                            $update['event_type'] = $validated['event_type'];
+                        }
                         if ($update) {
                             $adj->update($update);
                         }
@@ -325,7 +295,7 @@ class WarehouseStockAdjustmentController extends Controller
             }
         });
 
-        return redirect()->route('warehouse.stock-adjustments.index')->with('success', 'Stock adjustment saved.');
+        return redirect()->route('warehouse.stock-adjustments.index')->with('success', 'Special stock adjustment saved.');
     }
 
     /**

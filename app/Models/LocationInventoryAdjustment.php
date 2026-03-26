@@ -21,6 +21,7 @@ class LocationInventoryAdjustment extends Model
         'action_type',
         'transaction_type',
         'source_reference',
+        'event_type',
         'qty_before',
         'qty_after',
         'qty_change',

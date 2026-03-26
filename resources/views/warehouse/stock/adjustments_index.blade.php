@@ -20,15 +20,17 @@
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap gap-3 items-center justify-between">
                     <div>
                         <div class="text-xl font-bold text-slate-900">Adjustment History</div>
-                        <div class="text-sm text-slate-500">Audit trail untuk perubahan stok per lokasi</div>
+                        <div class="text-sm text-slate-500">Audit trail untuk special stock adjustment oleh authority tertentu</div>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('warehouse.stock.index') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
                             Stock by Location
                         </a>
-                        <a href="{{ route('warehouse.stock-adjustments.create') }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
-                            + New Adjustment
-                        </a>
+                        @if($canCreateAdjustment ?? false)
+                            <a href="{{ route('warehouse.stock-adjustments.create') }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
+                                + New Adjustment
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -73,6 +75,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location (From → To)</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch (From → To)</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Event</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Before</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">After</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Change</th>
@@ -111,6 +114,9 @@
                                         <div class="font-semibold text-slate-900">{{ $adj->part?->part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $adj->part?->part_name_gci ?? ($adj->part?->part_name_vendor ?? '') }}</div>
                                     </td>
+                                    <td class="px-4 py-3 text-xs font-semibold text-slate-700">
+                                        {{ $adj->event_type ? strtoupper(str_replace('_', ' ', $adj->event_type)) : '-' }}
+                                    </td>
                                     <td class="px-4 py-3 text-right font-mono text-sm">{{ formatNumber((float) ($adj->qty_before ?? 0)) }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-sm">{{ formatNumber((float) ($adj->qty_after ?? 0)) }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-sm {{ $delta == 0 ? 'text-slate-400' : ($delta > 0 ? 'text-emerald-700 font-bold' : 'text-red-700 font-bold') }}">
@@ -121,7 +127,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                <td colspan="9" class="px-6 py-12 text-center text-slate-500">No adjustments.</td>
+                                <td colspan="10" class="px-6 py-12 text-center text-slate-500">No adjustments.</td>
                                 </tr>
                             @endforelse
                         </tbody>
