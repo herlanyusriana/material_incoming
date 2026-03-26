@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class LocationInventory extends Model
 {
@@ -13,8 +12,8 @@ class LocationInventory extends Model
     protected $table = 'location_inventory';
 
     protected $fillable = [
-        'gci_part_id', // The Master ID (Required)
-        'part_id',      // The Vendor Part ID (Nullable, for RM)
+        'gci_part_id',
+        'part_id',
         'location_code',
         'batch_no',
         'production_date',
@@ -28,12 +27,8 @@ class LocationInventory extends Model
         'last_counted_at' => 'datetime',
     ];
 
-    /**
-     * Boot method to register model events
-     */
     protected static function booted(): void
     {
-        // After any stock change, sync summary tables
         static::saved(function (LocationInventory $locationInventory) {
             $locationInventory->syncSummaryTables();
         });
@@ -43,25 +38,17 @@ class LocationInventory extends Model
         });
     }
 
-    /**
-     * Sync summary tables (inventories & gci_inventories) after stock change
-     */
     protected function syncSummaryTables(): void
     {
-        // Sync Inventory (vendor parts summary)
         if ($this->part_id) {
             $this->syncInventorySummary($this->part_id);
         }
 
-        // Sync GciInventory (internal parts summary)
         if ($this->gci_part_id) {
             $this->syncGciInventorySummary($this->gci_part_id);
         }
     }
 
-    /**
-     * Sync Inventory table for vendor parts
-     */
     protected function syncInventorySummary(int $partId): void
     {
         $totalOnHand = self::where('part_id', $partId)->sum('qty_on_hand');
@@ -75,9 +62,6 @@ class LocationInventory extends Model
         );
     }
 
-    /**
-     * Sync GciInventory table for internal parts
-     */
     protected function syncGciInventorySummary(int $gciPartId): void
     {
         $totalOnHand = self::where('gci_part_id', $gciPartId)->sum('qty_on_hand');
@@ -91,43 +75,28 @@ class LocationInventory extends Model
         );
     }
 
-    /**
-     * Get the Internal Master Part
-     */
     public function gciPart()
     {
         return $this->belongsTo(GciPart::class);
     }
 
-    /**
-     * Get the vendor part (if applicable)
-     */
     public function part()
     {
         return $this->belongsTo(Part::class);
     }
 
-    /**
-     * Get the warehouse location
-     */
     public function location()
     {
         return $this->belongsTo(WarehouseLocation::class, 'location_code', 'location_code');
     }
 
-    /**
-     * Get stock quantity for a specific part at a specific location.
-     * Bisa pakai part_id (vendor) atau gci_part_id (master).
-     */
     public static function getStockByLocation(int $partId, string $locationCode, ?string $batchNo = null, ?int $gciPartId = null): float
     {
-        // Resolve ke gci_part_id kalau bisa
         if (!$gciPartId) {
             $part = Part::find($partId);
             if ($part) {
                 $gciPartId = $part->gci_part_id;
             } else {
-                // If not found in Part view, maybe the ID is already a GciPart ID
                 $gciPartId = GciPart::where('id', $partId)->value('id');
             }
         }
@@ -135,7 +104,6 @@ class LocationInventory extends Model
         $q = self::query()
             ->where('location_code', strtoupper(trim($locationCode)));
 
-        // Prefer gci_part_id untuk query (semua stock master part)
         if ($gciPartId) {
             $q->where('gci_part_id', $gciPartId);
         } else {
@@ -152,16 +120,6 @@ class LocationInventory extends Model
         return (float) $q->sum('qty_on_hand');
     }
 
-    /**
-     * Update stock for a part at a location.
-     * Positive qtyChange = increase, Negative = decrease.
-     *
-     * gci_part_id is the PRIMARY reference (required).
-     * part_id (vendor part) is optional — hanya untuk tracking vendor.
-     *
-     * @param string|null $transactionType  RECEIVE, PRODUCTION_OUTPUT, BACKFLUSH, PICKING, DELIVERY, TRANSFER, ADJUSTMENT, IMPORT, SYNC
-     * @param string|null $sourceReference  e.g. "PO#123", "PROD#789", "DN#456"
-     */
     public static function updateStock(?int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null): void
     {
         $locationCode = strtoupper(trim($locationCode));
@@ -170,32 +128,32 @@ class LocationInventory extends Model
             $batchNo = null;
         }
 
-        // Auto-resolve gci_part_id dari part_id (vendor part) jika belum ada
         if ($partId && !$gciPartId) {
             $part = Part::find($partId);
             if ($part && $part->gci_part_id) {
                 $gciPartId = $part->gci_part_id;
             } else {
-                // Fallback: Check if partId is actually a GciPart ID
                 $gci = GciPart::find($partId);
                 if ($gci) {
                     $gciPartId = $gci->id;
-                    $partId = null; // Clear it to avoid storing GCI ID in vendor part column
+                    $partId = null;
                 }
             }
         }
 
-        // gci_part_id WAJIB ada — ini primary reference
-        if (!$gciPartId) {
-            throw new \Exception("gci_part_id wajib ada untuk update inventory. part_id={$partId}");
+        if (!$gciPartId && !$partId) {
+            throw new \Exception('part_id atau gci_part_id wajib ada untuk update inventory.');
         }
 
-        // Search attributes — pakai gci_part_id sebagai primary key
         $attributes = [
-            'gci_part_id' => $gciPartId,
             'location_code' => $locationCode,
             'batch_no' => $batchNo,
         ];
+        if ($gciPartId) {
+            $attributes['gci_part_id'] = $gciPartId;
+        } else {
+            $attributes['part_id'] = $partId;
+        }
 
         $record = self::firstOrCreate(
             $attributes,
@@ -203,12 +161,15 @@ class LocationInventory extends Model
                 'qty_on_hand' => 0,
                 'production_date' => $productionDate ?: null,
                 'part_id' => $partId,
+                'gci_part_id' => $gciPartId,
             ]
         );
 
-        // Update part_id kalau sebelumnya null dan sekarang ada
         if ($partId && !$record->part_id) {
             $record->part_id = $partId;
+        }
+        if ($gciPartId && !$record->gci_part_id) {
+            $record->gci_part_id = $gciPartId;
         }
 
         $qtyBefore = (float) $record->qty_on_hand;
@@ -220,15 +181,9 @@ class LocationInventory extends Model
 
         $record->update(['qty_on_hand' => $newQty]);
 
-        // Auto-log transaction
         self::logTransaction($partId, $gciPartId, $locationCode, $batchNo, $qtyBefore, $newQty, $qtyChange, $transactionType, $sourceReference);
     }
 
-    /**
-     * Consume stock (decrement) with optional batch allocation.
-     * Selalu pakai gci_part_id sebagai primary reference.
-     * Consume dari stock FIFO (production_date terlama dulu).
-     */
     public static function consumeStock(?int $partId, string $locationCode, float $qty, ?string $batchNo = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null): void
     {
         $qty = (float) $qty;
@@ -242,7 +197,6 @@ class LocationInventory extends Model
             $batchNo = null;
         }
 
-        // Resolve gci_part_id dari part_id kalau belum ada
         if (!$gciPartId && $partId) {
             $part = Part::find($partId);
             if ($part && $part->gci_part_id) {
@@ -250,24 +204,23 @@ class LocationInventory extends Model
             }
         }
 
-        if (!$gciPartId) {
-            throw new \Exception("gci_part_id wajib ada untuk consume stock. part_id={$partId}");
+        if (!$gciPartId && !$partId) {
+            throw new \Exception('part_id atau gci_part_id wajib ada untuk consume stock.');
         }
 
-        // Kalau batch specific, langsung kurangi
         if ($batchNo !== null) {
             self::updateStock($partId, $locationCode, -$qty, $batchNo, null, $gciPartId, $transactionType, $sourceReference);
             return;
         }
 
-        // FIFO consumption berdasarkan gci_part_id
         $remaining = $qty;
 
         $rows = self::query()
-            ->where('gci_part_id', $gciPartId)
             ->where('location_code', $locationCode)
             ->where('qty_on_hand', '>', 0)
-            ->orderByRaw('production_date IS NULL') // non-null first
+            ->when($gciPartId, fn ($q) => $q->where('gci_part_id', $gciPartId))
+            ->when(!$gciPartId, fn ($q) => $q->where('part_id', $partId))
+            ->orderByRaw('production_date IS NULL')
             ->orderBy('production_date')
             ->orderBy('batch_no')
             ->lockForUpdate()
@@ -287,8 +240,17 @@ class LocationInventory extends Model
             $row->update(['qty_on_hand' => $available - $take]);
             $remaining -= $take;
 
-            // Log each FIFO consumption
-            self::logTransaction($partId, $gciPartId, $locationCode, $row->batch_no, $available, $available - $take, -$take, $transactionType, $sourceReference);
+            self::logTransaction(
+                $partId ?: $row->part_id,
+                $gciPartId ?: $row->gci_part_id,
+                $locationCode,
+                $row->batch_no,
+                $available,
+                $available - $take,
+                -$take,
+                $transactionType,
+                $sourceReference
+            );
         }
 
         if ($remaining > 0) {
@@ -296,10 +258,6 @@ class LocationInventory extends Model
         }
     }
 
-    /**
-     * Get all locations for a specific part with stock.
-     * Bisa pakai gci_part_id (preferred) atau part_id (legacy).
-     */
     public static function getLocationsForPart(int $partId, ?int $gciPartId = null)
     {
         $q = self::query()
@@ -311,7 +269,6 @@ class LocationInventory extends Model
         if ($gciPartId) {
             $q->where('gci_part_id', $gciPartId);
         } else {
-            // Resolve gci_part_id dulu
             $part = Part::find($partId);
             if ($part && $part->gci_part_id) {
                 $q->where('gci_part_id', $part->gci_part_id);
@@ -323,9 +280,6 @@ class LocationInventory extends Model
         return $q->get();
     }
 
-    /**
-     * Log a stock transaction to location_inventory_adjustments.
-     */
     protected static function logTransaction(?int $partId, ?int $gciPartId, string $locationCode, ?string $batchNo, float $qtyBefore, float $qtyAfter, float $qtyChange, ?string $transactionType = null, ?string $sourceReference = null): void
     {
         LocationInventoryAdjustment::create([
@@ -344,9 +298,6 @@ class LocationInventory extends Model
         ]);
     }
 
-    /**
-     * Get stock summary for a GCI part across all locations.
-     */
     public static function getStockSummary(int $partId, ?int $gciPartId = null): array
     {
         $q = self::query()->where('qty_on_hand', '>', 0);
