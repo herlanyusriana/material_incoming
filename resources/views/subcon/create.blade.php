@@ -74,11 +74,13 @@
 
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">RM Part (Barang Dikirim ke Vendor) <span class="text-red-500">*</span></label>
-                    <select name="rm_gci_part_id" required x-model="rmPartId"
+                    <select name="rm_gci_part_id" required x-model="rmPartId" @change="onRmPartChange()"
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">Select RM Part</option>
                         @foreach ($rmParts as $p)
-                            <option value="{{ $p['rm_part_id'] }}" @selected(old('rm_gci_part_id') == $p['rm_part_id'])>
+                            <option value="{{ $p['rm_part_id'] }}"
+                                data-location="{{ $p['default_location'] ?? '' }}"
+                                @selected(old('rm_gci_part_id') == $p['rm_part_id'])>
                                 {{ $p['rm_part_no'] ?? '-' }} - {{ $p['rm_part_name'] ?? '-' }}
                             </option>
                         @endforeach
@@ -115,10 +117,10 @@
 
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">WH Send Location <span class="text-red-500">*</span></label>
-                    <input type="text" name="send_location_code" required value="{{ old('send_location_code') }}"
+                    <input type="text" name="send_location_code" required x-model="sendLocationCode" readonly
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="Contoh: RM-A01" />
-                    <p class="mt-1 text-xs text-slate-500">Lokasi warehouse asal untuk RM part yang dikirim ke vendor.</p>
+                        placeholder="Auto dari default location RM part" />
+                    <p class="mt-1 text-xs text-slate-500">Auto dari default location RM part yang dikirim ke vendor.</p>
                 </div>
 
                 <div>
@@ -147,8 +149,14 @@
             return {
                 selectedPartId: '{{ old('gci_part_id', '') }}',
                 rmPartId: '{{ old('rm_gci_part_id', '') }}',
+                sendLocationCode: '{{ old('send_location_code', '') }}',
                 processType: '{{ old('process_type', '') }}',
                 bomItemId: '{{ old('bom_item_id', '') }}',
+                init() {
+                    if (this.rmPartId && !this.sendLocationCode) {
+                        this.onRmPartChange();
+                    }
+                },
                 onPartChange() {
                     const select = document.querySelector('select[name="gci_part_id"]');
                     const option = select.options[select.selectedIndex];
@@ -160,7 +168,13 @@
                     }
                     if (option && option.dataset.rmId) {
                         this.rmPartId = option.dataset.rmId;
+                        this.onRmPartChange();
                     }
+                },
+                onRmPartChange() {
+                    const select = document.querySelector('select[name="rm_gci_part_id"]');
+                    const option = select.options[select.selectedIndex];
+                    this.sendLocationCode = option && option.dataset.location ? option.dataset.location : '';
                 }
             }
         }

@@ -85,7 +85,13 @@ class SubconController extends Controller
         $rmParts = collect($subconParts)
             ->filter(fn ($item) => !empty($item['rm_part_id']))
             ->unique('rm_part_id')
-            ->values();
+            ->values()
+            ->map(function ($item) {
+                $part = !empty($item['rm_part_id']) ? GciPart::find($item['rm_part_id']) : null;
+                $item['default_location'] = $part?->default_location;
+
+                return $item;
+            });
 
         return view('subcon.create', compact('vendors', 'subconParts', 'rmParts'));
     }
@@ -102,7 +108,7 @@ class SubconController extends Controller
             'qty_sent' => 'required|numeric|min:0.0001',
             'sent_date' => 'required|date',
             'expected_return_date' => 'nullable|date|after_or_equal:sent_date',
-            'send_location_code' => ['required', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
+            'send_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -119,9 +125,19 @@ class SubconController extends Controller
                     : 1;
                 $validated['order_no'] = sprintf('SC-%s-%03d', $today, $seq);
                 $validated['contract_no'] = strtoupper(trim((string) $validated['contract_no']));
+                $rmPart = GciPart::query()->findOrFail((int) $validated['rm_gci_part_id']);
+                $resolvedSendLocation = strtoupper(trim((string) ($validated['send_location_code'] ?? '')));
+                if ($resolvedSendLocation === '') {
+                    $resolvedSendLocation = strtoupper(trim((string) ($rmPart->default_location ?? '')));
+                }
+
+                if ($resolvedSendLocation === '') {
+                    throw new \RuntimeException('Default location untuk RM part belum di-set. Mohon lengkapi default location part terlebih dahulu.');
+                }
+
                 $validated['status'] = 'sent';
                 $validated['created_by'] = Auth::id();
-                $validated['send_location_code'] = strtoupper(trim((string) $validated['send_location_code']));
+                $validated['send_location_code'] = $resolvedSendLocation;
                 $validated['sent_posted_at'] = now();
                 $validated['sent_posted_by'] = Auth::id();
 
