@@ -302,7 +302,16 @@
 
                 @if($order->workflow_stage == 'kanban_update')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
-                        <h4 class="font-medium mb-2">5. Kanban Update</h4>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <h4 class="font-medium">5. Kanban Update</h4>
+                            @if($order->part)
+                                <a href="{{ route('labels.part', ['part' => $order->part->id, 'batch' => ($order->transaction_no ?: $order->production_order_number)]) }}"
+                                    target="_blank"
+                                    class="inline-flex items-center rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                                    Print Label FG
+                                </a>
+                            @endif
+                        </div>
                         <form action="{{ route('production.orders.kanban-update', $order) }}" method="POST"
                             class="space-y-3">
                             @csrf
@@ -330,7 +339,16 @@
 
                 @if($order->status == 'completed' && $order->kanban_updated_at)
                     <div class="p-4 bg-violet-50 rounded border border-violet-200 mb-4">
-                        <h4 class="font-medium mb-2">6. Production Supply to WH</h4>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <h4 class="font-medium">6. Production Supply to WH</h4>
+                            @if($order->part)
+                                <a href="{{ route('labels.part', ['part' => $order->part->id, 'batch' => ($order->transaction_no ?: $order->production_order_number)]) }}"
+                                    target="_blank"
+                                    class="inline-flex items-center rounded border border-violet-200 bg-white px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100">
+                                    Print Label FG
+                                </a>
+                            @endif
+                        </div>
                         @if($order->fg_supplied_to_wh_at)
                             <p class="text-sm text-violet-800">
                                 FG sudah disupply ke warehouse pada {{ $order->fg_supplied_to_wh_at->format('d M Y H:i') }}

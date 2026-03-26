@@ -87,7 +87,16 @@
         <!-- Kanban Update Form (Only if inspection passed) -->
         @if($inspection->status === 'pass')
             <div class="bg-white border rounded-xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold mb-4">Kanban Update</h3>
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <h3 class="text-lg font-semibold">Kanban Update</h3>
+                    @if($inspection->productionOrder->part)
+                        <a href="{{ route('labels.part', ['part' => $inspection->productionOrder->part->id, 'batch' => ($inspection->productionOrder->transaction_no ?: $inspection->productionOrder->production_order_number)]) }}"
+                            target="_blank"
+                            class="inline-flex items-center rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                            Print Label FG
+                        </a>
+                    @endif
+                </div>
                 
                 @if($inspection->productionOrder->kanban_updated_at)
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
