@@ -13,8 +13,11 @@ class BinTransfer extends Model
     protected $fillable = [
         'part_id',
         'gci_part_id',
+        'transfer_type',
         'from_location_code',
         'to_location_code',
+        'from_batch_no',
+        'to_batch_no',
         'qty',
         'transfer_date',
         'created_by',

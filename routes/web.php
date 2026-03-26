@@ -166,15 +166,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/putaway/{receive}', [WarehousePutawayController::class, 'store'])->name('putaway.store');
         Route::post('/putaway', [WarehousePutawayController::class, 'bulk'])->name('putaway.bulk');
 
-        Route::get('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'index'])->name('bin-transfers.index');
-        Route::get('/bin-transfers/create', [\App\Http\Controllers\BinTransferController::class, 'create'])->name('bin-transfers.create');
-        Route::post('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'store'])->name('bin-transfers.store');
+        Route::get('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'index'])->defaults('mode', 'bin_to_bin')->name('bin-transfers.index');
+        Route::get('/bin-transfers/create', [\App\Http\Controllers\BinTransferController::class, 'create'])->defaults('mode', 'bin_to_bin')->name('bin-transfers.create');
+        Route::post('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'store'])->defaults('mode', 'bin_to_bin')->name('bin-transfers.store');
+        Route::get('/batch-transfers', [\App\Http\Controllers\BinTransferController::class, 'index'])->defaults('mode', 'batch_to_batch')->name('batch-transfers.index');
+        Route::get('/batch-transfers/create', [\App\Http\Controllers\BinTransferController::class, 'create'])->defaults('mode', 'batch_to_batch')->name('batch-transfers.create');
+        Route::post('/batch-transfers', [\App\Http\Controllers\BinTransferController::class, 'store'])->defaults('mode', 'batch_to_batch')->name('batch-transfers.store');
         Route::get('/bin-transfers/{binTransfer}', [\App\Http\Controllers\BinTransferController::class, 'show'])->name('bin-transfers.show');
         Route::get('/bin-transfers/{binTransfer}/label', [\App\Http\Controllers\BinTransferController::class, 'printLabel'])->name('bin-transfers.label');
 
         // AJAX endpoints
         Route::get('/api/location-stock', [\App\Http\Controllers\BinTransferController::class, 'getLocationStock'])->name('bin-transfers.location-stock');
         Route::get('/api/part-locations', [\App\Http\Controllers\BinTransferController::class, 'getPartLocations'])->name('bin-transfers.part-locations');
+        Route::get('/api/location-batches', [\App\Http\Controllers\BinTransferController::class, 'getLocationBatches'])->name('bin-transfers.location-batches');
 
         // Warehouse stock (by location)
         Route::get('/stock', [\App\Http\Controllers\WarehouseStockController::class, 'index'])->name('stock.index');

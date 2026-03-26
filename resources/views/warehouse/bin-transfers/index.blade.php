@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • Bin Transfers
+        Warehouse • {{ $meta['title'] }}
     </x-slot>
 
     <div class="py-6">
@@ -13,14 +13,13 @@
 
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-slate-900">Bin Transfer History</h2>
-                    <a href="{{ route('warehouse.bin-transfers.create') }}"
+                    <h2 class="text-xl font-bold text-slate-900">{{ $meta['history_title'] }}</h2>
+                    <a href="{{ $mode === 'batch_to_batch' ? route('warehouse.batch-transfers.create') : route('warehouse.bin-transfers.create') }}"
                         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                        + New Transfer
+                        + New {{ $meta['title'] }}
                     </a>
                 </div>
 
-                {{-- Filters --}}
                 <form method="GET" class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
@@ -47,24 +46,16 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">From Date</label>
-                            <input type="date" name="date_from" value="{{ request('date_from') }}"
-                                class="w-full rounded-lg border-slate-300 text-sm">
+                            <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">To Date</label>
-                            <input type="date" name="date_to" value="{{ request('date_to') }}"
-                                class="w-full rounded-lg border-slate-300 text-sm">
+                            <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                     </div>
                     <div class="mt-3 flex gap-2">
-                        <button type="submit"
-                            class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">
-                            Apply Filters
-                        </button>
-                        <a href="{{ route('warehouse.bin-transfers.index') }}"
-                            class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">
-                            Clear
-                        </a>
+                        <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">Apply Filters</button>
+                        <a href="{{ $mode === 'batch_to_batch' ? route('warehouse.batch-transfers.index') : route('warehouse.bin-transfers.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">Clear</a>
                     </div>
                 </form>
 
@@ -74,71 +65,60 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Date</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">From Location
-                                </th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">→</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">To Location
-                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">From</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">-></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">To</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Qty</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">By</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">Actions
-                                </th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
                             @forelse($transfers as $transfer)
+                                @php($partNo = $transfer->gciPart->part_no ?? ($transfer->part->part_no ?? '-'))
+                                @php($partName = $transfer->gciPart->part_name ?? ($transfer->part->part_name_gci ?? ($transfer->part->part_name_vendor ?? '')))
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3 text-sm text-slate-900">
                                         {{ $transfer->transfer_date->format('Y-m-d') }}
                                         <div class="text-xs text-slate-500">{{ $transfer->created_at->format('H:i') }}</div>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <div class="text-sm font-semibold text-slate-900">{{ $transfer->part->part_no }}
-                                        </div>
-                                        <div class="text-xs text-slate-500">{{ $transfer->part->part_name_gci }}</div>
+                                        <div class="text-sm font-semibold text-slate-900">{{ $partNo }}</div>
+                                        <div class="text-xs text-slate-500">{{ $partName }}</div>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <span
-                                            class="inline-flex px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-700">
+                                        <div class="inline-flex px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-700">
                                             {{ $transfer->from_location_code }}
-                                        </span>
+                                        </div>
+                                        @if($transfer->from_batch_no)
+                                            <div class="mt-1 text-xs font-mono text-slate-500">{{ $transfer->from_batch_no }}</div>
+                                        @endif
                                     </td>
-                                    <td class="px-4 py-3 text-center text-slate-400">
-                                        →
-                                    </td>
+                                    <td class="px-4 py-3 text-center text-slate-400">-></td>
                                     <td class="px-4 py-3">
-                                        <span
-                                            class="inline-flex px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-700">
+                                        <div class="inline-flex px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-700">
                                             {{ $transfer->to_location_code }}
-                                        </span>
+                                        </div>
+                                        @if($transfer->to_batch_no)
+                                            <div class="mt-1 text-xs font-mono text-slate-500">{{ $transfer->to_batch_no }}</div>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <span
-                                            class="text-sm font-bold text-indigo-600">{{ formatNumber($transfer->qty) }}</span>
+                                        <span class="text-sm font-bold text-indigo-600">{{ formatNumber($transfer->qty) }}</span>
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-slate-700">
-                                        {{ $transfer->creator->name ?? '-' }}
-                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-700">{{ $transfer->creator->name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-2">
-                                            <a href="{{ route('warehouse.bin-transfers.show', $transfer) }}"
-                                                class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">
-                                                View
-                                            </a>
+                                            <a href="{{ route('warehouse.bin-transfers.show', $transfer) }}" class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">View</a>
                                             <span class="text-slate-300">|</span>
-                                            <a href="{{ route('warehouse.bin-transfers.label', $transfer) }}"
-                                                target="_blank"
-                                                class="text-green-600 hover:text-green-900 font-semibold text-sm">
-                                                🖨️ Label
-                                            </a>
+                                            <a href="{{ route('warehouse.bin-transfers.label', $transfer) }}" target="_blank" class="text-green-600 hover:text-green-900 font-semibold text-sm">Label</a>
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="8" class="px-4 py-12 text-center text-slate-500">
-                                        No bin transfers yet. Create your first transfer to move materials between
-                                        locations.
+                                        No {{ strtolower($meta['title']) }} records yet.
                                     </td>
                                 </tr>
                             @endforelse

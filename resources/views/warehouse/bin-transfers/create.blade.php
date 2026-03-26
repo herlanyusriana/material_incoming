@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • New Bin Transfer
+        Warehouse • New {{ $meta['title'] }}
     </x-slot>
 
     <div class="py-6">
@@ -17,15 +17,13 @@
 
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200">
-                    <h2 class="text-xl font-bold text-slate-900">Transfer Material Between Bins</h2>
-                    <p class="text-sm text-slate-600 mt-1">Move material from one warehouse location to another</p>
+                    <h2 class="text-xl font-bold text-slate-900">{{ $meta['create_title'] }}</h2>
+                    <p class="text-sm text-slate-600 mt-1">{{ $meta['description'] }}</p>
                 </div>
 
-                <form method="POST" action="{{ route('warehouse.bin-transfers.store') }}" class="p-6 space-y-6"
-                    id="transfer-form">
+                <form method="POST" action="{{ $mode === 'batch_to_batch' ? route('warehouse.batch-transfers.store') : route('warehouse.bin-transfers.store') }}" class="p-6 space-y-6" id="transfer-form">
                     @csrf
 
-                    {{-- Part Selection --}}
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">
                             Part <span class="text-red-500">*</span>
@@ -35,92 +33,133 @@
                             <input type="text" id="part_search" autocomplete="off"
                                 class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
                                 placeholder="Type part no / name (min 2 chars)">
-                            <div id="part_suggestions"
-                                class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg hidden">
+                            <div id="part_suggestions" class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg hidden"></div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1" id="part-locations-info">Select a part to see available stock.</p>
+                    </div>
+
+                    @if($mode === 'batch_to_batch')
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Location <span class="text-red-500">*</span>
+                                </label>
+                                <select name="location_code" id="location_code" required class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">-- Select Location --</option>
+                                    @foreach($locations as $location)
+                                        <option value="{{ $location->location_code }}" {{ old('location_code') == $location->location_code ? 'selected' : '' }}>
+                                            {{ $location->location_code }}@if($location->zone) - {{ $location->zone }}@endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Quantity <span class="text-red-500">*</span>
+                                </label>
+                                <input type="number" name="qty" id="qty" step="0.0001" min="0.0001" value="{{ old('qty') }}" required
+                                    class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="Enter quantity to transfer">
                             </div>
                         </div>
-                        <p class="text-xs text-slate-500 mt-1" id="part-locations-info">Select a part to see available
-                            locations</p>
-                    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {{-- From Location --}}
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                From Location <span class="text-red-500">*</span>
-                            </label>
-                            <select name="from_location_code" id="from_location_code" required
-                                class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">-- Select Source --</option>
-                                @foreach($locations as $location)
-                                    <option value="{{ $location->location_code }}" {{ old('from_location_code') == $location->location_code ? 'selected' : '' }}>
-                                        {{ $location->location_code }}
-                                        @if($location->zone) - {{ $location->zone }}@endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            <p class="text-xs text-slate-500 mt-1" id="from-stock-info">Available: -</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    From Batch <span class="text-red-500">*</span>
+                                </label>
+                                <select name="from_batch_no" id="from_batch_no" required class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">-- Select Source Batch --</option>
+                                </select>
+                                <p class="text-xs text-slate-500 mt-1" id="from-stock-info">Available: -</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    To Batch <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="to_batch_no" id="to_batch_no" value="{{ old('to_batch_no') }}" required
+                                    class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 uppercase"
+                                    placeholder="Enter destination batch">
+                                <p class="text-xs text-slate-500 mt-1">Boleh batch baru.</p>
+                            </div>
+                        </div>
+                    @else
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    From Location <span class="text-red-500">*</span>
+                                </label>
+                                <select name="from_location_code" id="from_location_code" required class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">-- Select Source --</option>
+                                    @foreach($locations as $location)
+                                        <option value="{{ $location->location_code }}" {{ old('from_location_code') == $location->location_code ? 'selected' : '' }}>
+                                            {{ $location->location_code }}@if($location->zone) - {{ $location->zone }}@endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-slate-500 mt-1" id="from-stock-info">Available: -</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    To Location <span class="text-red-500">*</span>
+                                </label>
+                                <select name="to_location_code" id="to_location_code" required class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">-- Select Destination --</option>
+                                    @foreach($locations as $location)
+                                        <option value="{{ $location->location_code }}" {{ old('to_location_code') == $location->location_code ? 'selected' : '' }}>
+                                            {{ $location->location_code }}@if($location->zone) - {{ $location->zone }}@endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-slate-500 mt-1" id="to-stock-info">Current: -</p>
+                            </div>
                         </div>
 
-                        {{-- To Location --}}
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                To Location <span class="text-red-500">*</span>
-                            </label>
-                            <select name="to_location_code" id="to_location_code" required
-                                class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">-- Select Destination --</option>
-                                @foreach($locations as $location)
-                                    <option value="{{ $location->location_code }}" {{ old('to_location_code') == $location->location_code ? 'selected' : '' }}>
-                                        {{ $location->location_code }}
-                                        @if($location->zone) - {{ $location->zone }}@endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            <p class="text-xs text-slate-500 mt-1" id="to-stock-info">Current: -</p>
-                        </div>
-                    </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Quantity <span class="text-red-500">*</span>
+                                </label>
+                                <input type="number" name="qty" id="qty" step="0.0001" min="0.0001" value="{{ old('qty') }}" required
+                                    class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="Enter quantity to transfer">
+                            </div>
 
-                    {{-- Quantity and Date --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                Quantity <span class="text-red-500">*</span>
-                            </label>
-                            <input type="number" name="qty" id="qty" step="0.0001" min="0.0001" value="{{ old('qty') }}"
-                                required
-                                class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="Enter quantity to transfer">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Transfer Date <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" name="transfer_date" value="{{ old('transfer_date', now()->format('Y-m-d')) }}" required
+                                    class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
                         </div>
+                    @endif
 
+                    @if($mode === 'batch_to_batch')
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">
                                 Transfer Date <span class="text-red-500">*</span>
                             </label>
-                            <input type="date" name="transfer_date"
-                                value="{{ old('transfer_date', now()->format('Y-m-d')) }}" required
+                            <input type="date" name="transfer_date" value="{{ old('transfer_date', now()->format('Y-m-d')) }}" required
                                 class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
-                    </div>
+                    @endif
 
-                    {{-- Notes --}}
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">
                             Notes (Optional)
                         </label>
-                        <textarea name="notes" rows="3"
-                            class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Add any notes about this transfer...">{{ old('notes') }}</textarea>
+                        <textarea name="notes" rows="3" class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Add any notes about this transfer...">{{ old('notes') }}</textarea>
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                        <a href="{{ route('warehouse.bin-transfers.index') }}"
+                        <a href="{{ $mode === 'batch_to_batch' ? route('warehouse.batch-transfers.index') : route('warehouse.bin-transfers.index') }}"
                             class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">
                             Cancel
                         </a>
-                        <button type="submit" id="submit-btn"
-                            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                            Transfer Material
+                        <button type="submit" id="submit-btn" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
+                            Save {{ $meta['title'] }}
                         </button>
                     </div>
                 </form>
@@ -130,11 +169,15 @@
 
     @push('scripts')
         <script>
-            const partSelect = document.getElementById('part_id'); // hidden input
+            const mode = @json($mode);
+            const partSelect = document.getElementById('part_id');
             const partSearch = document.getElementById('part_search');
             const partSuggestions = document.getElementById('part_suggestions');
             const fromLocationSelect = document.getElementById('from_location_code');
             const toLocationSelect = document.getElementById('to_location_code');
+            const locationSelect = document.getElementById('location_code');
+            const fromBatchSelect = document.getElementById('from_batch_no');
+            const toBatchInput = document.getElementById('to_batch_no');
             const fromStockInfo = document.getElementById('from-stock-info');
             const toStockInfo = document.getElementById('to-stock-info');
             const partLocationsInfo = document.getElementById('part-locations-info');
@@ -181,6 +224,67 @@
                 return await res.json();
             }
 
+            async function fetchJson(url) {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Request failed');
+                return await response.json();
+            }
+
+            async function loadBatchOptions() {
+                if (mode !== 'batch_to_batch' || !partSelect.value || !locationSelect.value || !fromBatchSelect) return;
+                const data = await fetchJson(`{{ route('warehouse.bin-transfers.location-batches') }}?part_id=${partSelect.value}&location_code=${encodeURIComponent(locationSelect.value)}`);
+                fromBatchSelect.innerHTML = '<option value="">-- Select Source Batch --</option>';
+                (data.batches || []).forEach(batch => {
+                    const option = document.createElement('option');
+                    option.value = batch.batch_no || '';
+                    option.dataset.qty = batch.qty_on_hand;
+                    option.textContent = `${batch.batch_no || '(No Batch)'} - ${batch.qty_on_hand}`;
+                    fromBatchSelect.appendChild(option);
+                });
+            }
+
+            async function updateStockInfo() {
+                const partId = partSelect.value;
+                if (!partId) {
+                    if (fromStockInfo) fromStockInfo.textContent = 'Available: -';
+                    if (toStockInfo) toStockInfo.textContent = 'Current: -';
+                    if (partLocationsInfo) partLocationsInfo.textContent = 'Select a part to see available stock.';
+                    return;
+                }
+
+                if (mode === 'batch_to_batch') {
+                    if (locationSelect?.value) {
+                        await loadBatchOptions();
+                        const data = await fetchJson(`{{ route('warehouse.bin-transfers.part-locations') }}?part_id=${partId}`);
+                        const locations = (data.locations || []).map(loc => `${loc.location_code} (${loc.formatted_qty})`).join(', ');
+                        if (partLocationsInfo) partLocationsInfo.textContent = locations ? `Stock in: ${locations}` : 'No stock found for this part';
+                    }
+                    return;
+                }
+
+                const fromLocation = fromLocationSelect?.value;
+                const toLocation = toLocationSelect?.value;
+
+                if (fromLocation) {
+                    const data = await fetchJson(`{{ route('warehouse.bin-transfers.location-stock') }}?part_id=${partId}&location_code=${fromLocation}`);
+                    availableStock = parseFloat(data.stock);
+                    if (fromStockInfo) {
+                        fromStockInfo.textContent = `Available: ${data.formatted}`;
+                    }
+                }
+
+                if (toLocation) {
+                    const data = await fetchJson(`{{ route('warehouse.bin-transfers.location-stock') }}?part_id=${partId}&location_code=${toLocation}`);
+                    if (toStockInfo) {
+                        toStockInfo.textContent = `Current: ${data.formatted}`;
+                    }
+                }
+
+                const data = await fetchJson(`{{ route('warehouse.bin-transfers.part-locations') }}?part_id=${partId}`);
+                const locations = (data.locations || []).map(loc => `${loc.location_code} (${loc.formatted_qty})`).join(', ');
+                if (partLocationsInfo) partLocationsInfo.textContent = locations ? `Stock in: ${locations}` : 'No stock found for this part';
+            }
+
             partSearch?.addEventListener('input', () => {
                 const q = String(partSearch.value || '').trim();
                 partSelect.value = '';
@@ -218,68 +322,26 @@
                 }
             });
 
-            // Update stock info when part or location changes
-            async function updateStockInfo() {
-                const partId = partSelect.value;
-                const fromLocation = fromLocationSelect.value;
-                const toLocation = toLocationSelect.value;
+            partSelect?.addEventListener('change', updateStockInfo);
+            fromLocationSelect?.addEventListener('change', updateStockInfo);
+            toLocationSelect?.addEventListener('change', updateStockInfo);
+            locationSelect?.addEventListener('change', updateStockInfo);
+            fromBatchSelect?.addEventListener('change', () => {
+                const selected = fromBatchSelect.options[fromBatchSelect.selectedIndex];
+                availableStock = parseFloat(selected?.dataset?.qty || '0');
+                if (fromStockInfo) fromStockInfo.textContent = `Available: ${selected?.dataset?.qty || '-'}`;
+            });
 
-                if (!partId) {
-                    fromStockInfo.textContent = 'Available: -';
-                    toStockInfo.textContent = 'Current: -';
-                    partLocationsInfo.textContent = 'Select a part to see available locations';
-                    return;
-                }
-
-                // Get stock at from location
-                if (fromLocation) {
-                    try {
-                        const response = await fetch(`{{ route('warehouse.bin-transfers.location-stock') }}?part_id=${partId}&location_code=${fromLocation}`);
-                        const data = await response.json();
-                        availableStock = parseFloat(data.stock);
-                        fromStockInfo.textContent = `Available: ${data.formatted}`;
-                        fromStockInfo.className = availableStock > 0 ? 'text-xs text-green-600 mt-1 font-semibold' : 'text-xs text-red-600 mt-1 font-semibold';
-                    } catch (error) {
-                        fromStockInfo.textContent = 'Error loading stock';
-                    }
-                }
-
-                // Get stock at to location
-                if (toLocation) {
-                    try {
-                        const response = await fetch(`{{ route('warehouse.bin-transfers.location-stock') }}?part_id=${partId}&location_code=${toLocation}`);
-                        const data = await response.json();
-                        toStockInfo.textContent = `Current: ${data.formatted}`;
-                    } catch (error) {
-                        toStockInfo.textContent = 'Error loading stock';
-                    }
-                }
-
-                // Get all locations for part
-                try {
-                    const response = await fetch(`{{ route('warehouse.bin-transfers.part-locations') }}?part_id=${partId}`);
-                    const data = await response.json();
-                    if (data.locations.length > 0) {
-                        const locationsList = data.locations.map(loc => `${loc.location_code} (${loc.formatted_qty})`).join(', ');
-                        partLocationsInfo.textContent = `Stock in: ${locationsList}`;
-                    } else {
-                        partLocationsInfo.textContent = 'No stock found for this part';
-                    }
-                } catch (error) {
-                    partLocationsInfo.textContent = 'Error loading locations';
-                }
-            }
-
-            partSelect.addEventListener('change', updateStockInfo);
-            fromLocationSelect.addEventListener('change', updateStockInfo);
-            toLocationSelect.addEventListener('change', updateStockInfo);
-
-            // Validate quantity before submit
             document.getElementById('transfer-form').addEventListener('submit', function (e) {
                 const qty = parseFloat(qtyInput.value);
                 if (qty > availableStock) {
                     e.preventDefault();
-                    alert(`Cannot transfer ${qty}. Only ${availableStock} available at source location.`);
+                    alert(`Cannot transfer ${qty}. Only ${availableStock} available at source.`);
+                    return false;
+                }
+                if (mode === 'batch_to_batch' && fromBatchSelect && toBatchInput && fromBatchSelect.value === toBatchInput.value.trim()) {
+                    e.preventDefault();
+                    alert('Destination batch must be different from source batch.');
                     return false;
                 }
             });

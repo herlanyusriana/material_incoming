@@ -10,7 +10,8 @@
                 <a href="{{ route('warehouse.putaway.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Putaway Queue</a>
                 <a href="{{ route('inventory.locations.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Locations</a>
                 <a href="{{ route('warehouse.stock.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Stock by Location</a>
-                <a href="{{ route('warehouse.bin-transfers.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Bin Transfers</a>
+                <a href="{{ route('warehouse.bin-transfers.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Bin to Bin</a>
+                <a href="{{ route('warehouse.batch-transfers.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Batch to Batch</a>
                 <a href="{{ route('warehouse.stock-adjustments.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Adjustments</a>
             </div>
         </div>

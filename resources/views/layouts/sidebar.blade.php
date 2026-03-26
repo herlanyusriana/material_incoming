@@ -706,6 +706,13 @@
                             </svg>
                             <span class="ml-3 flex-1">Bin to Bin</span>
                         </a>
+                        <a href="{{ route('warehouse.batch-transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.batch-transfers.*'), $navInactive => !request()->routeIs('warehouse.batch-transfers.*')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h10" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 5h14v14H5z" />
+                            </svg>
+                            <span class="ml-3 flex-1">Batch to Batch</span>
+                        </a>
                         <a href="{{ route('warehouse.stock.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.*'), $navInactive => !request()->routeIs('warehouse.stock.*')]) @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1439,6 +1446,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16 15l2 2-2 2" />
                         </svg>
                         <span class="ml-3 flex-1">Bin to Bin</span>
+                    </a>
+                    <a href="{{ route('warehouse.batch-transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.batch-transfers.*'), $navInactive => !request()->routeIs('warehouse.batch-transfers.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h10" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5h14v14H5z" />
+                        </svg>
+                        <span class="ml-3 flex-1">Batch to Batch</span>
                     </a>
                     <a href="{{ route('warehouse.stock.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.*'), $navInactive => !request()->routeIs('warehouse.stock.*')])>
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
