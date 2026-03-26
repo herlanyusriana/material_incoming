@@ -6,6 +6,7 @@ use App\Models\BomItem;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
 use App\Models\LocationInventoryAdjustment;
+use App\Models\PricingMaster;
 use App\Models\SubconOrder;
 use App\Models\SubconOrderReceive;
 use App\Models\Vendor;
@@ -160,6 +161,27 @@ class SubconController extends Controller
         return view('subcon.show', compact('subconOrder', 'traceability'));
     }
 
+    public function printSuratJalan(SubconOrder $subconOrder)
+    {
+        $payload = $this->buildPrintPayload($subconOrder);
+
+        return view('subcon.print_surat_jalan', $payload);
+    }
+
+    public function printPackingList(SubconOrder $subconOrder)
+    {
+        $payload = $this->buildPrintPayload($subconOrder);
+
+        return view('subcon.print_packing_list', $payload);
+    }
+
+    public function printInvoice(SubconOrder $subconOrder)
+    {
+        $payload = $this->buildPrintPayload($subconOrder);
+
+        return view('subcon.print_invoice', $payload);
+    }
+
     public function receive(Request $request, SubconOrder $subconOrder)
     {
         if (in_array($subconOrder->status, ['completed', 'cancelled'])) {
@@ -279,5 +301,50 @@ class SubconController extends Controller
             ->values();
 
         return response()->json($parts);
+    }
+
+    private function buildPrintPayload(SubconOrder $subconOrder): array
+    {
+        $subconOrder->loadMissing(['vendor', 'rmPart', 'gciPart', 'creator']);
+
+        $pricing = PricingMaster::resolveCurrentPrice(
+            (int) ($subconOrder->rm_gci_part_id ?? 0),
+            'subcon_price',
+            ['vendor_id' => $subconOrder->vendor_id],
+            $subconOrder->sent_date
+        ) ?? PricingMaster::resolveCurrentPrice(
+            (int) ($subconOrder->rm_gci_part_id ?? 0),
+            'purchase_price',
+            ['vendor_id' => $subconOrder->vendor_id],
+            $subconOrder->sent_date
+        );
+
+        $unitPrice = round((float) ($pricing?->price ?? 0), 3);
+        $qty = round((float) $subconOrder->qty_sent, 4);
+
+        $lines = collect([[
+            'no' => 1,
+            'part_no' => (string) ($subconOrder->rmPart->part_no ?? '-'),
+            'part_name' => (string) ($subconOrder->rmPart->part_name ?? '-'),
+            'description' => 'RM part sent to subcon vendor. Return as WIP: '
+                . (string) ($subconOrder->gciPart->part_no ?? '-')
+                . ' - '
+                . (string) ($subconOrder->gciPart->part_name ?? '-'),
+            'uom' => (string) ($subconOrder->rmPart->uom ?? 'PCS'),
+            'qty' => $qty,
+            'unit_price' => $unitPrice,
+            'amount' => round($qty * $unitPrice, 2),
+        ]]);
+
+        return [
+            'subconOrder' => $subconOrder,
+            'lines' => $lines,
+            'sjNo' => 'SJ-SC-' . $subconOrder->order_no,
+            'packingListNo' => 'PL-SC-' . $subconOrder->order_no,
+            'invoiceNo' => 'INV-SC-' . $subconOrder->order_no,
+            'currency' => $pricing?->currency ?? 'IDR',
+            'totalQty' => round((float) $lines->sum('qty'), 4),
+            'totalAmount' => round((float) $lines->sum('amount'), 2),
+        ];
     }
 }

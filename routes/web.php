@@ -324,6 +324,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/create', [SubconController::class, 'create'])->name('create');
         Route::get('/api/parts', [SubconController::class, 'parts'])->name('parts');
         Route::post('/', [SubconController::class, 'store'])->name('store');
+        Route::get('/{subconOrder}/print-sj', [SubconController::class, 'printSuratJalan'])->name('print-sj');
+        Route::get('/{subconOrder}/print-pl', [SubconController::class, 'printPackingList'])->name('print-pl');
+        Route::get('/{subconOrder}/print-invoice', [SubconController::class, 'printInvoice'])->name('print-invoice');
         Route::get('/{subconOrder}', [SubconController::class, 'show'])->name('show');
         Route::post('/{subconOrder}/receive', [SubconController::class, 'receive'])->name('receive');
         Route::post('/{subconOrder}/cancel', [SubconController::class, 'cancel'])->name('cancel');
