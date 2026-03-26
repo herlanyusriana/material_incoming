@@ -37,9 +37,9 @@
             </div>
         </div>
 
-        {{-- Filters + Create Button --}}
+        {{-- Filters --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div class="flex flex-col gap-4">
                 <form action="{{ route('subcon.index') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
@@ -74,11 +74,6 @@
                         Filter
                     </button>
                 </form>
-
-                <a href="{{ route('subcon.create') }}"
-                    class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-700 text-center">
-                    + New Subcon Order
-                </a>
             </div>
         </div>
 
