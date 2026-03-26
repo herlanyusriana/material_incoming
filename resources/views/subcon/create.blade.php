@@ -109,10 +109,13 @@
                                             required>
                                             <option value="">Select WIP Part</option>
                                             <template x-for="part in subconParts" :key="part.key">
-                                                <option :value="part.id" x-text="`${part.part_no} - ${part.part_name}`"></option>
+                                                <option :value="part.id" x-text="`${part.part_no} - ${part.part_name} | ${part.process_name || '-'} | RM: ${part.rm_part_no || '-'}`"></option>
                                             </template>
                                         </select>
                                         <input type="hidden" :name="`items[${index}][bom_item_id]`" x-model="row.bom_item_id">
+                                        <div class="mt-1 text-xs text-slate-500">
+                                            Dropdown hanya menampilkan mapping dari BOM aktif dan sudah dibedakan per process/RM.
+                                        </div>
                                     </div>
 
                                     <div class="xl:col-span-2">

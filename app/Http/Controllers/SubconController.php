@@ -92,25 +92,15 @@ class SubconController extends Controller
             ->orderBy('vendor_name')
             ->get($vendorColumns);
 
-        $subconParts = BomItem::where('special', 'T')
-            ->whereNotNull('wip_part_id')
-            ->with(['wipPart', 'componentPart'])
-            ->get()
-            ->map(fn($item) => [
-                'id' => $item->wip_part_id,
-                'part_no' => $item->wipPart->part_no ?? $item->wip_part_no,
-                'part_name' => $item->wipPart->part_name ?? $item->wip_part_name,
-                'rm_part_id' => $item->component_part_id,
-                'rm_part_no' => $item->componentPart->part_no ?? $item->component_part_no,
-                'rm_part_name' => $item->componentPart->part_name ?? $item->material_name,
-                'process_name' => $item->process_name,
-                'bom_item_id' => $item->id,
-            ])
-            ->values();
+        $subconParts = $this->getSubconPartOptions();
 
-        $rmParts = collect($subconParts)
+        $rmParts = $subconParts
             ->filter(fn ($item) => !empty($item['rm_part_id']))
             ->unique('rm_part_id')
+            ->sortBy([
+                ['rm_part_no', 'asc'],
+                ['rm_part_name', 'asc'],
+            ])
             ->values()
             ->map(function ($item) {
                 $part = !empty($item['rm_part_id']) ? GciPart::find($item['rm_part_id']) : null;
@@ -126,7 +116,11 @@ class SubconController extends Controller
                 'part_no' => $part['part_no'] ?? '',
                 'part_name' => $part['part_name'] ?? '',
                 'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
+                'rm_part_no' => $part['rm_part_no'] ?? '',
+                'rm_part_name' => $part['rm_part_name'] ?? '',
                 'process_name' => $part['process_name'] ?? '',
+                'fg_part_no' => $part['fg_part_no'] ?? '',
+                'fg_part_name' => $part['fg_part_name'] ?? '',
                 'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
             ];
         })->all();
@@ -376,23 +370,55 @@ class SubconController extends Controller
 
     public function parts()
     {
-        $parts = BomItem::where('special', 'T')
-            ->whereNotNull('wip_part_id')
-            ->with(['wipPart', 'componentPart'])
-            ->get()
-            ->map(fn($item) => [
-                'id' => $item->wip_part_id,
-                'part_no' => $item->wipPart->part_no ?? $item->wip_part_no,
-                'part_name' => $item->wipPart->part_name ?? $item->wip_part_name,
-                'rm_part_id' => $item->component_part_id,
-                'rm_part_no' => $item->componentPart->part_no ?? $item->component_part_no,
-                'rm_part_name' => $item->componentPart->part_name ?? $item->material_name,
-                'process_name' => $item->process_name,
-                'bom_item_id' => $item->id,
-            ])
-            ->values();
+        $parts = $this->getSubconPartOptions()->values();
 
         return response()->json($parts);
+    }
+
+    private function getSubconPartOptions()
+    {
+        $today = now()->toDateString();
+
+        return BomItem::query()
+            ->where('special', 'T')
+            ->whereNotNull('wip_part_id')
+            ->whereNotNull('component_part_id')
+            ->whereHas('bom', function ($query) use ($today) {
+                $query->where('status', 'active')
+                    ->whereDate('effective_date', '<=', $today)
+                    ->where(function ($subQuery) use ($today) {
+                        $subQuery->whereNull('end_date')
+                            ->orWhereDate('end_date', '>=', $today);
+                    });
+            })
+            ->with(['wipPart', 'componentPart', 'bom.part'])
+            ->get()
+            ->map(function (BomItem $item) {
+                return [
+                    'id' => $item->wip_part_id,
+                    'part_no' => $item->wipPart->part_no ?? $item->wip_part_no,
+                    'part_name' => $item->wipPart->part_name ?? $item->wip_part_name,
+                    'rm_part_id' => $item->component_part_id,
+                    'rm_part_no' => $item->componentPart->part_no ?? $item->component_part_no,
+                    'rm_part_name' => $item->componentPart->part_name ?? $item->material_name,
+                    'process_name' => $item->process_name,
+                    'fg_part_no' => $item->bom?->part?->part_no ?? '',
+                    'fg_part_name' => $item->bom?->part?->part_name ?? '',
+                    'bom_item_id' => $item->id,
+                ];
+            })
+            ->filter(fn ($item) => !empty($item['id']) && !empty($item['part_no']))
+            ->unique(fn ($item) => implode('|', [
+                $item['id'] ?? '',
+                $item['rm_part_id'] ?? '',
+                strtoupper(trim((string) ($item['process_name'] ?? ''))),
+            ]))
+            ->sortBy([
+                ['part_no', 'asc'],
+                ['process_name', 'asc'],
+                ['rm_part_no', 'asc'],
+            ])
+            ->values();
     }
 
     private function buildPrintPayload(SubconOrder $subconOrder): array
