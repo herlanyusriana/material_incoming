@@ -19,7 +19,7 @@ class SubconController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SubconOrder::with(['vendor', 'gciPart', 'creator'])
+        $query = SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'creator'])
             ->orderByDesc('created_at');
 
         if ($request->filled('status')) {
@@ -65,22 +65,28 @@ class SubconController extends Controller
             ->orderBy('vendor_name')
             ->get($vendorColumns);
 
-        // Get WIP parts that are used in BOM items with special='T'
         $subconParts = BomItem::where('special', 'T')
             ->whereNotNull('wip_part_id')
-            ->with('wipPart')
+            ->with(['wipPart', 'componentPart'])
             ->get()
-            ->unique('wip_part_id')
             ->map(fn($item) => [
                 'id' => $item->wip_part_id,
                 'part_no' => $item->wipPart->part_no ?? $item->wip_part_no,
                 'part_name' => $item->wipPart->part_name ?? $item->wip_part_name,
+                'rm_part_id' => $item->component_part_id,
+                'rm_part_no' => $item->componentPart->part_no ?? $item->component_part_no,
+                'rm_part_name' => $item->componentPart->part_name ?? $item->material_name,
                 'process_name' => $item->process_name,
                 'bom_item_id' => $item->id,
             ])
             ->values();
 
-        return view('subcon.create', compact('vendors', 'subconParts'));
+        $rmParts = collect($subconParts)
+            ->filter(fn ($item) => !empty($item['rm_part_id']))
+            ->unique('rm_part_id')
+            ->values();
+
+        return view('subcon.create', compact('vendors', 'subconParts', 'rmParts'));
     }
 
     public function store(Request $request)
@@ -88,6 +94,7 @@ class SubconController extends Controller
         $validated = $request->validate([
             'contract_no' => 'required|string|max:100',
             'vendor_id' => ['required', Rule::exists('vendors', 'id')->where(fn ($q) => $q->where('vendor_type', 'tolling'))],
+            'rm_gci_part_id' => 'required|exists:gci_parts,id',
             'gci_part_id' => 'required|exists:gci_parts,id',
             'bom_item_id' => 'nullable|exists:bom_items,id',
             'process_type' => 'required|string|max:50',
@@ -124,7 +131,7 @@ class SubconController extends Controller
                     $validated['send_location_code'],
                     (float) $validated['qty_sent'],
                     null,
-                    (int) $validated['gci_part_id'],
+                    (int) $validated['rm_gci_part_id'],
                     'SUBCON_SEND',
                     $order->order_no
                 );
@@ -143,7 +150,7 @@ class SubconController extends Controller
 
     public function show(SubconOrder $subconOrder)
     {
-        $subconOrder->load(['vendor', 'gciPart', 'bomItem', 'receives.creator', 'creator', 'sender']);
+        $subconOrder->load(['vendor', 'rmPart', 'gciPart', 'bomItem', 'receives.creator', 'creator', 'sender']);
         $traceability = LocationInventoryAdjustment::with(['creator'])
             ->where('source_reference', $subconOrder->order_no)
             ->orderBy('adjusted_at')
@@ -257,13 +264,15 @@ class SubconController extends Controller
     {
         $parts = BomItem::where('special', 'T')
             ->whereNotNull('wip_part_id')
-            ->with('wipPart')
+            ->with(['wipPart', 'componentPart'])
             ->get()
-            ->unique('wip_part_id')
             ->map(fn($item) => [
                 'id' => $item->wip_part_id,
                 'part_no' => $item->wipPart->part_no ?? $item->wip_part_no,
                 'part_name' => $item->wipPart->part_name ?? $item->wip_part_name,
+                'rm_part_id' => $item->component_part_id,
+                'rm_part_no' => $item->componentPart->part_no ?? $item->component_part_no,
+                'rm_part_name' => $item->componentPart->part_name ?? $item->material_name,
                 'process_name' => $item->process_name,
                 'bom_item_id' => $item->id,
             ])

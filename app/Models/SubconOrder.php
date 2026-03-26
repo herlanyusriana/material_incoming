@@ -13,6 +13,7 @@ class SubconOrder extends Model
         'order_no',
         'contract_no',
         'vendor_id',
+        'rm_gci_part_id',
         'gci_part_id',
         'bom_item_id',
         'process_type',
@@ -43,6 +44,11 @@ class SubconOrder extends Model
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function rmPart()
+    {
+        return $this->belongsTo(GciPart::class, 'rm_gci_part_id');
     }
 
     public function gciPart()

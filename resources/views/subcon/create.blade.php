@@ -6,7 +6,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-black text-slate-900">New Subcon Order</h1>
-                    <div class="mt-1 text-sm text-slate-600">Send WIP parts to vendor for processing.</div>
+                    <div class="mt-1 text-sm text-slate-600">WH send RM part to vendor and receive processed WIP part back to WH.</div>
                 </div>
                 <a href="{{ route('subcon.index') }}" class="text-sm text-slate-500 hover:text-slate-800">&larr; Back</a>
             </div>
@@ -32,7 +32,6 @@
                     </div>
                 @endif
 
-                {{-- Vendor --}}
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">Vendor <span class="text-red-500">*</span></label>
                     <select name="vendor_id" required
@@ -54,22 +53,39 @@
                     <p class="mt-1 text-xs text-slate-500">Wajib diisi saat WH kirim ke vendor.</p>
                 </div>
 
-                {{-- WIP Part --}}
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">WIP Part <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">WIP Part (Hasil Vendor) <span class="text-red-500">*</span></label>
                     <select name="gci_part_id" required x-model="selectedPartId" @change="onPartChange()"
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">Select Part</option>
+                        <option value="">Select WIP Part</option>
                         @foreach ($subconParts as $p)
-                            <option value="{{ $p['id'] }}" data-process="{{ $p['process_name'] }}" data-bom="{{ $p['bom_item_id'] }}">
-                                {{ $p['part_no'] }} — {{ $p['part_name'] }}
+                            <option value="{{ $p['id'] }}"
+                                data-process="{{ $p['process_name'] }}"
+                                data-bom="{{ $p['bom_item_id'] }}"
+                                data-rm-id="{{ $p['rm_part_id'] }}"
+                                @selected(old('gci_part_id') == $p['id'])>
+                                {{ $p['part_no'] }} - {{ $p['part_name'] }}
                             </option>
                         @endforeach
                     </select>
                     <input type="hidden" name="bom_item_id" x-model="bomItemId">
+                    <p class="mt-1 text-xs text-slate-500">Part ini adalah hasil WIP yang akan diterima kembali dari vendor.</p>
                 </div>
 
-                {{-- Process Type --}}
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">RM Part (Barang Dikirim ke Vendor) <span class="text-red-500">*</span></label>
+                    <select name="rm_gci_part_id" required x-model="rmPartId"
+                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">Select RM Part</option>
+                        @foreach ($rmParts as $p)
+                            <option value="{{ $p['rm_part_id'] }}" @selected(old('rm_gci_part_id') == $p['rm_part_id'])>
+                                {{ $p['rm_part_no'] ?? '-' }} - {{ $p['rm_part_name'] ?? '-' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">RM part ini yang akan dipotong dari inventory saat WH send ke vendor.</p>
+                </div>
+
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">Process Type <span class="text-red-500">*</span></label>
                     <input type="text" name="process_type" x-model="processType" required
@@ -77,7 +93,6 @@
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                 </div>
 
-                {{-- Qty Sent --}}
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">Qty Sent <span class="text-red-500">*</span></label>
                     <input type="number" name="qty_sent" step="0.0001" min="0.0001" required
@@ -85,7 +100,6 @@
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                 </div>
 
-                {{-- Dates --}}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Sent Date <span class="text-red-500">*</span></label>
@@ -103,11 +117,10 @@
                     <label class="block text-sm font-bold text-slate-700 mb-1">WH Send Location <span class="text-red-500">*</span></label>
                     <input type="text" name="send_location_code" required value="{{ old('send_location_code') }}"
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="Contoh: WIP-A01" />
-                    <p class="mt-1 text-xs text-slate-500">Lokasi warehouse asal saat WH kirim WIP ke vendor subcon.</p>
+                        placeholder="Contoh: RM-A01" />
+                    <p class="mt-1 text-xs text-slate-500">Lokasi warehouse asal untuk RM part yang dikirim ke vendor.</p>
                 </div>
 
-                {{-- Notes --}}
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
                     <textarea name="notes" rows="3"
@@ -133,6 +146,7 @@
         function subconCreate() {
             return {
                 selectedPartId: '{{ old('gci_part_id', '') }}',
+                rmPartId: '{{ old('rm_gci_part_id', '') }}',
                 processType: '{{ old('process_type', '') }}',
                 bomItemId: '{{ old('bom_item_id', '') }}',
                 onPartChange() {
@@ -144,9 +158,11 @@
                     if (option && option.dataset.bom) {
                         this.bomItemId = option.dataset.bom;
                     }
+                    if (option && option.dataset.rmId) {
+                        this.rmPartId = option.dataset.rmId;
+                    }
                 }
             }
         }
     </script>
 @endsection
-

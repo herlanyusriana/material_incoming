@@ -91,7 +91,8 @@
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Order No</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">Vendor</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Part</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Process</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Received</th>
@@ -109,6 +110,10 @@
                                 </td>
                                 <td class="px-4 py-3 text-slate-700 font-semibold">{{ $order->contract_no ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-700">{{ $order->vendor->vendor_name ?? '-' }}</td>
+                                <td class="px-4 py-3 text-slate-700">
+                                    {{ $order->rmPart->part_name ?? '-' }}
+                                    <div class="text-[10px] text-slate-400 font-mono">{{ $order->rmPart->part_no ?? '' }}</div>
+                                </td>
                                 <td class="px-4 py-3 text-slate-700">
                                     {{ $order->gciPart->part_name ?? '-' }}
                                     <div class="text-[10px] text-slate-400 font-mono">{{ $order->gciPart->part_no ?? '' }}</div>
@@ -144,7 +149,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
+                                <td colspan="12" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
                             </tr>
                         @endforelse
                     </tbody>

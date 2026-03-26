@@ -51,6 +51,11 @@
                     <div class="mt-1 text-slate-900 font-semibold">{{ $subconOrder->vendor->vendor_name ?? '-' }}</div>
                 </div>
                 <div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">RM Part (WH Send)</div>
+                    <div class="mt-1 text-slate-900 font-semibold">{{ $subconOrder->rmPart->part_name ?? '-' }}</div>
+                    <div class="text-xs text-slate-400 font-mono">{{ $subconOrder->rmPart->part_no ?? '' }}</div>
+                </div>
+                <div>
                     <div class="text-xs font-bold uppercase tracking-wider text-slate-500">WIP Part</div>
                     <div class="mt-1 text-slate-900 font-semibold">{{ $subconOrder->gciPart->part_name ?? '-' }}</div>
                     <div class="text-xs text-slate-400 font-mono">{{ $subconOrder->gciPart->part_no ?? '' }}</div>
@@ -144,7 +149,7 @@
                             <label class="block text-sm font-bold text-slate-700 mb-1">WH Receive Good Location</label>
                             <input type="text" name="receive_location_code" value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                            <div class="mt-1 text-xs text-slate-500">Wajib jika Qty Good lebih dari nol.</div>
+                            <div class="mt-1 text-xs text-slate-500">Wajib jika Qty Good lebih dari nol. Lokasi ini untuk WIP hasil vendor.</div>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">WH Reject Location</label>
