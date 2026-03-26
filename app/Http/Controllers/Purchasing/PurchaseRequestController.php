@@ -9,6 +9,7 @@ use App\Models\GciPart;
 use App\Models\MrpPurchasePlan;
 use App\Models\Part;
 use App\Models\GciPartVendor;
+use App\Models\PricingMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -98,12 +99,29 @@ class PurchaseRequestController extends Controller
             $hasItems = false;
             foreach ($aggregatedItems as $item) {
                 $hasItems = true;
-                $vendorLink = GciPartVendor::where('gci_part_id', $item['part_id'])
-                    ->whereNotNull('price')
-                    ->where('price', '>', 0)
+                $pricing = PricingMaster::query()
+                    ->with('vendor')
+                    ->where('gci_part_id', $item['part_id'])
+                    ->where('price_type', 'purchase_price')
+                    ->where('status', 'active')
+                    ->whereDate('effective_from', '<=', now()->toDateString())
+                    ->where(function ($q) {
+                        $q->whereNull('effective_to')
+                            ->orWhereDate('effective_to', '>=', now()->toDateString());
+                    })
                     ->orderBy('price', 'asc')
                     ->first();
-                $unitPrice = $vendorLink->price ?? 0;
+
+                if ($pricing) {
+                    $unitPrice = (float) $pricing->price;
+                } else {
+                    $vendorLink = GciPartVendor::where('gci_part_id', $item['part_id'])
+                        ->whereNotNull('price')
+                        ->where('price', '>', 0)
+                        ->orderBy('price', 'asc')
+                        ->first();
+                    $unitPrice = $vendorLink ? (float) $vendorLink->price : 0;
+                }
                 $subtotal = $unitPrice * $item['qty'];
 
                 PurchaseRequestItem::create([
@@ -169,13 +187,42 @@ class PurchaseRequestController extends Controller
             ->get();
 
         $partIds = $plans->pluck('part_id')->unique()->toArray();
-        $vendorLinks = GciPartVendor::with('vendor')
+        $pricingRows = PricingMaster::with('vendor')
             ->whereIn('gci_part_id', $partIds)
-            ->whereNotNull('price')
-            ->where('price', '>', 0)
+            ->where('price_type', 'purchase_price')
+            ->where('status', 'active')
+            ->whereDate('effective_from', '<=', now()->toDateString())
+            ->where(function ($q) {
+                $q->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', now()->toDateString());
+            })
             ->orderBy('price', 'asc')
             ->get()
             ->groupBy('gci_part_id');
+
+        $vendorLinks = $pricingRows->map(function ($group) {
+            return $group->map(function ($pricing) {
+                return (object) [
+                    'vendor' => $pricing->vendor,
+                    'price' => $pricing->price,
+                ];
+            });
+        });
+
+        foreach ($partIds as $partId) {
+            if (!isset($vendorLinks[$partId]) || $vendorLinks[$partId]->isEmpty()) {
+                $fallback = GciPartVendor::with('vendor')
+                    ->where('gci_part_id', $partId)
+                    ->whereNotNull('price')
+                    ->where('price', '>', 0)
+                    ->orderBy('price', 'asc')
+                    ->get();
+
+                if ($fallback->isNotEmpty()) {
+                    $vendorLinks[$partId] = $fallback;
+                }
+            }
+        }
 
         return view('purchasing.purchase-requests.create_from_mrp', compact('plans', 'vendorLinks'));
     }

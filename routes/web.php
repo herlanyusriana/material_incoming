@@ -7,6 +7,7 @@ use App\Http\Controllers\ArrivalController;
 use App\Http\Controllers\ReceiveController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\GciInventoryController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
@@ -133,6 +134,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/parts/{part}', [PartController::class, 'destroy'])->name('parts.destroy');
     Route::get('/parts/export', [PartController::class, 'export'])->name('parts.export');
     Route::post('/parts/import', [PartController::class, 'import'])->name('parts.import');
+    Route::get('/pricing', [PricingController::class, 'index'])->name('pricing.index');
+    Route::post('/pricing', [PricingController::class, 'store'])->name('pricing.store');
+    Route::put('/pricing/{pricing}', [PricingController::class, 'update'])->name('pricing.update');
+    Route::delete('/pricing/{pricing}', [PricingController::class, 'destroy'])->name('pricing.destroy');
     // Vendor part CRUD under a GCI part
     Route::post('/parts/{part}/vendor-parts', [PartController::class, 'storeVendorPart'])->name('parts.vendor-parts.store');
     Route::put('/vendor-parts/{vendorPart}', [PartController::class, 'updateVendorPart'])->name('parts.vendor-parts.update');

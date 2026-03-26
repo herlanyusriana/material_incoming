@@ -3,6 +3,7 @@
     $outgoingModuleActive = request()->routeIs('outgoing.*');
     $vendorsActive = request()->routeIs('vendors.*');
     $partsActive = request()->routeIs('parts.*');
+    $bomsActive = request()->routeIs('planning.boms.*') || request()->routeIs('planning.boms.explosion*');
     $logisticsActive = request()->routeIs('logistics.*');
     $purchasingActive = request()->routeIs('purchasing.*');
 
@@ -107,7 +108,7 @@
                             </div>
                         </details>
 
-                        <a href="{{ route('parts.index') }}" @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive]) @click="mobileSidebarOpen = false">
+                        <a href="{{ route('pricing.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('pricing.*'), $navInactive => !request()->routeIs('pricing.*')]) @click="mobileSidebarOpen = false">
                             <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -116,6 +117,23 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 22V12" />
                             </svg>
                             <span class="ml-3">Parts Master</span>
+                        </a>
+
+                        <a href="{{ route('parts.index') }}" @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z" />
+                            </svg>
+                            <span class="ml-3">Pricing Master</span>
+                        </a>
+
+                        <a href="{{ route('planning.boms.index') }}" @class([$navLinkBase, $navActive => $bomsActive, $navInactive => !$bomsActive]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-8 5h10a2 2 0 0 0 2-2V7.414a2 2 0 0 0-.586-1.414l-2.414-2.414A2 2 0 0 0 14.586 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" />
+                            </svg>
+                            <span class="ml-3">BOM Master</span>
                         </a>
 
                         <a href="{{ route('truckings.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*')])
@@ -194,19 +212,6 @@
                                 <a href="{{ route('planning.mps.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mps.*'), $subInactive => !request()->routeIs('planning.mps.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
                                     <span class="flex-1">MPS</span>
-                                </a>
-                                <a href="{{ route('planning.boms.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.index'), $subInactive => !request()->routeIs('planning.boms.index')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.index')])></span>
-                                    <span class="flex-1">BOM GCI</span>
-                                </a>
-                                <a href="{{ route('planning.boms.substitutes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.substitutes.index'), $subInactive => !request()->routeIs('planning.boms.substitutes.index')])
-                                    @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-rose-500' => request()->routeIs('planning.boms.substitutes.index'), 'bg-slate-300 group-hover:bg-rose-400' => !request()->routeIs('planning.boms.substitutes.index')])></span>
-                                    <span class="flex-1">?? Substitute Mapping</span>
-                                </a>
-                                <a href="{{ route('planning.boms.explosion-search') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.explosion*'), $subInactive => !request()->routeIs('planning.boms.explosion*')]) @click="mobileSidebarOpen = false">
-                                    <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('planning.boms.explosion*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('planning.boms.explosion*')])></span>
-                                    <span class="flex-1">?? BOM Explosion</span>
                                 </a>
                                 <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
@@ -847,6 +852,23 @@
                         <span x-show="!sidebarCollapsed" x-cloak>Parts Master</span>
                     </a>
 
+                    <a href="{{ route('pricing.index') }}" title="Pricing Master" @class([$navLinkBase, $navActive => request()->routeIs('pricing.*'), $navInactive => !request()->routeIs('pricing.*')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>Pricing Master</span>
+                    </a>
+
+                    <a href="{{ route('planning.boms.index') }}" title="BOM Master" @class([$navLinkBase, $navActive => $bomsActive, $navInactive => !$bomsActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-8 5h10a2 2 0 0 0 2-2V7.414a2 2 0 0 0-.586-1.414l-2.414-2.414A2 2 0 0 0 14.586 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>BOM Master</span>
+                    </a>
+
                     <a href="{{ route('truckings.index') }}" title="Truckings" @class([$navLinkBase, $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*')])
                         :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
@@ -926,14 +948,6 @@
                             <a href="{{ route('planning.mps.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mps.*'), $subInactive => !request()->routeIs('planning.mps.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
                                 <span class="flex-1">MPS</span>
-                            </a>
-                            <a href="{{ route('planning.boms.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.index'), $subInactive => !request()->routeIs('planning.boms.index')])>
-                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.boms.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.boms.index')])></span>
-                                <span class="flex-1">BOM GCI</span>
-                            </a>
-                            <a href="{{ route('planning.boms.substitutes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.boms.substitutes.index'), $subInactive => !request()->routeIs('planning.boms.substitutes.index')])>
-                                <span @class([$subDotBase, 'bg-rose-500' => request()->routeIs('planning.boms.substitutes.index'), 'bg-slate-300 group-hover:bg-rose-400' => !request()->routeIs('planning.boms.substitutes.index')])></span>
-                                <span class="flex-1">?? Substitute Mapping</span>
                             </a>
                             <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>

@@ -11,6 +11,7 @@ use App\Models\Vendor;
 use App\Models\Part;
 use App\Models\GciPart;
 use App\Models\GciPartVendor;
+use App\Models\PricingMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -44,18 +45,41 @@ class PurchaseOrderController extends Controller
                 ->whereNotNull('vendor_id')
                 ->get();
 
+            $pricingRows = PricingMaster::query()
+                ->whereIn('gci_part_id', $partIds)
+                ->where('price_type', 'purchase_price')
+                ->where('status', 'active')
+                ->whereDate('effective_from', '<=', now()->toDateString())
+                ->where(function ($q) {
+                    $q->whereNull('effective_to')
+                        ->orWhereDate('effective_to', '>=', now()->toDateString());
+                })
+                ->orderBy('price', 'asc')
+                ->get();
+
             $suggestedVendorId = $vendorLinks->groupBy('vendor_id')
                 ->sortByDesc(fn($group) => $group->count())
                 ->keys()
                 ->first();
 
             foreach ($vendorLinks as $vl) {
-                $itemPrices[$vl->gci_part_id][$vl->vendor_id] = (float) $vl->price;
                 $vendorPartMap[$vl->gci_part_id][$vl->vendor_id] = [
                     'id' => $vl->id,
                     'part_no' => $vl->vendor_part_no,
                     'part_name' => $vl->vendor_part_name,
                 ];
+            }
+
+            foreach ($pricingRows as $pricing) {
+                if ($pricing->vendor_id) {
+                    $itemPrices[$pricing->gci_part_id][$pricing->vendor_id] = (float) $pricing->price;
+                }
+            }
+
+            foreach ($vendorLinks as $vl) {
+                if (!isset($itemPrices[$vl->gci_part_id][$vl->vendor_id])) {
+                    $itemPrices[$vl->gci_part_id][$vl->vendor_id] = (float) $vl->price;
+                }
             }
         }
 
