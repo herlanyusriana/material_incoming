@@ -58,14 +58,6 @@
                             d="M3 13.5V21h6v-6h6v6h6v-7.5L12 3 3 10.5" />
                     </svg>
                     <span class="ml-3">Dashboard</span>
-                </a>
-                <a href="{{ route('production.plant-performance.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('production.plant-performance.*'), $navInactive => !request()->routeIs('production.plant-performance.*')]) @click="mobileSidebarOpen = false">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13h4l3 7 4-14 3 7h4" />
-                    </svg>
-                    <span class="ml-3">Plant Performance</span>
-                </a>
             </div>
 
             @can('manage_planning')
@@ -795,14 +787,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5V21h6v-6h6v6h6v-7.5L12 3 3 10.5" />
                 </svg>
                 <span x-show="!sidebarCollapsed" x-cloak>Dashboard</span>
-            </a>
-            <a href="{{ route('production.plant-performance.index') }}" title="Plant Performance" @class([$navLinkBase, $navActive => request()->routeIs('production.plant-performance.*'), $navInactive => !request()->routeIs('production.plant-performance.*')])
-                :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13h4l3 7 4-14 3 7h4" />
-                </svg>
-                <span x-show="!sidebarCollapsed" x-cloak>Plant Performance</span>
             </a>
         </div>
 
