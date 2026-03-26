@@ -1019,6 +1019,14 @@
                                         x-model="lineForm.wip_uom" placeholder="Optional legacy UOM">
                                 </div>
                             </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP Part Name</label>
+                                    <input type="text" name="wip_part_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.wip_part_name" placeholder="Editable WIP part name">
+                                </div>
+                            </div>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
