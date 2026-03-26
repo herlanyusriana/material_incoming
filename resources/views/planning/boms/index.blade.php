@@ -995,6 +995,30 @@
                                     </template>
                                 </div>
                             </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP Qty</label>
+                                    <input type="number" step="any" min="0" name="wip_qty"
+                                        class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.wip_qty">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP UOM</label>
+                                    <select name="wip_uom_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.wip_uom_id">
+                                        <option value="">-</option>
+                                        @foreach (($uoms ?? []) as $uom)
+                                            <option value="{{ $uom->id }}">{{ $uom->code }}{{ $uom->name ? ' - ' . $uom->name : '' }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">WIP UOM Legacy</label>
+                                    <input type="text" name="wip_uom" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.wip_uom" placeholder="Optional legacy UOM">
+                                </div>
+                            </div>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
