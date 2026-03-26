@@ -127,20 +127,20 @@ class SubconController extends Controller
         $validated = $request->validate([
             'contract_no' => 'required|string|max:100',
             'vendor_id' => ['required', Rule::exists('vendors', 'id')->where(fn ($q) => $q->where('vendor_type', 'tolling'))],
-            'rm_gci_part_id' => 'required|exists:gci_parts,id',
-            'gci_part_id' => 'required|exists:gci_parts,id',
-            'bom_item_id' => 'nullable|exists:bom_items,id',
-            'process_type' => 'required|string|max:50',
-            'qty_sent' => 'required|numeric|min:0.0001',
             'sent_date' => 'required|date',
             'expected_return_date' => 'nullable|date|after_or_equal:sent_date',
-            'send_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
             'notes' => 'nullable|string|max:1000',
+            'items' => 'required|array|min:1',
+            'items.*.rm_gci_part_id' => 'required|exists:gci_parts,id',
+            'items.*.gci_part_id' => 'required|exists:gci_parts,id',
+            'items.*.bom_item_id' => 'nullable|exists:bom_items,id',
+            'items.*.process_type' => 'required|string|max:50',
+            'items.*.qty_sent' => 'required|numeric|min:0.0001',
+            'items.*.send_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
         ]);
 
         try {
             return DB::transaction(function () use ($validated) {
-                // Auto-generate order number with lock to prevent race condition
                 $today = now()->format('Ymd');
                 $lastOrder = SubconOrder::where('order_no', 'like', "SC-{$today}-%")
                     ->lockForUpdate()
@@ -149,38 +149,57 @@ class SubconController extends Controller
                 $seq = $lastOrder
                     ? ((int) substr($lastOrder->order_no, -3)) + 1
                     : 1;
-                $validated['order_no'] = sprintf('SC-%s-%03d', $today, $seq);
-                $validated['contract_no'] = strtoupper(trim((string) $validated['contract_no']));
-                $rmPart = GciPart::query()->findOrFail((int) $validated['rm_gci_part_id']);
-                $resolvedSendLocation = strtoupper(trim((string) ($validated['send_location_code'] ?? '')));
-                if ($resolvedSendLocation === '') {
-                    $resolvedSendLocation = strtoupper(trim((string) ($rmPart->default_location ?? '')));
+                $contractNo = strtoupper(trim((string) $validated['contract_no']));
+                $createdOrders = [];
+
+                foreach ($validated['items'] as $item) {
+                    $rmPart = GciPart::query()->findOrFail((int) $item['rm_gci_part_id']);
+                    $resolvedSendLocation = strtoupper(trim((string) ($item['send_location_code'] ?? '')));
+                    if ($resolvedSendLocation === '') {
+                        $resolvedSendLocation = strtoupper(trim((string) ($rmPart->default_location ?? '')));
+                    }
+
+                    if ($resolvedSendLocation === '') {
+                        throw new \RuntimeException('Default location untuk RM part ' . ($rmPart->part_no ?? '-') . ' belum di-set. Mohon lengkapi default location part terlebih dahulu.');
+                    }
+
+                    $orderNo = sprintf('SC-%s-%03d', $today, $seq++);
+                    $payload = [
+                        'order_no' => $orderNo,
+                        'contract_no' => $contractNo,
+                        'vendor_id' => $validated['vendor_id'],
+                        'rm_gci_part_id' => $item['rm_gci_part_id'],
+                        'gci_part_id' => $item['gci_part_id'],
+                        'bom_item_id' => $item['bom_item_id'] ?? null,
+                        'process_type' => $item['process_type'],
+                        'qty_sent' => $item['qty_sent'],
+                        'sent_date' => $validated['sent_date'],
+                        'expected_return_date' => $validated['expected_return_date'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                        'status' => 'sent',
+                        'created_by' => Auth::id(),
+                        'send_location_code' => $resolvedSendLocation,
+                        'sent_posted_at' => now(),
+                        'sent_posted_by' => Auth::id(),
+                    ];
+
+                    $order = SubconOrder::create($payload);
+
+                    LocationInventory::consumeStock(
+                        null,
+                        $resolvedSendLocation,
+                        (float) $item['qty_sent'],
+                        null,
+                        (int) $item['rm_gci_part_id'],
+                        'SUBCON_SEND',
+                        $order->order_no
+                    );
+
+                    $createdOrders[] = $order->order_no;
                 }
 
-                if ($resolvedSendLocation === '') {
-                    throw new \RuntimeException('Default location untuk RM part belum di-set. Mohon lengkapi default location part terlebih dahulu.');
-                }
-
-                $validated['status'] = 'sent';
-                $validated['created_by'] = Auth::id();
-                $validated['send_location_code'] = $resolvedSendLocation;
-                $validated['sent_posted_at'] = now();
-                $validated['sent_posted_by'] = Auth::id();
-
-                $order = SubconOrder::create($validated);
-
-                LocationInventory::consumeStock(
-                    null,
-                    $validated['send_location_code'],
-                    (float) $validated['qty_sent'],
-                    null,
-                    (int) $validated['rm_gci_part_id'],
-                    'SUBCON_SEND',
-                    $order->order_no
-                );
-
-                return redirect()->route('subcon.index')
-                    ->with('success', "Subcon Order {$validated['order_no']} created.");
+                return redirect()->route('subcon.traceability-index')
+                    ->with('success', 'Subcon order created: ' . implode(', ', $createdOrders));
             });
         } catch (\Throwable $e) {
             \Log::error('Subcon Order create failed', [
