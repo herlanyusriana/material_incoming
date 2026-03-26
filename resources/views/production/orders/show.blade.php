@@ -305,7 +305,7 @@
                         <div class="mb-2 flex items-center justify-between gap-3">
                             <h4 class="font-medium">5. Kanban Update</h4>
                             @if($order->part)
-                                <a href="{{ route('labels.part', ['part' => $order->part->id, 'batch' => ($order->transaction_no ?: $order->production_order_number)]) }}"
+                                <a href="{{ route('warehouse.labels.part', $order->part->id) }}?batch={{ urlencode($order->transaction_no ?: $order->production_order_number ?: '') }}"
                                     target="_blank"
                                     class="inline-flex items-center rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                                     Print Label FG
@@ -342,7 +342,7 @@
                         <div class="mb-2 flex items-center justify-between gap-3">
                             <h4 class="font-medium">6. Production Supply to WH</h4>
                             @if($order->part)
-                                <a href="{{ route('labels.part', ['part' => $order->part->id, 'batch' => ($order->transaction_no ?: $order->production_order_number)]) }}"
+                                <a href="{{ route('warehouse.labels.part', $order->part->id) }}?batch={{ urlencode($order->transaction_no ?: $order->production_order_number ?: '') }}"
                                     target="_blank"
                                     class="inline-flex items-center rounded border border-violet-200 bg-white px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100">
                                     Print Label FG

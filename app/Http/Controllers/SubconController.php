@@ -119,7 +119,38 @@ class SubconController extends Controller
                 return $item;
             });
 
-        return view('subcon.create', compact('vendors', 'subconParts', 'rmParts'));
+        $subconPartsJson = collect($subconParts)->values()->map(function ($part, $idx) {
+            return [
+                'key' => 'wip-' . $idx,
+                'id' => isset($part['id']) ? (string) $part['id'] : '',
+                'part_no' => $part['part_no'] ?? '',
+                'part_name' => $part['part_name'] ?? '',
+                'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
+                'process_name' => $part['process_name'] ?? '',
+                'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
+            ];
+        })->all();
+
+        $rmPartsJson = collect($rmParts)->values()->map(function ($part, $idx) {
+            return [
+                'key' => 'rm-' . $idx,
+                'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
+                'rm_part_no' => $part['rm_part_no'] ?? '',
+                'rm_part_name' => $part['rm_part_name'] ?? '',
+                'default_location' => $part['default_location'] ?? '',
+            ];
+        })->all();
+
+        $oldRows = old('items', [[
+            'gci_part_id' => '',
+            'rm_gci_part_id' => '',
+            'bom_item_id' => '',
+            'process_type' => '',
+            'qty_sent' => '',
+            'send_location_code' => '',
+        ]]);
+
+        return view('subcon.create', compact('vendors', 'subconParts', 'rmParts', 'subconPartsJson', 'rmPartsJson', 'oldRows'));
     }
 
     public function store(Request $request)

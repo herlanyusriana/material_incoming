@@ -183,38 +183,9 @@
 
     <script>
         function subconBatchCreate() {
-            const subconParts = @json(collect($subconParts)->map(function ($part, $idx) {
-                return [
-                    'key' => 'wip-' . $idx,
-                    'id' => (string) $part['id'],
-                    'part_no' => $part['part_no'] ?? '',
-                    'part_name' => $part['part_name'] ?? '',
-                    'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
-                    'process_name' => $part['process_name'] ?? '',
-                    'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
-                ];
-            })->values());
-
-            const rmParts = @json(collect($rmParts)->map(function ($part, $idx) {
-                return [
-                    'key' => 'rm-' . $idx,
-                    'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
-                    'rm_part_no' => $part['rm_part_no'] ?? '',
-                    'rm_part_name' => $part['rm_part_name'] ?? '',
-                    'default_location' => $part['default_location'] ?? '',
-                ];
-            })->values());
-
-            const oldRows = @json(old('items', [
-                [
-                    'gci_part_id' => '',
-                    'rm_gci_part_id' => '',
-                    'bom_item_id' => '',
-                    'process_type' => '',
-                    'qty_sent' => '',
-                    'send_location_code' => '',
-                ],
-            ]));
+            const subconParts = @json($subconPartsJson);
+            const rmParts = @json($rmPartsJson);
+            const oldRows = @json($oldRows);
 
             return {
                 subconParts,
