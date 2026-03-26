@@ -22,14 +22,18 @@
         .slot-inner { width: 100%; height: 100%; table-layout: fixed; }
         .slot-cell { text-align: center; vertical-align: middle; padding: 0; }
 
-        /* Minimize whitespace: fill frame without stretching (crop is OK) */
-        .photo-bg {
+        .photo-frame {
             width: 100%;
             height: 100%;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
             background-color: #f2f2f2;
+        }
+        .photo-img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-position: center;
+            object-fit: cover;
+            background: #f2f2f2;
         }
 
         .label {
@@ -145,7 +149,7 @@
                     <div class="slot h-top">
                         <div class="label">Depan</div>
                         @if ($p = $photo('front'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Depan"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Depan</div></td></tr></table>
                         @endif
@@ -155,7 +159,7 @@
                     <div class="slot h-top">
                         <div class="label">Belakang</div>
                         @if ($p = $photo('back'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Belakang"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Belakang</div></td></tr></table>
                         @endif
@@ -165,7 +169,7 @@
                     <div class="slot h-top">
                         <div class="label">Detail Kerusakan</div>
                         @if ($p = $photo('damage1'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Detail Kerusakan 1"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
                         @endif
@@ -175,7 +179,7 @@
                     <div class="slot h-top">
                         <div class="label">Detail Kerusakan</div>
                         @if ($p = $photo('damage2'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Detail Kerusakan 2"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
                         @endif
@@ -185,7 +189,7 @@
                     <div class="slot h-top">
                         <div class="label">Detail Kerusakan</div>
                         @if ($p = $photo('damage3'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Detail Kerusakan 3"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
                         @endif
@@ -198,7 +202,7 @@
                     <div class="slot h-mid">
                         <div class="label">Dalam</div>
                         @if ($p = $photo('inside'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Dalam"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Interior</div></td></tr></table>
                         @endif
@@ -208,7 +212,7 @@
                     <div class="slot h-mid">
                         <div class="label">No.Seal</div>
                         @if ($p = $photo('seal'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Seal"></div>
                         @else
                             <table class="slot-inner">
                                 <tr><td class="slot-cell">
@@ -248,7 +252,7 @@
                     <div class="slot h-kiri">
                         <div class="label">Kiri</div>
                         @if ($p = $photo('left'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Kiri"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kiri</div></td></tr></table>
                         @endif
@@ -261,7 +265,7 @@
                     <div class="slot h-kanan">
                         <div class="label">Kanan</div>
                         @if ($p = $photo('right'))
-                            <div class="photo-bg" style="background-image: url('{{ $p['src'] }}');"></div>
+                            <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Kanan"></div>
                         @else
                             <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Kanan</div></td></tr></table>
                         @endif

@@ -992,9 +992,9 @@ class ArrivalController extends Controller
             }
 
             return [
-                'src' => (!$didNormalize && $absolutePath && is_file($absolutePath))
-                    ? ('file://' . $absolutePath)
-                    : ('data:' . $mime . ';base64,' . base64_encode($bytes)),
+                // Always embed photo data directly so PDF rendering does not
+                // depend on filesystem URL handling or CSS background support.
+                'src' => 'data:' . $mime . ';base64,' . base64_encode($bytes),
                 'class' => $class,
             ];
         };
