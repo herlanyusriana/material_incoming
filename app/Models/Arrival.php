@@ -25,6 +25,7 @@ class Arrival extends Model
         'ETA_GCI',
         'bill_of_lading',
         'pen_no',
+        'pen_date',
         'aju_no',
         'bill_of_lading_status',
         'bill_of_lading_file',
@@ -45,6 +46,7 @@ class Arrival extends Model
 
     protected $casts = [
         'invoice_date' => 'date',
+        'pen_date' => 'date',
         'ETD' => 'date',
         'ETA' => 'date',
         'ETA_GCI' => 'date',

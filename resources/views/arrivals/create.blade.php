@@ -201,6 +201,12 @@
                             @error('pen_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
+                            <label for="pen_date" class="text-sm font-medium text-gray-700">Tanggal No PEN</label>
+                            <input type="date" id="pen_date" name="pen_date" value="{{ old('pen_date') }}"
+                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            @error('pen_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="space-y-1">
                             <label for="aju_no" class="text-sm font-medium text-gray-700">Nomor AJU</label>
                             <input type="text" id="aju_no" name="aju_no" value="{{ old('aju_no') }}" placeholder="Nomor AJU"
                                 class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">

@@ -96,13 +96,20 @@
                             @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="space-y-1">
                             <label for="pen_no" class="text-sm font-medium text-slate-700">Nomor PEN</label>
                             <input type="text" id="pen_no" name="pen_no"
                                 value="{{ old('pen_no', $arrival->pen_no) }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
                             @error('pen_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="space-y-1">
+                            <label for="pen_date" class="text-sm font-medium text-slate-700">Tanggal No PEN</label>
+                            <input type="date" id="pen_date" name="pen_date"
+                                value="{{ old('pen_date', optional($arrival->pen_date)->format('Y-m-d')) }}"
+                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            @error('pen_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
                             <label for="aju_no" class="text-sm font-medium text-slate-700">Nomor AJU</label>
