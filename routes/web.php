@@ -343,6 +343,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/boms', [PlanningBomController::class, 'index'])->name('boms.index');
         Route::get('/boms/export', [PlanningBomController::class, 'export'])->name('boms.export');
         Route::post('/boms/import', [PlanningBomController::class, 'import'])->name('boms.import');
+        Route::post('/boms/sync-incoming-parts', [PlanningBomController::class, 'syncIncomingParts'])->name('boms.sync-incoming-parts');
         Route::post('/boms', [PlanningBomController::class, 'store'])->name('boms.store');
         Route::get('/boms/substitutes', [PlanningBomController::class, 'substitutes'])->name('boms.substitutes.index');
         Route::get('/boms/substitutes/export', [PlanningBomController::class, 'exportSubstitutes'])->name('boms.substitutes.export');

@@ -19,6 +19,40 @@ use Illuminate\Validation\Rule;
 
 class PartController extends Controller
 {
+    private function activeBomIncomingVendorPartIds(mixed $asOfDate = null): array
+    {
+        $date = $asOfDate ?: now()->toDateString();
+
+        $mainIds = BomItem::query()
+            ->whereNotNull('incoming_part_id')
+            ->whereHas('bom', function ($q) use ($date) {
+                $q->where('status', 'active')
+                    ->where('effective_date', '<=', $date)
+                    ->where(function ($sub) use ($date) {
+                        $sub->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $date);
+                    });
+            })
+            ->pluck('incoming_part_id')
+            ->all();
+
+        $substituteIds = BomItemSubstitute::query()
+            ->where('status', 'active')
+            ->whereNotNull('incoming_part_id')
+            ->whereHas('bomItem.bom', function ($q) use ($date) {
+                $q->where('status', 'active')
+                    ->where('effective_date', '<=', $date)
+                    ->where(function ($sub) use ($date) {
+                        $sub->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $date);
+                    });
+            })
+            ->pluck('incoming_part_id')
+            ->all();
+
+        return array_values(array_unique(array_map('intval', array_merge($mainIds, $substituteIds))));
+    }
+
     /**
      * API: search parts (vendor-level) for autocomplete.
      * Kept as-is for backward compat with departure/arrival forms.
@@ -490,6 +524,7 @@ class PartController extends Controller
         $mode = strtolower(trim((string) $request->query('mode', 'parts')));
         $q = trim((string) $request->query('q', ''));
         $groupTitle = trim((string) $request->query('group_title', ''));
+        $asOfDate = $request->query('as_of_date', now()->toDateString());
         $limit = (int) $request->query('limit', 200);
         if ($limit < 10) {
             $limit = 10;
@@ -498,9 +533,34 @@ class PartController extends Controller
             $limit = 500;
         }
 
+        $eligibleIncomingIds = $this->activeBomIncomingVendorPartIds($asOfDate);
+
+        if (empty($eligibleIncomingIds)) {
+            if ($mode === 'names') {
+                return response()->json([
+                    'names' => [],
+                    'total' => 0,
+                    'limit' => $limit,
+                    'truncated' => false,
+                ]);
+            }
+
+            if ($request->boolean('meta')) {
+                return response()->json([
+                    'parts' => [],
+                    'total' => 0,
+                    'limit' => $limit,
+                    'truncated' => false,
+                ]);
+            }
+
+            return response()->json([]);
+        }
+
         if ($mode === 'names') {
             $base = Part::query()
                 ->where('vendor_id', $vendor->id)
+                ->whereIn('id', $eligibleIncomingIds)
                 ->whereNotNull('part_name_vendor')
                 ->whereRaw("TRIM(part_name_vendor) <> ''")
                 ->when($q !== '', function ($qr) use ($q) {
@@ -524,6 +584,7 @@ class PartController extends Controller
         $base = Part::query()
             ->where('vendor_id', $vendor->id)
             ->where('status', 'active')
+            ->whereIn('id', $eligibleIncomingIds)
             ->when($groupTitle !== '', function ($qr) use ($groupTitle) {
                 $qr->whereRaw('UPPER(TRIM(part_name_vendor)) = UPPER(?)', [$groupTitle]);
             })

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Arrival;
 use App\Models\ArrivalContainer;
 use App\Models\ArrivalItem;
+use App\Models\BomItem;
+use App\Models\BomItemSubstitute;
 use App\Models\GciPartVendor;
 use App\Models\Inventory;
 use App\Models\Part;
@@ -25,6 +27,44 @@ use App\Traits\LogsActivity;
 class ArrivalController extends Controller
 {
     use LogsActivity;
+
+    private function vendorPartIsUsedInActiveBom(int $vendorPartId, mixed $asOfDate = null): bool
+    {
+        if ($vendorPartId <= 0) {
+            return false;
+        }
+
+        $date = $asOfDate ?: now()->toDateString();
+
+        $usedAsMain = BomItem::query()
+            ->where('incoming_part_id', $vendorPartId)
+            ->whereHas('bom', function ($q) use ($date) {
+                $q->where('status', 'active')
+                    ->where('effective_date', '<=', $date)
+                    ->where(function ($sub) use ($date) {
+                        $sub->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $date);
+                    });
+            })
+            ->exists();
+
+        if ($usedAsMain) {
+            return true;
+        }
+
+        return BomItemSubstitute::query()
+            ->where('incoming_part_id', $vendorPartId)
+            ->where('status', 'active')
+            ->whereHas('bomItem.bom', function ($q) use ($date) {
+                $q->where('status', 'active')
+                    ->where('effective_date', '<=', $date)
+                    ->where(function ($sub) use ($date) {
+                        $sub->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $date);
+                    });
+            })
+            ->exists();
+    }
 
     private function getIncomingOrderQty(?string $unitGoods, mixed $qtyGoods, mixed $weightNett): float
     {
@@ -446,6 +486,11 @@ class ArrivalController extends Controller
                         "items.{$index}.part_id" => "Part {$vendorPart->vendor_part_no} does not belong to the selected vendor.",
                     ]);
                 }
+                if (!$vendorPart || !$this->vendorPartIsUsedInActiveBom((int) $item['part_id'], $validated['invoice_date'] ?? null)) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.part_id" => 'Part ini belum dipakai di BOM aktif, jadi tidak boleh dibuat departure.',
+                    ]);
+                }
 
                 $arrivalItem = $arrival->items()->create([
                     // Backward compatibility: keep legacy part_id filled with vendor-part id.
@@ -803,6 +848,11 @@ class ArrivalController extends Controller
         if ($vendorPart && (int) $vendorPart->vendor_id !== (int) $arrival->vendor_id) {
             throw ValidationException::withMessages([
                 'part_id' => "Part {$vendorPart->vendor_part_no} does not belong to the selected vendor.",
+            ]);
+        }
+        if (!$vendorPart || !$this->vendorPartIsUsedInActiveBom((int) $data['part_id'], $arrival->invoice_date)) {
+            throw ValidationException::withMessages([
+                'part_id' => 'Part ini belum dipakai di BOM aktif, jadi tidak boleh ditambahkan ke departure.',
             ]);
         }
 

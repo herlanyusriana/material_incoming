@@ -14,16 +14,80 @@ use App\Models\CustomerPart;
 use App\Models\CustomerPartComponent;
 use App\Exports\BomSubstitutesExport;
 use App\Models\GciPart;
+use App\Models\GciPartVendor;
 use App\Models\Part;
 use App\Models\Machine;
 use App\Models\Uom;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 
 class BomController extends Controller
 {
+    private function autoSyncIncomingPartMappings(): array
+    {
+        $vendorPartIdsByGciPart = GciPartVendor::query()
+            ->where('status', 'active')
+            ->whereNotNull('gci_part_id')
+            ->orderBy('id')
+            ->get(['id', 'gci_part_id'])
+            ->groupBy('gci_part_id')
+            ->map(fn($rows) => $rows->pluck('id')->map(fn($id) => (int) $id)->values()->all());
+
+        $mainAutoSynced = 0;
+        $substituteAutoSynced = 0;
+        $mainNeedsReview = 0;
+        $substituteNeedsReview = 0;
+
+        DB::transaction(function () use (
+            $vendorPartIdsByGciPart,
+            &$mainAutoSynced,
+            &$substituteAutoSynced,
+            &$mainNeedsReview,
+            &$substituteNeedsReview
+        ) {
+            $bomItems = BomItem::query()
+                ->whereNull('incoming_part_id')
+                ->whereNotNull('component_part_id')
+                ->get(['id', 'component_part_id']);
+
+            foreach ($bomItems as $item) {
+                $candidates = $vendorPartIdsByGciPart[(int) $item->component_part_id] ?? [];
+                if (count($candidates) === 1) {
+                    $item->update(['incoming_part_id' => $candidates[0]]);
+                    $mainAutoSynced++;
+                } elseif (count($candidates) > 1) {
+                    $mainNeedsReview++;
+                }
+            }
+
+            $substitutes = BomItemSubstitute::query()
+                ->whereNull('incoming_part_id')
+                ->whereNotNull('substitute_part_id')
+                ->where('status', 'active')
+                ->get(['id', 'substitute_part_id']);
+
+            foreach ($substitutes as $substitute) {
+                $candidates = $vendorPartIdsByGciPart[(int) $substitute->substitute_part_id] ?? [];
+                if (count($candidates) === 1) {
+                    $substitute->update(['incoming_part_id' => $candidates[0]]);
+                    $substituteAutoSynced++;
+                } elseif (count($candidates) > 1) {
+                    $substituteNeedsReview++;
+                }
+            }
+        });
+
+        return [
+            'main_auto_synced' => $mainAutoSynced,
+            'substitute_auto_synced' => $substituteAutoSynced,
+            'main_needs_review' => $mainNeedsReview,
+            'substitute_needs_review' => $substituteNeedsReview,
+        ];
+    }
+
     public function index(Request $request)
     {
         $gciPartId = $request->query('gci_part_id');
@@ -74,6 +138,23 @@ class BomController extends Controller
         $machines = Machine::query()->where('is_active', true)->orderBy('name')->get();
 
         return view('planning.boms.index', compact('boms', 'fgParts', 'wipParts', 'rmParts', 'makeParts', 'incomingParts', 'uoms', 'machines', 'gciPartId', 'q'));
+    }
+
+    public function syncIncomingParts(Request $request)
+    {
+        $result = $this->autoSyncIncomingPartMappings();
+
+        $message = sprintf(
+            'Auto sync selesai. Main BOM: %d synced, %d review. Substitute BOM: %d synced, %d review.',
+            $result['main_auto_synced'],
+            $result['main_needs_review'],
+            $result['substitute_auto_synced'],
+            $result['substitute_needs_review'],
+        );
+
+        return redirect()
+            ->route('planning.boms.index', $request->only(['gci_part_id', 'q']))
+            ->with('success', $message);
     }
 
     public function whereUsed(Request $request)

@@ -952,7 +952,6 @@
             return [
                 '<option value="">Pilih Jenis Material / Part Name Vendor</option>',
                 options,
-                '<option value="__custom__">Lainnya (ketik manual)...</option>',
             ].join('');
         }
 
@@ -998,16 +997,13 @@
 
         function getGroupTitle(groupEl) {
             const select = groupEl.querySelector('.material-title-select');
-            const custom = groupEl.querySelector('.material-title-custom');
             if (!select) return '';
-            if (select.value === '__custom__') return (custom?.value || '').trim();
             return (select.value || '').trim();
         }
 
         function setGroupTitle(groupEl, title) {
             const vendorId = vendorIdInput.value;
             const select = groupEl.querySelector('.material-title-select');
-            const custom = groupEl.querySelector('.material-title-custom');
             if (!select) return;
 
             const normalized = (title || '').trim();
@@ -1018,38 +1014,23 @@
 
             if (!normalized) {
                 select.value = '';
-                if (custom) {
-                    custom.value = '';
-                    custom.classList.add('hidden');
-                }
                 return;
             }
 
             if (titles.includes(normalized)) {
                 select.value = normalized;
-                if (custom) {
-                    custom.value = '';
-                    custom.classList.add('hidden');
-                }
                 return;
             }
 
-            select.value = '__custom__';
-            if (custom) {
-                custom.value = normalized;
-                custom.classList.remove('hidden');
-            }
+            select.value = '';
         }
 
         function rebuildMaterialTitleSelects(vendorId) {
             document.querySelectorAll('.material-group').forEach(groupEl => {
                 const select = groupEl.querySelector('.material-title-select');
-                const custom = groupEl.querySelector('.material-title-custom');
                 if (!select) return;
                 const current = getGroupTitle(groupEl);
                 setGroupTitle(groupEl, current);
-                if (custom && select.value !== '__custom__') custom.classList.add('hidden');
-                if (custom && select.value === '__custom__') custom.classList.remove('hidden');
                 syncGroupTitle(groupEl);
             });
         }
@@ -1549,8 +1530,7 @@
 	                        <select class="material-title-select mt-1 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
 	                            <option value="">Pilih Jenis Material / Part Name Vendor</option>
 	                        </select>
-	                        <input type="text" class="material-title-custom mt-2 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs hidden" placeholder="Ketik jenis material (manual)" value="">
-	                        <p class="text-[10px] text-gray-500 mt-1">Dropdown ngambil dari <span class="font-semibold">Part Name Vendor</span> (sesuai vendor). Kalau tidak ada, pilih <span class="font-semibold">Lainnya</span> lalu ketik manual.</p>
+	                        <p class="text-[10px] text-gray-500 mt-1">Hanya material yang sudah terdaftar di <span class="font-semibold">Vendor Part List</span> yang bisa dipakai untuk departure.</p>
 	                    </div>
 	                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
 		                        <button type="button" class="remove-group text-xs text-red-600 hover:text-red-700">Remove Group</button>
@@ -1574,23 +1554,9 @@
             groupsContainer.appendChild(groupEl);
 
             const titleSelect = groupEl.querySelector('.material-title-select');
-            const titleCustom = groupEl.querySelector('.material-title-custom');
 
             if (titleSelect) {
                 titleSelect.addEventListener('change', () => {
-                    if (titleSelect.value === '__custom__') {
-                        titleCustom?.classList.remove('hidden');
-                        titleCustom?.focus();
-                    } else {
-                        titleCustom?.classList.add('hidden');
-                    }
-                    syncGroupTitle(groupEl);
-                    requestSaveDraft();
-                });
-            }
-
-            if (titleCustom) {
-                titleCustom.addEventListener('input', () => {
                     syncGroupTitle(groupEl);
                     requestSaveDraft();
                 });

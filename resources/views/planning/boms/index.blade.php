@@ -240,6 +240,14 @@
                                 @click="openImport()">
                                 Import
                             </button>
+                            <form action="{{ route('planning.boms.sync-incoming-parts', request()->only(['gci_part_id', 'q'])) }}" method="POST"
+                                onsubmit="return confirm('Auto sync incoming part hanya akan mengisi BOM yang kandidat vendor part-nya unik. Lanjutkan?')">
+                                @csrf
+                                <button type="submit"
+                                    class="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100">
+                                    Auto Sync Incoming Part
+                                </button>
+                            </form>
                             <a href="{{ route('planning.boms.substitutes.export') }}"
                                 class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
                                 title="Export Substitutes to Excel">
