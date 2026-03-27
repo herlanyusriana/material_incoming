@@ -748,15 +748,15 @@ class ProductionPlanningController extends Controller
     }
 
     /**
-     * Get FG Stock GCI (from Inventory via parts table)
+     * Get FG Stock GCI directly from physical stock by location.
      */
     private function getFgStockGci(): array
     {
-        return \App\Models\Inventory::join('parts', 'inventories.part_id', '=', 'parts.id')
-            ->whereNotNull('parts.gci_part_id')
-            ->select('parts.gci_part_id', \Illuminate\Support\Facades\DB::raw('SUM(inventories.on_hand) as total_on_hand'))
-            ->groupBy('parts.gci_part_id')
-            ->pluck('total_on_hand', 'parts.gci_part_id')
+        return \App\Models\LocationInventory::query()
+            ->whereNotNull('gci_part_id')
+            ->select('gci_part_id', \Illuminate\Support\Facades\DB::raw('SUM(qty_on_hand) as total_on_hand'))
+            ->groupBy('gci_part_id')
+            ->pluck('total_on_hand', 'gci_part_id')
             ->toArray();
     }
 

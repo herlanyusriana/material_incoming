@@ -49,7 +49,7 @@
             </button>
         </div>
 
-        <nav class="flex-1 overflow-y-auto px-4 py-5 space-y-6">
+        <nav id="mobile-sidebar-nav" class="flex-1 overflow-y-auto px-4 py-5 space-y-6">
             <div class="space-y-1">
                 <a href="{{ route('dashboard') }}" @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard')]) @click="mobileSidebarOpen = false">
                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
@@ -788,8 +788,7 @@
 {{-- Desktop sidebar --}}
 <aside
     class="hidden md:flex sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-all duration-200 overflow-hidden"
-    :class="sidebarCollapsed ? 'w-20' : 'w-72'" @mouseenter="expandSidebar()" @mouseleave="collapseSidebar()"
-    @click="if ($event.target.closest('a')) collapseSidebar()">
+    :class="sidebarCollapsed ? 'w-20' : 'w-72'">
     <div class="px-4 pt-6">
         <div class="flex items-center rounded-2xl border border-slate-200 bg-white shadow-sm px-4 py-4"
             :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
@@ -804,7 +803,7 @@
         </div>
     </div>
 
-    <nav class="flex-1 min-h-0 overflow-y-auto px-4 pb-6 pt-6 space-y-6">
+    <nav id="desktop-sidebar-nav" class="flex-1 min-h-0 overflow-y-auto px-4 pb-6 pt-6 space-y-6">
         <div class="space-y-1">
             <a href="{{ route('dashboard') }}" title="Dashboard" @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard')])
                 :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">

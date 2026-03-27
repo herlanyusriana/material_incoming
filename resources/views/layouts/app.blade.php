@@ -92,11 +92,6 @@
 	            @keydown.escape.window="mobileSidebarOpen = false"
 	        >
 	            @auth
-	                <div
-	                    class="hidden md:block fixed left-0 top-0 h-screen w-3 z-40"
-	                    @mouseenter="expandSidebar()"
-	                    @mousemove="expandSidebar()"
-	                ></div>
 	                @include('layouts.sidebar')
 	            @endauth
 
@@ -454,6 +449,35 @@
                             confirmButtonColor: '#d33',
                         });
                     @endif
+
+                    const sidebarScrollConfigs = [
+                        { key: 'desktopSidebarScrollTop', el: document.getElementById('desktop-sidebar-nav') },
+                        { key: 'mobileSidebarScrollTop', el: document.getElementById('mobile-sidebar-nav') },
+                    ];
+
+                    sidebarScrollConfigs.forEach(({ key, el }) => {
+                        if (!el) return;
+
+                        const saved = localStorage.getItem(key);
+                        if (saved !== null) {
+                            const parsed = parseInt(saved, 10);
+                            if (!Number.isNaN(parsed)) {
+                                el.scrollTop = parsed;
+                            }
+                        }
+
+                        let saveTimer;
+                        const persist = () => {
+                            localStorage.setItem(key, String(el.scrollTop || 0));
+                        };
+
+                        el.addEventListener('scroll', () => {
+                            window.clearTimeout(saveTimer);
+                            saveTimer = window.setTimeout(persist, 50);
+                        }, { passive: true });
+
+                        window.addEventListener('beforeunload', persist);
+                    });
 	            });
 	        </script>
             @stack('scripts')
