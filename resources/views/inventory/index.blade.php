@@ -91,6 +91,25 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Items</div>
+                        <div class="mt-2 text-2xl font-black text-slate-900">{{ number_format((int) ($kpi['item_count'] ?? 0)) }}</div>
+                    </div>
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <div class="text-xs font-bold uppercase tracking-wider text-emerald-700">On Hand</div>
+                        <div class="mt-2 text-2xl font-black text-emerald-900">{{ formatNumber((float) ($kpi['total_on_hand'] ?? 0)) }}</div>
+                    </div>
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                        <div class="text-xs font-bold uppercase tracking-wider text-amber-700">On Order</div>
+                        <div class="mt-2 text-2xl font-black text-amber-900">{{ formatNumber((float) ($kpi['total_on_order'] ?? 0)) }}</div>
+                    </div>
+                    <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                        <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Available</div>
+                        <div class="mt-2 text-2xl font-black text-blue-900">{{ formatNumber((float) ($kpi['total_available'] ?? 0)) }}</div>
+                    </div>
+                </div>
+
                 <!-- Filters -->
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
                     <form method="GET" class="flex flex-wrap items-end gap-3">
@@ -132,13 +151,15 @@
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Batch No</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Hand</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Order</th>
+                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">Available</th>
+                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">Locations</th>
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Default Loc</th>
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">As Of</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($rows as $inv)
-                                @php($p = $inv->part)
+                                @php($p = $inv)
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-4 py-3">
                                         <div class="font-bold font-mono text-indigo-700">{{ $p?->part_no ?? '-' }}</div>
@@ -162,20 +183,23 @@
                                         <span class="font-mono text-xs text-slate-700">{{ $inv->batch_no ?? ($inv->latest_batch_received ?? '-') }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        @if($activeTab === 'fg')
-                                            <input type="number" step="any" min="0"
-                                                value="{{ (float) ($inv->on_hand ?? 0) }}"
-                                                data-inv-id="{{ $inv->id }}"
-                                                onchange="saveStock(this)"
-                                                class="w-24 text-right font-mono font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded border border-slate-300 focus:border-indigo-400 focus:outline-none text-sm">
-                                        @else
-                                            <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded shadow-sm border border-slate-200">
-                                                {{ formatNumber((float) ($inv->on_hand ?? 0)) }}
-                                            </span>
-                                        @endif
+                                        <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded shadow-sm border border-slate-200">
+                                            {{ formatNumber((float) ($inv->on_hand ?? 0)) }}
+                                        </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-mono text-slate-500">{{ formatNumber((float) ($inv->on_order ?? 0)) }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        @php($availableQty = (float) ($inv->available_qty ?? 0))
+                                        <span @class([
+                                            'font-mono font-bold',
+                                            'text-red-600' => $availableQty < 0,
+                                            'text-slate-900' => $availableQty >= 0,
+                                        ])>{{ formatNumber($availableQty) }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <span class="font-mono text-slate-500">{{ number_format((int) ($inv->location_count ?? 0)) }}</span>
                                     </td>
                                     <td class="px-4 py-3">
                                         <select data-part-id="{{ $p?->id }}" onchange="saveLocation(this)"
@@ -192,7 +216,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-12 text-center">
+                                    <td colspan="10" class="px-4 py-12 text-center">
                                         <p class="text-slate-500 font-semibold mb-1">No {{ $classification }} inventory found</p>
                                         <p class="text-xs text-slate-400">Try adjusting your filters.</p>
                                     </td>
@@ -243,42 +267,6 @@
         </div>
     </div>
     <script>
-        async function saveStock(input) {
-            const invId = input.dataset.invId;
-            if (!invId) return;
-
-            input.style.background = '#fef9c3';
-
-            try {
-                const res = await fetch('{{ route("inventory.gci.update-stock") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        gci_inventory_id: invId,
-                        on_hand: parseFloat(input.value) || 0,
-                    }),
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    input.style.background = '#dcfce7';
-                    setTimeout(() => { input.style.background = ''; }, 800);
-                } else {
-                    alert(data.message || 'Gagal update stock.');
-                    input.style.background = '#fee2e2';
-                    setTimeout(() => { input.style.background = ''; }, 1500);
-                }
-            } catch (e) {
-                console.error('Save stock failed:', e);
-                input.style.background = '#fee2e2';
-                setTimeout(() => { input.style.background = ''; }, 1500);
-            }
-        }
-
         async function saveLocation(el) {
             const partId = el.dataset.partId;
             if (!partId) return;
