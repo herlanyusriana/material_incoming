@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Inventory;
+use App\Models\GciInventory;
 use App\Models\LocationInventory;
 use App\Imports\LocationInventoryImport;
 use App\Exports\LocationStockExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Maatwebsite\Excel\Facades\Excel;
 
 class WarehouseStockController extends Controller
@@ -84,35 +86,123 @@ class WarehouseStockController extends Controller
             $perPage = 200;
         }
 
-        // For reconcile, we want to check both Inventory (vendor parts) and GciInventory (master parts)
-        // Since LocationInventory tracks both, we'll reconcile by gci_part_id which is common to all.
-        $locationSums = LocationInventory::query()
+        $locationPartSums = LocationInventory::query()
+            ->whereNotNull('part_id')
+            ->selectRaw('part_id, SUM(qty_on_hand) as loc_qty')
+            ->groupBy('part_id')
+            ->pluck('loc_qty', 'part_id')
+            ->map(fn ($qty) => (float) $qty)
+            ->all();
+
+        $locationGciSums = LocationInventory::query()
+            ->whereNull('part_id')
+            ->whereNotNull('gci_part_id')
             ->selectRaw('gci_part_id, SUM(qty_on_hand) as loc_qty')
-            ->groupBy('gci_part_id');
+            ->groupBy('gci_part_id')
+            ->pluck('loc_qty', 'gci_part_id')
+            ->map(fn ($qty) => (float) $qty)
+            ->all();
 
-        $query = \App\Models\GciInventory::query()
-            ->select([
-                'gci_inventories.gci_part_id',
-                'gci_inventories.on_hand',
-                DB::raw('COALESCE(ls.loc_qty, 0) as loc_qty'),
-                DB::raw('(COALESCE(gci_inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) as diff_qty'),
+        $rows = collect();
+
+        foreach (Inventory::with('part')->get() as $inventory) {
+            $part = $inventory->part;
+            $onHand = (float) ($inventory->on_hand ?? 0);
+            $locQty = (float) ($locationPartSums[$inventory->part_id] ?? 0);
+            $diffQty = $onHand - $locQty;
+
+            $rows->push((object) [
+                'reconcile_key' => 'part:' . $inventory->part_id,
+                'summary_type' => 'inventory',
+                'part' => $part,
+                'gciPart' => null,
+                'on_hand' => $onHand,
+                'loc_qty' => $locQty,
+                'diff_qty' => $diffQty,
+            ]);
+        }
+
+        foreach (GciInventory::with('gciPart')->get() as $inventory) {
+            $gciPart = $inventory->gciPart;
+            $onHand = (float) ($inventory->on_hand ?? 0);
+            $locQty = (float) ($locationGciSums[$inventory->gci_part_id] ?? 0);
+            $diffQty = $onHand - $locQty;
+
+            $rows->push((object) [
+                'reconcile_key' => 'gci:' . $inventory->gci_part_id,
+                'summary_type' => 'gci_inventory',
+                'part' => null,
+                'gciPart' => $gciPart,
+                'on_hand' => $onHand,
+                'loc_qty' => $locQty,
+                'diff_qty' => $diffQty,
+            ]);
+        }
+
+        $knownPartIds = Inventory::query()->pluck('part_id')->filter()->map(fn ($id) => (int) $id)->all();
+        $knownGciIds = GciInventory::query()->pluck('gci_part_id')->filter()->map(fn ($id) => (int) $id)->all();
+
+        foreach ($locationPartSums as $partId => $locQty) {
+            if (in_array((int) $partId, $knownPartIds, true)) {
+                continue;
+            }
+
+            $rows->push((object) [
+                'reconcile_key' => 'part:' . $partId,
+                'summary_type' => 'inventory',
+                'part' => \App\Models\Part::find($partId),
+                'gciPart' => null,
+                'on_hand' => 0.0,
+                'loc_qty' => (float) $locQty,
+                'diff_qty' => 0.0 - (float) $locQty,
+            ]);
+        }
+
+        foreach ($locationGciSums as $gciPartId => $locQty) {
+            if (in_array((int) $gciPartId, $knownGciIds, true)) {
+                continue;
+            }
+
+            $rows->push((object) [
+                'reconcile_key' => 'gci:' . $gciPartId,
+                'summary_type' => 'gci_inventory',
+                'part' => null,
+                'gciPart' => \App\Models\GciPart::find($gciPartId),
+                'on_hand' => 0.0,
+                'loc_qty' => (float) $locQty,
+                'diff_qty' => 0.0 - (float) $locQty,
+            ]);
+        }
+
+        if ($search !== '') {
+            $needle = strtoupper($search);
+            $rows = $rows->filter(function ($row) use ($needle) {
+                $partNo = strtoupper((string) ($row->gciPart?->part_no ?? $row->part?->part_no ?? ''));
+                $partName = strtoupper((string) ($row->gciPart?->part_name ?? $row->part?->part_name_gci ?? $row->part?->part_name_vendor ?? ''));
+                return str_contains($partNo, $needle) || str_contains($partName, $needle);
+            });
+        }
+
+        if ($onlyDiff) {
+            $rows = $rows->filter(fn ($row) => round((float) $row->diff_qty, 4) !== 0.0);
+        }
+
+        $rows = $rows
+            ->sortBy([
+                fn ($row) => -abs((float) $row->diff_qty),
+                fn ($row) => strtoupper((string) ($row->gciPart?->part_no ?? $row->part?->part_no ?? '')),
             ])
-            ->leftJoinSub($locationSums, 'ls', function ($join) {
-                $join->on('ls.gci_part_id', '=', 'gci_inventories.gci_part_id');
-            })
-            ->with('gciPart')
-            ->when($onlyDiff, fn ($q) => $q->whereRaw('(COALESCE(gci_inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) != 0'))
-            ->when($search !== '', function ($q) use ($search) {
-                $s = strtoupper($search);
-                $q->whereHas('gciPart', function ($qp) use ($s) {
-                    $qp->where('part_no', 'like', '%' . $s . '%')
-                        ->orWhere('part_name', 'like', '%' . $s . '%');
-                });
-            })
-            ->orderByRaw('ABS(COALESCE(gci_inventories.on_hand, 0) - COALESCE(ls.loc_qty, 0)) DESC')
-            ->orderBy('gci_inventories.gci_part_id');
+            ->values();
 
-        $rows = $query->paginate($perPage)->withQueryString();
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $items = $rows->forPage($page, $perPage)->values();
+        $rows = new LengthAwarePaginator(
+            $items,
+            $rows->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         return view('warehouse.stock.reconcile', compact('rows', 'search', 'onlyDiff', 'perPage'));
     }
@@ -144,4 +234,3 @@ class WarehouseStockController extends Controller
         );
     }
 }
-
