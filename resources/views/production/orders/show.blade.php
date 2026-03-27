@@ -20,6 +20,12 @@
         $materialShortageTotal = (float) $materialShortageLines->sum(fn ($line) => (float) ($line['shortage_qty'] ?? 0));
         $materialAllocatedTotal = (float) $materialRequestLines->sum(fn ($line) => (float) ($line['available_qty'] ?? 0));
         $materialRequiredTotal = (float) $materialRequestLines->sum(fn ($line) => (float) ($line['required_qty'] ?? 0));
+        $holdReason = null;
+        if ($order->status === 'material_hold') {
+            $holdReason = 'Material shortage';
+        } elseif ($order->status === 'resource_hold') {
+            $holdReason = 'Resource / capacity issue';
+        }
     @endphp
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -75,6 +81,55 @@
                     </div>
                 </dl>
             </div>
+
+            @if($holdReason)
+                <div class="bg-white border rounded-lg shadow-sm p-6">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-red-700">Hold Reason</h3>
+                            <p class="text-sm text-slate-500">Alasan kenapa WO ini masih hold.</p>
+                        </div>
+                        <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+                            {{ strtoupper(str_replace('_', ' ', $order->status)) }}
+                        </span>
+                    </div>
+
+                    @if($order->status === 'material_hold')
+                        @if($materialShortageCount > 0)
+                            <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+                                <div class="flex items-center justify-between gap-4 mb-3">
+                                    <div class="font-semibold text-red-800">Material yang menyebabkan hold</div>
+                                    <div class="text-sm font-bold text-red-700">{{ $materialShortageCount }} item shortage</div>
+                                </div>
+                                <div class="space-y-2">
+                                    @foreach($materialShortageLines->take(6) as $line)
+                                        <div class="rounded border border-red-200 bg-white px-3 py-2">
+                                            <div class="text-sm font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                            <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                            <div class="mt-1 text-xs text-red-700">
+                                                Required {{ number_format((float) ($line['required_qty'] ?? 0), 4) }}
+                                                • Allocated {{ number_format((float) ($line['available_qty'] ?? 0), 4) }}
+                                                • Shortage {{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    @if($materialShortageCount > 6)
+                                        <div class="text-xs text-red-700">+ {{ $materialShortageCount - 6 }} item shortage lainnya.</div>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                                WO berstatus material hold, tapi detail shortage belum tersimpan di material request. Jalankan material check / create material request untuk melihat part yang kurang.
+                            </div>
+                        @endif
+                    @else
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                            WO berstatus resource hold. Detail alasan resource belum tersimpan sebagai daftar item di sistem saat ini, jadi cek kapasitas machine, resource planning, atau hasil material availability untuk WO ini.
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             @if($materialItemCount > 0)
                 <div class="bg-white border rounded-lg shadow-sm p-6">

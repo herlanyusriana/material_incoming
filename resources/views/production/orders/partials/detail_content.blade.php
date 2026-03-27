@@ -1,3 +1,15 @@
+@php
+    $materialRequestLines = collect($order->material_request_lines ?? []);
+    $materialShortageLines = $materialRequestLines->where('shortage_qty', '>', 0)->values();
+    $materialShortageCount = $materialShortageLines->count();
+    $holdReason = null;
+    if ($order->status === 'material_hold') {
+        $holdReason = 'Material shortage';
+    } elseif ($order->status === 'resource_hold') {
+        $holdReason = 'Resource / capacity issue';
+    }
+@endphp
+
 <div class="grid grid-cols-1 gap-6">
     <!-- Order Details -->
     <div class="space-y-6">
@@ -55,6 +67,52 @@
                 </div>
             </dl>
         </div>
+
+        @if($holdReason)
+            <div class="bg-white border rounded-lg shadow-sm p-6">
+                <div class="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-red-700">Hold Reason</h3>
+                        <p class="text-sm text-slate-500">Alasan kenapa WO ini masih hold.</p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+                        {{ strtoupper(str_replace('_', ' ', $order->status)) }}
+                    </span>
+                </div>
+
+                @if($order->status === 'material_hold')
+                    @if($materialShortageCount > 0)
+                        <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+                            <div class="mb-3 font-semibold text-red-800">Material yang menyebabkan hold</div>
+                            <div class="space-y-2">
+                                @foreach($materialShortageLines->take(5) as $line)
+                                    <div class="rounded border border-red-200 bg-white px-3 py-2">
+                                        <div class="text-sm font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                        <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                        <div class="mt-1 text-xs text-red-700">
+                                            Required {{ number_format((float) ($line['required_qty'] ?? 0), 4) }}
+                                            • Allocated {{ number_format((float) ($line['available_qty'] ?? 0), 4) }}
+                                            • Shortage {{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}
+                                        </div>
+                                    </div>
+                                @endforeach
+                                @if($materialShortageCount > 5)
+                                    <div class="text-xs text-red-700">+ {{ $materialShortageCount - 5 }} item shortage lainnya.</div>
+                                @endif
+                            </div>
+                        </div>
+                    @else
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                            WO berstatus material hold, tapi detail shortage belum tersimpan di material request.
+                        </div>
+                    @endif
+                @else
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                        WO berstatus resource hold. Detail alasan resource belum tersimpan sebagai daftar item di sistem saat ini.
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <!-- Daily Planning Mapping -->
         @if($order->dailyPlanCell)
