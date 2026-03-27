@@ -17,8 +17,6 @@
                         <input type="date" name="date" value="{{ $planDate->format('Y-m-d') }}"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             onchange="this.form.submit()">
-                        <input type="hidden" name="sort_by" value="{{ $sortBy }}">
-                        <input type="hidden" name="sort_dir" value="{{ $sortDir }}">
                         <label class="text-sm font-semibold text-slate-600 ml-2">Mode:</label>
                         <select name="calc_mode"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -26,6 +24,21 @@
                             <option value="strict" @selected($calcMode === 'strict')>Strict</option>
                             <option value="with_substitute" @selected($calcMode === 'with_substitute')>With Substitute</option>
                         </select>
+                        <label class="text-sm font-semibold text-slate-600 ml-2">Search:</label>
+                        <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="WO / transaction / part no"
+                            class="rounded-lg border-slate-300 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="hidden" name="sort_by" value="{{ $sortBy }}">
+                        <input type="hidden" name="sort_dir" value="{{ $sortDir }}">
+                        <button type="submit"
+                            class="inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                            Apply
+                        </button>
+                        @if(!empty($q))
+                            <a href="{{ route('production.material-requirement.index', ['date' => $planDate->format('Y-m-d'), 'calc_mode' => $calcMode, 'sort_by' => $sortBy, 'sort_dir' => $sortDir]) }}"
+                                class="inline-flex items-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                                Reset Search
+                            </a>
+                        @endif
                     </form>
 
                     @if($session)

@@ -19,6 +19,7 @@ class MaterialRequirementController extends Controller
         $sortBy = $request->query('sort_by', 'component');
         $sortDir = $request->query('sort_dir', 'asc');
         $calcMode = strtolower((string) $request->query('calc_mode', 'with_substitute'));
+        $q = trim((string) $request->query('q', ''));
 
         if (!in_array($calcMode, ['strict', 'with_substitute'], true)) {
             $calcMode = 'with_substitute';
@@ -31,6 +32,16 @@ class MaterialRequirementController extends Controller
             ->whereDate('plan_date', $planDate->format('Y-m-d'))
             ->where('qty_planned', '>', 0)
             ->where('status', '!=', 'cancelled')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($builder) use ($q) {
+                    $builder->where('production_order_number', 'like', '%' . $q . '%')
+                        ->orWhere('transaction_no', 'like', '%' . $q . '%')
+                        ->orWhereHas('part', function ($partQuery) use ($q) {
+                            $partQuery->where('part_no', 'like', '%' . $q . '%')
+                                ->orWhere('part_name', 'like', '%' . $q . '%');
+                        });
+                });
+            })
             ->orderBy('plan_date')
             ->orderBy('production_order_number')
             ->get();
@@ -184,6 +195,7 @@ class MaterialRequirementController extends Controller
             'totalShortage',
             'totalFgPlanned',
             'calcMode',
+            'q',
         ));
     }
 

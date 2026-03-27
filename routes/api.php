@@ -67,4 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/search', [\App\Http\Controllers\Api\InventoryApiController::class, 'search']);
         Route::post('/transfer', [\App\Http\Controllers\Api\InventoryApiController::class, 'transfer']);
     });
+
+    // Customer stock update
+    Route::prefix('customer-stock')->group(function () {
+        Route::get('/customers', [\App\Http\Controllers\Api\CustomerStockApiController::class, 'customers']);
+        Route::get('/parts', [\App\Http\Controllers\Api\CustomerStockApiController::class, 'parts']);
+        Route::get('/entries', [\App\Http\Controllers\Api\CustomerStockApiController::class, 'entries']);
+        Route::post('/upsert', [\App\Http\Controllers\Api\CustomerStockApiController::class, 'upsert']);
+    });
 });
