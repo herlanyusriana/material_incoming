@@ -3,11 +3,6 @@
         Planning • Customer Part Mapping
     </x-slot>
 
-    @push('head')
-        <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-    @endpush
-
     <div class="py-3" x-data="planningCustomerParts()" x-init="init()">
         <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))

@@ -7,13 +7,6 @@
 
         <title>Smart Application System | Geum Cheon Indo</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-
-        <!-- Tom Select -->
-        <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-
 	        <!-- Scripts -->
 	        @vite(['resources/css/app.css', 'resources/js/app.js'])
 	        <style>[x-cloak]{display:none !important;}</style>
@@ -463,7 +456,6 @@
                     @endif
 	            });
 	        </script>
-            <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
             @stack('scripts')
 	    </body>
 	</html>
