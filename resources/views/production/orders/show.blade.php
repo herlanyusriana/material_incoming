@@ -13,6 +13,13 @@
             ->where('type', 'final')
             ->sortByDesc('id')
             ->first();
+        $materialRequestLines = collect($order->material_request_lines ?? []);
+        $materialItemCount = $materialRequestLines->count();
+        $materialShortageLines = $materialRequestLines->where('shortage_qty', '>', 0)->values();
+        $materialShortageCount = $materialShortageLines->count();
+        $materialShortageTotal = (float) $materialShortageLines->sum(fn ($line) => (float) ($line['shortage_qty'] ?? 0));
+        $materialAllocatedTotal = (float) $materialRequestLines->sum(fn ($line) => (float) ($line['available_qty'] ?? 0));
+        $materialRequiredTotal = (float) $materialRequestLines->sum(fn ($line) => (float) ($line['required_qty'] ?? 0));
     @endphp
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -68,6 +75,69 @@
                     </div>
                 </dl>
             </div>
+
+            @if($materialItemCount > 0)
+                <div class="bg-white border rounded-lg shadow-sm p-6">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold">Material Quick View</h3>
+                            <p class="text-sm text-slate-500">Ringkasan permintaan RM dan item shortage untuk WO ini.</p>
+                        </div>
+                        <div class="text-right text-xs text-slate-500">
+                            Last request<br>
+                            <span class="font-semibold text-slate-700">{{ $order->material_requested_at?->format('d M Y H:i') ?? '-' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div class="text-[11px] uppercase tracking-wide text-slate-500">Material Items</div>
+                            <div class="mt-1 text-xl font-bold text-slate-900">{{ $materialItemCount }}</div>
+                        </div>
+                        <div class="rounded-lg border {{ $materialShortageCount > 0 ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50' }} p-3">
+                            <div class="text-[11px] uppercase tracking-wide {{ $materialShortageCount > 0 ? 'text-red-500' : 'text-emerald-600' }}">Shortage Items</div>
+                            <div class="mt-1 text-xl font-bold {{ $materialShortageCount > 0 ? 'text-red-700' : 'text-emerald-700' }}">{{ $materialShortageCount }}</div>
+                        </div>
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                            <div class="text-[11px] uppercase tracking-wide text-amber-600">Required Total</div>
+                            <div class="mt-1 text-lg font-bold text-amber-800">{{ number_format($materialRequiredTotal, 4) }}</div>
+                        </div>
+                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                            <div class="text-[11px] uppercase tracking-wide text-blue-600">Allocated Total</div>
+                            <div class="mt-1 text-lg font-bold text-blue-800">{{ number_format($materialAllocatedTotal, 4) }}</div>
+                        </div>
+                    </div>
+
+                    @if($materialShortageCount > 0)
+                        <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+                            <div class="flex items-center justify-between gap-4 mb-3">
+                                <div class="font-semibold text-red-800">Material Kurang</div>
+                                <div class="text-sm font-bold text-red-700">Total shortage: {{ number_format($materialShortageTotal, 4) }}</div>
+                            </div>
+                            <div class="space-y-2">
+                                @foreach($materialShortageLines->take(5) as $line)
+                                    <div class="rounded border border-red-200 bg-white px-3 py-2">
+                                        <div class="text-sm font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                        <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                        <div class="mt-1 text-xs text-red-700">
+                                            Required {{ number_format((float) ($line['required_qty'] ?? 0), 4) }}
+                                            • Allocated {{ number_format((float) ($line['available_qty'] ?? 0), 4) }}
+                                            • Shortage {{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}
+                                        </div>
+                                    </div>
+                                @endforeach
+                                @if($materialShortageCount > 5)
+                                    <div class="text-xs text-red-700">+ {{ $materialShortageCount - 5 }} item shortage lainnya. Lihat tabel RM Material Request di bawah untuk detail penuh.</div>
+                                @endif
+                            </div>
+                        </div>
+                    @else
+                        <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                            Semua item material request sudah teralokasi. Tidak ada shortage untuk WO ini.
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             <!-- Daily Planning Mapping -->
             @if($order->dailyPlanCell)

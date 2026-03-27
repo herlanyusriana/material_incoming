@@ -7,6 +7,7 @@ use App\Models\ProductionInspection;
 use App\Models\GciPart;
 use App\Models\GciInventory;
 use App\Models\LocationInventory;
+use App\Models\Receive;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Machine;
@@ -390,7 +391,14 @@ class ProductionOrderController extends Controller
                         $batchNo !== '' ? $batchNo : null,
                         null,
                         'PRODUCTION_ISSUE',
-                        $sourceReference
+                        $sourceReference,
+                        [
+                            'source_receive_id' => $allocation['source_receive_id'] ?? null,
+                            'source_arrival_id' => $allocation['source_arrival_id'] ?? null,
+                            'source_invoice_no' => $allocation['source_invoice_no'] ?? null,
+                            'source_delivery_note_no' => $allocation['source_delivery_note_no'] ?? null,
+                            'source_tag' => $allocation['source_tag'] ?? ($batchNo !== '' ? $batchNo : null),
+                        ]
                     );
 
                     $issuedAllocations[] = array_merge($allocation, [
@@ -866,6 +874,19 @@ class ProductionOrderController extends Controller
                         'qty_on_hand' => $available,
                         'request_qty' => $pickedQty,
                     ];
+
+                    $traceability = $this->resolveIncomingTraceability(
+                        $candidate['part_id'],
+                        (string) $stock->location_code,
+                        (string) ($stock->batch_no ?? '')
+                    );
+
+                    if (!empty($traceability)) {
+                        $allocations[array_key_last($allocations)] = array_merge(
+                            $allocations[array_key_last($allocations)],
+                            $traceability
+                        );
+                    }
                 }
             }
 
@@ -884,5 +905,37 @@ class ProductionOrderController extends Controller
         }
 
         return $lines;
+    }
+
+    protected function resolveIncomingTraceability(int $partId, string $locationCode, string $batchNo): array
+    {
+        $locationCode = strtoupper(trim($locationCode));
+        $batchNo = strtoupper(trim($batchNo));
+
+        if ($partId <= 0 || $locationCode === '' || $batchNo === '') {
+            return [];
+        }
+
+        $receive = Receive::query()
+            ->with('arrivalItem:id,arrival_id,part_id')
+            ->where('tag', $batchNo)
+            ->where('location_code', $locationCode)
+            ->whereHas('arrivalItem', function ($query) use ($partId) {
+                $query->where('part_id', $partId);
+            })
+            ->latest('id')
+            ->first();
+
+        if (!$receive) {
+            return [];
+        }
+
+        return [
+            'source_receive_id' => (int) $receive->id,
+            'source_arrival_id' => (int) ($receive->arrivalItem?->arrival_id ?? 0),
+            'source_invoice_no' => $receive->invoice_no ? (string) $receive->invoice_no : null,
+            'source_delivery_note_no' => $receive->delivery_note_no ? (string) $receive->delivery_note_no : null,
+            'source_tag' => $receive->tag ? (string) $receive->tag : $batchNo,
+        ];
     }
 }
