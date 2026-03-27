@@ -19,7 +19,7 @@
                         </div>
                         GCI PLANNING PRODUKSI
                     </h1>
-                    <p class="mt-1 text-sm text-slate-500">Production Planning by Machine (from BOM) - Requirement source can be Delivery Requirement (pull) or Raw Daily Plan</p>
+                    <p class="mt-1 text-sm text-slate-500">Production Planning by Machine (from BOM) - Delivery Requirement bisa ditarik ke kolom terpisah, sedangkan Plan Qty tetap jadi keputusan produksi.</p>
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
@@ -103,12 +103,24 @@
                             </button>
                         </form>
 
-                        <form action="{{ route('production.planning.pull-delivery-requirement') }}" method="POST" class="inline">
+                        <form action="{{ route('production.planning.pull-delivery-requirement') }}" method="POST"
+                            class="flex items-end gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
                             @csrf
                             <input type="hidden" name="session_id" value="{{ $session->id }}">
+                            <div>
+                                <label class="mb-1 block text-[10px] font-bold uppercase tracking-wide text-emerald-700">From</label>
+                                <input type="date" name="date_from" value="{{ old('date_from', $planDate->format('Y-m-d')) }}"
+                                    class="h-9 rounded-lg border-emerald-200 bg-white text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-[10px] font-bold uppercase tracking-wide text-emerald-700">To</label>
+                                <input type="date" name="date_to"
+                                    value="{{ old('date_to', $planDate->copy()->addDays(max($planningDays - 1, 0))->format('Y-m-d')) }}"
+                                    class="h-9 rounded-lg border-emerald-200 bg-white text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                            </div>
                             <button type="submit"
                                 class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-700 transition-all whitespace-nowrap"
-                                onclick="return confirm('Tarik plan qty dari Delivery Requirement untuk tanggal {{ $planDate->format('d M Y') }}? Plan qty yang sudah ada akan di-overwrite.')">
+                                onclick="return confirm('Tarik Delivery Requirement ke kolom terpisah? Plan Qty produksi tidak akan di-overwrite.')">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -174,9 +186,9 @@
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">PART NAME</th>
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">MODEL</th>
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">MACHINE</th>
-                                <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK LG</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK GCI</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
+                                <th class="px-3 py-3 text-right font-bold text-blue-700">DELIVERY REQ</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700 text-emerald-700">PLAN QTY</th>
                                 <th class="px-3 py-3 text-right font-bold text-indigo-600">EST. HRS</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SHIFT</th>
@@ -217,6 +229,8 @@
                                                         Load: {{ number_format($totalEstHrs, 1) }}h / {{ number_format($capacityHrs, 1) }}h ({{ $loadPct }}%)
                                                     </span>
                                                 @endif
+                                                Delivery Req: <span class="text-blue-200 ml-1">{{ number_format($group['subtotal_delivery_requirement_qty'], 0) }}</span>
+                                                <span class="text-slate-500">|</span>
                                                 Plan Qty: <span class="text-white ml-1">{{ number_format($group['subtotal_plan_qty'], 0) }}</span>
                                             </div>
                                         </div>
@@ -256,9 +270,6 @@
                                                 </select>
                                             </td>
                                             <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
-                                                {{ number_format((float) $line->stock_fg_lg, 0) }}
-                                            </td>
-                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
                                                 {{ number_format((float) $line->stock_fg_gci, 0) }}
                                             </td>
                                             <td class="px-3 py-2 text-center">
@@ -266,6 +277,18 @@
                                                     class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
                                                     value="{{ $line->production_sequence }}" placeholder="Seq"
                                                     @change="updateLineField($event, {{ $line->id }}, 'production_sequence')">
+                                            </td>
+                                            <td class="px-3 py-2 text-right">
+                                                <div class="font-mono text-[12px] font-semibold text-blue-700">
+                                                    {{ number_format((float) $line->delivery_requirement_qty, 0) }}
+                                                </div>
+                                                @if($line->delivery_requirement_date_from || $line->delivery_requirement_date_to)
+                                                    <div class="text-[10px] text-slate-400">
+                                                        {{ optional($line->delivery_requirement_date_from)->format('d M') ?? '-' }}
+                                                        -
+                                                        {{ optional($line->delivery_requirement_date_to)->format('d M') ?? '-' }}
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td class="px-3 py-2 text-right">
                                                 <input type="number" step="1" min="0"
@@ -321,12 +344,12 @@
                                                     <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                                                     </svg>
-                                                    Projected Daily Stock vs LG Plan Requirement
+                                                    Projected Daily Stock vs Plan Requirement
                                                 </div>
                                                 <div class="flex gap-2 overflow-x-auto pb-2">
                                                     @foreach($dateRange as $dIdx => $date)
                                                         @php
-                                                            $fgStock = (float) $line->stock_fg_lg;
+                                                            $fgStock = (float) $line->stock_fg_gci;
                                                             $planQty = (float) $line->plan_qty;
                                                             $dailyReq = isset($dailyPlanData[$line->gci_part_id]) ? ($dailyPlanData[$line->gci_part_id]['total_qty'] ?? 0) : 0;
                                                             $projectedStock = $fgStock + $planQty - ($dailyReq * ($dIdx + 1));
@@ -378,12 +401,12 @@
                                         Grand Total ({{ $totalParts }} parts)
                                     </td>
                                     <td class="px-3 py-3 text-right font-mono text-slate-800">
-                                        {{ number_format($grandTotalFgLg, 0) }}
-                                    </td>
-                                    <td class="px-3 py-3 text-right font-mono text-slate-800">
                                         {{ number_format($grandTotalFgGci, 0) }}
                                     </td>
                                     <td class="px-3 py-3"></td>
+                                    <td class="px-3 py-3 text-right font-mono text-blue-700">
+                                        {{ number_format($grandTotalDeliveryRequirementQty, 0) }}
+                                    </td>
                                     <td class="px-3 py-3 text-right font-mono text-emerald-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>

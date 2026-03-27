@@ -8,7 +8,6 @@ use App\Models\ProductionPlanningLine;
 use App\Models\ProductionOrder;
 use App\Models\GciPart;
 use App\Models\GciInventory;
-use App\Models\StockAtCustomer;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Machine;
@@ -56,14 +55,14 @@ class ProductionPlanningController extends Controller
                         'machine_name' => $machineName,
                         'process_name' => $line->process_name ?: '-',
                         'lines' => [],
-                        'subtotal_fg_lg' => 0,
                         'subtotal_fg_gci' => 0,
+                        'subtotal_delivery_requirement_qty' => 0,
                         'subtotal_plan_qty' => 0,
                     ];
                 }
                 $machineGroups[$machineKey]['lines'][] = $line;
-                $machineGroups[$machineKey]['subtotal_fg_lg'] += (float) $line->stock_fg_lg;
                 $machineGroups[$machineKey]['subtotal_fg_gci'] += (float) $line->stock_fg_gci;
+                $machineGroups[$machineKey]['subtotal_delivery_requirement_qty'] += (float) $line->delivery_requirement_qty;
                 $machineGroups[$machineKey]['subtotal_plan_qty'] += (float) $line->plan_qty;
             }
         }
@@ -71,8 +70,6 @@ class ProductionPlanningController extends Controller
         // Get daily planning data from outgoing
         $dailyPlanData = $this->getDailyPlanningData($planDate, $sourceMode);
 
-        // Get FG stock data
-        $fgStockLg = $this->getFgStockLg($planDate);
         $fgStockGci = $this->getFgStockGci();
 
         // Date range for planning
@@ -91,8 +88,8 @@ class ProductionPlanningController extends Controller
             ->get();
 
         // Grand totals
-        $grandTotalFgLg = collect($machineGroups)->sum('subtotal_fg_lg');
         $grandTotalFgGci = collect($machineGroups)->sum('subtotal_fg_gci');
+        $grandTotalDeliveryRequirementQty = collect($machineGroups)->sum('subtotal_delivery_requirement_qty');
         $grandTotalPlanQty = collect($machineGroups)->sum('subtotal_plan_qty');
         $totalParts = collect($machineGroups)->sum(fn($g) => count($g['lines']));
 
@@ -100,15 +97,14 @@ class ProductionPlanningController extends Controller
             'session',
             'machineGroups',
             'dailyPlanData',
-            'fgStockLg',
             'fgStockGci',
             'planDate',
             'dateRange',
             'existingSessions',
             'planningDays',
             'machines',
-            'grandTotalFgLg',
             'grandTotalFgGci',
+            'grandTotalDeliveryRequirementQty',
             'grandTotalPlanQty',
             'totalParts',
             'sourceMode'
@@ -153,8 +149,6 @@ class ProductionPlanningController extends Controller
         }
         $deliveryRequirements = $this->getDailyPlanningData(Carbon::parse($session->plan_date), $sourceMode);
 
-        // Get FG stock data
-        $fgStockLg = $this->getFgStockLg(Carbon::parse($session->plan_date));
         $fgStockGci = $this->getFgStockGci();
 
         $sortOrder = ProductionPlanningLine::where('session_id', $session->id)->max('sort_order') ?? 0;
@@ -204,9 +198,11 @@ class ProductionPlanningController extends Controller
                     'gci_part_id' => $part->id,
                     'machine_id' => $machineId,
                     'process_name' => $processName,
-                    'stock_fg_lg' => $fgStockLg[$part->id] ?? 0,
                     'stock_fg_gci' => $fgStockGci[$part->id] ?? 0,
-                    'plan_qty' => (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
+                    'delivery_requirement_qty' => (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
+                    'delivery_requirement_date_from' => $session->plan_date,
+                    'delivery_requirement_date_to' => $session->plan_date,
+                    'plan_qty' => 0,
                     'sort_order' => $sortOrder,
                 ]);
             }
@@ -264,7 +260,6 @@ class ProductionPlanningController extends Controller
             $sourceMode = 'delivery';
         }
         $deliveryRequirements = $this->getDailyPlanningData(Carbon::parse($session->plan_date), $sourceMode);
-        $fgStockLg = $this->getFgStockLg(Carbon::parse($session->plan_date));
         $fgStockGci = $this->getFgStockGci();
 
         // Get machine/process from BOM
@@ -287,9 +282,11 @@ class ProductionPlanningController extends Controller
             'gci_part_id' => $request->gci_part_id,
             'machine_id' => $machineId,
             'process_name' => $processName,
-            'stock_fg_lg' => $fgStockLg[$request->gci_part_id] ?? 0,
             'stock_fg_gci' => $fgStockGci[$request->gci_part_id] ?? 0,
-            'plan_qty' => (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
+            'delivery_requirement_qty' => (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
+            'delivery_requirement_date_from' => $session->plan_date,
+            'delivery_requirement_date_to' => $session->plan_date,
+            'plan_qty' => 0,
             'sort_order' => $sortOrder,
         ]);
 
@@ -543,12 +540,11 @@ class ProductionPlanningController extends Controller
         $result = [];
         foreach ($lines as $line) {
             $partId = $line->gci_part_id;
-            $stockLg = (float) $line->stock_fg_lg;
             $stockGci = (float) $line->stock_fg_gci;
             $planQty = (float) $line->plan_qty;
 
             $dailyCalc = [];
-            $runningStock = $stockLg + $planQty;
+            $runningStock = $stockGci + $planQty;
 
             foreach ($dateRange as $date) {
                 $requirement = $dailyRequirements[$partId][$date] ?? 0;
@@ -563,7 +559,7 @@ class ProductionPlanningController extends Controller
 
             $result[$line->id] = [
                 'daily' => $dailyCalc,
-                'total_stock' => $stockLg + $stockGci,
+                'total_stock' => $stockGci,
             ];
         }
 
@@ -571,21 +567,24 @@ class ProductionPlanningController extends Controller
     }
 
     /**
-     * Pull plan_qty from Delivery Requirement (OutgoingDailyPlanCell) for the session's plan date
+     * Pull delivery requirement from a selectable date range into a dedicated column
      */
     public function pullFromDeliveryRequirement(Request $request)
     {
         $request->validate([
             'session_id' => 'required|exists:production_planning_sessions,id',
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
         ]);
 
         $session = ProductionPlanningSession::findOrFail($request->session_id);
-        $planDate = Carbon::parse($session->plan_date)->format('Y-m-d');
+        $dateFrom = Carbon::parse($request->date_from)->format('Y-m-d');
+        $dateTo = Carbon::parse($request->date_to)->format('Y-m-d');
 
-        // Sum delivery requirement qty per gci_part_id for the plan date
+        // Sum delivery requirement qty per gci_part_id for selected range
         $requirements = DB::table('outgoing_daily_plan_cells as c')
             ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'c.row_id')
-            ->where('c.plan_date', $planDate)
+            ->whereBetween('c.plan_date', [$dateFrom, $dateTo])
             ->whereNotNull('r.gci_part_id')
             ->where('c.qty', '>', 0)
             ->select('r.gci_part_id', DB::raw('SUM(c.qty) as total_qty'))
@@ -593,22 +592,24 @@ class ProductionPlanningController extends Controller
             ->pluck('total_qty', 'r.gci_part_id');
 
         if ($requirements->isEmpty()) {
-            return back()->with('error', "Tidak ada delivery requirement untuk tanggal {$planDate}.");
+            return back()->with('error', "Tidak ada delivery requirement untuk range {$dateFrom} s/d {$dateTo}.");
         }
 
         $updated = 0;
         $lines = ProductionPlanningLine::where('session_id', $session->id)->get();
 
         foreach ($lines as $line) {
-            $reqQty = $requirements->get($line->gci_part_id);
-            if ($reqQty && $reqQty > 0) {
-                $line->update(['plan_qty' => $reqQty]);
-                $updated++;
-            }
+            $reqQty = (float) ($requirements->get($line->gci_part_id) ?? 0);
+            $line->update([
+                'delivery_requirement_qty' => $reqQty,
+                'delivery_requirement_date_from' => $dateFrom,
+                'delivery_requirement_date_to' => $dateTo,
+            ]);
+            $updated++;
         }
 
-        return redirect()->route('production.planning.index', ['date' => $planDate])
-            ->with('success', "Delivery requirement berhasil ditarik untuk {$updated} planning lines (tanggal {$planDate}).");
+        return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
+            ->with('success', "Delivery requirement berhasil ditarik ke kolom terpisah untuk {$updated} planning lines (range {$dateFrom} s/d {$dateTo}).");
     }
 
     // ==========================================
@@ -734,26 +735,6 @@ class ProductionPlanningController extends Controller
         }
 
         return $requirements;
-    }
-
-    /**
-     * Get FG Stock LG (from StockAtCustomer based on plan date)
-     */
-    private function getFgStockLg(Carbon $date): array
-    {
-        $dateStr = $date->format('Y-m-d');
-
-        $stocks = StockAtCustomer::where('stock_date', $dateStr)->get();
-
-        $result = [];
-        foreach ($stocks as $stock) {
-            if (!isset($result[$stock->gci_part_id])) {
-                $result[$stock->gci_part_id] = 0;
-            }
-            $result[$stock->gci_part_id] += (float) ($stock->qty ?? 0);
-        }
-
-        return $result;
     }
 
     /**

@@ -16,6 +16,9 @@ class ProductionPlanningLine extends Model
         'process_name',
         'stock_fg_lg',
         'stock_fg_gci',
+        'delivery_requirement_qty',
+        'delivery_requirement_date_from',
+        'delivery_requirement_date_to',
         'production_sequence',
         'plan_qty',
         'shift',
@@ -26,6 +29,9 @@ class ProductionPlanningLine extends Model
     protected $casts = [
         'stock_fg_lg' => 'decimal:4',
         'stock_fg_gci' => 'decimal:4',
+        'delivery_requirement_qty' => 'decimal:4',
+        'delivery_requirement_date_from' => 'date',
+        'delivery_requirement_date_to' => 'date',
         'plan_qty' => 'decimal:4',
     ];
 
