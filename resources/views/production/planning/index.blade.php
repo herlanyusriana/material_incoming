@@ -187,8 +187,8 @@
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">MODEL</th>
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">MACHINE</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK GCI</th>
-                                <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
                                 <th class="px-3 py-3 text-right font-bold text-blue-700">DELIVERY REQ</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700 text-emerald-700">PLAN QTY</th>
                                 <th class="px-3 py-3 text-right font-bold text-indigo-600">EST. HRS</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SHIFT</th>
@@ -272,12 +272,6 @@
                                             <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
                                                 {{ number_format((float) $line->stock_fg_gci, 0) }}
                                             </td>
-                                            <td class="px-3 py-2 text-center">
-                                                <input type="number" step="1" min="1"
-                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
-                                                    value="{{ $line->production_sequence }}" placeholder="Seq"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'production_sequence')">
-                                            </td>
                                             <td class="px-3 py-2 text-right">
                                                 <div class="font-mono text-[12px] font-semibold text-blue-700">
                                                     {{ number_format((float) $line->delivery_requirement_qty, 0) }}
@@ -290,11 +284,20 @@
                                                     </div>
                                                 @endif
                                             </td>
+                                            <td class="px-3 py-2 text-center">
+                                                <input type="number" step="1" min="1"
+                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
+                                                    value="{{ $line->production_sequence }}" placeholder="Seq"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'production_sequence')">
+                                            </td>
                                             <td class="px-3 py-2 text-right">
                                                 <input type="number" step="1" min="0"
                                                     class="w-24 ml-auto text-right text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-emerald-700 transition-all placeholder-emerald-300"
                                                     value="{{ $line->plan_qty > 0 ? intval($line->plan_qty) : '' }}" placeholder="0"
                                                     @change="updateLineField($event, {{ $line->id }}, 'plan_qty')">
+                                                <div class="mt-1 text-[10px] text-slate-400">
+                                                    Auto: Req - Stock, editable manual
+                                                </div>
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <select

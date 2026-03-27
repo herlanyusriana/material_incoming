@@ -202,7 +202,10 @@ class ProductionPlanningController extends Controller
                     'delivery_requirement_qty' => (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
                     'delivery_requirement_date_from' => $session->plan_date,
                     'delivery_requirement_date_to' => $session->plan_date,
-                    'plan_qty' => 0,
+                    'plan_qty' => $this->calculateRecommendedPlanQty(
+                        (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
+                        (float) ($fgStockGci[$part->id] ?? 0)
+                    ),
                     'sort_order' => $sortOrder,
                 ]);
             }
@@ -286,7 +289,10 @@ class ProductionPlanningController extends Controller
             'delivery_requirement_qty' => (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
             'delivery_requirement_date_from' => $session->plan_date,
             'delivery_requirement_date_to' => $session->plan_date,
-            'plan_qty' => 0,
+            'plan_qty' => $this->calculateRecommendedPlanQty(
+                (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
+                (float) ($fgStockGci[$request->gci_part_id] ?? 0)
+            ),
             'sort_order' => $sortOrder,
         ]);
 
@@ -604,6 +610,10 @@ class ProductionPlanningController extends Controller
                 'delivery_requirement_qty' => $reqQty,
                 'delivery_requirement_date_from' => $dateFrom,
                 'delivery_requirement_date_to' => $dateTo,
+                'plan_qty' => $this->calculateRecommendedPlanQty(
+                    $reqQty,
+                    (float) $line->stock_fg_gci
+                ),
             ]);
             $updated++;
         }
@@ -748,6 +758,11 @@ class ProductionPlanningController extends Controller
             ->groupBy('parts.gci_part_id')
             ->pluck('total_on_hand', 'parts.gci_part_id')
             ->toArray();
+    }
+
+    private function calculateRecommendedPlanQty(float $deliveryRequirementQty, float $stockFgGci): float
+    {
+        return max(0, $deliveryRequirementQty - $stockFgGci);
     }
 
     /**
