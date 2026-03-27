@@ -10,6 +10,9 @@
                         <span class="font-bold uppercase tracking-wider text-slate-400">Delivery Date:</span>
                         <span class="font-bold text-slate-900">{{ $dateFrom->format('d M Y') }}</span>
                     </div>
+                    <div class="mt-2 text-xs font-semibold text-slate-500">
+                        Formula: <span class="font-mono text-slate-700">Requirement = max(0, Daily Plan - Customer Stock)</span>
+                    </div>
                 </div>
             </div>
 
@@ -58,7 +61,7 @@
                                 Category</th>
                             <th
                                 class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[100px]">
-                                FG Part Tag</th>
+                                Customer Part</th>
                             <th
                                 class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                 FG Part No.</th>
@@ -67,16 +70,13 @@
                                 Model</th>
                             <th
                                 class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
-                                GCI Stock</th>
-                            <th
-                                class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                 Cust. Stock</th>
                             <th
                                 class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
                                 Daily Plan</th>
                             <th
                                 class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider border-x border-slate-200 min-w-[90px]">
-                                Requirement</th>
+                                Net Requirement</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white">
@@ -113,10 +113,6 @@
                                     {{ $req->gci_part?->model ?? '-' }}
                                 </td>
 
-                                <td class="px-4 py-3 text-right font-medium text-teal-700 border-x border-slate-100">
-                                    {{ number_format($req->gci_stock ?? 0) }}
-                                </td>
-
                                 <td class="px-4 py-3 text-right font-medium text-slate-500 border-x border-slate-100">
                                     {{ number_format($req->stock_at_customer ?? 0) }}
                                 </td>
@@ -130,6 +126,7 @@
 
                                 <td class="px-4 py-3 text-right border-x border-slate-100">
                                     <div class="font-bold text-indigo-700">{{ number_format($req->total_qty) }}</div>
+                                    <div class="text-[10px] text-slate-400 font-semibold">Daily Plan - Cust. Stock</div>
                                     @if(($req->delivery_pack_qty ?? $req->total_qty) > $req->total_qty)
                                         <div class="text-[10px] text-slate-400 font-semibold">
                                             Pack: {{ number_format($req->delivery_pack_qty) }}
@@ -139,7 +136,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="px-6 py-20 text-center text-slate-500 bg-white">
+                                <td colspan="8" class="px-6 py-20 text-center text-slate-500 bg-white">
                                     <div class="flex flex-col items-center">
                                         <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">

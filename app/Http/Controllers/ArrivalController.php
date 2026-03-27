@@ -6,6 +6,7 @@ use App\Models\Arrival;
 use App\Models\ArrivalContainer;
 use App\Models\ArrivalItem;
 use App\Models\GciPartVendor;
+use App\Models\Inventory;
 use App\Models\Part;
 use App\Models\Vendor;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -24,6 +25,33 @@ use App\Traits\LogsActivity;
 class ArrivalController extends Controller
 {
     use LogsActivity;
+
+    private function getIncomingOrderQty(?string $unitGoods, mixed $qtyGoods, mixed $weightNett): float
+    {
+        $unit = strtoupper(trim((string) ($unitGoods ?? '')));
+        return $unit === 'COIL'
+            ? (float) ($weightNett ?? 0)
+            : (float) ($qtyGoods ?? 0);
+    }
+
+    private function adjustIncomingOnOrder(int $partId, float $qtyChange, ?string $asOfDate = null): void
+    {
+        if ($partId <= 0 || abs($qtyChange) < 0.0001) {
+            return;
+        }
+
+        $inventory = Inventory::query()->lockForUpdate()->firstOrCreate(
+            ['part_id' => $partId],
+            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => $asOfDate ?: now()->toDateString()]
+        );
+
+        $nextOnOrder = max(0, (float) $inventory->on_order + $qtyChange);
+
+        $inventory->update([
+            'on_order' => $nextOnOrder,
+            'as_of_date' => $asOfDate ?: now()->toDateString(),
+        ]);
+    }
 
     private function toCents(mixed $value): int
     {
@@ -419,7 +447,7 @@ class ArrivalController extends Controller
                     ]);
                 }
 
-                $arrival->items()->create([
+                $arrivalItem = $arrival->items()->create([
                     // Backward compatibility: keep legacy part_id filled with vendor-part id.
                     'part_id' => $item['part_id'],
                     'gci_part_vendor_id' => $item['part_id'],
@@ -454,6 +482,12 @@ class ArrivalController extends Controller
                     'total_price' => round((float) $item['total_amount'], 2),
                     'notes' => $item['notes'] ?? null,
                 ]);
+
+                $this->adjustIncomingOnOrder(
+                    (int) $arrivalItem->part_id,
+                    $this->getIncomingOrderQty($arrivalItem->unit_goods, $arrivalItem->qty_goods, $arrivalItem->weight_nett),
+                    $validated['invoice_date'] ?? null
+                );
             }
 
             $this->syncHsCodes($arrival);
@@ -485,11 +519,24 @@ class ArrivalController extends Controller
     public function destroy(Arrival $departure)
     {
         $arrival = $departure;
+        $arrival->loadMissing(['items.receives']);
+
+        $hasReceives = $arrival->items->contains(fn ($item) => $item->receives->isNotEmpty());
+        if ($hasReceives) {
+            return redirect()
+                ->route('departures.show', $arrival)
+                ->with('error', 'Departure yang sudah punya receive tidak bisa dihapus, supaya stok dan histori tetap aman.');
+        }
 
         $logData = ['arrival_id' => $arrival->id, 'invoice_no' => $arrival->invoice_no, 'vendor_id' => $arrival->vendor_id];
 
         DB::transaction(function () use ($arrival) {
             foreach ($arrival->items as $item) {
+                $this->adjustIncomingOnOrder(
+                    (int) ($item->part_id ?? 0),
+                    -$this->getIncomingOrderQty($item->unit_goods, $item->qty_goods, $item->weight_nett),
+                    optional($arrival->invoice_date)->toDateString()
+                );
                 $item->receives()->delete();
             }
             $arrival->items()->delete();
@@ -783,7 +830,7 @@ class ArrivalController extends Controller
         }
         $price = $this->formatMilli($priceMilli);
 
-        $arrival->items()->create([
+        $arrivalItem = $arrival->items()->create([
             // Backward compatibility: keep legacy part_id filled with vendor-part id.
             'part_id' => $data['part_id'],
             'gci_part_vendor_id' => $data['part_id'],
@@ -801,6 +848,14 @@ class ArrivalController extends Controller
             'total_price' => $totalPrice,
             'notes' => $data['notes'] ?? null,
         ]);
+
+        DB::transaction(function () use ($arrivalItem, $arrival) {
+            $this->adjustIncomingOnOrder(
+                (int) $arrivalItem->part_id,
+                $this->getIncomingOrderQty($arrivalItem->unit_goods, $arrivalItem->qty_goods, $arrivalItem->weight_nett),
+                optional($arrival->invoice_date)->toDateString()
+            );
+        });
 
         $this->syncHsCodes($arrival);
 
@@ -874,20 +929,31 @@ class ArrivalController extends Controller
 
         $price = $this->formatMilli($priceMilli);
 
-        $arrivalItem->update([
-            'material_group' => $data['material_group'] ?? null,
-            'size' => $data['size'] ?? null,
-            'unit_bundle' => $data['unit_bundle'] ?? null,
-            'qty_bundle' => (int) ($data['qty_bundle'] ?? 0),
-            'qty_goods' => $qtyGoods,
-            'unit_goods' => $data['unit_goods'] ?? null,
-            'weight_nett' => $normalizedNett,
-            'unit_weight' => 'KGM',
-            'weight_gross' => $normalizedGross,
-            'total_price' => $totalPrice,
-            'price' => $price,
-            'notes' => $data['notes'] ?? null,
-        ]);
+        DB::transaction(function () use ($arrivalItem, $data, $qtyGoods, $normalizedNett, $normalizedGross, $totalPrice, $price) {
+            $beforeQty = $this->getIncomingOrderQty($arrivalItem->unit_goods, $arrivalItem->qty_goods, $arrivalItem->weight_nett);
+
+            $arrivalItem->update([
+                'material_group' => $data['material_group'] ?? null,
+                'size' => $data['size'] ?? null,
+                'unit_bundle' => $data['unit_bundle'] ?? null,
+                'qty_bundle' => (int) ($data['qty_bundle'] ?? 0),
+                'qty_goods' => $qtyGoods,
+                'unit_goods' => $data['unit_goods'] ?? null,
+                'weight_nett' => $normalizedNett,
+                'unit_weight' => 'KGM',
+                'weight_gross' => $normalizedGross,
+                'total_price' => $totalPrice,
+                'price' => $price,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $afterQty = $this->getIncomingOrderQty($arrivalItem->unit_goods, $arrivalItem->qty_goods, $arrivalItem->weight_nett);
+            $this->adjustIncomingOnOrder(
+                (int) ($arrivalItem->part_id ?? 0),
+                $afterQty - $beforeQty,
+                optional($arrivalItem->arrival?->invoice_date)->toDateString()
+            );
+        });
 
         $this->syncHsCodes($arrivalItem->arrival);
 
