@@ -96,7 +96,7 @@
 	                                    <option value="PALLET" {{ strtoupper((string) $unitBundle) === 'PALLET' ? 'selected' : '' }}>PALLET</option>
 	                                    <option value="BOX" {{ strtoupper((string) $unitBundle) === 'BOX' ? 'selected' : '' }}>BOX</option>
 	                                    <option value="BAG" {{ strtoupper((string) $unitBundle) === 'BAG' ? 'selected' : '' }}>BAG</option>
-                                    <option value="PACKAGE" {{ strtoupper((string) $unitBundle) === 'PACKAGE' ? 'selected' : '' }}>PACKAGE</option>
+                                    <option value="PACKAGES" {{ strtoupper((string) $unitBundle) === 'PACKAGES' ? 'selected' : '' }}>PACKAGES</option>
                                     <option value="ROLL" {{ strtoupper((string) $unitBundle) === 'ROLL' ? 'selected' : '' }}>ROLL</option>
 	                                </select>
 	                            </div>

@@ -1339,7 +1339,7 @@
                             <option value="BUNDLE" ${guessedBundle === 'BUNDLE' ? 'selected' : ''}>BUNDLE</option>
                             <option value="BOX" ${guessedBundle === 'BOX' ? 'selected' : ''}>BOX</option>
                             <option value="BAG" ${guessedBundle === 'BAG' ? 'selected' : ''}>BAG</option>
-                            <option value="PACKAGE" ${guessedBundle === 'PACKAGE' ? 'selected' : ''}>PACKAGE</option>
+                            <option value="PACKAGES" ${guessedBundle === 'PACKAGES' ? 'selected' : ''}>PACKAGES</option>
                         </select>
                     </div>
 

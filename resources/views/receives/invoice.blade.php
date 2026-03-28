@@ -293,7 +293,7 @@
                                                     <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                     <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
                                                     <option value="BAG" @selected($defaultBundleUnit === 'BAG')>BAG</option>
-                                                    <option value="PACKAGE" @selected($defaultBundleUnit === 'PACKAGE')>PACKAGE</option>
+                                                    <option value="PACKAGES" @selected($defaultBundleUnit === 'PACKAGES')>PACKAGES</option>
                                                     <option value="ROLL" @selected($defaultBundleUnit === 'ROLL')>ROLL</option>
                                                 </select>
                                             </div>
@@ -364,7 +364,7 @@
                                                         <option value="BUNDLE" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BUNDLE')>BUNDLE</option>
                                                         <option value="BOX" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BOX')>BOX</option>
                                                         <option value="BAG" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BAG')>BAG</option>
-                                                        <option value="PACKAGE" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'PACKAGE')>PACKAGE</option>
+                                                        <option value="PACKAGES" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'PACKAGES')>PACKAGES</option>
                                                         <option value="ROLL" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'ROLL')>ROLL</option>
                                                     </select>
                                                 </div>
@@ -506,7 +506,7 @@
 	                                <option value="BUNDLE" ${sel('bundle_unit', 'BUNDLE')}>BUNDLE</option>
 	                                <option value="BOX" ${sel('bundle_unit', 'BOX')}>BOX</option>
 	                                <option value="BAG" ${sel('bundle_unit', 'BAG')}>BAG</option>
-	                                <option value="PACKAGE" ${sel('bundle_unit', 'PACKAGE')}>PACKAGE</option>
+	                                <option value="PACKAGES" ${sel('bundle_unit', 'PACKAGES')}>PACKAGES</option>
 	                                <option value="ROLL" ${sel('bundle_unit', 'ROLL')}>ROLL</option>
 	                            </select>
                         </div>
