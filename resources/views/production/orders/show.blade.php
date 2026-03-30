@@ -32,7 +32,31 @@
         <!-- Left: Order Details & Workflow Actions -->
         <div class="space-y-6">
             <div class="bg-white border rounded-lg shadow-sm p-6">
-                <h3 class="text-lg font-semibold mb-4">Order Details</h3>
+                <div class="mb-4 flex items-start justify-between gap-4">
+                    <h3 class="text-lg font-semibold">Order Details</h3>
+                    @if(!in_array($order->status, ['completed', 'cancelled'], true))
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('production.orders.edit', $order) }}"
+                                class="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Update WO
+                            </a>
+                            <form action="{{ route('production.orders.cancel', $order) }}" method="POST"
+                                onsubmit="return confirm('Cancel WO ini? Material reserve akan dikembalikan.');">
+                                @csrf
+                                <button type="submit"
+                                    class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Cancel WO
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                </div>
                 @if($order->arrivals->count())
                     <div class="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                         <p class="text-[10px] font-black uppercase tracking-wider text-emerald-600 mb-2">🔗 Linked SO (Incoming RM)</p>

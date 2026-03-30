@@ -53,4 +53,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Arrival::class, 'created_by');
     }
+
+    public function isAdmin(): bool
+    {
+        return strtolower((string) ($this->role ?? '')) === 'admin';
+    }
 }

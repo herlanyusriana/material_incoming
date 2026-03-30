@@ -209,6 +209,19 @@ class ProductionOrderController extends Controller
         return view('production.orders.create', compact('machines'));
     }
 
+    public function edit(ProductionOrder $order)
+    {
+        if (in_array($order->status, ['completed', 'cancelled'], true)) {
+            return redirect()->route('production.orders.show', $order)
+                ->with('error', 'WO yang sudah completed/cancelled tidak bisa diubah.');
+        }
+
+        $machines = Machine::where('is_active', true)->orderBy('name')->get();
+        $order->load('arrivals');
+
+        return view('production.orders.edit', compact('order', 'machines'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -249,6 +262,41 @@ class ProductionOrderController extends Controller
         }
 
         return redirect()->route('production.orders.show', $order);
+    }
+
+    public function update(Request $request, ProductionOrder $order)
+    {
+        if (in_array($order->status, ['completed', 'cancelled'], true)) {
+            return redirect()->route('production.orders.show', $order)
+                ->with('error', 'WO yang sudah completed/cancelled tidak bisa diubah.');
+        }
+
+        $validated = $request->validate([
+            'gci_part_id' => 'required|exists:gci_parts,id',
+            'process_name' => 'nullable|string|max:255',
+            'machine_id' => 'nullable|exists:machines,id',
+            'die_name' => 'nullable|string|max:255',
+            'plan_date' => 'required|date',
+            'qty_planned' => 'required|numeric|min:1',
+            'production_order_number' => 'required|unique:production_orders,production_order_number,' . $order->id,
+            'arrival_ids' => 'nullable|array',
+            'arrival_ids.*' => 'integer|exists:arrivals,id',
+        ]);
+
+        $order->update([
+            'production_order_number' => $validated['production_order_number'],
+            'gci_part_id' => $validated['gci_part_id'],
+            'process_name' => isset($validated['process_name']) && trim((string) $validated['process_name']) !== '' ? trim((string) $validated['process_name']) : null,
+            'machine_id' => $validated['machine_id'] ?? null,
+            'die_name' => isset($validated['die_name']) && trim((string) $validated['die_name']) !== '' ? trim((string) $validated['die_name']) : null,
+            'plan_date' => $validated['plan_date'],
+            'qty_planned' => $validated['qty_planned'],
+        ]);
+
+        $order->arrivals()->sync($validated['arrival_ids'] ?? []);
+
+        return redirect()->route('production.orders.show', $order)
+            ->with('success', 'Work order berhasil diperbarui.');
     }
 
     public function show(Request $request, ProductionOrder $order)

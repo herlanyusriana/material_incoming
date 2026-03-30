@@ -6,6 +6,8 @@
     $bomsActive = request()->routeIs('planning.boms.*') || request()->routeIs('planning.boms.explosion*');
     $logisticsActive = request()->routeIs('logistics.*');
     $purchasingActive = request()->routeIs('purchasing.*');
+    $adminAccessActive = request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*');
+    $isAdminUser = strtolower((string) (auth()->user()?->role ?? '')) === 'admin';
 
     $navLinkBase = 'group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200';
     $navIconBase = 'h-5 w-5 shrink-0';
@@ -769,6 +771,29 @@
                     </div>
                 </div>
             @endcan
+
+            @if($isAdminUser)
+                <div>
+                    <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Admin</div>
+                    <div class="space-y-1">
+                        <a href="{{ route('admin.users.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('admin.users.*'), $navInactive => !request()->routeIs('admin.users.*')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 20v-4a3 3 0 0 1 6 0v4" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 7a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
+                            </svg>
+                            <span class="ml-3 flex-1">User Management</span>
+                        </a>
+                        <a href="{{ route('admin.roles.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('admin.roles.*'), $navInactive => !request()->routeIs('admin.roles.*')]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-7-8h8a2 2 0 0 1 2 2v8H6v-8a2 2 0 0 1 2-2Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 8V6a4 4 0 1 1 8 0v2" />
+                            </svg>
+                            <span class="ml-3 flex-1">Role Management</span>
+                        </a>
+                    </div>
+                </div>
+            @endif
         </nav>
 
         <div class="border-t border-slate-200 px-4 py-4">
@@ -1532,6 +1557,34 @@
                 </div>
             </div>
         @endcan
+
+        @if($isAdminUser)
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Admin</div>
+                <div class="space-y-1">
+                    <a href="{{ route('admin.users.index') }}" title="User Management"
+                        @class([$navLinkBase, $navActive => request()->routeIs('admin.users.*'), $navInactive => !request()->routeIs('admin.users.*')])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20v-4a3 3 0 0 1 6 0v4" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 7a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>User Management</span>
+                    </a>
+                    <a href="{{ route('admin.roles.index') }}" title="Role Management"
+                        @class([$navLinkBase, $navActive => request()->routeIs('admin.roles.*'), $navInactive => !request()->routeIs('admin.roles.*')])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-7-8h8a2 2 0 0 1 2 2v8H6v-8a2 2 0 0 1 2-2Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 8V6a4 4 0 1 1 8 0v2" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>Role Management</span>
+                    </a>
+                </div>
+            </div>
+        @endif
     </nav>
 
     <div class="px-4 pb-5">

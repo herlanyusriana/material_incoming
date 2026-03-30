@@ -14,7 +14,31 @@
     <!-- Order Details -->
     <div class="space-y-6">
         <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-            <h3 class="text-lg font-semibold mb-4 text-gray-900">Order Details</h3>
+            <div class="mb-4 flex items-start justify-between gap-4">
+                <h3 class="text-lg font-semibold text-gray-900">Order Details</h3>
+                @if(!in_array($order->status, ['completed', 'cancelled'], true))
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('production.orders.edit', $order) }}"
+                            class="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Update
+                        </a>
+                        <form action="{{ route('production.orders.cancel', $order) }}" method="POST"
+                            onsubmit="return confirm('Cancel WO ini? Material reserve akan dikembalikan.');">
+                            @csrf
+                            <button type="submit"
+                                class="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Cancel
+                            </button>
+                        </form>
+                    </div>
+                @endif
+            </div>
             <dl class="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
                 <div>
                     <dt class="text-gray-500">Order Number</dt>

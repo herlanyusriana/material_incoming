@@ -32,6 +32,8 @@ use App\Http\Controllers\Planning\MpsController as PlanningMpsController;
 use App\Http\Controllers\Planning\MrpController as PlanningMrpController;
 use App\Http\Controllers\Purchasing\PurchaseRequestController;
 use App\Http\Controllers\Purchasing\PurchaseOrderController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\RoleManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -46,6 +48,14 @@ Route::get('/departures/{departure}/inspection-report', [ArrivalController::clas
 Route::get('/departures/{departure}/export-detail', [ArrivalController::class, 'exportDetail'])->name('departures.export-detail');
 
 Route::middleware('auth')->group(function () {
+    Route::middleware('can:manage_users')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+        Route::get('/roles', [RoleManagementController::class, 'index'])->name('roles.index');
+    });
+
     Route::get('/api/parts/search', [PartController::class, 'search'])->name('parts.search');
     Route::get('/api/gci-parts/search', [PlanningGciPartController::class, 'search'])->name('gci-parts.search');
     Route::get('/api/gci-parts/{gciPart}/bom-info', [PlanningGciPartController::class, 'getBomInfo'])->name('gci-parts.bom-info');
