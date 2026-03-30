@@ -260,10 +260,11 @@ class ProductionOrderController extends Controller
             $inventory = GciInventory::where('gci_part_id', $part?->id)->first();
             $onHand = $inventory ? (float) $inventory->on_hand : 0;
 
-            $sufficient = $onHand >= $needed;
-            $shortage = $sufficient ? 0 : round($needed - $onHand, 4);
+            $isBuyItem = in_array(strtoupper($makeOrBuy), ['BUY', 'B', 'PURCHASE'], true);
+            $sufficient = !$isBuyItem || $onHand >= $needed;
+            $shortage = $isBuyItem && !$sufficient ? round($needed - $onHand, 4) : 0;
 
-            if (!$sufficient) {
+            if ($isBuyItem && !$sufficient) {
                 $allAvailable = false;
             }
 
@@ -275,6 +276,8 @@ class ProductionOrderController extends Controller
                 'sufficient' => $sufficient,
                 'shortage' => $shortage,
                 'uom' => $req['uom'] ?? '-',
+                'make_or_buy' => strtoupper($makeOrBuy),
+                'status' => !$isBuyItem ? 'N/A' : ($sufficient ? 'OK' : 'SHORTAGE'),
             ];
         }
 
@@ -321,7 +324,7 @@ class ProductionOrderController extends Controller
                 'workflow_stage' => 'material_check',
             ]);
 
-            $shortItems = array_filter($results, fn($r) => !$r['sufficient']);
+            $shortItems = array_filter($results, fn($r) => ($r['status'] ?? '') === 'SHORTAGE');
             $shortCount = count($shortItems);
             return back()->with('error', "Material tidak cukup ($shortCount item kurang). Periksa tabel di bawah.")
                          ->with('material_check', $results);

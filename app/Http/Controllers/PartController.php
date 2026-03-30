@@ -19,19 +19,25 @@ use Illuminate\Validation\Rule;
 
 class PartController extends Controller
 {
-    private function activeBomIncomingVendorPartIds(mixed $asOfDate = null): array
+    private function activeBomScope($query, mixed $asOfDate = null)
     {
         $date = $asOfDate ?: now()->toDateString();
 
+        return $query
+            ->where('status', 'active')
+            ->where('effective_date', '<=', $date)
+            ->where(function ($sub) use ($date) {
+                $sub->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $date);
+            });
+    }
+
+    private function activeBomIncomingVendorPartIds(mixed $asOfDate = null): array
+    {
         $mainIds = BomItem::query()
             ->whereNotNull('incoming_part_id')
-            ->whereHas('bom', function ($q) use ($date) {
-                $q->where('status', 'active')
-                    ->where('effective_date', '<=', $date)
-                    ->where(function ($sub) use ($date) {
-                        $sub->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $date);
-                    });
+            ->whereHas('bom', function ($q) use ($asOfDate) {
+                $this->activeBomScope($q, $asOfDate);
             })
             ->pluck('incoming_part_id')
             ->all();
@@ -39,18 +45,58 @@ class PartController extends Controller
         $substituteIds = BomItemSubstitute::query()
             ->where('status', 'active')
             ->whereNotNull('incoming_part_id')
-            ->whereHas('bomItem.bom', function ($q) use ($date) {
-                $q->where('status', 'active')
-                    ->where('effective_date', '<=', $date)
-                    ->where(function ($sub) use ($date) {
-                        $sub->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $date);
-                    });
+            ->whereHas('bomItem.bom', function ($q) use ($asOfDate) {
+                $this->activeBomScope($q, $asOfDate);
             })
             ->pluck('incoming_part_id')
             ->all();
 
         return array_values(array_unique(array_map('intval', array_merge($mainIds, $substituteIds))));
+    }
+
+    private function autoLinkVendorPartToActiveBoms(GciPart $part, GciPartVendor $vendorPart, mixed $asOfDate = null): array
+    {
+        $activeVendorPartIds = GciPartVendor::query()
+            ->where('gci_part_id', $part->id)
+            ->where('status', 'active')
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->all();
+
+        if (count($activeVendorPartIds) !== 1 || (int) $activeVendorPartIds[0] !== (int) $vendorPart->id) {
+            return [
+                'main_synced' => 0,
+                'sub_synced' => 0,
+                'review_needed' => true,
+            ];
+        }
+
+        $mainSynced = BomItem::query()
+            ->where('component_part_id', $part->id)
+            ->whereNull('incoming_part_id')
+            ->whereHas('bom', function ($q) use ($asOfDate) {
+                $this->activeBomScope($q, $asOfDate);
+            })
+            ->update([
+                'incoming_part_id' => $vendorPart->id,
+            ]);
+
+        $subSynced = BomItemSubstitute::query()
+            ->where('substitute_part_id', $part->id)
+            ->where('status', 'active')
+            ->whereNull('incoming_part_id')
+            ->whereHas('bomItem.bom', function ($q) use ($asOfDate) {
+                $this->activeBomScope($q, $asOfDate);
+            })
+            ->update([
+                'incoming_part_id' => $vendorPart->id,
+            ]);
+
+        return [
+            'main_synced' => (int) $mainSynced,
+            'sub_synced' => (int) $subSynced,
+            'review_needed' => false,
+        ];
     }
 
     /**
@@ -483,9 +529,20 @@ class PartController extends Controller
         $data['price'] = $data['price'] ?? 0;
         $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
 
-        GciPartVendor::create($data);
+        $vendorPart = GciPartVendor::create($data);
+        $syncResult = $this->autoLinkVendorPartToActiveBoms($part, $vendorPart);
 
-        return redirect()->route('parts.index')->with('status', 'Vendor part added.');
+        $message = 'Vendor part added.';
+        $totalSynced = $syncResult['main_synced'] + $syncResult['sub_synced'];
+        if ($totalSynced > 0) {
+            $message .= " Auto-linked ke {$totalSynced} BOM aktif.";
+        } elseif ($syncResult['review_needed']) {
+            $message .= ' Belum auto-link ke BOM karena part ini punya lebih dari satu vendor part aktif, jadi perlu review manual.';
+        } else {
+            $message .= ' Belum ada BOM aktif yang kosong untuk di-link otomatis.';
+        }
+
+        return redirect()->route('parts.index')->with('status', $message);
     }
 
     public function updateVendorPart(Request $request, GciPartVendor $vendorPart)

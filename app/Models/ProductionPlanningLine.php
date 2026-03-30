@@ -21,6 +21,9 @@ class ProductionPlanningLine extends Model
         'delivery_requirement_date_to',
         'production_sequence',
         'plan_qty',
+        'shift_1_qty',
+        'shift_2_qty',
+        'shift_3_qty',
         'shift',
         'remark',
         'sort_order',
@@ -33,7 +36,15 @@ class ProductionPlanningLine extends Model
         'delivery_requirement_date_from' => 'date',
         'delivery_requirement_date_to' => 'date',
         'plan_qty' => 'decimal:4',
+        'shift_1_qty' => 'decimal:4',
+        'shift_2_qty' => 'decimal:4',
+        'shift_3_qty' => 'decimal:4',
     ];
+
+    public function getTotalShiftQtyAttribute(): float
+    {
+        return (float) $this->shift_1_qty + (float) $this->shift_2_qty + (float) $this->shift_3_qty;
+    }
 
     public function session()
     {

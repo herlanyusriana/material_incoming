@@ -36,8 +36,8 @@ class ProductionPlanningController extends Controller
         $session = ProductionPlanningSession::where('plan_date', $planDate->format('Y-m-d'))->first();
 
         // Get planning lines grouped by machine (from BOM)
-        $lines = collect();
         $machineGroups = [];
+        $processLoadRows = collect();
         if ($session) {
             $allLines = ProductionPlanningLine::where('session_id', $session->id)
                 ->with(['gciPart.bom.items', 'productionOrders', 'machine'])
@@ -65,6 +65,8 @@ class ProductionPlanningController extends Controller
                 $machineGroups[$machineKey]['subtotal_delivery_requirement_qty'] += (float) $line->delivery_requirement_qty;
                 $machineGroups[$machineKey]['subtotal_plan_qty'] += (float) $line->plan_qty;
             }
+
+            $processLoadRows = $this->buildProcessLoadRows($allLines, $planDate);
         }
 
         // Get daily planning data from outgoing
@@ -107,7 +109,8 @@ class ProductionPlanningController extends Controller
             'grandTotalDeliveryRequirementQty',
             'grandTotalPlanQty',
             'totalParts',
-            'sourceMode'
+            'sourceMode',
+            'processLoadRows'
         ));
     }
 
@@ -193,6 +196,11 @@ class ProductionPlanningController extends Controller
 
                 $sortOrder++;
 
+                $recommendedPlanQty = $this->calculateRecommendedPlanQty(
+                    (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
+                    (float) ($fgStockGci[$part->id] ?? 0)
+                );
+
                 ProductionPlanningLine::create([
                     'session_id' => $session->id,
                     'gci_part_id' => $part->id,
@@ -202,10 +210,10 @@ class ProductionPlanningController extends Controller
                     'delivery_requirement_qty' => (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
                     'delivery_requirement_date_from' => $session->plan_date,
                     'delivery_requirement_date_to' => $session->plan_date,
-                    'plan_qty' => $this->calculateRecommendedPlanQty(
-                        (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
-                        (float) ($fgStockGci[$part->id] ?? 0)
-                    ),
+                    'plan_qty' => $recommendedPlanQty,
+                    'shift_1_qty' => $recommendedPlanQty,
+                    'shift_2_qty' => 0,
+                    'shift_3_qty' => 0,
                     'sort_order' => $sortOrder,
                 ]);
             }
@@ -234,13 +242,36 @@ class ProductionPlanningController extends Controller
         ]);
 
         $field = $request->field;
-        $allowed = ['machine_id', 'process_name', 'production_sequence', 'plan_qty', 'shift', 'remark', 'sort_order'];
+        $allowed = ['machine_id', 'process_name', 'production_sequence', 'plan_qty', 'shift', 'shift_1_qty', 'shift_2_qty', 'shift_3_qty', 'remark', 'sort_order'];
 
         if (!in_array($field, $allowed)) {
             return response()->json(['error' => 'Invalid field'], 422);
         }
 
-        $line->update([$field => $request->value]);
+        $value = $request->value;
+        if (in_array($field, ['plan_qty', 'shift_1_qty', 'shift_2_qty', 'shift_3_qty'], true)) {
+            $value = (float) ($value ?: 0);
+        }
+
+        if ($field === 'plan_qty') {
+            $line->update([
+                'plan_qty' => $value,
+                'shift_1_qty' => $value,
+                'shift_2_qty' => 0,
+                'shift_3_qty' => 0,
+            ]);
+        } elseif (in_array($field, ['shift_1_qty', 'shift_2_qty', 'shift_3_qty'], true)) {
+            $shift1 = $field === 'shift_1_qty' ? $value : (float) $line->shift_1_qty;
+            $shift2 = $field === 'shift_2_qty' ? $value : (float) $line->shift_2_qty;
+            $shift3 = $field === 'shift_3_qty' ? $value : (float) $line->shift_3_qty;
+
+            $line->update([
+                $field => $value,
+                'plan_qty' => $shift1 + $shift2 + $shift3,
+            ]);
+        } else {
+            $line->update([$field => $value]);
+        }
 
         return response()->json(['success' => true, 'line' => $line->fresh()->load('gciPart')]);
     }
@@ -280,6 +311,11 @@ class ProductionPlanningController extends Controller
             }
         }
 
+        $recommendedPlanQty = $this->calculateRecommendedPlanQty(
+            (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
+            (float) ($fgStockGci[$request->gci_part_id] ?? 0)
+        );
+
         $line = ProductionPlanningLine::create([
             'session_id' => $request->session_id,
             'gci_part_id' => $request->gci_part_id,
@@ -289,10 +325,10 @@ class ProductionPlanningController extends Controller
             'delivery_requirement_qty' => (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
             'delivery_requirement_date_from' => $session->plan_date,
             'delivery_requirement_date_to' => $session->plan_date,
-            'plan_qty' => $this->calculateRecommendedPlanQty(
-                (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
-                (float) ($fgStockGci[$request->gci_part_id] ?? 0)
-            ),
+            'plan_qty' => $recommendedPlanQty,
+            'shift_1_qty' => $recommendedPlanQty,
+            'shift_2_qty' => 0,
+            'shift_3_qty' => 0,
             'sort_order' => $sortOrder,
         ]);
 
@@ -349,62 +385,62 @@ class ProductionPlanningController extends Controller
             $planDateStr = Carbon::parse($session->plan_date)->format('Y-m-d');
             $woPrefix = 'WO-' . now()->format('ymd');
 
-            // Pre-fetch the last WO sequence for today to avoid stale reads in loop
             $lastOrder = ProductionOrder::where('production_order_number', 'like', $woPrefix . '%')
                 ->orderBy('production_order_number', 'desc')
                 ->first();
             $woSeq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) : 0;
 
             foreach ($lines as $line) {
-                // Check if WO already exists for this planning line
-                $existingWo = ProductionOrder::where('planning_line_id', $line->id)->first();
-                if ($existingWo)
-                    continue;
-
-                // Skip lines with missing gciPart relation
                 if (!$line->gciPart) {
                     \Illuminate\Support\Facades\Log::warning("Planning line {$line->id} has invalid gci_part_id {$line->gci_part_id}, skipping.");
                     continue;
                 }
 
-                // Generate production order number (increment in memory)
-                $woSeq++;
-                $woNumber = $woPrefix . '-' . str_pad($woSeq, 4, '0', STR_PAD_LEFT);
-
-                $order = ProductionOrder::create([
-                    'production_order_number' => $woNumber,
-                    'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
-                    'gci_part_id' => $line->gci_part_id,
-                    'machine_id' => $line->machine_id,
-                    'process_name' => $line->process_name,
-                    'planning_line_id' => $line->id,
-                    'plan_date' => $session->plan_date,
-                    'qty_planned' => $line->plan_qty,
-                    'shift' => $line->shift,
-                    'production_sequence' => $line->production_sequence,
-                    'status' => 'planned',
-                    'workflow_stage' => 'planned',
-                    'qty_actual' => 0,
-                    'qty_rejected' => 0,
-                    'created_by' => auth()->id(),
-                ]);
-
-                // Auto-link arrivals (SO) — skip if no links found
-                try {
-                    $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
-                    if (!empty($arrivalIds)) {
-                        $order->arrivals()->sync($arrivalIds);
+                foreach ($this->resolveShiftPlanMap($line) as $shiftNo => $shiftQty) {
+                    $existingWo = ProductionOrder::where('planning_line_id', $line->id)
+                        ->where('shift', $shiftNo)
+                        ->first();
+                    if ($existingWo) {
+                        continue;
                     }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
-                }
 
-                $generated++;
+                    $woSeq++;
+                    $woNumber = $woPrefix . '-' . str_pad($woSeq, 4, '0', STR_PAD_LEFT);
+
+                    $order = ProductionOrder::create([
+                        'production_order_number' => $woNumber,
+                        'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
+                        'gci_part_id' => $line->gci_part_id,
+                        'machine_id' => $line->machine_id,
+                        'process_name' => $line->process_name,
+                        'planning_line_id' => $line->id,
+                        'plan_date' => $session->plan_date,
+                        'qty_planned' => $shiftQty,
+                        'shift' => $shiftNo,
+                        'production_sequence' => $line->production_sequence,
+                        'status' => 'planned',
+                        'workflow_stage' => 'planned',
+                        'qty_actual' => 0,
+                        'qty_rejected' => 0,
+                        'created_by' => auth()->id(),
+                    ]);
+
+                    try {
+                        $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
+                        if (!empty($arrivalIds)) {
+                            $order->arrivals()->sync($arrivalIds);
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
+                    }
+
+                    $generated++;
+                }
             }
 
             if ($generated === 0) {
                 DB::rollBack();
-                return back()->with('error', 'Tidak ada WO yang bisa digenerate. Semua line sudah punya WO atau data tidak valid.');
+                return back()->with('error', 'Tidak ada WO yang bisa digenerate. Semua line/shift sudah punya WO atau data tidak valid.');
             }
 
             $session->update(['status' => 'confirmed', 'confirmed_by' => auth()->id(), 'confirmed_at' => now()]);
@@ -445,11 +481,6 @@ class ProductionPlanningController extends Controller
             return back()->with('error', 'Machine harus di-assign terlebih dahulu sebelum generate WO.');
         }
 
-        $existingWo = ProductionOrder::where('planning_line_id', $line->id)->first();
-        if ($existingWo) {
-            return back()->with('error', "WO sudah ada untuk part ini: {$existingWo->production_order_number}");
-        }
-
         if (!$line->gciPart) {
             return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
                 ->with('error', 'Data part tidak valid untuk planning line ini.');
@@ -461,40 +492,56 @@ class ProductionPlanningController extends Controller
             $lastOrder = ProductionOrder::where('production_order_number', 'like', $prefix . '%')
                 ->orderBy('production_order_number', 'desc')
                 ->first();
-            $seq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) + 1 : 1;
-            $woNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-
+            $seq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) : 0;
             $planDateStr = Carbon::parse($session->plan_date)->format('Y-m-d');
+            $generatedShifts = 0;
 
-            $order = ProductionOrder::create([
-                'production_order_number' => $woNumber,
-                'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
-                'gci_part_id' => $line->gci_part_id,
-                'machine_id' => $line->machine_id,
-                'process_name' => $line->process_name,
-                'planning_line_id' => $line->id,
-                'plan_date' => $session->plan_date,
-                'qty_planned' => $line->plan_qty,
-                'shift' => $line->shift,
-                'production_sequence' => $line->production_sequence,
-                'status' => 'planned',
-                'workflow_stage' => 'planned',
-                'qty_actual' => 0,
-                'qty_rejected' => 0,
-                'created_by' => auth()->id(),
-            ]);
-
-            // Auto-link arrivals (SO)
-            try {
-                $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
-                if (!empty($arrivalIds)) {
-                    $order->arrivals()->sync($arrivalIds);
+            foreach ($this->resolveShiftPlanMap($line) as $shiftNo => $shiftQty) {
+                $existingWo = ProductionOrder::where('planning_line_id', $line->id)
+                    ->where('shift', $shiftNo)
+                    ->first();
+                if ($existingWo) {
+                    continue;
                 }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
+
+                $seq++;
+                $woNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+
+                $order = ProductionOrder::create([
+                    'production_order_number' => $woNumber,
+                    'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
+                    'gci_part_id' => $line->gci_part_id,
+                    'machine_id' => $line->machine_id,
+                    'process_name' => $line->process_name,
+                    'planning_line_id' => $line->id,
+                    'plan_date' => $session->plan_date,
+                    'qty_planned' => $shiftQty,
+                    'shift' => $shiftNo,
+                    'production_sequence' => $line->production_sequence,
+                    'status' => 'planned',
+                    'workflow_stage' => 'planned',
+                    'qty_actual' => 0,
+                    'qty_rejected' => 0,
+                    'created_by' => auth()->id(),
+                ]);
+
+                try {
+                    $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
+                    if (!empty($arrivalIds)) {
+                        $order->arrivals()->sync($arrivalIds);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
+                }
+
+                $generatedShifts++;
             }
 
-            // Check if all lines with qty+seq now have WO → auto-confirm session
+            if ($generatedShifts === 0) {
+                DB::rollBack();
+                return back()->with('error', 'Semua WO per shift untuk line ini sudah pernah dibuat.');
+            }
+
             $pendingLines = ProductionPlanningLine::where('session_id', $session->id)
                 ->where('plan_qty', '>', 0)
                 ->whereNotNull('production_sequence')
@@ -508,7 +555,7 @@ class ProductionPlanningController extends Controller
             DB::commit();
 
             return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
-                ->with('success', "WO {$woNumber} berhasil dibuat untuk {$line->gciPart->part_no}");
+                ->with('success', "WO berhasil dibuat untuk {$line->gciPart->part_no} ({$generatedShifts} shift).");
         } catch (\Exception $e) {
             DB::rollBack();
             \Illuminate\Support\Facades\Log::error('Single WO Generation failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
@@ -606,14 +653,18 @@ class ProductionPlanningController extends Controller
 
         foreach ($lines as $line) {
             $reqQty = (float) ($requirements->get($line->gci_part_id) ?? 0);
+            $recommendedPlanQty = $this->calculateRecommendedPlanQty(
+                $reqQty,
+                (float) $line->stock_fg_gci
+            );
             $line->update([
                 'delivery_requirement_qty' => $reqQty,
                 'delivery_requirement_date_from' => $dateFrom,
                 'delivery_requirement_date_to' => $dateTo,
-                'plan_qty' => $this->calculateRecommendedPlanQty(
-                    $reqQty,
-                    (float) $line->stock_fg_gci
-                ),
+                'plan_qty' => $recommendedPlanQty,
+                'shift_1_qty' => $recommendedPlanQty,
+                'shift_2_qty' => 0,
+                'shift_3_qty' => 0,
             ]);
             $updated++;
         }
@@ -763,6 +814,89 @@ class ProductionPlanningController extends Controller
     private function calculateRecommendedPlanQty(float $deliveryRequirementQty, float $stockFgGci): float
     {
         return max(0, $deliveryRequirementQty - $stockFgGci);
+    }
+
+    private function resolveShiftPlanMap(ProductionPlanningLine $line): array
+    {
+        $shiftMap = [
+            1 => round((float) ($line->shift_1_qty ?? 0), 4),
+            2 => round((float) ($line->shift_2_qty ?? 0), 4),
+            3 => round((float) ($line->shift_3_qty ?? 0), 4),
+        ];
+
+        $shiftMap = array_filter($shiftMap, fn($qty) => $qty > 0);
+        if (!empty($shiftMap)) {
+            return $shiftMap;
+        }
+
+        $legacyShift = (int) ($line->shift ?: 0);
+        if ($legacyShift >= 1 && $legacyShift <= 3 && (float) $line->plan_qty > 0) {
+            return [$legacyShift => round((float) $line->plan_qty, 4)];
+        }
+
+        if ((float) $line->plan_qty > 0) {
+            return [1 => round((float) $line->plan_qty, 4)];
+        }
+
+        return [];
+    }
+
+    private function buildProcessLoadRows($lines, Carbon $planDate)
+    {
+        $rows = collect();
+
+        foreach ($lines as $line) {
+            $shiftPlanMap = $this->resolveShiftPlanMap($line);
+            if (empty($shiftPlanMap)) {
+                continue;
+            }
+
+            $bom = Bom::activeVersion($line->gci_part_id, $planDate);
+            if (!$bom) {
+                continue;
+            }
+
+            $bom->loadMissing('items.machine', 'items.wipPart');
+
+            foreach ($bom->items as $item) {
+                $processName = trim((string) ($item->process_name ?? ''));
+                $machineName = $item->machine?->name ?: ($line->machine?->name ?? 'Unassigned');
+                $wipPartNo = $item->wipPart?->part_no ?: ($item->wip_part_no ?: '-');
+                $wipPartName = $item->wipPart?->part_name ?: ($item->wip_part_name ?: '-');
+
+                if ($processName === '' && $machineName === 'Unassigned' && $wipPartNo === '-') {
+                    continue;
+                }
+
+                foreach ($shiftPlanMap as $shiftNo => $shiftQty) {
+                    $estHours = 0;
+                    if ($item->machine && (float) $item->machine->cycle_time > 0) {
+                        $estHours = (float) $item->machine->estimateHours($shiftQty);
+                    } elseif ($line->machine && (float) $line->machine->cycle_time > 0) {
+                        $estHours = (float) $line->machine->estimateHours($shiftQty);
+                    }
+
+                    $rows->push([
+                        'fg_part_no' => $line->gciPart?->part_no ?? '-',
+                        'fg_part_name' => $line->gciPart?->part_name ?? '-',
+                        'process_name' => $processName !== '' ? $processName : ($line->process_name ?: '-'),
+                        'machine_name' => $machineName,
+                        'wip_part_no' => $wipPartNo,
+                        'wip_part_name' => $wipPartName,
+                        'shift' => $shiftNo,
+                        'qty' => $shiftQty,
+                        'est_hours' => $estHours,
+                    ]);
+                }
+            }
+        }
+
+        return $rows->sortBy([
+            ['machine_name', 'asc'],
+            ['process_name', 'asc'],
+            ['shift', 'asc'],
+            ['fg_part_no', 'asc'],
+        ])->values();
     }
 
     /**

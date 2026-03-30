@@ -19,7 +19,7 @@
                         </div>
                         GCI PLANNING PRODUKSI
                     </h1>
-                    <p class="mt-1 text-sm text-slate-500">Production Planning by Machine (from BOM) - Delivery Requirement bisa ditarik ke kolom terpisah, sedangkan Plan Qty tetap jadi keputusan produksi.</p>
+                    <p class="mt-1 text-sm text-slate-500">FG planning tetap per part, lalu qty bisa dipecah ke Shift 1/2/3. Preview process load di bawah membantu lihat beban WIP/proses per mesin.</p>
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
@@ -191,7 +191,9 @@
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700 text-emerald-700">PLAN QTY</th>
                                 <th class="px-3 py-3 text-right font-bold text-indigo-600">EST. HRS</th>
-                                <th class="px-3 py-3 text-center font-bold text-slate-700">SHIFT</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">S1</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">S2</th>
+                                <th class="px-3 py-3 text-center font-bold text-slate-700">S3</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">ACTION</th>
                             </tr>
                         </thead>
@@ -199,7 +201,7 @@
                             @forelse($machineGroups as $machineKey => $group)
                                 <!-- Section Header for Machine -->
                                 <tr class="bg-slate-800 text-white">
-                                    <td colspan="12" class="px-4 py-2">
+                                    <td colspan="14" class="px-4 py-2">
                                         <div class="flex items-center gap-3">
                                             <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -300,27 +302,35 @@
                                                 </div>
                                             </td>
                                             <td class="px-3 py-2 text-center">
-                                                <select
-                                                    class="w-14 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-semibold text-slate-700 transition-all cursor-pointer"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'shift')">
-                                                    <option value="">-</option>
-                                                    <option value="1" {{ $line->shift == 1 ? 'selected' : '' }}>1</option>
-                                                    <option value="2" {{ $line->shift == 2 ? 'selected' : '' }}>2</option>
-                                                    <option value="3" {{ $line->shift == 3 ? 'selected' : '' }}>3</option>
-                                                </select>
+                                                <input type="number" step="1" min="0"
+                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
+                                                    value="{{ (float) $line->shift_1_qty > 0 ? intval($line->shift_1_qty) : '' }}" placeholder="0"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_1_qty')">
+                                            </td>
+                                            <td class="px-3 py-2 text-center">
+                                                <input type="number" step="1" min="0"
+                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
+                                                    value="{{ (float) $line->shift_2_qty > 0 ? intval($line->shift_2_qty) : '' }}" placeholder="0"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_2_qty')">
+                                            </td>
+                                            <td class="px-3 py-2 text-center">
+                                                <input type="number" step="1" min="0"
+                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
+                                                    value="{{ (float) $line->shift_3_qty > 0 ? intval($line->shift_3_qty) : '' }}" placeholder="0"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_3_qty')">
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <div class="flex items-center justify-center gap-1.5 transition-opacity">
                                                     @if($line->productionOrders->count())
                                                         <span
                                                             class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200"
-                                                            title="{{ $line->productionOrders->first()->production_order_number }}">
-                                                            WO
+                                                            title="{{ $line->productionOrders->pluck('production_order_number')->implode(', ') }}">
+                                                            WO x{{ $line->productionOrders->count() }}
                                                         </span>
                                                     @elseif($line->plan_qty > 0 && $line->production_sequence && $line->machine_id)
                                                         <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
                                                                 class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
-                                                                title="Generate WO for this part">
+                                                                title="Generate WO per shift untuk part ini">
                                                                 WO
                                                         </button>
                                                     @elseif($line->plan_qty > 0 && $line->production_sequence && !$line->machine_id)
@@ -342,7 +352,7 @@
 
                                         <!-- Expandable Detail Row (Projected Stock) -->
                                         <tr x-show="expanded" x-transition.opacity x-cloak>
-                                            <td colspan="12" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+                                            <td colspan="14" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
                                                 <div class="mb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
                                                     <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
@@ -381,7 +391,7 @@
                                 @endforeach
                             @empty
                                 <tr>
-                                    <td colspan="12"
+                                    <td colspan="14"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center gap-3">
                                             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -413,9 +423,54 @@
                                     <td class="px-3 py-3 text-right font-mono text-emerald-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>
-                                    <td colspan="3" class="px-3 py-3"></td>
+                                    <td colspan="5" class="px-3 py-3"></td>
                                 </tr>
                             @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-6 bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-sm font-bold text-slate-800">Process Load Preview</h3>
+                    <p class="mt-1 text-xs text-slate-500">Preview routing proses/WIP per shift dari FG plan. Ini membantu lihat beban proses per mesin sebelum WO dijalankan.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead class="bg-slate-100 text-slate-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-bold">MACHINE</th>
+                                <th class="px-4 py-3 text-left font-bold">PROCESS</th>
+                                <th class="px-4 py-3 text-left font-bold">FG</th>
+                                <th class="px-4 py-3 text-left font-bold">WIP</th>
+                                <th class="px-4 py-3 text-center font-bold">SHIFT</th>
+                                <th class="px-4 py-3 text-right font-bold">QTY</th>
+                                <th class="px-4 py-3 text-right font-bold">EST. HRS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse(($processLoadRows ?? collect()) as $row)
+                                <tr class="border-t border-slate-100">
+                                    <td class="px-4 py-3 font-semibold text-slate-800">{{ $row['machine_name'] }}</td>
+                                    <td class="px-4 py-3 text-slate-600">{{ $row['process_name'] }}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-semibold text-slate-800">{{ $row['fg_part_no'] }}</div>
+                                        <div class="text-[11px] text-slate-500">{{ $row['fg_part_name'] }}</div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-semibold text-slate-800">{{ $row['wip_part_no'] }}</div>
+                                        <div class="text-[11px] text-slate-500">{{ $row['wip_part_name'] }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-semibold text-slate-700">{{ $row['shift'] }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">{{ number_format((float) $row['qty'], 0) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono {{ (float) $row['est_hours'] > 7 ? 'text-amber-700 font-bold' : 'text-indigo-700' }}">{{ number_format((float) $row['est_hours'], 2) }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-4 py-8 text-center text-slate-400">Belum ada process load karena FG plan per shift masih kosong.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -451,7 +506,7 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">4</span>
-                            Fill Shift 1, 2 or 3
+                            Pecah plan ke Shift 1, 2, dan 3
                         </li>
                         <li class="flex items-center gap-2">
                             <span
