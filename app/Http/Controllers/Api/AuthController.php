@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -17,17 +17,18 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $login = $request->input('login');
+        $login = trim((string) $request->input('login'));
         $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        if (!Auth::attempt([$field => $login, 'password' => $request->input('password')])) {
+        /** @var User|null $user */
+        $user = User::query()->where($field, $login)->first();
+
+        if (!$user || !Hash::check((string) $request->input('password'), (string) $user->password)) {
             throw ValidationException::withMessages([
                 'login' => ['Username/email atau password salah.'],
             ]);
         }
 
-        /** @var User $user */
-        $user = $request->user();
         $deviceName = $request->header('X-Device-Name') ?: ($request->userAgent() ?: 'android');
 
         return response()->json([

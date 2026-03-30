@@ -18,6 +18,57 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductionOrderController extends Controller
 {
+    private function normalizeMaterialStatusIfStale(ProductionOrder $order): void
+    {
+        if ($order->status !== 'material_hold') {
+            return;
+        }
+
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+        if (!$bom) {
+            return;
+        }
+
+        $requirements = $bom->getTotalMaterialRequirements($order->qty_planned);
+        if (empty($requirements)) {
+            return;
+        }
+
+        $allBuyAvailable = true;
+        foreach ($requirements as $req) {
+            $makeOrBuy = strtolower((string) ($req['make_or_buy'] ?? 'buy'));
+            if ($makeOrBuy === 'free_issue') {
+                continue;
+            }
+
+            $isBuyItem = in_array(strtoupper($makeOrBuy), ['BUY', 'B', 'PURCHASE'], true);
+            if (!$isBuyItem) {
+                continue;
+            }
+
+            $part = $req['part'] ?? null;
+            $needed = round((float) ($req['total_qty'] ?? 0), 4);
+            $onHand = (float) optional(GciInventory::where('gci_part_id', $part?->id)->first())->on_hand;
+
+            if ($onHand < $needed) {
+                $allBuyAvailable = false;
+                break;
+            }
+        }
+
+        if (!$allBuyAvailable) {
+            return;
+        }
+
+        $nextStatus = (!$order->process_name || !$order->machine_id) ? 'resource_hold' : 'released';
+        $nextWorkflowStage = $nextStatus === 'resource_hold' ? 'resource_check' : 'material_ready';
+
+        $order->update([
+            'status' => $nextStatus,
+            'workflow_stage' => $nextWorkflowStage,
+        ]);
+    }
+
     public function warehouseSupplyIndex(Request $request)
     {
         $month = trim((string) $request->query('month', ''));
@@ -202,6 +253,9 @@ class ProductionOrderController extends Controller
 
     public function show(Request $request, ProductionOrder $order)
     {
+        $this->normalizeMaterialStatusIfStale($order);
+        $order->refresh();
+
         $order->load([
             'part',
             'machine',
