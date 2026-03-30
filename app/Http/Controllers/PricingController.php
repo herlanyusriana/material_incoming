@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\PricingMasterExport;
+use App\Imports\PricingMasterImport;
 use App\Models\Customer;
 use App\Models\GciPart;
 use App\Models\PricingMaster;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PricingController extends Controller
 {
@@ -50,6 +53,39 @@ class PricingController extends Controller
             'prices' => $prices,
             'filters' => compact('search', 'priceType', 'classification', 'status'),
         ]));
+    }
+
+    public function export()
+    {
+        return Excel::download(
+            new PricingMasterExport(),
+            'pricing_master_' . now()->format('Ymd_His') . '.xlsx'
+        );
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $import = new PricingMasterImport(auth()->id());
+        Excel::import($import, $request->file('file'));
+
+        $message = "Pricing master imported. {$import->rowCount} rows processed.";
+        if ($import->skippedRows > 0) {
+            $message .= " {$import->skippedRows} rows skipped.";
+        }
+
+        if (!empty($import->failures)) {
+            $preview = collect($import->failures)->take(8)->implode(' | ');
+            $message .= ' Failures: ' . $preview;
+            if (count($import->failures) > 8) {
+                $message .= ' | ... and ' . (count($import->failures) - 8) . ' more';
+            }
+        }
+
+        return redirect()->route('pricing.index')->with('success', $message);
     }
 
     public function store(Request $request)

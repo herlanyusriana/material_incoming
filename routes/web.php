@@ -106,6 +106,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/parts/export', [PartController::class, 'export'])->name('parts.export');
     Route::post('/parts/import', [PartController::class, 'import'])->name('parts.import');
     Route::get('/pricing', [PricingController::class, 'index'])->name('pricing.index');
+    Route::get('/pricing/export', [PricingController::class, 'export'])->name('pricing.export');
+    Route::post('/pricing/import', [PricingController::class, 'import'])->name('pricing.import');
     Route::get('/pricing/create', [PricingController::class, 'create'])->name('pricing.create');
     Route::post('/pricing', [PricingController::class, 'store'])->name('pricing.store');
     Route::put('/pricing/{pricing}', [PricingController::class, 'update'])->name('pricing.update');

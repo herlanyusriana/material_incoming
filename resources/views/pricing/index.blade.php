@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="space-y-6" x-data="{ openEditId: null }">
+<div class="space-y-6" x-data="{ openEditId: null, openImport: false }">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight">Pricing Master</h1>
@@ -32,12 +32,29 @@
     @endif
 
     <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <div>
-                <h2 class="text-lg font-bold text-slate-900">Pricing Master List</h2>
-            </div>
-            <a href="{{ route('pricing.create') }}" class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Add New Pricing</a>
-        </div>
+                <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Pricing Master List</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('pricing.export') }}" class="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Export</a>
+                        <button type="button" @click="openImport = !openImport" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Import</button>
+                        <a href="{{ route('pricing.create') }}" class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Add New Pricing</a>
+                    </div>
+                </div>
+                <div x-show="openImport" x-cloak class="border-b border-slate-100 bg-slate-50 px-6 py-4">
+                    <form method="POST" action="{{ route('pricing.import') }}" enctype="multipart/form-data" class="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        @csrf
+                        <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm lg:max-w-md">
+                        <div class="flex items-center gap-2">
+                            <button class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Upload Import</button>
+                            <button type="button" @click="openImport = false" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Cancel</button>
+                        </div>
+                    </form>
+                    <div class="mt-2 text-xs text-slate-500">
+                        Format import mengikuti file export: <span class="font-semibold">part_no, price_type, vendor_name, customer_name, currency, uom, min_qty, price, effective_from, effective_to, status, notes</span>.
+                    </div>
+                </div>
         <div class="rounded-3xl bg-white shadow-sm">
             <div class="border-b border-slate-100 px-6 py-4">
                 <form method="GET" class="grid gap-3 lg:grid-cols-5">
