@@ -46,7 +46,7 @@
                         </a>
                     @endif
                     @if (!$isLocal)
-                        <a href="{{ route('departures.edit', $arrival) }}" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors">
+                        <a href="{{ route('departures.edit', ['departure' => $arrival, 'customs_only' => 1]) }}" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors">
                             Edit No PEN / AJU
                         </a>
                     @endif

@@ -595,7 +595,9 @@ class ArrivalController extends Controller
 
     public function edit(Arrival $departure)
     {
-        if (!$this->hasPendingReceives($departure)) {
+        $customsOnly = request()->boolean('customs_only');
+
+        if (!$customsOnly && !$this->hasPendingReceives($departure)) {
             return redirect()
                 ->route('departures.show', $departure)
                 ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
@@ -603,15 +605,35 @@ class ArrivalController extends Controller
 
         $departure->load('containers');
 
-        return view('arrivals.edit', ['arrival' => $departure]);
+        return view('arrivals.edit', ['arrival' => $departure, 'customsOnly' => $customsOnly]);
     }
 
     public function update(Request $request, Arrival $departure)
     {
-        if (!$this->hasPendingReceives($departure)) {
+        $customsOnly = $request->boolean('customs_only');
+
+        if (!$customsOnly && !$this->hasPendingReceives($departure)) {
             return redirect()
                 ->route('departures.show', $departure)
                 ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
+        }
+
+        if ($customsOnly) {
+            $data = $request->validate([
+                'pen_no' => ['nullable', 'string', 'max:100'],
+                'pen_date' => ['nullable', 'date'],
+                'aju_no' => ['nullable', 'string', 'max:100'],
+            ]);
+
+            $departure->update([
+                'pen_no' => isset($data['pen_no']) ? strtoupper(trim((string) $data['pen_no'])) : null,
+                'pen_date' => $data['pen_date'] ?? null,
+                'aju_no' => isset($data['aju_no']) ? strtoupper(trim((string) $data['aju_no'])) : null,
+            ]);
+
+            return redirect()
+                ->route('receives.completed.invoice', $departure)
+                ->with('success', 'Dokumen import berhasil diperbarui.');
         }
 
         $request->merge([

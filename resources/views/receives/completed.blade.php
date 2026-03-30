@@ -94,7 +94,7 @@
                                                 </svg>
                                             </a>
                                             @if (strtolower((string) ($arrival->vendor?->vendor_type ?? '')) !== 'local')
-                                                <a href="{{ route('departures.edit', $arrival->id) }}"
+                                                <a href="{{ route('departures.edit', ['departure' => $arrival->id, 'customs_only' => 1]) }}"
                                                     class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 transition hover:bg-amber-100 hover:text-amber-700"
                                                     title="Edit No PEN / AJU">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
