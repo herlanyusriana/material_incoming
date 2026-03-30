@@ -69,6 +69,7 @@
                             d="M3 13.5V21h6v-6h6v6h6v-7.5L12 3 3 10.5" />
                     </svg>
                     <span class="ml-3">Dashboard</span>
+                </a>
             </div>
 
             @can('manage_planning')
