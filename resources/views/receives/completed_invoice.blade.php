@@ -45,11 +45,36 @@
                             Export Excel
                         </a>
                     @endif
+                    @if (!$isLocal)
+                        <a href="{{ route('departures.edit', $arrival) }}" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors">
+                            Edit No PEN / AJU
+                        </a>
+                    @endif
                     <a href="{{ route('receives.completed') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
                         Back
                     </a>
                 </div>
             </div>
+
+            @if (!$isLocal)
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-lg p-5">
+                    <h4 class="text-sm font-bold text-slate-900">Dokumen Import</h4>
+                    <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <div class="text-slate-500">No PEN</div>
+                            <div class="font-semibold text-slate-900">{{ $arrival->pen_no ?: '-' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-slate-500">Tanggal No PEN</div>
+                            <div class="font-semibold text-slate-900">{{ optional($arrival->pen_date)->format('Y-m-d') ?: '-' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-slate-500">No AJU</div>
+                            <div class="font-semibold text-slate-900">{{ $arrival->aju_no ?: '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <div class="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">
                 <div class="overflow-x-auto">

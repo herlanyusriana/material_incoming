@@ -81,8 +81,14 @@
                                         {{ $arrival->invoice_date ? \Carbon\Carbon::parse($arrival->invoice_date)->format('Y-m-d') : '-' }}
                                     </td>
                                     <td class="px-4 py-4 text-sm">
-                                        <a href="{{ route('receives.completed.invoice', $arrival->id) }}"
-                                            class="text-indigo-600 hover:text-indigo-700 font-semibold">Detail</a>
+                                        <div class="flex items-center gap-3">
+                                            <a href="{{ route('receives.completed.invoice', $arrival->id) }}"
+                                                class="text-indigo-600 hover:text-indigo-700 font-semibold">Detail</a>
+                                            @if (strtolower((string) ($arrival->vendor?->vendor_type ?? '')) !== 'local')
+                                                <a href="{{ route('departures.edit', $arrival->id) }}"
+                                                    class="text-slate-700 hover:text-slate-900 font-semibold">Edit No PEN / AJU</a>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
