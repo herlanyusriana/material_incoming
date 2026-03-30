@@ -81,12 +81,30 @@
                                         {{ $arrival->invoice_date ? \Carbon\Carbon::parse($arrival->invoice_date)->format('Y-m-d') : '-' }}
                                     </td>
                                     <td class="px-4 py-4 text-sm">
-                                        <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2">
                                             <a href="{{ route('receives.completed.invoice', $arrival->id) }}"
-                                                class="text-indigo-600 hover:text-indigo-700 font-semibold">Detail</a>
+                                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100 hover:text-indigo-700"
+                                                title="Detail">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                                </svg>
+                                            </a>
                                             @if (strtolower((string) ($arrival->vendor?->vendor_type ?? '')) !== 'local')
                                                 <a href="{{ route('departures.edit', $arrival->id) }}"
-                                                    class="text-slate-700 hover:text-slate-900 font-semibold">Edit No PEN / AJU</a>
+                                                    class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 transition hover:bg-amber-100 hover:text-amber-700"
+                                                    title="Edit No PEN / AJU">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="m16.862 3.487 1.65-1.65a2.121 2.121 0 1 1 3 3l-9.193 9.193a4.5 4.5 0 0 1-1.897 1.13L6 16l.84-4.422a4.5 4.5 0 0 1 1.13-1.897l8.892-8.894Z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                                    </svg>
+                                                </a>
                                             @endif
                                         </div>
                                     </td>

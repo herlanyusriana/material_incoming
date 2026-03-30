@@ -127,6 +127,26 @@ class ReceiveController extends Controller
     // TAG fisik boleh sama antar item yang berbeda dalam invoice yang sama.
     // Yang wajib unik hanyalah TAG dalam scope 1 item (arrival_item_id).
 
+    private function ensureCompletedArrivalTransactionNo(Arrival $arrival): void
+    {
+        if (!empty($arrival->transaction_no) || $this->hasPendingReceives($arrival)) {
+            return;
+        }
+
+        $receiveDate = Receive::query()
+            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->where('arrival_items.arrival_id', $arrival->id)
+            ->selectRaw('MAX(COALESCE(receives.ata_date, receives.created_at)) as receive_at')
+            ->value('receive_at');
+
+        $transactionDate = $receiveDate
+            ? Carbon::parse((string) $receiveDate)->toDateString()
+            : ($arrival->invoice_date ? Carbon::parse((string) $arrival->invoice_date)->toDateString() : now()->toDateString());
+
+        $arrival->transaction_no = Arrival::generateTransactionNo($transactionDate);
+        $arrival->save();
+    }
+
     public function index()
     {
         // Group pending by invoice/departure
@@ -159,6 +179,7 @@ class ReceiveController extends Controller
             ->select([
                 'arrivals.id',
                 'arrivals.arrival_no',
+                'arrivals.transaction_no',
                 'arrivals.invoice_no',
                 'arrivals.invoice_date',
                 'arrivals.vendor_id',
@@ -171,9 +192,16 @@ class ReceiveController extends Controller
             ->join('arrival_items', 'arrival_items.arrival_id', '=', 'arrivals.id')
             ->join('receives', 'receives.arrival_item_id', '=', 'arrival_items.id')
             ->with('vendor')
-            ->groupBy('arrivals.id', 'arrivals.arrival_no', 'arrivals.invoice_no', 'arrivals.invoice_date', 'arrivals.vendor_id')
+            ->groupBy('arrivals.id', 'arrivals.arrival_no', 'arrivals.transaction_no', 'arrivals.invoice_no', 'arrivals.invoice_date', 'arrivals.vendor_id')
             ->orderByDesc('arrivals.created_at')
             ->paginate(10);
+
+        $arrivals->getCollection()->transform(function ($arrival) {
+            $arrival->loadMissing(['vendor', 'items.receives', 'containers.inspection']);
+            $this->ensureCompletedArrivalTransactionNo($arrival);
+            $arrival->transaction_no = Arrival::query()->whereKey($arrival->id)->value('transaction_no');
+            return $arrival;
+        });
 
         $statusCounts = Receive::select('qc_status', DB::raw('count(*) as total'))
             ->groupBy('qc_status')
@@ -205,6 +233,7 @@ class ReceiveController extends Controller
     public function completedInvoice(Arrival $arrival)
     {
         $arrival->load(['vendor', 'items.receives', 'containers.inspection']);
+        $this->ensureCompletedArrivalTransactionNo($arrival);
 
         $receives = Receive::query()
             ->select('receives.*')

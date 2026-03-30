@@ -121,8 +121,21 @@ class MaterialAvailabilityController extends Controller
                 'status' => 'material_hold',
                 'workflow_stage' => 'material_check'
             ]);
+
+            $shortItems = array_values(array_filter($materials, fn($item) => ($item['status'] ?? '') === 'shortage'));
+            $shortCount = count($shortItems);
+            $firstShortPart = trim((string) ($shortItems[0]['part_no'] ?? ''));
+            $shortLabel = $shortCount === 1 ? '1 item kurang' : "{$shortCount} item kurang";
+            $message = "Material tidak cukup ({$shortLabel}).";
+
+            if ($firstShortPart !== '') {
+                $message .= " Part shortage: {$firstShortPart}.";
+            }
+
+            $message .= ' Periksa tabel di bawah.';
+
             return back()
-                ->with('error', 'Material shortage detected.')
+                ->with('error', $message)
                 ->with('materials', $materials);
         }
     }

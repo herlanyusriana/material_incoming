@@ -326,7 +326,18 @@ class ProductionOrderController extends Controller
 
             $shortItems = array_filter($results, fn($r) => ($r['status'] ?? '') === 'SHORTAGE');
             $shortCount = count($shortItems);
-            return back()->with('error', "Material tidak cukup ($shortCount item kurang). Periksa tabel di bawah.")
+            $firstShortItem = $shortItems ? reset($shortItems) : null;
+            $firstShortPart = trim((string) ($firstShortItem['part_no'] ?? ''));
+            $shortLabel = $shortCount === 1 ? '1 item kurang' : "{$shortCount} item kurang";
+            $message = "Material tidak cukup ({$shortLabel}).";
+
+            if ($firstShortPart !== '') {
+                $message .= " Part shortage: {$firstShortPart}.";
+            }
+
+            $message .= ' Periksa tabel di bawah.';
+
+            return back()->with('error', $message)
                          ->with('material_check', $results);
         }
     }
