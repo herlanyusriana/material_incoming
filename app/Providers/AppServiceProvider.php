@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use App\Models\User;
+use App\Models\RolePermission;
 use App\View\Compilers\ResettingBladeCompiler;
 use Illuminate\View\DynamicComponent;
 
@@ -47,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
         foreach ($permissions as $permission) {
             Gate::define($permission, function (User $user) use ($permission) {
                 $role = strtolower((string) ($user->role ?? ''));
-                $allowedPermissions = config("role_permissions.roles.{$role}", []);
+                $allowedPermissions = RolePermission::permissionsForRole($role);
 
                 return in_array($permission, $allowedPermissions) || in_array('*', $allowedPermissions);
             });

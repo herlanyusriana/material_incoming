@@ -152,8 +152,8 @@
         <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             {{-- Search Bar --}}
             <div class="p-5 border-b border-slate-100">
-                <form method="GET" class="flex flex-col md:flex-row gap-3 items-end">
-                    <div class="flex-1">
+                <form method="GET" class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.8fr)_220px_auto] md:items-end">
+                    <div class="min-w-0">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Cari User</label>
                         <div class="relative">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -165,7 +165,7 @@
                                 class="w-full rounded-xl border-slate-200 pl-10 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                     </div>
-                    <div class="w-full md:w-44">
+                    <div class="min-w-0">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Role</label>
                         <select name="role" class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Semua Role</option>
@@ -174,7 +174,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 md:justify-end">
                         <a href="{{ route('admin.users.index') }}"
                             class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
                             Reset

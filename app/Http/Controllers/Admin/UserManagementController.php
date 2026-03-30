@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,7 @@ class UserManagementController extends Controller
     {
         $q = trim((string) $request->query('q', ''));
         $role = strtolower(trim((string) $request->query('role', '')));
-        $roles = array_keys(config('role_permissions.roles', []));
+        $roles = RolePermission::availableRoles();
 
         $users = User::query()
             ->when($q !== '', function ($query) use ($q) {
@@ -34,7 +35,7 @@ class UserManagementController extends Controller
 
     public function store(Request $request)
     {
-        $roles = array_keys(config('role_permissions.roles', []));
+        $roles = RolePermission::availableRoles();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -57,7 +58,7 @@ class UserManagementController extends Controller
 
     public function update(Request $request, User $user)
     {
-        $roles = array_keys(config('role_permissions.roles', []));
+        $roles = RolePermission::availableRoles();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],

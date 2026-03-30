@@ -31,7 +31,19 @@ return [
         'warehouse' => [
             'view_dashboard',
             'manage_incoming',
-        ]
+        ],
+        'purchasing' => [
+            'view_dashboard',
+            'manage_purchasing',
+        ],
+        'quality' => [
+            'view_dashboard',
+            'view_production',
+            'manage_qc_inspection',
+            'manage_in_process_inspection',
+            'manage_final_inspection',
+            'manage_kanban_update',
+        ],
     ],
 
     /*
@@ -53,6 +65,10 @@ return [
         // Production Module
         'view_production',
         'manage_production',   // Create orders
+        'manage_qc_inspection',
+        'manage_in_process_inspection',
+        'manage_final_inspection',
+        'manage_kanban_update',
 
         // Material Incoming / Warehouse
         'manage_incoming',     // Scan arrival, print QR

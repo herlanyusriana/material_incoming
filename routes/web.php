@@ -54,6 +54,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
         Route::get('/roles', [RoleManagementController::class, 'index'])->name('roles.index');
+        Route::post('/roles', [RoleManagementController::class, 'store'])->name('roles.store');
+        Route::put('/roles/{role}', [RoleManagementController::class, 'update'])->name('roles.update');
     });
 
     Route::get('/api/parts/search', [PartController::class, 'search'])->name('parts.search');
@@ -549,9 +551,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/start-production/{order}/start', [\App\Http\Controllers\Production\StartProductionController::class, 'start'])->name('start-production.start');
 
         // QC Inspection (First Article)
-        Route::get('/qc-inspection', [\App\Http\Controllers\Production\QcInspectionController::class, 'index'])->name('qc-inspection.index');
-        Route::get('/qc-inspection/{inspection}', [\App\Http\Controllers\Production\QcInspectionController::class, 'show'])->name('qc-inspection.show');
-        Route::put('/qc-inspection/{inspection}', [\App\Http\Controllers\Production\QcInspectionController::class, 'update'])->name('qc-inspection.update');
+        Route::middleware('can:manage_qc_inspection')->group(function () {
+            Route::get('/qc-inspection', [\App\Http\Controllers\Production\QcInspectionController::class, 'index'])->name('qc-inspection.index');
+            Route::get('/qc-inspection/{inspection}', [\App\Http\Controllers\Production\QcInspectionController::class, 'show'])->name('qc-inspection.show');
+            Route::put('/qc-inspection/{inspection}', [\App\Http\Controllers\Production\QcInspectionController::class, 'update'])->name('qc-inspection.update');
+        });
 
         // Mass Production
         Route::get('/mass-production', [\App\Http\Controllers\Production\MassProductionController::class, 'index'])->name('mass-production.index');
@@ -560,9 +564,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/mass-production/{order}/request-inspection', [\App\Http\Controllers\Production\MassProductionController::class, 'requestInProcessInspection'])->name('mass-production.request-inspection');
 
         // In-Process Inspection
-        Route::get('/in-process-inspection', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'index'])->name('in-process-inspection.index');
-        Route::get('/in-process-inspection/{inspection}', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'show'])->name('in-process-inspection.show');
-        Route::put('/in-process-inspection/{inspection}', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'update'])->name('in-process-inspection.update');
+        Route::middleware('can:manage_in_process_inspection')->group(function () {
+            Route::get('/in-process-inspection', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'index'])->name('in-process-inspection.index');
+            Route::get('/in-process-inspection/{inspection}', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'show'])->name('in-process-inspection.show');
+            Route::put('/in-process-inspection/{inspection}', [\App\Http\Controllers\Production\InProcessInspectionController::class, 'update'])->name('in-process-inspection.update');
+        });
 
         // Finish Production
         Route::get('/finish-production', [\App\Http\Controllers\Production\FinishProductionController::class, 'index'])->name('finish-production.index');
@@ -570,11 +576,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/finish-production/{order}/finish', [\App\Http\Controllers\Production\FinishProductionController::class, 'finish'])->name('finish-production.finish');
 
         // Final Inspection & Kanban Update
-        Route::get('/final-inspection', [\App\Http\Controllers\Production\FinalInspectionController::class, 'index'])->name('final-inspection.index');
-        Route::get('/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanIndex'])->name('kanban-update.index');
-        Route::get('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'show'])->name('final-inspection.show');
-        Route::put('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'update'])->name('final-inspection.update');
-        Route::post('/final-inspection/{order}/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanUpdate'])->name('final-inspection.kanban-update');
+        Route::middleware('can:manage_final_inspection')->group(function () {
+            Route::get('/final-inspection', [\App\Http\Controllers\Production\FinalInspectionController::class, 'index'])->name('final-inspection.index');
+            Route::get('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'show'])->name('final-inspection.show');
+            Route::put('/final-inspection/{inspection}', [\App\Http\Controllers\Production\FinalInspectionController::class, 'update'])->name('final-inspection.update');
+        });
+        Route::middleware('can:manage_kanban_update')->group(function () {
+            Route::get('/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanIndex'])->name('kanban-update.index');
+            Route::post('/final-inspection/{order}/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanUpdate'])->name('final-inspection.kanban-update');
+        });
 
         // Legacy inspection routes
         Route::post('/inspections/{inspection}', [\App\Http\Controllers\ProductionInspectionController::class, 'update'])->name('inspections.update');

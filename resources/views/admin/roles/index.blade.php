@@ -70,6 +70,25 @@
     @endphp
 
     <div class="space-y-5">
+        @if (session('success'))
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-700">
+                {{ session('success') }}
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
+        @if ($errors->any())
+            <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm text-red-700">
+                <ul class="list-disc list-inside space-y-0.5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         {{-- ══════════════ HEADER ══════════════ --}}
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -90,6 +109,34 @@
                     Kelola Users
                 </a>
             </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="mb-4">
+                <h2 class="text-sm font-black text-slate-900">Tambah Role Baru</h2>
+                <p class="mt-1 text-xs text-slate-500">Contoh: <span class="font-semibold text-slate-700">purchasing</span>. Gunakan huruf kecil dan underscore saja.</p>
+            </div>
+            <form action="{{ route('admin.roles.store') }}" method="POST" class="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1.2fr)_auto] md:items-end">
+                @csrf
+                <div>
+                    <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Role Key</label>
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="purchasing"
+                        class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Display Name</label>
+                    <input type="text" name="display_name" value="{{ old('display_name') }}" placeholder="Purchasing"
+                        class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">Description</label>
+                    <input type="text" name="description" value="{{ old('description') }}" placeholder="Purchase request and PO access"
+                        class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <button class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
+                    Buat Role
+                </button>
+            </form>
         </div>
 
         {{-- ══════════════ ROLE SUMMARY CARDS ══════════════ --}}
@@ -123,8 +170,8 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-base font-black text-white">{{ strtoupper($role['name']) }}</h3>
-                                    <p class="text-[11px] text-white/70 font-medium">{{ $style['desc'] }}</p>
+                                    <h3 class="text-base font-black text-white">{{ $role['display_name'] ?? strtoupper($role['name']) }}</h3>
+                                    <p class="text-[11px] text-white/70 font-medium">{{ $role['description'] ?: $style['desc'] }}</p>
                                 </div>
                             </div>
                             @if($isFullAccess)
@@ -212,8 +259,66 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        @if($role['name'] !== 'admin')
+                            <div class="mt-4 pt-4 border-t border-slate-100">
+                                <a href="#role-editor-{{ $role['name'] }}"
+                                    class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                                    </svg>
+                                    Edit Permission
+                                </a>
+                            </div>
+                        @else
+                            <div class="mt-4 pt-4 border-t border-slate-100 text-xs font-semibold text-slate-400">
+                                Admin tetap full access.
+                            </div>
+                        @endif
                     </div>
                 </div>
+            @endforeach
+        </div>
+
+        <div class="space-y-4">
+            @foreach ($roles as $role)
+                @if($role['name'] !== 'admin')
+                    <form id="role-editor-{{ $role['name'] }}" action="{{ route('admin.roles.update', $role['name']) }}" method="POST"
+                        class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+                            <div>
+                                <h3 class="text-sm font-black text-slate-900">Edit Role {{ $role['display_name'] ?? strtoupper($role['name']) }}</h3>
+                                <p class="text-xs text-slate-500">Centang permission yang diizinkan untuk role ini.</p>
+                            </div>
+                            <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
+                                Save Permission
+                            </button>
+                        </div>
+
+                        <div class="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
+                            @foreach ($permissionGroups as $groupName => $groupPerms)
+                                <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                                    <div class="mb-3 text-xs font-black uppercase tracking-wider text-slate-500">{{ $groupName }}</div>
+                                    <div class="space-y-2">
+                                        @foreach ($groupPerms as $perm)
+                                            @php($has = in_array($perm, $role['permissions'], true))
+                                            <label class="flex items-start gap-3 rounded-xl border px-3 py-2 {{ $has ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white' }}">
+                                                <input type="checkbox" name="permissions[]" value="{{ $perm }}" @checked($has)
+                                                    class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                                <div>
+                                                    <div class="text-sm font-semibold text-slate-800">{{ $perm }}</div>
+                                                </div>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </form>
+                @endif
             @endforeach
         </div>
 
@@ -299,7 +404,7 @@
                 <div class="text-sm font-bold text-slate-700">Roles berbasis konfigurasi sistem</div>
                 <p class="text-xs text-slate-500 mt-0.5">
                     Halaman ini menampilkan matrix role-permission yang aktif dipakai aplikasi.
-                    Untuk mengubah permission, edit file <code class="bg-slate-200/80 px-1.5 py-0.5 rounded text-[11px] font-semibold text-slate-600">config/role_permissions.php</code>.
+                    Perubahan dari halaman ini akan disimpan sebagai override di database. Role admin tetap full access.
                 </p>
             </div>
         </div>
