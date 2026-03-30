@@ -174,6 +174,9 @@ class ReceiveController extends Controller
 
     public function completed()
     {
+        $q = trim((string) request()->query('q', ''));
+        $flow = strtolower(trim((string) request()->query('flow', '')));
+
         // Show completed receives grouped by invoice/departure
         $arrivals = Arrival::query()
             ->select([
@@ -191,10 +194,21 @@ class ReceiveController extends Controller
             ])
             ->join('arrival_items', 'arrival_items.arrival_id', '=', 'arrivals.id')
             ->join('receives', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->join('vendors', 'vendors.id', '=', 'arrivals.vendor_id')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($builder) use ($q) {
+                    $builder->where('arrivals.transaction_no', 'like', '%' . $q . '%')
+                        ->orWhere('arrivals.invoice_no', 'like', '%' . $q . '%')
+                        ->orWhere('vendors.vendor_name', 'like', '%' . $q . '%');
+                });
+            })
+            ->when($flow === 'import', fn($query) => $query->whereRaw("LOWER(COALESCE(vendors.vendor_type, '')) <> 'local'"))
+            ->when($flow === 'local', fn($query) => $query->whereRaw("LOWER(COALESCE(vendors.vendor_type, '')) = 'local'"))
             ->with('vendor')
-            ->groupBy('arrivals.id', 'arrivals.arrival_no', 'arrivals.transaction_no', 'arrivals.invoice_no', 'arrivals.invoice_date', 'arrivals.vendor_id')
+            ->groupBy('arrivals.id', 'arrivals.arrival_no', 'arrivals.transaction_no', 'arrivals.invoice_no', 'arrivals.invoice_date', 'arrivals.vendor_id', 'vendors.vendor_type')
             ->orderByDesc('arrivals.created_at')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         $arrivals->getCollection()->transform(function ($arrival) {
             $arrival->loadMissing(['vendor', 'items.receives', 'containers.inspection']);
@@ -227,7 +241,7 @@ class ReceiveController extends Controller
             'today' => Receive::whereDate('created_at', now())->count(),
         ];
 
-        return view('receives.completed', compact('arrivals', 'statusCounts', 'topVendors', 'summary'));
+        return view('receives.completed', compact('arrivals', 'statusCounts', 'topVendors', 'summary', 'q', 'flow'));
     }
 
     public function completedInvoice(Arrival $arrival)

@@ -34,6 +34,39 @@
                         List</a>
                 </div>
 
+                <form method="GET" action="{{ route('receives.completed') }}"
+                    class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+                    <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px_auto] gap-3">
+                        <div>
+                            <label for="q" class="sr-only">Search</label>
+                            <input type="text" id="q" name="q" value="{{ $q ?? '' }}"
+                                placeholder="Search transaction no, invoice, vendor..."
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="flow" class="sr-only">Flow</label>
+                            <select id="flow" name="flow"
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">All Flows</option>
+                                <option value="import" {{ ($flow ?? '') === 'import' ? 'selected' : '' }}>Import</option>
+                                <option value="local" {{ ($flow ?? '') === 'local' ? 'selected' : '' }}>Local</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="submit"
+                                class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                Filter
+                            </button>
+                            @if (($q ?? '') !== '' || ($flow ?? '') !== '')
+                                <a href="{{ route('receives.completed') }}"
+                                    class="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                                    Reset
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </form>
+
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50">
