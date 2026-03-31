@@ -292,6 +292,8 @@ class ReceiveController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $this->syncCompletedArrivalTransactionNumbers($arrivals->getCollection());
+
         $summary = [
             'total_invoices' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))->count(),
             'with_pen' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))
@@ -315,10 +317,23 @@ class ReceiveController extends Controller
 
         $filename = 'rekap_no_pen_no_aju_' . now()->format('Y-m-d_His') . '.xlsx';
 
+        $arrivals = $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo)->get();
+        $this->syncCompletedArrivalTransactionNumbers($arrivals);
+
         return Excel::download(
-            new ImportDocumentRecapExport($this->buildImportDocumentsQuery($q, $dateFrom, $dateTo)->get()),
+            new ImportDocumentRecapExport($arrivals),
             $filename
         );
+    }
+
+    private function syncCompletedArrivalTransactionNumbers($arrivals): void
+    {
+        collect($arrivals)->each(function ($arrival) {
+            $arrival->loadMissing(['vendor', 'items.receives', 'containers.inspection']);
+            $this->ensureCompletedArrivalTransactionNo($arrival);
+            $arrival->transaction_no = Arrival::query()->whereKey($arrival->id)->value('transaction_no');
+            $arrival->is_complete_receive = !$this->hasPendingReceives($arrival);
+        });
     }
 
     private function buildImportDocumentsQuery(string $q = '', string $dateFrom = '', string $dateTo = '')
