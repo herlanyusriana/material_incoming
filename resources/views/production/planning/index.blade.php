@@ -199,10 +199,10 @@
                                 <th class="px-3 py-3 text-right font-bold text-blue-700">DELIVERY REQ</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700 text-emerald-700">PLAN QTY</th>
-                                <th class="px-3 py-3 text-right font-bold text-indigo-600">EST. HRS</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">S1</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">S2</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">S3</th>
+                                <th class="px-3 py-3 text-right font-bold text-indigo-600">EST. HRS</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">ACTION</th>
                             </tr>
                         </thead>
@@ -274,9 +274,6 @@
                                                     Auto: Req - Stock, editable manual
                                                 </div>
                                             </td>
-                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-bold text-indigo-700 whitespace-nowrap">
-                                                {{ $lineEstHours > 0 ? number_format($lineEstHours, 2) . 'h' : '-' }}
-                                            </td>
                                             <td class="px-3 py-2 text-center">
                                                 <input type="number" step="1" min="0"
                                                     class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
@@ -294,6 +291,9 @@
                                                     class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
                                                     value="{{ (float) $line->shift_3_qty > 0 ? intval($line->shift_3_qty) : '' }}" placeholder="0"
                                                     @change="updateLineField($event, {{ $line->id }}, 'shift_3_qty')">
+                                            </td>
+                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-bold text-indigo-700 whitespace-nowrap">
+                                                {{ $lineEstHours > 0 ? number_format($lineEstHours, 2) . 'h' : '-' }}
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <div class="flex items-center justify-center gap-1.5 transition-opacity">
@@ -391,10 +391,11 @@
                                     <td class="px-3 py-3 text-right font-mono text-emerald-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>
+                                    <td colspan="3" class="px-3 py-3"></td>
                                     <td class="px-3 py-3 text-right font-mono text-indigo-700">
                                         {{ $grandTotalEstHours > 0 ? number_format($grandTotalEstHours, 2) . 'h' : '-' }}
                                     </td>
-                                    <td colspan="4" class="px-3 py-3"></td>
+                                    <td class="px-3 py-3"></td>
                                 </tr>
                             @endif
                         </tbody>
