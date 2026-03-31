@@ -175,6 +175,15 @@
         @endif
 
         @if($session)
+            @php
+                $grandTotalEstHours = collect($planningLines ?? [])->sum(function ($line) {
+                    if (!$line->machine || (float) $line->plan_qty <= 0) {
+                        return 0;
+                    }
+
+                    return (float) $line->machine->estimateHours((float) $line->plan_qty);
+                });
+            @endphp
             {{-- Main Planning Table --}}
             <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
                 <div class="overflow-x-auto">
@@ -201,6 +210,11 @@
                             @forelse(($planningLines ?? collect()) as $line)
                                     <!-- Main Row Data -->
                                     <tbody x-data="{ expanded: false }" class="border-b border-slate-200 hover:bg-slate-50/80 transition-colors group">
+                                        @php
+                                            $lineEstHours = ($line->machine && (float) $line->plan_qty > 0)
+                                                ? (float) $line->machine->estimateHours((float) $line->plan_qty)
+                                                : 0;
+                                        @endphp
                                         <tr data-line-id="{{ $line->id }}">
                                             <td class="w-10 px-2 py-2 text-center cursor-pointer" @click="expanded = !expanded">
                                                 <div class="h-6 w-6 rounded-md hover:bg-slate-200 flex items-center justify-center transition-colors text-slate-400 group-hover:text-emerald-600">
@@ -259,6 +273,9 @@
                                                 <div class="mt-1 text-[10px] text-slate-400">
                                                     Auto: Req - Stock, editable manual
                                                 </div>
+                                            </td>
+                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-bold text-indigo-700 whitespace-nowrap">
+                                                {{ $lineEstHours > 0 ? number_format($lineEstHours, 2) . 'h' : '-' }}
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <input type="number" step="1" min="0"
@@ -374,7 +391,10 @@
                                     <td class="px-3 py-3 text-right font-mono text-emerald-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>
-                                    <td colspan="5" class="px-3 py-3"></td>
+                                    <td class="px-3 py-3 text-right font-mono text-indigo-700">
+                                        {{ $grandTotalEstHours > 0 ? number_format($grandTotalEstHours, 2) . 'h' : '-' }}
+                                    </td>
+                                    <td colspan="4" class="px-3 py-3"></td>
                                 </tr>
                             @endif
                         </tbody>
