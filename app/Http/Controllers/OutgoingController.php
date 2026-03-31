@@ -1731,22 +1731,7 @@ class OutgoingController extends Controller
         $summaryRecords = (clone $baseQuery)->get(['customer_id', 'part_no', 'qty']);
 
         $totalQty = (float) $summaryRecords->sum('qty');
-        $activeCustomers = (int) $summaryRecords->pluck('customer_id')->filter()->unique()->count();
         $trackedParts = (int) $summaryRecords->pluck('part_no')->filter()->unique()->count();
-
-        $recapByCustomer = $summaryRecords
-            ->groupBy('customer_id')
-            ->map(function ($rows, $groupCustomerId) {
-                return [
-                    'customer_id' => (int) $groupCustomerId,
-                    'customer_name' => optional($rows->first()->customer)->name ?? '-',
-                    'part_count' => $rows->pluck('part_no')->filter()->unique()->count(),
-                    'total_qty' => (float) $rows->sum('qty'),
-                ];
-            })
-            ->sortByDesc('total_qty')
-            ->take(5)
-            ->values();
 
         $recapByPart = $summaryRecords
             ->groupBy('part_no')
@@ -1813,9 +1798,7 @@ class OutgoingController extends Controller
             'customerId',
             'customers',
             'totalQty',
-            'activeCustomers',
             'trackedParts',
-            'recapByCustomer',
             'recapByPart',
         ));
     }

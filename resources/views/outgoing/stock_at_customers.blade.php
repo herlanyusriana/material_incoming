@@ -76,16 +76,11 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Qty</div>
             <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((float) ($totalQty ?? 0), 0) }}</div>
             <div class="mt-1 text-sm text-slate-500">Akumulasi stock customer pada range 7 hari</div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Customers</div>
-            <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((int) ($activeCustomers ?? 0)) }}</div>
-            <div class="mt-1 text-sm text-slate-500">Customer yang punya data pada filter saat ini</div>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Tracked Parts</div>
@@ -94,30 +89,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div class="border-b border-slate-200 px-6 py-4">
-                <div class="text-lg font-black text-slate-900">Recap by Customer</div>
-                <div class="mt-1 text-sm text-slate-500">Top customer berdasarkan total qty pada filter saat ini</div>
-            </div>
-            <div class="divide-y divide-slate-100">
-                @forelse(($recapByCustomer ?? collect()) as $row)
-                    <div class="flex items-center justify-between gap-4 px-6 py-4">
-                        <div>
-                            <div class="font-semibold text-slate-900">{{ $row['customer_name'] }}</div>
-                            <div class="text-xs text-slate-500">{{ number_format((int) $row['part_count']) }} part tracked</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-black text-slate-900">{{ number_format((float) $row['total_qty'], 0) }}</div>
-                            <div class="text-xs text-slate-400">qty total</div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="px-6 py-8 text-sm italic text-slate-500">Belum ada data recap customer.</div>
-                @endforelse
-            </div>
-        </div>
-
+    <div class="grid grid-cols-1 gap-6">
         <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div class="border-b border-slate-200 px-6 py-4">
                 <div class="text-lg font-black text-slate-900">Recap by Part</div>
@@ -140,30 +112,6 @@
                     <div class="px-6 py-8 text-sm italic text-slate-500">Belum ada data recap part.</div>
                 @endforelse
             </div>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-                <div class="text-lg font-black text-slate-900">Upload / Import</div>
-                <div class="mt-1 text-sm text-slate-600">Format kolom: customer, part_no, part_name, model, status,
-                    tanggal1..tanggal7</div>
-            </div>
-
-            <form method="POST" action="{{ route('outgoing.stock-at-customers.import') }}" enctype="multipart/form-data"
-                class="flex flex-col gap-2 sm:flex-row sm:items-end">
-                @csrf
-                <input type="hidden" name="start_date" value="{{ $startDate->format('Y-m-d') }}">
-                <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">File</div>
-                    <input type="file" name="file" accept=".xlsx,.xls,.csv"
-                        class="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
-                </div>
-                <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
-                    Upload
-                </button>
-            </form>
         </div>
     </div>
 
