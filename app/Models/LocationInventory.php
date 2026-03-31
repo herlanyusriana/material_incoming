@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 class LocationInventory extends Model
@@ -121,7 +122,7 @@ class LocationInventory extends Model
         return (float) $q->sum('qty_on_hand');
     }
 
-    public static function updateStock(?int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = []): void
+    public static function updateStock(?int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = [], $adjustedAt = null): void
     {
         $locationCode = strtoupper(trim($locationCode));
         $batchNo = $batchNo !== null ? strtoupper(trim($batchNo)) : null;
@@ -192,7 +193,7 @@ class LocationInventory extends Model
 
         $record->update(['qty_on_hand' => $newQty]);
 
-        self::logTransaction($partId, $gciPartId, $locationCode, $batchNo, $qtyBefore, $newQty, $qtyChange, $transactionType, $sourceReference, $traceability);
+        self::logTransaction($partId, $gciPartId, $locationCode, $batchNo, $qtyBefore, $newQty, $qtyChange, $transactionType, $sourceReference, $traceability, $adjustedAt);
     }
 
     public static function consumeStock(?int $partId, string $locationCode, float $qty, ?string $batchNo = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = []): void
@@ -292,8 +293,10 @@ class LocationInventory extends Model
         return $q->get();
     }
 
-    protected static function logTransaction(?int $partId, ?int $gciPartId, string $locationCode, ?string $batchNo, float $qtyBefore, float $qtyAfter, float $qtyChange, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = []): void
+    protected static function logTransaction(?int $partId, ?int $gciPartId, string $locationCode, ?string $batchNo, float $qtyBefore, float $qtyAfter, float $qtyChange, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = [], $adjustedAt = null): void
     {
+        $adjustedAtValue = $adjustedAt ? Carbon::parse($adjustedAt) : now();
+
         LocationInventoryAdjustment::create([
             'part_id' => $partId,
             'gci_part_id' => $gciPartId,
@@ -310,7 +313,7 @@ class LocationInventory extends Model
             'qty_before' => $qtyBefore,
             'qty_after' => $qtyAfter,
             'qty_change' => $qtyChange,
-            'adjusted_at' => now(),
+            'adjusted_at' => $adjustedAtValue,
             'created_by' => auth()->id(),
         ]);
     }

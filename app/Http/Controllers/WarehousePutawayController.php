@@ -8,6 +8,7 @@ use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use App\Traits\LogsActivity;
 
@@ -65,6 +66,7 @@ class WarehousePutawayController extends Controller
 
         $validated = $request->validate([
             'location_code' => $locationCodeRule,
+            'putaway_date' => ['nullable', 'date'],
         ]);
 
         if ($receive->qc_status !== 'pass') {
@@ -79,6 +81,9 @@ class WarehousePutawayController extends Controller
 
         $newLocationCode = strtoupper(trim((string) $validated['location_code']));
         $oldLocationCode = strtoupper(trim((string) ($receive->location_code ?? '')));
+        $putawayDate = !empty($validated['putaway_date'])
+            ? Carbon::parse((string) $validated['putaway_date'])->endOfDay()
+            : now();
         $qtyUnit = strtoupper(trim((string) ($receive->qty_unit ?? '')));
         $qtyContribution = $qtyUnit === 'COIL'
             ? (float) ($receive->net_weight ?? 0)
@@ -88,7 +93,7 @@ class WarehousePutawayController extends Controller
             return back()->with('error', 'Qty receive invalid untuk putaway.');
         }
 
-        DB::transaction(function () use ($receive, $partId, $oldLocationCode, $newLocationCode, $qtyContribution) {
+        DB::transaction(function () use ($receive, $partId, $oldLocationCode, $newLocationCode, $qtyContribution, $putawayDate) {
             $receive = Receive::query()->whereKey($receive->id)->lockForUpdate()->firstOrFail();
 
             $existingLoc = strtoupper(trim((string) ($receive->location_code ?? '')));
@@ -97,11 +102,11 @@ class WarehousePutawayController extends Controller
             }
 
             if ($oldLocationCode !== '' && $oldLocationCode !== $newLocationCode) {
-                LocationInventory::updateStock($partId, $oldLocationCode, -$qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}");
+                LocationInventory::updateStock($partId, $oldLocationCode, -$qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}", [], $putawayDate);
             }
 
             if ($oldLocationCode === '' || $oldLocationCode !== $newLocationCode) {
-                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}");
+                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}", [], $putawayDate);
             }
 
             $receive->update(['location_code' => $newLocationCode]);
@@ -125,17 +130,21 @@ class WarehousePutawayController extends Controller
 
         $validated = $request->validate([
             'location_code' => $locationCodeRule,
+            'putaway_date' => ['nullable', 'date'],
             'receive_ids' => ['required', 'array', 'min:1'],
             'receive_ids.*' => ['integer'],
         ]);
 
         $newLocationCode = strtoupper(trim((string) $validated['location_code']));
+        $putawayDate = !empty($validated['putaway_date'])
+            ? Carbon::parse((string) $validated['putaway_date'])->endOfDay()
+            : now();
         $receiveIds = array_values(array_unique(array_map('intval', $validated['receive_ids'])));
 
         $updated = 0;
         $skipped = 0;
 
-        DB::transaction(function () use ($receiveIds, $newLocationCode, &$updated, &$skipped) {
+        DB::transaction(function () use ($receiveIds, $newLocationCode, $putawayDate, &$updated, &$skipped) {
             $receives = Receive::query()
                 ->whereIn('id', $receiveIds)
                 ->lockForUpdate()
@@ -169,7 +178,7 @@ class WarehousePutawayController extends Controller
                     continue;
                 }
 
-                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}");
+                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}", [], $putawayDate);
                 $receive->update(['location_code' => $newLocationCode]);
                 $updated++;
             }

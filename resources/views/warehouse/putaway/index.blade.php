@@ -55,6 +55,11 @@
                             <div class="mt-1 text-xs text-slate-500">Pilih beberapa row di bawah, lalu klik Bulk Putaway.</div>
                         </div>
                         <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Putaway Date</label>
+                            <input type="date" name="putaway_date" value="{{ old('putaway_date', now()->format('Y-m-d')) }}"
+                                class="w-full md:w-44 rounded-lg border-slate-300 text-sm">
+                        </div>
+                        <div>
                             <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
                                 Bulk Putaway Selected
                             </button>
@@ -113,10 +118,12 @@
                                         <div class="text-xs text-slate-500">{{ $qtyUnit !== '' ? $qtyUnit : '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <form method="POST" action="{{ route('warehouse.putaway.store', $r) }}" class="flex items-center gap-2">
+                                        <form method="POST" action="{{ route('warehouse.putaway.store', $r) }}" class="flex flex-wrap items-center gap-2">
                                             @csrf
                                             <input name="location_code" list="locs" placeholder="Location code"
                                                 class="w-44 rounded-lg border-slate-300 text-sm" required>
+                                            <input type="date" name="putaway_date" value="{{ old('putaway_date', now()->format('Y-m-d')) }}"
+                                                class="w-40 rounded-lg border-slate-300 text-sm">
                                             <button type="submit" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg">
                                                 Save
                                             </button>
