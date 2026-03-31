@@ -28,13 +28,6 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
         return (float) ($qty ?? 0);
     }
 
-    private function exportUnit(?string $unit): string
-    {
-        return $this->shouldConvertToKgm($unit)
-            ? 'KGM'
-            : strtoupper((string) ($unit ?? '-'));
-    }
-
     public function __construct(Arrival $arrival)
     {
         $this->arrival = $arrival;
@@ -72,8 +65,9 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             'Size',
             'Qty Bundle',
             'Unit Bundle',
-            'Qty Goods',
-            'Unit Goods',
+            'Qty Goods Original',
+            'Unit Goods Original',
+            'Qty Goods (KGM)',
             'Weight Nett (KG)',
             'Weight Gross (KG)',
             'Price',
@@ -112,8 +106,9 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             $item->size ?: '-',
             (float)($item->qty_bundle ?? 0),
             $item->unit_bundle ?? '-',
+            (float)($item->qty_goods ?? 0),
+            strtoupper((string) ($item->unit_goods ?? '-')),
             $this->exportQty($item->qty_goods, $item->unit_goods, $item->weight_nett),
-            $this->exportUnit($item->unit_goods),
             (float)($item->weight_nett ?? 0),
             (float)($item->weight_gross ?? 0),
             (float)($item->price ?? 0),
@@ -156,14 +151,15 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             'U' => 20, // Size
             'V' => 12, // Qty Bundle
             'W' => 12, // Unit Bundle
-            'X' => 12, // Qty Goods
-            'Y' => 12, // Unit Goods
-            'Z' => 15, // Weight Nett
-            'AA' => 15, // Weight Gross
-            'AB' => 12, // Price
-            'AC' => 10, // Currency
-            'AD' => 15, // Total Price
-            'AE' => 25, // Notes (Item)
+            'X' => 16, // Qty Goods Original
+            'Y' => 16, // Unit Goods Original
+            'Z' => 15, // Qty Goods (KGM)
+            'AA' => 15, // Weight Nett
+            'AB' => 15, // Weight Gross
+            'AC' => 12, // Price
+            'AD' => 10, // Currency
+            'AE' => 15, // Total Price
+            'AF' => 25, // Notes (Item)
         ];
     }
 }

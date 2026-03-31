@@ -25,20 +25,13 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
         return in_array(strtoupper(trim((string) $unit)), ['SHEET', 'EA'], true);
     }
 
-    private function exportQty(mixed $qty, ?string $unit, mixed $weight): float
+    private function exportKgmQty(mixed $qty, ?string $unit, mixed $weight): ?float
     {
         if ($this->shouldConvertToKgm($unit)) {
             return (float) ($weight ?? 0);
         }
 
-        return (float) ($qty ?? 0);
-    }
-
-    private function exportUnit(?string $unit): string
-    {
-        return $this->shouldConvertToKgm($unit)
-            ? 'KGM'
-            : strtoupper((string) ($unit ?? ''));
+        return null;
     }
 
     public function __construct(Arrival $arrival)
@@ -92,12 +85,16 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
             'part_name_vendor',
             'material_group',
             'size',
-            'planned_qty_goods',
-            'planned_unit_goods',
-            'received_qty',
-            'received_qty_unit',
+            'planned_qty_goods_original',
+            'planned_unit_goods_original',
+            'planned_qty_kgm',
+            'received_qty_original',
+            'received_qty_unit_original',
+            'received_qty_kgm',
             'received_total_qty_for_item',
+            'received_total_qty_for_item_kgm',
             'remaining_qty_for_item',
+            'remaining_qty_for_item_kgm',
             'bundle_qty',
             'bundle_unit',
             'net_weight',
@@ -118,12 +115,8 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
         $goodsUnit = strtoupper((string) ($item?->unit_goods ?? ''));
         $receivedTotal = (float) ($this->receivedTotalsByItemId->get((int) ($item?->id ?? 0), 0));
         $receivedWeightTotal = (float) ($this->receivedWeightsByItemId->get((int) ($item?->id ?? 0), 0));
-        $remaining = max(
-            0,
-            $this->shouldConvertToKgm($goodsUnit)
-                ? ($plannedWeight - $receivedWeightTotal)
-                : ($plannedQty - $receivedTotal)
-        );
+        $remainingOriginal = max(0, $plannedQty - $receivedTotal);
+        $remainingKgm = max(0, $plannedWeight - $receivedWeightTotal);
         $receiveQtyUnit = strtoupper((string) ($receive->qty_unit ?? ''));
 
         return [
@@ -140,12 +133,16 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
             $part?->part_name_vendor ?? '',
             $item?->material_group ?? '',
             $item?->size ?? '',
-            $this->exportQty($plannedQty, $goodsUnit, $plannedWeight),
-            $this->exportUnit($goodsUnit),
-            $this->exportQty($receive->qty, $receiveQtyUnit, $receive->net_weight ?? $receive->weight),
-            $this->exportUnit($receiveQtyUnit),
-            $this->shouldConvertToKgm($goodsUnit) ? $receivedWeightTotal : $receivedTotal,
-            $remaining,
+            $plannedQty ?: 0,
+            $goodsUnit,
+            $this->exportKgmQty($plannedQty, $goodsUnit, $plannedWeight),
+            (float) ($receive->qty ?? 0),
+            $receiveQtyUnit,
+            $this->exportKgmQty($receive->qty, $receiveQtyUnit, $receive->net_weight ?? $receive->weight),
+            $receivedTotal,
+            $receivedWeightTotal > 0 ? $receivedWeightTotal : null,
+            $remainingOriginal,
+            $remainingKgm > 0 ? $remainingKgm : null,
             (int) ($receive->bundle_qty ?? 1),
             strtoupper((string) ($receive->bundle_unit ?? '')),
             $receive->net_weight !== null ? (float) $receive->net_weight : null,
@@ -178,17 +175,21 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
             'K' => 28,
             'L' => 18,
             'M' => 14,
-            'N' => 16,
-            'O' => 16,
-            'P' => 12,
-            'Q' => 14,
-            'R' => 22,
-            'S' => 20,
-            'T' => 12,
-            'U' => 12,
-            'V' => 12,
-            'W' => 12,
-            'X' => 18,
+            'N' => 18,
+            'O' => 18,
+            'P' => 14,
+            'Q' => 18,
+            'R' => 18,
+            'S' => 18,
+            'T' => 22,
+            'U' => 18,
+            'V' => 20,
+            'W' => 18,
+            'X' => 12,
+            'Y' => 12,
+            'Z' => 12,
+            'AA' => 12,
+            'AB' => 18,
         ];
     }
 }
