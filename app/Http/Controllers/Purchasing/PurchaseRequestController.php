@@ -112,16 +112,7 @@ class PurchaseRequestController extends Controller
                     ->orderBy('price', 'asc')
                     ->first();
 
-                if ($pricing) {
-                    $unitPrice = (float) $pricing->price;
-                } else {
-                    $vendorLink = GciPartVendor::where('gci_part_id', $item['part_id'])
-                        ->whereNotNull('price')
-                        ->where('price', '>', 0)
-                        ->orderBy('price', 'asc')
-                        ->first();
-                    $unitPrice = $vendorLink ? (float) $vendorLink->price : 0;
-                }
+                $unitPrice = $pricing ? (float) $pricing->price : 0;
                 $subtotal = $unitPrice * $item['qty'];
 
                 PurchaseRequestItem::create([
@@ -208,21 +199,6 @@ class PurchaseRequestController extends Controller
                 ];
             });
         });
-
-        foreach ($partIds as $partId) {
-            if (!isset($vendorLinks[$partId]) || $vendorLinks[$partId]->isEmpty()) {
-                $fallback = GciPartVendor::with('vendor')
-                    ->where('gci_part_id', $partId)
-                    ->whereNotNull('price')
-                    ->where('price', '>', 0)
-                    ->orderBy('price', 'asc')
-                    ->get();
-
-                if ($fallback->isNotEmpty()) {
-                    $vendorLinks[$partId] = $fallback;
-                }
-            }
-        }
 
         return view('purchasing.purchase-requests.create_from_mrp', compact('plans', 'vendorLinks'));
     }

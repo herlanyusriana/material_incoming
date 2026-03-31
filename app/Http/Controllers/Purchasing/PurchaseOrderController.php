@@ -76,11 +76,6 @@ class PurchaseOrderController extends Controller
                 }
             }
 
-            foreach ($vendorLinks as $vl) {
-                if (!isset($itemPrices[$vl->gci_part_id][$vl->vendor_id])) {
-                    $itemPrices[$vl->gci_part_id][$vl->vendor_id] = (float) $vl->price;
-                }
-            }
         }
 
         $vendors = Vendor::all();

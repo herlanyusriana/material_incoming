@@ -76,6 +76,14 @@
                     @endif
                 </div>
 
+                @if($activeTab === 'RM')
+                    <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-800">
+                        <span class="font-semibold">Part Master</span> menjadi source of truth untuk data part dan vendor part.
+                        Harga tidak lagi diinput di sini dan dikelola terpusat lewat
+                        <a href="{{ route('pricing.index') }}" class="font-bold underline">Pricing Master</a>.
+                    </div>
+                @endif
+
                 {{-- RM Table --}}
                 @if($activeTab === 'RM')
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
@@ -138,7 +146,7 @@
                                                                     <th class="px-4 py-2 text-left font-semibold">Vendor Part No</th>
                                                                     <th class="px-4 py-2 text-left font-semibold">Vendor Part Name</th>
                                                                     <th class="px-4 py-2 text-left font-semibold">Register No</th>
-                                                                    <th class="px-4 py-2 text-right font-semibold">Price</th>
+                                                                    <th class="px-4 py-2 text-left font-semibold">Pricing</th>
                                                                     <th class="px-4 py-2 text-left font-semibold">UOM</th>
                                                                     <th class="px-4 py-2 text-left font-semibold">Status</th>
                                                                     <th class="px-4 py-2 text-right font-semibold">Actions</th>
@@ -151,7 +159,11 @@
                                                                         <td class="px-4 py-2 text-slate-700">{{ $vl->vendor_part_no ?? '-' }}</td>
                                                                         <td class="px-4 py-2 text-slate-700">{{ $vl->vendor_part_name ?? '-' }}</td>
                                                                         <td class="px-4 py-2 text-slate-600">{{ $vl->register_no ?? '-' }}</td>
-                                                                        <td class="px-4 py-2 text-right font-medium text-slate-900">{{ number_format($vl->price, 2) }}</td>
+                                                                        <td class="px-4 py-2">
+                                                                            <span class="inline-flex rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700">
+                                                                                Pricing Master
+                                                                            </span>
+                                                                        </td>
                                                                         <td class="px-4 py-2 text-slate-600">{{ $vl->uom ?? '-' }}</td>
                                                                         <td class="px-4 py-2">
                                                                             <span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold {{ $vl->status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">{{ strtoupper($vl->status) }}</span>
@@ -618,7 +630,8 @@
                     <template x-if="vpMode==='edit'"><input type="hidden" name="_method" value="PUT"></template>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Vendor <span class="text-red-500">*</span></label>
-                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required x-model="vpForm.vendor_id">
+                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required x-model="vpForm.vendor_id"
+                                @change="loadVendorPartNames(vpForm.vendor_id)">
                             <option value="">Select vendor...</option>
                             @foreach($vendors as $v)
                                 <option value="{{ $v->id }}">{{ $v->vendor_name }}</option>
@@ -637,13 +650,26 @@
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Vendor Part Name</label>
-                        <input name="vendor_part_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.vendor_part_name">
-                    </div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="text-sm font-semibold text-slate-700">Price</label>
-                            <input name="price" type="number" step="0.001" min="0" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.price">
+                        <select class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                x-model="vpForm.vendor_part_name_selected"
+                                @change="applyVendorPartNameSelection()"
+                                :disabled="!vpForm.vendor_id || vpNameLoading">
+                            <option value="">Pilih nama part vendor...</option>
+                            <template x-for="name in vpNameOptions" :key="name">
+                                <option :value="name" x-text="name"></option>
+                            </template>
+                            <option value="__other__">Lainnya...</option>
+                        </select>
+                        <input type="hidden" name="vendor_part_name" :value="vpForm.vendor_part_name">
+                        <p class="mt-1 text-xs text-slate-500" x-show="vpNameLoading" x-cloak>Memuat nama part vendor...</p>
+                        <div x-show="vpForm.vendor_part_name_selected === '__other__' || (!vpNameOptions.length && vpForm.vendor_id)" x-cloak class="mt-3">
+                            <input class="w-full rounded-xl border-slate-200 text-sm"
+                                   placeholder="Isi nama part vendor manual"
+                                   x-model="vpForm.vendor_part_name">
+                            <p class="mt-1 text-xs text-slate-500">Pilih <span class="font-semibold">Lainnya</span> jika nama belum ada di daftar.</p>
                         </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm font-semibold text-slate-700">UOM</label>
                             <input name="uom" class="mt-1 w-full rounded-xl border-slate-200 text-sm" placeholder="PCS" x-model="vpForm.uom">
@@ -652,6 +678,9 @@
                             <label class="text-sm font-semibold text-slate-700">HS Code</label>
                             <input name="hs_code" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="vpForm.hs_code">
                         </div>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        Harga vendor part tidak diatur di Part Master. Gunakan <a href="{{ route('pricing.index') }}" class="font-semibold text-indigo-700 underline">Pricing Master</a> untuk harga beli.
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -809,7 +838,9 @@
                     vpModal: false,
                     vpMode: 'create',
                     vpAction: '',
-                    vpForm: { vendor_id: '', vendor_part_no: '', vendor_part_name: '', register_no: '', price: 0, uom: '', hs_code: '', quality_inspection: '', status: 'active' },
+                    vpNameLoading: false,
+                    vpNameOptions: [],
+                    vpForm: { vendor_id: '', vendor_part_no: '', vendor_part_name: '', vendor_part_name_selected: '', register_no: '', uom: '', hs_code: '', quality_inspection: '', status: 'active' },
                     subListEditOpen: false,
                     subListEditAction: '',
                     subListForm: { id: '', fg_part_no: '', component_part_no: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },
@@ -907,24 +938,71 @@
                     openCreateVendorPart(partId) {
                         this.vpMode = 'create';
                         this.vpAction = @js(url('/parts')) + '/' + partId + '/vendor-parts';
-                        this.vpForm = { vendor_id: '', vendor_part_no: '', vendor_part_name: '', register_no: '', price: 0, uom: '', hs_code: '', quality_inspection: '', status: 'active' };
+                        this.vpNameOptions = [];
+                        this.vpForm = { vendor_id: '', vendor_part_no: '', vendor_part_name: '', vendor_part_name_selected: '', register_no: '', uom: '', hs_code: '', quality_inspection: '', status: 'active' };
                         this.vpModal = true;
                     },
                     openEditVendorPart(vl) {
                         this.vpMode = 'edit';
                         this.vpAction = @js(url('/vendor-parts')) + '/' + vl.id;
+                        this.vpNameOptions = [];
                         this.vpForm = {
                             vendor_id: vl.vendor_id,
                             vendor_part_no: vl.vendor_part_no || '',
                             vendor_part_name: vl.vendor_part_name || '',
+                            vendor_part_name_selected: '',
                             register_no: vl.register_no || '',
-                            price: vl.price || 0,
                             uom: vl.uom || '',
                             hs_code: vl.hs_code || '',
                             quality_inspection: vl.quality_inspection ? 'YES' : '',
                             status: vl.status || 'active',
                         };
+                        this.loadVendorPartNames(vl.vendor_id, vl.vendor_part_name || '');
                         this.vpModal = true;
+                    },
+                    async loadVendorPartNames(vendorId, preferredName = '') {
+                        this.vpNameOptions = [];
+                        this.vpNameLoading = false;
+                        if (!vendorId) {
+                            this.vpForm.vendor_part_name_selected = preferredName ? '__other__' : '';
+                            return;
+                        }
+
+                        this.vpNameLoading = true;
+                        try {
+                            const response = await fetch(@js(url('/vendors')) + '/' + vendorId + '/vendor-part-names', {
+                                headers: { 'Accept': 'application/json' },
+                            });
+                            const payload = await response.json();
+                            const names = Array.isArray(payload.names) ? payload.names : [];
+                            this.vpNameOptions = names;
+                            if (preferredName && names.includes(preferredName)) {
+                                this.vpForm.vendor_part_name_selected = preferredName;
+                                this.vpForm.vendor_part_name = preferredName;
+                            } else if (preferredName) {
+                                this.vpForm.vendor_part_name_selected = '__other__';
+                                this.vpForm.vendor_part_name = preferredName;
+                            } else {
+                                this.vpForm.vendor_part_name_selected = '';
+                                this.vpForm.vendor_part_name = '';
+                            }
+                        } catch (e) {
+                            this.vpNameOptions = [];
+                            this.vpForm.vendor_part_name_selected = preferredName ? '__other__' : '';
+                            this.vpForm.vendor_part_name = preferredName || '';
+                        } finally {
+                            this.vpNameLoading = false;
+                        }
+                    },
+                    applyVendorPartNameSelection() {
+                        if (this.vpForm.vendor_part_name_selected === '__other__') {
+                            if (!this.vpForm.vendor_part_name || this.vpNameOptions.includes(this.vpForm.vendor_part_name)) {
+                                this.vpForm.vendor_part_name = '';
+                            }
+                            return;
+                        }
+
+                        this.vpForm.vendor_part_name = this.vpForm.vendor_part_name_selected || '';
                     },
                 }
             }

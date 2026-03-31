@@ -6,6 +6,7 @@ use App\Models\Inventory;
 use App\Models\GciInventory;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
+use App\Models\LocationInventoryAdjustment;
 use App\Models\Part;
 use App\Models\Receive;
 use App\Models\WarehouseLocation;
@@ -69,6 +70,15 @@ class InventoryController extends Controller
                     ->whereColumn('arrival_items.gci_part_id', 'gci_parts.id')
                     ->whereNotNull('receives.tag')
                     ->orderByDesc('receives.created_at')
+                    ->limit(1),
+                'latest_source_invoice_no' => LocationInventoryAdjustment::query()
+                    ->select('source_invoice_no')
+                    ->whereColumn('location_inventory_adjustments.gci_part_id', 'gci_parts.id')
+                    ->where('transaction_type', 'RECEIVE')
+                    ->where('qty_change', '>', 0)
+                    ->whereNotNull('source_invoice_no')
+                    ->where('source_invoice_no', '!=', '')
+                    ->orderByDesc('adjusted_at')
                     ->limit(1),
             ])
             ->orderByDesc('on_hand')

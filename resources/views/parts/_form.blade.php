@@ -139,9 +139,10 @@
                 @if(!($part->exists ?? false))
                     <label for="vendor_part_name_select" class="text-sm font-medium text-gray-700">Vendor Part (Existing)</label>
                     <select id="vendor_part_name_select" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" disabled>
-                        <option value="">New vendor part...</option>
+                        <option value="">Pilih yang tersedia...</option>
+                        <option value="__other__">Lainnya...</option>
                     </select>
-                    <p class="text-xs text-gray-500">Pilih vendor dulu untuk melihat daftar existing.</p>
+                    <p class="text-xs text-gray-500">Pilih vendor dulu untuk melihat daftar existing. Jika belum ada, pilih <span class="font-semibold">Lainnya</span> lalu isi manual.</p>
                 @endif
                 <label for="part_name_vendor" class="text-sm font-medium text-gray-700">Vendor Part Name*</label>
                 <input type="text" id="part_name_vendor" name="part_name_vendor" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" value="{{ old('part_name_vendor', $part->part_name_vendor ?? '') }}" required>
@@ -174,14 +175,7 @@
         <div id="local-fields" class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100 hidden">
             <div class="col-span-full">
                 <h3 class="text-xs font-semibold text-blue-600 tracking-wide uppercase">Local Vendor Details</h3>
-            </div>
-            <div class="space-y-2">
-                <label for="price" class="text-sm font-medium text-gray-700">Price per Part</label>
-                <div class="relative">
-                    <span class="absolute left-3 top-2 text-gray-500 text-sm">Rp</span>
-                    <input type="number" id="price" name="price" step="0.01" min="0" class="pl-9 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" value="{{ old('price', $part->price ?? '') }}" placeholder="0.00">
-                </div>
-                <x-input-error :messages="$errors->get('price')" class="mt-1" />
+                <p class="mt-1 text-xs text-gray-500">Harga vendor part tidak diatur di Part Master. Gunakan <span class="font-semibold">Pricing Master</span> untuk harga beli.</p>
             </div>
             <div class="space-y-2">
                 <label for="uom" class="text-sm font-medium text-gray-700">UOM</label>
@@ -228,7 +222,7 @@
 	                vendorPartSelect.innerHTML = '<option value=\"\">Loading...</option>';
 
                 if (!vendorId) {
-                    vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>';
+                    vendorPartSelect.innerHTML = '<option value=\"\">Pilih yang tersedia...</option><option value=\"__other__\">Lainnya...</option>';
                     vendorPartSelect.disabled = true;
                     return;
                 }
@@ -244,14 +238,14 @@
 	                    )).sort((a, b) => a.localeCompare(b));
 
                     const current = String(vendorPartInput?.value || '').trim().toUpperCase();
-                    vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>' + names.map((n) => {
+                    vendorPartSelect.innerHTML = '<option value=\"\">Pilih yang tersedia...</option><option value=\"__other__\">Lainnya...</option>' + names.map((n) => {
                         const up = n.toUpperCase();
                         const selected = current && up === current ? ' selected' : '';
                         return `<option value=\"${escapeHtml(up)}\"${selected}>${escapeHtml(up)}</option>`;
                     }).join('');
                     vendorPartSelect.disabled = false;
                 } catch (e) {
-                    vendorPartSelect.innerHTML = '<option value=\"\">New vendor part...</option>';
+                    vendorPartSelect.innerHTML = '<option value=\"\">Pilih yang tersedia...</option><option value=\"__other__\">Lainnya...</option>';
                     vendorPartSelect.disabled = false;
                 }
             }
@@ -272,7 +266,12 @@
                 });
                 vendorPartSelect.addEventListener('change', () => {
                     const chosen = String(vendorPartSelect.value || '').trim();
-                    if (!chosen) return;
+                    if (!chosen || chosen === '__other__') {
+                        if (chosen === '__other__' && vendorPartInput) {
+                            vendorPartInput.focus();
+                        }
+                        return;
+                    }
                     if (vendorPartInput) {
                         vendorPartInput.value = chosen;
                         vendorPartInput.dispatchEvent(new Event('input', { bubbles: true }));

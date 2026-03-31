@@ -499,7 +499,21 @@ class ReceiveController extends Controller
             if (!empty($locationAdds) && $partId) {
                 foreach ($locationAdds as $entry) {
                     if ($entry['qty'] > 0) {
-                        LocationInventory::updateStock($partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId, 'RECEIVE', null);
+                        LocationInventory::updateStock(
+                            $partId,
+                            $entry['location'],
+                            (float) $entry['qty'],
+                            $entry['tag'],
+                            null,
+                            $gciPartId,
+                            'RECEIVE',
+                            null,
+                            [
+                                'source_arrival_id' => $arrivalItem->arrival_id,
+                                'source_invoice_no' => $arrivalItem->arrival?->invoice_no,
+                                'source_tag' => $entry['tag'],
+                            ]
+                        );
                     }
                 }
             }
@@ -761,7 +775,21 @@ class ReceiveController extends Controller
                 $gciPartId = GciPartVendor::query()->whereKey((int) $partId)->value('gci_part_id');
                 foreach ($byLocation as $entry) {
                     if ($entry['qty'] > 0) {
-                        LocationInventory::updateStock((int) $partId, $entry['location'], (float) $entry['qty'], $entry['tag'], null, $gciPartId, 'RECEIVE', null);
+                        LocationInventory::updateStock(
+                            (int) $partId,
+                            $entry['location'],
+                            (float) $entry['qty'],
+                            $entry['tag'],
+                            null,
+                            $gciPartId,
+                            'RECEIVE',
+                            null,
+                            [
+                                'source_arrival_id' => $arrival->id,
+                                'source_invoice_no' => $arrival->invoice_no,
+                                'source_tag' => $entry['tag'],
+                            ]
+                        );
                     }
                 }
             }
@@ -960,10 +988,40 @@ class ReceiveController extends Controller
             $gciPartId = $this->resolveGciPartId($arrivalItem);
             if ($partId) {
                 if ($oldLocationCode && $oldContribution > 0) {
-                    LocationInventory::updateStock($partId, $oldLocationCode, -$oldContribution, null, null, $gciPartId, 'RECEIVE', null);
+                    LocationInventory::updateStock(
+                        $partId,
+                        $oldLocationCode,
+                        -$oldContribution,
+                        null,
+                        null,
+                        $gciPartId,
+                        'RECEIVE',
+                        null,
+                        [
+                            'source_receive_id' => $receive->id,
+                            'source_arrival_id' => $arrivalItem->arrival_id,
+                            'source_invoice_no' => $receive->invoice_no ?: $arrivalItem->arrival?->invoice_no,
+                            'source_tag' => $tag,
+                        ]
+                    );
                 }
                 if ($locationCode && $newContribution > 0) {
-                    LocationInventory::updateStock($partId, $locationCode, $newContribution, null, null, $gciPartId, 'RECEIVE', null);
+                    LocationInventory::updateStock(
+                        $partId,
+                        $locationCode,
+                        $newContribution,
+                        null,
+                        null,
+                        $gciPartId,
+                        'RECEIVE',
+                        null,
+                        [
+                            'source_receive_id' => $receive->id,
+                            'source_arrival_id' => $arrivalItem->arrival_id,
+                            'source_invoice_no' => $validated['invoice_no'] ?? $arrivalItem->arrival?->invoice_no,
+                            'source_tag' => $tag,
+                        ]
+                    );
                 }
             }
 

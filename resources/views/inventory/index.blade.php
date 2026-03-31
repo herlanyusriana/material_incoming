@@ -148,7 +148,7 @@
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Part No</th>
                                 <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Name / Model</th>
                                 <th class="px-4 py-3 text-center font-black text-slate-600 uppercase tracking-wider text-xs">Class</th>
-                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Batch No</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Batch / Invoice</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Hand</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Order</th>
                                 <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">Available</th>
@@ -180,7 +180,13 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <span class="font-mono text-xs text-slate-700">{{ $inv->batch_no ?? ($inv->latest_batch_received ?? '-') }}</span>
+                                        <div class="space-y-1">
+                                            <div class="font-mono text-xs text-slate-700">{{ $inv->batch_no ?? ($inv->latest_batch_received ?? '-') }}</div>
+                                            <div class="text-[11px] text-slate-500">
+                                                Invoice:
+                                                <span class="font-semibold text-slate-700">{{ $inv->latest_source_invoice_no ?? '-' }}</span>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <span class="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded shadow-sm border border-slate-200">

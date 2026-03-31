@@ -518,7 +518,6 @@ class PartController extends Controller
             'vendor_part_no' => ['nullable', 'string', 'max:255'],
             'vendor_part_name' => ['nullable', 'string', 'max:255'],
             'register_no' => ['nullable', 'string', 'max:255'],
-            'price' => ['nullable', 'numeric', 'min:0'],
             'uom' => ['nullable', 'string', 'max:20'],
             'hs_code' => ['nullable', 'string', 'max:50'],
             'quality_inspection' => ['nullable', 'in:YES'],
@@ -526,7 +525,8 @@ class PartController extends Controller
         ]);
 
         $data['gci_part_id'] = $part->id;
-        $data['price'] = $data['price'] ?? 0;
+        $data['vendor_part_name'] = trim((string) ($data['vendor_part_name'] ?? '')) ?: null;
+        $data['price'] = 0;
         $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
 
         $vendorPart = GciPartVendor::create($data);
@@ -552,14 +552,13 @@ class PartController extends Controller
             'vendor_part_no' => ['nullable', 'string', 'max:255'],
             'vendor_part_name' => ['nullable', 'string', 'max:255'],
             'register_no' => ['nullable', 'string', 'max:255'],
-            'price' => ['nullable', 'numeric', 'min:0'],
             'uom' => ['nullable', 'string', 'max:20'],
             'hs_code' => ['nullable', 'string', 'max:50'],
             'quality_inspection' => ['nullable', 'in:YES'],
             'status' => ['required', 'in:active,inactive'],
         ]);
 
-        $data['price'] = $data['price'] ?? 0;
+        $data['vendor_part_name'] = trim((string) ($data['vendor_part_name'] ?? '')) ?: null;
         $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
 
         $vendorPart->update($data);
@@ -572,6 +571,24 @@ class PartController extends Controller
         $vendorPart->delete();
 
         return redirect()->route('parts.index')->with('status', 'Vendor part deleted.');
+    }
+
+    public function vendorPartNames(Vendor $vendor)
+    {
+        $names = GciPartVendor::query()
+            ->where('vendor_id', $vendor->id)
+            ->whereNotNull('vendor_part_name')
+            ->whereRaw("TRIM(vendor_part_name) <> ''")
+            ->selectRaw('TRIM(vendor_part_name) as vendor_part_name')
+            ->distinct()
+            ->orderByRaw('TRIM(vendor_part_name)')
+            ->pluck('vendor_part_name')
+            ->values()
+            ->all();
+
+        return response()->json([
+            'names' => $names,
+        ]);
     }
 
     // ─── API: vendor-scoped part lookup (backward compat) ───
