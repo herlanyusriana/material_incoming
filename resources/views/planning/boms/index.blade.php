@@ -477,6 +477,7 @@
                                                     title="Manage Substitutes" @click="openSubstitutePanel(@js([
                                                         'bom_item_id' => $item->id,
                                                         'action' => route('planning.bom-items.substitutes.store', $item),
+                                                        'store_action' => route('planning.bom-items.substitutes.store', $item),
                                                         'fg_label' => $fgNo . ' — ' . $fgName,
                                                         'line_no' => $lineNo,
                                                         'process_name' => $item->process_name,
@@ -488,14 +489,17 @@
                                                         'consumption_uom' => $item->consumption_uom,
                                                         'substitutes' => $substitutes->sortBy(fn($s) => (int) ($s->priority ?? 1))->map(fn($s) => [
                                                             'id' => $s->id,
+                                                            'substitute_part_id' => $s->substitute_part_id,
                                                             'part_no' => $s->part?->part_no,
                                                             'part_name' => $s->part?->part_name,
+                                                            'incoming_part_id' => $s->incoming_part_id,
                                                             'incoming_part_no' => $s->incomingPart?->part_no,
                                                             'incoming_part_label' => $s->incomingPart ? ($s->incomingPart->part_no . ($s->incomingPart->vendor ? ' [' . $s->incomingPart->vendor->name . ']' : '')) : null,
                                                             'ratio' => $s->ratio,
                                                             'priority' => $s->priority,
                                                             'status' => $s->status,
                                                             'notes' => $s->notes,
+                                                            'update_url' => route('planning.bom-item-substitutes.update', $s),
                                                             'delete_url' => route('planning.bom-item-substitutes.destroy', $s),
                                                         ])->values(),
                                                     ]))">
@@ -1064,6 +1068,8 @@
                         substituteOpen: false,
                         substituteForm: {
                             action: '',
+                            store_action: '',
+                            method: 'POST',
                             bom_item_id: null,
                             fg_label: '',
                             line_no: '',
@@ -1075,6 +1081,12 @@
                             consumption: '',
                             consumption_uom: '',
                             substitutes: [],
+                            substitute_part_id: '',
+                            incoming_part_id: '',
+                            ratio: 1,
+                            priority: 1,
+                            status: 'active',
+                            notes: '',
                         },
                         expanded: {},
                         lineForm: {
@@ -1124,6 +1136,8 @@
                         openSubstitutePanel(payload) {
                             this.substituteForm = {
                                 action: payload.action,
+                                store_action: payload.store_action ?? payload.action,
+                                method: 'POST',
                                 bom_item_id: payload.bom_item_id,
                                 fg_label: payload.fg_label,
                                 line_no: payload.line_no,
@@ -1135,10 +1149,36 @@
                                 consumption: payload.consumption ?? '',
                                 consumption_uom: payload.consumption_uom ?? '',
                                 substitutes: payload.substitutes ?? [],
+                                substitute_part_id: '',
+                                incoming_part_id: '',
+                                ratio: 1,
+                                priority: 1,
+                                status: 'active',
+                                notes: '',
                             };
                             this.substituteOpen = true;
                         },
                         closeSubstitutePanel() { this.substituteOpen = false; },
+                        editSubstitute(s) {
+                            this.substituteForm.action = s.update_url;
+                            this.substituteForm.method = 'PUT';
+                            this.substituteForm.substitute_part_id = String(s.substitute_part_id || '');
+                            this.substituteForm.incoming_part_id = s.incoming_part_id ? String(s.incoming_part_id) : '';
+                            this.substituteForm.ratio = s.ratio || 1;
+                            this.substituteForm.priority = s.priority || 1;
+                            this.substituteForm.status = s.status || 'active';
+                            this.substituteForm.notes = s.notes || '';
+                        },
+                        resetSubstituteForm() {
+                            this.substituteForm.action = this.substituteForm.store_action || this.substituteForm.action;
+                            this.substituteForm.method = 'POST';
+                            this.substituteForm.substitute_part_id = '';
+                            this.substituteForm.incoming_part_id = '';
+                            this.substituteForm.ratio = 1;
+                            this.substituteForm.priority = 1;
+                            this.substituteForm.status = 'active';
+                            this.substituteForm.notes = '';
+                        },
                         openLineModal(payload) {
                             this.lineForm = {
                                 mode: payload.mode,
@@ -1328,7 +1368,10 @@
                                                         x-text="(s.status || 'active').toUpperCase()"></span>
                                                 </td>
                                                 <td class="px-3 py-2 text-right">
-                                                    <form :action="s.delete_url" method="POST"
+                                                    <button type="button"
+                                                        class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-slate-200 hover:bg-indigo-50 text-indigo-600 mr-1"
+                                                        title="Edit" @click="editSubstitute(s)">✎</button>
+                                                    <form :action="s.delete_url" method="POST" class="inline-block"
                                                         onsubmit="return confirm('Remove substitute?')">
                                                         @csrf
                                                         @method('DELETE')
@@ -1345,16 +1388,25 @@
                         </div>
 
                         <div class="space-y-2">
-                            <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Add / Update
-                                Substitute</div>
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Add / Update
+                                    Substitute</div>
+                                <button type="button"
+                                    class="text-[11px] font-semibold text-slate-500 hover:text-slate-700"
+                                    x-show="substituteForm.method === 'PUT'" @click="resetSubstituteForm()">Cancel
+                                    Edit</button>
+                            </div>
                             <form :action="substituteForm.action" method="POST"
                                 class="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
                                 @csrf
+                                <template x-if="substituteForm.method === 'PUT'">
+                                    <input type="hidden" name="_method" value="PUT">
+                                </template>
                                 <div>
                                     <label class="text-xs font-semibold text-slate-600">Substitute Part (GCI)</label>
                                     <select name="substitute_part_id" class="mt-1 w-full rounded-xl border-slate-200"
-                                        required>
-                                        <option value="" disabled selected>Select part</option>
+                                        required x-model="substituteForm.substitute_part_id">
+                                        <option value="" disabled>Select part</option>
                                         @foreach(($rmParts ?? []) as $p)
                                             <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} —
                                                 {{ optional($p)->part_name ?? '-' }}
@@ -1364,7 +1416,8 @@
                                 </div>
                                 <div>
                                     <label class="text-xs font-semibold text-slate-600">Incoming Part (Vendor)</label>
-                                    <select name="incoming_part_id" class="mt-1 w-full rounded-xl border-slate-200">
+                                    <select name="incoming_part_id" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="substituteForm.incoming_part_id">
                                         <option value="">(No incoming part linked)</option>
                                         @foreach(($incomingParts ?? []) as $ip)
                                             <option value="{{ $ip->id }}">
@@ -1380,18 +1433,21 @@
                                 <div class="grid grid-cols-3 gap-2">
                                     <div>
                                         <label class="text-xs font-semibold text-slate-600">Ratio</label>
-                                        <input type="number" step="0.001" min="0.001" name="ratio" value="1"
-                                            class="mt-1 w-full rounded-xl border-slate-200">
+                                        <input type="number" step="0.001" min="0.001" name="ratio"
+                                            class="mt-1 w-full rounded-xl border-slate-200"
+                                            x-model="substituteForm.ratio">
                                     </div>
                                     <div>
                                         <label class="text-xs font-semibold text-slate-600">Priority</label>
-                                        <input type="number" min="1" name="priority" value="1"
-                                            class="mt-1 w-full rounded-xl border-slate-200">
+                                        <input type="number" min="1" name="priority"
+                                            class="mt-1 w-full rounded-xl border-slate-200"
+                                            x-model="substituteForm.priority">
                                     </div>
                                     <div>
                                         <label class="text-xs font-semibold text-slate-600">Status</label>
-                                        <select name="status" class="mt-1 w-full rounded-xl border-slate-200">
-                                            <option value="active" selected>Active</option>
+                                        <select name="status" class="mt-1 w-full rounded-xl border-slate-200"
+                                            x-model="substituteForm.status">
+                                            <option value="active">Active</option>
                                             <option value="inactive">Inactive</option>
                                         </select>
                                     </div>
@@ -1400,11 +1456,13 @@
                                     <label class="text-xs font-semibold text-slate-600">Notes</label>
                                     <input type="text" name="notes" maxlength="255"
                                         class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="substituteForm.notes"
                                         placeholder="Optional (e.g. thicker / other supplier)">
                                 </div>
                                 <div class="flex justify-end">
                                     <button type="submit"
-                                        class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold">Save</button>
+                                        class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold"
+                                        x-text="substituteForm.method === 'PUT' ? 'Update Substitute' : 'Save Substitute'">Save Substitute</button>
                                 </div>
                             </form>
                         </div>

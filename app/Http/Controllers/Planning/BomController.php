@@ -722,6 +722,33 @@ class BomController extends Controller
         return back()->with('success', 'Substitute saved.');
     }
 
+    public function updateSubstitute(Request $request, BomItemSubstitute $substitute)
+    {
+        $validated = $request->validate([
+            'substitute_part_id' => ['required', Rule::exists('gci_parts', 'id')],
+            'incoming_part_id' => ['nullable', Rule::exists('parts', 'id')],
+            'ratio' => ['nullable', 'numeric', 'min:0.0001'],
+            'priority' => ['nullable', 'integer', 'min:1'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $incomingPartId = isset($validated['incoming_part_id']) ? (int) ($validated['incoming_part_id'] ?? 0) : 0;
+        $substitutePart = GciPart::findOrFail($validated['substitute_part_id']);
+
+        $substitute->update([
+            'substitute_part_id' => (int) $validated['substitute_part_id'],
+            'substitute_part_no' => $substitutePart->part_no,
+            'incoming_part_id' => $incomingPartId > 0 ? $incomingPartId : null,
+            'ratio' => $validated['ratio'] ?? 1,
+            'priority' => $validated['priority'] ?? 1,
+            'status' => $validated['status'] ?? 'active',
+            'notes' => $validated['notes'] ? trim((string) $validated['notes']) : null,
+        ]);
+
+        return back()->with('success', 'Substitute updated.');
+    }
+
     public function destroySubstitute(BomItemSubstitute $substitute)
     {
         $substitute->delete();
