@@ -90,16 +90,11 @@
                 </div>
 
                 <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                    <div class="flex items-center justify-between">
+                    <div>
                         <div>
                             <div class="text-base font-bold text-slate-900">Item WH Send</div>
                             <div class="text-sm text-slate-500">Setiap baris akan menjadi 1 order subcon terpisah.</div>
                         </div>
-                        <button type="button"
-                            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700"
-                            @click="addRow()">
-                            + Add Item
-                        </button>
                     </div>
 
                     <div class="mt-4 space-y-4">
@@ -186,15 +181,23 @@
                     </div>
                 </div>
 
-                <div class="flex gap-3">
-                    <button type="submit"
-                        class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
-                        Create WH Send
-                    </button>
-                    <a href="{{ route('subcon.traceability-index') }}"
-                        class="rounded-lg bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
-                        Cancel
-                    </a>
+                <div class="flex items-center justify-between gap-3">
+                    <div></div>
+                    <div class="flex gap-3">
+                        <button type="submit"
+                            class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
+                            Create WH Send
+                        </button>
+                        <a href="{{ route('subcon.traceability-index') }}"
+                            class="rounded-lg bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+                            Cancel
+                        </a>
+                        <button type="button"
+                            class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700"
+                            @click="addRow()">
+                            + Add Item
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
