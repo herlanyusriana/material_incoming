@@ -609,7 +609,7 @@
 
             @can('manage_subcon')
                 @php
-                    $subconActive = request()->routeIs('subcon.*');
+                    $subconActive = request()->routeIs('subcon.*') || request()->routeIs('contract-numbers.*');
                 @endphp
                 <div>
                     <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Subcon</div>
@@ -645,6 +645,10 @@
                                 <a href="{{ route('subcon.receive-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.receive-index'), $subInactive => !request()->routeIs('subcon.receive-index')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.receive-index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.receive-index')])></span>
                                     <span class="flex-1">WH Receive Subcon</span>
+                                </a>
+                                <a href="{{ route('contract-numbers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('contract-numbers.*'), $subInactive => !request()->routeIs('contract-numbers.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('contract-numbers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('contract-numbers.*')])></span>
+                                    <span class="flex-1">Contract Numbers</span>
                                 </a>
                                 <div class="pt-2 mt-2 border-t border-slate-200">
                                     <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Monitoring</div>
@@ -1413,7 +1417,7 @@
 
         @can('manage_subcon')
             @php
-                $subconActive = request()->routeIs('subcon.*');
+                $subconActive = request()->routeIs('subcon.*') || request()->routeIs('contract-numbers.*');
             @endphp
             <div>
                 <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
@@ -1454,6 +1458,10 @@
                             <a href="{{ route('subcon.receive-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.receive-index'), $subInactive => !request()->routeIs('subcon.receive-index')])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.receive-index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.receive-index')])></span>
                                 <span class="flex-1">WH Receive Subcon</span>
+                            </a>
+                            <a href="{{ route('contract-numbers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('contract-numbers.*'), $subInactive => !request()->routeIs('contract-numbers.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('contract-numbers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('contract-numbers.*')])></span>
+                                <span class="flex-1">Contract Numbers</span>
                             </a>
                             <div class="pt-2 mt-2 border-t border-slate-200">
                                 <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Monitoring</div>
