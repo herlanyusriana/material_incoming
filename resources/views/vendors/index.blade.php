@@ -21,7 +21,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
                         <div>
                             <h3 class="text-lg font-bold text-slate-900">Vendor List</h3>
-                            <p class="text-sm text-slate-600 mt-1">Search and filter vendors by status.</p>
+                            <p class="text-sm text-slate-600 mt-1">Search and filter vendors by status, type, and country.</p>
                         </div>
                         <div class="flex items-center gap-2">
 	                            <form method="GET" id="vendor-filter-form" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
@@ -31,12 +31,25 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
                                     </span>
                                 </div>
+                                <select name="type" class="py-2 px-4 w-full sm:w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                    <option value="">All Type</option>
+                                    <option value="import" @selected($type === 'import')>Import</option>
+                                    <option value="local" @selected($type === 'local')>Local</option>
+                                    <option value="tolling" @selected($type === 'tolling')>Tolling</option>
+                                </select>
+                                <select name="country" class="py-2 px-4 w-full sm:w-36 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                    <option value="">All Country</option>
+                                    @foreach(($countryOptions ?? collect()) as $countryOption)
+                                        <option value="{{ $countryOption }}" @selected($country === $countryOption)>{{ $countryOption }}</option>
+                                    @endforeach
+                                </select>
                                 <select name="status" class="py-2 px-4 w-full sm:w-44 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
                                     <option value="">All Status</option>
                                     <option value="active" @selected($status === 'active')>Active</option>
                                     <option value="inactive" @selected($status === 'inactive')>Inactive</option>
                                 </select>
                                 <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Filter</button>
+                                <a href="{{ route('vendors.index') }}" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50">Reset</a>
                             </form>
                             <a href="{{ route('vendors.export') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -161,6 +174,8 @@
 
             const searchInput = form.querySelector('input[name="q"]');
             const statusSelect = form.querySelector('select[name="status"]');
+            const typeSelect = form.querySelector('select[name="type"]');
+            const countrySelect = form.querySelector('select[name="country"]');
 
             let t = null;
             function submitDebounced() {
@@ -173,6 +188,12 @@
             }
             if (statusSelect) {
                 statusSelect.addEventListener('change', () => form.requestSubmit());
+            }
+            if (typeSelect) {
+                typeSelect.addEventListener('change', () => form.requestSubmit());
+            }
+            if (countrySelect) {
+                countrySelect.addEventListener('change', () => form.requestSubmit());
             }
         })();
     </script>

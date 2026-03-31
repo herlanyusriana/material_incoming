@@ -15,6 +15,15 @@ class VendorController extends Controller
     {
         $search = trim((string) $request->query('q', ''));
         $status = $request->query('status');
+        $type = trim((string) $request->query('type', ''));
+        $country = strtoupper(trim((string) $request->query('country', '')));
+
+        $countryOptions = Vendor::query()
+            ->whereNotNull('country_code')
+            ->where('country_code', '!=', '')
+            ->orderBy('country_code')
+            ->distinct()
+            ->pluck('country_code');
 
         $vendors = Vendor::query()
             ->when($search, function ($query, $search) {
@@ -28,6 +37,8 @@ class VendorController extends Controller
                 });
             })
             ->when($status, fn($query) => $query->where('status', $status))
+            ->when($type, fn($query) => $query->where('vendor_type', $type))
+            ->when($country, fn($query) => $query->where('country_code', $country))
             ->select([
                 'id',
                 'vendor_name',
@@ -44,7 +55,7 @@ class VendorController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('vendors.index', compact('vendors', 'search', 'status'));
+        return view('vendors.index', compact('vendors', 'search', 'status', 'type', 'country', 'countryOptions'));
     }
 
     public function export()
