@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use RuntimeException;
 
 class LocationInventory extends Model
 {
@@ -133,6 +134,13 @@ class LocationInventory extends Model
             if ($part && $part->gci_part_id) {
                 $gciPartId = $part->gci_part_id;
             } else {
+                $vendorPart = GciPartVendor::find($partId);
+                if ($vendorPart && $vendorPart->gci_part_id) {
+                    $gciPartId = $vendorPart->gci_part_id;
+                }
+            }
+
+            if (!$gciPartId) {
                 $gci = GciPart::find($partId);
                 if ($gci) {
                     $gciPartId = $gci->id;
@@ -145,13 +153,16 @@ class LocationInventory extends Model
             throw new \Exception('part_id atau gci_part_id wajib ada untuk update inventory.');
         }
 
+        if (!$gciPartId) {
+            throw new RuntimeException('GCI Part belum terhubung, inventory lokasi tidak bisa diperbarui.');
+        }
+
         $attributes = [
+            'gci_part_id' => $gciPartId,
             'location_code' => $locationCode,
             'batch_no' => $batchNo,
         ];
-        if ($gciPartId) {
-            $attributes['gci_part_id'] = $gciPartId;
-        } else {
+        if ($partId) {
             $attributes['part_id'] = $partId;
         }
 

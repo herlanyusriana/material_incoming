@@ -12,6 +12,7 @@ use App\Models\ArrivalItem;
 use App\Models\Arrival;
 use App\Models\GciPartVendor;
 use App\Models\Inventory;
+use App\Models\Part;
 use App\Models\LocationInventory;
 use App\Models\WarehouseLocation;
 use App\Exports\CompletedInvoiceReceivesExport;
@@ -36,12 +37,48 @@ class ReceiveController extends Controller
             return (int) $arrivalItem->gci_part_id;
         }
 
+        if (!empty($arrivalItem->gciPart?->id)) {
+            return (int) $arrivalItem->gciPart->id;
+        }
+
+        if (!empty($arrivalItem->part?->gci_part_id)) {
+            return (int) $arrivalItem->part->gci_part_id;
+        }
+
+        if (!empty($arrivalItem->part?->gciPart?->id)) {
+            return (int) $arrivalItem->part->gciPart->id;
+        }
+
         $vendorPartId = $this->resolveVendorPartId($arrivalItem);
         if ($vendorPartId <= 0) {
             return null;
         }
 
-        return GciPartVendor::query()->whereKey($vendorPartId)->value('gci_part_id');
+        $gciPartId = GciPartVendor::query()->whereKey($vendorPartId)->value('gci_part_id');
+        if (!empty($gciPartId)) {
+            return (int) $gciPartId;
+        }
+
+        $partViewGciPartId = Part::query()->whereKey($vendorPartId)->value('gci_part_id');
+        return !empty($partViewGciPartId) ? (int) $partViewGciPartId : null;
+    }
+
+    private function ensurePutawayGciPartId(ArrivalItem $arrivalItem, string $errorKey = 'tags'): int
+    {
+        $gciPartId = (int) ($this->resolveGciPartId($arrivalItem) ?? 0);
+        if ($gciPartId > 0) {
+            return $gciPartId;
+        }
+
+        $partNo = $arrivalItem->part?->part_no
+            ?: $arrivalItem->gciPartVendor?->vendor_part_no
+            ?: ('ITEM-' . $arrivalItem->id);
+
+        throw new HttpResponseException(
+            back()->withInput()->withErrors([
+                $errorKey => "Part {$partNo} belum terhubung ke GCI Part / Part Master, jadi putaway belum bisa diproses.",
+            ])
+        );
     }
 
     private function normalizeTag(?string $tag): ?string
@@ -394,6 +431,9 @@ class ReceiveController extends Controller
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
         $partId = $this->resolveVendorPartId($arrivalItem);
         $gciPartId = $this->resolveGciPartId($arrivalItem);
+        if ($gciPartId === null && collect($validated['tags'])->contains(fn($tag) => !empty($tag['location_code'] ?? null))) {
+            $gciPartId = $this->ensurePutawayGciPartId($arrivalItem, 'tags');
+        }
         $receiveQtyForInventory = 0;
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
@@ -772,7 +812,7 @@ class ReceiveController extends Controller
                 if (!$partId || empty($byLocation) || !is_array($byLocation)) {
                     continue;
                 }
-                $gciPartId = GciPartVendor::query()->whereKey((int) $partId)->value('gci_part_id');
+                $gciPartId = $this->ensurePutawayGciPartId($arrivalItem, "items.$itemId.tags");
                 foreach ($byLocation as $entry) {
                     if ($entry['qty'] > 0) {
                         LocationInventory::updateStock(
