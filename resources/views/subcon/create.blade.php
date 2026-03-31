@@ -52,8 +52,9 @@
                         <label class="block text-sm font-bold text-slate-700 mb-1">Nomor Kontrak <span class="text-red-500">*</span></label>
                         <select x-model="contract_no_selected"
                             @change="applyContractSelection()"
+                            :disabled="!vendor_id"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">Pilih nomor kontrak</option>
+                            <option value="" x-text="vendor_id ? 'Pilih nomor kontrak' : 'Pilih vendor dulu'"></option>
                             <template x-for="contract in availableContracts" :key="contract.id">
                                 <option :value="contract.contract_no" x-text="contract.description ? `${contract.contract_no} - ${contract.description}` : contract.contract_no"></option>
                             </template>
@@ -63,6 +64,9 @@
                         <input type="text" x-show="showManualContract" x-cloak x-model="contract_no"
                             class="mt-2 w-full rounded-lg border-slate-300 text-sm uppercase focus:border-indigo-500 focus:ring-indigo-500"
                             placeholder="Masukkan nomor kontrak vendor/subcon" />
+                        <p class="mt-1 text-xs text-slate-500" x-show="vendor_id && availableContracts.length === 0" x-cloak>
+                            Belum ada master nomor kontrak untuk vendor ini. Silakan isi manual atau tambahkan di menu Contract Numbers.
+                        </p>
                     </div>
 
                     <div>
@@ -243,7 +247,7 @@
 
                     if (!this.vendor_id) {
                         this.contract_no_selected = '';
-                        this.showManualContract = true;
+                        this.showManualContract = false;
                         if (resetContract) this.contract_no = '';
                         return;
                     }
@@ -255,7 +259,7 @@
                         return;
                     }
 
-                    this.showManualContract = true;
+                    this.showManualContract = this.availableContracts.length === 0 || this.contract_no_selected === '__other__';
                     this.contract_no_selected = this.contract_no ? '__other__' : '';
                     if (resetContract && !this.contract_no_selected) {
                         this.contract_no = '';
