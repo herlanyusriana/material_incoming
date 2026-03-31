@@ -28,6 +28,10 @@ class ProductionGciApiController extends Controller
 
     private function resolveMonitoringStatus(ProductionOrder $order): string
     {
+        if ($order->kanban_updated_at || in_array((string) $order->workflow_stage, ['warehouse_supply', 'finished'], true)) {
+            return 'completed';
+        }
+
         if ($order->status !== 'material_hold') {
             return (string) $order->status;
         }
