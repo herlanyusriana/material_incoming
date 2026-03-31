@@ -1698,6 +1698,8 @@ class OutgoingController extends Controller
         $endDate = $startDate->addDays(6); // 7-day window
         $startStr = $startDate->format('Y-m-d');
         $endStr = $endDate->format('Y-m-d');
+        $search = trim((string) $request->input('q', ''));
+        $customerId = (int) $request->input('customer_id', 0);
 
         // Build days: date string => formatted label
         $days = [];
@@ -1707,13 +1709,63 @@ class OutgoingController extends Controller
         }
 
         // Fetch all row-per-date records for this 7-day range
-        $rawRecords = StockAtCustomer::query()
+        $baseQuery = StockAtCustomer::query()
             ->with(['customer', 'part'])
             ->whereBetween('stock_date', [$startStr, $endStr])
+            ->when($customerId > 0, fn($query) => $query->where('customer_id', $customerId))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('part_no', 'like', '%' . $search . '%')
+                        ->orWhere('part_name', 'like', '%' . $search . '%')
+                        ->orWhere('model', 'like', '%' . $search . '%')
+                        ->orWhereHas('customer', fn($q) => $q->where('name', 'like', '%' . $search . '%'));
+                });
+            });
+
+        $rawRecords = (clone $baseQuery)
             ->orderBy('customer_id')
             ->orderBy('part_no')
             ->orderBy('stock_date')
             ->get();
+
+        $summaryRecords = (clone $baseQuery)->get(['customer_id', 'part_no', 'qty']);
+
+        $totalQty = (float) $summaryRecords->sum('qty');
+        $activeCustomers = (int) $summaryRecords->pluck('customer_id')->filter()->unique()->count();
+        $trackedParts = (int) $summaryRecords->pluck('part_no')->filter()->unique()->count();
+
+        $recapByCustomer = $summaryRecords
+            ->groupBy('customer_id')
+            ->map(function ($rows, $groupCustomerId) {
+                return [
+                    'customer_id' => (int) $groupCustomerId,
+                    'customer_name' => optional($rows->first()->customer)->name ?? '-',
+                    'part_count' => $rows->pluck('part_no')->filter()->unique()->count(),
+                    'total_qty' => (float) $rows->sum('qty'),
+                ];
+            })
+            ->sortByDesc('total_qty')
+            ->take(5)
+            ->values();
+
+        $recapByPart = $summaryRecords
+            ->groupBy('part_no')
+            ->map(function ($rows, $partNo) {
+                $first = $rows->first();
+                return [
+                    'part_no' => (string) $partNo,
+                    'part_name' => (string) ($first->part_name ?: optional($first->part)->part_name ?: ''),
+                    'customer_count' => $rows->pluck('customer_id')->filter()->unique()->count(),
+                    'total_qty' => (float) $rows->sum('qty'),
+                ];
+            })
+            ->sortByDesc('total_qty')
+            ->take(5)
+            ->values();
+
+        $customers = Customer::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         // Pivot: group by customer_id + part_no → single row with date keys
         $grouped = [];
@@ -1752,7 +1804,20 @@ class OutgoingController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        return view('outgoing.stock_at_customers', compact('startDate', 'endDate', 'days', 'records'));
+        return view('outgoing.stock_at_customers', compact(
+            'startDate',
+            'endDate',
+            'days',
+            'records',
+            'search',
+            'customerId',
+            'customers',
+            'totalQty',
+            'activeCustomers',
+            'trackedParts',
+            'recapByCustomer',
+            'recapByPart',
+        ));
     }
 
     public function stockAtCustomersTemplate(Request $request)

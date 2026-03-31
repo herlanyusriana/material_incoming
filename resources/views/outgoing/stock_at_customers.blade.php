@@ -17,14 +17,33 @@
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
-                <form method="GET" action="{{ route('outgoing.stock-at-customers') }}" class="flex items-end gap-2">
+                <form method="GET" action="{{ route('outgoing.stock-at-customers') }}" class="flex flex-wrap items-end gap-2">
                     <div>
                         <div class="text-xs font-semibold text-slate-500 mb-1">Start Date</div>
                         <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}"
                             class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                     </div>
+                    <div>
+                        <div class="text-xs font-semibold text-slate-500 mb-1">Customer</div>
+                        <select name="customer_id"
+                            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 min-w-[200px]">
+                            <option value="">All Customer</option>
+                            @foreach(($customers ?? collect()) as $customer)
+                                <option value="{{ $customer->id }}" @selected((int) $customerId === (int) $customer->id)>
+                                    {{ $customer->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <div class="text-xs font-semibold text-slate-500 mb-1">Search</div>
+                        <input type="text" name="q" value="{{ $search ?? '' }}" placeholder="Part no / part name / model / customer"
+                            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 min-w-[280px]">
+                    </div>
                     <button
                         class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View</button>
+                    <a href="{{ route('outgoing.stock-at-customers') }}"
+                        class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Reset</a>
                 </form>
 
                 <div class="flex items-center gap-2">
@@ -56,6 +75,73 @@
             {{ $errors->first() }}
         </div>
     @endif
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Qty</div>
+            <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((float) ($totalQty ?? 0), 0) }}</div>
+            <div class="mt-1 text-sm text-slate-500">Akumulasi stock customer pada range 7 hari</div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Customers</div>
+            <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((int) ($activeCustomers ?? 0)) }}</div>
+            <div class="mt-1 text-sm text-slate-500">Customer yang punya data pada filter saat ini</div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Tracked Parts</div>
+            <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((int) ($trackedParts ?? 0)) }}</div>
+            <div class="mt-1 text-sm text-slate-500">Part yang terinput dari APK / import</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-200 px-6 py-4">
+                <div class="text-lg font-black text-slate-900">Recap by Customer</div>
+                <div class="mt-1 text-sm text-slate-500">Top customer berdasarkan total qty pada filter saat ini</div>
+            </div>
+            <div class="divide-y divide-slate-100">
+                @forelse(($recapByCustomer ?? collect()) as $row)
+                    <div class="flex items-center justify-between gap-4 px-6 py-4">
+                        <div>
+                            <div class="font-semibold text-slate-900">{{ $row['customer_name'] }}</div>
+                            <div class="text-xs text-slate-500">{{ number_format((int) $row['part_count']) }} part tracked</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-black text-slate-900">{{ number_format((float) $row['total_qty'], 0) }}</div>
+                            <div class="text-xs text-slate-400">qty total</div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="px-6 py-8 text-sm italic text-slate-500">Belum ada data recap customer.</div>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-200 px-6 py-4">
+                <div class="text-lg font-black text-slate-900">Recap by Part</div>
+                <div class="mt-1 text-sm text-slate-500">Top part berdasarkan total qty pada filter saat ini</div>
+            </div>
+            <div class="divide-y divide-slate-100">
+                @forelse(($recapByPart ?? collect()) as $row)
+                    <div class="flex items-center justify-between gap-4 px-6 py-4">
+                        <div>
+                            <div class="font-mono font-bold text-slate-900">{{ $row['part_no'] }}</div>
+                            <div class="text-sm text-slate-600">{{ $row['part_name'] ?: '-' }}</div>
+                            <div class="text-xs text-slate-500">{{ number_format((int) $row['customer_count']) }} customer</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-black text-slate-900">{{ number_format((float) $row['total_qty'], 0) }}</div>
+                            <div class="text-xs text-slate-400">qty total</div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="px-6 py-8 text-sm italic text-slate-500">Belum ada data recap part.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
