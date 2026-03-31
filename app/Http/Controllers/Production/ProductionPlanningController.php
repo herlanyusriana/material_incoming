@@ -38,12 +38,14 @@ class ProductionPlanningController extends Controller
         // Get planning lines grouped by machine (from BOM)
         $machineGroups = [];
         $processLoadRows = collect();
+        $planningLines = collect();
         if ($session) {
             $allLines = ProductionPlanningLine::where('session_id', $session->id)
                 ->with(['gciPart.bom.items', 'productionOrders', 'machine'])
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
+            $planningLines = $allLines->values();
 
             // Group by machine_id
             foreach ($allLines as $line) {
@@ -90,14 +92,15 @@ class ProductionPlanningController extends Controller
             ->get();
 
         // Grand totals
-        $grandTotalFgGci = collect($machineGroups)->sum('subtotal_fg_gci');
-        $grandTotalDeliveryRequirementQty = collect($machineGroups)->sum('subtotal_delivery_requirement_qty');
-        $grandTotalPlanQty = collect($machineGroups)->sum('subtotal_plan_qty');
-        $totalParts = collect($machineGroups)->sum(fn($g) => count($g['lines']));
+        $grandTotalFgGci = (float) $planningLines->sum(fn($line) => (float) $line->stock_fg_gci);
+        $grandTotalDeliveryRequirementQty = (float) $planningLines->sum(fn($line) => (float) $line->delivery_requirement_qty);
+        $grandTotalPlanQty = (float) $planningLines->sum(fn($line) => (float) $line->plan_qty);
+        $totalParts = $planningLines->count();
 
         return view('production.planning.index', compact(
             'session',
             'machineGroups',
+            'planningLines',
             'dailyPlanData',
             'fgStockGci',
             'planDate',
@@ -357,27 +360,20 @@ class ProductionPlanningController extends Controller
 
         $lines = ProductionPlanningLine::where('session_id', $session->id)
             ->where('plan_qty', '>', 0)
-            ->whereNotNull('production_sequence')
             ->with('gciPart')
-            ->orderBy('production_sequence')
             ->get();
 
         if ($lines->isEmpty()) {
-            return back()->with('error', 'No planning lines with production quantity and sequence found');
+            return back()->with('error', 'No planning lines with production quantity found');
         }
 
-        $missingMachineLines = $lines->filter(fn($line) => empty($line->machine_id));
-        if ($missingMachineLines->isNotEmpty()) {
-            $parts = $missingMachineLines
-                ->take(5)
-                ->map(fn($line) => $line->gciPart?->part_no ?: ('LINE-' . $line->id))
-                ->implode(', ');
-            $extra = $missingMachineLines->count() > 5
-                ? ' +' . ($missingMachineLines->count() - 5) . ' line lainnya'
-                : '';
-
-            return back()->with('error', 'Assign machine dulu sebelum generate WO. Line belum assign: ' . $parts . $extra . '.');
-        }
+        $lines = $lines->sortBy(function ($line) {
+            return [
+                (int) ($line->production_sequence ?? PHP_INT_MAX),
+                (int) ($line->sort_order ?? PHP_INT_MAX),
+                (int) $line->id,
+            ];
+        })->values();
 
         DB::beginTransaction();
         try {
@@ -406,6 +402,7 @@ class ProductionPlanningController extends Controller
 
                     $woSeq++;
                     $woNumber = $woPrefix . '-' . str_pad($woSeq, 4, '0', STR_PAD_LEFT);
+                    $sequence = $line->production_sequence ?: ($line->sort_order ?: $line->id);
 
                     $order = ProductionOrder::create([
                         'production_order_number' => $woNumber,
@@ -417,7 +414,7 @@ class ProductionPlanningController extends Controller
                         'plan_date' => $session->plan_date,
                         'qty_planned' => $shiftQty,
                         'shift' => $shiftNo,
-                        'production_sequence' => $line->production_sequence,
+                        'production_sequence' => $sequence,
                         'status' => 'planned',
                         'workflow_stage' => 'planned',
                         'qty_actual' => 0,
@@ -473,14 +470,6 @@ class ProductionPlanningController extends Controller
             return back()->with('error', 'Plan qty harus diisi terlebih dahulu.');
         }
 
-        if (!$line->production_sequence) {
-            return back()->with('error', 'Production sequence harus diisi terlebih dahulu.');
-        }
-
-        if (empty($line->machine_id)) {
-            return back()->with('error', 'Machine harus di-assign terlebih dahulu sebelum generate WO.');
-        }
-
         if (!$line->gciPart) {
             return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
                 ->with('error', 'Data part tidak valid untuk planning line ini.');
@@ -506,6 +495,7 @@ class ProductionPlanningController extends Controller
 
                 $seq++;
                 $woNumber = $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                $sequence = $line->production_sequence ?: ($line->sort_order ?: $line->id);
 
                 $order = ProductionOrder::create([
                     'production_order_number' => $woNumber,
@@ -517,7 +507,7 @@ class ProductionPlanningController extends Controller
                     'plan_date' => $session->plan_date,
                     'qty_planned' => $shiftQty,
                     'shift' => $shiftNo,
-                    'production_sequence' => $line->production_sequence,
+                    'production_sequence' => $sequence,
                     'status' => 'planned',
                     'workflow_stage' => 'planned',
                     'qty_actual' => 0,
@@ -544,7 +534,6 @@ class ProductionPlanningController extends Controller
 
             $pendingLines = ProductionPlanningLine::where('session_id', $session->id)
                 ->where('plan_qty', '>', 0)
-                ->whereNotNull('production_sequence')
                 ->whereDoesntHave('productionOrders')
                 ->count();
 

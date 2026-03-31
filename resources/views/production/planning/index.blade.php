@@ -19,7 +19,7 @@
                         </div>
                         GCI PLANNING PRODUKSI
                     </h1>
-                    <p class="mt-1 text-sm text-slate-500">FG planning tetap per part, lalu qty bisa dipecah ke Shift 1/2/3. Preview process load di bawah membantu lihat beban WIP/proses per mesin.</p>
+                    <p class="mt-1 text-sm text-slate-500">FG planning ditampilkan per baris part, qty bisa dipecah ke Shift 1/2/3, lalu WO bisa digenerate bulk atau satuan per line.</p>
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
@@ -135,7 +135,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
-                                Generate WO
+                                Generate WO Bulk
                         </button>
 
                         <button @click="showAddPartModal = true"
@@ -198,48 +198,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($machineGroups as $machineKey => $group)
-                                <!-- Section Header for Machine -->
-                                <tr class="bg-slate-800 text-white">
-                                    <td colspan="14" class="px-4 py-2">
-                                        <div class="flex items-center gap-3">
-                                            <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                            <span class="font-bold text-[13px] tracking-wide">{{ $group['machine_name'] }}</span>
-                                            @if($group['process_name'] && $group['process_name'] !== '-')
-                                                <span class="px-2 py-0.5 rounded-full bg-slate-700 text-[10px] text-slate-300 border border-slate-600">{{ $group['process_name'] }}</span>
-                                            @endif
-                                            <div class="ml-auto flex items-center gap-4 text-[11px] text-slate-400 font-medium">
-                                                @php
-                                                    $machineObj = $group['machine_id'] ? \App\Models\Machine::find($group['machine_id']) : null;
-                                                    $totalEstHrs = 0;
-                                                    if ($machineObj && $machineObj->cycle_time > 0) {
-                                                        foreach ($group['lines'] as $gl) {
-                                                            if ($gl->plan_qty > 0) {
-                                                                $totalEstHrs += $machineObj->estimateHours((float) $gl->plan_qty);
-                                                            }
-                                                        }
-                                                    }
-                                                    $capacityHrs = $machineObj ? (float) $machineObj->available_hours_per_shift : 7;
-                                                    $loadPct = $capacityHrs > 0 && $totalEstHrs > 0 ? round(($totalEstHrs / $capacityHrs) * 100, 1) : 0;
-                                                @endphp
-                                                @if($machineObj && $machineObj->cycle_time > 0)
-                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold
-                                                        {{ $loadPct > 100 ? 'bg-red-500/30 text-red-200' : ($loadPct >= 85 ? 'bg-amber-500/30 text-amber-200' : 'bg-emerald-500/30 text-emerald-200') }}">
-                                                        Load: {{ number_format($totalEstHrs, 1) }}h / {{ number_format($capacityHrs, 1) }}h ({{ $loadPct }}%)
-                                                    </span>
-                                                @endif
-                                                Delivery Req: <span class="text-blue-200 ml-1">{{ number_format($group['subtotal_delivery_requirement_qty'], 0) }}</span>
-                                                <span class="text-slate-500">|</span>
-                                                Plan Qty: <span class="text-white ml-1">{{ number_format($group['subtotal_plan_qty'], 0) }}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                @foreach($group['lines'] as $idx => $line)
+                            @forelse(($planningLines ?? collect()) as $line)
                                     <!-- Main Row Data -->
                                     <tbody x-data="{ expanded: false }" class="border-b border-slate-200 hover:bg-slate-50/80 transition-colors group">
                                         <tr data-line-id="{{ $line->id }}">
@@ -327,18 +286,12 @@
                                                             title="{{ $line->productionOrders->pluck('production_order_number')->implode(', ') }}">
                                                             WO x{{ $line->productionOrders->count() }}
                                                         </span>
-                                                    @elseif($line->plan_qty > 0 && $line->production_sequence && $line->machine_id)
+                                                    @elseif($line->plan_qty > 0)
                                                         <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
                                                                 class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
                                                                 title="Generate WO per shift untuk part ini">
-                                                                WO
+                                                                Generate
                                                         </button>
-                                                    @elseif($line->plan_qty > 0 && $line->production_sequence && !$line->machine_id)
-                                                        <span
-                                                            class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-rose-100 text-rose-700 border border-rose-200"
-                                                            title="Assign machine terlebih dahulu">
-                                                            No MC
-                                                        </span>
                                                     @endif
                                                     <button @click="deleteLine({{ $line->id }})"
                                                         class="p-1 rounded text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Remove part">
@@ -388,7 +341,6 @@
                                             </td>
                                         </tr>
                                     </tbody>
-                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="14"
@@ -400,14 +352,13 @@
                                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
                                             </svg>
                                             <div class="text-sm font-medium">No planning lines yet</div>
-                                            <div class="text-xs">Click "Auto-Populate (from BOM)" to load FG parts with machine info
-                                                from BOM, or "Add Part" to add manually</div>
+                                            <div class="text-xs">Click "Auto-Populate (from BOM)" to load FG parts, or "Add Part" to add manually</div>
                                         </div>
                                     </td>
                                 </tr>
                             @endforelse
 
-                            @if(!empty($machineGroups))
+                            @if(($planningLines ?? collect())->isNotEmpty())
                                 {{-- Grand Total Row --}}
                                 <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
                                     <td colspan="5" class="px-4 py-3 text-right text-slate-700">
@@ -431,51 +382,6 @@
                 </div>
             </div>
 
-            <div class="mt-6 bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
-                    <h3 class="text-sm font-bold text-slate-800">Process Load Preview</h3>
-                    <p class="mt-1 text-xs text-slate-500">Preview routing proses/WIP per shift dari FG plan. Ini membantu lihat beban proses per mesin sebelum WO dijalankan.</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs">
-                        <thead class="bg-slate-100 text-slate-700">
-                            <tr>
-                                <th class="px-4 py-3 text-left font-bold">MACHINE</th>
-                                <th class="px-4 py-3 text-left font-bold">PROCESS</th>
-                                <th class="px-4 py-3 text-left font-bold">FG</th>
-                                <th class="px-4 py-3 text-left font-bold">WIP</th>
-                                <th class="px-4 py-3 text-center font-bold">SHIFT</th>
-                                <th class="px-4 py-3 text-right font-bold">QTY</th>
-                                <th class="px-4 py-3 text-right font-bold">EST. HRS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse(($processLoadRows ?? collect()) as $row)
-                                <tr class="border-t border-slate-100">
-                                    <td class="px-4 py-3 font-semibold text-slate-800">{{ $row['machine_name'] }}</td>
-                                    <td class="px-4 py-3 text-slate-600">{{ $row['process_name'] }}</td>
-                                    <td class="px-4 py-3">
-                                        <div class="font-semibold text-slate-800">{{ $row['fg_part_no'] }}</div>
-                                        <div class="text-[11px] text-slate-500">{{ $row['fg_part_name'] }}</div>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="font-semibold text-slate-800">{{ $row['wip_part_no'] }}</div>
-                                        <div class="text-[11px] text-slate-500">{{ $row['wip_part_name'] }}</div>
-                                    </td>
-                                    <td class="px-4 py-3 text-center font-semibold text-slate-700">{{ $row['shift'] }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">{{ number_format((float) $row['qty'], 0) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono {{ (float) $row['est_hours'] > 7 ? 'text-amber-700 font-bold' : 'text-indigo-700' }}">{{ number_format((float) $row['est_hours'], 2) }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-slate-400">Belum ada process load karena FG plan per shift masih kosong.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
             {{-- Info Cards --}}
             <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {{-- Flow Steps --}}
@@ -491,17 +397,17 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">1</span>
-                            Auto-populate parts from BOM (machine auto-filled from BOM)
+                            Auto-populate parts from BOM
                         </li>
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">2</span>
-                            Assign machine for each part
+                            Isi sequence bila perlu untuk urutan prioritas
                         </li>
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">3</span>
-                            Fill qty production &amp; sequence
+                            Fill qty production
                         </li>
                         <li class="flex items-center gap-2">
                             <span
@@ -511,7 +417,7 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">5</span>
-                            Generate MO/WO
+                            Generate WO bulk atau per line
                         </li>
                         <li class="flex items-center gap-2">
                             <span
