@@ -385,11 +385,14 @@ class ProductionOrderController extends Controller
 
         // 4. Update WO status based on result
         if ($allAvailable) {
+            $this->releaseReservedMaterials($order);
+
             // Reserve materials: move from on_hand to on_order
             $reservedMaterials = [];
             foreach ($requirements as $req) {
                 $makeOrBuy = strtolower($req['make_or_buy'] ?? 'buy');
-                if ($makeOrBuy === 'free_issue') {
+                $isBuyItem = in_array(strtoupper($makeOrBuy), ['BUY', 'B', 'PURCHASE'], true);
+                if ($makeOrBuy === 'free_issue' || !$isBuyItem) {
                     continue;
                 }
 
@@ -421,9 +424,12 @@ class ProductionOrderController extends Controller
             return back()->with('success', 'Semua material tersedia & direservasi! WO status diperbarui ke RELEASED.')
                          ->with('material_check', $results);
         } else {
+            $this->releaseReservedMaterials($order);
+
             $order->update([
                 'status' => 'material_hold',
                 'workflow_stage' => 'material_check',
+                'reserved_materials' => null,
             ]);
 
             $shortItems = array_filter($results, fn($r) => ($r['status'] ?? '') === 'SHORTAGE');
@@ -458,6 +464,7 @@ class ProductionOrderController extends Controller
             'material_requested_by' => Auth::id(),
         ]);
 
+        $this->syncReservedMaterialsFromRequestLines($order, $requestLines);
         $this->syncOrderStatusFromMaterialRequest($order, $requestLines);
 
         $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
@@ -494,6 +501,7 @@ class ProductionOrderController extends Controller
             'material_handover_notes' => null,
         ]);
 
+        $this->syncReservedMaterialsFromRequestLines($order, $requestLines);
         $this->syncOrderStatusFromMaterialRequest($order, $requestLines);
 
         $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
@@ -1059,6 +1067,64 @@ class ProductionOrderController extends Controller
         }
 
         return $lines;
+    }
+
+    private function releaseReservedMaterials(ProductionOrder $order): void
+    {
+        $reserved = collect($order->reserved_materials ?? []);
+        if ($reserved->isEmpty()) {
+            return;
+        }
+
+        foreach ($reserved as $mat) {
+            $partId = (int) ($mat['gci_part_id'] ?? 0);
+            $qty = (float) ($mat['qty'] ?? 0);
+            if ($partId <= 0 || $qty <= 0) {
+                continue;
+            }
+
+            $inventory = GciInventory::query()->where('gci_part_id', $partId)->first();
+            if ($inventory) {
+                $inventory->release($qty);
+            }
+        }
+
+        $order->update(['reserved_materials' => null]);
+    }
+
+    private function syncReservedMaterialsFromRequestLines(ProductionOrder $order, array $requestLines): void
+    {
+        $this->releaseReservedMaterials($order);
+
+        $hasShortage = collect($requestLines)->contains(fn ($line) => (float) ($line['shortage_qty'] ?? 0) > 0);
+        if ($hasShortage) {
+            return;
+        }
+
+        $reservedMaterials = [];
+
+        foreach ($requestLines as $line) {
+            $partId = (int) ($line['component_gci_part_id'] ?? 0);
+            $requiredQty = round((float) ($line['required_qty'] ?? 0), 4);
+
+            if ($partId <= 0 || $requiredQty <= 0) {
+                continue;
+            }
+
+            $inventory = GciInventory::firstOrCreate(
+                ['gci_part_id' => $partId],
+                ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+            );
+            $inventory->reserve($requiredQty);
+
+            $reservedMaterials[] = [
+                'gci_part_id' => $partId,
+                'part_no' => (string) ($line['component_part_no'] ?? '-'),
+                'qty' => $requiredQty,
+            ];
+        }
+
+        $order->update(['reserved_materials' => $reservedMaterials]);
     }
 
     private function syncOrderStatusFromMaterialRequest(ProductionOrder $order, array $requestLines): void
