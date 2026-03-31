@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 use App\Models\Receive;
 use App\Models\ArrivalItem;
@@ -287,23 +288,25 @@ class ReceiveController extends Controller
         $q = trim((string) $request->query('q', ''));
         $dateFrom = trim((string) $request->query('date_from', ''));
         $dateTo = trim((string) $request->query('date_to', ''));
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = 15;
 
-        $arrivals = $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo)
-            ->paginate(15)
-            ->withQueryString();
-
-        $this->syncCompletedArrivalTransactionNumbers($arrivals->getCollection());
+        $filteredArrivals = $this->getCompleteImportDocumentArrivals($q, $dateFrom, $dateTo);
+        $arrivals = new LengthAwarePaginator(
+            $filteredArrivals->forPage($page, $perPage)->values(),
+            $filteredArrivals->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
 
         $summary = [
-            'total_invoices' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))->count(),
-            'with_pen' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))
-                ->whereNotNull('arrivals.pen_no')
-                ->whereRaw("TRIM(arrivals.pen_no) <> ''")
-                ->count(),
-            'with_aju' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))
-                ->whereNotNull('arrivals.aju_no')
-                ->whereRaw("TRIM(arrivals.aju_no) <> ''")
-                ->count(),
+            'total_invoices' => $filteredArrivals->count(),
+            'with_pen' => $filteredArrivals->filter(fn($arrival) => filled(trim((string) ($arrival->pen_no ?? ''))))->count(),
+            'with_aju' => $filteredArrivals->filter(fn($arrival) => filled(trim((string) ($arrival->aju_no ?? ''))))->count(),
         ];
 
         return view('receives.import_documents', compact('arrivals', 'summary', 'q', 'dateFrom', 'dateTo'));
@@ -316,14 +319,22 @@ class ReceiveController extends Controller
         $dateTo = trim((string) $request->query('date_to', ''));
 
         $filename = 'rekap_no_pen_no_aju_' . now()->format('Y-m-d_His') . '.xlsx';
-
-        $arrivals = $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo)->get();
-        $this->syncCompletedArrivalTransactionNumbers($arrivals);
+        $arrivals = $this->getCompleteImportDocumentArrivals($q, $dateFrom, $dateTo);
 
         return Excel::download(
             new ImportDocumentRecapExport($arrivals),
             $filename
         );
+    }
+
+    private function getCompleteImportDocumentArrivals(string $q = '', string $dateFrom = '', string $dateTo = '')
+    {
+        $arrivals = $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo)->get();
+        $this->syncCompletedArrivalTransactionNumbers($arrivals);
+
+        return $arrivals
+            ->filter(fn($arrival) => (bool) ($arrival->is_complete_receive ?? false))
+            ->values();
     }
 
     private function syncCompletedArrivalTransactionNumbers($arrivals): void
