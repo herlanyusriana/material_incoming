@@ -37,35 +37,44 @@
             </div>
 
             <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-                <div class="border-b border-slate-200 px-6 py-4">
-                    <form method="GET" action="{{ route('receives.import-documents') }}" class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
-                        <div>
-                            <label for="q" class="sr-only">Cari</label>
-                            <input type="text" id="q" name="q" value="{{ $q ?? '' }}"
-                                placeholder="Cari transaction no, invoice, vendor, no PEN, no AJU..."
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label for="date_from" class="sr-only">Invoice Date From</label>
-                            <input type="date" id="date_from" name="date_from" value="{{ $dateFrom ?? '' }}"
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label for="date_to" class="sr-only">Invoice Date To</label>
-                            <input type="date" id="date_to" name="date_to" value="{{ $dateTo ?? '' }}"
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button type="submit"
-                                class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
-                                Filter
-                            </button>
-                            @if (($q ?? '') !== '' || ($dateFrom ?? '') !== '' || ($dateTo ?? '') !== '')
-                                <a href="{{ route('receives.import-documents') }}"
-                                    class="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-                                    Reset
-                                </a>
-                            @endif
+                <div class="border-b border-slate-200 bg-slate-50/80 px-6 py-5">
+                    <form method="GET" action="{{ route('receives.import-documents') }}" class="space-y-4">
+                        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.5fr)_220px_220px_auto] xl:items-end">
+                            <div class="space-y-2">
+                                <label for="q" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Cari Invoice Import</label>
+                                <div class="relative">
+                                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                                        </svg>
+                                    </span>
+                                    <input type="text" id="q" name="q" value="{{ $q ?? '' }}"
+                                        placeholder="Cari transaction no, invoice, vendor, no PEN, no AJU..."
+                                        class="w-full rounded-xl border-slate-300 pl-10 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label for="date_from" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Invoice Date From</label>
+                                <input type="date" id="date_from" name="date_from" value="{{ $dateFrom ?? '' }}"
+                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div class="space-y-2">
+                                <label for="date_to" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Invoice Date To</label>
+                                <input type="date" id="date_to" name="date_to" value="{{ $dateTo ?? '' }}"
+                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div class="flex items-end gap-2 xl:justify-end">
+                                <button type="submit"
+                                    class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                    Filter
+                                </button>
+                                @if (($q ?? '') !== '' || ($dateFrom ?? '') !== '' || ($dateTo ?? '') !== '')
+                                    <a href="{{ route('receives.import-documents') }}"
+                                        class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                                        Reset
+                                    </a>
+                                @endif
+                            </div>
                         </div>
                     </form>
                 </div>
