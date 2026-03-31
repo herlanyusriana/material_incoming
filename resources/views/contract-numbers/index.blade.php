@@ -48,7 +48,7 @@
                         <input type="date" name="effective_from" value="{{ now()->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective To</label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Expired Date</label>
                         <input type="date" name="effective_to" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                     </div>
                     <div>
@@ -93,7 +93,7 @@
                             <th class="px-4 py-3 font-semibold">Nomor Kontrak</th>
                             <th class="px-4 py-3 font-semibold">Vendor</th>
                             <th class="px-4 py-3 font-semibold">Deskripsi</th>
-                            <th class="px-4 py-3 font-semibold">Effective</th>
+                            <th class="px-4 py-3 font-semibold">Periode</th>
                             <th class="px-4 py-3 font-semibold">Status</th>
                             <th class="px-4 py-3 font-semibold text-right">Actions</th>
                         </tr>
@@ -109,7 +109,7 @@
                                 <td class="px-4 py-3 text-slate-700">{{ $contract->description ?: '-' }}</td>
                                 <td class="px-4 py-3 text-slate-700">
                                     <div>{{ $contract->effective_from?->format('d M Y') ?: '-' }}</div>
-                                    <div class="text-xs text-slate-500">to {{ $contract->effective_to?->format('d M Y') ?: 'open' }}</div>
+                                    <div class="text-xs text-slate-500">expired {{ $contract->effective_to?->format('d M Y') ?: 'open' }}</div>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $contract->status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
@@ -156,7 +156,7 @@
                                             <input type="date" name="effective_from" value="{{ $contract->effective_from?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective To</label>
+                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Expired Date</label>
                                             <input type="date" name="effective_to" value="{{ $contract->effective_to?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                                         </div>
                                         <div>
