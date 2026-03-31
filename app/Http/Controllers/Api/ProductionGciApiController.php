@@ -12,9 +12,58 @@ use App\Models\ProductionGciWorkOrder;
 use App\Models\ProductionGciHourlyReport;
 use App\Models\ProductionGciDowntime;
 use App\Models\ProductionGciMaterialLot;
+use App\Models\Bom;
+use App\Models\GciInventory;
 
 class ProductionGciApiController extends Controller
 {
+    private function resolveMonitoringStatus(ProductionOrder $order): string
+    {
+        if ($order->status !== 'material_hold') {
+            return (string) $order->status;
+        }
+
+        $requestLines = collect($order->material_request_lines ?? []);
+        if ($requestLines->isNotEmpty()) {
+            $hasShortage = $requestLines->contains(function ($line) {
+                return (float) ($line['shortage_qty'] ?? 0) > 0;
+            });
+
+            if ($hasShortage) {
+                return 'material_hold';
+            }
+
+            return (!$order->process_name || !$order->machine_id) ? 'resource_hold' : 'released';
+        }
+
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+        if (!$bom) {
+            return 'material_hold';
+        }
+
+        $requirements = $bom->getTotalMaterialRequirements($order->qty_planned);
+        if (empty($requirements)) {
+            return (!$order->process_name || !$order->machine_id) ? 'resource_hold' : 'released';
+        }
+
+        foreach ($requirements as $req) {
+            $makeOrBuy = strtoupper(trim((string) ($req['make_or_buy'] ?? 'BUY')));
+            if (!in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE'], true)) {
+                continue;
+            }
+
+            $part = $req['part'] ?? null;
+            $needed = round((float) ($req['total_qty'] ?? 0), 4);
+            $onHand = (float) optional(GciInventory::query()->where('gci_part_id', $part?->id)->first())->on_hand;
+
+            if ($onHand < $needed) {
+                return 'material_hold';
+            }
+        }
+
+        return (!$order->process_name || !$order->machine_id) ? 'resource_hold' : 'released';
+    }
+
     public function sync(Request $request)
     {
         $data = $request->validate([
@@ -409,26 +458,31 @@ class ProductionGciApiController extends Controller
                     'name' => $machine->name,
                     'code' => $machine->code,
                 ],
-                'orders' => $orders->map(fn($o) => [
-                    'id' => $o->id,
-                    'wo_number' => $o->production_order_number,
-                    'part_no' => $o->part?->part_no,
-                    'part_name' => $o->part?->part_name,
-                    'model' => $o->part?->model,
-                    'qty_planned' => (float) $o->qty_planned,
-                    'qty_actual' => (float) ($o->qty_actual ?? 0),
-                    'qty_ng' => (float) ($o->qty_ng ?? 0),
-                    'status' => $o->status,
-                    'start_time' => $o->start_time,
-                    'end_time' => $o->end_time,
-                    'shift' => $o->shift,
-                    'hourly' => $hourlyReports->where('production_order_id', $o->id)->map(fn($h) => [
-                        'time_range' => $h->time_range,
-                        'target' => (int) $h->target,
-                        'actual' => (int) $h->actual,
-                        'ng' => (int) $h->ng,
-                    ])->values(),
-                ]),
+                'orders' => $orders->map(function ($o) use ($hourlyReports) {
+                    $displayStatus = $this->resolveMonitoringStatus($o);
+
+                    return [
+                        'id' => $o->id,
+                        'wo_number' => $o->production_order_number,
+                        'part_no' => $o->part?->part_no,
+                        'part_name' => $o->part?->part_name,
+                        'model' => $o->part?->model,
+                        'qty_planned' => (float) $o->qty_planned,
+                        'qty_actual' => (float) ($o->qty_actual ?? 0),
+                        'qty_ng' => (float) ($o->qty_ng ?? 0),
+                        'status' => $o->status,
+                        'display_status' => $displayStatus,
+                        'start_time' => $o->start_time,
+                        'end_time' => $o->end_time,
+                        'shift' => $o->shift,
+                        'hourly' => $hourlyReports->where('production_order_id', $o->id)->map(fn($h) => [
+                            'time_range' => $h->time_range,
+                            'target' => (int) $h->target,
+                            'actual' => (int) $h->actual,
+                            'ng' => (int) $h->ng,
+                        ])->values(),
+                    ];
+                }),
                 'total_downtime_minutes' => $totalDowntimeMinutes,
                 'downtime_count' => $downtimes->count(),
             ];

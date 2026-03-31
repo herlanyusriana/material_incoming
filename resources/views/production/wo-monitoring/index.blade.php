@@ -86,7 +86,7 @@
 
         function renderMachineCard(machine) {
             const orders = machine.orders;
-            const hasRunning = orders.some(o => o.status === 'in_production');
+            const hasRunning = orders.some(o => (o.display_status || o.status) === 'in_production');
 
             const statusDot = hasRunning ?
                 '<span class="flex h-3 w-3 relative"><span class="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span></span>' :
@@ -94,8 +94,9 @@
 
             const ordersHtml = orders.map(o => {
                 const pct = o.qty_planned > 0 ? Math.min(Math.round((o.qty_actual / o.qty_planned) * 100), 100) : 0;
-                const barColor = o.status === 'completed' ? 'bg-blue-500' : (pct >= 80 ? 'bg-emerald-500' : (pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'));
-                const statusBadge = statusBadgeHtml(o.status);
+                const displayStatus = o.display_status || o.status;
+                const barColor = displayStatus === 'completed' ? 'bg-blue-500' : (pct >= 80 ? 'bg-emerald-500' : (pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'));
+                const statusBadge = statusBadgeHtml(displayStatus);
 
                 // Hourly data
                 let hourlyHtml = '';
