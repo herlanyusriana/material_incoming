@@ -9,6 +9,7 @@ use App\Http\Controllers\ReceiveController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\GciInventoryController;
 use App\Http\Controllers\PricingController;
+use App\Http\Controllers\ContractNumberController;
 use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\LocalPoController;
 use App\Http\Controllers\OutgoingController;
@@ -124,11 +125,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/pricing', [PricingController::class, 'store'])->name('pricing.store');
     Route::put('/pricing/{pricing}', [PricingController::class, 'update'])->name('pricing.update');
     Route::delete('/pricing/{pricing}', [PricingController::class, 'destroy'])->name('pricing.destroy');
+    Route::get('/contract-numbers', [ContractNumberController::class, 'index'])->name('contract-numbers.index');
+    Route::post('/contract-numbers', [ContractNumberController::class, 'store'])->name('contract-numbers.store');
+    Route::put('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'update'])->name('contract-numbers.update');
+    Route::delete('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'destroy'])->name('contract-numbers.destroy');
     // Vendor part CRUD under a GCI part
     Route::post('/parts/{part}/vendor-parts', [PartController::class, 'storeVendorPart'])->name('parts.vendor-parts.store');
     Route::put('/vendor-parts/{vendorPart}', [PartController::class, 'updateVendorPart'])->name('parts.vendor-parts.update');
     Route::delete('/vendor-parts/{vendorPart}', [PartController::class, 'destroyVendorPart'])->name('parts.vendor-parts.destroy');
     Route::get('/vendors/{vendor}/vendor-part-names', [PartController::class, 'vendorPartNames'])->name('vendors.vendor-part-names');
+    Route::get('/vendors/{vendor}/contract-numbers', [ContractNumberController::class, 'byVendor'])->name('vendors.contract-numbers');
     Route::resource('truckings', TruckingController::class)->except(['show']);
     Route::get('/machines/export', [\App\Http\Controllers\MachineController::class, 'export'])->name('machines.export');
     Route::post('/machines/import', [\App\Http\Controllers\MachineController::class, 'import'])->name('machines.import');

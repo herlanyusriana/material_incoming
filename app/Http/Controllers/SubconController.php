@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BomItem;
+use App\Models\ContractNumber;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
 use App\Models\LocationInventoryAdjustment;
@@ -144,7 +145,20 @@ class SubconController extends Controller
             'send_location_code' => '',
         ]]);
 
-        return view('subcon.create', compact('vendors', 'subconParts', 'rmParts', 'subconPartsJson', 'rmPartsJson', 'oldRows'));
+        $contractsJson = ContractNumber::query()
+            ->where('status', 'active')
+            ->orderBy('contract_no')
+            ->get(['id', 'vendor_id', 'contract_no', 'description'])
+            ->map(fn (ContractNumber $contract) => [
+                'id' => (string) $contract->id,
+                'vendor_id' => (string) $contract->vendor_id,
+                'contract_no' => $contract->contract_no,
+                'description' => $contract->description ?? '',
+            ])
+            ->values()
+            ->all();
+
+        return view('subcon.create', compact('vendors', 'subconParts', 'rmParts', 'subconPartsJson', 'rmPartsJson', 'oldRows', 'contractsJson'));
     }
 
     public function store(Request $request)

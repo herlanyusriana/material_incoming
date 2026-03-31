@@ -36,6 +36,8 @@
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Vendor <span class="text-red-500">*</span></label>
                         <select name="vendor_id" required
+                            x-model="vendor_id"
+                            @change="onVendorChange()"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select Vendor</option>
                             @foreach ($vendors as $v)
@@ -48,8 +50,18 @@
 
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Nomor Kontrak <span class="text-red-500">*</span></label>
-                        <input type="text" name="contract_no" required value="{{ old('contract_no') }}"
-                            class="w-full rounded-lg border-slate-300 text-sm uppercase focus:border-indigo-500 focus:ring-indigo-500"
+                        <select x-model="contract_no_selected"
+                            @change="applyContractSelection()"
+                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Pilih nomor kontrak</option>
+                            <template x-for="contract in availableContracts" :key="contract.id">
+                                <option :value="contract.contract_no" x-text="contract.description ? `${contract.contract_no} - ${contract.description}` : contract.contract_no"></option>
+                            </template>
+                            <option value="__other__">LAINNYA...</option>
+                        </select>
+                        <input type="hidden" name="contract_no" x-model="contract_no" required>
+                        <input type="text" x-show="showManualContract" x-cloak x-model="contract_no"
+                            class="mt-2 w-full rounded-lg border-slate-300 text-sm uppercase focus:border-indigo-500 focus:ring-indigo-500"
                             placeholder="Masukkan nomor kontrak vendor/subcon" />
                     </div>
 
@@ -189,12 +201,20 @@
             const subconParts = @json($subconPartsJson);
             const rmParts = @json($rmPartsJson);
             const oldRows = @json($oldRows);
+            const contracts = @json($contractsJson);
 
             return {
                 subconParts,
                 rmParts,
+                contracts,
+                vendor_id: @js((string) old('vendor_id', '')),
+                contract_no: @js((string) old('contract_no', '')),
+                contract_no_selected: '',
+                availableContracts: [],
+                showManualContract: false,
                 rows: [],
                 init() {
+                    this.onVendorChange(false);
                     this.rows = oldRows.map((row, idx) => ({
                         key: 'row-' + idx + '-' + Date.now(),
                         gci_part_id: row.gci_part_id ? String(row.gci_part_id) : '',
@@ -217,6 +237,39 @@
                             this.onRmChange(index, false);
                         }
                     });
+                },
+                onVendorChange(resetContract = true) {
+                    this.availableContracts = this.contracts.filter(contract => contract.vendor_id === this.vendor_id);
+
+                    if (!this.vendor_id) {
+                        this.contract_no_selected = '';
+                        this.showManualContract = true;
+                        if (resetContract) this.contract_no = '';
+                        return;
+                    }
+
+                    const matched = this.availableContracts.find(contract => contract.contract_no === this.contract_no);
+                    if (matched) {
+                        this.contract_no_selected = matched.contract_no;
+                        this.showManualContract = false;
+                        return;
+                    }
+
+                    this.showManualContract = true;
+                    this.contract_no_selected = this.contract_no ? '__other__' : '';
+                    if (resetContract && !this.contract_no_selected) {
+                        this.contract_no = '';
+                    }
+                },
+                applyContractSelection() {
+                    if (this.contract_no_selected === '__other__') {
+                        this.showManualContract = true;
+                        this.contract_no = '';
+                        return;
+                    }
+
+                    this.showManualContract = false;
+                    this.contract_no = this.contract_no_selected || '';
                 },
                 addRow() {
                     this.rows.push({

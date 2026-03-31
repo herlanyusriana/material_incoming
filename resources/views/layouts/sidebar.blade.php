@@ -119,9 +119,9 @@
                             </div>
                         </details>
 
-                        <details class="group" {{ request()->routeIs('pricing.*') ? 'open' : '' }}>
+                        <details class="group" {{ request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*') ? 'open' : '' }}>
                             <summary class="list-none cursor-pointer">
-                                <div @class([$navLinkBase, $navActive => request()->routeIs('pricing.*'), $navInactive => !request()->routeIs('pricing.*')])>
+                                <div @class([$navLinkBase, $navActive => request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*'), $navInactive => !(request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*'))])>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -145,6 +145,10 @@
                                 <a href="{{ route('pricing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('pricing.index'), $subInactive => !request()->routeIs('pricing.index')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('pricing.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('pricing.index')])></span>
                                     <span class="flex-1">Price List</span>
+                                </a>
+                                <a href="{{ route('contract-numbers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('contract-numbers.*'), $subInactive => !request()->routeIs('contract-numbers.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('contract-numbers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('contract-numbers.*')])></span>
+                                    <span class="flex-1">Contract Numbers</span>
                                 </a>
                             </div>
                         </details>
@@ -941,9 +945,9 @@
                         <span x-show="!sidebarCollapsed" x-cloak>Parts Master</span>
                     </a>
 
-                    <details class="group" {{ request()->routeIs('pricing.*') ? 'open' : '' }} x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <details class="group" {{ request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*') ? 'open' : '' }} x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
                         <summary class="list-none cursor-pointer" title="Pricing Master" :class="sidebarCollapsed ? 'flex justify-center' : ''">
-                            <div @class([$navLinkBase, $navActive => request()->routeIs('pricing.*'), $navInactive => !request()->routeIs('pricing.*')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <div @class([$navLinkBase, $navActive => request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*'), $navInactive => !(request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*'))]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -968,6 +972,10 @@
                                 <a href="{{ route('pricing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('pricing.index'), $subInactive => !request()->routeIs('pricing.index')])>
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('pricing.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('pricing.index')])></span>
                                     <span class="flex-1">Price List</span>
+                                </a>
+                                <a href="{{ route('contract-numbers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('contract-numbers.*'), $subInactive => !request()->routeIs('contract-numbers.*')])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('contract-numbers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('contract-numbers.*')])></span>
+                                    <span class="flex-1">Contract Numbers</span>
                                 </a>
                             </div>
                         </div>
