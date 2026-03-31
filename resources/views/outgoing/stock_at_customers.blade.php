@@ -47,10 +47,6 @@
                 </form>
 
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('outgoing.stock-at-customers.template', ['start_date' => $startDate->format('Y-m-d')]) }}"
-                        class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                        Template
-                    </a>
                     <a href="{{ route('outgoing.stock-at-customers.export', ['start_date' => $startDate->format('Y-m-d')]) }}"
                         class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         Export
