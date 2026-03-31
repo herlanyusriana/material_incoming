@@ -16,6 +16,7 @@ use App\Models\Part;
 use App\Models\LocationInventory;
 use App\Models\WarehouseLocation;
 use App\Exports\CompletedInvoiceReceivesExport;
+use App\Exports\ImportDocumentRecapExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Support\QrSvg;
 use Illuminate\Support\Facades\Schema;
@@ -279,6 +280,77 @@ class ReceiveController extends Controller
         ];
 
         return view('receives.completed', compact('arrivals', 'statusCounts', 'topVendors', 'summary', 'q', 'flow'));
+    }
+
+    public function importDocuments(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $dateFrom = trim((string) $request->query('date_from', ''));
+        $dateTo = trim((string) $request->query('date_to', ''));
+
+        $arrivals = $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo)
+            ->paginate(15)
+            ->withQueryString();
+
+        $summary = [
+            'total_invoices' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))->count(),
+            'with_pen' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))
+                ->whereNotNull('arrivals.pen_no')
+                ->whereRaw("TRIM(arrivals.pen_no) <> ''")
+                ->count(),
+            'with_aju' => (clone $this->buildImportDocumentsQuery($q, $dateFrom, $dateTo))
+                ->whereNotNull('arrivals.aju_no')
+                ->whereRaw("TRIM(arrivals.aju_no) <> ''")
+                ->count(),
+        ];
+
+        return view('receives.import_documents', compact('arrivals', 'summary', 'q', 'dateFrom', 'dateTo'));
+    }
+
+    public function exportImportDocuments(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $dateFrom = trim((string) $request->query('date_from', ''));
+        $dateTo = trim((string) $request->query('date_to', ''));
+
+        $filename = 'rekap_no_pen_no_aju_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(
+            new ImportDocumentRecapExport($this->buildImportDocumentsQuery($q, $dateFrom, $dateTo)->get()),
+            $filename
+        );
+    }
+
+    private function buildImportDocumentsQuery(string $q = '', string $dateFrom = '', string $dateTo = '')
+    {
+        return Arrival::query()
+            ->select([
+                'arrivals.id',
+                'arrivals.transaction_no',
+                'arrivals.invoice_no',
+                'arrivals.invoice_date',
+                'arrivals.pen_no',
+                'arrivals.pen_date',
+                'arrivals.aju_no',
+                'arrivals.vendor_id',
+                'arrivals.created_at',
+            ])
+            ->join('vendors', 'vendors.id', '=', 'arrivals.vendor_id')
+            ->whereRaw("LOWER(COALESCE(vendors.vendor_type, '')) <> 'local'")
+            ->with('vendor')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($builder) use ($q) {
+                    $builder->where('arrivals.transaction_no', 'like', '%' . $q . '%')
+                        ->orWhere('arrivals.invoice_no', 'like', '%' . $q . '%')
+                        ->orWhere('arrivals.pen_no', 'like', '%' . $q . '%')
+                        ->orWhere('arrivals.aju_no', 'like', '%' . $q . '%')
+                        ->orWhere('vendors.vendor_name', 'like', '%' . $q . '%');
+                });
+            })
+            ->when($dateFrom !== '', fn($query) => $query->whereDate('arrivals.invoice_date', '>=', $dateFrom))
+            ->when($dateTo !== '', fn($query) => $query->whereDate('arrivals.invoice_date', '<=', $dateTo))
+            ->orderByDesc('arrivals.invoice_date')
+            ->orderByDesc('arrivals.created_at');
     }
 
     public function completedInvoice(Arrival $arrival)

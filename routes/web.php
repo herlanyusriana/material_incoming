@@ -141,6 +141,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('machines', \App\Http\Controllers\MachineController::class)->except(['show']);
     Route::resource('departures', ArrivalController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::get('/vendors/{vendor}/parts', [PartController::class, 'byVendor'])->name('vendors.parts');
+    Route::get('/receives/import-documents', [ReceiveController::class, 'importDocuments'])->name('receives.import-documents');
+    Route::get('/receives/import-documents/export', [ReceiveController::class, 'exportImportDocuments'])->name('receives.import-documents.export');
 
     Route::get('/local-pos', [LocalPoController::class, 'index'])->name('local-pos.index');
     Route::get('/local-pos/export', [LocalPoController::class, 'export'])->name('local-pos.export');

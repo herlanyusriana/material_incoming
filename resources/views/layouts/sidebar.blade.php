@@ -1,5 +1,5 @@
 @php
-    $incomingModuleActive = request()->routeIs('incoming-material.dashboard') || request()->routeIs('departures.*') || request()->routeIs('receives.*') || request()->routeIs('local-pos.*');
+    $incomingModuleActive = request()->routeIs('incoming-material.dashboard') || request()->routeIs('departures.*') || request()->routeIs('receives.*') || request()->routeIs('receives.import-documents*') || request()->routeIs('local-pos.*');
     $outgoingModuleActive = request()->routeIs('outgoing.*');
     $vendorsActive = request()->routeIs('vendors.*');
     $partsActive = request()->routeIs('parts.*');
@@ -508,6 +508,19 @@
                                     d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
                             <span class="ml-3">Completed Receives</span>
+                        </a>
+
+                        <a href="{{ route('receives.import-documents') }}" @class([
+                            $navLinkBase,
+                            $navActive => request()->routeIs('receives.import-documents*'),
+                            $navInactive => !request()->routeIs('receives.import-documents*'),
+                        ]) @click="mobileSidebarOpen = false">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5h7.5M8.25 12h7.5m-7.5 4.5h4.5" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75Z" />
+                            </svg>
+                            <span class="ml-3">Rekap AJU / PEN</span>
                         </a>
                     </div>
                 </div>
@@ -1315,6 +1328,10 @@
                             ])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'))])></span>
                                 <span class="flex-1">Completed Receives</span>
+                            </a>
+                            <a href="{{ route('receives.import-documents') }}" @class([$subLinkBase, $subActive => request()->routeIs('receives.import-documents*'), $subInactive => !request()->routeIs('receives.import-documents*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.import-documents*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('receives.import-documents*')])></span>
+                                <span class="flex-1">Rekap AJU / PEN</span>
                             </a>
                             <a href="{{ route('delivery.outgoing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('delivery.outgoing.*'), $subInactive => !request()->routeIs('delivery.outgoing.*')])>
                                 <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('delivery.outgoing.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('delivery.outgoing.*')])></span>
