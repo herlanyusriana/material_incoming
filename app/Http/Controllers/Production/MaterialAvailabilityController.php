@@ -10,6 +10,15 @@ use Illuminate\Http\Request;
 
 class MaterialAvailabilityController extends Controller
 {
+    private function isRmBuyBomItem($item): bool
+    {
+        $makeOrBuy = strtoupper(trim((string) ($item->make_or_buy ?? '')));
+        $classification = strtoupper(trim((string) ($item->componentPart?->classification ?? '')));
+
+        return in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE'], true)
+            && $classification === 'RM';
+    }
+
     public function index(Request $request)
     {
         $status = $request->query('status', '');
@@ -74,12 +83,12 @@ class MaterialAvailabilityController extends Controller
             
             // Only check shortage for BUY items
             $makeOrBuy = strtoupper(trim($item->make_or_buy ?? ''));
-            $isBuyItem = in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE']);
+            $isRmBuyItem = $this->isRmBuyBomItem($item);
             
             $isAvailable = $totalStock >= $requiredQty;
             
-            // Only mark as unavailable if it's a BUY item AND stock is insufficient
-            if ($isBuyItem && !$isAvailable) {
+            // Only RM BUY items can trigger material shortage
+            if ($isRmBuyItem && !$isAvailable) {
                 $allAvailable = false;
             }
             
@@ -91,8 +100,8 @@ class MaterialAvailabilityController extends Controller
                 'primary_stock' => $primaryStock,
                 'substitute_stock' => $substituteStock,
                 'available' => $totalStock,
-                'shortage' => $isBuyItem ? max(0, $requiredQty - $totalStock) : 0,
-                'status' => !$isBuyItem ? 'N/A' : ($isAvailable ? 'available' : 'shortage'),
+                'shortage' => $isRmBuyItem ? max(0, $requiredQty - $totalStock) : 0,
+                'status' => !$isRmBuyItem ? 'N/A' : ($isAvailable ? 'available' : 'shortage'),
                 'substitutes' => $substituteDetails,
             ];
         }
@@ -176,7 +185,7 @@ class MaterialAvailabilityController extends Controller
                 
                 // Only check shortage for BUY items
                 $makeOrBuy = strtoupper(trim($item->make_or_buy ?? ''));
-                $isBuyItem = in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE']);
+                $isRmBuyItem = $this->isRmBuyBomItem($item);
                 
                 $materials[] = [
                     'part_no' => $item->componentPart?->part_no ?? 'Unknown',
@@ -187,8 +196,8 @@ class MaterialAvailabilityController extends Controller
                     'primary_stock' => $primaryStock,
                     'substitute_stock' => $substituteStock,
                     'available' => $totalStock,
-                    'shortage' => $isBuyItem ? max(0, $requiredQty - $totalStock) : 0,
-                    'status' => !$isBuyItem ? 'N/A' : ($totalStock >= $requiredQty ? 'available' : 'shortage'),
+                    'shortage' => $isRmBuyItem ? max(0, $requiredQty - $totalStock) : 0,
+                    'status' => !$isRmBuyItem ? 'N/A' : ($totalStock >= $requiredQty ? 'available' : 'shortage'),
                     'substitutes' => $substituteDetails,
                 ];
             }

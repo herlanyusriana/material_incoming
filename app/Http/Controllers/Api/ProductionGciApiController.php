@@ -17,6 +17,15 @@ use App\Models\GciInventory;
 
 class ProductionGciApiController extends Controller
 {
+    private function isRmBuyRequirement(array $req): bool
+    {
+        $makeOrBuy = strtoupper(trim((string) ($req['make_or_buy'] ?? 'BUY')));
+        $classification = strtoupper(trim((string) ($req['part']?->classification ?? '')));
+
+        return in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE'], true)
+            && $classification === 'RM';
+    }
+
     private function resolveMonitoringStatus(ProductionOrder $order): string
     {
         if ($order->status !== 'material_hold') {
@@ -47,8 +56,7 @@ class ProductionGciApiController extends Controller
         }
 
         foreach ($requirements as $req) {
-            $makeOrBuy = strtoupper(trim((string) ($req['make_or_buy'] ?? 'BUY')));
-            if (!in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE'], true)) {
+            if (!$this->isRmBuyRequirement($req)) {
                 continue;
             }
 

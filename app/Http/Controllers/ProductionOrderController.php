@@ -18,6 +18,15 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductionOrderController extends Controller
 {
+    private function isRmBuyRequirement(array $req): bool
+    {
+        $makeOrBuy = strtoupper(trim((string) ($req['make_or_buy'] ?? 'BUY')));
+        $classification = strtoupper(trim((string) ($req['part']?->classification ?? '')));
+
+        return in_array($makeOrBuy, ['BUY', 'B', 'PURCHASE'], true)
+            && $classification === 'RM';
+    }
+
     private function normalizeMaterialStatusIfStale(ProductionOrder $order): void
     {
         if ($order->status !== 'material_hold') {
@@ -41,8 +50,7 @@ class ProductionOrderController extends Controller
                 continue;
             }
 
-            $isBuyItem = in_array(strtoupper($makeOrBuy), ['BUY', 'B', 'PURCHASE'], true);
-            if (!$isBuyItem) {
+            if (!$this->isRmBuyRequirement($req)) {
                 continue;
             }
 
@@ -362,11 +370,11 @@ class ProductionOrderController extends Controller
             $inventory = GciInventory::where('gci_part_id', $part?->id)->first();
             $onHand = $inventory ? (float) $inventory->on_hand : 0;
 
-            $isBuyItem = in_array(strtoupper($makeOrBuy), ['BUY', 'B', 'PURCHASE'], true);
-            $sufficient = !$isBuyItem || $onHand >= $needed;
-            $shortage = $isBuyItem && !$sufficient ? round($needed - $onHand, 4) : 0;
+            $isRmBuyItem = $this->isRmBuyRequirement($req);
+            $sufficient = !$isRmBuyItem || $onHand >= $needed;
+            $shortage = $isRmBuyItem && !$sufficient ? round($needed - $onHand, 4) : 0;
 
-            if ($isBuyItem && !$sufficient) {
+            if ($isRmBuyItem && !$sufficient) {
                 $allAvailable = false;
             }
 
@@ -379,7 +387,8 @@ class ProductionOrderController extends Controller
                 'shortage' => $shortage,
                 'uom' => $req['uom'] ?? '-',
                 'make_or_buy' => strtoupper($makeOrBuy),
-                'status' => !$isBuyItem ? 'N/A' : ($sufficient ? 'OK' : 'SHORTAGE'),
+                'classification' => strtoupper(trim((string) ($part?->classification ?? ''))),
+                'status' => !$isRmBuyItem ? 'N/A' : ($sufficient ? 'OK' : 'SHORTAGE'),
             ];
         }
 
@@ -391,8 +400,7 @@ class ProductionOrderController extends Controller
             $reservedMaterials = [];
             foreach ($requirements as $req) {
                 $makeOrBuy = strtolower($req['make_or_buy'] ?? 'buy');
-                $isBuyItem = in_array(strtoupper($makeOrBuy), ['BUY', 'B', 'PURCHASE'], true);
-                if ($makeOrBuy === 'free_issue' || !$isBuyItem) {
+                if ($makeOrBuy === 'free_issue' || !$this->isRmBuyRequirement($req)) {
                     continue;
                 }
 

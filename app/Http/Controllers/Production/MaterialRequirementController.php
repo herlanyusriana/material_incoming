@@ -13,6 +13,12 @@ use Illuminate\Support\Collection;
 
 class MaterialRequirementController extends Controller
 {
+    private function isRmBuyMaterial(array $material): bool
+    {
+        return in_array($material['make_or_buy'], ['BUY', 'B', 'PURCHASE'], true)
+            && strtoupper((string) ($material['component_classification'] ?? '')) === 'RM';
+    }
+
     public function index(Request $request)
     {
         $planDate = Carbon::parse($request->query('date', today()->format('Y-m-d')));
@@ -148,7 +154,7 @@ class MaterialRequirementController extends Controller
                         ? $stockOnHand
                         : $stockOnHand + $substituteStock;
                     $netQty = max(0, round((float) $material['gross_qty'] - $effectiveStock, 4));
-                    $isBuyItem = in_array($material['make_or_buy'], ['BUY', 'B', 'PURCHASE'], true);
+                    $isRmBuyItem = $this->isRmBuyMaterial($material);
 
                     return [
                         'component_part_id' => $material['component_part_id'],
@@ -162,7 +168,7 @@ class MaterialRequirementController extends Controller
                         'effective_stock_on_hand' => $effectiveStock,
                         'net_qty' => $netQty,
                         'uom' => $material['uom'],
-                        'status' => !$isBuyItem ? 'N/A' : ($netQty <= 0 ? 'available' : 'shortage'),
+                        'status' => !$isRmBuyItem ? 'N/A' : ($netQty <= 0 ? 'available' : 'shortage'),
                         'substitutes' => $substitutes->all(),
                     ];
                 });
