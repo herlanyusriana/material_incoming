@@ -458,10 +458,48 @@ class ProductionOrderController extends Controller
             'material_requested_by' => Auth::id(),
         ]);
 
+        $this->syncOrderStatusFromMaterialRequest($order, $requestLines);
+
         $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
         $message = $shortageCount > 0
             ? "Material request dibuat dengan {$shortageCount} item masih shortage."
             : 'Material request berhasil dibuat dari stok RM yang tersedia.';
+
+        return back()->with('success', $message);
+    }
+
+    public function refreshMaterial(ProductionOrder $order)
+    {
+        if (in_array($order->status, ['completed', 'cancelled'], true)) {
+            return back()->with('error', 'WO yang sudah completed/cancelled tidak bisa di-refresh materialnya.');
+        }
+
+        if ($order->material_issued_at) {
+            return back()->with('error', 'Material WO ini sudah di-issue dari warehouse, jadi refresh material diblokir untuk menjaga traceability.');
+        }
+
+        $requestLines = $this->buildMaterialRequestLines($order);
+
+        if (empty($requestLines)) {
+            return back()->with('error', 'Tidak ada RM BUY yang bisa dibaca dari BOM terbaru untuk WO ini.');
+        }
+
+        $order->update([
+            'material_request_lines' => $requestLines,
+            'material_requested_at' => now(),
+            'material_requested_by' => Auth::id(),
+            'material_issue_lines' => null,
+            'material_handed_over_at' => null,
+            'material_handed_over_by' => null,
+            'material_handover_notes' => null,
+        ]);
+
+        $this->syncOrderStatusFromMaterialRequest($order, $requestLines);
+
+        $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
+        $message = $shortageCount > 0
+            ? "Material WO berhasil di-refresh dari BOM terbaru. {$shortageCount} item masih shortage."
+            : 'Material WO berhasil di-refresh dari BOM terbaru.';
 
         return back()->with('success', $message);
     }
@@ -1021,6 +1059,27 @@ class ProductionOrderController extends Controller
         }
 
         return $lines;
+    }
+
+    private function syncOrderStatusFromMaterialRequest(ProductionOrder $order, array $requestLines): void
+    {
+        $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
+
+        if ($shortageCount > 0) {
+            $order->update([
+                'status' => 'material_hold',
+                'workflow_stage' => 'material_check',
+            ]);
+            return;
+        }
+
+        $nextStatus = (!$order->process_name || !$order->machine_id) ? 'resource_hold' : 'released';
+        $nextWorkflowStage = $nextStatus === 'resource_hold' ? 'resource_check' : 'material_ready';
+
+        $order->update([
+            'status' => $nextStatus,
+            'workflow_stage' => $nextWorkflowStage,
+        ]);
     }
 
     protected function resolveIncomingTraceability(int $partId, string $locationCode, string $batchNo): array

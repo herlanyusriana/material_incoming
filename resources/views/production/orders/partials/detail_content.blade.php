@@ -18,6 +18,17 @@
                 <h3 class="text-lg font-semibold text-gray-900">Order Details</h3>
                 @if(!in_array($order->status, ['completed', 'cancelled'], true))
                     <div class="flex items-center gap-2">
+                        <form action="{{ route('production.orders.refresh-material', $order) }}" method="POST"
+                            onsubmit="return confirm('Refresh material WO ini dari BOM terbaru?');">
+                            @csrf
+                            <button type="submit"
+                                class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m14.836 2A8.001 8.001 0 005.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 016.582 15m12.837 0H15" />
+                                </svg>
+                                Refresh
+                            </button>
+                        </form>
                         <a href="{{ route('production.orders.edit', $order) }}"
                             class="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,6 +252,13 @@
                     @else
                         <p class="text-xs text-indigo-700 mb-4">Validate BOM materials against inventory before releasing.</p>
                     @endif
+
+                    <form action="{{ route('production.orders.refresh-material', $order) }}" method="POST" class="mb-3">
+                        @csrf
+                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-emerald-200 rounded-md shadow-sm text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
+                            Refresh Material from BOM
+                        </button>
+                    </form>
 
                     <form action="{{ route('production.orders.check-material', $order) }}" method="POST">
                         @csrf

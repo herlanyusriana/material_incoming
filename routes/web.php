@@ -511,6 +511,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');
         Route::post('/orders/{order}/check-material', [\App\Http\Controllers\ProductionOrderController::class, 'checkMaterial'])->name('orders.check-material');
+        Route::post('/orders/{order}/refresh-material', [\App\Http\Controllers\ProductionOrderController::class, 'refreshMaterial'])->name('orders.refresh-material');
         Route::post('/orders/{order}/material-request', [\App\Http\Controllers\ProductionOrderController::class, 'createMaterialRequest'])->name('orders.material-request');
         Route::post('/orders/{order}/material-issue', [\App\Http\Controllers\ProductionOrderController::class, 'issueMaterial'])->name('orders.material-issue');
         Route::post('/orders/{order}/material-handover', [\App\Http\Controllers\ProductionOrderController::class, 'handoverMaterial'])->name('orders.material-handover');

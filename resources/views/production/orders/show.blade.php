@@ -36,6 +36,17 @@
                     <h3 class="text-lg font-semibold">Order Details</h3>
                     @if(!in_array($order->status, ['completed', 'cancelled'], true))
                         <div class="flex items-center gap-2">
+                            <form action="{{ route('production.orders.refresh-material', $order) }}" method="POST"
+                                onsubmit="return confirm('Refresh material WO ini dari BOM terbaru? Snapshot material request lama akan diperbarui.');">
+                                @csrf
+                                <button type="submit"
+                                    class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m14.836 2A8.001 8.001 0 005.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 016.582 15m12.837 0H15" />
+                                    </svg>
+                                    Refresh Material
+                                </button>
+                            </form>
                             <a href="{{ route('production.orders.edit', $order) }}"
                                 class="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -326,6 +337,14 @@
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">1. Material Availability</h4>
                         <p class="text-sm text-gray-600 mb-3">Check if components are available in inventory.</p>
+                        <form action="{{ route('production.orders.refresh-material', $order) }}" method="POST" class="mb-3">
+                            @csrf
+                            <button type="submit"
+                                class="w-full px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                                onclick="return confirm('Refresh material WO ini dari BOM terbaru?');">
+                                Refresh Material from BOM
+                            </button>
+                        </form>
                         <form action="{{ route('production.orders.check-material', $order) }}" method="POST">
                             @csrf
                             <button type="submit"
