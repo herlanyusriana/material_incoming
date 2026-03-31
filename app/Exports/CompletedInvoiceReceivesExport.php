@@ -17,6 +17,29 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
     private Arrival $arrival;
     /** @var \Illuminate\Support\Collection<int, float> */
     private Collection $receivedTotalsByItemId;
+    /** @var \Illuminate\Support\Collection<int, float> */
+    private Collection $receivedWeightsByItemId;
+
+    private function shouldConvertToKgm(?string $unit): bool
+    {
+        return in_array(strtoupper(trim((string) $unit)), ['SHEET', 'EA'], true);
+    }
+
+    private function exportQty(mixed $qty, ?string $unit, mixed $weight): float
+    {
+        if ($this->shouldConvertToKgm($unit)) {
+            return (float) ($weight ?? 0);
+        }
+
+        return (float) ($qty ?? 0);
+    }
+
+    private function exportUnit(?string $unit): string
+    {
+        return $this->shouldConvertToKgm($unit)
+            ? 'KGM'
+            : strtoupper((string) ($unit ?? ''));
+    }
 
     public function __construct(Arrival $arrival)
     {
@@ -26,6 +49,15 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
         $this->receivedTotalsByItemId = $this->arrival->items
             ->mapWithKeys(function ($item) {
                 $total = (float) $item->receives->sum('qty');
+                return [$item->id => $total];
+            });
+
+        $this->receivedWeightsByItemId = $this->arrival->items
+            ->mapWithKeys(function ($item) {
+                $total = (float) $item->receives->sum(function ($receive) {
+                    return (float) ($receive->net_weight ?? $receive->weight ?? 0);
+                });
+
                 return [$item->id => $total];
             });
     }
@@ -82,8 +114,17 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
         $part = $item?->part;
 
         $plannedQty = (float) ($item?->qty_goods ?? 0);
+        $plannedWeight = (float) ($item?->weight_nett ?? 0);
+        $goodsUnit = strtoupper((string) ($item?->unit_goods ?? ''));
         $receivedTotal = (float) ($this->receivedTotalsByItemId->get((int) ($item?->id ?? 0), 0));
-        $remaining = max(0, $plannedQty - $receivedTotal);
+        $receivedWeightTotal = (float) ($this->receivedWeightsByItemId->get((int) ($item?->id ?? 0), 0));
+        $remaining = max(
+            0,
+            $this->shouldConvertToKgm($goodsUnit)
+                ? ($plannedWeight - $receivedWeightTotal)
+                : ($plannedQty - $receivedTotal)
+        );
+        $receiveQtyUnit = strtoupper((string) ($receive->qty_unit ?? ''));
 
         return [
             $arrival?->invoice_no ?? '',
@@ -99,11 +140,11 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
             $part?->part_name_vendor ?? '',
             $item?->material_group ?? '',
             $item?->size ?? '',
-            $plannedQty ?: 0,
-            strtoupper((string) ($item?->unit_goods ?? '')),
-            (float) ($receive->qty ?? 0),
-            strtoupper((string) ($receive->qty_unit ?? '')),
-            $receivedTotal,
+            $this->exportQty($plannedQty, $goodsUnit, $plannedWeight),
+            $this->exportUnit($goodsUnit),
+            $this->exportQty($receive->qty, $receiveQtyUnit, $receive->net_weight ?? $receive->weight),
+            $this->exportUnit($receiveQtyUnit),
+            $this->shouldConvertToKgm($goodsUnit) ? $receivedWeightTotal : $receivedTotal,
             $remaining,
             (int) ($receive->bundle_qty ?? 1),
             strtoupper((string) ($receive->bundle_unit ?? '')),
@@ -151,4 +192,3 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
         ];
     }
 }
-

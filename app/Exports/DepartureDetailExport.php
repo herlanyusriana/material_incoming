@@ -14,6 +14,27 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
 {
     private Arrival $arrival;
 
+    private function shouldConvertToKgm(?string $unit): bool
+    {
+        return in_array(strtoupper(trim((string) $unit)), ['SHEET', 'EA'], true);
+    }
+
+    private function exportQty(mixed $qty, ?string $unit, mixed $weightNett): float
+    {
+        if ($this->shouldConvertToKgm($unit)) {
+            return (float) ($weightNett ?? 0);
+        }
+
+        return (float) ($qty ?? 0);
+    }
+
+    private function exportUnit(?string $unit): string
+    {
+        return $this->shouldConvertToKgm($unit)
+            ? 'KGM'
+            : strtoupper((string) ($unit ?? '-'));
+    }
+
     public function __construct(Arrival $arrival)
     {
         $this->arrival = $arrival;
@@ -91,8 +112,8 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             $item->size ?: '-',
             (float)($item->qty_bundle ?? 0),
             $item->unit_bundle ?? '-',
-            (float)($item->qty_goods ?? 0),
-            $item->unit_goods ?? '-',
+            $this->exportQty($item->qty_goods, $item->unit_goods, $item->weight_nett),
+            $this->exportUnit($item->unit_goods),
             (float)($item->weight_nett ?? 0),
             (float)($item->weight_gross ?? 0),
             (float)($item->price ?? 0),
