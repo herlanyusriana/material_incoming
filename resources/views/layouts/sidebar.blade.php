@@ -367,10 +367,6 @@
                                         <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.material-request.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.material-request.*')])></span>
                                         <span class="flex-1">Material Request</span>
                                     </a>
-                                    <a href="{{ route('production.production-supply-wh.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.production-supply-wh.*'), $subInactive => !request()->routeIs('production.production-supply-wh.*')]) @click="mobileSidebarOpen = false">
-                                        <span @class([$subDotBase, 'bg-cyan-600' => request()->routeIs('production.production-supply-wh.*'), 'bg-slate-300 group-hover:bg-cyan-400' => !request()->routeIs('production.production-supply-wh.*')])></span>
-                                        <span class="flex-1">Production Supply to WH</span>
-                                    </a>
                                 @endcan
                                 @can('manage_qc_inspection')
                                     <a href="{{ route('production.qc-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qc-inspection.*'), $subInactive => !request()->routeIs('production.qc-inspection.*')]) @click="mobileSidebarOpen = false">
@@ -394,6 +390,12 @@
                                     <a href="{{ route('production.kanban-update.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.kanban-update.*'), $subInactive => !request()->routeIs('production.kanban-update.*')]) @click="mobileSidebarOpen = false">
                                         <span @class([$subDotBase, 'bg-lime-600' => request()->routeIs('production.kanban-update.*'), 'bg-slate-300 group-hover:bg-lime-400' => !request()->routeIs('production.kanban-update.*')])></span>
                                         <span class="flex-1">Kanban Update</span>
+                                    </a>
+                                @endcan
+                                @can('view_production')
+                                    <a href="{{ route('production.production-supply-wh.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.production-supply-wh.*'), $subInactive => !request()->routeIs('production.production-supply-wh.*')]) @click="mobileSidebarOpen = false">
+                                        <span @class([$subDotBase, 'bg-cyan-600' => request()->routeIs('production.production-supply-wh.*'), 'bg-slate-300 group-hover:bg-cyan-400' => !request()->routeIs('production.production-supply-wh.*')])></span>
+                                        <span class="flex-1">Production Supply to WH</span>
                                     </a>
                                 @endcan
 
@@ -1199,10 +1201,6 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.material-request.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.material-request.*')])></span>
                                     <span class="flex-1">Material Request</span>
                                 </a>
-                                <a href="{{ route('production.production-supply-wh.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.production-supply-wh.*'), $subInactive => !request()->routeIs('production.production-supply-wh.*')])>
-                                    <span @class([$subDotBase, 'bg-cyan-600' => request()->routeIs('production.production-supply-wh.*'), 'bg-slate-300 group-hover:bg-cyan-400' => !request()->routeIs('production.production-supply-wh.*')])></span>
-                                    <span class="flex-1">Production Supply to WH</span>
-                                </a>
                             @endcan
                             @can('manage_qc_inspection')
                                 <a href="{{ route('production.qc-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qc-inspection.*'), $subInactive => !request()->routeIs('production.qc-inspection.*')])>
@@ -1226,6 +1224,12 @@
                                 <a href="{{ route('production.kanban-update.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.kanban-update.*'), $subInactive => !request()->routeIs('production.kanban-update.*')])>
                                     <span @class([$subDotBase, 'bg-lime-600' => request()->routeIs('production.kanban-update.*'), 'bg-slate-300 group-hover:bg-lime-400' => !request()->routeIs('production.kanban-update.*')])></span>
                                     <span class="flex-1">Kanban Update</span>
+                                </a>
+                            @endcan
+                            @can('view_production')
+                                <a href="{{ route('production.production-supply-wh.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.production-supply-wh.*'), $subInactive => !request()->routeIs('production.production-supply-wh.*')])>
+                                    <span @class([$subDotBase, 'bg-cyan-600' => request()->routeIs('production.production-supply-wh.*'), 'bg-slate-300 group-hover:bg-cyan-400' => !request()->routeIs('production.production-supply-wh.*')])></span>
+                                    <span class="flex-1">Production Supply to WH</span>
                                 </a>
                             @endcan
                             <a href="{{ route('production.machine-load.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.machine-load.*'), $subInactive => !request()->routeIs('production.machine-load.*')])>
