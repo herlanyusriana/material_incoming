@@ -359,13 +359,13 @@
                                         <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                         <span class="flex-1">Production Orders</span>
                                     </a>
-                                    <a href="{{ route('production.kanban-release.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.kanban-release.*'), $subInactive => !request()->routeIs('production.kanban-release.*')]) @click="mobileSidebarOpen = false">
-                                        <span @class([$subDotBase, 'bg-violet-600' => request()->routeIs('production.kanban-release.*'), 'bg-slate-300 group-hover:bg-violet-400' => !request()->routeIs('production.kanban-release.*')])></span>
-                                        <span class="flex-1">Release Kanban</span>
-                                    </a>
                                     <a href="{{ route('production.material-requirement.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-requirement.*'), $subInactive => !request()->routeIs('production.material-requirement.*')]) @click="mobileSidebarOpen = false">
                                         <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.material-requirement.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.material-requirement.*')])></span>
                                         <span class="flex-1">Material Requirement</span>
+                                    </a>
+                                    <a href="{{ route('production.kanban-release.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.kanban-release.*'), $subInactive => !request()->routeIs('production.kanban-release.*')]) @click="mobileSidebarOpen = false">
+                                        <span @class([$subDotBase, 'bg-violet-600' => request()->routeIs('production.kanban-release.*'), 'bg-slate-300 group-hover:bg-violet-400' => !request()->routeIs('production.kanban-release.*')])></span>
+                                        <span class="flex-1">Release Kanban</span>
                                     </a>
                                     <a href="{{ route('production.material-request.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-request.*'), $subInactive => !request()->routeIs('production.material-request.*')]) @click="mobileSidebarOpen = false">
                                         <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.material-request.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.material-request.*')])></span>
@@ -1197,13 +1197,13 @@
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
                                     <span class="flex-1">Production Orders</span>
                                 </a>
-                                <a href="{{ route('production.kanban-release.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.kanban-release.*'), $subInactive => !request()->routeIs('production.kanban-release.*')])>
-                                    <span @class([$subDotBase, 'bg-violet-600' => request()->routeIs('production.kanban-release.*'), 'bg-slate-300 group-hover:bg-violet-400' => !request()->routeIs('production.kanban-release.*')])></span>
-                                    <span class="flex-1">Release Kanban</span>
-                                </a>
                                 <a href="{{ route('production.material-requirement.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-requirement.*'), $subInactive => !request()->routeIs('production.material-requirement.*')])>
                                     <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.material-requirement.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.material-requirement.*')])></span>
                                     <span class="flex-1">Material Requirement</span>
+                                </a>
+                                <a href="{{ route('production.kanban-release.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.kanban-release.*'), $subInactive => !request()->routeIs('production.kanban-release.*')])>
+                                    <span @class([$subDotBase, 'bg-violet-600' => request()->routeIs('production.kanban-release.*'), 'bg-slate-300 group-hover:bg-violet-400' => !request()->routeIs('production.kanban-release.*')])></span>
+                                    <span class="flex-1">Release Kanban</span>
                                 </a>
                                 <a href="{{ route('production.material-request.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.material-request.*'), $subInactive => !request()->routeIs('production.material-request.*')])>
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.material-request.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.material-request.*')])></span>
