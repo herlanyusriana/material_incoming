@@ -111,6 +111,7 @@ class MaterialRequirementController extends Controller
                                 'part_id' => $substituteId,
                                 'part_no' => $substitute->part?->part_no ?? $substitute->substitute_part_no ?? '-',
                                 'part_name' => $substitute->part?->part_name ?? '',
+                                'size' => $substitute->part?->size ?? '',
                                 'priority' => (int) ($substitute->priority ?? 1),
                             ];
                         }

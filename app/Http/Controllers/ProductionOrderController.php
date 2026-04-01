@@ -38,36 +38,51 @@ class ProductionOrderController extends Controller
             return;
         }
 
-        $requirements = $bom->getTotalMaterialRequirements($order->qty_planned);
-        if (empty($requirements)) {
+        $explosion = $bom->explode($order->qty_planned);
+        if (empty($explosion)) {
             return;
         }
 
-        $allBuyAvailable = true;
-        foreach ($requirements as $req) {
-            $makeOrBuy = strtolower((string) ($req['make_or_buy'] ?? 'buy'));
-            if ($makeOrBuy === 'free_issue') {
+        // Aggregate buy requirements
+        $requirements = [];
+        foreach ($explosion as $item) {
+            if (!$this->isRmBuyRequirement($item)) {
                 continue;
             }
-
-            if (!$this->isRmBuyRequirement($req)) {
-                continue;
+            $partId = (int) $item['component_part_id'];
+            if (!isset($requirements[$partId])) {
+                $requirements[$partId] = 0;
             }
+            $requirements[$partId] += (float) ($item['total_qty'] ?? 0);
+        }
 
-            $part = $req['part'] ?? null;
-            $needed = round((float) ($req['total_qty'] ?? 0), 4);
-            $onHand = (float) optional(GciInventory::where('gci_part_id', $part?->id)->first())->on_hand;
+        if (empty($requirements)) {
+            // No RM/BUY requirements? Move forward
+            $this->transitionFromMaterialHold($order);
+            return;
+        }
 
-            if ($onHand < $needed) {
-                $allBuyAvailable = false;
+        // Check inventory
+        $stockMap = GciInventory::query()
+            ->whereIn('gci_part_id', array_keys($requirements))
+            ->pluck('on_hand', 'gci_part_id');
+
+        $allAvailable = true;
+        foreach ($requirements as $partId => $needed) {
+            $available = (float) ($stockMap[$partId] ?? 0);
+            if ($available < round($needed, 4)) {
+                $allAvailable = false;
                 break;
             }
         }
 
-        if (!$allBuyAvailable) {
-            return;
+        if ($allAvailable) {
+            $this->transitionFromMaterialHold($order);
         }
+    }
 
+    private function transitionFromMaterialHold(ProductionOrder $order): void
+    {
         $nextStatus = (!$order->process_name || !$order->machine_id) ? 'resource_hold' : 'released';
         $nextWorkflowStage = $nextStatus === 'resource_hold' ? 'resource_check' : 'material_ready';
 

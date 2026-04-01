@@ -108,6 +108,7 @@
                             <th class="px-6 py-4 text-left">FG Part (BOM)</th>
                             <th class="px-6 py-4 text-left">Primary Component</th>
                             <th class="px-6 py-4 text-left">Substitute Part</th>
+                            <th class="px-6 py-4 text-left">Size</th>
                             <th class="px-6 py-4 text-center">Ratio</th>
                             <th class="px-6 py-4 text-center">Priority</th>
                             <th class="px-6 py-4 text-center">Status</th>
@@ -135,11 +136,8 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
-                                        <span
-                                            class="font-mono text-sm font-bold text-indigo-600">{{ $sub->part?->part_no ?? $sub->substitute_part_no }}</span>
-                                        <span
-                                            class="text-xs text-slate-500 truncate max-w-[200px]">{{ $sub->part?->part_name ?? '-' }}</span>
-                                    </div>
+                                <td class="px-6 py-4">
+                                    <span class="text-xs text-slate-600 italic">{{ $sub->part?->size ?: '-' }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm font-medium text-slate-600">
                                     {{ number_format($sub->ratio, 4) }}

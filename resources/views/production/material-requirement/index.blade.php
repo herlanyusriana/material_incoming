@@ -190,9 +190,15 @@
                                         <td class="px-4 py-3 text-xs text-slate-600">
                                             @if(!empty($material['substitutes']))
                                                 @foreach($material['substitutes'] as $substitute)
-                                                    <div class="mb-1">
-                                                        <span class="font-mono font-semibold text-slate-700">{{ $substitute['part_no'] }}</span>
-                                                        <span class="text-slate-400">({{ number_format((float) ($substitute['stock_on_hand'] ?? 0), 2) }})</span>
+                                                    <div class="mb-1 leading-tight">
+                                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                                            <span class="font-mono font-bold text-indigo-700 bg-indigo-50 px-1 rounded">{{ $substitute['part_no'] }}</span>
+                                                            @if($substitute['size'])
+                                                                <span class="text-[10px] text-slate-500 italic"> - {{ $substitute['size'] }}</span>
+                                                            @endif
+                                                        </div>
+                                                        <div class="text-[10px] text-slate-500 mt-0.5 truncate max-w-[150px]">{{ $substitute['part_name'] }}</div>
+                                                        <div class="text-[10px] text-slate-400">Stock: {{ number_format((float) ($substitute['stock_on_hand'] ?? 0), 2) }}</div>
                                                     </div>
                                                 @endforeach
                                             @else
