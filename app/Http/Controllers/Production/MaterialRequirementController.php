@@ -22,7 +22,7 @@ class MaterialRequirementController extends Controller
     public function index(Request $request)
     {
         $planDate = Carbon::parse($request->query('date', today()->format('Y-m-d')));
-        $sortBy = $request->query('sort_by', 'component');
+        $sortBy = $request->query('sort_by', 'bom');
         $sortDir = $request->query('sort_dir', 'asc');
         $calcMode = strtolower((string) $request->query('calc_mode', 'with_substitute'));
         $q = trim((string) $request->query('q', ''));
@@ -210,6 +210,7 @@ class MaterialRequirementController extends Controller
         return $materials
             ->sortBy(function (array $item) use ($sortBy) {
                 return match ($sortBy) {
+                    'bom' => 0, // Keep original order
                     'component' => $item['component_part_no'],
                     'type' => $item['make_or_buy'],
                     'status' => $item['status'] === 'shortage' ? 0 : 1,

@@ -310,7 +310,14 @@ class ProductionGciApiController extends Controller
     {
         $order = ProductionOrder::findOrFail($id);
 
-        // Allow starting from planned, kanban_released, or released status
+        // Block PLANNED status
+        if ($order->status === 'planned') {
+            return response()->json([
+                'message' => 'WO masih dalam status PLANNED. Silakan hubungi admin untuk melakukan RELEASE WO terlebih dahulu.'
+            ], 422);
+        }
+
+        // Allow starting from kanban_released or released status
         if (in_array($order->status, ['completed', 'cancelled'])) {
             return response()->json(['message' => 'WO sudah selesai atau dibatalkan'], 422);
         }
