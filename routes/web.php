@@ -597,6 +597,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/final-inspection/{order}/kanban-update', [\App\Http\Controllers\Production\FinalInspectionController::class, 'kanbanUpdate'])->name('final-inspection.kanban-update');
         });
 
+        // Release Kanban (Bulk/Fast release for Spv/Adm)
+        Route::get('/kanban-release', [\App\Http\Controllers\ProductionOrderController::class, 'kanbanReleaseIndex'])->name('kanban-release.index');
+        Route::post('/kanban-release/bulk', [\App\Http\Controllers\ProductionOrderController::class, 'bulkReleaseKanban'])->name('kanban-release.bulk');
+
         // Legacy inspection routes
         Route::post('/inspections/{inspection}', [\App\Http\Controllers\ProductionInspectionController::class, 'update'])->name('inspections.update');
     });

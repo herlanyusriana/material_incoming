@@ -167,6 +167,50 @@ class ProductionOrderController extends Controller
         return view('production.supply.production-to-wh-index', compact('orders', 'month', 'supplyStatus', 'q'));
     }
 
+    public function kanbanReleaseIndex(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $query = ProductionOrder::query()
+            ->with(['part', 'machine'])
+            ->where('status', 'planned')
+            ->orderBy('plan_date')
+            ->orderBy('id');
+
+        if ($q !== '') {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('production_order_number', 'like', '%' . $q . '%')
+                    ->orWhereHas('part', function ($partQuery) use ($q) {
+                        $partQuery->where('part_no', 'like', '%' . $q . '%')
+                            ->orWhere('part_name', 'like', '%' . $q . '%');
+                    });
+            });
+        }
+
+        $orders = $query->paginate(30)->withQueryString();
+
+        return view('production.orders.kanban-release', compact('orders', 'q'));
+    }
+
+    public function bulkReleaseKanban(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return back()->with('error', 'Pilih WO yang ingin dirilis.');
+        }
+
+        $count = ProductionOrder::whereIn('id', $ids)
+            ->where('status', 'planned')
+            ->update([
+                'status' => 'released',
+                'workflow_stage' => 'kanban_released',
+                'released_at' => now(),
+                'released_by' => Auth::id(),
+            ]);
+
+        return back()->with('success', "$count Work Order berhasil dirilis ke Kanban.");
+    }
+
     public function index(Request $request)
     {
         $dateFrom = $request->query('date_from');
