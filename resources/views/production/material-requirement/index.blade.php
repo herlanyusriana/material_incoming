@@ -131,7 +131,9 @@
                         <table class="w-full text-sm">
                             <thead class="bg-white border-b border-slate-200">
                                 <tr>
+                                    <th class="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-600">NO</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">Component</th>
+                                    <th class="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600">Process</th>
                                     <th class="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-600">Class</th>
                                     <th class="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-600">Type</th>
                                     <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-600">Gross Req</th>
@@ -145,9 +147,15 @@
                             <tbody class="divide-y divide-slate-100">
                                 @foreach($materials as $material)
                                     <tr class="hover:bg-slate-50">
+                                        <td class="px-3 py-3 text-center text-xs font-mono text-slate-500">
+                                            {{ $loop->iteration }}
+                                        </td>
                                         <td class="px-4 py-3">
                                             <div class="font-mono text-xs font-bold text-slate-800">{{ $material['component_part_no'] }}</div>
                                             <div class="text-xs text-slate-500">{{ $material['component_part_name'] }}</div>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <span class="text-xs font-semibold text-slate-700">{{ $material['process_name'] ?: ($material['component_classification'] === 'RM' ? 'Base Material' : '-') }}</span>
                                         </td>
                                         <td class="px-3 py-3 text-center text-xs">
                                             @if($material['component_classification'] === 'RM')

@@ -70,7 +70,7 @@ class MaterialRequirementController extends Controller
             $explosion = collect($bom->explode($order->qty_planned));
             $aggregated = [];
 
-            foreach ($explosion as $item) {
+            foreach ($explosion as $index => $item) {
                 $componentPartId = (int) ($item['component_part_id'] ?? 0);
                 if ($componentPartId <= 0) {
                     continue;
@@ -91,6 +91,8 @@ class MaterialRequirementController extends Controller
                         'gross_qty' => 0,
                         'uom' => (string) ($item['consumption_uom'] ?? 'PCS'),
                         'substitutes' => [],
+                        'bom_index' => $index,
+                        'process_name' => (string) ($item['process_name'] ?? ''),
                     ];
                 }
 
@@ -170,6 +172,8 @@ class MaterialRequirementController extends Controller
                         'uom' => $material['uom'],
                         'status' => !$isRmBuyItem ? 'N/A' : ($netQty <= 0 ? 'available' : 'shortage'),
                         'substitutes' => $substitutes->all(),
+                        'bom_index' => $material['bom_index'],
+                        'process_name' => $material['process_name'],
                     ];
                 });
 
@@ -210,7 +214,7 @@ class MaterialRequirementController extends Controller
         return $materials
             ->sortBy(function (array $item) use ($sortBy) {
                 return match ($sortBy) {
-                    'bom' => 0, // Keep original order
+                    'bom' => $item['bom_index'] ?? 0, // Use explosion order
                     'component' => $item['component_part_no'],
                     'type' => $item['make_or_buy'],
                     'status' => $item['status'] === 'shortage' ? 0 : 1,
