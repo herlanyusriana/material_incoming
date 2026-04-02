@@ -11,11 +11,25 @@ use Illuminate\Http\Request;
 
 class CustomerStockApiController extends Controller
 {
+    protected function applyLgCustomerScope($query)
+    {
+        return $query->where(function ($builder) {
+            $builder->where('code', 'like', '%LG%')
+                ->orWhere('name', 'like', '%LG%');
+        });
+    }
+
+    protected function resolveLgCustomerOrFail(int $customerId): Customer
+    {
+        return $this->applyLgCustomerScope(Customer::query())
+            ->findOrFail($customerId);
+    }
+
     public function customers(Request $request)
     {
         $q = trim((string) $request->query('q', ''));
 
-        $customers = Customer::query()
+        $customers = $this->applyLgCustomerScope(Customer::query())
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($builder) use ($q) {
                     $builder->where('name', 'like', '%' . $q . '%')
@@ -43,9 +57,10 @@ class CustomerStockApiController extends Controller
         ]);
 
         $q = trim((string) ($validated['q'] ?? ''));
-        $customer = Customer::query()->findOrFail((int) $validated['customer_id']);
+        $customer = $this->resolveLgCustomerOrFail((int) $validated['customer_id']);
 
         $parts = $customer->gciParts()
+            ->where('classification', 'FG')
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($builder) use ($q) {
                     $builder->where('part_no', 'like', '%' . $q . '%')
@@ -60,6 +75,7 @@ class CustomerStockApiController extends Controller
         if ($parts->isEmpty()) {
             $parts = GciPart::query()
                 ->where('customer_id', $customer->id)
+                ->where('classification', 'FG')
                 ->when($q !== '', function ($query) use ($q) {
                     $query->where(function ($builder) use ($q) {
                         $builder->where('part_no', 'like', '%' . $q . '%')
@@ -93,11 +109,15 @@ class CustomerStockApiController extends Controller
         ]);
 
         $q = trim((string) ($validated['q'] ?? ''));
+        $this->resolveLgCustomerOrFail((int) $validated['customer_id']);
 
         $entries = StockAtCustomer::query()
             ->with(['customer:id,code,name', 'part:id,part_no,part_name,model'])
             ->where('customer_id', (int) $validated['customer_id'])
             ->whereDate('stock_date', $validated['stock_date'])
+            ->whereHas('part', function ($query) {
+                $query->where('classification', 'FG');
+            })
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($builder) use ($q) {
                     $builder->where('part_no', 'like', '%' . $q . '%')
@@ -135,6 +155,7 @@ class CustomerStockApiController extends Controller
         ]);
 
         $customerId = (int) $validated['customer_id'];
+        $this->resolveLgCustomerOrFail($customerId);
         $stockDate = Carbon::parse($validated['stock_date'])->format('Y-m-d');
         $qty = round((float) $validated['qty'], 3);
         $gciPartId = !empty($validated['gci_part_id']) ? (int) $validated['gci_part_id'] : null;
@@ -157,9 +178,9 @@ class CustomerStockApiController extends Controller
             }
         }
 
-        if (!$part) {
+        if (!$part || strtoupper((string) $part->classification) !== 'FG') {
             return response()->json([
-                'message' => 'Part tidak ditemukan.',
+                'message' => 'Part FG customer LG tidak ditemukan.',
             ], 422);
         }
 
