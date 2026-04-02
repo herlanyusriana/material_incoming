@@ -48,9 +48,9 @@ class ProductionPlanningController extends Controller
             $planningLines = $allLines
                 ->sortBy([
                     fn ($line) => $line->machine?->name ?? 'ZZZ_UNASSIGNED',
-                    fn ($line) => $line->gciPart?->model ?? '',
                     fn ($line) => $line->gciPart?->part_name ?? '',
                     fn ($line) => $line->gciPart?->part_no ?? '',
+                    fn ($line) => $line->gciPart?->model ?? '',
                     fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
                     fn ($line) => (int) $line->id,
                 ])
