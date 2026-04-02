@@ -191,10 +191,10 @@
                         <thead>
                             <tr class="bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-300">
                                 <th class="w-10 px-2 py-3 text-center"></th> <!-- Expand Toggle -->
-                                <th class="px-3 py-3 text-left font-bold text-slate-700">PART NO</th>
-                                <th class="px-3 py-3 text-left font-bold text-slate-700">PART NAME</th>
-                                <th class="px-3 py-3 text-left font-bold text-slate-700">MODEL</th>
                                 <th class="px-3 py-3 text-left font-bold text-slate-700">MACHINE</th>
+                                <th class="px-3 py-3 text-left font-bold text-slate-700">MODEL</th>
+                                <th class="px-3 py-3 text-left font-bold text-slate-700">PART NAME</th>
+                                <th class="px-3 py-3 text-left font-bold text-slate-700">PART NO</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700">STOCK GCI</th>
                                 <th class="px-3 py-3 text-right font-bold text-blue-700">DELIVERY REQ</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
@@ -223,15 +223,6 @@
                                                     </svg>
                                                 </div>
                                             </td>
-                                            <td class="px-3 py-2 font-mono text-[12px] font-semibold text-slate-700 whitespace-nowrap">
-                                                {{ $line->gciPart->part_no ?? '-' }}
-                                            </td>
-                                            <td class="px-3 py-2 font-medium text-[12px] text-slate-800 whitespace-nowrap">
-                                                {{ $line->gciPart->part_name ?? '-' }}
-                                            </td>
-                                            <td class="px-3 py-2 text-[11px] text-slate-500 whitespace-nowrap">
-                                                {{ $line->gciPart->model ?? '-' }}
-                                            </td>
                                             <td class="px-3 py-2">
                                                 <select
                                                     class="w-44 text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1.5 font-semibold text-slate-700 transition-all cursor-pointer"
@@ -243,6 +234,15 @@
                                                         </option>
                                                     @endforeach
                                                 </select>
+                                            </td>
+                                            <td class="px-3 py-2 text-[11px] text-slate-500 whitespace-nowrap">
+                                                {{ $line->gciPart->model ?? '-' }}
+                                            </td>
+                                            <td class="px-3 py-2 font-medium text-[12px] text-slate-800 whitespace-nowrap">
+                                                {{ $line->gciPart->part_name ?? '-' }}
+                                            </td>
+                                            <td class="px-3 py-2 font-mono text-[12px] font-semibold text-slate-700 whitespace-nowrap">
+                                                {{ $line->gciPart->part_no ?? '-' }}
                                             </td>
                                             <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
                                                 {{ number_format((float) $line->stock_fg_gci, 0) }}
@@ -299,19 +299,21 @@
                                                 <div class="flex items-center justify-center gap-1.5 transition-opacity">
                                                     @if($line->productionOrders->count())
                                                         <span
-                                                            class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200"
+                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-700 border border-green-200"
                                                             title="{{ $line->productionOrders->pluck('production_order_number')->implode(', ') }}">
-                                                            WO x{{ $line->productionOrders->count() }}
+                                                            <span class="text-[10px] font-black">WO{{ $line->productionOrders->count() > 1 ? '×' . $line->productionOrders->count() : '' }}</span>
                                                         </span>
                                                     @elseif($line->plan_qty > 0)
                                                         <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
-                                                                class="inline-flex items-center px-2 py-1 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
+                                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
                                                                 title="Generate WO per shift untuk part ini">
-                                                                Generate
+                                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                                </svg>
                                                         </button>
                                                     @endif
                                                     <button @click="deleteLine({{ $line->id }})"
-                                                        class="p-1 rounded text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Remove part">
+                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Remove part">
                                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
