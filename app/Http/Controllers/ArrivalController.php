@@ -554,7 +554,7 @@ class ArrivalController extends Controller
     {
         // Keep using $arrival internally for existing views/logic
         $arrival = $departure;
-        $arrival->load(['vendor', 'creator', 'trucking', 'inspection', 'containers.inspection', 'items.part.vendor', 'items.gciPart', 'items.receives']);
+        $arrival->load(['vendor', 'creator', 'trucking', 'inspection', 'containers.inspection', 'items.part.vendor', 'items.gciPart', 'items.vendorPart', 'items.receives']);
 
         $isReceiveComplete = !$this->hasPendingReceives($arrival);
 
@@ -750,7 +750,7 @@ class ArrivalController extends Controller
     {
         // Keep using $arrival internally for existing view/logic
         $arrival = $departure;
-        $arrival->load(['vendor', 'trucking', 'containers', 'items.part']);
+        $arrival->load(['vendor', 'trucking', 'containers', 'items.part', 'items.gciPart', 'items.vendorPart']);
 
         // Clean filename - remove / and \ characters
         $filename = 'Commercial-Invoice-' . str_replace(['/', '\\'], '-', $arrival->invoice_no) . '.pdf';
@@ -794,7 +794,7 @@ class ArrivalController extends Controller
 
     public function editItem(ArrivalItem $arrivalItem)
     {
-        $arrivalItem->load(['arrival', 'part', 'receives']);
+        $arrivalItem->load(['arrival', 'part', 'gciPart', 'vendorPart', 'receives']);
 
         if (!$this->hasPendingReceives($arrivalItem->arrival)) {
             return redirect()

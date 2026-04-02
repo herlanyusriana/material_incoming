@@ -43,8 +43,8 @@
                         <div class="sm:col-span-2">
                             <div class="text-xs font-semibold text-slate-500">Part</div>
                             <div class="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
-                                <div class="font-semibold">{{ $item->part->part_no }}</div>
-                                <div class="text-xs text-slate-500">{{ $item->part->part_name_vendor }}</div>
+                                <div class="font-semibold">{{ $item->display_part_no }}</div>
+                                <div class="text-xs text-slate-500">{{ $item->display_part_name }}</div>
                             </div>
                         </div>
 

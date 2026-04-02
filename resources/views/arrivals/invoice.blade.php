@@ -653,7 +653,7 @@
             if (trim($group) !== '') {
                 return strtoupper(trim($group));
             }
-            return strtoupper(trim($i->part->part_name_vendor ?? ''));
+            return strtoupper(trim($i->display_part_name ?? ''));
         });
     @endphp
 
@@ -806,7 +806,7 @@
                                     <td>&nbsp;</td>
                                     <td>
                                         <div class="ci-product-title">
-                                            {{ $items->first()->material_group ?: ($items->first()->part->part_name_vendor ?? $groupKey) }}
+                                            {{ $items->first()->material_group ?: ($items->first()->display_part_name ?? $groupKey) }}
                                         </div>
                                     </td>
                                     <td colspan="2">&nbsp;</td>
@@ -839,7 +839,7 @@
                                             : '-';
                                     @endphp
                                     <tr>
-                                        <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
+                                        <td>{{ strtoupper($item->display_part_name ?? '') }}</td>
                                         <td class="ci-center">{{ $item->size ?? '' }}</td>
                                         <td class="ci-center" style="white-space:nowrap;">{{ $qtyText }}</td>
                                         <td class="ci-center" style="white-space:nowrap;">{{ $nettText }}</td>
@@ -1124,7 +1124,7 @@
                             {{-- Item rows --}}
                             @foreach($items as $item)
                                 <tr>
-                                    <td>{{ strtoupper($item->part->part_name_gci ?? '') }}</td>
+                                    <td>{{ strtoupper($item->display_part_name ?? '') }}</td>
                                     <td class="text-center" style="white-space:nowrap;">{{ $item->size ?? '' }}</td>
                                     @php
                                         $packageText = (($item->qty_bundle ?? 0) > 0)

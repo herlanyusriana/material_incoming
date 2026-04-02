@@ -54,8 +54,34 @@ class ArrivalItem extends Model
         return $this->belongsTo(GciPartVendor::class);
     }
 
+    public function vendorPart()
+    {
+        return $this->belongsTo(GciPartVendor::class, 'gci_part_vendor_id');
+    }
+
     public function purchaseOrderItem()
     {
         return $this->belongsTo(PurchaseOrderItem::class);
+    }
+
+    public function getDisplayPartNoAttribute(): string
+    {
+        return (string) (
+            $this->gciPart?->part_no
+            ?: $this->vendorPart?->vendor_part_no
+            ?: $this->part?->part_no
+            ?: '-'
+        );
+    }
+
+    public function getDisplayPartNameAttribute(): string
+    {
+        return (string) (
+            $this->gciPart?->part_name
+            ?: $this->vendorPart?->vendor_part_name
+            ?: $this->part?->part_name_gci
+            ?: $this->part?->part_name_vendor
+            ?: '-'
+        );
     }
 }
