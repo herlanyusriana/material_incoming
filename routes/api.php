@@ -19,7 +19,12 @@ Route::post('/production-gci/wo/{id}/pause', [\App\Http\Controllers\Api\Producti
 Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'resumeWo']);
 Route::post('/production-gci/wo/{id}/finish', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'finishWo']);
 Route::get('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'getHourlyReports']);
+Route::post('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'saveHourlyReport']);
+Route::get('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineDowntimes']);
+Route::post('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startMachineDowntime']);
+Route::post('/production-gci/downtimes/{id}/stop', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'stopMachineDowntime']);
 Route::post('/production-gci/qdc-session', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'storeQdcSession']);
+Route::get('/production-gci/machines/{id}/qdc-sessions', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineQdcSessions']);
 Route::get('/production-gci/wo-monitoring', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'woMonitoringData']);
 
 Route::middleware('auth:sanctum')->group(function () {

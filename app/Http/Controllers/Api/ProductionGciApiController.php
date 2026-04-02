@@ -16,6 +16,7 @@ use App\Models\ProductionGciDowntime;
 use App\Models\ProductionGciMaterialLot;
 use App\Models\Bom;
 use App\Models\GciInventory;
+use Illuminate\Support\Str;
 
 class ProductionGciApiController extends Controller
 {
@@ -56,6 +57,55 @@ class ProductionGciApiController extends Controller
         $decoded = json_decode((string) $notes, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function generateCloudOfflineId(): int
+    {
+        return (int) now()->format('YmdHis') . random_int(10, 99);
+    }
+
+    private function formatDowntime(ProductionGciDowntime $downtime): array
+    {
+        $meta = $this->decodeDowntimeNotes($downtime->notes);
+
+        return [
+            'id' => (int) $downtime->id,
+            'machine_id' => (int) ($downtime->machine_id ?? 0),
+            'machine_name' => (string) ($downtime->machine_name ?? '-'),
+            'shift' => (string) ($downtime->shift ?? '-'),
+            'operator_name' => (string) ($downtime->operator_name ?? ''),
+            'start_time' => (string) $downtime->start_time,
+            'end_time' => $downtime->end_time ? (string) $downtime->end_time : null,
+            'duration_minutes' => (int) ($downtime->duration_minutes ?? 0),
+            'reason' => (string) ($downtime->reason ?? '-'),
+            'notes' => is_array($meta) && array_key_exists('notes', $meta)
+                ? (string) ($meta['notes'] ?? '')
+                : (string) ($downtime->notes ?? ''),
+            'refill_part_no' => $downtime->refill_part_no,
+            'refill_part_name' => $downtime->refill_part_name,
+            'refill_qty' => $downtime->refill_qty !== null ? (float) $downtime->refill_qty : null,
+            'production_order_id' => (int) ($meta['production_order_id'] ?? 0) ?: null,
+            'production_order_number' => $meta['production_order_number'] ?? null,
+            'type' => $meta['type'] ?? 'downtime',
+            'is_running' => $downtime->end_time === null,
+        ];
+    }
+
+    private function resolveLegacyGciWorkOrder(ProductionOrder $order): ProductionGciWorkOrder
+    {
+        return ProductionGciWorkOrder::firstOrCreate(
+            ['order_no' => (string) ($order->production_order_number ?? $order->transaction_no ?? ('PO-' . $order->id))],
+            [
+                'type_model' => (string) optional($order->part)->model,
+                'tact_time' => 0,
+                'target_uph' => 0,
+                'date' => $order->plan_date ? Carbon::parse($order->plan_date)->toDateString() : now()->toDateString(),
+                'shift' => $order->shift,
+                'foreman' => null,
+                'operator_name' => null,
+                'offline_id' => $this->generateCloudOfflineId(),
+            ]
+        );
     }
 
     private function normalizeMonitoringDates(array $dates): array
@@ -791,6 +841,175 @@ class ProductionGciApiController extends Controller
         return response()->json(['data' => $reports]);
     }
 
+    public function saveHourlyReport(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+        $validated = $request->validate([
+            'time_range' => 'required|string|max:50',
+            'target' => 'nullable|integer|min:0',
+            'actual' => 'required|integer|min:0',
+            'ng' => 'required|integer|min:0',
+            'operator_name' => 'nullable|string|max:255',
+            'shift' => 'nullable|string|max:50',
+        ]);
+
+        $report = ProductionGciHourlyReport::query()
+            ->where('production_order_id', $order->id)
+            ->where('time_range', $validated['time_range'])
+            ->first();
+
+        if ($report) {
+            $report->fill([
+                'target' => $validated['target'] ?? (int) $report->target,
+                'actual' => $validated['actual'],
+                'ng' => $validated['ng'],
+                'operator_name' => $validated['operator_name'] ?? $report->operator_name,
+                'shift' => $validated['shift'] ?? $report->shift,
+            ])->save();
+        } else {
+            $legacyWorkOrder = $this->resolveLegacyGciWorkOrder($order);
+            $report = ProductionGciHourlyReport::create([
+                'production_gci_work_order_id' => $legacyWorkOrder->id,
+                'production_order_id' => $order->id,
+                'time_range' => $validated['time_range'],
+                'target' => $validated['target'] ?? 0,
+                'actual' => $validated['actual'],
+                'ng' => $validated['ng'],
+                'offline_id' => $this->generateCloudOfflineId(),
+                'operator_name' => $validated['operator_name'] ?? null,
+                'shift' => $validated['shift'] ?? null,
+            ]);
+        }
+
+        $totalActual = (float) ProductionGciHourlyReport::where('production_order_id', $order->id)->sum('actual');
+        $totalNg = (float) ProductionGciHourlyReport::where('production_order_id', $order->id)->sum('ng');
+
+        $order->update([
+            'qty_actual' => $totalActual,
+            'qty_ng' => $totalNg,
+        ]);
+
+        $this->broadcastMonitoringUpdate('hourly_saved', $order, meta: [
+            'time_range' => $report->time_range,
+            'actual' => (int) $report->actual,
+            'ng' => (int) $report->ng,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'time_range' => $report->time_range,
+                'target' => (int) $report->target,
+                'actual' => (int) $report->actual,
+                'ng' => (int) $report->ng,
+                'operator_name' => $report->operator_name,
+                'shift' => $report->shift,
+                'qty_actual_total' => $totalActual,
+                'qty_ng_total' => $totalNg,
+            ],
+        ]);
+    }
+
+    public function machineDowntimes(Request $request, $id)
+    {
+        $date = $request->query('date', now()->toDateString());
+
+        $items = ProductionGciDowntime::query()
+            ->where('machine_id', (int) $id)
+            ->whereDate('start_time', $date)
+            ->orderByDesc('start_time')
+            ->get();
+
+        $active = $items->first(fn (ProductionGciDowntime $item) => $item->end_time === null);
+
+        return response()->json([
+            'data' => [
+                'active' => $active ? $this->formatDowntime($active) : null,
+                'items' => $items->map(fn (ProductionGciDowntime $item) => $this->formatDowntime($item))->values(),
+            ],
+        ]);
+    }
+
+    public function startMachineDowntime(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'machine_name' => 'nullable|string|max:255',
+            'shift' => 'nullable|string|max:50',
+            'operator_name' => 'nullable|string|max:255',
+            'reason' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+            'refill_part_no' => 'nullable|string|max:255',
+            'refill_part_name' => 'nullable|string|max:255',
+            'refill_qty' => 'nullable|numeric|min:0',
+            'production_order_id' => 'nullable|integer|exists:production_orders,id',
+            'start_time' => 'nullable|date',
+        ]);
+
+        $order = !empty($validated['production_order_id'])
+            ? ProductionOrder::find($validated['production_order_id'])
+            : null;
+
+        $meta = [
+            'type' => in_array($validated['reason'], ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial'], true)
+                ? 'qdc_reason'
+                : 'downtime',
+            'production_order_id' => $order?->id,
+            'production_order_number' => $order?->production_order_number,
+            'notes' => $validated['notes'] ?? '',
+        ];
+
+        $downtime = ProductionGciDowntime::create([
+            'production_gci_work_order_id' => null,
+            'machine_id' => (int) $id,
+            'machine_name' => $validated['machine_name'] ?? optional(Machine::find($id))->name,
+            'shift' => $validated['shift'] ?? $order?->shift,
+            'operator_name' => $validated['operator_name'] ?? null,
+            'start_time' => Carbon::parse($validated['start_time'] ?? now())->toDateTimeString(),
+            'end_time' => null,
+            'duration_minutes' => 0,
+            'reason' => $validated['reason'],
+            'notes' => json_encode($meta),
+            'refill_part_no' => $validated['refill_part_no'] ?? null,
+            'refill_part_name' => $validated['refill_part_name'] ?? null,
+            'refill_qty' => $validated['refill_qty'] ?? null,
+            'offline_id' => $this->generateCloudOfflineId(),
+        ]);
+
+        $this->broadcastMonitoringUpdate('downtime_started', $order, dates: [$downtime->start_time], machineIds: [(int) $id], meta: [
+            'reason' => $downtime->reason,
+            'downtime_id' => (int) $downtime->id,
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $this->formatDowntime($downtime)]);
+    }
+
+    public function stopMachineDowntime(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'end_time' => 'nullable|date',
+        ]);
+
+        $downtime = ProductionGciDowntime::findOrFail($id);
+        $endTime = Carbon::parse($validated['end_time'] ?? now());
+        $startTime = Carbon::parse($downtime->start_time);
+        $duration = max(0, (int) ceil($startTime->diffInSeconds($endTime) / 60));
+        $meta = $this->decodeDowntimeNotes($downtime->notes);
+        $order = !empty($meta['production_order_id']) ? ProductionOrder::find((int) $meta['production_order_id']) : null;
+
+        $downtime->update([
+            'end_time' => $endTime->toDateTimeString(),
+            'duration_minutes' => $duration,
+        ]);
+
+        $this->broadcastMonitoringUpdate('downtime_stopped', $order, dates: [$downtime->start_time, $downtime->end_time], machineIds: [(int) ($downtime->machine_id ?? 0)], meta: [
+            'reason' => $downtime->reason,
+            'downtime_id' => (int) $downtime->id,
+            'duration_minutes' => $duration,
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $this->formatDowntime($downtime->fresh())]);
+    }
+
     /**
      * Store QDC timer session from Android app
      */
@@ -854,6 +1073,48 @@ class ProductionGciApiController extends Controller
         );
 
         return response()->json(['status' => 'success']);
+    }
+
+    public function machineQdcSessions(Request $request, $id)
+    {
+        $date = $request->query('date', now()->toDateString());
+
+        $items = ProductionGciDowntime::query()
+            ->where('machine_id', (int) $id)
+            ->whereDate('start_time', $date)
+            ->orderByDesc('start_time')
+            ->get()
+            ->filter(function (ProductionGciDowntime $downtime) {
+                $meta = $this->decodeDowntimeNotes($downtime->notes);
+
+                return ($meta['type'] ?? null) === 'qdc_session';
+            })
+            ->map(function (ProductionGciDowntime $downtime) {
+                $meta = $this->decodeDowntimeNotes($downtime->notes);
+
+                return [
+                    'id' => (int) $downtime->id,
+                    'machine_id' => (int) ($downtime->machine_id ?? 0),
+                    'machine_name' => (string) ($downtime->machine_name ?? '-'),
+                    'shift' => (string) ($downtime->shift ?? '-'),
+                    'operator_name' => (string) ($downtime->operator_name ?? ''),
+                    'production_order_id' => (int) ($meta['production_order_id'] ?? 0) ?: null,
+                    'production_order_number' => $meta['production_order_number'] ?? null,
+                    'part_from' => $meta['part_from'] ?? null,
+                    'part_to' => $meta['part_to'] ?? null,
+                    'part_no' => $meta['part_no'] ?? null,
+                    'part_name' => $meta['part_name'] ?? null,
+                    'start_time' => (string) $downtime->start_time,
+                    'end_time' => $downtime->end_time ? (string) $downtime->end_time : null,
+                    'duration_seconds' => (int) ($meta['duration_seconds'] ?? ((int) ($downtime->duration_minutes ?? 0) * 60)),
+                    'internal_seconds' => (int) ($meta['internal_seconds'] ?? 0),
+                    'external_seconds' => (int) ($meta['external_seconds'] ?? 0),
+                    'notes' => (string) ($meta['notes'] ?? ''),
+                ];
+            })
+            ->values();
+
+        return response()->json(['data' => $items]);
     }
 
     /**
