@@ -42,17 +42,16 @@ class ProductionPlanningController extends Controller
         if ($session) {
             $allLines = ProductionPlanningLine::where('session_id', $session->id)
                 ->with(['gciPart.bom.items', 'productionOrders', 'machine'])
+                ->orderByRaw('CASE WHEN machine_id IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('machine_id')
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
             $planningLines = $allLines
                 ->sortBy([
-                    fn ($line) => $line->machine?->name ?? 'ZZZ_UNASSIGNED',
+                    fn ($line) => $line->machine_id === null ? 1 : 0,
+                    fn ($line) => (int) ($line->machine_id ?? PHP_INT_MAX),
                     fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
-                    fn ($line) => $line->gciPart?->part_name ?? '',
-                    fn ($line) => $line->gciPart?->part_no ?? '',
-                    fn ($line) => $line->gciPart?->model ?? '',
-                    fn ($line) => (int) ($line->production_sequence ?? PHP_INT_MAX),
                     fn ($line) => (int) $line->id,
                 ])
                 ->values();
