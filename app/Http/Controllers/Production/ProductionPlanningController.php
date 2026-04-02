@@ -45,10 +45,19 @@ class ProductionPlanningController extends Controller
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
-            $planningLines = $allLines->values();
+            $planningLines = $allLines
+                ->sortBy([
+                    fn ($line) => $line->machine?->name ?? 'ZZZ_UNASSIGNED',
+                    fn ($line) => $line->gciPart?->model ?? '',
+                    fn ($line) => $line->gciPart?->part_name ?? '',
+                    fn ($line) => $line->gciPart?->part_no ?? '',
+                    fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
+                    fn ($line) => (int) $line->id,
+                ])
+                ->values();
 
             // Group by machine_id
-            foreach ($allLines as $line) {
+            foreach ($planningLines as $line) {
                 $machineKey = $line->machine_id ?: 'unassigned';
                 $machineName = $line->machine?->name ?: 'Unassigned';
                 if (!isset($machineGroups[$machineKey])) {
@@ -68,7 +77,7 @@ class ProductionPlanningController extends Controller
                 $machineGroups[$machineKey]['subtotal_plan_qty'] += (float) $line->plan_qty;
             }
 
-            $processLoadRows = $this->buildProcessLoadRows($allLines, $planDate);
+            $processLoadRows = $this->buildProcessLoadRows($planningLines, $planDate);
         }
 
         // Get daily planning data from outgoing
