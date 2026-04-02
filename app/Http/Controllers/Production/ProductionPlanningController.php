@@ -48,12 +48,12 @@ class ProductionPlanningController extends Controller
             $planningLines = $allLines
                 ->sortBy([
                     fn ($line) => $line->machine?->name ?? 'ZZZ_UNASSIGNED',
-                    fn ($line) => $line->production_sequence !== null ? 0 : 1,
-                    fn ($line) => (int) ($line->production_sequence ?? PHP_INT_MAX),
-                    fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
                     fn ($line) => $line->gciPart?->part_name ?? '',
                     fn ($line) => $line->gciPart?->part_no ?? '',
                     fn ($line) => $line->gciPart?->model ?? '',
+                    fn ($line) => $line->production_sequence !== null ? 0 : 1,
+                    fn ($line) => (int) ($line->production_sequence ?? PHP_INT_MAX),
+                    fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
                     fn ($line) => (int) $line->id,
                 ])
                 ->values();
