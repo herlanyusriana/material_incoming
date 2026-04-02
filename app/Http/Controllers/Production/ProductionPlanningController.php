@@ -48,12 +48,27 @@ class ProductionPlanningController extends Controller
                 ->orderBy('id')
                 ->get();
             $planningLines = $allLines
-                ->sortBy([
-                    fn ($line) => $line->machine_id === null ? 1 : 0,
-                    fn ($line) => (int) ($line->machine_id ?? PHP_INT_MAX),
-                    fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
-                    fn ($line) => (int) $line->id,
-                ])
+                ->sort(function ($a, $b) {
+                    $aMachineNull = $a->machine_id === null ? 1 : 0;
+                    $bMachineNull = $b->machine_id === null ? 1 : 0;
+                    if ($aMachineNull !== $bMachineNull) {
+                        return $aMachineNull <=> $bMachineNull;
+                    }
+
+                    $aMachineId = (int) ($a->machine_id ?? PHP_INT_MAX);
+                    $bMachineId = (int) ($b->machine_id ?? PHP_INT_MAX);
+                    if ($aMachineId !== $bMachineId) {
+                        return $aMachineId <=> $bMachineId;
+                    }
+
+                    $aSortOrder = (int) ($a->sort_order ?? PHP_INT_MAX);
+                    $bSortOrder = (int) ($b->sort_order ?? PHP_INT_MAX);
+                    if ($aSortOrder !== $bSortOrder) {
+                        return $aSortOrder <=> $bSortOrder;
+                    }
+
+                    return (int) $a->id <=> (int) $b->id;
+                })
                 ->values();
 
             // Group by machine_id
