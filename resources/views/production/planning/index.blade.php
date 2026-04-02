@@ -206,10 +206,9 @@
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">ACTION</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @forelse(($planningLines ?? collect()) as $line)
-                                    <!-- Main Row Data -->
-                                    <tbody x-data="{ expanded: false }" class="border-b border-slate-200 hover:bg-slate-50/80 transition-colors group">
+                        @forelse(($planningLines ?? collect()) as $line)
+                                <!-- Main Row Data -->
+                                <tbody x-data="{ expanded: false }" class="border-b border-slate-200 hover:bg-slate-50/80 transition-colors group">
                                         @php
                                             $lineEstHours = ($line->machine && (float) $line->plan_qty > 0)
                                                 ? (float) $line->machine->estimateHours((float) $line->plan_qty)
@@ -301,7 +300,7 @@
                                                         <span
                                                             class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-700 border border-green-200"
                                                             title="{{ $line->productionOrders->pluck('production_order_number')->implode(', ') }}">
-                                                            <span class="text-[10px] font-black">WO{{ $line->productionOrders->count() > 1 ? '×' . $line->productionOrders->count() : '' }}</span>
+                                                            <span class="text-[10px] font-black">WO{{ $line->productionOrders->count() > 1 ? 'x' . $line->productionOrders->count() : '' }}</span>
                                                         </span>
                                                     @elseif($line->plan_qty > 0)
                                                         <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
@@ -359,8 +358,9 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                    </tbody>
-                            @empty
+                                </tbody>
+                        @empty
+                            <tbody>
                                 <tr>
                                     <td colspan="14"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
@@ -375,9 +375,11 @@
                                         </div>
                                     </td>
                                 </tr>
-                            @endforelse
+                            </tbody>
+                        @endforelse
 
-                            @if(($planningLines ?? collect())->isNotEmpty())
+                        @if(($planningLines ?? collect())->isNotEmpty())
+                            <tbody>
                                 {{-- Grand Total Row --}}
                                 <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
                                     <td colspan="5" class="px-4 py-3 text-right text-slate-700">
@@ -386,10 +388,10 @@
                                     <td class="px-3 py-3 text-right font-mono text-slate-800">
                                         {{ number_format($grandTotalFgGci, 0) }}
                                     </td>
-                                    <td class="px-3 py-3"></td>
                                     <td class="px-3 py-3 text-right font-mono text-blue-700">
                                         {{ number_format($grandTotalDeliveryRequirementQty, 0) }}
                                     </td>
+                                    <td class="px-3 py-3"></td>
                                     <td class="px-3 py-3 text-right font-mono text-emerald-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>
@@ -399,8 +401,8 @@
                                     </td>
                                     <td class="px-3 py-3"></td>
                                 </tr>
-                            @endif
-                        </tbody>
+                            </tbody>
+                        @endif
                     </table>
                 </div>
             </div>

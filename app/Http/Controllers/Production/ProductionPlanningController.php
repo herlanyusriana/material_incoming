@@ -48,10 +48,12 @@ class ProductionPlanningController extends Controller
             $planningLines = $allLines
                 ->sortBy([
                     fn ($line) => $line->machine?->name ?? 'ZZZ_UNASSIGNED',
+                    fn ($line) => $line->production_sequence !== null ? 0 : 1,
+                    fn ($line) => (int) ($line->production_sequence ?? PHP_INT_MAX),
+                    fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
                     fn ($line) => $line->gciPart?->part_name ?? '',
                     fn ($line) => $line->gciPart?->part_no ?? '',
                     fn ($line) => $line->gciPart?->model ?? '',
-                    fn ($line) => (int) ($line->sort_order ?? PHP_INT_MAX),
                     fn ($line) => (int) $line->id,
                 ])
                 ->values();
@@ -175,9 +177,45 @@ class ProductionPlanningController extends Controller
                 ->whereHas('bom', function ($q) {
                     $q->where('status', 'active');
                 })
-                ->with(['bom.items'])
-                ->orderBy('part_name')
+                ->with(['bom.items.machine'])
                 ->get();
+
+            $parts = $parts
+                ->map(function ($part) {
+                    $machineName = 'ZZZ_UNASSIGNED';
+                    $processName = null;
+                    $machineId = null;
+
+                    $activeBom = $part->bom;
+                    if ($activeBom) {
+                        foreach ($activeBom->items as $bomItem) {
+                            if (!$machineId && !empty($bomItem->machine_id)) {
+                                $machineId = $bomItem->machine_id;
+                                $machineName = optional($bomItem->machine)->name ?? $machineName;
+                            }
+                            if (!$processName && !empty($bomItem->process_name)) {
+                                $processName = $bomItem->process_name;
+                            }
+                            if ($machineId && $processName) {
+                                break;
+                            }
+                        }
+                    }
+
+                    $part->resolved_machine_id = $machineId;
+                    $part->resolved_machine_name = $machineName;
+                    $part->resolved_process_name = $processName;
+
+                    return $part;
+                })
+                ->sortBy([
+                    fn ($part) => $part->resolved_machine_name ?? 'ZZZ_UNASSIGNED',
+                    fn ($part) => $part->part_name ?? '',
+                    fn ($part) => $part->part_no ?? '',
+                    fn ($part) => $part->model ?? '',
+                    fn ($part) => (int) $part->id,
+                ])
+                ->values();
 
             foreach ($parts as $part) {
                 // Check if line already exists for this part in session
@@ -189,22 +227,8 @@ class ProductionPlanningController extends Controller
                     continue;
 
                 // Get machine_id and process_name from BOM
-                $machineId = null;
-                $processName = null;
-                $activeBom = $part->bom;
-                if ($activeBom) {
-                    foreach ($activeBom->items as $bomItem) {
-                        if (!empty($bomItem->machine_id)) {
-                            $machineId = $bomItem->machine_id;
-                        }
-                        if (!empty($bomItem->process_name)) {
-                            $processName = $bomItem->process_name;
-                        }
-                        // Found both, stop
-                        if ($machineId && $processName)
-                            break;
-                    }
-                }
+                $machineId = $part->resolved_machine_id;
+                $processName = $part->resolved_process_name;
 
                 $sortOrder++;
 
