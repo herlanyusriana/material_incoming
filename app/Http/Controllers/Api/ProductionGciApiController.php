@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Machine;
 use App\Models\ProductionOrder;
 use App\Models\ProductionInspection;
@@ -152,13 +153,23 @@ class ProductionGciApiController extends Controller
             $dates = [now()->toDateString()];
         }
 
-        event(new MonitoringUpdated(
-            type: $type,
-            dates: $dates,
-            machine_ids: $machineIds,
-            order_ids: $orderIds,
-            meta: $meta,
-        ));
+        try {
+            event(new MonitoringUpdated(
+                type: $type,
+                dates: $dates,
+                machine_ids: $machineIds,
+                order_ids: $orderIds,
+                meta: $meta,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Production monitoring broadcast failed', [
+                'type' => $type,
+                'order_id' => $order?->id,
+                'machine_ids' => $machineIds,
+                'dates' => $dates,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function normalizeIssuedTags(ProductionOrder $order): array
