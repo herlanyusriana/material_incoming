@@ -79,12 +79,6 @@ class ProductionPlanningController extends Controller
                         return strcasecmp($aModel, $bModel);
                     }
 
-                    $aPartNo = (string) ($a->gciPart?->part_no ?? '');
-                    $bPartNo = (string) ($b->gciPart?->part_no ?? '');
-                    if ($aPartNo !== $bPartNo) {
-                        return strcasecmp($aPartNo, $bPartNo);
-                    }
-
                     return (int) $a->id <=> (int) $b->id;
                 })
                 ->values();
