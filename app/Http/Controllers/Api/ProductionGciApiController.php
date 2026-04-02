@@ -17,6 +17,13 @@ use App\Models\GciInventory;
 
 class ProductionGciApiController extends Controller
 {
+    private const CLOSED_EXECUTION_STAGES = [
+        'final_inspection',
+        'kanban_update',
+        'warehouse_supply',
+        'finished',
+    ];
+
     private function isRmBuyRequirement(array $req): bool
     {
         $makeOrBuy = strtoupper(trim((string) ($req['make_or_buy'] ?? 'BUY')));
@@ -28,7 +35,11 @@ class ProductionGciApiController extends Controller
 
     private function resolveMonitoringStatus(ProductionOrder $order): string
     {
-        if ($order->kanban_updated_at || in_array((string) $order->workflow_stage, ['warehouse_supply', 'finished'], true)) {
+        if (
+            $order->kanban_updated_at
+            || in_array((string) $order->workflow_stage, self::CLOSED_EXECUTION_STAGES, true)
+            || ($order->end_time && (float) ($order->qty_actual ?? 0) > 0)
+        ) {
             return 'completed';
         }
 
@@ -278,6 +289,7 @@ class ProductionGciApiController extends Controller
                 // 2. OR show backlog for this machine: WOs that are released, in production, or kanban_released
                 $q->orWhereIn('status', ['kanban_released', 'released', 'in_production']);
             })
+            ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
             ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled', 'completed'])
             ->orderBy('plan_date', 'asc')
             ->orderBy('production_sequence', 'asc');
