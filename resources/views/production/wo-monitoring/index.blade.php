@@ -87,15 +87,22 @@
         function renderMachineCard(machine) {
             const orders = machine.orders;
             const hasRunning = orders.some(o => (o.display_status || o.status) === 'in_production');
+            const hasPaused = orders.some(o => (o.display_status || o.status) === 'paused');
 
-            const statusDot = hasRunning ?
-                '<span class="flex h-3 w-3 relative"><span class="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span></span>' :
-                '<span class="flex h-3 w-3"><span class="inline-flex h-3 w-3 rounded-full bg-slate-300"></span></span>';
+            const statusDot = hasRunning
+                ? '<span class="flex h-3 w-3 relative"><span class="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span></span>'
+                : (hasPaused
+                    ? '<span class="flex h-3 w-3 relative"><span class="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-amber-300 opacity-75"></span><span class="relative inline-flex h-3 w-3 rounded-full bg-amber-500"></span></span>'
+                    : '<span class="flex h-3 w-3"><span class="inline-flex h-3 w-3 rounded-full bg-slate-300"></span></span>');
 
             const ordersHtml = orders.map(o => {
                 const pct = o.qty_planned > 0 ? Math.min(Math.round((o.qty_actual / o.qty_planned) * 100), 100) : 0;
                 const displayStatus = o.display_status || o.status;
-                const barColor = displayStatus === 'completed' ? 'bg-blue-500' : (pct >= 80 ? 'bg-emerald-500' : (pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'));
+                const barColor = displayStatus === 'completed'
+                    ? 'bg-blue-500'
+                    : (displayStatus === 'paused'
+                        ? 'bg-amber-400'
+                        : (pct >= 80 ? 'bg-emerald-500' : (pct >= 50 ? 'bg-amber-500' : 'bg-rose-500')));
                 const statusBadge = statusBadgeHtml(displayStatus);
 
                 // Hourly data
@@ -128,14 +135,21 @@
                         <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div class="h-full ${barColor} transition-all duration-500" style="width: ${pct}%"></div>
                         </div>
+                        ${(o.qdc_count || 0) > 0 ? `
+                            <div class="mt-2">
+                                <span class="inline-flex items-center rounded-lg bg-violet-50 px-2 py-1 text-[10px] font-bold text-violet-700 ring-1 ring-violet-200">
+                                    QDC ${o.qdc_count}x • ${Math.round((o.qdc_duration_seconds || 0) / 60)} mnt
+                                </span>
+                            </div>
+                        ` : ''}
                         ${hourlyHtml}
                     </div>
                 `;
             }).join('');
 
             return `
-                <div class="bg-white rounded-2xl shadow-sm border ${hasRunning ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-slate-200'} overflow-hidden">
-                    <div class="px-5 py-4 ${hasRunning ? 'bg-emerald-50/50' : 'bg-slate-50/50'} border-b border-slate-100 flex items-center gap-3">
+                <div class="bg-white rounded-2xl shadow-sm border ${hasRunning ? 'border-emerald-200 ring-1 ring-emerald-100' : (hasPaused ? 'border-amber-200 ring-1 ring-amber-100' : 'border-slate-200')} overflow-hidden">
+                    <div class="px-5 py-4 ${hasRunning ? 'bg-emerald-50/50' : (hasPaused ? 'bg-amber-50/50' : 'bg-slate-50/50')} border-b border-slate-100 flex items-center gap-3">
                         ${statusDot}
                         <div class="flex-1">
                             <div class="text-sm font-bold text-slate-900">${machine.machine.name}</div>
@@ -156,6 +170,7 @@
         function statusBadgeHtml(status) {
             const map = {
                 'in_production': ['bg-emerald-100 text-emerald-700', 'RUNNING'],
+                'paused': ['bg-amber-100 text-amber-700', 'PAUSED'],
                 'completed': ['bg-blue-100 text-blue-700', 'DONE'],
                 'planned': ['bg-amber-100 text-amber-700', 'PLANNED'],
                 'released': ['bg-purple-100 text-purple-700', 'RELEASED'],

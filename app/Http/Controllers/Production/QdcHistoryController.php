@@ -99,13 +99,14 @@ class QdcHistoryController extends Controller
             }
 
             $appDowntimes = $appQuery->get()->map(fn($dt) => (object) [
+                'meta' => is_array($meta = json_decode($dt->notes ?? '{}', true)) ? $meta : [],
                 'source' => 'app',
                 'date' => $dt->created_at,
                 'machine_name' => $dt->machine?->name ?? $dt->machine_name ?? '-',
-                'wo_no' => null,
-                'wo_id' => null,
-                'part_no' => '-',
-                'part_name' => null,
+                'wo_no' => (is_array($meta ?? null) ? ($meta['production_order_number'] ?? null) : null),
+                'wo_id' => (is_array($meta ?? null) ? ($meta['production_order_id'] ?? null) : null),
+                'part_no' => (is_array($meta ?? null) ? ($meta['part_no'] ?? '-') : '-'),
+                'part_name' => (is_array($meta ?? null) ? ($meta['part_name'] ?? null) : null),
                 'category' => $dt->reason,
                 'start_time' => $dt->start_time,
                 'end_time' => $dt->end_time,

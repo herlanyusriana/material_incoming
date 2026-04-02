@@ -49,6 +49,13 @@ class ProductionGciApiController extends Controller
             });
     }
 
+    private function decodeDowntimeNotes(?string $notes): array
+    {
+        $decoded = json_decode((string) $notes, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
     private function resolveMonitoringStatus(ProductionOrder $order): string
     {
         if (
@@ -520,6 +527,7 @@ class ProductionGciApiController extends Controller
     {
         $data = $request->validate([
             'machine_id' => 'required|integer',
+            'production_order_id' => 'nullable|integer|exists:production_orders,id',
             'machine_name' => 'nullable|string',
             'operator_name' => 'nullable|string',
             'shift' => 'nullable|string',
@@ -536,11 +544,12 @@ class ProductionGciApiController extends Controller
 
         // Store as a downtime record with reason = 'QDC / Die Change'
         $durationMinutes = intval(ceil($data['duration_seconds'] / 60));
+        $order = !empty($data['production_order_id']) ? ProductionOrder::with('part')->find($data['production_order_id']) : null;
 
         ProductionGciDowntime::create([
             'machine_id' => $data['machine_id'],
-            'machine_name' => $data['machine_name'] ?? null,
-            'shift' => $data['shift'] ?? null,
+            'machine_name' => $data['machine_name'] ?? $order?->machine?->name,
+            'shift' => $data['shift'] ?? $order?->shift,
             'operator_name' => $data['operator_name'] ?? null,
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
@@ -548,6 +557,10 @@ class ProductionGciApiController extends Controller
             'reason' => 'Ganti Tipe/Setting',
             'notes' => json_encode([
                 'type' => 'qdc_session',
+                'production_order_id' => $order?->id,
+                'production_order_number' => $order?->production_order_number,
+                'part_no' => $order?->part?->part_no,
+                'part_name' => $order?->part?->part_name,
                 'part_from' => $data['part_from'],
                 'part_to' => $data['part_to'],
                 'duration_seconds' => $data['duration_seconds'],
@@ -585,6 +598,24 @@ class ProductionGciApiController extends Controller
                 ->whereDate('start_time', $date)
                 ->get();
 
+            $qdcByOrder = [];
+            foreach ($downtimes as $dt) {
+                $meta = $this->decodeDowntimeNotes($dt->notes);
+                if (($meta['type'] ?? null) !== 'qdc_session') {
+                    continue;
+                }
+
+                $poId = (int) ($meta['production_order_id'] ?? 0);
+                if ($poId <= 0) {
+                    continue;
+                }
+
+                $qdcByOrder[$poId] = [
+                    'count' => (int) (($qdcByOrder[$poId]['count'] ?? 0) + 1),
+                    'duration_seconds' => (int) (($qdcByOrder[$poId]['duration_seconds'] ?? 0) + (int) ($meta['duration_seconds'] ?? 0)),
+                ];
+            }
+
             $qdcReasons = ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial', 'Ganti Tipe/Setting'];
             $totalDowntimeMinutes = $downtimes->where('reason', '!=', 'Istirahat')
                 ->reject(fn($dt) => in_array($dt->reason, $qdcReasons))
@@ -600,8 +631,9 @@ class ProductionGciApiController extends Controller
                     'name' => $machine->name,
                     'code' => $machine->code,
                 ],
-                'orders' => $orders->map(function ($o) use ($hourlyReports) {
+                'orders' => $orders->map(function ($o) use ($hourlyReports, $qdcByOrder) {
                     $displayStatus = $this->resolveMonitoringStatus($o);
+                    $qdc = $qdcByOrder[$o->id] ?? ['count' => 0, 'duration_seconds' => 0];
 
                     return [
                         'id' => $o->id,
@@ -617,6 +649,8 @@ class ProductionGciApiController extends Controller
                         'start_time' => $o->start_time,
                         'end_time' => $o->end_time,
                         'shift' => $o->shift,
+                        'qdc_count' => (int) $qdc['count'],
+                        'qdc_duration_seconds' => (int) $qdc['duration_seconds'],
                         'hourly' => $hourlyReports->where('production_order_id', $o->id)->map(fn($h) => [
                             'time_range' => $h->time_range,
                             'target' => (int) $h->target,
