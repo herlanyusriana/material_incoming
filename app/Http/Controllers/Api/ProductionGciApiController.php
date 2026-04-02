@@ -120,6 +120,55 @@ class ProductionGciApiController extends Controller
         ];
     }
 
+    private function buildMaterialIssueHistory(ProductionOrder $order): array
+    {
+        $requestLines = collect($order->material_request_lines ?? []);
+        $issueLines = collect($order->material_issue_lines ?? []);
+
+        return $issueLines->map(function ($issueLine) use ($requestLines) {
+            $componentPartNo = (string) ($issueLine['component_part_no'] ?? '-');
+            $requestLine = $requestLines->first(function ($line) use ($issueLine, $componentPartNo) {
+                $samePartId = (int) ($line['component_gci_part_id'] ?? 0) > 0
+                    && (int) ($line['component_gci_part_id'] ?? 0) === (int) ($issueLine['component_gci_part_id'] ?? 0);
+
+                return $samePartId || (string) ($line['component_part_no'] ?? '-') === $componentPartNo;
+            });
+
+            $allocations = collect($issueLine['allocations'] ?? [])->map(function ($allocation) {
+                $sourceTag = (string) ($allocation['source_tag'] ?? $allocation['batch_no'] ?? '');
+
+                return [
+                    'part_no' => (string) ($allocation['part_no'] ?? '-'),
+                    'part_name' => (string) ($allocation['part_name'] ?? '-'),
+                    'location_code' => (string) ($allocation['location_code'] ?? '-'),
+                    'batch_no' => (string) ($allocation['batch_no'] ?? ''),
+                    'source_tag' => $sourceTag,
+                    'source_invoice_no' => (string) ($allocation['source_invoice_no'] ?? ''),
+                    'source_delivery_note_no' => (string) ($allocation['source_delivery_note_no'] ?? ''),
+                    'source_receive_id' => $allocation['source_receive_id'] ?? null,
+                    'source_arrival_id' => $allocation['source_arrival_id'] ?? null,
+                    'qty_on_hand' => (float) ($allocation['qty_on_hand'] ?? 0),
+                    'request_qty' => (float) ($allocation['request_qty'] ?? 0),
+                    'issued_qty' => (float) ($allocation['issued_qty'] ?? 0),
+                    'source_type' => (string) ($allocation['source_type'] ?? 'primary'),
+                ];
+            })->values()->all();
+
+            return [
+                'component_gci_part_id' => (int) ($issueLine['component_gci_part_id'] ?? 0),
+                'component_part_no' => $componentPartNo,
+                'component_part_name' => (string) ($issueLine['component_part_name'] ?? '-'),
+                'uom' => (string) ($issueLine['uom'] ?? '-'),
+                'required_qty' => (float) ($requestLine['required_qty'] ?? $issueLine['required_qty'] ?? 0),
+                'available_qty' => (float) ($requestLine['available_qty'] ?? 0),
+                'shortage_qty' => (float) ($requestLine['shortage_qty'] ?? 0),
+                'issued_qty' => (float) ($issueLine['issued_qty'] ?? 0),
+                'allocations_count' => count($allocations),
+                'allocations' => $allocations,
+            ];
+        })->values()->all();
+    }
+
     private function resolveMonitoringStatus(ProductionOrder $order): string
     {
         if (
@@ -422,6 +471,34 @@ class ProductionGciApiController extends Controller
                 'part_no' => (string) ($order->part?->part_no ?? '-'),
                 'part_name' => (string) ($order->part?->part_name ?? '-'),
                 'material_status' => $this->buildMaterialStatus($order),
+            ],
+        ]);
+    }
+
+    public function materialIssueHistory($id)
+    {
+        $order = ProductionOrder::with('part:id,part_no,part_name,model')->findOrFail($id);
+        $materialStatus = $this->buildMaterialStatus($order);
+        $issueHistory = $this->buildMaterialIssueHistory($order);
+
+        return response()->json([
+            'data' => [
+                'id' => (int) $order->id,
+                'wo_number' => (string) ($order->production_order_number ?? $order->transaction_no ?? '-'),
+                'status' => (string) $order->status,
+                'workflow_stage' => (string) $order->workflow_stage,
+                'part_no' => (string) ($order->part?->part_no ?? '-'),
+                'part_name' => (string) ($order->part?->part_name ?? '-'),
+                'material_status' => $materialStatus,
+                'issue_summary' => [
+                    'issued_at' => $materialStatus['issued_at'],
+                    'handed_over_at' => $materialStatus['handed_over_at'],
+                    'issue_posted' => $materialStatus['issue_posted'],
+                    'handover_done' => $materialStatus['handover_done'],
+                    'request_line_count' => $materialStatus['request_line_count'],
+                    'issued_tag_count' => $materialStatus['issued_tag_count'],
+                ],
+                'issue_lines' => $issueHistory,
             ],
         ]);
     }

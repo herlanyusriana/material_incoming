@@ -13,6 +13,7 @@ Route::get('/production-gci/machines', [\App\Http\Controllers\Api\ProductionGciA
 Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrders']);
 Route::get('/production-gci/parts', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'parts']);
 Route::get('/production-gci/wo/{id}/material-status', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialStatus']);
+Route::get('/production-gci/wo/{id}/material-issue-history', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialIssueHistory']);
 Route::post('/production-gci/wo/{id}/start', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startWo']);
 Route::post('/production-gci/wo/{id}/pause', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'pauseWo']);
 Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'resumeWo']);
