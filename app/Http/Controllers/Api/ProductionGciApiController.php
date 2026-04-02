@@ -72,6 +72,8 @@ class ProductionGciApiController extends Controller
                         'batch_no' => (string) ($allocation['batch_no'] ?? ''),
                         'source_tag' => $tag,
                         'source_invoice_no' => (string) ($allocation['source_invoice_no'] ?? ''),
+                        'source_arrival_id' => $allocation['source_arrival_id'] ?? null,
+                        'source_receive_id' => $allocation['source_receive_id'] ?? null,
                         'issued_qty' => (float) ($allocation['issued_qty'] ?? 0),
                         'uom' => (string) ($line['uom'] ?? '-'),
                     ];

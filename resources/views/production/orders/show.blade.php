@@ -822,10 +822,27 @@
                                                             </div>
                                                             <div class="text-xs text-slate-600">
                                                                 Supplied {{ number_format((float) ($allocation['issued_qty'] ?? 0), 4) }}
+                                                                @if(!empty($allocation['source_tag']) || !empty($allocation['batch_no']))
+                                                                    | Tag {{ $allocation['source_tag'] ?? $allocation['batch_no'] }}
+                                                                @endif
+                                                                @if(!empty($allocation['source_invoice_no']))
+                                                                    | Invoice {{ $allocation['source_invoice_no'] }}
+                                                                @endif
                                                                 @if(($allocation['source_type'] ?? 'primary') === 'substitute')
                                                                     <span class="ml-1 inline-flex rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">SUB</span>
                                                                 @endif
                                                             </div>
+                                                            @if(!empty($allocation['source_receive_id']) || !empty($allocation['source_arrival_id']))
+                                                                <div class="mt-1 text-[11px] text-slate-500">
+                                                                    @if(!empty($allocation['source_receive_id']))
+                                                                        Receive #{{ $allocation['source_receive_id'] }}
+                                                                    @endif
+                                                                    @if(!empty($allocation['source_arrival_id']))
+                                                                        @if(!empty($allocation['source_receive_id'])) | @endif
+                                                                        Arrival #{{ $allocation['source_arrival_id'] }}
+                                                                    @endif
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                     @endforeach
                                                 </div>
