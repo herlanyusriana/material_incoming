@@ -67,6 +67,24 @@ class ProductionPlanningController extends Controller
                         return $aSortOrder <=> $bSortOrder;
                     }
 
+                    $aPartName = (string) ($a->gciPart?->part_name ?? '');
+                    $bPartName = (string) ($b->gciPart?->part_name ?? '');
+                    if ($aPartName !== $bPartName) {
+                        return strcasecmp($aPartName, $bPartName);
+                    }
+
+                    $aModel = (string) ($a->gciPart?->model ?? '');
+                    $bModel = (string) ($b->gciPart?->model ?? '');
+                    if ($aModel !== $bModel) {
+                        return strcasecmp($aModel, $bModel);
+                    }
+
+                    $aPartNo = (string) ($a->gciPart?->part_no ?? '');
+                    $bPartNo = (string) ($b->gciPart?->part_no ?? '');
+                    if ($aPartNo !== $bPartNo) {
+                        return strcasecmp($aPartNo, $bPartNo);
+                    }
+
                     return (int) $a->id <=> (int) $b->id;
                 })
                 ->values();
