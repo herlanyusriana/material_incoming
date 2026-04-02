@@ -52,6 +52,28 @@
 
     <script>
         let refreshTimer = null;
+        let monitoringChannel = null;
+
+        function flashLiveBadge(message = 'Live via WebSocket') {
+            const badge = document.getElementById('liveBadge');
+            if (!badge) {
+                return;
+            }
+
+            badge.dataset.baseLabel ??= badge.innerHTML;
+            badge.innerHTML = `
+                <span class="mr-1.5 flex h-2 w-2 relative">
+                    <span class="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                </span>
+                ${message}
+            `;
+
+            clearTimeout(window.__liveBadgeTimer);
+            window.__liveBadgeTimer = setTimeout(() => {
+                badge.innerHTML = badge.dataset.baseLabel;
+            }, 4000);
+        }
 
         function fetchMonitoringData() {
             const date = document.getElementById('monitorDate').value;
@@ -61,6 +83,25 @@
                 .catch(() => {
                     document.getElementById('machineCards').innerHTML =
                         '<div class="col-span-full text-center py-12 text-rose-400">Error loading data. Retrying...</div>';
+                });
+        }
+
+        function initMonitoringRealtime() {
+            if (!window.Echo) {
+                return;
+            }
+
+            monitoringChannel = window.Echo.channel('production.monitoring')
+                .listen('.production.monitoring.updated', (payload) => {
+                    const selectedDate = document.getElementById('monitorDate').value;
+                    const dates = Array.isArray(payload.dates) ? payload.dates : [];
+
+                    if (dates.length > 0 && !dates.includes(selectedDate)) {
+                        return;
+                    }
+
+                    flashLiveBadge(`Live update: ${payload.type || 'monitoring'}`);
+                    fetchMonitoringData();
                 });
         }
 
@@ -184,6 +225,7 @@
 
         // Auto-refresh every 30 seconds
         fetchMonitoringData();
+        initMonitoringRealtime();
         refreshTimer = setInterval(fetchMonitoringData, 30000);
     </script>
 @endsection

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\Production\MonitoringUpdated;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Machine;
@@ -54,6 +56,59 @@ class ProductionGciApiController extends Controller
         $decoded = json_decode((string) $notes, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function normalizeMonitoringDates(array $dates): array
+    {
+        return collect($dates)
+            ->filter()
+            ->map(function ($date) {
+                if ($date instanceof Carbon) {
+                    return $date->toDateString();
+                }
+
+                if ($date instanceof \DateTimeInterface) {
+                    return Carbon::instance($date)->toDateString();
+                }
+
+                try {
+                    return Carbon::parse((string) $date)->toDateString();
+                } catch (\Throwable) {
+                    return null;
+                }
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function broadcastMonitoringUpdate(
+        string $type,
+        ?ProductionOrder $order = null,
+        array $dates = [],
+        array $machineIds = [],
+        array $orderIds = [],
+        array $meta = []
+    ): void {
+        if ($order) {
+            $dates[] = $order->plan_date;
+            $machineIds[] = (int) $order->machine_id;
+            $orderIds[] = (int) $order->id;
+        }
+
+        $dates = $this->normalizeMonitoringDates($dates);
+        if (empty($dates)) {
+            $dates = [now()->toDateString()];
+        }
+
+        event(new MonitoringUpdated(
+            type: $type,
+            dates: $dates,
+            machine_ids: $machineIds,
+            order_ids: $orderIds,
+            meta: $meta,
+        ));
     }
 
     private function normalizeIssuedTags(ProductionOrder $order): array
@@ -238,6 +293,9 @@ class ProductionGciApiController extends Controller
         try {
             // Track mapping of offline SQLite ID to online Postgres/MySQL ID
             $woMap = [];
+            $affectedDates = [];
+            $affectedMachineIds = [];
+            $affectedOrderIds = [];
 
             if (!empty($data['work_orders'])) {
                 foreach ($data['work_orders'] as $woParams) {
@@ -286,6 +344,9 @@ class ProductionGciApiController extends Controller
                                 'qty_actual' => $totalActual,
                                 'qty_ng' => $totalNg,
                             ]);
+                            $affectedDates[] = $po->plan_date;
+                            $affectedMachineIds[] = (int) $po->machine_id;
+                            $affectedOrderIds[] = (int) $po->id;
                         }
                         continue;
                     }
@@ -373,6 +434,20 @@ class ProductionGciApiController extends Controller
             }
 
             DB::commit();
+
+            if (!empty($affectedOrderIds) || !empty($data['downtimes']) || !empty($data['hourly_reports'])) {
+                $this->broadcastMonitoringUpdate(
+                    type: 'sync',
+                    dates: $affectedDates,
+                    machineIds: $affectedMachineIds,
+                    orderIds: $affectedOrderIds,
+                    meta: [
+                        'hourly_reports' => count($data['hourly_reports'] ?? []),
+                        'downtimes' => count($data['downtimes'] ?? []),
+                    ],
+                );
+            }
+
             return response()->json(['status' => 'success']);
 
         } catch (\Exception $e) {
@@ -542,6 +617,11 @@ class ProductionGciApiController extends Controller
             'start_time' => $order->start_time ?? now(),
         ]);
 
+        $this->broadcastMonitoringUpdate('wo_started', $order, meta: [
+            'status' => 'in_production',
+            'workflow_stage' => 'mass_production',
+        ]);
+
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
     }
 
@@ -591,6 +671,11 @@ class ProductionGciApiController extends Controller
             ]),
         ]);
 
+        $this->broadcastMonitoringUpdate('wo_paused', $order, meta: [
+            'reason' => $validated['reason'],
+            'status' => 'paused',
+        ]);
+
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
     }
 
@@ -624,6 +709,10 @@ class ProductionGciApiController extends Controller
         $order->update([
             'status' => 'in_production',
             'workflow_stage' => 'mass_production',
+        ]);
+
+        $this->broadcastMonitoringUpdate('wo_resumed', $order, meta: [
+            'status' => 'in_production',
         ]);
 
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
@@ -671,6 +760,13 @@ class ProductionGciApiController extends Controller
                 'status' => 'pending',
             ]);
         }
+
+        $this->broadcastMonitoringUpdate('wo_finished', $order, meta: [
+            'status' => 'in_production',
+            'workflow_stage' => 'final_inspection',
+            'qty_actual' => (float) ($order->qty_actual ?? 0),
+            'qty_ng' => (float) ($order->qty_ng ?? 0),
+        ]);
 
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
     }
@@ -745,6 +841,17 @@ class ProductionGciApiController extends Controller
                 'notes' => $data['notes'] ?? '',
             ]),
         ]);
+
+        $this->broadcastMonitoringUpdate(
+            type: 'qdc_logged',
+            order: $order,
+            dates: [$data['start_time'], $data['end_time']],
+            machineIds: [(int) $data['machine_id']],
+            meta: [
+                'duration_seconds' => (int) $data['duration_seconds'],
+                'production_order_id' => $order?->id,
+            ],
+        );
 
         return response()->json(['status' => 'success']);
     }
