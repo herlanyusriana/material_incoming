@@ -33,6 +33,22 @@ class ProductionGciApiController extends Controller
             && $classification === 'RM';
     }
 
+    private function findActivePauseDowntime(ProductionOrder $order): ?ProductionGciDowntime
+    {
+        return ProductionGciDowntime::query()
+            ->where('machine_id', $order->machine_id)
+            ->whereNull('end_time')
+            ->latest('id')
+            ->get()
+            ->first(function (ProductionGciDowntime $downtime) use ($order) {
+                $meta = json_decode((string) $downtime->notes, true);
+
+                return is_array($meta)
+                    && ($meta['type'] ?? null) === 'wo_pause'
+                    && (int) ($meta['production_order_id'] ?? 0) === (int) $order->id;
+            });
+    }
+
     private function resolveMonitoringStatus(ProductionOrder $order): string
     {
         if (
@@ -287,7 +303,7 @@ class ProductionGciApiController extends Controller
                 $q->whereDate('plan_date', $date);
                 
                 // 2. OR show backlog for this machine: WOs that are released, in production, or kanban_released
-                $q->orWhereIn('status', ['kanban_released', 'released', 'in_production']);
+                $q->orWhereIn('status', ['kanban_released', 'released', 'in_production', 'paused']);
             })
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
             ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled', 'completed'])
@@ -348,14 +364,109 @@ class ProductionGciApiController extends Controller
     }
 
     /**
+     * Pause a WO from Android app
+     */
+    public function pauseWo(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+
+        if ($order->status === 'paused') {
+            return response()->json(['message' => 'WO sudah dalam status pause', 'data' => $order], 200);
+        }
+
+        if ($order->status !== 'in_production') {
+            return response()->json(['message' => 'WO harus running untuk di-pause'], 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+            'operator_name' => 'nullable|string|max:255',
+            'shift' => 'nullable|string|max:50',
+        ]);
+
+        $pausedAt = now();
+
+        $order->update([
+            'status' => 'paused',
+            'workflow_stage' => 'mass_production',
+        ]);
+
+        ProductionGciDowntime::create([
+            'machine_id' => $order->machine_id,
+            'machine_name' => optional($order->machine)->name,
+            'shift' => $validated['shift'] ?? $order->shift,
+            'operator_name' => $validated['operator_name'] ?? null,
+            'start_time' => $pausedAt->toDateTimeString(),
+            'end_time' => null,
+            'duration_minutes' => 0,
+            'reason' => $validated['reason'],
+            'notes' => json_encode([
+                'type' => 'wo_pause',
+                'production_order_id' => $order->id,
+                'production_order_number' => $order->production_order_number,
+                'notes' => $validated['notes'] ?? '',
+            ]),
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $order->fresh()]);
+    }
+
+    /**
+     * Resume a paused WO from Android app
+     */
+    public function resumeWo(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+
+        if ($order->status === 'in_production') {
+            return response()->json(['message' => 'WO sudah running', 'data' => $order], 200);
+        }
+
+        if ($order->status !== 'paused') {
+            return response()->json(['message' => 'WO harus pause dulu untuk di-resume'], 422);
+        }
+
+        $resumedAt = now();
+
+        if ($activePause = $this->findActivePauseDowntime($order)) {
+            $startedAt = strtotime((string) $activePause->start_time);
+            $duration = $startedAt ? max(0, (int) ceil(($resumedAt->timestamp - $startedAt) / 60)) : 0;
+
+            $activePause->update([
+                'end_time' => $resumedAt->toDateTimeString(),
+                'duration_minutes' => $duration,
+            ]);
+        }
+
+        $order->update([
+            'status' => 'in_production',
+            'workflow_stage' => 'mass_production',
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $order->fresh()]);
+    }
+
+    /**
      * Finish a WO from Android app
      */
     public function finishWo(Request $request, $id)
     {
         $order = ProductionOrder::findOrFail($id);
 
-        if ($order->status !== 'in_production') {
+        if (!in_array((string) $order->status, ['in_production', 'paused'], true)) {
             return response()->json(['message' => 'WO belum dimulai'], 422);
+        }
+
+        if ($order->status === 'paused' && $activePause = $this->findActivePauseDowntime($order)) {
+            $finishedAt = now();
+            $startedAt = strtotime((string) $activePause->start_time);
+            $duration = $startedAt ? max(0, (int) ceil(($finishedAt->timestamp - $startedAt) / 60)) : 0;
+
+            $activePause->update([
+                'end_time' => $finishedAt->toDateTimeString(),
+                'duration_minutes' => $duration,
+            ]);
         }
 
         // Sum actual from hourly reports
