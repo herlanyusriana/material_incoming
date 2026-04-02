@@ -56,6 +56,70 @@ class ProductionGciApiController extends Controller
         return is_array($decoded) ? $decoded : [];
     }
 
+    private function normalizeIssuedTags(ProductionOrder $order): array
+    {
+        $issueLines = collect($order->material_issue_lines ?? []);
+
+        return $issueLines
+            ->flatMap(function ($line) {
+                return collect($line['allocations'] ?? [])->map(function ($allocation) use ($line) {
+                    $tag = (string) ($allocation['source_tag'] ?? $allocation['batch_no'] ?? '');
+
+                    return [
+                        'component_part_no' => (string) ($line['component_part_no'] ?? '-'),
+                        'component_part_name' => (string) ($line['component_part_name'] ?? '-'),
+                        'location_code' => (string) ($allocation['location_code'] ?? '-'),
+                        'batch_no' => (string) ($allocation['batch_no'] ?? ''),
+                        'source_tag' => $tag,
+                        'source_invoice_no' => (string) ($allocation['source_invoice_no'] ?? ''),
+                        'issued_qty' => (float) ($allocation['issued_qty'] ?? 0),
+                        'uom' => (string) ($line['uom'] ?? '-'),
+                    ];
+                });
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buildMaterialStatus(ProductionOrder $order): array
+    {
+        $requestLines = collect($order->material_request_lines ?? []);
+        $issueLines = collect($order->material_issue_lines ?? []);
+        $requiresIssue = $requestLines->isNotEmpty();
+        $shortageCount = $requestLines->filter(fn ($line) => (float) ($line['shortage_qty'] ?? 0) > 0)->count();
+        $issuePosted = !is_null($order->material_issued_at);
+        $handoverDone = !is_null($order->material_handed_over_at);
+        $issuedTags = $this->normalizeIssuedTags($order);
+
+        $materialReady = !$requiresIssue
+            ? true
+            : ($shortageCount === 0 && $issuePosted && $handoverDone && $issueLines->isNotEmpty());
+
+        return [
+            'requires_issue' => $requiresIssue,
+            'request_line_count' => $requestLines->count(),
+            'shortage_count' => $shortageCount,
+            'issue_posted' => $issuePosted,
+            'issued_at' => $order->material_issued_at ? $order->material_issued_at->toDateTimeString() : null,
+            'handover_done' => $handoverDone,
+            'handed_over_at' => $order->material_handed_over_at ? $order->material_handed_over_at->toDateTimeString() : null,
+            'material_ready' => $materialReady,
+            'issued_tag_count' => count($issuedTags),
+            'issued_tags' => $issuedTags,
+            'start_block_reason' => $materialReady
+                ? null
+                : (!$requiresIssue
+                    ? null
+                    : ($shortageCount > 0
+                        ? 'Material request masih shortage.'
+                        : (!$issuePosted
+                            ? 'WH supply ke production belum diposting.'
+                            : (!$handoverDone
+                                ? 'Material sudah diissue, tapi serah terima ke production belum dicatat.'
+                                : 'Material issue belum lengkap.')))),
+        ];
+    }
+
     private function resolveMonitoringStatus(ProductionOrder $order): string
     {
         if (
@@ -317,25 +381,49 @@ class ProductionGciApiController extends Controller
             ->orderBy('plan_date', 'asc')
             ->orderBy('production_sequence', 'asc');
 
-        $orders = $query->get()->map(fn($o) => [
-            'id' => (int) $o->id,
-            'wo_number' => (string) ($o->production_order_number ?? $o->transaction_no ?? '-'),
-            'transaction_no' => (string) $o->transaction_no,
-            'part_no' => (string) ($o->part?->part_no ?? '-'),
-            'part_name' => (string) ($o->part?->part_name ?? '-'),
-            'model' => (string) ($o->part?->model ?? '-'),
-            'qty_planned' => (float) $o->qty_planned,
-            'qty_actual' => (float) ($o->qty_actual ?? 0),
-            'qty_ng' => (float) ($o->qty_ng ?? 0),
-            'status' => (string) $o->status,
-            'workflow_stage' => (string) $o->workflow_stage,
-            'shift' => (string) $o->shift,
-            'production_sequence' => $o->production_sequence !== null ? (int) $o->production_sequence : null,
-            'start_time' => $o->start_time ? (string) $o->start_time : null,
-            'end_time' => $o->end_time ? (string) $o->end_time : null,
-        ]);
+        $orders = $query->get()->map(function ($o) {
+            $materialStatus = $this->buildMaterialStatus($o);
+
+            return [
+                'id' => (int) $o->id,
+                'wo_number' => (string) ($o->production_order_number ?? $o->transaction_no ?? '-'),
+                'transaction_no' => (string) $o->transaction_no,
+                'part_no' => (string) ($o->part?->part_no ?? '-'),
+                'part_name' => (string) ($o->part?->part_name ?? '-'),
+                'model' => (string) ($o->part?->model ?? '-'),
+                'qty_planned' => (float) $o->qty_planned,
+                'qty_actual' => (float) ($o->qty_actual ?? 0),
+                'qty_ng' => (float) ($o->qty_ng ?? 0),
+                'status' => (string) $o->status,
+                'workflow_stage' => (string) $o->workflow_stage,
+                'shift' => (string) $o->shift,
+                'production_sequence' => $o->production_sequence !== null ? (int) $o->production_sequence : null,
+                'start_time' => $o->start_time ? (string) $o->start_time : null,
+                'end_time' => $o->end_time ? (string) $o->end_time : null,
+                'material_status' => $materialStatus,
+                'can_start' => $materialStatus['material_ready']
+                    && in_array((string) $o->status, ['released', 'kanban_released'], true),
+            ];
+        });
 
         return response()->json(['data' => $orders]);
+    }
+
+    public function materialStatus($id)
+    {
+        $order = ProductionOrder::with('part:id,part_no,part_name,model')->findOrFail($id);
+
+        return response()->json([
+            'data' => [
+                'id' => (int) $order->id,
+                'wo_number' => (string) ($order->production_order_number ?? $order->transaction_no ?? '-'),
+                'status' => (string) $order->status,
+                'workflow_stage' => (string) $order->workflow_stage,
+                'part_no' => (string) ($order->part?->part_no ?? '-'),
+                'part_name' => (string) ($order->part?->part_name ?? '-'),
+                'material_status' => $this->buildMaterialStatus($order),
+            ],
+        ]);
     }
 
     /**
@@ -349,6 +437,14 @@ class ProductionGciApiController extends Controller
         if ($order->status === 'planned') {
             return response()->json([
                 'message' => 'WO masih dalam status PLANNED. Silakan hubungi admin untuk melakukan RELEASE WO terlebih dahulu.'
+            ], 422);
+        }
+
+        $materialStatus = $this->buildMaterialStatus($order);
+        if (!$materialStatus['material_ready']) {
+            return response()->json([
+                'message' => $materialStatus['start_block_reason'] ?? 'Material untuk WO ini belum siap.',
+                'material_status' => $materialStatus,
             ], 422);
         }
 
