@@ -109,6 +109,27 @@ class ProductionGciApiController extends Controller
         );
     }
 
+    private function resolveMachineDowntimeWorkOrder(int $machineId, ?string $shift = null, ?string $operatorName = null): ProductionGciWorkOrder
+    {
+        $machine = Machine::find($machineId);
+        $date = now()->toDateString();
+        $orderNo = 'DT-' . ($machine?->code ?: ('M' . $machineId)) . '-' . str_replace('-', '', $date);
+
+        return ProductionGciWorkOrder::firstOrCreate(
+            ['order_no' => $orderNo],
+            [
+                'type_model' => (string) ($machine?->name ?? 'Machine Downtime'),
+                'tact_time' => 0,
+                'target_uph' => 0,
+                'date' => $date,
+                'shift' => (string) ($shift ?: '-'),
+                'foreman' => '-',
+                'operator_name' => (string) ($operatorName ?: '-'),
+                'offline_id' => $this->generateCloudOfflineId(),
+            ]
+        );
+    }
+
     private function normalizeMonitoringDates(array $dates): array
     {
         return collect($dates)
@@ -884,7 +905,7 @@ class ProductionGciApiController extends Controller
         }
 
         $order->update([
-            'status' => 'in_production',
+            'status' => 'finished',
             'workflow_stage' => 'final_inspection',
             'end_time' => now(),
             'qty_actual' => $finalActual,
@@ -901,7 +922,7 @@ class ProductionGciApiController extends Controller
         }
 
         $this->broadcastMonitoringUpdate('wo_finished', $order, meta: [
-            'status' => 'in_production',
+            'status' => 'finished',
             'workflow_stage' => 'final_inspection',
             'qty_actual' => $finalActual,
             'qty_ng' => $finalNg,
@@ -1060,6 +1081,13 @@ class ProductionGciApiController extends Controller
         $order = !empty($validated['production_order_id'])
             ? ProductionOrder::find($validated['production_order_id'])
             : null;
+        $legacyWorkOrder = $order
+            ? $this->resolveLegacyGciWorkOrder($order)
+            : $this->resolveMachineDowntimeWorkOrder(
+                (int) $id,
+                $validated['shift'] ?? null,
+                $validated['operator_name'] ?? null,
+            );
 
         $meta = [
             'type' => in_array($validated['reason'], ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial'], true)
@@ -1071,7 +1099,7 @@ class ProductionGciApiController extends Controller
         ];
 
         $downtime = ProductionGciDowntime::create([
-            'production_gci_work_order_id' => null,
+            'production_gci_work_order_id' => $legacyWorkOrder->id,
             'machine_id' => (int) $id,
             'machine_name' => $validated['machine_name'] ?? optional(Machine::find($id))->name,
             'shift' => $validated['shift'] ?? $order?->shift,
