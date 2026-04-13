@@ -1153,20 +1153,47 @@ class ProductionGciApiController extends Controller
                 ->get();
 
             $qdcByOrder = [];
+            $machineQdcSessions = [];
+            $machineQdcTotalSeconds = 0;
             foreach ($downtimes as $dt) {
                 $meta = $this->decodeDowntimeNotes($dt->notes);
                 if (($meta['type'] ?? null) !== 'qdc_session') {
                     continue;
                 }
 
+                $durationSeconds = (int) ($meta['duration_seconds'] ?? ((int) ($dt->duration_minutes ?? 0) * 60));
                 $poId = (int) ($meta['production_order_id'] ?? 0);
+                $session = [
+                    'id' => (int) $dt->id,
+                    'production_order_id' => $poId > 0 ? $poId : null,
+                    'production_order_number' => $meta['production_order_number'] ?? null,
+                    'operator_name' => (string) ($dt->operator_name ?? ''),
+                    'start_time' => (string) $dt->start_time,
+                    'end_time' => $dt->end_time ? (string) $dt->end_time : null,
+                    'duration_seconds' => $durationSeconds,
+                    'internal_seconds' => (int) ($meta['internal_seconds'] ?? 0),
+                    'external_seconds' => (int) ($meta['external_seconds'] ?? 0),
+                    'part_from' => $meta['part_from'] ?? null,
+                    'part_to' => $meta['part_to'] ?? null,
+                    'part_no' => $meta['part_no'] ?? null,
+                    'part_name' => $meta['part_name'] ?? null,
+                    'notes' => (string) ($meta['notes'] ?? ''),
+                ];
+
+                $machineQdcSessions[] = $session;
+                $machineQdcTotalSeconds += $durationSeconds;
+
                 if ($poId <= 0) {
                     continue;
                 }
 
+                $currentLatest = $qdcByOrder[$poId]['latest_session'] ?? null;
                 $qdcByOrder[$poId] = [
                     'count' => (int) (($qdcByOrder[$poId]['count'] ?? 0) + 1),
-                    'duration_seconds' => (int) (($qdcByOrder[$poId]['duration_seconds'] ?? 0) + (int) ($meta['duration_seconds'] ?? 0)),
+                    'duration_seconds' => (int) (($qdcByOrder[$poId]['duration_seconds'] ?? 0) + $durationSeconds),
+                    'latest_session' => !$currentLatest || strtotime((string) $session['start_time']) >= strtotime((string) ($currentLatest['start_time'] ?? ''))
+                        ? $session
+                        : $currentLatest,
                 ];
             }
 
@@ -1187,7 +1214,7 @@ class ProductionGciApiController extends Controller
                 ],
                 'orders' => $orders->map(function ($o) use ($hourlyReports, $qdcByOrder) {
                     $displayStatus = $this->resolveMonitoringStatus($o);
-                    $qdc = $qdcByOrder[$o->id] ?? ['count' => 0, 'duration_seconds' => 0];
+                    $qdc = $qdcByOrder[$o->id] ?? ['count' => 0, 'duration_seconds' => 0, 'latest_session' => null];
 
                     return [
                         'id' => $o->id,
@@ -1205,6 +1232,7 @@ class ProductionGciApiController extends Controller
                         'shift' => $o->shift,
                         'qdc_count' => (int) $qdc['count'],
                         'qdc_duration_seconds' => (int) $qdc['duration_seconds'],
+                        'latest_qdc' => $qdc['latest_session'],
                         'hourly' => $hourlyReports->where('production_order_id', $o->id)->map(fn($h) => [
                             'time_range' => $h->time_range,
                             'target' => (int) $h->target,
@@ -1215,6 +1243,10 @@ class ProductionGciApiController extends Controller
                 }),
                 'total_downtime_minutes' => $totalDowntimeMinutes,
                 'downtime_count' => $downtimes->count(),
+                'qdc_count' => count($machineQdcSessions),
+                'qdc_total_seconds' => $machineQdcTotalSeconds,
+                'qdc_unassigned_count' => collect($machineQdcSessions)->whereNull('production_order_id')->count(),
+                'qdc_sessions' => collect($machineQdcSessions)->sortByDesc('start_time')->values()->all(),
             ];
         }
 

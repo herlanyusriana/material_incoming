@@ -1,4 +1,5 @@
 import './bootstrap';
+import './echo';
 import TomSelect from 'tom-select';
 
 import Alpine from 'alpinejs';
