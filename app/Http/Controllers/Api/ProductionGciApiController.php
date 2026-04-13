@@ -971,17 +971,16 @@ class ProductionGciApiController extends Controller
             ->first();
 
         // 110% Limit Validation
-        $oldActual = $report ? (float) $report->actual : 0;
-        $oldNg = $report ? (float) $report->ng : 0;
-        
         $totalCurrentActual = (float) ProductionGciHourlyReport::where('production_order_id', $order->id)->sum('actual');
         $totalCurrentNg = (float) ProductionGciHourlyReport::where('production_order_id', $order->id)->sum('ng');
-        
-        $newTotalActual = ($totalCurrentActual - $oldActual) + (float) $validated['actual'];
-        $newTotalNg = ($totalCurrentNg - $oldNg) + (float) $validated['ng'];
-        
+
+        $incrementActual = (float) $validated['actual'];
+        $incrementNg = (float) $validated['ng'];
+        $newTotalActual = $totalCurrentActual + $incrementActual;
+        $newTotalNg = $totalCurrentNg + $incrementNg;
+
         $maxAllowed = ceil((float)$order->qty_planned * 1.1);
-        
+
         if (($newTotalActual + $newTotalNg) > $maxAllowed) {
             return response()->json([
                 'message' => "Akumulasi total (" . $newTotalActual . " OK + " . $newTotalNg . " NG) melampaui toleransi 110% dari target plan (" . $maxAllowed . "). Harap periksa kembali input Anda!"
@@ -991,8 +990,8 @@ class ProductionGciApiController extends Controller
         if ($report) {
             $report->fill([
                 'target' => $validated['target'] ?? (int) $report->target,
-                'actual' => $validated['actual'],
-                'ng' => $validated['ng'],
+                'actual' => (int) $report->actual + (int) $validated['actual'],
+                'ng' => (int) $report->ng + (int) $validated['ng'],
                 'ng_reason' => $validated['ng_reason'] ?? $report->ng_reason,
                 'operator_name' => $validated['operator_name'] ?? $report->operator_name,
                 'shift' => $validated['shift'] ?? $report->shift,
@@ -1036,6 +1035,8 @@ class ProductionGciApiController extends Controller
                 'actual' => (int) $report->actual,
                 'ng' => (int) $report->ng,
                 'ng_reason' => $report->ng_reason,
+                'input_actual' => (int) $incrementActual,
+                'input_ng' => (int) $incrementNg,
                 'operator_name' => $report->operator_name,
                 'shift' => $report->shift,
                 'qty_actual_total' => $totalActual,
