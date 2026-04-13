@@ -1065,62 +1065,74 @@ class ProductionGciApiController extends Controller
 
     public function startMachineDowntime(Request $request, $id)
     {
-        $validated = $request->validate([
-            'machine_name' => 'nullable|string|max:255',
-            'shift' => 'nullable|string|max:50',
-            'operator_name' => 'nullable|string|max:255',
-            'reason' => 'required|string|max:255',
-            'notes' => 'nullable|string',
-            'refill_part_no' => 'nullable|string|max:255',
-            'refill_part_name' => 'nullable|string|max:255',
-            'refill_qty' => 'nullable|numeric|min:0',
-            'production_order_id' => 'nullable|integer|exists:production_orders,id',
-            'start_time' => 'nullable|date',
-        ]);
+        try {
+            $validated = $request->validate([
+                'machine_name' => 'nullable|string|max:255',
+                'shift' => 'nullable|string|max:50',
+                'operator_name' => 'nullable|string|max:255',
+                'reason' => 'required|string|max:255',
+                'notes' => 'nullable|string',
+                'refill_part_no' => 'nullable|string|max:255',
+                'refill_part_name' => 'nullable|string|max:255',
+                'refill_qty' => 'nullable|numeric|min:0',
+                'production_order_id' => 'nullable|integer|exists:production_orders,id',
+                'start_time' => 'nullable|date',
+            ]);
 
-        $order = !empty($validated['production_order_id'])
-            ? ProductionOrder::find($validated['production_order_id'])
-            : null;
-        $legacyWorkOrder = $order
-            ? $this->resolveLegacyGciWorkOrder($order)
-            : $this->resolveMachineDowntimeWorkOrder(
-                (int) $id,
-                $validated['shift'] ?? null,
-                $validated['operator_name'] ?? null,
-            );
+            $order = !empty($validated['production_order_id'])
+                ? ProductionOrder::find($validated['production_order_id'])
+                : null;
+            $legacyWorkOrder = $order
+                ? $this->resolveLegacyGciWorkOrder($order)
+                : $this->resolveMachineDowntimeWorkOrder(
+                    (int) $id,
+                    $validated['shift'] ?? null,
+                    $validated['operator_name'] ?? null,
+                );
 
-        $meta = [
-            'type' => in_array($validated['reason'], ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial'], true)
-                ? 'qdc_reason'
-                : 'downtime',
-            'production_order_id' => $order?->id,
-            'production_order_number' => $order?->production_order_number,
-            'notes' => $validated['notes'] ?? '',
-        ];
+            $meta = [
+                'type' => in_array($validated['reason'], ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial'], true)
+                    ? 'qdc_reason'
+                    : 'downtime',
+                'production_order_id' => $order?->id,
+                'production_order_number' => $order?->production_order_number,
+                'notes' => $validated['notes'] ?? '',
+            ];
 
-        $downtime = ProductionGciDowntime::create([
-            'production_gci_work_order_id' => $legacyWorkOrder->id,
-            'machine_id' => (int) $id,
-            'machine_name' => $validated['machine_name'] ?? optional(Machine::find($id))->name,
-            'shift' => $validated['shift'] ?? $order?->shift,
-            'operator_name' => $validated['operator_name'] ?? null,
-            'start_time' => Carbon::parse($validated['start_time'] ?? now())->toDateTimeString(),
-            'end_time' => null,
-            'duration_minutes' => 0,
-            'reason' => $validated['reason'],
-            'notes' => json_encode($meta),
-            'refill_part_no' => $validated['refill_part_no'] ?? null,
-            'refill_part_name' => $validated['refill_part_name'] ?? null,
-            'refill_qty' => $validated['refill_qty'] ?? null,
-            'offline_id' => $this->generateCloudOfflineId(),
-        ]);
+            $downtime = ProductionGciDowntime::create([
+                'production_gci_work_order_id' => $legacyWorkOrder->id,
+                'machine_id' => (int) $id,
+                'machine_name' => $validated['machine_name'] ?? optional(Machine::find($id))->name,
+                'shift' => $validated['shift'] ?? $order?->shift,
+                'operator_name' => $validated['operator_name'] ?? null,
+                'start_time' => Carbon::parse($validated['start_time'] ?? now())->toDateTimeString(),
+                'end_time' => null,
+                'duration_minutes' => 0,
+                'reason' => $validated['reason'],
+                'notes' => json_encode($meta),
+                'refill_part_no' => $validated['refill_part_no'] ?? null,
+                'refill_part_name' => $validated['refill_part_name'] ?? null,
+                'refill_qty' => $validated['refill_qty'] ?? null,
+                'offline_id' => $this->generateCloudOfflineId(),
+            ]);
 
-        $this->broadcastMonitoringUpdate('downtime_started', $order, dates: [$downtime->start_time], machineIds: [(int) $id], meta: [
-            'reason' => $downtime->reason,
-            'downtime_id' => (int) $downtime->id,
-        ]);
+            $this->broadcastMonitoringUpdate('downtime_started', $order, dates: [$downtime->start_time], machineIds: [(int) $id], meta: [
+                'reason' => $downtime->reason,
+                'downtime_id' => (int) $downtime->id,
+            ]);
 
-        return response()->json(['status' => 'success', 'data' => $this->formatDowntime($downtime)]);
+            return response()->json(['status' => 'success', 'data' => $this->formatDowntime($downtime)]);
+        } catch (\Throwable $e) {
+            Log::error('startMachineDowntime failed', [
+                'machine_id' => (int) $id,
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Downtime gagal disimpan: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function stopMachineDowntime(Request $request, $id)
