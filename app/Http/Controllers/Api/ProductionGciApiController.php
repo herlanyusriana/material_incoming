@@ -97,13 +97,13 @@ class ProductionGciApiController extends Controller
         return ProductionGciWorkOrder::firstOrCreate(
             ['order_no' => (string) ($order->production_order_number ?? $order->transaction_no ?? ('PO-' . $order->id))],
             [
-                'type_model' => (string) optional($order->part)->model,
+                'type_model' => (string) (optional($order->part)->model ?: optional($order->part)->part_no ?: 'UNKNOWN'),
                 'tact_time' => 0,
                 'target_uph' => 0,
                 'date' => $order->plan_date ? Carbon::parse($order->plan_date)->toDateString() : now()->toDateString(),
-                'shift' => $order->shift,
-                'foreman' => null,
-                'operator_name' => null,
+                'shift' => (string) ($order->shift ?: '-'),
+                'foreman' => '-',
+                'operator_name' => '-',
                 'offline_id' => $this->generateCloudOfflineId(),
             ]
         );
