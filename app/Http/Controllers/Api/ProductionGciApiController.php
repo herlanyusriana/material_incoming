@@ -651,6 +651,17 @@ class ProductionGciApiController extends Controller
     {
         $order = ProductionOrder::findOrFail($id);
 
+        $isMachineBusy = ProductionOrder::where('machine_id', $order->machine_id)
+            ->whereIn('status', ['in_production', 'paused'])
+            ->where('id', '!=', $order->id)
+            ->exists();
+
+        if ($isMachineBusy) {
+            return response()->json([
+                'message' => 'Pekerjaan ditolak. Masih ada Work Order lain yang sedang aktif (Running/Paused) pada mesin ini.'
+            ], 422);
+        }
+
         // Block PLANNED status
         if ($order->status === 'planned') {
             return response()->json([
@@ -843,7 +854,7 @@ class ProductionGciApiController extends Controller
                                         ->where('batch_no', $tagNo)
                                         ->first();
                                     if ($inventory && $needed > 0) {
-                                        $inventory->on_hand = max(0, $inventory->on_hand - $needed);
+                                        $inventory->on_hand -= $needed;
                                         $inventory->save();
                                         $deducted = true;
                                         break;
@@ -855,7 +866,7 @@ class ProductionGciApiController extends Controller
                             if (!$deducted) {
                                 $inventory = GciInventory::where('gci_part_id', $part->id)->orderByDesc('id')->first();
                                 if ($inventory) {
-                                    $inventory->on_hand = max(0, $inventory->on_hand - $needed);
+                                    $inventory->on_hand -= $needed;
                                     $inventory->save();
                                 }
                             }
@@ -936,6 +947,24 @@ class ProductionGciApiController extends Controller
             ->where('production_order_id', $order->id)
             ->where('time_range', $validated['time_range'])
             ->first();
+
+        // 110% Limit Validation
+        $oldActual = $report ? (float) $report->actual : 0;
+        $oldNg = $report ? (float) $report->ng : 0;
+        
+        $totalCurrentActual = (float) ProductionGciHourlyReport::where('production_order_id', $order->id)->sum('actual');
+        $totalCurrentNg = (float) ProductionGciHourlyReport::where('production_order_id', $order->id)->sum('ng');
+        
+        $newTotalActual = ($totalCurrentActual - $oldActual) + (float) $validated['actual'];
+        $newTotalNg = ($totalCurrentNg - $oldNg) + (float) $validated['ng'];
+        
+        $maxAllowed = ceil((float)$order->qty_planned * 1.1);
+        
+        if (($newTotalActual + $newTotalNg) > $maxAllowed) {
+            return response()->json([
+                'message' => "Akumulasi total (" . $newTotalActual . " OK + " . $newTotalNg . " NG) melampaui toleransi 110% dari target plan (" . $maxAllowed . "). Harap periksa kembali input Anda!"
+            ], 422);
+        }
 
         if ($report) {
             $report->fill([
