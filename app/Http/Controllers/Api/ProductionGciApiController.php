@@ -62,7 +62,8 @@ class ProductionGciApiController extends Controller
 
     private function generateCloudOfflineId(): int
     {
-        return (int) now()->format('YmdHis') . random_int(10, 99);
+        // Keep generated IDs safely inside signed INT range used by offline_id columns.
+        return random_int(100000000, 2147483647);
     }
 
     private function formatDowntime(ProductionGciDowntime $downtime): array
