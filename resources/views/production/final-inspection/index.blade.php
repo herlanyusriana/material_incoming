@@ -58,7 +58,7 @@
                     <tr>
                         <th class="px-6 py-4 font-semibold">Order #</th>
                         <th class="px-6 py-4 font-semibold">Part</th>
-                        <th class="px-6 py-4 font-semibold">Qty Produced</th>
+                        <th class="px-6 py-4 font-semibold">Qty FG Produced</th>
                         <th class="px-6 py-4 font-semibold">Inspection Status</th>
                         <th class="px-6 py-4 font-semibold">Kanban Status</th>
                         <th class="px-6 py-4 font-semibold">Inspector</th>

@@ -575,6 +575,7 @@ class ProductionGciApiController extends Controller
                 'id' => (int) $o->id,
                 'wo_number' => (string) ($o->production_order_number ?? $o->transaction_no ?? '-'),
                 'transaction_no' => (string) $o->transaction_no,
+                'plan_date' => $o->plan_date ? Carbon::parse($o->plan_date)->toDateString() : null,
                 'part_no' => (string) ($o->part?->part_no ?? '-'),
                 'part_name' => (string) ($o->part?->part_name ?? '-'),
                 'model' => (string) ($o->part?->model ?? '-'),
@@ -790,6 +791,11 @@ class ProductionGciApiController extends Controller
             return response()->json(['message' => 'WO belum dimulai'], 422);
         }
 
+        $validated = $request->validate([
+            'qty_actual' => 'nullable|numeric|min:0',
+            'qty_ng' => 'nullable|numeric|min:0',
+        ]);
+
         if ($order->status === 'paused' && $activePause = $this->findActivePauseDowntime($order)) {
             $finishedAt = now();
             $startedAt = strtotime((string) $activePause->start_time);
@@ -801,16 +807,24 @@ class ProductionGciApiController extends Controller
             ]);
         }
 
-        // Sum actual from hourly reports
-        $totalActual = ProductionGciHourlyReport::where('production_order_id', $id)->sum('actual');
-        $totalNg = ProductionGciHourlyReport::where('production_order_id', $id)->sum('ng');
+        // Priority: request body > hourly sum > existing order value
+        $hourlyActual = (float) ProductionGciHourlyReport::where('production_order_id', $id)->sum('actual');
+        $hourlyNg = (float) ProductionGciHourlyReport::where('production_order_id', $id)->sum('ng');
+
+        $finalActual = isset($validated['qty_actual'])
+            ? (float) $validated['qty_actual']
+            : ($hourlyActual > 0 ? $hourlyActual : (float) ($order->qty_actual ?? 0));
+
+        $finalNg = isset($validated['qty_ng'])
+            ? (float) $validated['qty_ng']
+            : ($hourlyNg > 0 ? $hourlyNg : (float) ($order->qty_ng ?? 0));
 
         $order->update([
             'status' => 'in_production',
             'workflow_stage' => 'final_inspection',
             'end_time' => now(),
-            'qty_actual' => $totalActual > 0 ? $totalActual : $order->qty_actual,
-            'qty_ng' => $totalNg > 0 ? $totalNg : ($order->qty_ng ?? 0),
+            'qty_actual' => $finalActual,
+            'qty_ng' => $finalNg,
         ]);
 
         // Create final inspection if not exists
@@ -825,8 +839,8 @@ class ProductionGciApiController extends Controller
         $this->broadcastMonitoringUpdate('wo_finished', $order, meta: [
             'status' => 'in_production',
             'workflow_stage' => 'final_inspection',
-            'qty_actual' => (float) ($order->qty_actual ?? 0),
-            'qty_ng' => (float) ($order->qty_ng ?? 0),
+            'qty_actual' => $finalActual,
+            'qty_ng' => $finalNg,
         ]);
 
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
