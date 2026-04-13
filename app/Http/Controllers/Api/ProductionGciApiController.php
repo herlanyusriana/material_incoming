@@ -391,6 +391,7 @@ class ProductionGciApiController extends Controller
                             'target' => $hrParams['target'],
                             'actual' => $hrParams['actual'],
                             'ng' => $hrParams['ng'],
+                            'ng_reason' => $hrParams['ngReason'] ?? null,
                             'operator_name' => $hrParams['operatorName'] ?? null,
                             'shift' => $hrParams['shift'] ?? null,
                         ]
@@ -424,6 +425,7 @@ class ProductionGciApiController extends Controller
                                 'target' => $hrParams['target'],
                                 'actual' => $hrParams['actual'],
                                 'ng' => $hrParams['ng'],
+                                'ng_reason' => $hrParams['ngReason'] ?? null,
                             ]
                         );
                     }
@@ -819,6 +821,57 @@ class ProductionGciApiController extends Controller
             ? (float) $validated['qty_ng']
             : ($hourlyNg > 0 ? $hourlyNg : (float) ($order->qty_ng ?? 0));
 
+        // Auto-Backflush
+        if (($finalActual + $finalNg) > 0) {
+            $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+            if ($bom) {
+                $requirements = $bom->getTotalMaterialRequirements($finalActual + $finalNg);
+                foreach ($requirements as $req) {
+                    if ($this->isRmBuyRequirement($req)) {
+                        $part = $req['part'] ?? null;
+                        if ($part) {
+                            $needed = round((float) ($req['total_qty'] ?? 0), 4);
+                            $needed = round((float) ($req['total_qty'] ?? 0), 4);
+                            $tags = $order->material_issue_lines ?? [];
+                            $deducted = false;
+
+                            foreach ($tags as $tag) {
+                                $tagNo = $tag['tag_number'] ?? '';
+                                if (!empty($tagNo)) {
+                                    // Try to deduct from the exact tag/batch to maintain ISO traceability
+                                    $inventory = GciInventory::where('gci_part_id', $part->id)
+                                        ->where('batch_no', $tagNo)
+                                        ->first();
+                                    if ($inventory && $needed > 0) {
+                                        $inventory->on_hand = max(0, $inventory->on_hand - $needed);
+                                        $inventory->save();
+                                        $deducted = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Fallback to random FIFO if no matching tag found
+                            if (!$deducted) {
+                                $inventory = GciInventory::where('gci_part_id', $part->id)->orderByDesc('id')->first();
+                                if ($inventory) {
+                                    $inventory->on_hand = max(0, $inventory->on_hand - $needed);
+                                    $inventory->save();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Create or add to FG inventory
+            $fgInventory = GciInventory::where('gci_part_id', $order->gci_part_id)->orderByDesc('id')->first();
+            if ($fgInventory) {
+                $fgInventory->on_hand += $finalActual;
+                $fgInventory->save();
+            }
+        }
+
         $order->update([
             'status' => 'in_production',
             'workflow_stage' => 'final_inspection',
@@ -874,6 +927,7 @@ class ProductionGciApiController extends Controller
             'target' => 'nullable|integer|min:0',
             'actual' => 'required|integer|min:0',
             'ng' => 'required|integer|min:0',
+            'ng_reason' => 'nullable|string|max:255',
             'operator_name' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
         ]);
@@ -888,6 +942,7 @@ class ProductionGciApiController extends Controller
                 'target' => $validated['target'] ?? (int) $report->target,
                 'actual' => $validated['actual'],
                 'ng' => $validated['ng'],
+                'ng_reason' => $validated['ng_reason'] ?? $report->ng_reason,
                 'operator_name' => $validated['operator_name'] ?? $report->operator_name,
                 'shift' => $validated['shift'] ?? $report->shift,
             ])->save();
@@ -900,6 +955,7 @@ class ProductionGciApiController extends Controller
                 'target' => $validated['target'] ?? 0,
                 'actual' => $validated['actual'],
                 'ng' => $validated['ng'],
+                'ng_reason' => $validated['ng_reason'] ?? null,
                 'offline_id' => $this->generateCloudOfflineId(),
                 'operator_name' => $validated['operator_name'] ?? null,
                 'shift' => $validated['shift'] ?? null,
@@ -918,6 +974,7 @@ class ProductionGciApiController extends Controller
             'time_range' => $report->time_range,
             'actual' => (int) $report->actual,
             'ng' => (int) $report->ng,
+            'ng_reason' => $report->ng_reason,
         ]);
 
         return response()->json([
@@ -927,6 +984,7 @@ class ProductionGciApiController extends Controller
                 'target' => (int) $report->target,
                 'actual' => (int) $report->actual,
                 'ng' => (int) $report->ng,
+                'ng_reason' => $report->ng_reason,
                 'operator_name' => $report->operator_name,
                 'shift' => $report->shift,
                 'qty_actual_total' => $totalActual,

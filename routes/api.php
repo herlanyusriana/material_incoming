@@ -57,6 +57,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/scan-part', [\App\Http\Controllers\Api\PickingFgApiController::class, 'scanPart']);
     });
 
+    // Warehouse Scanning App
+    Route::prefix('warehouse')->group(function () {
+        Route::get('/work-orders', [\App\Http\Controllers\Api\WarehouseApiController::class, 'pendingWorkOrders']);
+        Route::get('/work-orders/{id}', [\App\Http\Controllers\Api\WarehouseApiController::class, 'getWorkOrder']);
+        Route::post('/work-orders/{id}/scan', [\App\Http\Controllers\Api\WarehouseApiController::class, 'scanTag']);
+        Route::post('/work-orders/{id}/handover', [\App\Http\Controllers\Api\WarehouseApiController::class, 'handover']);
+    });
+
     // Warehouse Scanning & Putaway
     Route::get('/warehouse/tag-info', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'getTagInfo']);
     Route::post('/warehouse/putaway', [\App\Http\Controllers\Api\WarehouseScanningController::class, 'putaway']);
