@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionOrder;
 use App\Models\Bom;
-use App\Models\GciInventory;
+use App\Models\Receive;
+use App\Models\LocationInventory;
 use Illuminate\Http\Request;
 
 class WarehouseApiController extends Controller
@@ -79,10 +80,48 @@ class WarehouseApiController extends Controller
             }
         }
 
-        // Cek fisik material di GciInventory
-        $inventory = GciInventory::where('batch_no', $tagNo)->with('part')->first();
-        if (!$inventory) {
-            return response()->json(['status' => 'error', 'message' => "Label tidak dikenali (Bukan Label Internal/RM GCI)."], 422);
+        // Cari data tag fisik berdasarkan sistem barcode Incoming Material (Receives)
+        $gciPartId = null;
+        $qtyAvailable = 0;
+        $partNo = 'Unknown';
+
+        // 1. Cek apakah barang sudah masuk rak (Location Inventory)
+        $locInv = LocationInventory::where('batch_no', $tagNo)->with('part', 'gciPart')->first();
+        if ($locInv) {
+            $gciPartId = $locInv->gci_part_id;
+            $qtyAvailable = $locInv->qty_on_hand;
+            $partNo = $locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown';
+        } else {
+            // 2. Cek apakah barang masih di area Incoming/Putaway Queue (Receives)
+            $receive = Receive::where('tag', $tagNo)->with('arrivalItem.part', 'arrivalItem.gciPartVendor')->first();
+            if ($receive) {
+                // Determine GCI Part ID from ArrivalItem mappings
+                $arrItem = $receive->arrivalItem;
+                if ($arrItem) {
+                    $gciPartId = $arrItem->gci_part_id 
+                        ?? $arrItem->gciPart?->id;
+                    
+                    $partNo = $arrItem->part?->part_no 
+                        ?? $arrItem->gciPartVendor?->vendor_part_no 
+                        ?? 'Unknown';
+                    
+                    // The generic "resolveGciPartId" logic from ReceiveController
+                    if (!$gciPartId) {
+                        $vendorPartId = (int) ($arrItem->gci_part_vendor_id ?: $arrItem->part_id ?: 0);
+                        if ($vendorPartId > 0) {
+                            $gciPartId = \App\Models\GciPartVendor::whereKey($vendorPartId)->value('gci_part_id') 
+                                ?? \App\Models\Part::whereKey($vendorPartId)->value('gci_part_id');
+                        }
+                    }
+                }
+                
+                $qtyUnit = strtoupper(trim((string) ($receive->qty_unit ?? '')));
+                $qtyAvailable = $qtyUnit === 'COIL' ? (float) ($receive->net_weight ?? 0) : (float) ($receive->qty ?? 0);
+            }
+        }
+
+        if (!$gciPartId || $qtyAvailable <= 0) {
+            return response()->json(['status' => 'error', 'message' => "Label/Tag tidak dikenali atau qty kosong. Pastikan ini Label RM GCI!"], 422);
         }
 
         // Cek apakah material ini dibutuhkan di BOM mesin
@@ -95,21 +134,21 @@ class WarehouseApiController extends Controller
         $materialSesuaiBom = false;
 
         foreach ($reqs as $req) {
-            if (($req['make_or_buy'] ?? '') === 'BUY' && $req['part']?->id === $inventory->gci_part_id) {
+            if (($req['make_or_buy'] ?? '') === 'BUY' && $req['part']?->id === $gciPartId) {
                 $materialSesuaiBom = true;
                 break;
             }
         }
 
         if (!$materialSesuaiBom) {
-            return response()->json(['status' => 'error', 'message' => "ERROR: Material {$inventory->part?->part_no} TIDAK ADA dalam resep BOM mesin ini!"], 422);
+            return response()->json(['status' => 'error', 'message' => "ERROR: Material {$partNo} TIDAK ADA dalam resep BOM mesin ini!"], 422);
         }
 
         // Jika lolos validasi, save ke lines
         $tags[] = [
             'tag_number' => $tagNo,
-            'part_no' => $inventory->part?->part_no,
-            'qty' => (float) $inventory->on_hand,
+            'part_no' => $partNo,
+            'qty' => $qtyAvailable,
             'scanned_at' => now()->toDateTimeString()
         ];
         
