@@ -14,6 +14,7 @@ Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionG
 Route::get('/production-gci/parts', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'parts']);
 Route::get('/production-gci/wo/{id}/material-status', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialStatus']);
 Route::get('/production-gci/wo/{id}/material-issue-history', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialIssueHistory']);
+Route::get('/production-gci/wo/{id}/routing', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrderRouting']);
 Route::post('/production-gci/wo/{id}/start', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startWo']);
 Route::post('/production-gci/wo/{id}/pause', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'pauseWo']);
 Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'resumeWo']);
@@ -62,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/work-orders', [\App\Http\Controllers\Api\WarehouseApiController::class, 'pendingWorkOrders']);
         Route::get('/work-orders/{id}', [\App\Http\Controllers\Api\WarehouseApiController::class, 'getWorkOrder']);
         Route::post('/work-orders/{id}/scan', [\App\Http\Controllers\Api\WarehouseApiController::class, 'scanTag']);
+        Route::delete('/work-orders/{id}/scan/{tagNo}', [\App\Http\Controllers\Api\WarehouseApiController::class, 'deleteTag']);
         Route::post('/work-orders/{id}/handover', [\App\Http\Controllers\Api\WarehouseApiController::class, 'handover']);
     });
 

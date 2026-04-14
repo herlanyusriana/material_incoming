@@ -14,9 +14,14 @@ class ProductionGciHourlyReport extends Model
         'target',
         'actual',
         'ng',
+        'ng_reason',
         'offline_id',
         'operator_name',
         'shift',
+        'output_type',
+        'process_name',
+        'output_part_no',
+        'output_part_name',
     ];
 
     public function workOrder()

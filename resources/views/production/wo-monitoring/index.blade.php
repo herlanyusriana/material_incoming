@@ -174,19 +174,45 @@
                         ? 'bg-amber-400'
                         : (pct >= 80 ? 'bg-emerald-500' : (pct >= 50 ? 'bg-amber-500' : 'bg-rose-500')));
                 const statusBadge = statusBadgeHtml(displayStatus);
+                const processName = (o.process_name || '').trim();
+                const hasHandover = (o.last_handover_from_process || '').trim() || (o.last_handover_from_machine_name || '').trim();
+                const handoverHistory = Array.isArray(o.handover_history) ? o.handover_history : [];
 
                 let hourlyHtml = '';
                 if (o.hourly && o.hourly.length > 0) {
                     hourlyHtml = '<div class="mt-2 flex flex-wrap gap-1">' +
                         o.hourly.map(h => {
                             const hPct = h.target > 0 ? Math.round((h.actual / h.target) * 100) : 0;
-                            const hColor = hPct >= 90 ? 'bg-emerald-100 text-emerald-700' : (hPct >= 70 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700');
-                            return `<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold ${hColor}">${h.time_range.split('-')[0]} ${h.actual}</span>`;
+                            const outputType = (h.output_type || 'fg').toLowerCase();
+                            const hColor = outputType === 'wip'
+                                ? 'bg-sky-100 text-sky-700'
+                                : (hPct >= 90 ? 'bg-emerald-100 text-emerald-700' : (hPct >= 70 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'));
+                            return `<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold ${hColor}">${h.time_range.split('-')[0]} ${outputType.toUpperCase()} ${h.actual}</span>`;
                         }).join('') +
                         '</div>';
                 }
 
                 const latestQdc = o.latest_qdc;
+                const handoverHistoryHtml = handoverHistory.length > 0 ? `
+                    <div class="mt-2 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-200">
+                        <div class="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Timeline Handover</div>
+                        <div class="space-y-1.5">
+                            ${handoverHistory.map(item => `
+                                <div class="flex items-start gap-2 text-[11px] text-slate-700">
+                                    <span class="mt-1 inline-flex h-2 w-2 rounded-full bg-sky-500"></span>
+                                    <div>
+                                        <div class="font-semibold text-slate-800">
+                                            ${escapeHtml(item.process_name || '-')} • ${escapeHtml(item.output_part_no || '-')}
+                                        </div>
+                                        <div class="text-slate-500">
+                                            ${escapeHtml(item.time_range || '-')} • Qty ${Math.round(item.actual || 0)}${item.operator_name ? ` • ${escapeHtml(item.operator_name)}` : ''}${item.shift ? ` • ${escapeHtml(item.shift)}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
                 const qdcDetailHtml = latestQdc ? `
                     <div class="mt-2 rounded-lg bg-violet-50 px-2.5 py-2 ring-1 ring-violet-100">
                         <div class="flex flex-wrap items-center gap-2 text-[10px] font-semibold text-violet-700">
@@ -214,6 +240,16 @@
                             <span class="text-xs font-bold ${pct >= 80 ? 'text-emerald-600' : 'text-slate-500'}">${pct}%</span>
                         </div>
                         <div class="mb-1 text-xs text-slate-500">${o.part_no || '-'} - ${o.part_name || '-'}</div>
+                        ${processName ? `
+                            <div class="mb-2 inline-flex items-center rounded-lg bg-teal-50 px-2 py-1 text-[10px] font-bold text-teal-700 ring-1 ring-teal-200">
+                                Proses aktif: ${escapeHtml(processName)}
+                            </div>
+                        ` : ''}
+                        ${hasHandover ? `
+                            <div class="mb-2 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] text-amber-800 ring-1 ring-amber-100">
+                                Handover masuk${(o.last_handover_from_process || '').trim() ? ` dari <b>${escapeHtml(o.last_handover_from_process)}</b>` : ''}${(o.last_handover_from_machine_name || '').trim() ? ` • ${escapeHtml(o.last_handover_from_machine_name)}` : ''}
+                            </div>
+                        ` : ''}
                         <div class="mb-1 flex items-center gap-3">
                             <span class="text-xs text-slate-400">Target: <b class="text-slate-700">${Math.round(o.qty_planned)}</b></span>
                             <span class="text-xs text-slate-400">OK: <b class="text-emerald-600">${Math.round(o.qty_actual)}</b></span>
@@ -230,6 +266,7 @@
                             </div>
                         ` : ''}
                         ${qdcDetailHtml}
+                        ${handoverHistoryHtml}
                         ${hourlyHtml}
                     </div>
                 `;

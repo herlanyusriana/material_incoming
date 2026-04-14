@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\LocationInventory;
 use App\Models\Receive;
 use App\Models\WarehouseLocation;
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -196,5 +197,41 @@ class WarehousePutawayController extends Controller
         ]);
 
         return back()->with('success', $msg);
+    }
+
+    public function destroy(Receive $receive)
+    {
+        if (!empty($receive->location_code)) {
+            return back()->with('error', 'Receive ini sudah di-putaway (punya lokasi), tidak bisa dihapus dari antrean.');
+        }
+
+        $receive->loadMissing(['arrivalItem']);
+        $partId = (int) ($receive->arrivalItem?->part_id ?? ($receive->arrivalItem?->gci_part_vendor_id ?? 0));
+        
+        $qtyUnit = strtoupper(trim((string) ($receive->qty_unit ?? '')));
+        $qtyContribution = $qtyUnit === 'COIL'
+            ? (float) ($receive->net_weight ?? 0)
+            : (float) ($receive->qty ?? 0);
+
+        DB::transaction(function () use ($receive, $partId, $qtyContribution) {
+            if ($partId > 0 && $receive->qc_status === 'pass' && $qtyContribution > 0) {
+                // Deduct the inventory on_hand because it was added during Receive QC Pass
+                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+                if ($inventory) {
+                    $inventory->update([
+                        'on_hand' => max(0, (float) $inventory->on_hand - $qtyContribution),
+                    ]);
+                }
+            }
+
+            $receive->delete();
+        });
+
+        $this->logActivity('DELETE from Putaway', "receive_id:{$receive->id}", [
+            'part_id' => $partId,
+            'qty_deducted' => $qtyContribution,
+        ]);
+
+        return back()->with('success', 'Baris antrean berhasil dihapus beserta saldo inventorinya.');
     }
 }

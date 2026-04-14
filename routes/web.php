@@ -187,6 +187,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/putaway', [WarehousePutawayController::class, 'index'])->name('putaway.index');
         Route::post('/putaway/{receive}', [WarehousePutawayController::class, 'store'])->name('putaway.store');
+        Route::delete('/putaway/{receive}', [WarehousePutawayController::class, 'destroy'])->name('putaway.destroy');
         Route::post('/putaway', [WarehousePutawayController::class, 'bulk'])->name('putaway.bulk');
 
         Route::get('/bin-transfers', [\App\Http\Controllers\BinTransferController::class, 'index'])->defaults('mode', 'bin_to_bin')->name('bin-transfers.index');
