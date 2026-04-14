@@ -8,6 +8,7 @@ use App\Models\Bom;
 use App\Models\Receive;
 use App\Models\LocationInventory;
 use App\Models\GciInventory;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
@@ -23,25 +24,39 @@ class WarehouseApiController extends Controller
         ];
     }
 
-    public function pendingWorkOrders()
+    public function pendingWorkOrders(Request $request)
     {
+        $selectedDate = trim((string) $request->query('date', ''));
+        $targetDate = $selectedDate !== ''
+            ? Carbon::parse($selectedDate)->toDateString()
+            : now()->toDateString();
+
         $orders = ProductionOrder::with('part')
-            ->whereIn('status', ['kanban_released', 'planned']) // depending on when they issue
+            ->whereDate('plan_date', $targetDate)
+            ->whereIn('status', ['planned', 'kanban_released', 'material_hold', 'resource_hold', 'released'])
             ->whereNull('material_handed_over_at')
             ->orderBy('plan_date', 'asc')
+            ->orderBy('id', 'asc')
             ->get()
             ->map(function ($order) {
                 return [
                     'id' => $order->id,
                     'wo_number' => $order->production_order_number ?? $order->transaction_no,
                     'part_no' => $order->part?->part_no ?? 'Unknown',
+                    'plan_date' => $order->plan_date ? Carbon::parse($order->plan_date)->toDateString() : null,
                     'qty_planned' => (int) $order->qty_planned,
                     'status' => $order->status,
                     'supply_status' => $this->buildSupplyStatus($order),
                 ];
             });
 
-        return response()->json(['status' => 'success', 'data' => $orders]);
+        return response()->json([
+            'status' => 'success',
+            'meta' => [
+                'date' => $targetDate,
+            ],
+            'data' => $orders,
+        ]);
     }
 
     public function getWorkOrder($id)
