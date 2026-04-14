@@ -23,6 +23,11 @@ class GciPart extends Model
         'net_weight',
         'gross_weight',
         'default_location',
+        'is_backflush',
+    ];
+
+    protected $casts = [
+        'is_backflush' => 'boolean',
     ];
 
     public function customers()

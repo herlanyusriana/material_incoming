@@ -253,6 +253,7 @@ class GciPartController extends Controller
             'part_name' => ['nullable', 'string', 'max:255'],
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
+            'is_backflush' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'destination_fg_ids' => ['nullable', 'array'],
             'destination_fg_ids.*' => ['exists:gci_parts,id'],
@@ -269,6 +270,7 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
+        $validated['is_backflush'] = $request->has('is_backflush') || $request->boolean('is_backflush', false);
 
         $customerIds = $request->input('customer_ids', []);
 
@@ -336,6 +338,7 @@ class GciPartController extends Controller
             'part_name' => ['nullable', 'string', 'max:255'],
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
+            'is_backflush' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'destination_fg_ids' => ['nullable', 'array'],
             'destination_fg_ids.*' => ['exists:gci_parts,id'],
@@ -352,6 +355,7 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
+        $validated['is_backflush'] = $request->has('is_backflush') || $request->boolean('is_backflush', false);
 
         $customerIds = $request->input('customer_ids', []);
 

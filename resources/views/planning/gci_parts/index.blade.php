@@ -113,6 +113,7 @@
                                 <th class="px-4 py-3 text-left font-semibold">Size</th>
                                 <th class="px-4 py-3 text-left font-semibold">Model</th>
                                 <th class="px-4 py-3 text-left font-semibold">Tipe</th>
+                                <th class="px-4 py-3 text-center font-semibold">Backflush</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Aksi</th>
                             </tr>
@@ -152,6 +153,17 @@
                                             class="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold border {{ $color }}">
                                             {{ $p->classification ?? 'N/A' }}
                                         </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        @if($p->is_backflush ?? true)
+                                            <span title="Dipotong belakangan (Kanban Update)" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-600">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </span>
+                                        @else
+                                            <span title="Dipotong di awal (WH Supply)" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-400">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3">
                                         <span
@@ -402,13 +414,23 @@
                             @endforeach
                         </div>
                     </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Status</label>
-                        <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required
-                            x-model="form.status">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
+                    <div class="grid grid-cols-2 gap-3 items-center">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Status</label>
+                            <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required
+                                x-model="form.status">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="px-2 pt-5">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="is_backflush" value="1" class="sr-only peer" x-model="form.is_backflush">
+                                <div class="relative w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                <span class="ml-3 text-sm font-semibold text-slate-700">Require Backflush</span>
+                            </label>
+                            <p class="mt-1 text-[10px] text-slate-500 max-w-xs leading-tight">Jika OFF, pemotongan stok wajib lunas saat Warehouse Supply ke mesin (Tanpa menunggu Kanban Update).</p>
+                        </div>
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2">
@@ -511,7 +533,7 @@
                     formAction: @js(route('planning.gci-parts.store')),
                     fgSearch: '',
                     vendorSearch: '',
-                    form: { id: null, customer_ids: [], part_no: '', classification: 'FG', part_name: '', size: '', model: '', status: 'active', destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] },
+                    form: { id: null, customer_ids: [], part_no: '', classification: 'FG', part_name: '', size: '', model: '', status: 'active', is_backflush: true, destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] },
 
                     init() {
                         const warningData = @js(session('duplicate_warning_data'));
@@ -526,6 +548,7 @@
                                 size: warningData.size || '',
                                 model: warningData.model || '',
                                 status: warningData.status || 'active',
+                                is_backflush: warningData.is_backflush !== false && warningData.is_backflush !== '0',
                                 destination_fg_ids: warningData.destination_fg_ids || [],
                                 vendor_ids: warningData.vendor_ids || []
                             };
@@ -550,7 +573,7 @@
                         this.vendorSearch = '';
                         this.subsOpen = false;
                         this.cancelSubEdit();
-                        this.form = { id: null, customer_ids: [], part_no: '', classification: currentClassification, part_name: '', size: '', model: '', status: 'active', destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] };
+                        this.form = { id: null, customer_ids: [], part_no: '', classification: currentClassification, part_name: '', size: '', model: '', status: 'active', is_backflush: true, destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] };
                         this.modalOpen = true;
                     },
                     openEdit(p) {
@@ -576,6 +599,7 @@
                             size: p.size || '',
                             model: p.model || '',
                             status: p.status || 'active',
+                            is_backflush: p.is_backflush !== false && p.is_backflush !== 0,
                             destination_fg_ids: linkedFgs,
                             vendor_ids: linkedVendors,
                             substitutes_for: partSubstitutesMap[p.id] || [],

@@ -469,6 +469,10 @@ class ProductionOrderController extends Controller
                     continue;
                 }
 
+                if (isset($part->is_backflush) && !$part->is_backflush) {
+                    continue;
+                }
+
                 $inventory = GciInventory::firstOrCreate(
                     ['gci_part_id' => $part->id],
                     ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
@@ -835,9 +839,15 @@ class ProductionOrderController extends Controller
                 $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
 
                 if ($bom) {
+                    $bom->loadMissing('items.componentPart');
                     foreach ($bom->items as $item) {
                         $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
                         if ($mob === 'free_issue') {
+                            continue;
+                        }
+
+                        $isBackflush = $item->componentPart->is_backflush ?? true;
+                        if (!$isBackflush) {
                             continue;
                         }
 
@@ -866,11 +876,18 @@ class ProductionOrderController extends Controller
                 // Legacy: no reservation, backflush directly from on_hand
                 $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
                 if ($bom) {
+                    $bom->loadMissing('items.componentPart');
                     foreach ($bom->items as $item) {
                         $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
                         if ($mob === 'free_issue') {
                             continue;
                         }
+
+                        $isBackflush = $item->componentPart->is_backflush ?? true;
+                        if (!$isBackflush) {
+                            continue;
+                        }
+
                         $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
                         if ($consumedQty <= 0) {
                             continue;

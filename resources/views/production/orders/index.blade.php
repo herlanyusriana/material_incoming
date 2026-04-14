@@ -101,11 +101,31 @@
                             <th class="px-6 py-4 font-semibold">Qty</th>
                             <th class="px-6 py-4 font-semibold">Status</th>
                             <th class="px-6 py-4 font-semibold">Stage</th>
+                            <th class="px-6 py-4 font-semibold">Material Flow</th>
                             <th class="px-6 py-4 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($orders as $order)
+                            @php
+                                $scanCount = is_array($order->material_issue_lines) ? count($order->material_issue_lines) : 0;
+                                $materialFlowLabel = 'Belum request';
+                                $materialFlowClass = 'bg-slate-100 text-slate-700';
+
+                                if ($order->material_handed_over_at) {
+                                    $materialFlowLabel = 'Diterima line';
+                                    $materialFlowClass = 'bg-blue-100 text-blue-700';
+                                } elseif ($order->material_issued_at) {
+                                    $materialFlowLabel = 'Supply posted';
+                                    $materialFlowClass = 'bg-emerald-100 text-emerald-700';
+                                } elseif ($scanCount > 0) {
+                                    $materialFlowLabel = 'Scan siap posting';
+                                    $materialFlowClass = 'bg-amber-100 text-amber-700';
+                                } elseif (!empty($order->material_request_lines) || !is_null($order->material_requested_at)) {
+                                    $materialFlowLabel = 'Menunggu scan';
+                                    $materialFlowClass = 'bg-orange-100 text-orange-700';
+                                }
+                            @endphp
                             <tr class="hover:bg-slate-50 cursor-pointer transition-colors"
                                 @click="openSlideOver('{{ route('production.orders.show', $order) }}')">
                                 <td class="px-6 py-4 font-medium text-slate-900">{{ $order->production_order_number }}</td>
@@ -166,6 +186,14 @@
                                 <td class="px-6 py-4 text-xs font-medium text-slate-600">
                                     {{ strtoupper(str_replace('_', ' ', $order->workflow_stage)) }}
                                 </td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $materialFlowClass }}">
+                                        {{ $materialFlowLabel }}
+                                    </span>
+                                    @if($scanCount > 0)
+                                        <div class="mt-1 text-xs text-slate-500">{{ $scanCount }} tag</div>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-3">
                                         @if(!in_array($order->status, ['completed', 'cancelled'], true))
@@ -202,7 +230,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-6 py-12 text-center text-slate-500 italic">
+                                <td colspan="11" class="px-6 py-12 text-center text-slate-500 italic">
                                     No production orders found. Create one to get started.
                                 </td>
                             </tr>

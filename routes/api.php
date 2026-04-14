@@ -64,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/work-orders/{id}', [\App\Http\Controllers\Api\WarehouseApiController::class, 'getWorkOrder']);
         Route::post('/work-orders/{id}/scan', [\App\Http\Controllers\Api\WarehouseApiController::class, 'scanTag']);
         Route::delete('/work-orders/{id}/scan/{tagNo}', [\App\Http\Controllers\Api\WarehouseApiController::class, 'deleteTag']);
+        Route::post('/work-orders/{id}/post-supply', [\App\Http\Controllers\Api\WarehouseApiController::class, 'postSupply']);
         Route::post('/work-orders/{id}/handover', [\App\Http\Controllers\Api\WarehouseApiController::class, 'handover']);
     });
 

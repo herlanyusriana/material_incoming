@@ -378,6 +378,46 @@
                     </a>
                 </div>
 
+                @php
+                    $scanCount = is_array($order->material_issue_lines) ? count($order->material_issue_lines) : 0;
+                    $hasMaterialRequest = !empty($order->material_request_lines) || !is_null($order->material_requested_at);
+                    $materialStageLabel = 'Belum ada material request';
+                    $materialStageClass = 'border-slate-200 bg-slate-50 text-slate-700';
+
+                    if ($order->material_handed_over_at) {
+                        $materialStageLabel = 'Sudah diterima line produksi';
+                        $materialStageClass = 'border-blue-200 bg-blue-50 text-blue-800';
+                    } elseif ($order->material_issued_at) {
+                        $materialStageLabel = 'Supply WH sudah diposting';
+                        $materialStageClass = 'border-emerald-200 bg-emerald-50 text-emerald-800';
+                    } elseif ($scanCount > 0) {
+                        $materialStageLabel = 'Tag sudah discan, siap posting supply';
+                        $materialStageClass = 'border-amber-200 bg-amber-50 text-amber-800';
+                    } elseif ($hasMaterialRequest) {
+                        $materialStageLabel = 'Menunggu scan tag gudang';
+                        $materialStageClass = 'border-orange-200 bg-orange-50 text-orange-800';
+                    }
+                @endphp
+
+                <div class="p-4 rounded border mb-4 {{ $materialStageClass }}">
+                    <h4 class="font-medium mb-2">Status Material ke Production</h4>
+                    <p class="text-sm font-semibold">{{ $materialStageLabel }}</p>
+                    <div class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wide opacity-70">Material Request</div>
+                            <div class="mt-1">{{ $hasMaterialRequest ? 'Sudah ada' : 'Belum ada' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wide opacity-70">Tag Discanned Gudang</div>
+                            <div class="mt-1">{{ $scanCount }} item</div>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wide opacity-70">Serah Terima Line</div>
+                            <div class="mt-1">{{ $order->material_handed_over_at ? $order->material_handed_over_at->format('d M Y H:i') : 'Belum diterima line' }}</div>
+                        </div>
+                    </div>
+                </div>
+
                 @if(in_array($order->status, ['kanban_released', 'material_hold', 'resource_hold', 'released'], true) && !empty($order->material_request_lines))
                     <div class="p-4 bg-emerald-50 rounded border border-emerald-200 mb-4">
                         <h4 class="font-medium mb-2">2. WH Supply to Production</h4>
@@ -389,7 +429,7 @@
                                 @endif
                             </p>
                         @else
-                            <p class="text-sm text-emerald-800 mb-3">Posting supply RM dari warehouse ke production berdasarkan WO dan alokasi lokasi/batch pada material request.</p>
+                            <p class="text-sm text-emerald-800 mb-3">Posting supply RM dari warehouse ke production berdasarkan WO dan alokasi lokasi/batch pada material request. Kalau gudang pakai scanner app, pastikan tag sudah discan dulu.</p>
                             <form action="{{ route('production.orders.material-issue', $order) }}" method="POST">
                                 @csrf
                                 <button type="submit"
@@ -778,7 +818,7 @@
                             </p>
                             @if($order->material_handed_over_at)
                                 <p class="text-sm text-blue-600 mt-1">
-                                    Serah terima:
+                                    Diterima line:
                                     {{ $order->material_handed_over_at->format('d M Y H:i') }}
                                     @if($order->materialHandoverUser)
                                         oleh {{ $order->materialHandoverUser->name }}
@@ -792,62 +832,42 @@
                         <table class="min-w-full text-sm">
                             <thead class="bg-slate-50 text-slate-600">
                                 <tr>
-                                    <th class="px-4 py-3 text-left">RM Component</th>
-                                    <th class="px-4 py-3 text-center">UOM</th>
-                                    <th class="px-4 py-3 text-right">Required</th>
-                                    <th class="px-4 py-3 text-right">Supplied</th>
-                                    <th class="px-4 py-3 text-left">Supply Source</th>
+                                    <th class="px-4 py-3 text-left">Material / Tag</th>
+                                    <th class="px-4 py-3 text-center">Lokasi</th>
+                                    <th class="px-4 py-3 text-right">Qty</th>
+                                    <th class="px-4 py-3 text-left">Waktu Scan / Posting</th>
+                                    <th class="px-4 py-3 text-left">Traceability</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y">
                                 @foreach($order->material_issue_lines as $line)
                                     <tr class="align-top">
                                         <td class="px-4 py-3">
-                                            <div class="font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
-                                            <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                            <div class="font-semibold text-slate-900">{{ $line['part_no'] ?? $line['component_part_no'] ?? '-' }}</div>
+                                            <div class="text-xs text-slate-500">Tag {{ $line['tag_number'] ?? ($line['batch_no'] ?? '-') }}</div>
                                         </td>
-                                        <td class="px-4 py-3 text-center">{{ $line['uom'] ?? '-' }}</td>
-                                        <td class="px-4 py-3 text-right font-mono">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['issued_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-4 py-3">
-                                            @if(!empty($line['allocations']))
-                                                <div class="space-y-2">
-                                                    @foreach($line['allocations'] as $allocation)
-                                                        <div class="rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                                                            <div class="text-xs font-semibold text-slate-900">
-                                                                {{ $allocation['part_no'] ?? '-' }} | {{ $allocation['location_code'] ?? '-' }}
-                                                                @if(!empty($allocation['batch_no']))
-                                                                    | Batch {{ $allocation['batch_no'] }}
-                                                                @endif
-                                                            </div>
-                                                            <div class="text-xs text-slate-600">
-                                                                Supplied {{ number_format((float) ($allocation['issued_qty'] ?? 0), 4) }}
-                                                                @if(!empty($allocation['source_tag']) || !empty($allocation['batch_no']))
-                                                                    | Tag {{ $allocation['source_tag'] ?? $allocation['batch_no'] }}
-                                                                @endif
-                                                                @if(!empty($allocation['source_invoice_no']))
-                                                                    | Invoice {{ $allocation['source_invoice_no'] }}
-                                                                @endif
-                                                                @if(($allocation['source_type'] ?? 'primary') === 'substitute')
-                                                                    <span class="ml-1 inline-flex rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">SUB</span>
-                                                                @endif
-                                                            </div>
-                                                            @if(!empty($allocation['source_receive_id']) || !empty($allocation['source_arrival_id']))
-                                                                <div class="mt-1 text-[11px] text-slate-500">
-                                                                    @if(!empty($allocation['source_receive_id']))
-                                                                        Receive #{{ $allocation['source_receive_id'] }}
-                                                                    @endif
-                                                                    @if(!empty($allocation['source_arrival_id']))
-                                                                        @if(!empty($allocation['source_receive_id'])) | @endif
-                                                                        Arrival #{{ $allocation['source_arrival_id'] }}
-                                                                    @endif
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    @endforeach
+                                        <td class="px-4 py-3 text-center">{{ $line['location_code'] ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['qty'] ?? $line['issued_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3 text-xs text-slate-600">
+                                            <div>Scan: {{ !empty($line['scanned_at']) ? \Carbon\Carbon::parse($line['scanned_at'])->format('d M Y H:i') : '-' }}</div>
+                                            <div class="mt-1">Posting: {{ !empty($line['posted_at']) ? \Carbon\Carbon::parse($line['posted_at'])->format('d M Y H:i') : ($order->material_issued_at?->format('d M Y H:i') ?? '-') }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs text-slate-600">
+                                            <div>GCI Part ID: {{ $line['gci_part_id'] ?? '-' }}</div>
+                                            <div class="mt-1">Part ID: {{ $line['part_id'] ?? '-' }}</div>
+                                            @if(!empty($line['traceability']['source_receive_id']) || !empty($line['traceability']['source_arrival_id']))
+                                                <div class="mt-1">
+                                                    @if(!empty($line['traceability']['source_receive_id']))
+                                                        Receive #{{ $line['traceability']['source_receive_id'] }}
+                                                    @endif
+                                                    @if(!empty($line['traceability']['source_arrival_id']))
+                                                        @if(!empty($line['traceability']['source_receive_id'])) | @endif
+                                                        Arrival #{{ $line['traceability']['source_arrival_id'] }}
+                                                    @endif
                                                 </div>
-                                            @else
-                                                <span class="text-sm text-slate-400">No supply allocation</span>
+                                            @endif
+                                            @if(!empty($line['traceability']['source_invoice_no']))
+                                                <div class="mt-1">Invoice {{ $line['traceability']['source_invoice_no'] }}</div>
                                             @endif
                                         </td>
                                     </tr>
