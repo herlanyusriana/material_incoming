@@ -580,19 +580,13 @@ class ProductionGciApiController extends Controller
         $machineIdInt = (int) $machineId;
         $query = ProductionOrder::with('part:id,part_no,part_name,model')
             ->where('machine_id', $machineIdInt)
-            ->where(function($q) use ($date) {
-                // 1. Show all WOs for the selected date for this machine
-                $q->whereDate('plan_date', $date);
-                
-                // 2. OR show backlog for this machine: WOs that are released, in production, or kanban_released
-                $q->orWhereIn('status', ['kanban_released', 'released', 'in_production', 'paused']);
-            })
+            ->whereDate('plan_date', $date)
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
             ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled', 'completed'])
             ->orderBy('plan_date', 'asc')
             ->orderBy('production_sequence', 'asc');
 
-        $orders = $query->get()->map(function ($o) {
+        $orders = $query->get()->map(function (ProductionOrder $o) {
             $materialStatus = $this->buildMaterialStatus($o);
 
             return [
@@ -1603,7 +1597,7 @@ class ProductionGciApiController extends Controller
                     'name' => $machine->name,
                     'code' => $machine->code,
                 ],
-                'orders' => $orders->map(function ($o) use ($hourlyReports, $qdcByOrder) {
+                'orders' => $orders->map(function (ProductionOrder $o) use ($hourlyReports, $qdcByOrder) {
                     $displayStatus = $this->resolveMonitoringStatus($o);
                     $qdc = $qdcByOrder[$o->id] ?? ['count' => 0, 'duration_seconds' => 0, 'latest_session' => null];
 
