@@ -11,6 +11,7 @@ use App\Models\Receive;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Machine;
+use App\Services\ProductionMaterialRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -523,22 +524,14 @@ class ProductionOrderController extends Controller
 
     public function createMaterialRequest(ProductionOrder $order)
     {
-        $requestLines = $this->buildMaterialRequestLines($order);
+        $materialRequestService = app(ProductionMaterialRequestService::class);
+        $requestLines = $materialRequestService->syncToOrder($order, Auth::id());
 
         if (empty($requestLines)) {
-            return back()->with('error', 'Tidak ada RM BUY yang bisa dibuatkan material request dari BOM ini.');
+            return back()->with('error', 'Tidak ada material warehouse-scannable yang bisa dibuatkan request dari BOM ini.');
         }
 
-        $order->update([
-            'material_request_lines' => $requestLines,
-            'material_requested_at' => now(),
-            'material_requested_by' => Auth::id(),
-        ]);
-
-        $this->syncReservedMaterialsFromRequestLines($order, $requestLines);
-        $this->syncOrderStatusFromMaterialRequest($order, $requestLines);
-
-        $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
+        $shortageCount = $materialRequestService->shortageCount($requestLines);
         $message = $shortageCount > 0
             ? "Material request dibuat dengan {$shortageCount} item masih shortage."
             : 'Material request berhasil dibuat dari stok RM yang tersedia.';
@@ -556,26 +549,14 @@ class ProductionOrderController extends Controller
             return back()->with('error', 'Material WO ini sudah di-issue dari warehouse, jadi refresh material diblokir untuk menjaga traceability.');
         }
 
-        $requestLines = $this->buildMaterialRequestLines($order);
+        $materialRequestService = app(ProductionMaterialRequestService::class);
+        $requestLines = $materialRequestService->syncToOrder($order, Auth::id(), true);
 
         if (empty($requestLines)) {
-            return back()->with('error', 'Tidak ada RM BUY yang bisa dibaca dari BOM terbaru untuk WO ini.');
+            return back()->with('error', 'Tidak ada material warehouse-scannable yang bisa dibaca dari BOM terbaru untuk WO ini.');
         }
 
-        $order->update([
-            'material_request_lines' => $requestLines,
-            'material_requested_at' => now(),
-            'material_requested_by' => Auth::id(),
-            'material_issue_lines' => null,
-            'material_handed_over_at' => null,
-            'material_handed_over_by' => null,
-            'material_handover_notes' => null,
-        ]);
-
-        $this->syncReservedMaterialsFromRequestLines($order, $requestLines);
-        $this->syncOrderStatusFromMaterialRequest($order, $requestLines);
-
-        $shortageCount = collect($requestLines)->where('shortage_qty', '>', 0)->count();
+        $shortageCount = $materialRequestService->shortageCount($requestLines);
         $message = $shortageCount > 0
             ? "Material WO berhasil di-refresh dari BOM terbaru. {$shortageCount} item masih shortage."
             : 'Material WO berhasil di-refresh dari BOM terbaru.';

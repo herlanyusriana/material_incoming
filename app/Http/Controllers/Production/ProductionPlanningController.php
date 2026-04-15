@@ -14,6 +14,7 @@ use App\Models\Machine;
 use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDeliveryPlanningLine;
+use App\Services\ProductionMaterialRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -488,6 +489,8 @@ class ProductionPlanningController extends Controller
                     \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
                 }
 
+                app(ProductionMaterialRequestService::class)->syncToOrder($order, auth()->id());
+
                 $generated++;
             }
 
@@ -581,6 +584,8 @@ class ProductionPlanningController extends Controller
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
             }
+
+            app(ProductionMaterialRequestService::class)->syncToOrder($order, auth()->id());
 
             $pendingLines = ProductionPlanningLine::where('session_id', $session->id)
                 ->where('plan_qty', '>', 0)
