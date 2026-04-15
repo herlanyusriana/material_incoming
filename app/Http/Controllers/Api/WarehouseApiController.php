@@ -273,20 +273,46 @@ class WarehouseApiController extends Controller
             return response()->json(['status' => 'error', 'message' => "Label/Tag tidak dikenali atau qty kosong. Pastikan ini Label RM GCI!"], 422);
         }
 
-        // Cek apakah material ini dibutuhkan di BOM mesin
-        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
-        if (!$bom) {
-            return response()->json(['status' => 'error', 'message' => "Mesin ini tidak memiliki BOM aktif!"], 422);
-        }
-
-        $reqs = $bom->getTotalMaterialRequirements($order->qty_planned);
         $materialSesuaiBom = false;
 
-        foreach ($reqs as $req) {
-            if ($this->isWarehouseScannableRm((string) ($req['make_or_buy'] ?? ''))
-                && $req['part']?->id === $gciPartId) {
-                $materialSesuaiBom = true;
-                break;
+        if (!empty($order->material_request_lines)) {
+            foreach (($order->material_request_lines ?? []) as $line) {
+                $componentGciPartId = (int) ($line['component_gci_part_id'] ?? 0);
+                $componentPartNo = strtoupper(trim((string) ($line['component_part_no'] ?? '')));
+                $allocations = collect($line['allocations'] ?? []);
+
+                $matchesAllocation = $allocations->contains(function ($allocation) use ($partId, $partNo) {
+                    $allocationPartId = (int) ($allocation['part_id'] ?? 0);
+                    $allocationPartNo = strtoupper(trim((string) ($allocation['part_no'] ?? '')));
+
+                    return ($partId > 0 && $allocationPartId === $partId)
+                        || ($allocationPartNo !== '' && $allocationPartNo === strtoupper(trim($partNo)));
+                });
+
+                if (
+                    ($componentGciPartId > 0 && $componentGciPartId === $gciPartId)
+                    || ($componentPartNo !== '' && $componentPartNo === strtoupper(trim($partNo)))
+                    || $matchesAllocation
+                ) {
+                    $materialSesuaiBom = true;
+                    break;
+                }
+            }
+        } else {
+            // Fallback ke BOM langsung kalau request line belum terbentuk.
+            $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+            if (!$bom) {
+                return response()->json(['status' => 'error', 'message' => "Mesin ini tidak memiliki BOM aktif!"], 422);
+            }
+
+            $reqs = $bom->getTotalMaterialRequirements($order->qty_planned);
+
+            foreach ($reqs as $req) {
+                if ($this->isWarehouseScannableRm((string) ($req['make_or_buy'] ?? ''))
+                    && $req['part']?->id === $gciPartId) {
+                    $materialSesuaiBom = true;
+                    break;
+                }
             }
         }
 
