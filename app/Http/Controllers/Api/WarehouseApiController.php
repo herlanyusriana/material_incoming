@@ -193,7 +193,27 @@ class WarehouseApiController extends Controller
         ]);
 
         $tags = $order->material_issue_lines ?? [];
-        $tagNo = $validated['tag_no'];
+        $tagNo = trim((string) $validated['tag_no']);
+        $filterPartNo = null;
+
+        if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
+            $decoded = json_decode($tagNo, true);
+            if (is_array($decoded)) {
+                if (!empty($decoded['tag'])) {
+                    $tagNo = (string) $decoded['tag'];
+                } elseif (!empty($decoded['barcode'])) {
+                    $tagNo = (string) $decoded['barcode'];
+                } elseif (!empty($decoded['part_no'])) {
+                    $tagNo = (string) $decoded['part_no'];
+                }
+
+                if (!empty($decoded['part_no'])) {
+                    $filterPartNo = strtoupper(trim((string) $decoded['part_no']));
+                }
+            }
+        }
+
+        $tagNo = strtoupper(trim($tagNo));
 
         // Cek jika tag sudah pernah discan
         foreach ($tags as $tag) {
@@ -220,7 +240,11 @@ class WarehouseApiController extends Controller
             $locationCode = $locInv->location_code;
         } else {
             // 2. Kalau tag masih ada di Incoming/Putaway Queue, blokir dulu.
-            $receive = Receive::where('tag', $tagNo)->with('arrivalItem.part', 'arrivalItem.gciPartVendor')->first();
+            $receiveQuery = Receive::where('tag', $tagNo)->with('arrivalItem.part', 'arrivalItem.gciPartVendor');
+            if ($filterPartNo) {
+                $receiveQuery->whereHas('arrivalItem.part', fn($query) => $query->where('part_no', $filterPartNo));
+            }
+            $receive = $receiveQuery->first();
             if ($receive) {
                 $arrItem = $receive->arrivalItem;
                 $partNo = $arrItem?->part?->part_no
