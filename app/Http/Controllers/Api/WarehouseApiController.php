@@ -14,6 +14,12 @@ use Illuminate\Http\Request;
 
 class WarehouseApiController extends Controller
 {
+    private function isWarehouseScannableRm(string $makeOrBuy): bool
+    {
+        $normalized = strtoupper(trim($makeOrBuy));
+        return in_array($normalized, ['BUY', 'B', 'PURCHASE', 'FREE_ISSUE', 'FREE ISSUE', 'FI'], true);
+    }
+
     private function buildSupplyStatus(ProductionOrder $order): array
     {
         return [
@@ -63,23 +69,100 @@ class WarehouseApiController extends Controller
     {
         $order = ProductionOrder::findOrFail($id);
         $issueLines = $order->material_issue_lines ?? [];
+        $scanProgress = collect($issueLines)
+            ->reduce(function (array $carry, array $line) {
+                $gciPartId = (int) ($line['gci_part_id'] ?? 0);
+                $partNo = strtoupper(trim((string) ($line['part_no'] ?? '')));
+                $key = $gciPartId > 0 ? 'gci:' . $gciPartId : 'part:' . $partNo;
+
+                if (!isset($carry[$key])) {
+                    $carry[$key] = [
+                        'scanned_qty' => 0.0,
+                        'scanned_tags' => 0,
+                    ];
+                }
+
+                $carry[$key]['scanned_qty'] += (float) ($line['qty'] ?? $line['issued_qty'] ?? 0);
+                $carry[$key]['scanned_tags']++;
+
+                return $carry;
+            }, []);
         
-        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
         $requirements = [];
-        
-        if ($bom) {
-            $reqs = $bom->getTotalMaterialRequirements($order->qty_planned);
-            foreach ($reqs as $req) {
-                 if (in_array($req['make_or_buy'] ?? '', ['BUY', 'B', 'PURCHASE']) &&
-                     strtoupper((string) ($req['component_classification'] ?? '')) === 'RM') {
-                     $requirements[] = [
-                         'gci_part_id' => $req['part']?->id,
-                         'part_no' => $req['part']?->part_no ?? 'Unknown',
-                         'total_qty' => (float) ($req['total_qty'] ?? 0)
-                     ];
-                 }
+
+        if (!empty($order->material_request_lines)) {
+            foreach (($order->material_request_lines ?? []) as $line) {
+                $requirements[] = [
+                    'gci_part_id' => (int) ($line['component_gci_part_id'] ?? 0),
+                    'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
+                    'part_name' => (string) ($line['component_part_name'] ?? ''),
+                    'uom' => (string) ($line['uom'] ?? 'PCS'),
+                    'total_qty' => (float) ($line['required_qty'] ?? 0),
+                    'allocated_qty' => (float) ($line['available_qty'] ?? 0),
+                    'shortage_qty' => (float) ($line['shortage_qty'] ?? 0),
+                    'allocations' => array_values($line['allocations'] ?? []),
+                    'notes' => $line['notes'] ?? null,
+                ];
+            }
+        } else {
+            $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+            if ($bom) {
+                $reqs = $bom->getTotalMaterialRequirements($order->qty_planned);
+                foreach ($reqs as $req) {
+                    if (!$this->isWarehouseScannableRm((string) ($req['make_or_buy'] ?? ''))) {
+                        continue;
+                    }
+
+                    $requirements[] = [
+                        'gci_part_id' => (int) ($req['part']?->id ?? 0),
+                        'part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
+                        'part_name' => (string) ($req['part']?->part_name ?? ''),
+                        'uom' => (string) ($req['uom'] ?? 'PCS'),
+                        'total_qty' => (float) ($req['total_qty'] ?? 0),
+                        'allocated_qty' => 0.0,
+                        'shortage_qty' => 0.0,
+                        'allocations' => [],
+                        'notes' => 'Material request WO belum dibuat, daftar diambil langsung dari BOM.',
+                    ];
+                }
             }
         }
+
+        $requirements = collect($requirements)
+            ->map(function (array $requirement) use ($scanProgress) {
+                $gciPartId = (int) ($requirement['gci_part_id'] ?? 0);
+                $partNo = strtoupper(trim((string) ($requirement['part_no'] ?? '')));
+                $key = $gciPartId > 0 ? 'gci:' . $gciPartId : 'part:' . $partNo;
+                $progress = $scanProgress[$key] ?? ['scanned_qty' => 0.0, 'scanned_tags' => 0];
+                $requiredQty = (float) ($requirement['total_qty'] ?? 0);
+                $scannedQty = round((float) ($progress['scanned_qty'] ?? 0), 4);
+                $remainingQty = max(0, round($requiredQty - $scannedQty, 4));
+
+                if ($scannedQty <= 0) {
+                    $scanStatus = 'not_scanned';
+                } elseif ($remainingQty > 0) {
+                    $scanStatus = 'partial';
+                } else {
+                    $scanStatus = 'complete';
+                }
+
+                return array_merge($requirement, [
+                    'scanned_qty' => $scannedQty,
+                    'scanned_tags' => (int) ($progress['scanned_tags'] ?? 0),
+                    'remaining_qty_to_scan' => $remainingQty,
+                    'scan_status' => $scanStatus,
+                ]);
+            })
+            ->sortBy([
+                fn (array $line) => match ($line['scan_status'] ?? 'not_scanned') {
+                    'not_scanned' => 0,
+                    'partial' => 1,
+                    default => 2,
+                },
+                fn (array $line) => $line['part_no'] ?? '',
+            ])
+            ->values()
+            ->all();
 
         return response()->json([
             'status' => 'success',
@@ -155,7 +238,8 @@ class WarehouseApiController extends Controller
         $materialSesuaiBom = false;
 
         foreach ($reqs as $req) {
-            if (($req['make_or_buy'] ?? '') === 'BUY' && $req['part']?->id === $gciPartId) {
+            if ($this->isWarehouseScannableRm((string) ($req['make_or_buy'] ?? ''))
+                && $req['part']?->id === $gciPartId) {
                 $materialSesuaiBom = true;
                 break;
             }

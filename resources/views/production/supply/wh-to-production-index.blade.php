@@ -62,6 +62,7 @@
                             $woLabel = $order->production_order_number ?: ($order->transaction_no ?: ('WO#' . $order->id));
                             $scanCount = is_array($order->material_issue_lines) ? count($order->material_issue_lines) : 0;
                             $hasRequest = !empty($order->material_request_lines) || !is_null($order->material_requested_at);
+                            $requestItemCount = is_array($order->material_request_lines) ? count($order->material_request_lines) : 0;
                             $stageLabel = 'Belum ada material request';
                             $stageClass = 'bg-slate-100 text-slate-700';
 
@@ -110,7 +111,10 @@
                                     {{ $stageLabel }}
                                 </span>
                                 <div class="mt-2 text-xs text-slate-500">
-                                    Scan tag: {{ $scanCount }} item
+                                    Wajib scan: {{ $requestItemCount }} item RM
+                                </div>
+                                <div class="mt-1 text-xs text-slate-500">
+                                    Sudah discan: {{ $scanCount }} tag
                                 </div>
                             </td>
                             <td class="px-6 py-4">
