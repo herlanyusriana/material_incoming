@@ -197,6 +197,7 @@ class WarehouseApiController extends Controller
         $tags = $order->material_issue_lines ?? [];
         $tagNo = trim((string) $validated['tag_no']);
         $filterPartNo = null;
+        $receiveId = null;
 
         if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
             $decoded = json_decode($tagNo, true);
@@ -211,6 +212,10 @@ class WarehouseApiController extends Controller
 
                 if (!empty($decoded['part_no'])) {
                     $filterPartNo = strtoupper(trim((string) $decoded['part_no']));
+                }
+
+                if (!empty($decoded['receive_id'])) {
+                    $receiveId = (int) $decoded['receive_id'];
                 }
             }
         }
@@ -245,7 +250,19 @@ class WarehouseApiController extends Controller
             $locationCode = $locInv->location_code;
             $sourceLocationCode = $locInv->location_code;
         } else {
-            $receiveQuery = Receive::where('tag', $tagNo)->with('arrivalItem.part', 'arrivalItem.gciPartVendor');
+            $receiveQuery = Receive::query()
+                ->with('arrivalItem.part', 'arrivalItem.gciPartVendor')
+                ->where(function ($query) use ($tagNo, $receiveId) {
+                    $query->where('tag', $tagNo);
+
+                    if ($receiveId > 0) {
+                        $query->orWhere('id', $receiveId);
+                    }
+
+                    if (ctype_digit($tagNo)) {
+                        $query->orWhere('id', (int) $tagNo);
+                    }
+                });
             if ($filterPartNo) {
                 $receiveQuery->whereHas('arrivalItem.part', fn($query) => $query->where('part_no', $filterPartNo));
             }

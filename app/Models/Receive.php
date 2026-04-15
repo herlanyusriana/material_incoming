@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class Receive extends Model
@@ -32,6 +33,48 @@ class Receive extends Model
         'ata_date' => 'datetime',
         'qc_updated_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::created(function (Receive $receive) {
+            if (!is_string($receive->tag) || trim($receive->tag) === '') {
+                $receive->forceFill([
+                    'tag' => self::generateSystemTag(
+                        (int) $receive->id,
+                        $receive->ata_date instanceof CarbonInterface ? $receive->ata_date : null
+                    ),
+                ])->saveQuietly();
+            }
+        });
+    }
+
+    public static function generateSystemTag(int $receiveId, ?CarbonInterface $date = null): string
+    {
+        $tagDate = $date ?? now();
+
+        return sprintf(
+            'RCV-%s-%06d',
+            $tagDate->format('ymd'),
+            max(1, $receiveId)
+        );
+    }
+
+    public function ensureSystemTag(): string
+    {
+        $tag = is_string($this->tag) ? strtoupper(trim($this->tag)) : '';
+        if ($tag !== '') {
+            return $tag;
+        }
+
+        $tag = self::generateSystemTag(
+            (int) $this->id,
+            $this->ata_date instanceof CarbonInterface ? $this->ata_date : null
+        );
+
+        $this->forceFill(['tag' => $tag])->saveQuietly();
+
+        return $tag;
+    }
 
     public function arrivalItem()
     {

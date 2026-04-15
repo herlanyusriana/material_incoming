@@ -89,6 +89,23 @@ class ReceiveController extends Controller
         return ($tag === null || $tag === '') ? null : $tag;
     }
 
+    private function resolveReceiveTag(?string $tag, ?int $receiveId = null, $receivedAt = null): ?string
+    {
+        $normalized = $this->normalizeTag($tag);
+        if ($normalized !== null) {
+            return $normalized;
+        }
+
+        if ($receiveId) {
+            return Receive::generateSystemTag(
+                $receiveId,
+                $receivedAt ? Carbon::parse($receivedAt) : null
+            );
+        }
+
+        return null;
+    }
+
     private function hasPendingReceives(Arrival $arrival): bool
     {
         $arrival->loadMissing(['items.receives', 'containers.inspection']);
@@ -587,7 +604,7 @@ class ReceiveController extends Controller
 
                 $tag = $this->normalizeTag($tagData['tag'] ?? null);
 
-                $arrivalItem->receives()->create([
+                $receive = $arrivalItem->receives()->create([
                     'tag' => $tag,
                     'qty' => $tagData['qty'],
                     'bundle_unit' => $tagData['bundle_unit'] ?? null,
@@ -603,6 +620,10 @@ class ReceiveController extends Controller
                     'truck_no' => $truckNo,
                     'location_code' => $locationCode,
                 ]);
+                $tag = $this->resolveReceiveTag($tagData['tag'] ?? null, (int) $receive->id, $receiveAt);
+                if ($tag !== null && $receive->tag !== $tag) {
+                    $receive->update(['tag' => $tag]);
+                }
 
                 if (($tagData['qc_status'] ?? 'pass') === 'pass') {
                     $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
@@ -851,8 +872,8 @@ class ReceiveController extends Controller
                             $locationCode = null;
                         }
                     }
-                    $arrivalItem->receives()->create([
-                        'tag' => $tagData['tag'] ?? null,
+                    $receive = $arrivalItem->receives()->create([
+                        'tag' => $this->normalizeTag($tagData['tag'] ?? null),
                         'qty' => $tagData['qty'],
                         'bundle_unit' => $tagData['bundle_unit'] ?? null,
                         'bundle_qty' => $tagData['bundle_qty'] ?? 0,
@@ -869,13 +890,16 @@ class ReceiveController extends Controller
                         'truck_no' => $truckNo,
                         'location_code' => $locationCode,
                     ]);
+                    $tag = $this->resolveReceiveTag($tagData['tag'] ?? null, (int) $receive->id, $receiveAt);
+                    if ($tag !== null && $receive->tag !== $tag) {
+                        $receive->update(['tag' => $tag]);
+                    }
 
                     if (($tagData['qc_status'] ?? 'pass') === 'pass') {
                         $partId = $this->resolveVendorPartId($arrivalItem);
                         $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
                         $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + $addQty;
                         if ($locationCode) {
-                            $tag = $this->normalizeTag($tagData['tag'] ?? null);
                             $key = $locationCode . '|' . ($tag ?? '');
                             $locationAdds[$partId][$key] = ($locationAdds[$partId][$key] ?? ['location' => $locationCode, 'tag' => $tag, 'qty' => 0]);
                             $locationAdds[$partId][$key]['qty'] += $addQty;
@@ -992,12 +1016,18 @@ class ReceiveController extends Controller
 
         // Update QR Payload to JSON (Unified Standard)
         // This ensures the App receives Part No and GCI No for accurate inventory tracking.
+        $resolvedTag = $receive->ensureSystemTag();
         $payload = [
-            'tag' => (string) ($receive->tag ?? $receive->id),
+            'tag' => $resolvedTag,
+            'receive_id' => (int) $receive->id,
+            'part_id' => (int) ($part?->id ?? 0),
+            'gci_part_id' => (int) ($part?->gci_part_id ?? 0),
             'part_no' => (string) ($part?->part_no ?? ''),
-            'gci_part_no' => (string) ($part?->gciPart?->part_no ?? ''), // The Bridge
+            'gci_part_no' => (string) ($part?->gciPart?->part_no ?? ''),
             'qty' => (float) $receive->qty,
+            'qty_unit' => (string) ($receive->qty_unit ?? ''),
             'invoice' => (string) ($arrival?->invoice_no ?? '-'),
+            'location_code' => (string) ($receive->location_code ?? ''),
         ];
 
         $payloadString = json_encode($payload);
@@ -1047,7 +1077,7 @@ class ReceiveController extends Controller
             'qc_status' => ['required', 'in:pass,reject'],
         ]);
 
-        $tag = $this->normalizeTag($validated['tag'] ?? null);
+        $tag = $this->resolveReceiveTag($validated['tag'] ?? null, (int) $receive->id, $receive->ata_date);
         $locationCode = array_key_exists('location_code', $validated)
             ? strtoupper(trim((string) $validated['location_code']))
             : null;
