@@ -26,14 +26,6 @@ class PickingFgApiController extends Controller
             ->where('delivery_date', $date)
             ->get();
 
-        // Filter out picks whose DO already has a Delivery Note
-        $picks = $picks->filter(function ($p) {
-            if ($p->delivery_order_id && $p->deliveryOrder) {
-                return $p->deliveryOrder->deliveryNotes->isEmpty();
-            }
-            return true;
-        })->values();
-
         $lastUpdated = $picks->max('updated_at');
 
         // Pre-compute DO completion status
@@ -62,6 +54,8 @@ class PickingFgApiController extends Controller
                         'batch_no' => $loc->batch_no,
                     ])->toArray();
 
+                $latestDn = $p->deliveryOrder?->deliveryNotes?->sortByDesc('created_at')->first();
+
                 return [
                     'id' => $p->id,
                     'part_id' => $p->gci_part_id,
@@ -82,6 +76,11 @@ class PickingFgApiController extends Controller
                     'do_no' => $p->deliveryOrder?->do_no,
                     'trip_no' => $p->deliveryOrder?->trip_no,
                     'do_completed' => $doCompletedMap[$p->delivery_order_id] ?? false,
+                    'delivery_note' => $latestDn ? [
+                        'id' => $latestDn->id,
+                        'dn_no' => $latestDn->dn_no,
+                        'created_at' => $latestDn->created_at?->toIso8601String(),
+                    ] : null,
                     'updated_at' => $p->updated_at?->toIso8601String(),
                 ];
             })
@@ -205,14 +204,9 @@ class PickingFgApiController extends Controller
             ]);
         }
 
-        $orders = DeliveryOrder::with('customer')
+        $orders = DeliveryOrder::with(['customer', 'deliveryNotes'])
             ->whereIn('id', $doIds)
             ->get();
-
-        // Filter out DOs that already have a DN
-        $orders = $orders->filter(function ($do) {
-            return $do->deliveryNotes()->count() === 0;
-        })->values();
 
         $data = $orders->map(function ($do) use ($date) {
             $picks = OutgoingPickingFg::where('delivery_order_id', $do->id)
@@ -221,6 +215,7 @@ class PickingFgApiController extends Controller
 
             $totalPlan = $picks->sum('qty_plan');
             $totalPicked = $picks->sum('qty_picked');
+            $latestDn = $do->deliveryNotes->sortByDesc('created_at')->first();
 
             return [
                 'id' => $do->id,
@@ -238,6 +233,12 @@ class PickingFgApiController extends Controller
                 'qty_picked' => (int) $totalPicked,
                 'progress' => $totalPlan > 0 ? round(($totalPicked / $totalPlan) * 100, 1) : 0,
                 'all_completed' => $picks->every(fn($p) => $p->status === 'completed'),
+                'has_delivery_note' => !is_null($latestDn),
+                'delivery_note' => $latestDn ? [
+                    'id' => $latestDn->id,
+                    'dn_no' => $latestDn->dn_no,
+                    'created_at' => $latestDn->created_at?->toIso8601String(),
+                ] : null,
             ];
         });
 
@@ -256,7 +257,7 @@ class PickingFgApiController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
 
-        $do = DeliveryOrder::with('customer')->findOrFail($id);
+        $do = DeliveryOrder::with(['customer', 'deliveryNotes'])->findOrFail($id);
 
         $picks = OutgoingPickingFg::with(['part', 'outgoingPoItem.outgoingPo'])
             ->where('delivery_order_id', $id)
@@ -319,6 +320,11 @@ class PickingFgApiController extends Controller
                 'qty_plan' => (int) $totalPlan,
                 'qty_picked' => (int) $totalPicked,
                 'progress' => $totalPlan > 0 ? round(($totalPicked / $totalPlan) * 100, 1) : 0,
+                'delivery_note' => ($latestDn = $do->deliveryNotes->sortByDesc('created_at')->first()) ? [
+                    'id' => $latestDn->id,
+                    'dn_no' => $latestDn->dn_no,
+                    'created_at' => $latestDn->created_at?->toIso8601String(),
+                ] : null,
             ],
             'items' => $items,
         ]);

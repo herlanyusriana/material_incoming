@@ -76,7 +76,7 @@
                         </div>
                         <div>
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Shift</div>
-                            <div class="text-base font-bold">Shift {{ $workOrder->shift }}</div>
+                            <div class="text-base font-bold">{{ $workOrder->shift ? 'Shift ' . $workOrder->shift : 'Lintas shift' }}</div>
                         </div>
                         <div>
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Operator</div>

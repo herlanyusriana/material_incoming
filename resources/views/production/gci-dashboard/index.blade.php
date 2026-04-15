@@ -74,7 +74,9 @@
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-slate-900">
                                         {{ \Carbon\Carbon::parse($wo->date)->format('d M Y') }}</div>
-                                    <div class="text-xs text-slate-500">Shift {{ $wo->shift }}</div>
+                                    <div class="text-xs text-slate-500">
+                                        {{ $wo->shift ? 'Shift ' . $wo->shift : 'Lintas shift' }}
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-2">

@@ -19,7 +19,7 @@
                         </div>
                         GCI PLANNING PRODUKSI
                     </h1>
-                    <p class="mt-1 text-sm text-slate-500">FG planning ditampilkan per baris part, qty bisa dipecah ke Shift 1/2/3, lalu WO bisa digenerate bulk atau satuan per line.</p>
+                    <p class="mt-1 text-sm text-slate-500">FG planning ditampilkan per baris part dengan target total WO. Realisasi per shift dibaca dari transaksi operator saat produksi berjalan.</p>
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
@@ -199,9 +199,6 @@
                                 <th class="px-3 py-3 text-right font-bold text-blue-700">DELIVERY REQ</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">SEQ</th>
                                 <th class="px-3 py-3 text-right font-bold text-slate-700 text-emerald-700">PLAN QTY</th>
-                                <th class="px-3 py-3 text-center font-bold text-slate-700">S1</th>
-                                <th class="px-3 py-3 text-center font-bold text-slate-700">S2</th>
-                                <th class="px-3 py-3 text-center font-bold text-slate-700">S3</th>
                                 <th class="px-3 py-3 text-right font-bold text-indigo-600">EST. HRS</th>
                                 <th class="px-3 py-3 text-center font-bold text-slate-700">ACTION</th>
                             </tr>
@@ -213,6 +210,7 @@
                                             $lineEstHours = ($line->machine && (float) $line->plan_qty > 0)
                                                 ? (float) $line->machine->estimateHours((float) $line->plan_qty)
                                                 : 0;
+                                            $primaryWo = $line->productionOrders->first();
                                         @endphp
                                         <tr data-line-id="{{ $line->id }}">
                                             <td class="w-10 px-2 py-2 text-center cursor-pointer" @click="expanded = !expanded">
@@ -273,39 +271,25 @@
                                                     Auto: Req - Stock, editable manual
                                                 </div>
                                             </td>
-                                            <td class="px-3 py-2 text-center">
-                                                <input type="number" step="1" min="0"
-                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
-                                                    value="{{ (float) $line->shift_1_qty > 0 ? intval($line->shift_1_qty) : '' }}" placeholder="0"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_1_qty')">
-                                            </td>
-                                            <td class="px-3 py-2 text-center">
-                                                <input type="number" step="1" min="0"
-                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
-                                                    value="{{ (float) $line->shift_2_qty > 0 ? intval($line->shift_2_qty) : '' }}" placeholder="0"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_2_qty')">
-                                            </td>
-                                            <td class="px-3 py-2 text-center">
-                                                <input type="number" step="1" min="0"
-                                                    class="w-16 mx-auto text-center text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1 font-bold text-slate-700 transition-all placeholder-slate-300"
-                                                    value="{{ (float) $line->shift_3_qty > 0 ? intval($line->shift_3_qty) : '' }}" placeholder="0"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_3_qty')">
-                                            </td>
                                             <td class="px-3 py-2 text-right font-mono text-[12px] font-bold text-indigo-700 whitespace-nowrap">
                                                 {{ $lineEstHours > 0 ? number_format($lineEstHours, 2) . 'h' : '-' }}
                                             </td>
                                             <td class="px-3 py-2 text-center">
-                                                <div class="flex items-center justify-center gap-1.5 transition-opacity">
+                                                <div class="flex flex-col items-center justify-center gap-1.5 transition-opacity">
                                                     @if($line->productionOrders->count())
-                                                        <span
-                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-700 border border-green-200"
+                                                        <div class="inline-flex items-center gap-1 rounded-lg bg-green-100 px-2 py-1 text-green-700 border border-green-200"
                                                             title="{{ $line->productionOrders->pluck('production_order_number')->implode(', ') }}">
-                                                            <span class="text-[10px] font-black">WO{{ $line->productionOrders->count() > 1 ? 'x' . $line->productionOrders->count() : '' }}</span>
-                                                        </span>
+                                                            <span class="text-[10px] font-black">1 WO</span>
+                                                        </div>
+                                                        @if($primaryWo)
+                                                            <div class="text-[10px] font-mono font-semibold text-slate-500">
+                                                                {{ $primaryWo->production_order_number }}
+                                                            </div>
+                                                        @endif
                                                     @elseif($line->plan_qty > 0)
                                                         <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
                                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
-                                                                title="Generate WO per shift untuk part ini">
+                                                                title="Generate 1 WO untuk total plan line ini">
                                                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                                                 </svg>
@@ -323,7 +307,7 @@
 
                                         <!-- Expandable Detail Row (Projected Stock) -->
                                         <tr x-show="expanded" x-transition.opacity x-cloak>
-                                            <td colspan="14" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+                                            <td colspan="11" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
                                                 <div class="mb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
                                                     <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
@@ -362,7 +346,7 @@
                         @empty
                             <tbody>
                                 <tr>
-                                    <td colspan="14"
+                                    <td colspan="11"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center gap-3">
                                             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -432,12 +416,12 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">3</span>
-                            Fill qty production
+                            Fill target total WO
                         </li>
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">4</span>
-                            Pecah plan ke Shift 1, 2, dan 3
+                            Isi target total WO
                         </li>
                         <li class="flex items-center gap-2">
                             <span
@@ -472,7 +456,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-yellow-50 rounded border border-yellow-200"></div>
-                            <span class="text-slate-600">Editable fields (seq, qty, shift)</span>
+                            <span class="text-slate-600">Editable fields (seq, qty, distribusi shift)</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-emerald-100 rounded border border-emerald-300"></div>

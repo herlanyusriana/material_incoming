@@ -10,6 +10,40 @@ use Illuminate\Http\Request;
 
 class MachineLoadController extends Controller
 {
+    private function extractMaxShiftFromOrder(ProductionOrder $wo): int
+    {
+        $shiftValue = $wo->shift;
+        if ($shiftValue) {
+            preg_match_all('/\d+/', (string) $shiftValue, $matches);
+            $numbers = collect($matches[0] ?? [])
+                ->map(fn ($value) => (int) $value)
+                ->filter(fn ($value) => $value >= 1 && $value <= 3);
+
+            if ($numbers->isNotEmpty()) {
+                return $numbers->max();
+            }
+        }
+
+        $line = $wo->planningLine;
+        if ($line) {
+            $shiftNos = [];
+            if ((float) ($line->shift_1_qty ?? 0) > 0) {
+                $shiftNos[] = 1;
+            }
+            if ((float) ($line->shift_2_qty ?? 0) > 0) {
+                $shiftNos[] = 2;
+            }
+            if ((float) ($line->shift_3_qty ?? 0) > 0) {
+                $shiftNos[] = 3;
+            }
+            if (!empty($shiftNos)) {
+                return max($shiftNos);
+            }
+        }
+
+        return 1;
+    }
+
     public function index(Request $request)
     {
         $date = Carbon::parse($request->get('date', now()->format('Y-m-d')));
@@ -21,7 +55,7 @@ class MachineLoadController extends Controller
         $orders = ProductionOrder::where('plan_date', $date->format('Y-m-d'))
             ->whereNotNull('machine_id')
             ->whereNotIn('status', ['completed'])
-            ->with(['part', 'machine'])
+            ->with(['part', 'machine', 'planningLine'])
             ->get()
             ->groupBy('machine_id');
 
@@ -39,9 +73,7 @@ class MachineLoadController extends Controller
             $maxShift = 1;
             foreach ($machineOrders as $wo) {
                 $plannedHours += $machine->estimateHours((float) $wo->qty_planned);
-                if ($wo->shift && $wo->shift > $maxShift) {
-                    $maxShift = $wo->shift;
-                }
+                $maxShift = max($maxShift, $this->extractMaxShiftFromOrder($wo));
             }
 
             $capacityHours = (float) $machine->available_hours_per_shift * $maxShift;
@@ -104,7 +136,7 @@ class MachineLoadController extends Controller
         $orders = ProductionOrder::where('plan_date', $date->format('Y-m-d'))
             ->where('machine_id', $machine->id)
             ->whereNotIn('status', ['completed'])
-            ->with('part')
+            ->with(['part', 'planningLine'])
             ->orderBy('production_sequence')
             ->orderBy('id')
             ->get();
@@ -116,9 +148,7 @@ class MachineLoadController extends Controller
         foreach ($orders as $wo) {
             $estHours = $machine->estimateHours((float) $wo->qty_planned);
             $totalPlannedHours += $estHours;
-            if ($wo->shift && $wo->shift > $maxShift) {
-                $maxShift = $wo->shift;
-            }
+            $maxShift = max($maxShift, $this->extractMaxShiftFromOrder($wo));
 
             $orderDetails[] = [
                 'order' => $wo,
