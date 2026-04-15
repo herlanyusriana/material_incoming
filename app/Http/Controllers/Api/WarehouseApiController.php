@@ -92,15 +92,21 @@ class WarehouseApiController extends Controller
 
         if (!empty($order->material_request_lines)) {
             foreach (($order->material_request_lines ?? []) as $line) {
+                $allocations = array_values($line['allocations'] ?? []);
+                $primaryAllocation = $allocations[0] ?? null;
                 $requirements[] = [
                     'gci_part_id' => (int) ($line['component_gci_part_id'] ?? 0),
                     'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
                     'part_name' => (string) ($line['component_part_name'] ?? ''),
+                    'component_part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
+                    'component_part_name' => (string) ($line['component_part_name'] ?? ''),
+                    'scan_part_no' => (string) ($primaryAllocation['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
+                    'scan_part_name' => (string) ($primaryAllocation['part_name'] ?? $line['component_part_name'] ?? ''),
                     'uom' => (string) ($line['uom'] ?? 'PCS'),
                     'total_qty' => (float) ($line['required_qty'] ?? 0),
                     'allocated_qty' => (float) ($line['available_qty'] ?? 0),
                     'shortage_qty' => (float) ($line['shortage_qty'] ?? 0),
-                    'allocations' => array_values($line['allocations'] ?? []),
+                    'allocations' => $allocations,
                     'notes' => $line['notes'] ?? null,
                 ];
             }
@@ -117,6 +123,10 @@ class WarehouseApiController extends Controller
                         'gci_part_id' => (int) ($req['part']?->id ?? 0),
                         'part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
                         'part_name' => (string) ($req['part']?->part_name ?? ''),
+                        'component_part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
+                        'component_part_name' => (string) ($req['part']?->part_name ?? ''),
+                        'scan_part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
+                        'scan_part_name' => (string) ($req['part']?->part_name ?? ''),
                         'uom' => (string) ($req['uom'] ?? 'PCS'),
                         'total_qty' => (float) ($req['total_qty'] ?? 0),
                         'allocated_qty' => 0.0,
