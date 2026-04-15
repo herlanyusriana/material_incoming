@@ -914,7 +914,7 @@
                             <thead class="bg-slate-50 text-slate-600">
                                 <tr>
                                     <th class="px-4 py-3 text-left">Material / Tag</th>
-                                    <th class="px-4 py-3 text-center">Lokasi</th>
+                                    <th class="px-4 py-3 text-left">Jejak Lokasi</th>
                                     <th class="px-4 py-3 text-right">Qty</th>
                                     <th class="px-4 py-3 text-left">Waktu Scan / Posting</th>
                                     <th class="px-4 py-3 text-left">Traceability</th>
@@ -922,12 +922,28 @@
                             </thead>
                             <tbody class="divide-y">
                                 @foreach($order->material_issue_lines as $line)
+                                    @php
+                                        $sourceLocationCode = strtoupper(trim((string) ($line['source_location_code'] ?? '')));
+                                        $currentLocationCode = strtoupper(trim((string) ($line['location_code'] ?? '')));
+                                        $stagedToAa = (bool) ($line['staged_to_aa'] ?? false);
+                                    @endphp
                                     <tr class="align-top">
                                         <td class="px-4 py-3">
                                             <div class="font-semibold text-slate-900">{{ $line['part_no'] ?? $line['component_part_no'] ?? '-' }}</div>
                                             <div class="text-xs text-slate-500">Tag {{ $line['tag_number'] ?? ($line['batch_no'] ?? '-') }}</div>
                                         </td>
-                                        <td class="px-4 py-3 text-center">{{ $line['location_code'] ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-xs text-slate-700">
+                                            @if($sourceLocationCode !== '' && $sourceLocationCode !== $currentLocationCode)
+                                                <div class="font-semibold">{{ $sourceLocationCode }} -> {{ $currentLocationCode ?: '-' }}</div>
+                                            @else
+                                                <div class="font-semibold">{{ $currentLocationCode ?: '-' }}</div>
+                                            @endif
+                                            @if($stagedToAa)
+                                                <div class="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                                                    Auto staging ke AA
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['qty'] ?? $line['issued_qty'] ?? 0), 4) }}</td>
                                         <td class="px-4 py-3 text-xs text-slate-600">
                                             <div>Scan: {{ !empty($line['scanned_at']) ? \Carbon\Carbon::parse($line['scanned_at'])->format('d M Y H:i') : '-' }}</div>

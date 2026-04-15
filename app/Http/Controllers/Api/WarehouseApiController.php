@@ -14,6 +14,8 @@ use Illuminate\Http\Request;
 
 class WarehouseApiController extends Controller
 {
+    private const STAGING_LOCATION_CODE = 'AA-BULK';
+
     private function isWarehouseScannableRm(string $makeOrBuy): bool
     {
         $normalized = strtoupper(trim($makeOrBuy));
@@ -229,6 +231,9 @@ class WarehouseApiController extends Controller
         $partNo = 'Unknown';
         $locationCode = null;
         $traceability = [];
+        $sourceLocationCode = null;
+        $stagedToAa = false;
+        $receive = null;
 
         // 1. Cek apakah barang sudah masuk rak (Location Inventory)
         $locInv = LocationInventory::where('batch_no', $tagNo)->with('part', 'gciPart')->first();
@@ -238,8 +243,8 @@ class WarehouseApiController extends Controller
             $qtyAvailable = $locInv->qty_on_hand;
             $partNo = $locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown';
             $locationCode = $locInv->location_code;
+            $sourceLocationCode = $locInv->location_code;
         } else {
-            // 2. Kalau tag masih ada di Incoming/Putaway Queue, blokir dulu.
             $receiveQuery = Receive::where('tag', $tagNo)->with('arrivalItem.part', 'arrivalItem.gciPartVendor');
             if ($filterPartNo) {
                 $receiveQuery->whereHas('arrivalItem.part', fn($query) => $query->where('part_no', $filterPartNo));
@@ -250,11 +255,17 @@ class WarehouseApiController extends Controller
                 $partNo = $arrItem?->part?->part_no
                     ?? $arrItem?->gciPartVendor?->vendor_part_no
                     ?? 'Unknown';
-
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "Tag $tagNo untuk material $partNo masih ada di area incoming/putaway. Putaway ke lokasi gudang dulu sebelum supply ke produksi.",
-                ], 422);
+                $gciPartId = (int) ($arrItem?->part?->gci_part_id ?? $arrItem?->gciPartVendor?->gci_part_id ?? 0);
+                $partId = (int) ($arrItem?->part?->id ?? 0);
+                $qtyAvailable = (float) ($receive->qty ?? 0);
+                $sourceLocationCode = strtoupper(trim((string) ($receive->location_code ?? '')));
+                $traceability = [
+                    'source_receive_id' => (int) $receive->id,
+                    'source_arrival_id' => (int) ($arrItem?->arrival_id ?? 0),
+                    'source_invoice_no' => (string) ($receive->invoice_no ?? ''),
+                    'source_delivery_note_no' => (string) ($receive->delivery_note_no ?? ''),
+                    'source_tag' => $tagNo,
+                ];
             }
         }
 
@@ -283,19 +294,89 @@ class WarehouseApiController extends Controller
             return response()->json(['status' => 'error', 'message' => "ERROR: Material {$partNo} TIDAK ADA dalam resep BOM mesin ini!"], 422);
         }
 
-        // Jika lolos validasi, save ke lines
-        $tags[] = [
-            'tag_number' => $tagNo,
-            'part_no' => $partNo,
-            'qty' => $qtyAvailable,
-            'gci_part_id' => $gciPartId,
-            'part_id' => $partId,
-            'location_code' => $locationCode,
-            'traceability' => $traceability,
-            'scanned_at' => now()->toDateTimeString(),
-        ];
-        
-        $order->update(['material_issue_lines' => $tags]);
+        DB::transaction(function () use (
+            &$tags,
+            $order,
+            $tagNo,
+            $partNo,
+            $qtyAvailable,
+            $gciPartId,
+            $partId,
+            &$locationCode,
+            $sourceLocationCode,
+            &$traceability,
+            &$stagedToAa,
+            $locInv
+        ) {
+            $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
+            $stagingLocation = self::STAGING_LOCATION_CODE;
+
+            if ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
+                LocationInventory::consumeStock(
+                    $partId > 0 ? $partId : null,
+                    (string) $locInv->location_code,
+                    $qtyAvailable,
+                    $tagNo,
+                    $gciPartId > 0 ? $gciPartId : null,
+                    'PRODUCTION_STAGE_AA_OUT',
+                    $sourceReference,
+                    array_merge(['source_tag' => $tagNo], $traceability)
+                );
+
+                LocationInventory::updateStock(
+                    $partId > 0 ? $partId : null,
+                    $stagingLocation,
+                    $qtyAvailable,
+                    $tagNo,
+                    null,
+                    $gciPartId > 0 ? $gciPartId : null,
+                    'PRODUCTION_STAGE_AA_IN',
+                    $sourceReference,
+                    array_merge(['source_tag' => $tagNo], $traceability)
+                );
+
+                $locationCode = $stagingLocation;
+                $stagedToAa = true;
+            } elseif (!$locInv) {
+                LocationInventory::updateStock(
+                    $partId > 0 ? $partId : null,
+                    $stagingLocation,
+                    $qtyAvailable,
+                    $tagNo,
+                    null,
+                    $gciPartId > 0 ? $gciPartId : null,
+                    'PRODUCTION_STAGE_AA_IN',
+                    $sourceReference,
+                    array_merge(['source_tag' => $tagNo], $traceability)
+                );
+
+                $locationCode = $stagingLocation;
+                $stagedToAa = true;
+            }
+
+            if (!$locationCode) {
+                $locationCode = $stagingLocation;
+            }
+
+            $traceability = array_merge($traceability, [
+                'source_tag' => $tagNo,
+            ]);
+
+            $tags[] = [
+                'tag_number' => $tagNo,
+                'part_no' => $partNo,
+                'qty' => $qtyAvailable,
+                'gci_part_id' => $gciPartId,
+                'part_id' => $partId,
+                'location_code' => $locationCode,
+                'source_location_code' => $sourceLocationCode,
+                'staged_to_aa' => $stagedToAa,
+                'traceability' => $traceability,
+                'scanned_at' => now()->toDateTimeString(),
+            ];
+
+            $order->update(['material_issue_lines' => $tags]);
+        });
 
         return response()->json(['status' => 'success', 'data' => $tags]);
     }
@@ -304,15 +385,59 @@ class WarehouseApiController extends Controller
     {
         $order = ProductionOrder::findOrFail($id);
         $tags = $order->material_issue_lines ?? [];
+        $removedTag = null;
+        $filtered = [];
 
-        // Filter out the tag that matches
-        $filtered = array_values(array_filter($tags, function($tag) use ($tagNo) {
-            return ($tag['tag_number'] ?? '') !== $tagNo;
-        }));
+        foreach ($tags as $tag) {
+            if (($tag['tag_number'] ?? '') === $tagNo && $removedTag === null) {
+                $removedTag = $tag;
+                continue;
+            }
+            $filtered[] = $tag;
+        }
 
-        $order->update(['material_issue_lines' => $filtered]);
+        if ($removedTag && ($removedTag['staged_to_aa'] ?? false) && !$order->material_issued_at) {
+            DB::transaction(function () use ($order, $removedTag) {
+                $qty = (float) ($removedTag['qty'] ?? 0);
+                $partId = (int) ($removedTag['part_id'] ?? 0);
+                $gciPartId = (int) ($removedTag['gci_part_id'] ?? 0);
+                $tagNo = (string) ($removedTag['tag_number'] ?? '');
+                $sourceLocationCode = strtoupper(trim((string) ($removedTag['source_location_code'] ?? '')));
+                $traceability = is_array($removedTag['traceability'] ?? null) ? $removedTag['traceability'] : [];
+                $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
 
-        return response()->json(['status' => 'success', 'data' => $filtered]);
+                if ($qty > 0 && $tagNo !== '') {
+                    LocationInventory::consumeStock(
+                        $partId > 0 ? $partId : null,
+                        self::STAGING_LOCATION_CODE,
+                        $qty,
+                        $tagNo,
+                        $gciPartId > 0 ? $gciPartId : null,
+                        'PRODUCTION_STAGE_AA_CANCEL_OUT',
+                        $sourceReference,
+                        array_merge(['source_tag' => $tagNo], $traceability)
+                    );
+
+                    if ($sourceLocationCode !== '') {
+                        LocationInventory::updateStock(
+                            $partId > 0 ? $partId : null,
+                            $sourceLocationCode,
+                            $qty,
+                            $tagNo,
+                            null,
+                            $gciPartId > 0 ? $gciPartId : null,
+                            'PRODUCTION_STAGE_AA_CANCEL_IN',
+                            $sourceReference,
+                            array_merge(['source_tag' => $tagNo], $traceability)
+                        );
+                    }
+                }
+            });
+        }
+
+        $order->update(['material_issue_lines' => array_values($filtered)]);
+
+        return response()->json(['status' => 'success', 'data' => array_values($filtered)]);
     }
 
     public function handover(Request $request, $id)
