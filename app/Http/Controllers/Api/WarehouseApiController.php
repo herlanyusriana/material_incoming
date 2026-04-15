@@ -74,18 +74,32 @@ class WarehouseApiController extends Controller
         $scanProgress = collect($issueLines)
             ->reduce(function (array $carry, array $line) {
                 $gciPartId = (int) ($line['gci_part_id'] ?? 0);
+                $partId = (int) ($line['part_id'] ?? 0);
                 $partNo = strtoupper(trim((string) ($line['part_no'] ?? '')));
-                $key = $gciPartId > 0 ? 'gci:' . $gciPartId : 'part:' . $partNo;
-
-                if (!isset($carry[$key])) {
-                    $carry[$key] = [
-                        'scanned_qty' => 0.0,
-                        'scanned_tags' => 0,
-                    ];
+                $keys = [];
+                if ($gciPartId > 0) {
+                    $keys[] = 'gci:' . $gciPartId;
+                }
+                if ($partId > 0) {
+                    $keys[] = 'incoming:' . $partId;
+                }
+                if ($partNo !== '') {
+                    $keys[] = 'part:' . $partNo;
                 }
 
-                $carry[$key]['scanned_qty'] += (float) ($line['qty'] ?? $line['issued_qty'] ?? 0);
-                $carry[$key]['scanned_tags']++;
+                $keys = array_values(array_unique($keys));
+
+                foreach ($keys as $key) {
+                    if (!isset($carry[$key])) {
+                        $carry[$key] = [
+                            'scanned_qty' => 0.0,
+                            'scanned_tags' => 0,
+                        ];
+                    }
+
+                    $carry[$key]['scanned_qty'] += (float) ($line['qty'] ?? $line['issued_qty'] ?? 0);
+                    $carry[$key]['scanned_tags']++;
+                }
 
                 return $carry;
             }, []);
@@ -144,8 +158,30 @@ class WarehouseApiController extends Controller
             ->map(function (array $requirement) use ($scanProgress) {
                 $gciPartId = (int) ($requirement['gci_part_id'] ?? 0);
                 $partNo = strtoupper(trim((string) ($requirement['part_no'] ?? '')));
-                $key = $gciPartId > 0 ? 'gci:' . $gciPartId : 'part:' . $partNo;
-                $progress = $scanProgress[$key] ?? ['scanned_qty' => 0.0, 'scanned_tags' => 0];
+                $keys = [];
+                if ($gciPartId > 0) {
+                    $keys[] = 'gci:' . $gciPartId;
+                }
+                if ($partNo !== '') {
+                    $keys[] = 'part:' . $partNo;
+                }
+                foreach (($requirement['allocations'] ?? []) as $allocation) {
+                    $allocationPartId = (int) ($allocation['part_id'] ?? 0);
+                    $allocationPartNo = strtoupper(trim((string) ($allocation['part_no'] ?? '')));
+                    if ($allocationPartId > 0) {
+                        $keys[] = 'incoming:' . $allocationPartId;
+                    }
+                    if ($allocationPartNo !== '') {
+                        $keys[] = 'part:' . $allocationPartNo;
+                    }
+                }
+
+                $keys = array_values(array_unique($keys));
+                $progress = collect($keys)->reduce(function (array $carry, string $key) use ($scanProgress) {
+                    $carry['scanned_qty'] += (float) ($scanProgress[$key]['scanned_qty'] ?? 0);
+                    $carry['scanned_tags'] += (int) ($scanProgress[$key]['scanned_tags'] ?? 0);
+                    return $carry;
+                }, ['scanned_qty' => 0.0, 'scanned_tags' => 0]);
                 $requiredQty = (float) ($requirement['total_qty'] ?? 0);
                 $scannedQty = round((float) ($progress['scanned_qty'] ?? 0), 4);
                 $remainingQty = max(0, round($requiredQty - $scannedQty, 4));
