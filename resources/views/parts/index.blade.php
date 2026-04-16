@@ -28,6 +28,11 @@
                     'SUB' => ['label' => 'Substitute', 'icon' => '🔄', 'color' => 'purple'],
                 ];
                 $activeTab = $classification ?? 'RM';
+                $policyBadges = [
+                    'direct_issue' => ['label' => 'Pakai Habis', 'class' => 'bg-slate-100 text-slate-700 border-slate-200'],
+                    'backflush_return' => ['label' => 'Balik Sisa', 'class' => 'bg-orange-100 text-orange-800 border-orange-200'],
+                    'backflush_line_stock' => ['label' => 'Simpan di Line', 'class' => 'bg-emerald-100 text-emerald-800 border-emerald-200'],
+                ];
             @endphp
             <div class="flex items-center gap-2 border-b border-slate-200 pb-0">
                 @foreach($tabs as $key => $tab)
@@ -54,6 +59,25 @@
                                 <option value="inactive" @selected(($status ?? '') === 'inactive')>Inactive</option>
                             </select>
                         </div>
+                        @if($activeTab !== 'SUB')
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">Policy</label>
+                                <select name="consumption_policy" class="mt-1 rounded-xl border-slate-200 text-sm">
+                                    <option value="">All Policy</option>
+                                    <option value="direct_issue" @selected(($consumptionPolicy ?? '') === 'direct_issue')>Pakai Habis</option>
+                                    <option value="backflush_return" @selected(($consumptionPolicy ?? '') === 'backflush_return')>Balik Sisa</option>
+                                    <option value="backflush_line_stock" @selected(($consumptionPolicy ?? '') === 'backflush_line_stock')>Simpan di Line</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">Konfirmasi</label>
+                                <select name="policy_confirmation" class="mt-1 rounded-xl border-slate-200 text-sm">
+                                    <option value="">Semua</option>
+                                    <option value="confirmed" @selected(($policyConfirmation ?? '') === 'confirmed')>Sudah Confirm</option>
+                                    <option value="unconfirmed" @selected(($policyConfirmation ?? '') === 'unconfirmed')>Belum Confirm</option>
+                                </select>
+                            </div>
+                        @endif
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
                             <input name="q" value="{{ $search ?? '' }}" class="rounded-xl border-slate-200 pl-10 text-sm" placeholder="Search part...">
@@ -76,11 +100,55 @@
                     @endif
                 </div>
 
+                @if($activeTab !== 'SUB')
+                    <form method="POST" action="{{ route('parts.bulk-policy') }}" class="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3" @submit="if (selectedPartIds.length === 0) { alert('Pilih part dulu sebelum bulk update.'); $event.preventDefault(); }">
+                        @csrf
+                        <input type="hidden" name="classification" value="{{ $activeTab }}">
+                        <input type="hidden" name="status" value="{{ $status ?? '' }}">
+                        <input type="hidden" name="q" value="{{ $search ?? '' }}">
+                        <input type="hidden" name="consumption_policy_filter" value="{{ $consumptionPolicy ?? '' }}">
+                        <input type="hidden" name="policy_confirmation" value="{{ $policyConfirmation ?? '' }}">
+                        <template x-for="id in selectedPartIds" :key="'bulk-' + id">
+                            <input type="hidden" name="part_ids[]" :value="id">
+                        </template>
+                        <div class="flex flex-wrap items-end gap-3">
+                            <div>
+                                <div class="text-xs font-semibold text-slate-600">Bulk Update Policy</div>
+                                <div class="mt-1 text-sm text-slate-700">
+                                    Part terpilih: <span class="font-semibold" x-text="selectedPartIds.length"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">Set Policy Ke</label>
+                                <select name="consumption_policy" class="mt-1 rounded-xl border-slate-200 text-sm">
+                                    <option value="direct_issue">Pakai Habis</option>
+                                    <option value="backflush_return" selected>Balik Sisa</option>
+                                    <option value="backflush_line_stock">Simpan di Line</option>
+                                </select>
+                            </div>
+                            <div class="text-xs text-slate-600 max-w-md">
+                                Gunakan setelah filter aktif. Update massal ini sekaligus menandai policy sebagai sudah dikonfirmasi.
+                            </div>
+                            <button type="submit" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50" :disabled="selectedPartIds.length === 0">
+                                Apply ke Part Terpilih
+                            </button>
+                        </div>
+                    </form>
+                @endif
+
                 @if($activeTab === 'RM')
                     <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-800">
                         <span class="font-semibold">Part Master</span> menjadi source of truth untuk data part dan vendor part.
                         Harga tidak lagi diinput di sini dan dikelola terpusat lewat
                         <a href="{{ route('pricing.index') }}" class="font-bold underline">Pricing Master</a>.
+                        Material policy juga diatur di sini supaya WO, WH Supply, dan Production membaca acuan yang sama.
+                    </div>
+                @endif
+
+                @if($activeTab !== 'SUB')
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                        <span class="font-semibold">Audit cepat:</span> pakai filter <span class="font-semibold">Policy</span> dan <span class="font-semibold">Konfirmasi</span> untuk cari part yang belum punya keputusan final.
+                        Part yang belum dikonfirmasi akan ditandai badge merah supaya gampang dibersihkan.
                     </div>
                 @endif
 
@@ -90,10 +158,14 @@
                         <table class="min-w-full text-sm divide-y divide-slate-200">
                             <thead class="bg-emerald-50">
                                 <tr class="text-emerald-700 text-xs uppercase tracking-wider">
+                                    <th class="px-4 py-3 text-left font-semibold w-10">
+                                        <input type="checkbox" class="rounded border-slate-300 text-indigo-600" :checked="allVisibleSelected()" @click.stop="toggleSelectAll($event.target.checked)">
+                                    </th>
                                     <th class="px-4 py-3 text-left font-semibold w-8"></th>
                                     <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                     <th class="px-4 py-3 text-left font-semibold">Size</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Policy</th>
                                     <th class="px-4 py-3 text-center font-semibold">Vendors</th>
                                     <th class="px-4 py-3 text-left font-semibold">Status</th>
                                     <th class="px-4 py-3 text-right font-semibold">Actions</th>
@@ -102,6 +174,9 @@
                             <tbody class="divide-y divide-slate-100">
                                 @forelse ($parts as $p)
                                     <tr class="hover:bg-slate-50 cursor-pointer" @click="toggle({{ $p->id }})">
+                                        <td class="px-4 py-3" @click.stop>
+                                            <input type="checkbox" class="rounded border-slate-300 text-indigo-600" :value="{{ $p->id }}" x-model="selectedPartIds">
+                                        </td>
                                         <td class="px-4 py-3">
                                             @if($p->vendorLinks->count() > 0)
                                                 <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="expanded[{{ $p->id }}] && 'rotate-90'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
@@ -110,6 +185,22 @@
                                         <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->size ?? '-' }}</td>
+                                        <td class="px-4 py-3">
+                                            @php
+                                                $policyKey = $p->consumption_policy ?: (($p->is_backflush ?? true) ? 'backflush_return' : 'direct_issue');
+                                                $policy = $policyBadges[$policyKey] ?? $policyBadges['backflush_return'];
+                                            @endphp
+                                            <div class="flex flex-col items-start gap-1">
+                                                <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $policy['class'] }}">
+                                                    {{ $policy['label'] }}
+                                                </span>
+                                                @if(!$p->policy_confirmed_at)
+                                                    <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                                                        Belum Confirm
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td class="px-4 py-3 text-center">
                                             <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold {{ $p->vendorLinks->count() > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">{{ $p->vendorLinks->count() }}</span>
                                         </td>
@@ -137,7 +228,7 @@
                                     @if($p->vendorLinks->count() > 0)
                                         <template x-if="expanded[{{ $p->id }}]">
                                             <tr>
-                                                <td colspan="7" class="px-0 py-0">
+                                                <td colspan="9" class="px-0 py-0">
                                                     <div class="bg-gradient-to-r from-emerald-50/50 to-slate-50 border-l-4 border-emerald-300 mx-4 my-2 rounded-lg overflow-hidden">
                                                         <table class="min-w-full text-xs divide-y divide-emerald-100">
                                                             <thead class="bg-emerald-50/80">
@@ -191,7 +282,7 @@
                                         </template>
                                     @endif
                                 @empty
-                                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No RM parts found</td></tr>
+                                    <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No RM parts found</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -204,11 +295,15 @@
                         <table class="min-w-full text-sm divide-y divide-slate-200">
                             <thead class="bg-blue-50">
                                 <tr class="text-blue-700 text-xs uppercase tracking-wider">
+                                    <th class="px-4 py-3 text-left font-semibold w-10">
+                                        <input type="checkbox" class="rounded border-slate-300 text-indigo-600" :checked="allVisibleSelected()" @click.stop="toggleSelectAll($event.target.checked)">
+                                    </th>
                                     <th class="px-4 py-3 text-left font-semibold w-8"></th>
                                     <th class="px-4 py-3 text-left font-semibold">Customer</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                     <th class="px-4 py-3 text-left font-semibold">Model</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Policy</th>
                                     <th class="px-4 py-3 text-center font-semibold">Customer Parts</th>
                                     <th class="px-4 py-3 text-left font-semibold">Status</th>
                                     <th class="px-4 py-3 text-right font-semibold">Actions</th>
@@ -217,6 +312,9 @@
                             <tbody class="divide-y divide-slate-100">
                                 @forelse ($parts as $p)
                                     <tr class="hover:bg-slate-50 cursor-pointer" @click="toggle({{ $p->id }})">
+                                        <td class="px-4 py-3" @click.stop>
+                                            <input type="checkbox" class="rounded border-slate-300 text-indigo-600" :value="{{ $p->id }}" x-model="selectedPartIds">
+                                        </td>
                                         <td class="px-4 py-3">
                                             @if($p->customerPartUsages->count() > 0)
                                                 <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" :class="expanded[{{ $p->id }}] && 'rotate-90'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
@@ -233,6 +331,22 @@
                                         <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                        <td class="px-4 py-3">
+                                            @php
+                                                $policyKey = $p->consumption_policy ?: (($p->is_backflush ?? true) ? 'backflush_return' : 'direct_issue');
+                                                $policy = $policyBadges[$policyKey] ?? $policyBadges['backflush_return'];
+                                            @endphp
+                                            <div class="flex flex-col items-start gap-1">
+                                                <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $policy['class'] }}">
+                                                    {{ $policy['label'] }}
+                                                </span>
+                                                @if(!$p->policy_confirmed_at)
+                                                    <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                                                        Belum Confirm
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td class="px-4 py-3 text-center">
                                             <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold {{ $p->customerPartUsages->count() > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500' }}">{{ $p->customerPartUsages->count() }}</span>
                                         </td>
@@ -257,7 +371,7 @@
                                     @if($p->customerPartUsages->count() > 0)
                                         <template x-if="expanded[{{ $p->id }}]">
                                             <tr>
-                                                <td colspan="8" class="px-0 py-0">
+                                                <td colspan="10" class="px-0 py-0">
                                                     <div class="bg-gradient-to-r from-blue-50/50 to-slate-50 border-l-4 border-blue-300 mx-4 my-2 rounded-lg overflow-hidden">
                                                         <table class="min-w-full text-xs divide-y divide-blue-100">
                                                             <thead class="bg-blue-50/80">
@@ -287,7 +401,7 @@
                                         </template>
                                     @endif
                                 @empty
-                                    <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">No FG parts found</td></tr>
+                                    <tr><td colspan="10" class="px-4 py-8 text-center text-slate-500">No FG parts found</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -300,9 +414,13 @@
                         <table class="min-w-full text-sm divide-y divide-slate-200">
                             <thead class="bg-amber-50">
                                 <tr class="text-amber-700 text-xs uppercase tracking-wider">
+                                    <th class="px-4 py-3 text-left font-semibold w-10">
+                                        <input type="checkbox" class="rounded border-slate-300 text-indigo-600" :checked="allVisibleSelected()" @click.stop="toggleSelectAll($event.target.checked)">
+                                    </th>
                                     <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part Name</th>
                                     <th class="px-4 py-3 text-left font-semibold">Model</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Policy</th>
                                     <th class="px-4 py-3 text-left font-semibold">Status</th>
                                     <th class="px-4 py-3 text-right font-semibold">Actions</th>
                                 </tr>
@@ -310,9 +428,28 @@
                             <tbody class="divide-y divide-slate-100">
                                 @forelse ($parts as $p)
                                     <tr class="hover:bg-slate-50">
+                                        <td class="px-4 py-3" @click.stop>
+                                            <input type="checkbox" class="rounded border-slate-300 text-indigo-600" :value="{{ $p->id }}" x-model="selectedPartIds">
+                                        </td>
                                         <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
+                                        <td class="px-4 py-3">
+                                            @php
+                                                $policyKey = $p->consumption_policy ?: (($p->is_backflush ?? true) ? 'backflush_return' : 'direct_issue');
+                                                $policy = $policyBadges[$policyKey] ?? $policyBadges['backflush_return'];
+                                            @endphp
+                                            <div class="flex flex-col items-start gap-1">
+                                                <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $policy['class'] }}">
+                                                    {{ $policy['label'] }}
+                                                </span>
+                                                @if(!$p->policy_confirmed_at)
+                                                    <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                                                        Belum Confirm
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td class="px-4 py-3">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $p->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">{{ strtoupper($p->status) }}</span>
                                         </td>
@@ -331,7 +468,7 @@
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No WIP parts found</td></tr>
+                                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No WIP parts found</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -549,6 +686,17 @@
                                 </label>
                             @endforeach
                         </div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Material Policy</label>
+                        <select name="consumption_policy" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="partForm.consumption_policy">
+                            <option value="direct_issue">Pakai Habis</option>
+                            <option value="backflush_return">Balik Sisa</option>
+                            <option value="backflush_line_stock">Simpan di Line</option>
+                        </select>
+                        <p class="mt-1 text-[11px] text-slate-500 leading-relaxed">
+                            Policy default part dikelola dari <span class="font-semibold text-slate-700">Parts Master</span>. BOM tetap bisa override kalau perlakuannya khusus per produk.
+                        </p>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Status</label>
@@ -821,6 +969,8 @@
                     importOpen: false,
                     subImportOpen: false,
                     activeTab: @js($activeTab),
+                    visiblePartIds: @js(($activeTab !== 'SUB' && isset($parts)) ? $parts->pluck('id')->map(fn($id) => (string) $id)->values()->all() : []),
+                    selectedPartIds: [],
 
                     // GCI Part modal
                     partModal: false,
@@ -828,7 +978,7 @@
                     partAction: @js(route('parts.store')),
                     subsOpen: false,
                     vendorSearch: '',
-                    partForm: { id: null, customer_ids: [], part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', vendor_ids: [], substitutes_for: [], as_substitute: [] },
+                    partForm: { id: null, customer_ids: [], part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', consumption_policy: 'backflush_return', vendor_ids: [], substitutes_for: [], as_substitute: [] },
                     subEditId: null,
                     subFormAction: '',
                     subForm: { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },
@@ -846,13 +996,30 @@
                     subListForm: { id: '', fg_part_no: '', component_part_no: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },
 
                     toggle(id) { this.expanded[id] = !this.expanded[id]; },
+                    allVisibleSelected() {
+                        const selected = this.selectedPartIds.map(id => String(id));
+                        return this.visiblePartIds.length > 0
+                            && this.visiblePartIds.every(id => selected.includes(String(id)));
+                    },
+                    toggleSelectAll(checked) {
+                        const selected = this.selectedPartIds.map(id => String(id));
+                        if (checked) {
+                            this.selectedPartIds = Array.from(new Set([
+                                ...selected,
+                                ...this.visiblePartIds,
+                            ]));
+                            return;
+                        }
+
+                        this.selectedPartIds = selected.filter(id => !this.visiblePartIds.includes(String(id)));
+                    },
 
                     openCreatePart() {
                         this.partMode = 'create';
                         this.partAction = @js(route('parts.store'));
                         this.subsOpen = false;
                         this.vendorSearch = '';
-                        this.partForm = { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', vendor_ids: [], substitutes_for: [], as_substitute: [] };
+                        this.partForm = { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', consumption_policy: 'backflush_return', vendor_ids: [], substitutes_for: [], as_substitute: [] };
                         this.subEditId = null;
                         this.subFormAction = '';
                         this.subForm = { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' };
@@ -883,6 +1050,7 @@
                             model: p.model || '',
                             classification: p.classification,
                             status: p.status,
+                            consumption_policy: p.consumption_policy || ((p.is_backflush !== false && p.is_backflush !== 0) ? 'backflush_return' : 'direct_issue'),
                             vendor_ids: linkedVendors,
                             substitutes_for: partSubstitutesMap[p.id] || [],
                             as_substitute: partAsSubstituteMap[p.id] || [],

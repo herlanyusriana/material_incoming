@@ -19,6 +19,25 @@ use Illuminate\Validation\Rule;
 
 class PartController extends Controller
 {
+    private const CONSUMPTION_POLICIES = [
+        'direct_issue',
+        'backflush_return',
+        'backflush_line_stock',
+    ];
+
+    private function normalizeConsumptionPolicy(?string $policy): ?string
+    {
+        $policy = trim((string) $policy);
+
+        if ($policy === '') {
+            return null;
+        }
+
+        return in_array($policy, self::CONSUMPTION_POLICIES, true)
+            ? $policy
+            : null;
+    }
+
     private function activeBomScope($query, mixed $asOfDate = null)
     {
         $date = $asOfDate ?: now()->toDateString();
@@ -160,6 +179,8 @@ class PartController extends Controller
         $classification = $request->query('classification', 'RM');
         $status = $request->query('status', 'active');
         $search = $request->query('q');
+        $consumptionPolicy = $this->normalizeConsumptionPolicy($request->query('consumption_policy'));
+        $policyConfirmation = trim((string) $request->query('policy_confirmation', ''));
 
         // Substitute tab: query BomItemSubstitute instead of GciPart
         if (strtoupper($classification) === 'SUB') {
@@ -193,6 +214,8 @@ class PartController extends Controller
                 'classification' => 'SUB',
                 'status' => $status,
                 'search' => $search,
+                'consumptionPolicy' => $consumptionPolicy,
+                'policyConfirmation' => $policyConfirmation,
             ]);
         }
 
@@ -207,6 +230,9 @@ class PartController extends Controller
         $parts = GciPart::with($eagerLoads)
             ->where('classification', strtoupper($classification))
             ->when($status, fn($q) => $q->where('status', $status))
+            ->when($consumptionPolicy, fn($q) => $q->where('consumption_policy', $consumptionPolicy))
+            ->when($policyConfirmation === 'confirmed', fn($q) => $q->whereNotNull('policy_confirmed_at'))
+            ->when($policyConfirmation === 'unconfirmed', fn($q) => $q->whereNull('policy_confirmed_at'))
             ->when($search, function ($query, $search) use ($classification) {
                 $query->where(function ($inner) use ($search, $classification) {
                     $inner->where('part_no', 'like', "%{$search}%")
@@ -312,7 +338,7 @@ class PartController extends Controller
                 ->get(['id', 'part_no', 'part_name']);
         }
 
-        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'rmFgMap', 'fgPartsWithBom'));
+        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'consumptionPolicy', 'policyConfirmation', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'rmFgMap', 'fgPartsWithBom'));
     }
 
     public function export(Request $request)
@@ -419,6 +445,7 @@ class PartController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
+            'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
         ]);
 
         $vendorIds = $data['vendor_ids'] ?? [];
@@ -426,6 +453,11 @@ class PartController extends Controller
 
         $customerIds = $data['customer_ids'] ?? [];
         unset($data['customer_ids']);
+
+        $data['consumption_policy'] = $this->normalizeConsumptionPolicy($data['consumption_policy'] ?? null);
+        $data['is_backflush'] = $data['consumption_policy'] !== 'direct_issue';
+        $data['policy_confirmed_at'] = now();
+        $data['policy_confirmed_by'] = auth()->id();
 
         try {
             $gciPart = GciPart::create($data);
@@ -465,6 +497,7 @@ class PartController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
+            'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
         ]);
 
         $vendorIds = $data['vendor_ids'] ?? [];
@@ -472,6 +505,11 @@ class PartController extends Controller
 
         $customerIds = $data['customer_ids'] ?? [];
         unset($data['customer_ids']);
+
+        $data['consumption_policy'] = $this->normalizeConsumptionPolicy($data['consumption_policy'] ?? null);
+        $data['is_backflush'] = $data['consumption_policy'] !== 'direct_issue';
+        $data['policy_confirmed_at'] = now();
+        $data['policy_confirmed_by'] = auth()->id();
 
         try {
             $part->update($data);
@@ -496,6 +534,42 @@ class PartController extends Controller
         }
 
         return redirect()->route('parts.index')->with('status', 'Part updated.');
+    }
+
+    public function bulkUpdatePolicy(Request $request)
+    {
+        $data = $request->validate([
+            'part_ids' => ['required', 'array', 'min:1'],
+            'part_ids.*' => ['integer', 'exists:gci_parts,id'],
+            'consumption_policy' => ['required', Rule::in(self::CONSUMPTION_POLICIES)],
+        ]);
+
+        $policy = $this->normalizeConsumptionPolicy($data['consumption_policy']);
+        $partIds = collect($data['part_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $updated = GciPart::query()
+            ->whereIn('id', $partIds)
+            ->update([
+                'consumption_policy' => $policy,
+                'is_backflush' => $policy !== 'direct_issue',
+                'policy_confirmed_at' => now(),
+                'policy_confirmed_by' => auth()->id(),
+                'updated_at' => now(),
+            ]);
+
+        return redirect()
+            ->route('parts.index', [
+                'classification' => $request->input('classification'),
+                'status' => $request->input('status'),
+                'q' => $request->input('q'),
+                'consumption_policy' => $request->input('consumption_policy_filter'),
+                'policy_confirmation' => $request->input('policy_confirmation'),
+            ])
+            ->with('status', "Material policy berhasil diupdate untuk {$updated} part.");
     }
 
     public function destroy(GciPart $part)

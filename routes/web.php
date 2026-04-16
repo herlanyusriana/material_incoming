@@ -114,6 +114,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/vendors/import', [VendorController::class, 'import'])->name('vendors.import');
     Route::get('/parts', [PartController::class, 'index'])->name('parts.index');
     Route::post('/parts', [PartController::class, 'store'])->name('parts.store');
+    Route::post('/parts/bulk-policy', [PartController::class, 'bulkUpdatePolicy'])->name('parts.bulk-policy');
     Route::put('/parts/{part}', [PartController::class, 'update'])->name('parts.update');
     Route::delete('/parts/{part}', [PartController::class, 'destroy'])->name('parts.destroy');
     Route::get('/parts/export', [PartController::class, 'export'])->name('parts.export');

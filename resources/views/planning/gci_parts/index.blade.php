@@ -428,14 +428,12 @@
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-slate-700">Material Policy</label>
-                            <select name="consumption_policy" class="mt-1 w-full rounded-xl border-slate-200"
-                                x-model="form.consumption_policy">
-                                <option value="direct_issue">Pakai Habis</option>
-                                <option value="backflush_return">Balik Sisa</option>
-                                <option value="backflush_line_stock">Simpan di Line</option>
-                            </select>
+                            <input type="hidden" name="consumption_policy" :value="form.consumption_policy || 'backflush_return'">
+                            <div class="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                                Kelola dari <a href="{{ route('parts.index', ['classification' => 'RM']) }}" class="font-semibold text-indigo-700 underline">Parts Master</a>
+                            </div>
                             <p class="mt-1 text-[10px] text-slate-500 max-w-xs leading-tight">
-                                Policy ini jadi default part. BOM bisa override kalau perlakuan part berbeda per produk.
+                                Policy dipusatkan di Parts Master supaya tidak ada dua sumber pengaturan. BOM tetap bisa override kalau perlakuan part berbeda per produk.
                             </p>
                         </div>
                     </div>
