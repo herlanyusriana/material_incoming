@@ -7,6 +7,11 @@
                 {{ session('success') }}
             </div>
         @endif
+        @if (session('error') || $errors->any())
+            <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+                {{ session('error') ?? $errors->first() }}
+            </div>
+        @endif
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -387,10 +392,16 @@
                             // Optional: green flash or toast
                             console.log('Saved');
                         } else {
-                            alert('Failed to save');
+                            let message = 'Failed to save planning.';
+                            try {
+                                const body = await response.json();
+                                message = body.message || message;
+                            } catch (_) {}
+                            alert(message);
                         }
                     } catch (e) {
                         console.error(e);
+                        alert('Failed to save planning. Cek koneksi/server lalu coba lagi.');
                     }
                 }
             }

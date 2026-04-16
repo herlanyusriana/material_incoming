@@ -17,6 +17,7 @@ use App\Models\ProductionGciDowntime;
 use App\Models\ProductionGciMaterialLot;
 use App\Models\Bom;
 use App\Models\GciInventory;
+use App\Models\LocationInventory;
 use Illuminate\Support\Str;
 
 class ProductionGciApiController extends Controller
@@ -258,6 +259,162 @@ class ProductionGciApiController extends Controller
                                 ? 'Material sudah disupply dari WH, tapi penerimaan line produksi belum dicatat.'
                                 : 'Status supply material belum lengkap.')))),
         ];
+    }
+
+    private function materialKeys(?int $gciPartId, ?int $partId, ?string $partNo): array
+    {
+        $keys = [];
+        $normalizedPartNo = strtoupper(trim((string) $partNo));
+
+        if ((int) $gciPartId > 0) {
+            $keys[] = 'gci:' . (int) $gciPartId;
+        }
+
+        if ((int) $partId > 0) {
+            $keys[] = 'incoming:' . (int) $partId;
+        }
+
+        if ($normalizedPartNo !== '') {
+            $keys[] = 'part:' . $normalizedPartNo;
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    private function requestLineKeys(array $line): array
+    {
+        $keys = $this->materialKeys(
+            (int) ($line['component_gci_part_id'] ?? 0),
+            null,
+            (string) ($line['component_part_no'] ?? '')
+        );
+
+        foreach (($line['allocations'] ?? []) as $allocation) {
+            $keys = array_merge($keys, $this->materialKeys(
+                null,
+                (int) ($allocation['part_id'] ?? 0),
+                (string) ($allocation['part_no'] ?? '')
+            ));
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    private function backflushIssuedMaterialsForOutput(ProductionOrder $order, float $outputQty): array
+    {
+        if ($outputQty <= 0) {
+            return [];
+        }
+
+        $order->refresh();
+        $plannedQty = (float) ($order->qty_planned ?? 0);
+        $requestLines = collect($order->material_request_lines ?? [])
+            ->filter(fn (array $line) => (bool) ($line['is_backflush'] ?? true));
+
+        if ($plannedQty <= 0 || $requestLines->isEmpty()) {
+            return [];
+        }
+
+        $issueLines = array_values($order->material_issue_lines ?? []);
+        $events = [];
+        $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
+
+        foreach ($requestLines as $requestLine) {
+            $requiredQty = (float) ($requestLine['required_qty'] ?? 0);
+            if ($requiredQty <= 0) {
+                continue;
+            }
+
+            $usagePerUnit = $requiredQty / $plannedQty;
+            $needed = round($usagePerUnit * $outputQty, 4);
+            if ($needed <= 0) {
+                continue;
+            }
+
+            $requestKeys = $this->requestLineKeys($requestLine);
+
+            foreach ($issueLines as $index => $issueLine) {
+                if ($needed <= 0) {
+                    break;
+                }
+
+                if (!($issueLine['is_backflush'] ?? true)) {
+                    continue;
+                }
+
+                $issueKeys = $this->materialKeys(
+                    (int) ($issueLine['gci_part_id'] ?? 0),
+                    (int) ($issueLine['part_id'] ?? 0),
+                    (string) ($issueLine['part_no'] ?? '')
+                );
+
+                if (empty(array_intersect($requestKeys, $issueKeys))) {
+                    continue;
+                }
+
+                $issuedQty = (float) ($issueLine['qty'] ?? 0);
+                $alreadyBackflushed = (float) ($issueLine['backflushed_qty'] ?? 0);
+                $availableToBackflush = max(0, round($issuedQty - $alreadyBackflushed, 4));
+                if ($availableToBackflush <= 0) {
+                    continue;
+                }
+
+                $consumeQty = min($availableToBackflush, $needed);
+                $tagNo = (string) ($issueLine['tag_number'] ?? '');
+                $locationCode = (string) ($issueLine['location_code'] ?? '');
+                $partId = (int) ($issueLine['part_id'] ?? 0);
+                $gciPartId = (int) ($issueLine['gci_part_id'] ?? 0);
+                $traceability = is_array($issueLine['traceability'] ?? null) ? $issueLine['traceability'] : [];
+
+                if ($consumeQty > 0 && $tagNo !== '' && $locationCode !== '' && ($partId > 0 || $gciPartId > 0)) {
+                    LocationInventory::consumeStock(
+                        $partId > 0 ? $partId : null,
+                        $locationCode,
+                        $consumeQty,
+                        $tagNo,
+                        $gciPartId > 0 ? $gciPartId : null,
+                        'PRODUCTION_BACKFLUSH',
+                        $sourceReference,
+                        array_merge(['source_tag' => $tagNo], $traceability)
+                    );
+                }
+
+                if ($consumeQty > 0 && $gciPartId > 0) {
+                    $inventory = GciInventory::firstOrCreate(
+                        ['gci_part_id' => $gciPartId],
+                        ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+                    );
+                    $inventory->consume($consumeQty);
+                }
+
+                $issueLines[$index]['backflushed_qty'] = round($alreadyBackflushed + $consumeQty, 4);
+                $issueLines[$index]['backflushed_at'] = now()->toDateTimeString();
+                $issueLines[$index]['backflush_events'] = array_values(array_merge(
+                    $issueLine['backflush_events'] ?? [],
+                    [[
+                        'qty' => $consumeQty,
+                        'output_qty' => $outputQty,
+                        'posted_at' => now()->toDateTimeString(),
+                    ]]
+                ));
+
+                $needed = round($needed - $consumeQty, 4);
+                $events[] = [
+                    'part_no' => (string) ($issueLine['part_no'] ?? $requestLine['component_part_no'] ?? '-'),
+                    'tag_number' => $tagNo,
+                    'qty' => $consumeQty,
+                    'remaining_need' => $needed,
+                ];
+            }
+
+            if ($needed > 0) {
+                throw new \RuntimeException("Material backflush {$requestLine['component_part_no']} kurang {$needed}. Scan/supply material tambahan dulu.");
+            }
+        }
+
+        $order->update(['material_issue_lines' => $issueLines]);
+
+        return $events;
     }
 
     private function buildMaterialIssueHistory(ProductionOrder $order): array
@@ -941,46 +1098,26 @@ class ProductionGciApiController extends Controller
             ? (float) $validated['qty_ng']
             : ($hourlyNg > 0 ? $hourlyNg : (float) ($order->qty_ng ?? 0));
 
-        // Auto-Backflush
+        // Auto-backflush only when this WO has no previous hourly backflush.
+        // Hourly FG output is the primary trigger so material is consumed incrementally.
+        $backflushEvents = [];
         if (($finalActual + $finalNg) > 0) {
-            $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
-            if ($bom) {
-                $requirements = $bom->getTotalMaterialRequirements($finalActual + $finalNg);
-                foreach ($requirements as $req) {
-                    if ($this->isRmBuyRequirement($req)) {
-                        $part = $req['part'] ?? null;
-                        if ($part) {
-                            $needed = round((float) ($req['total_qty'] ?? 0), 4);
-                            $needed = round((float) ($req['total_qty'] ?? 0), 4);
-                            $tags = $order->material_issue_lines ?? [];
-                            $deducted = false;
+            $hasExistingBackflush = collect($order->material_issue_lines ?? [])
+                ->contains(fn (array $line) => (float) ($line['backflushed_qty'] ?? 0) > 0);
 
-                            foreach ($tags as $tag) {
-                                $tagNo = $tag['tag_number'] ?? '';
-                                if (!empty($tagNo)) {
-                                    // Try to deduct from the exact tag/batch to maintain ISO traceability
-                                    $inventory = GciInventory::where('gci_part_id', $part->id)
-                                        ->where('batch_no', $tagNo)
-                                        ->first();
-                                    if ($inventory && $needed > 0) {
-                                        $inventory->on_hand -= $needed;
-                                        $inventory->save();
-                                        $deducted = true;
-                                        break;
-                                    }
-                                }
-                            }
+            if (!$hasExistingBackflush) {
+                try {
+                    $backflushEvents = $this->backflushIssuedMaterialsForOutput($order, $finalActual + $finalNg);
+                } catch (\Throwable $e) {
+                    Log::warning('Production backflush failed on finish WO', [
+                        'production_order_id' => $order->id,
+                        'output_qty' => $finalActual + $finalNg,
+                        'error' => $e->getMessage(),
+                    ]);
 
-                            // Fallback to random FIFO if no matching tag found
-                            if (!$deducted) {
-                                $inventory = GciInventory::where('gci_part_id', $part->id)->orderByDesc('id')->first();
-                                if ($inventory) {
-                                    $inventory->on_hand -= $needed;
-                                    $inventory->save();
-                                }
-                            }
-                        }
-                    }
+                    return response()->json([
+                        'message' => $e->getMessage(),
+                    ], 422);
                 }
             }
 
@@ -1222,6 +1359,23 @@ class ProductionGciApiController extends Controller
             'qty_ng' => $totalNg,
         ]);
 
+        $backflushEvents = [];
+        if ($processContext['output_type'] === 'fg' && ($incrementActual + $incrementNg) > 0) {
+            try {
+                $backflushEvents = $this->backflushIssuedMaterialsForOutput($order, $incrementActual + $incrementNg);
+            } catch (\Throwable $e) {
+                Log::warning('Production backflush failed on hourly save', [
+                    'production_order_id' => $order->id,
+                    'output_qty' => $incrementActual + $incrementNg,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+        }
+
         $handoverMeta = null;
         if ($processContext['output_type'] === 'wip' && $incrementActual > 0) {
             $nextStep = $this->findNextRoutingStep($order->fresh(), $processContext['process_name']);
@@ -1261,6 +1415,7 @@ class ProductionGciApiController extends Controller
             'actual' => (int) $report->actual,
             'ng' => (int) $report->ng,
             'ng_reason' => $report->ng_reason,
+            'backflush_events' => $backflushEvents,
             'handover' => $handoverMeta,
         ]);
 
@@ -1282,6 +1437,7 @@ class ProductionGciApiController extends Controller
                 'shift' => $report->shift,
                 'qty_actual_total' => $totalActual,
                 'qty_ng_total' => $totalNg,
+                'backflush_events' => $backflushEvents,
                 'handover' => $handoverMeta,
             ],
         ]);

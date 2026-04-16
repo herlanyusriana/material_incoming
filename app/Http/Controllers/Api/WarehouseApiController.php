@@ -32,6 +32,89 @@ class WarehouseApiController extends Controller
         ];
     }
 
+    private function issueKeys(?int $gciPartId, ?int $partId, ?string $partNo): array
+    {
+        $keys = [];
+        $normalizedPartNo = strtoupper(trim((string) $partNo));
+
+        if ((int) $gciPartId > 0) {
+            $keys[] = 'gci:' . (int) $gciPartId;
+        }
+
+        if ((int) $partId > 0) {
+            $keys[] = 'incoming:' . (int) $partId;
+        }
+
+        if ($normalizedPartNo !== '') {
+            $keys[] = 'part:' . $normalizedPartNo;
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    private function requirementKeys(array $line): array
+    {
+        $keys = $this->issueKeys(
+            (int) ($line['component_gci_part_id'] ?? 0),
+            null,
+            (string) ($line['component_part_no'] ?? '')
+        );
+
+        foreach (($line['allocations'] ?? []) as $allocation) {
+            $keys = array_merge($keys, $this->issueKeys(
+                null,
+                (int) ($allocation['part_id'] ?? 0),
+                (string) ($allocation['part_no'] ?? '')
+            ));
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    private function resolveRequirementBalance(ProductionOrder $order, ?int $gciPartId, ?int $partId, string $partNo): ?array
+    {
+        $issueKeys = $this->issueKeys($gciPartId, $partId, $partNo);
+
+        if (empty($issueKeys) || empty($order->material_request_lines)) {
+            return null;
+        }
+
+        $issueLines = collect($order->material_issue_lines ?? []);
+
+        foreach (($order->material_request_lines ?? []) as $line) {
+            $requirementKeys = $this->requirementKeys($line);
+
+            if (empty(array_intersect($issueKeys, $requirementKeys))) {
+                continue;
+            }
+
+            $scannedQty = $issueLines->sum(function (array $issueLine) use ($requirementKeys) {
+                $lineKeys = $this->issueKeys(
+                    (int) ($issueLine['gci_part_id'] ?? 0),
+                    (int) ($issueLine['part_id'] ?? 0),
+                    (string) ($issueLine['part_no'] ?? '')
+                );
+
+                return empty(array_intersect($lineKeys, $requirementKeys))
+                    ? 0
+                    : (float) ($issueLine['qty'] ?? $issueLine['issued_qty'] ?? 0);
+            });
+
+            $requiredQty = (float) ($line['required_qty'] ?? 0);
+
+            return [
+                'component_part_no' => (string) ($line['component_part_no'] ?? ''),
+                'component_part_name' => (string) ($line['component_part_name'] ?? ''),
+                'is_backflush' => (bool) ($line['is_backflush'] ?? true),
+                'required_qty' => $requiredQty,
+                'scanned_qty' => round($scannedQty, 4),
+                'remaining_qty' => max(0, round($requiredQty - $scannedQty, 4)),
+            ];
+        }
+
+        return null;
+    }
+
     public function pendingWorkOrders(Request $request)
     {
         $selectedDate = trim((string) $request->query('date', ''));
@@ -119,6 +202,7 @@ class WarehouseApiController extends Controller
                     'scan_part_no' => (string) ($primaryAllocation['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
                     'scan_part_name' => (string) ($primaryAllocation['part_name'] ?? $line['component_part_name'] ?? ''),
                     'uom' => (string) ($line['uom'] ?? 'PCS'),
+                    'is_backflush' => (bool) ($line['is_backflush'] ?? true),
                     'total_qty' => (float) ($line['required_qty'] ?? 0),
                     'allocated_qty' => (float) ($line['available_qty'] ?? 0),
                     'shortage_qty' => (float) ($line['shortage_qty'] ?? 0),
@@ -144,6 +228,7 @@ class WarehouseApiController extends Controller
                         'scan_part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
                         'scan_part_name' => (string) ($req['part']?->part_name ?? ''),
                         'uom' => (string) ($req['uom'] ?? 'PCS'),
+                        'is_backflush' => true,
                         'total_qty' => (float) ($req['total_qty'] ?? 0),
                         'allocated_qty' => 0.0,
                         'shortage_qty' => 0.0,
@@ -228,6 +313,7 @@ class WarehouseApiController extends Controller
         $order = ProductionOrder::findOrFail($id);
         $validated = $request->validate([
             'tag_no' => 'required|string',
+            'issue_qty' => 'nullable|numeric|min:0.0001',
         ]);
 
         $tags = $order->material_issue_lines ?? [];
@@ -277,7 +363,11 @@ class WarehouseApiController extends Controller
         $receive = null;
 
         // 1. Cek apakah barang sudah masuk rak (Location Inventory)
-        $locInv = LocationInventory::where('batch_no', $tagNo)->with('part', 'gciPart')->first();
+        $locInv = LocationInventory::where('batch_no', $tagNo)
+            ->where('qty_on_hand', '>', 0)
+            ->orderByRaw('CASE WHEN location_code = ? THEN 1 ELSE 0 END', [self::STAGING_LOCATION_CODE])
+            ->with('part', 'gciPart')
+            ->first();
         if ($locInv) {
             $gciPartId = $locInv->gci_part_id;
             $partId = $locInv->part_id;
@@ -373,19 +463,73 @@ class WarehouseApiController extends Controller
             return response()->json(['status' => 'error', 'message' => "ERROR: Material {$partNo} TIDAK ADA dalam resep BOM mesin ini!"], 422);
         }
 
+        $requirementBalance = $this->resolveRequirementBalance($order, $gciPartId, $partId, $partNo);
+        $remainingRequirementQty = (float) ($requirementBalance['remaining_qty'] ?? $qtyAvailable);
+
+        if ($requirementBalance && $remainingRequirementQty <= 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Requirement {$partNo} sudah terpenuhi untuk WO ini.",
+            ], 422);
+        }
+
+        $issueQty = array_key_exists('issue_qty', $validated)
+            ? round((float) $validated['issue_qty'], 4)
+            : null;
+
+        if ($issueQty !== null && $issueQty > round((float) $qtyAvailable, 4)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Qty issue {$issueQty} melebihi qty tag {$qtyAvailable}.",
+            ], 422);
+        }
+
+        if ($issueQty === null && $requirementBalance && round((float) $qtyAvailable, 4) > $remainingRequirementQty) {
+            return response()->json([
+                'status' => 'needs_qty_confirmation',
+                'message' => 'Qty tag lebih besar dari sisa requirement WO. Pilih qty yang mau disupply.',
+                'data' => [
+                    'tag_no' => $tagNo,
+                    'part_no' => $partNo,
+                    'qty_available' => round((float) $qtyAvailable, 4),
+                    'remaining_requirement_qty' => $remainingRequirementQty,
+                    'suggested_qty' => $remainingRequirementQty,
+                    'component_part_no' => $requirementBalance['component_part_no'] ?? '',
+                    'component_part_name' => $requirementBalance['component_part_name'] ?? '',
+                    'location_code' => $locationCode,
+                    'source_location_code' => $sourceLocationCode,
+                ],
+            ], 409);
+        }
+
+        $issueQty ??= round((float) $qtyAvailable, 4);
+        $remainingTagQty = max(0, round((float) $qtyAvailable - $issueQty, 4));
+
+        if (!$locInv && $remainingTagQty > 0 && empty($sourceLocationCode)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tag ini discan partial, tapi lokasi receive kosong. Isi lokasi receive dulu supaya sisa tag tetap termonitor.',
+            ], 422);
+        }
+
+        $isBackflush = (bool) ($requirementBalance['is_backflush'] ?? true);
+
         DB::transaction(function () use (
             &$tags,
             $order,
             $tagNo,
             $partNo,
             $qtyAvailable,
+            $issueQty,
+            $remainingTagQty,
             $gciPartId,
             $partId,
             &$locationCode,
             $sourceLocationCode,
             &$traceability,
             &$stagedToAa,
-            $locInv
+            $locInv,
+            $isBackflush
         ) {
             $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
             $stagingLocation = self::STAGING_LOCATION_CODE;
@@ -394,7 +538,7 @@ class WarehouseApiController extends Controller
                 LocationInventory::consumeStock(
                     $partId > 0 ? $partId : null,
                     (string) $locInv->location_code,
-                    $qtyAvailable,
+                    $issueQty,
                     $tagNo,
                     $gciPartId > 0 ? $gciPartId : null,
                     'PRODUCTION_STAGE_AA_OUT',
@@ -405,7 +549,7 @@ class WarehouseApiController extends Controller
                 LocationInventory::updateStock(
                     $partId > 0 ? $partId : null,
                     $stagingLocation,
-                    $qtyAvailable,
+                    $issueQty,
                     $tagNo,
                     null,
                     $gciPartId > 0 ? $gciPartId : null,
@@ -417,10 +561,24 @@ class WarehouseApiController extends Controller
                 $locationCode = $stagingLocation;
                 $stagedToAa = true;
             } elseif (!$locInv) {
+                if ($remainingTagQty > 0 && !empty($sourceLocationCode)) {
+                    LocationInventory::updateStock(
+                        $partId > 0 ? $partId : null,
+                        $sourceLocationCode,
+                        $remainingTagQty,
+                        $tagNo,
+                        null,
+                        $gciPartId > 0 ? $gciPartId : null,
+                        'RECEIVE_PARTIAL_REMAINING_IN',
+                        $sourceReference,
+                        array_merge(['source_tag' => $tagNo], $traceability)
+                    );
+                }
+
                 LocationInventory::updateStock(
                     $partId > 0 ? $partId : null,
                     $stagingLocation,
-                    $qtyAvailable,
+                    $issueQty,
                     $tagNo,
                     null,
                     $gciPartId > 0 ? $gciPartId : null,
@@ -444,7 +602,12 @@ class WarehouseApiController extends Controller
             $tags[] = [
                 'tag_number' => $tagNo,
                 'part_no' => $partNo,
-                'qty' => $qtyAvailable,
+                'qty' => $issueQty,
+                'tag_qty' => round((float) $qtyAvailable, 4),
+                'remaining_qty_after_issue' => $remainingTagQty,
+                'is_partial_issue' => $issueQty < round((float) $qtyAvailable, 4),
+                'is_backflush' => $isBackflush,
+                'backflushed_qty' => 0,
                 'gci_part_id' => $gciPartId,
                 'part_id' => $partId,
                 'location_code' => $locationCode,
@@ -587,20 +750,24 @@ class WarehouseApiController extends Controller
                     throw new \RuntimeException("Data tag $tagNo belum lengkap untuk posting supply.");
                 }
 
-                LocationInventory::consumeStock(
-                    $partId > 0 ? $partId : null,
-                    $locationCode,
-                    $qty,
-                    $tagNo,
-                    $gciPartId > 0 ? $gciPartId : null,
-                    'PRODUCTION_ISSUE',
-                    $sourceReference,
-                    array_merge([
-                        'source_tag' => $tagNo,
-                    ], $traceability)
-                );
+                $isBackflush = (bool) ($tag['is_backflush'] ?? true);
 
-                if ($gciPartId > 0) {
+                if (!$isBackflush) {
+                    LocationInventory::consumeStock(
+                        $partId > 0 ? $partId : null,
+                        $locationCode,
+                        $qty,
+                        $tagNo,
+                        $gciPartId > 0 ? $gciPartId : null,
+                        'PRODUCTION_ISSUE',
+                        $sourceReference,
+                        array_merge([
+                            'source_tag' => $tagNo,
+                        ], $traceability)
+                    );
+                }
+
+                if ($gciPartId > 0 && !$isBackflush) {
                     $inventory = GciInventory::firstOrCreate(
                         ['gci_part_id' => $gciPartId],
                         ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
@@ -618,9 +785,16 @@ class WarehouseApiController extends Controller
                     'tag_number' => $tagNo,
                     'part_no' => $partNo,
                     'qty' => $qty,
+                    'tag_qty' => $tag['tag_qty'] ?? $qty,
+                    'remaining_qty_after_issue' => $tag['remaining_qty_after_issue'] ?? 0,
+                    'is_partial_issue' => $tag['is_partial_issue'] ?? false,
+                    'is_backflush' => $isBackflush,
+                    'backflushed_qty' => (float) ($tag['backflushed_qty'] ?? 0),
                     'gci_part_id' => $gciPartId > 0 ? $gciPartId : null,
                     'part_id' => $partId > 0 ? $partId : null,
                     'location_code' => $locationCode,
+                    'source_location_code' => $tag['source_location_code'] ?? null,
+                    'staged_to_aa' => $tag['staged_to_aa'] ?? false,
                     'posted_at' => now()->toDateTimeString(),
                     'traceability' => $traceability,
                 ];

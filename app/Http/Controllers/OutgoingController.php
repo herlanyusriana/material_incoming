@@ -71,11 +71,6 @@ class OutgoingController extends Controller
                 ->first();
         }
 
-        if (!$plan) {
-            // Fallback: search any plan at all to show SOMETHING
-            $plan = OutgoingDailyPlan::query()->latest('id')->first();
-        }
-
         // SYNC LOGIC: Ensure gci_part_id stays in sync with CustomerPartComponent mappings
         if ($plan) {
             $this->syncDailyPlanRowMappings($plan->id, $dateFrom, $dateTo);
@@ -100,10 +95,6 @@ class OutgoingController extends Controller
                                 $sq->where('part_name', 'like', '%' . $search . '%');
                             });
                     });
-                })
-                ->whereHas('cells', function (\Illuminate\Database\Eloquent\Builder $query) use ($dateFrom, $dateTo) {
-                    $query->whereBetween('plan_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
-                        ->where('qty', '>', 0);
                 })
                 ->paginate($perPage)
                 ->withQueryString();
@@ -154,6 +145,47 @@ class OutgoingController extends Controller
             'totalsByDate',
             'unmappedCount'
         ));
+    }
+
+    public function createPlan(Request $request)
+    {
+        $validated = $request->validate([
+            'date_from' => ['required', 'date'],
+            'date_to' => ['required', 'date'],
+        ]);
+
+        $dateFrom = Carbon::parse($validated['date_from'])->startOfDay();
+        $dateTo = Carbon::parse($validated['date_to'])->startOfDay();
+        if ($dateTo->lt($dateFrom)) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        $plan = OutgoingDailyPlan::query()
+            ->whereDate('date_from', '<=', $dateTo->toDateString())
+            ->whereDate('date_to', '>=', $dateFrom->toDateString())
+            ->latest('id')
+            ->first();
+
+        if ($plan) {
+            $plan->update([
+                'date_from' => min($plan->date_from->toDateString(), $dateFrom->toDateString()),
+                'date_to' => max($plan->date_to->toDateString(), $dateTo->toDateString()),
+            ]);
+        } else {
+            $plan = OutgoingDailyPlan::create([
+                'date_from' => $dateFrom->toDateString(),
+                'date_to' => $dateTo->toDateString(),
+                'created_by' => auth()->id(),
+            ]);
+        }
+
+        return redirect()
+            ->route('outgoing.daily-planning', [
+                'plan_id' => $plan->id,
+                'date_from' => $dateFrom->toDateString(),
+                'date_to' => $dateTo->toDateString(),
+            ])
+            ->with('success', 'Daily planning siap dipakai untuk periode ' . $dateFrom->format('d M Y') . ' - ' . $dateTo->format('d M Y') . '.');
     }
 
     public function dailyPlanningTemplate(Request $request)
@@ -327,24 +359,56 @@ class OutgoingController extends Controller
 
     public function updateCell(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'row_id' => 'required|integer',
             'date' => 'required|date',
             'field' => 'required|string|in:qty,seq',
-            'value' => 'nullable|numeric',
+            'value' => 'nullable',
         ]);
+
+        $row = OutgoingDailyPlanRow::with('plan')->find($validated['row_id']);
+        if (!$row) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Planning row tidak ditemukan. Refresh halaman lalu coba lagi.',
+            ], 404);
+        }
+
+        $rawValue = $validated['value'];
+        $value = ($rawValue === null || $rawValue === '') ? 0 : $rawValue;
+        if (!is_numeric($value)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Qty/Seq harus berupa angka.',
+            ], 422);
+        }
+
+        $date = Carbon::parse($validated['date'])->toDateString();
+        $field = $validated['field'];
+        $value = max(0, (int) $value);
 
         $cell = OutgoingDailyPlanCell::updateOrCreate(
             [
-                'row_id' => $request->row_id,
-                'plan_date' => $request->date,
+                'row_id' => $row->id,
+                'plan_date' => $date,
             ],
             [
-                $request->field => $request->value ?? 0,
+                $field => $value,
             ]
         );
 
-        return response()->json(['success' => true]);
+        if ($row->plan) {
+            $row->plan->update([
+                'date_from' => min($row->plan->date_from->toDateString(), $date),
+                'date_to' => max($row->plan->date_to->toDateString(), $date),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'cell_id' => $cell->id,
+            'value' => $value,
+        ]);
     }
 
     public function customerPo()
