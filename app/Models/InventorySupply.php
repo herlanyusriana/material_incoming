@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class InventorySupply extends Model
@@ -42,6 +43,26 @@ class InventorySupply extends Model
     public function getQtyRemainingAttribute(): float
     {
         return max(0, round((float) $this->qty_supply - (float) $this->qty_consumed - (float) $this->qty_returned, 4));
+    }
+
+    public static function remainingQuantitySql(): string
+    {
+        return '(qty_supply - qty_consumed - qty_returned)';
+    }
+
+    public function scopeWithRemaining(Builder $query): Builder
+    {
+        return $query->selectRaw(self::remainingQuantitySql() . ' as qty_remaining_calculated');
+    }
+
+    public function scopeWhereRemainingPositive(Builder $query): Builder
+    {
+        return $query->whereRaw(self::remainingQuantitySql() . ' > 0');
+    }
+
+    public function scopeWhereRemainingEmpty(Builder $query): Builder
+    {
+        return $query->whereRaw(self::remainingQuantitySql() . ' <= 0');
     }
 
     public function productionOrder()

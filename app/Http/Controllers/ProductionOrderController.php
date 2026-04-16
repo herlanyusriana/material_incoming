@@ -255,9 +255,9 @@ class ProductionOrderController extends Controller
             ->withSum('inventorySupplies as inventory_returned_total', 'qty_returned')
             ->when($gciPartId > 0, fn($qr) => $qr->where('gci_part_id', $gciPartId))
             ->when($status !== '', fn($qr) => $qr->where('status', $status))
-            ->when($inventoryBalance === 'remaining', fn($qr) => $qr->whereHas('inventorySupplies', fn($supply) => $supply->whereRaw('(qty_supply - qty_consumed - qty_returned) > 0')))
+            ->when($inventoryBalance === 'remaining', fn($qr) => $qr->whereHas('inventorySupplies', fn($supply) => $supply->whereRemainingPositive()))
             ->when($inventoryBalance === 'clean', function ($qr) {
-                $qr->whereDoesntHave('inventorySupplies', fn($supply) => $supply->whereRaw('(qty_supply - qty_consumed - qty_returned) > 0'))
+                $qr->whereDoesntHave('inventorySupplies', fn($supply) => $supply->whereRemainingPositive())
                     ->whereHas('inventorySupplies');
             })
             ->when($inventoryBalance === 'none', fn($qr) => $qr->doesntHave('inventorySupplies'))
