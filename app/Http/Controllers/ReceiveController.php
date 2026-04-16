@@ -1000,7 +1000,13 @@ class ReceiveController extends Controller
 
     public function printLabel(Receive $receive)
     {
-        $receive->load(['arrivalItem.part', 'arrivalItem.arrival.vendor']);
+        $receive->load([
+            'arrivalItem.part.gciPart',
+            'arrivalItem.gciPart',
+            'arrivalItem.gciPartVendor',
+            'arrivalItem.vendorPart',
+            'arrivalItem.arrival.vendor',
+        ]);
         $arrivalItem = $receive->arrivalItem;
         $arrival = $arrivalItem?->arrival;
         $part = $arrivalItem?->part;
@@ -1024,10 +1030,13 @@ class ReceiveController extends Controller
             'gci_part_id' => (int) ($part?->gci_part_id ?? 0),
             'part_no' => (string) ($part?->part_no ?? ''),
             'gci_part_no' => (string) ($part?->gciPart?->part_no ?? ''),
+            'part_name' => (string) ($part?->part_name_gci ?? $part?->part_name_vendor ?? ''),
             'qty' => (float) $receive->qty,
             'qty_unit' => (string) ($receive->qty_unit ?? ''),
             'invoice' => (string) ($arrival?->invoice_no ?? '-'),
+            'delivery_note_no' => (string) ($receive->delivery_note_no ?? $arrival?->sj_no ?? ''),
             'location_code' => (string) ($receive->location_code ?? ''),
+            'vendor_type' => (string) ($arrival?->vendor?->vendor_type ?? ''),
         ];
 
         $payloadString = json_encode($payload);
