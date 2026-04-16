@@ -113,7 +113,7 @@
                         </template>
                         <div class="flex flex-wrap items-end gap-3">
                             <div>
-                                <div class="text-xs font-semibold text-slate-600">Bulk Update Policy</div>
+                                <div class="text-xs font-semibold text-slate-600">Ubah Policy Sekaligus</div>
                                 <div class="mt-1 text-sm text-slate-700">
                                     Part terpilih: <span class="font-semibold" x-text="selectedPartIds.length"></span>
                                 </div>
@@ -127,10 +127,10 @@
                                 </select>
                             </div>
                             <div class="text-xs text-slate-600 max-w-md">
-                                Gunakan setelah filter aktif. Update massal ini sekaligus menandai policy sebagai sudah dikonfirmasi.
+                                Pilih part yang mau diubah, lalu set policy-nya sekalian.
                             </div>
                             <button type="submit" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50" :disabled="selectedPartIds.length === 0">
-                                Apply ke Part Terpilih
+                                Simpan Perubahan
                             </button>
                         </div>
                     </form>
@@ -138,17 +138,15 @@
 
                 @if($activeTab === 'RM')
                     <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-800">
-                        <span class="font-semibold">Part Master</span> menjadi source of truth untuk data part dan vendor part.
-                        Harga tidak lagi diinput di sini dan dikelola terpusat lewat
+                        Setting part dan default policy dikelola di sini.
+                        Harga part tetap di
                         <a href="{{ route('pricing.index') }}" class="font-bold underline">Pricing Master</a>.
-                        Material policy juga diatur di sini supaya WO, WH Supply, dan Production membaca acuan yang sama.
                     </div>
                 @endif
 
                 @if($activeTab !== 'SUB')
                     <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                        <span class="font-semibold">Audit cepat:</span> pakai filter <span class="font-semibold">Policy</span> dan <span class="font-semibold">Konfirmasi</span> untuk cari part yang belum punya keputusan final.
-                        Part yang belum dikonfirmasi akan ditandai badge merah supaya gampang dibersihkan.
+                        Pakai filter <span class="font-semibold">Policy</span> dan <span class="font-semibold">Konfirmasi</span> kalau mau rapihin master part yang belum beres.
                     </div>
                 @endif
 
