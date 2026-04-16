@@ -26,6 +26,12 @@ use Maatwebsite\Excel\Validators\ValidationException;
 
 class BomController extends Controller
 {
+    private const CONSUMPTION_POLICIES = [
+        'direct_issue',
+        'backflush_return',
+        'backflush_line_stock',
+    ];
+
     private function autoSyncIncomingPartMappings(): array
     {
         $vendorPartIdsByGciPart = GciPartVendor::query()
@@ -532,6 +538,7 @@ class BomController extends Controller
             'component_part_no' => ['nullable', 'string', 'max:100'],
             'incoming_part_id' => ['nullable', Rule::exists('parts', 'id')],
             'make_or_buy' => ['nullable', Rule::in(['make', 'buy', 'free_issue'])],
+            'consumption_policy_override' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'usage_qty' => ['required', 'numeric', 'min:0'],
             'consumption_uom' => ['nullable', 'string', 'max:20'],
             'line_no' => ['nullable', 'integer', 'min:1'],
@@ -619,6 +626,7 @@ class BomController extends Controller
             'material_name' => $validated['material_name'] ?? null,
             'special' => $validated['special'] ?? null,
             'make_or_buy' => $validated['make_or_buy'] ?? 'buy',
+            'consumption_policy_override' => $validated['consumption_policy_override'] ?? null,
             'component_part_no' => $componentPartNo,
             'scrap_factor' => $validated['scrap_factor'] ?? 0,
             'yield_factor' => $validated['yield_factor'] ?? 1,

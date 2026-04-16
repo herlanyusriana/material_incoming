@@ -10,6 +10,41 @@ use App\Models\Receive;
 
 class ProductionMaterialRequestService
 {
+    private function normalizeConsumptionPolicy(?string $policy, ?bool $legacyBackflush = null): string
+    {
+        $policy = strtolower(trim((string) $policy));
+        if (in_array($policy, ['direct_issue', 'backflush_return', 'backflush_line_stock'], true)) {
+            return $policy;
+        }
+
+        if ($legacyBackflush === false) {
+            return 'direct_issue';
+        }
+
+        return 'backflush_return';
+    }
+
+    private function resolveConsumptionPolicy($item): array
+    {
+        $override = $this->normalizeConsumptionPolicy($item->consumption_policy_override ?? null);
+        if (!empty($item->consumption_policy_override)) {
+            return [$override, 'bom_override'];
+        }
+
+        $component = $item->componentPart;
+        if ($component && !empty($component->consumption_policy)) {
+            return [
+                $this->normalizeConsumptionPolicy($component->consumption_policy, $component->is_backflush ?? true),
+                'master_part',
+            ];
+        }
+
+        return [
+            $this->normalizeConsumptionPolicy(null, $component?->is_backflush ?? true),
+            'legacy_default',
+        ];
+    }
+
     public function buildLines(ProductionOrder $order): array
     {
         $order->loadMissing(['part']);
@@ -35,6 +70,8 @@ class ProductionMaterialRequestService
             if (!$this->isWarehouseScannableRm($makeOrBuy)) {
                 continue;
             }
+
+            [$consumptionPolicy, $policySource] = $this->resolveConsumptionPolicy($item);
 
             $requiredQty = round((float) ($item->net_required ?? $item->usage_qty ?? 0) * (float) $order->qty_planned, 4);
             if ($requiredQty <= 0) {
@@ -76,7 +113,9 @@ class ProductionMaterialRequestService
                     'component_part_name' => (string) ($item->componentPart?->part_name ?? '-'),
                     'uom' => (string) ($item->consumption_uom ?? $item->componentPart?->uom ?? 'PCS'),
                     'make_or_buy' => $makeOrBuy,
-                    'is_backflush' => (bool) ($item->componentPart?->is_backflush ?? true),
+                    'consumption_policy' => $consumptionPolicy,
+                    'policy_source' => $policySource,
+                    'is_backflush' => $consumptionPolicy !== 'direct_issue',
                     'required_qty' => $requiredQty,
                     'available_qty' => 0,
                     'shortage_qty' => $requiredQty,
@@ -149,7 +188,9 @@ class ProductionMaterialRequestService
                 'component_part_name' => (string) ($item->componentPart?->part_name ?? '-'),
                 'uom' => (string) ($item->consumption_uom ?? $item->componentPart?->uom ?? 'PCS'),
                 'make_or_buy' => $makeOrBuy,
-                'is_backflush' => (bool) ($item->componentPart?->is_backflush ?? true),
+                'consumption_policy' => $consumptionPolicy,
+                'policy_source' => $policySource,
+                'is_backflush' => $consumptionPolicy !== 'direct_issue',
                 'required_qty' => $requiredQty,
                 'available_qty' => $availableQty,
                 'shortage_qty' => max(0, round($requiredQty - $availableQty, 4)),

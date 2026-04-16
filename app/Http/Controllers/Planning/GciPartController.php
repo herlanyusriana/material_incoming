@@ -17,6 +17,12 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class GciPartController extends Controller
 {
+    private const CONSUMPTION_POLICIES = [
+        'direct_issue',
+        'backflush_return',
+        'backflush_line_stock',
+    ];
+
     public function search(Request $request)
     {
         $q = trim((string) $request->query('q', ''));
@@ -254,6 +260,7 @@ class GciPartController extends Controller
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'is_backflush' => ['nullable', 'boolean'],
+            'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'destination_fg_ids' => ['nullable', 'array'],
             'destination_fg_ids.*' => ['exists:gci_parts,id'],
@@ -270,7 +277,11 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
-        $validated['is_backflush'] = $request->has('is_backflush') || $request->boolean('is_backflush', false);
+        $validated['consumption_policy'] = $validated['consumption_policy']
+            ?? ($request->boolean('is_backflush', true) ? 'backflush_return' : 'direct_issue');
+        $validated['is_backflush'] = $validated['consumption_policy'] !== 'direct_issue';
+        $validated['policy_confirmed_at'] = now();
+        $validated['policy_confirmed_by'] = auth()->id();
 
         $customerIds = $request->input('customer_ids', []);
 
@@ -339,6 +350,7 @@ class GciPartController extends Controller
             'size' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:255'],
             'is_backflush' => ['nullable', 'boolean'],
+            'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'destination_fg_ids' => ['nullable', 'array'],
             'destination_fg_ids.*' => ['exists:gci_parts,id'],
@@ -355,7 +367,11 @@ class GciPartController extends Controller
         $validated['part_name'] = $validated['part_name'] ? trim($validated['part_name']) : null;
         $validated['size'] = $validated['size'] ? trim($validated['size']) : null;
         $validated['model'] = $validated['model'] ? trim($validated['model']) : null;
-        $validated['is_backflush'] = $request->has('is_backflush') || $request->boolean('is_backflush', false);
+        $validated['consumption_policy'] = $validated['consumption_policy']
+            ?? ($request->boolean('is_backflush', true) ? 'backflush_return' : 'direct_issue');
+        $validated['is_backflush'] = $validated['consumption_policy'] !== 'direct_issue';
+        $validated['policy_confirmed_at'] = now();
+        $validated['policy_confirmed_by'] = auth()->id();
 
         $customerIds = $request->input('customer_ids', []);
 

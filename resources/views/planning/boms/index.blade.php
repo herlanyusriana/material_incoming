@@ -304,6 +304,7 @@
                                 <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Make/Buy</th>
                                 <th class="px-2 py-2 text-right font-bold whitespace-nowrap">Consump.</th>
                                 <th class="px-2 py-2 text-left font-bold whitespace-nowrap">UOM_RM</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Policy</th>
                                 <th
                                     class="px-2 py-2 text-center font-bold sticky right-0 bg-slate-50 z-20 border-l border-slate-200">
                                     Actions</th>
@@ -469,6 +470,20 @@
                                             class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">
                                             {{ $item->consumptionUom?->code ?? ($item->consumption_uom ?? '') }}
                                         </td>
+                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px]">
+                                            @php
+                                                $policy = $item->consumption_policy_override ?: ($item->componentPart?->consumption_policy ?: (($item->componentPart?->is_backflush ?? true) ? 'backflush_return' : 'direct_issue'));
+                                                $policyLabels = [
+                                                    'direct_issue' => ['Pakai Habis', 'bg-slate-100 text-slate-700 border-slate-200'],
+                                                    'backflush_return' => ['Balik Sisa', 'bg-orange-100 text-orange-800 border-orange-200'],
+                                                    'backflush_line_stock' => ['Simpan di Line', 'bg-emerald-100 text-emerald-800 border-emerald-200'],
+                                                ];
+                                                [$policyLabel, $policyClass] = $policyLabels[$policy] ?? ['-', 'bg-slate-100 text-slate-500 border-slate-200'];
+                                            @endphp
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black border {{ $policyClass }}">
+                                                {{ $policyLabel }}
+                                            </span>
+                                        </td>
                                         <td
                                             class="px-2 py-1.5 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
                                             <div class="flex items-center justify-center gap-1">
@@ -537,6 +552,7 @@
                                                         : ($item->wip_part_no ?: '-'),
                                                     'incoming_part_id' => $item->incoming_part_id,
                                                     'make_or_buy' => $item->make_or_buy,
+                                                    'consumption_policy_override' => $item->consumption_policy_override,
                                                     'usage_qty' => $item->usage_qty,
                                                     'consumption_uom_id' => $item->consumption_uom_id,
                                                     'wip_uom_id' => $item->wip_uom_id,
@@ -586,6 +602,7 @@
                                                 'component_part_label' => '',
                                                 'incoming_part_id' => null,
                                                 'make_or_buy' => 'buy',
+                                                'consumption_policy_override' => '',
                                                 'usage_qty' => 1,
                                                 'wip_part_label' => '',
                                             ]))">
@@ -919,6 +936,16 @@
                                     </select>
                                 </div>
                                 <div>
+                                    <label class="text-xs font-semibold text-slate-600">Policy Override</label>
+                                    <select name="consumption_policy_override" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                        x-model="lineForm.consumption_policy_override">
+                                        <option value="">Ikuti Master Part</option>
+                                        <option value="direct_issue">Pakai Habis</option>
+                                        <option value="backflush_return">Balik Sisa</option>
+                                        <option value="backflush_line_stock">Simpan di Line</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label class="text-xs font-semibold text-slate-600">Consumption <span class="text-red-500">*</span></label>
                                     <input type="number" step="any" min="0" name="usage_qty"
                                         class="mt-1 w-full rounded-xl border-slate-200 text-sm" required
@@ -1110,6 +1137,7 @@
                             component_part_label: '',
                             incoming_part_id: '',
                             make_or_buy: 'buy',
+                            consumption_policy_override: '',
                             usage_qty: '1',
                             consumption_uom_id: '',
                             wip_uom_id: '',
@@ -1202,6 +1230,7 @@
                                 component_part_label: payload.component_part_label ?? '',
                                 incoming_part_id: payload.incoming_part_id ?? '',
                                 make_or_buy: payload.make_or_buy ?? 'buy',
+                                consumption_policy_override: payload.consumption_policy_override ?? '',
                                 usage_qty: payload.usage_qty ?? '1',
                                 consumption_uom_id: payload.consumption_uom_id ?? '',
                                 wip_uom_id: payload.wip_uom_id ?? '',

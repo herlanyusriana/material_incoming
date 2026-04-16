@@ -113,7 +113,7 @@
                                 <th class="px-4 py-3 text-left font-semibold">Size</th>
                                 <th class="px-4 py-3 text-left font-semibold">Model</th>
                                 <th class="px-4 py-3 text-left font-semibold">Tipe</th>
-                                <th class="px-4 py-3 text-center font-semibold">Backflush</th>
+                                <th class="px-4 py-3 text-left font-semibold">Policy</th>
                                 <th class="px-4 py-3 text-left font-semibold">Status</th>
                                 <th class="px-4 py-3 text-right font-semibold">Aksi</th>
                             </tr>
@@ -154,16 +154,19 @@
                                             {{ $p->classification ?? 'N/A' }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        @if($p->is_backflush ?? true)
-                                            <span title="Dipotong belakangan (Kanban Update)" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-600">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                                            </span>
-                                        @else
-                                            <span title="Dipotong di awal (WH Supply)" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-400">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                            </span>
-                                        @endif
+                                    <td class="px-4 py-3">
+                                        @php
+                                            $policy = $p->consumption_policy ?: (($p->is_backflush ?? true) ? 'backflush_return' : 'direct_issue');
+                                            $policyLabels = [
+                                                'direct_issue' => ['Pakai Habis', 'bg-slate-100 text-slate-700 border-slate-200'],
+                                                'backflush_return' => ['Balik Sisa', 'bg-orange-100 text-orange-800 border-orange-200'],
+                                                'backflush_line_stock' => ['Simpan di Line', 'bg-emerald-100 text-emerald-800 border-emerald-200'],
+                                            ];
+                                            [$policyLabel, $policyClass] = $policyLabels[$policy] ?? ['Belum Set', 'bg-red-100 text-red-700 border-red-200'];
+                                        @endphp
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-black border {{ $policyClass }}">
+                                            {{ $policyLabel }}
+                                        </span>
                                     </td>
                                     <td class="px-4 py-3">
                                         <span
@@ -423,13 +426,17 @@
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
-                        <div class="px-2 pt-5">
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="is_backflush" value="1" class="sr-only peer" x-model="form.is_backflush">
-                                <div class="relative w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                <span class="ml-3 text-sm font-semibold text-slate-700">Require Backflush</span>
-                            </label>
-                            <p class="mt-1 text-[10px] text-slate-500 max-w-xs leading-tight">Jika OFF, pemotongan stok wajib lunas saat Warehouse Supply ke mesin (Tanpa menunggu Kanban Update).</p>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Material Policy</label>
+                            <select name="consumption_policy" class="mt-1 w-full rounded-xl border-slate-200"
+                                x-model="form.consumption_policy">
+                                <option value="direct_issue">Pakai Habis</option>
+                                <option value="backflush_return">Balik Sisa</option>
+                                <option value="backflush_line_stock">Simpan di Line</option>
+                            </select>
+                            <p class="mt-1 text-[10px] text-slate-500 max-w-xs leading-tight">
+                                Policy ini jadi default part. BOM bisa override kalau perlakuan part berbeda per produk.
+                            </p>
                         </div>
                     </div>
 
@@ -533,7 +540,7 @@
                     formAction: @js(route('planning.gci-parts.store')),
                     fgSearch: '',
                     vendorSearch: '',
-                    form: { id: null, customer_ids: [], part_no: '', classification: 'FG', part_name: '', size: '', model: '', status: 'active', is_backflush: true, destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] },
+                    form: { id: null, customer_ids: [], part_no: '', classification: 'FG', part_name: '', size: '', model: '', status: 'active', consumption_policy: 'backflush_return', destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] },
 
                     init() {
                         const warningData = @js(session('duplicate_warning_data'));
@@ -548,7 +555,7 @@
                                 size: warningData.size || '',
                                 model: warningData.model || '',
                                 status: warningData.status || 'active',
-                                is_backflush: warningData.is_backflush !== false && warningData.is_backflush !== '0',
+                                consumption_policy: warningData.consumption_policy || (warningData.is_backflush === '0' ? 'direct_issue' : 'backflush_return'),
                                 destination_fg_ids: warningData.destination_fg_ids || [],
                                 vendor_ids: warningData.vendor_ids || []
                             };
@@ -573,7 +580,7 @@
                         this.vendorSearch = '';
                         this.subsOpen = false;
                         this.cancelSubEdit();
-                        this.form = { id: null, customer_ids: [], part_no: '', classification: currentClassification, part_name: '', size: '', model: '', status: 'active', is_backflush: true, destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] };
+                        this.form = { id: null, customer_ids: [], part_no: '', classification: currentClassification, part_name: '', size: '', model: '', status: 'active', consumption_policy: 'backflush_return', destination_fg_ids: [], vendor_ids: [], substitutes_for: [], as_substitute: [] };
                         this.modalOpen = true;
                     },
                     openEdit(p) {
@@ -599,7 +606,7 @@
                             size: p.size || '',
                             model: p.model || '',
                             status: p.status || 'active',
-                            is_backflush: p.is_backflush !== false && p.is_backflush !== 0,
+                            consumption_policy: p.consumption_policy || ((p.is_backflush !== false && p.is_backflush !== 0) ? 'backflush_return' : 'direct_issue'),
                             destination_fg_ids: linkedFgs,
                             vendor_ids: linkedVendors,
                             substitutes_for: partSubstitutesMap[p.id] || [],

@@ -105,6 +105,8 @@ class WarehouseApiController extends Controller
             return [
                 'component_part_no' => (string) ($line['component_part_no'] ?? ''),
                 'component_part_name' => (string) ($line['component_part_name'] ?? ''),
+                'consumption_policy' => (string) ($line['consumption_policy'] ?? (($line['is_backflush'] ?? true) ? 'backflush_return' : 'direct_issue')),
+                'policy_source' => (string) ($line['policy_source'] ?? 'legacy_default'),
                 'is_backflush' => (bool) ($line['is_backflush'] ?? true),
                 'required_qty' => $requiredQty,
                 'scanned_qty' => round($scannedQty, 4),
@@ -202,6 +204,8 @@ class WarehouseApiController extends Controller
                     'scan_part_no' => (string) ($primaryAllocation['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
                     'scan_part_name' => (string) ($primaryAllocation['part_name'] ?? $line['component_part_name'] ?? ''),
                     'uom' => (string) ($line['uom'] ?? 'PCS'),
+                    'consumption_policy' => (string) ($line['consumption_policy'] ?? (($line['is_backflush'] ?? true) ? 'backflush_return' : 'direct_issue')),
+                    'policy_source' => (string) ($line['policy_source'] ?? 'legacy_default'),
                     'is_backflush' => (bool) ($line['is_backflush'] ?? true),
                     'total_qty' => (float) ($line['required_qty'] ?? 0),
                     'allocated_qty' => (float) ($line['available_qty'] ?? 0),
@@ -228,6 +232,8 @@ class WarehouseApiController extends Controller
                         'scan_part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
                         'scan_part_name' => (string) ($req['part']?->part_name ?? ''),
                         'uom' => (string) ($req['uom'] ?? 'PCS'),
+                        'consumption_policy' => 'backflush_return',
+                        'policy_source' => 'bom_fallback',
                         'is_backflush' => true,
                         'total_qty' => (float) ($req['total_qty'] ?? 0),
                         'allocated_qty' => 0.0,
@@ -512,7 +518,8 @@ class WarehouseApiController extends Controller
             ], 422);
         }
 
-        $isBackflush = (bool) ($requirementBalance['is_backflush'] ?? true);
+        $consumptionPolicy = (string) ($requirementBalance['consumption_policy'] ?? 'backflush_return');
+        $isBackflush = (bool) ($requirementBalance['is_backflush'] ?? $consumptionPolicy !== 'direct_issue');
 
         DB::transaction(function () use (
             &$tags,
@@ -529,6 +536,7 @@ class WarehouseApiController extends Controller
             &$traceability,
             &$stagedToAa,
             $locInv,
+            $consumptionPolicy,
             $isBackflush
         ) {
             $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
@@ -606,6 +614,7 @@ class WarehouseApiController extends Controller
                 'tag_qty' => round((float) $qtyAvailable, 4),
                 'remaining_qty_after_issue' => $remainingTagQty,
                 'is_partial_issue' => $issueQty < round((float) $qtyAvailable, 4),
+                'consumption_policy' => $consumptionPolicy,
                 'is_backflush' => $isBackflush,
                 'backflushed_qty' => 0,
                 'gci_part_id' => $gciPartId,
@@ -788,6 +797,7 @@ class WarehouseApiController extends Controller
                     'tag_qty' => $tag['tag_qty'] ?? $qty,
                     'remaining_qty_after_issue' => $tag['remaining_qty_after_issue'] ?? 0,
                     'is_partial_issue' => $tag['is_partial_issue'] ?? false,
+                    'consumption_policy' => $tag['consumption_policy'] ?? ($isBackflush ? 'backflush_return' : 'direct_issue'),
                     'is_backflush' => $isBackflush,
                     'backflushed_qty' => (float) ($tag['backflushed_qty'] ?? 0),
                     'gci_part_id' => $gciPartId > 0 ? $gciPartId : null,

@@ -24,10 +24,14 @@ class GciPart extends Model
         'gross_weight',
         'default_location',
         'is_backflush',
+        'consumption_policy',
+        'policy_confirmed_at',
+        'policy_confirmed_by',
     ];
 
     protected $casts = [
         'is_backflush' => 'boolean',
+        'policy_confirmed_at' => 'datetime',
     ];
 
     public function customers()

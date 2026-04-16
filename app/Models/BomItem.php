@@ -35,6 +35,7 @@ class BomItem extends Model
         'material_name',
         'special',
         'make_or_buy',
+        'consumption_policy_override',
     ];
 
     public function bom()

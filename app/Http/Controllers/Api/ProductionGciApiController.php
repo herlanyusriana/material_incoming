@@ -207,6 +207,7 @@ class ProductionGciApiController extends Controller
                     return [
                         'component_part_no' => (string) ($line['component_part_no'] ?? '-'),
                         'component_part_name' => (string) ($line['component_part_name'] ?? '-'),
+                        'consumption_policy' => (string) ($line['consumption_policy'] ?? (($line['is_backflush'] ?? true) ? 'backflush_return' : 'direct_issue')),
                         'location_code' => (string) ($allocation['location_code'] ?? '-'),
                         'batch_no' => (string) ($allocation['batch_no'] ?? ''),
                         'source_tag' => $tag,
@@ -455,11 +456,13 @@ class ProductionGciApiController extends Controller
                 'component_gci_part_id' => (int) ($issueLine['component_gci_part_id'] ?? 0),
                 'component_part_no' => $componentPartNo,
                 'component_part_name' => (string) ($issueLine['component_part_name'] ?? '-'),
+                'consumption_policy' => (string) ($issueLine['consumption_policy'] ?? ($requestLine['consumption_policy'] ?? (($issueLine['is_backflush'] ?? true) ? 'backflush_return' : 'direct_issue'))),
                 'uom' => (string) ($issueLine['uom'] ?? '-'),
                 'required_qty' => (float) ($requestLine['required_qty'] ?? $issueLine['required_qty'] ?? 0),
                 'available_qty' => (float) ($requestLine['available_qty'] ?? 0),
                 'shortage_qty' => (float) ($requestLine['shortage_qty'] ?? 0),
                 'issued_qty' => (float) ($issueLine['issued_qty'] ?? 0),
+                'backflushed_qty' => (float) ($issueLine['backflushed_qty'] ?? 0),
                 'allocations_count' => count($allocations),
                 'allocations' => $allocations,
             ];
