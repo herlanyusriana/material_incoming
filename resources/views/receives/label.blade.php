@@ -9,337 +9,106 @@
     $goodsUnit = strtoupper(trim((string) ($arrivalItem?->unit_goods ?? $receive->qty_unit ?? '')));
     $incomingPartNo = $arrivalItem?->display_part_no ?? $part?->part_no ?? $arrivalItem?->gciPartVendor?->vendor_part_no ?? '-';
     $partName = $arrivalItem?->display_part_name ?? $part?->part_name_gci ?? $part?->part_name_vendor ?? '-';
-    $qtyGoodsText = number_format((float) ($receive->qty ?? 0), 0) . ' ' . $goodsUnit;
-    $netWeight = (float) ($receive->net_weight ?? $receive->weight ?? 0);
+    
+    $qtyWeightText = ($goodsUnit === 'COIL' || ($goodsUnit === 'SHEET' && (float)$receive->net_weight > 0))
+        ? number_format((float)($receive->net_weight ?? $receive->weight ?? 0), 2) . ' KGM'
+        : number_format((float)($receive->qty ?? 0), 0) . ' ' . $goodsUnit;
 
-    $showWeightInMain = $goodsUnit === 'COIL' || ($goodsUnit === 'SHEET' && $netWeight > 0);
+    $qtySecondaryText = in_array($goodsUnit, ['COIL', 'SHEET']) 
+        ? number_format((float)($receive->qty ?? 0), 0) . ' ' . $goodsUnit
+        : '-';
 
-    $qtyWeightText = $showWeightInMain
-        ? number_format($netWeight, 2) . ' KGM'
-        : $qtyGoodsText;
-
-    $qtySecondaryLabel = match ($goodsUnit) {
-        'SHEET' => 'Qty Sheet',
-        default => 'Qty Coil',
-    };
-
-    $qtySecondaryText = match ($goodsUnit) {
-        'COIL' => number_format((float) ($receive->qty ?? 0), 0) . ' COIL',
-        'SHEET' => number_format((float) ($receive->qty ?? 0), 0) . ' SHEET',
-        default => '-',
-    };
-
-    $monthBox = str_pad((string) ($monthNumber ?? (int) optional($receive->ata_date)->format('m')), 2, '0', STR_PAD_LEFT);
+    $monthBox = str_pad((string)($monthNumber ?? (int)optional($receive->ata_date)->format('m')), 2, '0', STR_PAD_LEFT);
 @endphp
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Label Material</title>
+    <title>Material Label Card</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        @page { size: 150mm 100mm; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; background: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        .label-outer { width: 148mm; height: 98mm; background: #fff; border: 3px solid #000; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* HEADER SECTION */
+        header { height: 22mm; border-bottom: 3px solid #000; display: flex; align-items: center; justify-content: space-between; padding: 0 8mm; }
+        .h-left { display: flex; align-items: center; gap: 5mm; }
+        .gl-circle { width: 14mm; height: 14mm; border: 2.5px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; }
+        .h-title { font-size: 24px; font-weight: 900; letter-spacing: 4px; }
+        .month-chip { width: 14mm; height: 14mm; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; border-radius: 2mm; }
 
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+        /* BODY SECTION */
+        main { display: flex; flex: 1; min-height: 0; }
+        .data-grid { width: 62%; border-right: 3px solid #000; display: flex; flex-direction: column; }
+        .side-grid { width: 38%; display: flex; flex-direction: column; }
 
-        .label-container {
-            background: white;
-            width: 150mm;
-            height: 100mm;
-            border: 3px solid #000;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
+        /* DATA ROWS - Total 10 rows, shared height */
+        .row { flex: 1; border-bottom: 1px solid #000; display: flex; align-items: center; padding: 0 5mm; }
+        .row:last-child { border-bottom: none; }
+        .val { font-size: 10pt; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .header {
-            background: #fff;
-            padding: 8mm 12mm;
-            border-bottom: 2px solid #000;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 22mm;
-        }
+        /* QR AREA */
+        .qr-section { height: 50mm; display: flex; align-items: center; justify-content: center; border-bottom: 3px solid #000; padding: 3mm; }
+        .qr-section svg { width: 44mm !important; height: 44mm !important; }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        /* IQC AREA */
+        .iqc-section { flex: 1; display: flex; flex-direction: column; }
+        .iqc-head { background: #e0e0e0; text-align: center; border-bottom: 1.5px solid #000; font-size: 11px; font-weight: 900; padding: 1.5mm 0; letter-spacing: 1px; }
+        .iqc-boxes { flex: 1; display: flex; }
+        .iqc-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #333; }
+        .iqc-box:first-child { border-right: 2px solid #000; }
 
-        .logo {
-            width: 42px;
-            height: 42px;
-            border: 2px solid #000;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            color: #000;
-            background: white;
-        }
-
-        .header-title {
-            font-size: 22px;
-            font-weight: bold;
-            color: #000;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .header-month {
-            width: 42px;
-            height: 42px;
-            background: #000;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 24px;
-            border-radius: 6px;
-        }
-
-        .content {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .left-section {
-            width: 90mm;
-            border-right: 2px solid #000;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .right-section {
-            width: 60mm;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .qr-box {
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 50mm;
-            border-bottom: 2px solid #000;
-            padding: 2mm;
-            width: 100%;
-        }
-
-        .qr-box svg {
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-        }
-
-        .form-row {
-            border-bottom: 1px solid #000;
-            min-height: 0;
-            display: flex;
-            align-items: center;
-        }
-
-        .form-row:last-child {
-            border-bottom: none;
-        }
-
-        .field-value {
-            width: 100%;
-            padding: 2.4mm 5mm;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #000;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        .field-value.multiline {
-            white-space: normal;
-            line-height: 1.2;
-        }
-
-        .field-value .sub {
-            font-size: 8pt;
-            color: #555;
-            font-weight: 600;
-        }
-
-        .iqc-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .iqc-title {
-            text-align: center;
-            padding: 6px;
-            font-weight: bold;
-            background: #eee;
-            border-bottom: 1px solid #000;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .stamp-section {
-            display: flex;
-            flex: 1;
-        }
-
-        .stamp-box {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 600;
-            color: #000;
-        }
-
-        .stamp-box:first-child {
-            border-right: 2px solid #000;
-        }
-
-        .print-btn {
-            margin-top: 12px;
-            text-align: right;
-        }
-
-        .print-btn button {
-            background: #000;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .print-btn button:hover {
-            background: #333;
-        }
-
-        @page {
-            size: 150mm 100mm;
-            margin: 0;
-        }
+        /* PRINT CONTROL */
+        .no-print { position: fixed; bottom: 20px; right: 20px; background: #000; color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .no-print:hover { transform: scale(1.05); background: #333; }
 
         @media print {
-            body {
-                background: white;
-                padding: 0;
-                min-height: auto;
-            }
-
-            .label-container {
-                box-shadow: none;
-                border: 2px solid #000;
-            }
-
-            .print-btn {
-                display: none;
-            }
-
-            .iqc-title {
-                background-color: #eee !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .header-month {
-                background-color: #000 !important;
-                color: #fff !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
+            body { background: #fff; padding: 0; }
+            .no-print { display: none; }
         }
     </style>
 </head>
-
 <body>
-    <div>
-        <div class="label-container">
-            <div class="header">
-                <div class="header-left">
-                    <div class="logo">GL</div>
-                    <div class="header-title">LABEL MATERIAL</div>
-                </div>
-                <div class="header-month">{{ $monthBox }}</div>
+    <div class="label-outer">
+        <header>
+            <div class="h-left">
+                <div class="gl-circle">GL</div>
+                <div class="h-title">LABEL MATERIAL</div>
             </div>
-
-            <div class="content">
-                <div class="left-section">
-                    <div class="form-row">
-                        <div class="field-value">{{ $incomingPartNo }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $partName }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $arrivalItem?->material_group ?? '-' }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $arrivalItem?->size ?? '-' }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $vendorName }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $invoiceNo }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $resolvedTag }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $qtyWeightText }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $qtySecondaryText }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-value">{{ $receive->ata_date?->format('Y-m-d H:i') ?? '-' }}</div>
+            <div class="month-chip">{{ $monthBox }}</div>
+        </header>
+        
+        <main>
+            <section class="data-grid">
+                <div class="row"><div class="val">{{ $incomingPartNo }}</div></div>
+                <div class="row"><div class="val">{{ $partName }}</div></div>
+                <div class="row"><div class="val">{{ $arrivalItem?->material_group ?? '-' }}</div></div>
+                <div class="row"><div class="val">{{ $arrivalItem?->size ?? '-' }}</div></div>
+                <div class="row"><div class="val">{{ $vendorName }}</div></div>
+                <div class="row"><div class="val">{{ $invoiceNo }}</div></div>
+                <div class="row"><div class="val">{{ $resolvedTag }}</div></div>
+                <div class="row"><div class="val">{{ $qtyWeightText }}</div></div>
+                <div class="row"><div class="val">{{ $qtySecondaryText }}</div></div>
+                <div class="row"><div class="val">{{ $receive->ata_date?->format('Y-m-d H:i') ?? '-' }}</div></div>
+            </section>
+            
+            <section class="side-grid">
+                <div class="qr-section">
+                    {!! $qrSvg ?? '' !!}
+                </div>
+                <div class="iqc-section">
+                    <div class="iqc-head">IQC CHECK</div>
+                    <div class="iqc-boxes">
+                        <div class="iqc-box">STAMP</div>
+                        <div class="iqc-box">TTD</div>
                     </div>
                 </div>
-
-                <div class="right-section">
-                    <div class="qr-box">{!! $qrSvg ?? '' !!}</div>
-                    <div class="iqc-section">
-                        <div class="iqc-title">IQC Check</div>
-                        <div class="stamp-section">
-                            <div class="stamp-box">Stamp</div>
-                            <div class="stamp-box">TTD</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="print-btn">
-            <button onclick="window.print()">Print Label</button>
-        </div>
+            </section>
+        </main>
     </div>
-</body>
 
+    <button class="no-print" onclick="window.print()">PRINT LABEL</button>
+</body>
 </html>
