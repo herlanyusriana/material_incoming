@@ -2,6 +2,7 @@
     $arrivalItem = $receive->arrivalItem;
     $arrival = $arrivalItem?->arrival;
     $part = $arrivalItem?->part;
+    $resolvedTag = $receive->tag ?: ($receive->ensureSystemTag() ?? '-');
     $vendorName = $arrival?->vendor?->vendor_name ?? '-';
     $invoiceNo = $arrival?->invoice_no ?? '-';
     $deliveryNoteNo = $receive->delivery_note_no ?? $arrival?->sj_no ?? '-';
