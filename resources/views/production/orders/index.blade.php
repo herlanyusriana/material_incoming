@@ -42,7 +42,7 @@
             </div>
 
             <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600">Month</label>
                         <input type="month" name="month" value="{{ $month ?? '' }}"
@@ -69,6 +69,15 @@
                                 <option value="{{ $s }}" @selected(($status ?? '') === $s)>
                                     {{ strtoupper(str_replace('_', ' ', $s)) }}</option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600">Sisa Material</label>
+                        <select name="inventory_balance" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                            <option value="">Semua</option>
+                            <option value="remaining" @selected(($inventoryBalance ?? '') === 'remaining')>Masih ada sisa</option>
+                            <option value="clean" @selected(($inventoryBalance ?? '') === 'clean')>Sudah bersih</option>
+                            <option value="none" @selected(($inventoryBalance ?? '') === 'none')>Belum ada supply</option>
                         </select>
                     </div>
                     <div class="md:col-span-2">
@@ -109,10 +118,20 @@
                         @forelse($orders as $order)
                             @php
                                 $scanCount = is_array($order->material_issue_lines) ? count($order->material_issue_lines) : 0;
+                                $remainingQty = round((float) ($order->inventory_remaining_total ?? 0), 4);
+                                $supplyQty = round((float) ($order->inventory_supply_total ?? 0), 4);
+                                $consumedQty = round((float) ($order->inventory_consumed_total ?? 0), 4);
+                                $returnedQty = round((float) ($order->inventory_returned_total ?? 0), 4);
                                 $materialFlowLabel = 'Belum request';
                                 $materialFlowClass = 'bg-slate-100 text-slate-700';
 
-                                if ($order->material_handed_over_at) {
+                                if ($remainingQty > 0) {
+                                    $materialFlowLabel = 'Masih ada sisa';
+                                    $materialFlowClass = 'bg-rose-100 text-rose-700';
+                                } elseif ($supplyQty > 0) {
+                                    $materialFlowLabel = 'Sudah bersih';
+                                    $materialFlowClass = 'bg-emerald-100 text-emerald-700';
+                                } elseif ($order->material_handed_over_at) {
                                     $materialFlowLabel = 'Diterima line';
                                     $materialFlowClass = 'bg-blue-100 text-blue-700';
                                 } elseif ($order->material_issued_at) {
@@ -190,7 +209,16 @@
                                     <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $materialFlowClass }}">
                                         {{ $materialFlowLabel }}
                                     </span>
-                                    @if($scanCount > 0)
+                                    @if($supplyQty > 0)
+                                        <div class="mt-1 text-xs text-slate-500">
+                                            Supply {{ number_format($supplyQty, 4) }}
+                                            • Pakai {{ number_format($consumedQty, 4) }}
+                                            • Balik {{ number_format($returnedQty, 4) }}
+                                        </div>
+                                        <div class="text-xs font-semibold {{ $remainingQty > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
+                                            Sisa {{ number_format($remainingQty, 4) }}
+                                        </div>
+                                    @elseif($scanCount > 0)
                                         <div class="mt-1 text-xs text-slate-500">{{ $scanCount }} tag</div>
                                     @endif
                                 </td>

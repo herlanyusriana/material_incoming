@@ -241,6 +241,8 @@
                 </div>
             @endif
 
+            @include('production.orders.partials.inventory_flow', ['inventoryFlow' => $inventoryFlow])
+
             <!-- Daily Planning Mapping -->
             @if($order->dailyPlanCell)
                 <div class="bg-indigo-50 border-2 border-indigo-300 rounded-lg p-6 shadow-sm">

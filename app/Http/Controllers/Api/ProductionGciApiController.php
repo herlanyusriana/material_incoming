@@ -18,6 +18,7 @@ use App\Models\ProductionGciMaterialLot;
 use App\Models\Bom;
 use App\Models\GciInventory;
 use App\Models\LocationInventory;
+use App\Services\ProductionInventoryFlowService;
 use Illuminate\Support\Str;
 
 class ProductionGciApiController extends Controller
@@ -28,6 +29,11 @@ class ProductionGciApiController extends Controller
         'warehouse_supply',
         'finished',
     ];
+
+    private function inventoryFlowService(): ProductionInventoryFlowService
+    {
+        return app(ProductionInventoryFlowService::class);
+    }
 
     private function isRmBuyRequirement(array $req): bool
     {
@@ -319,6 +325,7 @@ class ProductionGciApiController extends Controller
         $issueLines = array_values($order->material_issue_lines ?? []);
         $events = [];
         $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
+        $inventoryFlowService = $this->inventoryFlowService();
 
         foreach ($requestLines as $requestLine) {
             $requiredQty = (float) ($requestLine['required_qty'] ?? 0);
@@ -400,6 +407,13 @@ class ProductionGciApiController extends Controller
                 ));
 
                 $needed = round($needed - $consumeQty, 4);
+                $supply = $inventoryFlowService->recordBackflushConsumption($order, $issueLines[$index], $consumeQty);
+                if ($supply) {
+                    $issueLines[$index]['inventory_supply_id'] = (int) $supply->id;
+                    $issueLines[$index]['consumed_qty'] = (float) $supply->qty_consumed;
+                    $issueLines[$index]['returned_qty'] = (float) $supply->qty_returned;
+                    $issueLines[$index]['supply_status'] = (string) $supply->status;
+                }
                 $events[] = [
                     'part_no' => (string) ($issueLine['part_no'] ?? $requestLine['component_part_no'] ?? '-'),
                     'tag_number' => $tagNo,
@@ -782,6 +796,7 @@ class ProductionGciApiController extends Controller
     public function materialStatus($id)
     {
         $order = ProductionOrder::with('part:id,part_no,part_name,model')->findOrFail($id);
+        $inventoryFlow = $this->inventoryFlowService()->summarizeOrderFlow($order);
 
         return response()->json([
             'data' => [
@@ -796,6 +811,7 @@ class ProductionGciApiController extends Controller
                 'last_handover_from_machine_name' => (string) ($order->last_handover_from_machine_name ?? ''),
                 'last_handover_at' => $order->last_handover_at ? (string) $order->last_handover_at : null,
                 'material_status' => $this->buildMaterialStatus($order),
+                'inventory_flow' => $inventoryFlow,
             ],
         ]);
     }
@@ -805,6 +821,7 @@ class ProductionGciApiController extends Controller
         $order = ProductionOrder::with('part:id,part_no,part_name,model')->findOrFail($id);
         $materialStatus = $this->buildMaterialStatus($order);
         $issueHistory = $this->buildMaterialIssueHistory($order);
+        $inventoryFlow = $this->inventoryFlowService()->summarizeOrderFlow($order);
 
         return response()->json([
             'data' => [
@@ -824,6 +841,7 @@ class ProductionGciApiController extends Controller
                     'issued_tag_count' => $materialStatus['issued_tag_count'],
                 ],
                 'issue_lines' => $issueHistory,
+                'inventory_flow' => $inventoryFlow,
             ],
         ]);
     }

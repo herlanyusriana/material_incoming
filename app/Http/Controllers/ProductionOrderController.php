@@ -11,6 +11,7 @@ use App\Models\Receive;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Machine;
+use App\Services\ProductionInventoryFlowService;
 use App\Services\ProductionMaterialRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -233,6 +234,7 @@ class ProductionOrderController extends Controller
         $dateTo = $request->query('date_to');
         $month = $request->query('month');
         $status = strtolower(trim((string) $request->query('status', '')));
+        $inventoryBalance = strtolower(trim((string) $request->query('inventory_balance', '')));
         $q = trim((string) $request->query('q', ''));
         $gciPartId = (int) $request->query('gci_part_id', 0);
 
@@ -248,8 +250,18 @@ class ProductionOrderController extends Controller
 
         $query = ProductionOrder::query()
             ->with(['part', 'machine', 'dailyPlanCell.row'])
+            ->withSum('inventorySupplies as inventory_supply_total', 'qty_supply')
+            ->withSum('inventorySupplies as inventory_consumed_total', 'qty_consumed')
+            ->withSum('inventorySupplies as inventory_returned_total', 'qty_returned')
+            ->withSum('inventorySupplies as inventory_remaining_total', 'qty_remaining')
             ->when($gciPartId > 0, fn($qr) => $qr->where('gci_part_id', $gciPartId))
             ->when($status !== '', fn($qr) => $qr->where('status', $status))
+            ->when($inventoryBalance === 'remaining', fn($qr) => $qr->whereHas('inventorySupplies', fn($supply) => $supply->where('qty_remaining', '>', 0)))
+            ->when($inventoryBalance === 'clean', function ($qr) {
+                $qr->whereDoesntHave('inventorySupplies', fn($supply) => $supply->where('qty_remaining', '>', 0))
+                    ->whereHas('inventorySupplies');
+            })
+            ->when($inventoryBalance === 'none', fn($qr) => $qr->doesntHave('inventorySupplies'))
             ->when($dateFrom || $dateTo, function ($qr) use ($dateFrom, $dateTo) {
                 $from = $dateFrom ? $dateFrom : '1900-01-01';
                 $to = $dateTo ? $dateTo : '2999-12-31';
@@ -268,7 +280,7 @@ class ProductionOrderController extends Controller
 
         $orders = $query->paginate(20)->withQueryString();
 
-        return view('production.orders.index', compact('orders', 'dateFrom', 'dateTo', 'month', 'status', 'q', 'gciPartId'));
+        return view('production.orders.index', compact('orders', 'dateFrom', 'dateTo', 'month', 'status', 'inventoryBalance', 'q', 'gciPartId'));
     }
 
     public function create()
@@ -387,11 +399,13 @@ class ProductionOrderController extends Controller
             'arrivals',
         ]);
 
+        $inventoryFlow = app(ProductionInventoryFlowService::class)->summarizeOrderFlow($order);
+
         if ($request->ajax()) {
-            return view('production.orders.partials.detail_content', compact('order'));
+            return view('production.orders.partials.detail_content', compact('order', 'inventoryFlow'));
         }
 
-        return view('production.orders.show', compact('order'));
+        return view('production.orders.show', compact('order', 'inventoryFlow'));
     }
 
     public function checkMaterial(ProductionOrder $order)

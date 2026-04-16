@@ -8,6 +8,7 @@ use App\Models\Bom;
 use App\Models\Receive;
 use App\Models\LocationInventory;
 use App\Models\GciInventory;
+use App\Services\ProductionInventoryFlowService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -15,6 +16,11 @@ use Illuminate\Http\Request;
 class WarehouseApiController extends Controller
 {
     private const STAGING_LOCATION_CODE = 'AA-BULK';
+
+    private function inventoryFlowService(): ProductionInventoryFlowService
+    {
+        return app(ProductionInventoryFlowService::class);
+    }
 
     private function isWarehouseScannableRm(string $makeOrBuy): bool
     {
@@ -310,6 +316,7 @@ class WarehouseApiController extends Controller
                 'requirements' => $requirements,
                 'issue_lines' => $issueLines,
                 'supply_status' => $this->buildSupplyStatus($order),
+                'inventory_flow' => $this->inventoryFlowService()->summarizeOrderFlow($order),
             ]
         ]);
     }
@@ -742,7 +749,9 @@ class WarehouseApiController extends Controller
             ->filter(fn ($qty, $gciPartId) => $gciPartId > 0 && $qty > 0)
             ->all();
 
-        DB::transaction(function () use ($order, $tags, &$remainingReservedByGciPart) {
+        $flowService = $this->inventoryFlowService();
+
+        DB::transaction(function () use ($order, $tags, &$remainingReservedByGciPart, $flowService) {
             $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
             $postedIssueLines = [];
 
@@ -790,9 +799,10 @@ class WarehouseApiController extends Controller
                     }
                 }
 
-                $postedIssueLines[] = [
+                $postedLine = [
                     'tag_number' => $tagNo,
                     'part_no' => $partNo,
+                    'part_name' => $tag['part_name'] ?? null,
                     'qty' => $qty,
                     'tag_qty' => $tag['tag_qty'] ?? $qty,
                     'remaining_qty_after_issue' => $tag['remaining_qty_after_issue'] ?? 0,
@@ -808,6 +818,15 @@ class WarehouseApiController extends Controller
                     'posted_at' => now()->toDateTimeString(),
                     'traceability' => $traceability,
                 ];
+
+                $supply = $flowService->recordSupply($order, $postedLine);
+                $postedLine['inventory_supply_id'] = (int) $supply->id;
+                $postedLine['supply_status'] = (string) $supply->status;
+                $postedLine['supplied_qty'] = (float) $supply->qty_supply;
+                $postedLine['consumed_qty'] = (float) $supply->qty_consumed;
+                $postedLine['returned_qty'] = (float) $supply->qty_returned;
+
+                $postedIssueLines[] = $postedLine;
             }
 
             $order->update([
@@ -819,7 +838,83 @@ class WarehouseApiController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $this->buildSupplyStatus($order->fresh()),
+            'data' => array_merge(
+                $this->buildSupplyStatus($order->fresh()),
+                ['inventory_flow' => $this->inventoryFlowService()->summarizeOrderFlow($order->fresh())]
+            ),
+        ]);
+    }
+
+    public function inventoryFlow(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $this->inventoryFlowService()->summarizeOrderFlow($order),
+        ]);
+    }
+
+    public function returnSupply(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+        $validated = $request->validate([
+            'tag_no' => 'required|string',
+            'qty_return' => 'nullable|numeric|min:0.0001',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $return = $this->inventoryFlowService()->returnSupply(
+                $order,
+                (string) $validated['tag_no'],
+                array_key_exists('qty_return', $validated) ? (float) $validated['qty_return'] : null,
+                ['notes' => (string) ($validated['notes'] ?? '')]
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        $updatedIssueLines = collect($order->fresh()->material_issue_lines ?? [])
+            ->map(function (array $line) use ($return) {
+                if (strtoupper(trim((string) ($line['tag_number'] ?? ''))) !== strtoupper(trim((string) $return->tag_number))) {
+                    return $line;
+                }
+
+                $alreadyReturned = (float) ($line['returned_qty'] ?? 0);
+                $newReturned = round($alreadyReturned + (float) $return->qty_return, 4);
+                $issuedQty = (float) ($line['qty'] ?? 0);
+                $backflushedQty = (float) ($line['backflushed_qty'] ?? 0);
+                $remaining = max(0, round($issuedQty - $backflushedQty - $newReturned, 4));
+
+                $line['returned_qty'] = $newReturned;
+                $line['returned_at'] = optional($return->returned_at)->toDateTimeString();
+                $line['remaining_after_return'] = $remaining;
+                $line['supply_status'] = $remaining <= 0 ? 'closed' : 'partial';
+
+                return $line;
+            })
+            ->values()
+            ->all();
+
+        $order->update(['material_issue_lines' => $updatedIssueLines]);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'returned' => [
+                    'id' => (int) $return->id,
+                    'tag_number' => (string) $return->tag_number,
+                    'qty_return' => (float) $return->qty_return,
+                    'from_location_code' => (string) ($return->from_location_code ?? ''),
+                    'to_location_code' => (string) ($return->to_location_code ?? ''),
+                    'returned_at' => optional($return->returned_at)->toDateTimeString(),
+                ],
+                'inventory_flow' => $this->inventoryFlowService()->summarizeOrderFlow($order->fresh()),
+            ],
         ]);
     }
 }
