@@ -118,10 +118,10 @@
                         @forelse($orders as $order)
                             @php
                                 $scanCount = is_array($order->material_issue_lines) ? count($order->material_issue_lines) : 0;
-                                $remainingQty = round((float) ($order->inventory_remaining_total ?? 0), 4);
                                 $supplyQty = round((float) ($order->inventory_supply_total ?? 0), 4);
                                 $consumedQty = round((float) ($order->inventory_consumed_total ?? 0), 4);
                                 $returnedQty = round((float) ($order->inventory_returned_total ?? 0), 4);
+                                $remainingQty = max(0, round($supplyQty - $consumedQty - $returnedQty, 4));
                                 $materialFlowLabel = 'Belum request';
                                 $materialFlowClass = 'bg-slate-100 text-slate-700';
 
