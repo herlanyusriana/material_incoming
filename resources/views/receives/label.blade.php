@@ -6,19 +6,8 @@
     $vendorName = $arrival?->vendor?->vendor_name ?? '-';
     $invoiceNo = $arrival?->invoice_no ?? '-';
     $deliveryNoteNo = $receive->delivery_note_no ?? $arrival?->sj_no ?? '-';
-    $storageLocation = strtoupper(trim((string) ($receive->location_code ?? '')));
-    $warehouseMeta = [];
-    if (isset($warehouseLocation) && $warehouseLocation) {
-        if ($warehouseLocation->class)
-            $warehouseMeta[] = 'CLASS ' . $warehouseLocation->class;
-        if ($warehouseLocation->zone)
-            $warehouseMeta[] = 'ZONE ' . $warehouseLocation->zone;
-    }
-    $warehouseMetaText = $warehouseMeta ? implode(' • ', $warehouseMeta) : null;
     $goodsUnit = strtoupper(trim((string) ($arrivalItem?->unit_goods ?? $receive->qty_unit ?? '')));
     $incomingPartNo = $arrivalItem?->display_part_no ?? $part?->part_no ?? $arrivalItem?->gciPartVendor?->vendor_part_no ?? '-';
-    $gciPartNo = $arrivalItem?->gciPart?->part_no ?? $part?->gciPart?->part_no ?? '-';
-    $vendorPartNo = $arrivalItem?->gciPartVendor?->vendor_part_no ?? $arrivalItem?->vendorPart?->vendor_part_no ?? '-';
     $partName = $arrivalItem?->display_part_name ?? $part?->part_name_gci ?? $part?->part_name_vendor ?? '-';
     $qtyGoodsText = number_format((float) ($receive->qty ?? 0), 0) . ' ' . $goodsUnit;
     $netWeight = (float) ($receive->net_weight ?? $receive->weight ?? 0);
@@ -166,47 +155,22 @@
         }
 
         .form-row {
-            display: flex;
             border-bottom: 1px solid #000;
-            flex: 1;
             min-height: 0;
+            display: flex;
+            align-items: center;
         }
 
         .form-row:last-child {
             border-bottom: none;
         }
 
-        .field-name {
-            width: 35mm;
-            padding: 2mm 5mm;
-            font-weight: 700;
-            background: #eee;
-            font-size: 9pt;
-            display: flex;
-            align-items: center;
-        }
-
-        .colon {
-            width: 6mm;
-            padding: 2mm 0;
-            text-align: center;
-            background: #fff;
-            font-size: 9pt;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
         .field-value {
-            flex: 1;
-            padding: 2mm 2mm;
+            width: 100%;
+            padding: 2.4mm 5mm;
             font-size: 9pt;
             font-weight: 700;
             color: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -298,7 +262,6 @@
                 display: none;
             }
 
-            .field-name,
             .iqc-title {
                 background-color: #eee !important;
                 -webkit-print-color-adjust: exact;
@@ -329,67 +292,33 @@
             <div class="content">
                 <div class="left-section">
                     <div class="form-row">
-                        <div class="field-name">Part No</div>
-                        <div class="colon">:</div>
-                        <div class="field-value multiline">
-                            <div>{{ $incomingPartNo }}</div>
-                            <div class="sub">Vendor {{ $vendorPartNo }} | GCI {{ $gciPartNo }}</div>
-                        </div>
+                        <div class="field-value">{{ $incomingPartNo }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Part Name</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $partName }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Model</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $arrivalItem?->material_group ?? '-' }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Size</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $arrivalItem?->size ?? '-' }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Vendor</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $vendorName }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">No. Invoice</div>
-                        <div class="colon">:</div>
-                        <div class="field-value multiline">
-                            <div>{{ $invoiceNo }}</div>
-                            <div class="sub">{{ $deliveryNoteNo }}</div>
-                        </div>
+                        <div class="field-value">{{ $invoiceNo }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">No. Tag</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $resolvedTag }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Qty / Weight</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $qtyWeightText }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">{{ $qtySecondaryLabel }}</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $qtySecondaryText }}</div>
                     </div>
                     <div class="form-row">
-                        <div class="field-name">Location</div>
-                        <div class="colon">:</div>
-                        <div class="field-value multiline">
-                            <div>{{ $storageLocation !== '' ? $storageLocation : '-' }}</div>
-                            <div class="sub">{{ $warehouseMetaText ?? '-' }}</div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="field-name">Incoming Date</div>
-                        <div class="colon">:</div>
                         <div class="field-value">{{ $receive->ata_date?->format('Y-m-d H:i') ?? '-' }}</div>
                     </div>
                 </div>
