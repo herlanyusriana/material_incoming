@@ -41,14 +41,14 @@
         .val-secondary { font-size: 14pt; font-weight: 800; line-height: 1.1; }
 
         /* QR AREA */
-        .qr-area { height: 55mm; display: flex; align-items: center; justify-content: center; border-bottom: 4mm solid #000; padding: 4mm; }
-        .qr-area svg { width: 48mm !important; height: 48mm !important; }
+        .qr-area { height: 48mm; display: flex; align-items: center; justify-content: center; border-bottom: 4mm solid #000; padding: 4mm; }
+        .qr-area svg { width: 44mm !important; height: 44mm !important; }
 
         /* IQC AREA */
-        .iqc-area { flex: 1; display: flex; flex-direction: column; }
-        .iqc-label { background: #000; color: #fff; text-align: center; font-size: 12pt; font-weight: 900; padding: 2mm 0; }
+        .iqc-area { flex: 1; display: flex; flex-direction: column; background: #fff;}
+        .iqc-label { background: #000; color: #fff; text-align: center; font-size: 11pt; font-weight: 900; padding: 1.5mm 0; border-bottom: 2px solid #000;}
         .iqc-grid { flex: 1; display: flex; }
-        .iqc-pane { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12pt; font-weight: 800; }
+        .iqc-pane { flex: 1; display: flex; align-items: flex-start; justify-content: center; font-size: 10pt; font-weight: 800; padding-top: 1mm; color: #555;}
         .iqc-pane:first-child { border-right: 3px solid #000; }
 
         /* PRINT */
