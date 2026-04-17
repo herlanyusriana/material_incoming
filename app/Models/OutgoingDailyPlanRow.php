@@ -17,6 +17,7 @@ class OutgoingDailyPlanRow extends Model
         'part_no',
         'gci_part_id',
         'customer_part_id',
+        'usage_qty',
     ];
 
     public function plan(): BelongsTo

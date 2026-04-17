@@ -550,7 +550,8 @@ class OutgoingController extends Controller
             ->map(function ($cell) use ($fulfilledMap) {
                 $key = $cell->plan_date->format('Y-m-d') . '|' . (int) $cell->row_id;
                 $fulfilled = (float) ($fulfilledMap[$key] ?? 0);
-                $remaining = max(0, (float) $cell->qty - $fulfilled);
+                $usageQty = (float) ($cell->row->usage_qty ?? 1.0);
+                $remaining = max(0, (float) ($cell->qty * $usageQty) - $fulfilled);
                 $cell->remaining_qty = $remaining;
                 return $cell;
             })
@@ -1304,7 +1305,8 @@ class OutgoingController extends Controller
             $gciPartId = (int) ($cell->row->gci_part_id ?? 0);
             if ($gciPartId <= 0)
                 continue;
-            $dailyPlanMap[$gciPartId] = ($dailyPlanMap[$gciPartId] ?? 0) + (int) $cell->qty;
+            $usageQty = (float) ($cell->row->usage_qty ?? 1.0);
+            $dailyPlanMap[$gciPartId] = ($dailyPlanMap[$gciPartId] ?? 0) + (int) round($cell->qty * $usageQty);
         }
 
         // ── 2. Daily Plan data for H+1 ──
@@ -1320,7 +1322,8 @@ class OutgoingController extends Controller
             $gciPartId = (int) ($cell->row->gci_part_id ?? 0);
             if ($gciPartId <= 0)
                 continue;
-            $dailyPlanH1Map[$gciPartId] = ($dailyPlanH1Map[$gciPartId] ?? 0) + (int) $cell->qty;
+            $usageQty = (float) ($cell->row->usage_qty ?? 1.0);
+            $dailyPlanH1Map[$gciPartId] = ($dailyPlanH1Map[$gciPartId] ?? 0) + (int) round($cell->qty * $usageQty);
         }
 
         // ── 3. Collect all relevant GCI Part IDs ──
@@ -1917,40 +1920,60 @@ class OutgoingController extends Controller
      */
     private function syncDailyPlanRowMappings(?int $planId, Carbon $dateFrom, Carbon $dateTo): void
     {
-        // Step 1: Rows that have a customer_part_id BUT NO gci_part_id - sync from CustomerPartComponent
-        // IMPORTANT: We now skip rows that ALREADY have gci_part_id set, because the import
-        // correctly explodes each CustomerPart's components into separate rows with distinct gci_part_ids.
-        $rowsWithCustomerPart = OutgoingDailyPlanCell::query()
+        // Step 1: Full Explosion Sync for rows with customer_part_id
+        // This ensures that if a mapping changes (e.g. components added to VT10), 
+        // the existing plan automatically gets the missing component rows.
+        $plansWithCp = OutgoingDailyPlanCell::query()
             ->join('outgoing_daily_plan_rows as r', 'r.id', '=', 'outgoing_daily_plan_cells.row_id')
             ->whereDate('outgoing_daily_plan_cells.plan_date', '>=', $dateFrom->format('Y-m-d'))
             ->whereDate('outgoing_daily_plan_cells.plan_date', '<=', $dateTo->format('Y-m-d'))
             ->where('outgoing_daily_plan_cells.qty', '>', 0)
             ->when($planId !== null, fn($q) => $q->where('r.plan_id', $planId))
             ->whereNotNull('r.customer_part_id')
-            ->whereNull('r.gci_part_id')  // ONLY sync rows that DON'T have gci_part_id yet
-            ->distinct()
-            ->select('r.id', 'r.customer_part_id', 'r.gci_part_id')
-            ->get();
+            ->select([
+                'r.plan_id', 'r.production_line', 'r.part_no', 'r.customer_part_id',
+                'outgoing_daily_plan_cells.plan_date', 'outgoing_daily_plan_cells.qty', 'outgoing_daily_plan_cells.seq'
+            ])
+            ->get()
+            ->groupBy(fn($c) => $c->plan_id . '|' . $c->production_line . '|' . $c->part_no . '|' . $c->customer_part_id . '|' . $c->plan_date);
 
-        if ($rowsWithCustomerPart->isNotEmpty()) {
-            $customerPartIds = $rowsWithCustomerPart->pluck('customer_part_id')->unique()->filter()->values()->all();
+        if ($plansWithCp->isNotEmpty()) {
+            foreach ($plansWithCp as $key => $cells) {
+                $first = $cells->first();
+                $cpId = (int) $first->customer_part_id;
+                $components = CustomerPartComponent::where('customer_part_id', $cpId)
+                    ->get(); // include all components, aggregation will filter classification if needed
 
-            // Get current FG mappings from CustomerPartComponent (first one only for legacy compatibility)
-            $currentMappings = CustomerPartComponent::query()
-                ->whereIn('customer_part_id', $customerPartIds)
-                ->whereHas('part', fn($q) => $q->where('classification', 'FG'))
-                ->get()
-                ->keyBy('customer_part_id');
+                if ($components->isEmpty()) continue;
 
-            foreach ($rowsWithCustomerPart as $row) {
-                $cpId = (int) $row->customer_part_id;
-                $currentMapping = $currentMappings->get($cpId);
-                $expectedGciPartId = $currentMapping ? (int) $currentMapping->gci_part_id : null;
+                foreach ($components as $comp) {
+                    $gciPartId = (int) $comp->gci_part_id;
+                    $usageQty = (float) ($comp->qty_per_unit ?? 1.0);
 
-                if ($expectedGciPartId) {
-                    OutgoingDailyPlanRow::query()
-                        ->whereKey($row->id)
-                        ->update(['gci_part_id' => $expectedGciPartId]);
+                    // Ensure Row exists for this component
+                    $row = OutgoingDailyPlanRow::firstOrCreate([
+                        'plan_id' => $first->plan_id,
+                        'production_line' => $first->production_line,
+                        'part_no' => $first->part_no,
+                        'customer_part_id' => $cpId,
+                        'gci_part_id' => $gciPartId,
+                    ], [
+                        'usage_qty' => $usageQty,
+                    ]);
+
+                    // Sync usage_qty if it changed
+                    if (abs((float)$row->usage_qty - $usageQty) > 0.0001) {
+                        $row->update(['usage_qty' => $usageQty]);
+                    }
+
+                    // Ensure Cell exists for this date
+                    OutgoingDailyPlanCell::updateOrCreate([
+                        'row_id' => $row->id,
+                        'plan_date' => $first->plan_date,
+                    ], [
+                        'qty' => $first->qty,
+                        'seq' => $first->seq,
+                    ]);
                 }
             }
         }
@@ -2004,8 +2027,8 @@ class OutgoingController extends Controller
             DB::transaction(function () use ($planIdsToProcess) {
                 foreach ($planIdsToProcess as $pid) {
                     $duplicateRows = OutgoingDailyPlanRow::where('plan_id', $pid)
-                        ->select('production_line', 'part_no')
-                        ->groupBy('production_line', 'part_no')
+                        ->select('production_line', 'part_no', 'gci_part_id', 'customer_part_id')
+                        ->groupBy('production_line', 'part_no', 'gci_part_id', 'customer_part_id')
                         ->havingRaw('COUNT(*) > 1')
                         ->get();
 
@@ -2013,6 +2036,8 @@ class OutgoingController extends Controller
                         $allRows = OutgoingDailyPlanRow::where('plan_id', $pid)
                             ->where('production_line', $dup->production_line)
                             ->where('part_no', $dup->part_no)
+                            ->where('gci_part_id', $dup->gci_part_id)
+                            ->where('customer_part_id', $dup->customer_part_id)
                             ->orderBy('id')
                             ->get();
 
