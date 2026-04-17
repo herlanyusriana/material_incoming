@@ -99,93 +99,70 @@
 
                     <div class="mt-4 space-y-4">
                         <template x-for="(row, index) in rows" :key="row.key">
-                            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                <div class="flex items-center justify-between">
-                                    <div class="text-sm font-bold text-slate-900" x-text="'Item #' + (index + 1)"></div>
-                                    <button type="button"
-                                        class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
-                                        x-show="rows.length > 1"
-                                        @click="removeRow(index)">
-                                        Remove
-                                    </button>
+                            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+                                    <div class="text-sm font-black text-indigo-900 flex items-center gap-2">
+                                        <div class="h-6 w-6 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs" x-text="(index + 1)"></div>
+                                        <span x-text="row.process_type || 'Unknown Process'"></span>
+                                    </div>
+                                    <div class="text-right" x-show="row.target_qty !== undefined">
+                                        <div class="text-[10px] font-bold text-slate-500 uppercase">Sisa Qty Kontrak</div>
+                                        <div class="text-sm font-black" :class="row.remaining_qty > 0 ? 'text-emerald-600' : 'text-rose-600'" x-text="row.remaining_qty"></div>
+                                    </div>
                                 </div>
 
-                                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                                    <div class="xl:col-span-2">
-                                        <label class="block text-sm font-bold text-slate-700 mb-1">WIP Part (Hasil Vendor) <span class="text-red-500">*</span></label>
-                                        <select class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                            :name="`items[${index}][gci_part_id]`"
-                                            x-model="row.gci_part_id"
-                                            @change="onWipChange(index)"
-                                            required>
-                                            <option value="">Select WIP Part</option>
-                                            <template x-for="part in subconParts" :key="part.key">
-                                                <option :value="part.id" x-text="`${part.part_no} - ${part.part_name} | ${part.process_name || '-'} | RM: ${part.rm_part_no || '-'}`"></option>
-                                            </template>
-                                        </select>
-                                        <input type="hidden" :name="`items[${index}][bom_item_id]`" x-model="row.bom_item_id">
-                                        <div class="mt-1 text-xs text-slate-500">
-                                            Dropdown hanya menampilkan mapping dari BOM aktif dan sudah dibedakan per process/RM.
-                                        </div>
+                                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                                    <div class="xl:col-span-2 space-y-1">
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">WIP Part (Hasil Vendor)</label>
+                                        <div class="font-bold text-slate-900 border border-slate-200 bg-slate-50 px-3 py-2 rounded-lg text-sm" x-text="`${row.wip_part_no} - ${row.wip_part_name}`"></div>
+                                        <input type="hidden" :name="`items[${index}][gci_part_id]`" :value="row.gci_part_id">
+                                        <input type="hidden" :name="`items[${index}][bom_item_id]`" :value="row.bom_item_id">
+                                        <input type="hidden" :name="`items[${index}][process_type]`" :value="row.process_type">
                                     </div>
 
-                                    <div class="xl:col-span-2">
-                                        <label class="block text-sm font-bold text-slate-700 mb-1">RM Part (Barang Dikirim) <span class="text-red-500">*</span></label>
-                                        <select class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                            :name="`items[${index}][rm_gci_part_id]`"
-                                            x-model="row.rm_gci_part_id"
-                                            @change="onRmChange(index)"
-                                            required>
-                                            <option value="">Select RM Part</option>
-                                            <template x-for="part in rmParts" :key="part.key">
-                                                <option :value="part.rm_part_id" x-text="`${part.rm_part_no || '-'} - ${part.rm_part_name || '-'}`"></option>
-                                            </template>
-                                        </select>
+                                    <div class="xl:col-span-2 space-y-1">
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">RM Part (Barang Dikirim)</label>
+                                        <div class="font-bold text-slate-900 border border-slate-200 bg-slate-50 px-3 py-2 rounded-lg text-sm" x-text="`${row.rm_part_no} - ${row.rm_part_name}`"></div>
+                                        <input type="hidden" :name="`items[${index}][rm_gci_part_id]`" :value="row.rm_gci_part_id">
                                     </div>
 
-                                    <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-1">Qty Sent <span class="text-red-500">*</span></label>
+                                    <div class="space-y-1">
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">Qty Sent <span class="text-red-500">*</span></label>
                                         <input type="number"
                                             step="0.0001"
-                                            min="0.0001"
+                                            min="0"
+                                            :max="row.remaining_qty !== undefined ? row.remaining_qty : null"
                                             :name="`items[${index}][qty_sent]`"
                                             x-model="row.qty_sent"
-                                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                            required>
-                                    </div>
-                                </div>
-
-                                <div class="mt-4">
-                                    <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-1">Process Type <span class="text-red-500">*</span></label>
-                                        <input type="text"
-                                            :name="`items[${index}][process_type]`"
-                                            x-model="row.process_type"
-                                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                            placeholder="e.g. plating, hardening"
+                                            class="w-full rounded-lg border-indigo-300 bg-indigo-50/30 text-sm font-black focus:border-indigo-600 focus:ring-indigo-600 text-indigo-900"
+                                            placeholder="Masukkan Qty"
                                             required>
                                     </div>
                                 </div>
                             </div>
                         </template>
+                        <div x-show="rows.length === 0" class="text-center py-12 rounded-2xl border-2 border-dashed border-slate-200 bg-white">
+                            <div class="mb-2 text-slate-400">
+                                <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            </div>
+                            <div class="text-sm font-bold text-slate-500">Pilih Nomor Kontrak</div>
+                            <div class="text-xs text-slate-400 mt-1">Item part akan otomatis muncul sesuai dengan yang terdaftar di master kontrak.</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center justify-between gap-3 pt-6 border-t border-slate-100">
                     <div></div>
                     <div class="flex gap-3">
-                        <button type="submit"
-                            class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
-                            Create WH Send
-                        </button>
                         <a href="{{ route('subcon.traceability-index') }}"
-                            class="rounded-lg bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-200">
+                            class="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
                             Cancel
                         </a>
-                        <button type="button"
-                            class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700"
-                            @click="addRow()">
-                            + Add Item
+                        <button type="submit"
+                            :disabled="rows.length === 0"
+                            class="rounded-xl bg-indigo-600 px-8 py-3 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Create WH Send
                         </button>
                     </div>
                 </div>
@@ -195,14 +172,9 @@
 
     <script>
         function subconBatchCreate() {
-            const subconParts = @json($subconPartsJson);
-            const rmParts = @json($rmPartsJson);
-            const oldRows = @json($oldRows);
             const contracts = @json($contractsJson);
 
             return {
-                subconParts,
-                rmParts,
                 contracts,
                 vendor_id: @js((string) old('vendor_id', '')),
                 contract_no: @js((string) old('contract_no', '')),
@@ -212,27 +184,35 @@
                 rows: [],
                 init() {
                     this.onVendorChange(false);
-                    this.rows = oldRows.map((row, idx) => ({
-                        key: 'row-' + idx + '-' + Date.now(),
-                        gci_part_id: row.gci_part_id ? String(row.gci_part_id) : '',
-                        rm_gci_part_id: row.rm_gci_part_id ? String(row.rm_gci_part_id) : '',
-                        bom_item_id: row.bom_item_id ? String(row.bom_item_id) : '',
-                        process_type: row.process_type || '',
-                        qty_sent: row.qty_sent || '',
-                    }));
-
-                    if (this.rows.length === 0) {
-                        this.addRow();
+                    // For error responses with old rows
+                    const oldRowsData = @json(old('items', []));
+                    if (oldRowsData && oldRowsData.length > 0 && this.contract_no) {
+                        // try to match with contract items
+                        const matched = this.contracts.find(c => c.contract_no === this.contract_no);
+                        if (matched && matched.items) {
+                            this.rows = matched.items.map((item, idx) => {
+                                const oldMatch = oldRowsData.find(oldItem => 
+                                    oldItem.gci_part_id == item.gci_part_id && 
+                                    oldItem.rm_gci_part_id == item.rm_gci_part_id &&
+                                    oldItem.process_type === item.process_type
+                                );
+                                return {
+                                    key: 'row-' + idx + '-' + Date.now(),
+                                    gci_part_id: item.gci_part_id,
+                                    rm_gci_part_id: item.rm_gci_part_id,
+                                    bom_item_id: item.bom_item_id,
+                                    process_type: item.process_type,
+                                    wip_part_no: item.wip_part_no,
+                                    wip_part_name: item.wip_part_name,
+                                    rm_part_no: item.rm_part_no,
+                                    rm_part_name: item.rm_part_name,
+                                    target_qty: item.target_qty,
+                                    remaining_qty: item.remaining_qty,
+                                    qty_sent: oldMatch ? oldMatch.qty_sent : '',
+                                };
+                            });
+                        }
                     }
-
-                    this.rows.forEach((_, index) => {
-                        if (this.rows[index].gci_part_id) {
-                            this.onWipChange(index, false);
-                        }
-                        if (this.rows[index].rm_gci_part_id) {
-                            this.onRmChange(index, false);
-                        }
-                    });
                 },
                 onVendorChange(resetContract = true) {
                     this.availableContracts = this.contracts.filter(contract => contract.vendor_id === this.vendor_id);
@@ -241,6 +221,7 @@
                         this.contract_no_selected = '';
                         this.showManualContract = false;
                         if (resetContract) this.contract_no = '';
+                        this.rows = [];
                         return;
                     }
 
@@ -248,6 +229,9 @@
                     if (matched) {
                         this.contract_no_selected = matched.contract_no;
                         this.showManualContract = false;
+                        if (resetContract) {
+                            this.applyContractSelection();
+                        }
                         return;
                     }
 
@@ -255,54 +239,45 @@
                     this.contract_no_selected = this.contract_no ? '__other__' : '';
                     if (resetContract && !this.contract_no_selected) {
                         this.contract_no = '';
+                        this.rows = [];
                     }
                 },
                 applyContractSelection() {
                     if (this.contract_no_selected === '__other__') {
                         this.showManualContract = true;
                         this.contract_no = '';
+                        this.rows = [];
                         return;
                     }
 
                     this.showManualContract = false;
                     this.contract_no = this.contract_no_selected || '';
-                },
-                addRow() {
-                    this.rows.push({
-                        key: 'row-' + this.rows.length + '-' + Date.now(),
-                        gci_part_id: '',
-                        rm_gci_part_id: '',
-                        bom_item_id: '',
-                        process_type: '',
-                        qty_sent: '',
-                    });
-                },
-                removeRow(index) {
-                    if (this.rows.length <= 1) {
-                        return;
+                    
+                    if (this.contract_no) {
+                        const matched = this.contracts.find(c => c.contract_no === this.contract_no);
+                        if (matched && matched.items && matched.items.length > 0) {
+                            this.rows = matched.items.map((item, idx) => ({
+                                key: 'row-' + idx + '-' + Date.now(),
+                                gci_part_id: item.gci_part_id,
+                                rm_gci_part_id: item.rm_gci_part_id,
+                                bom_item_id: item.bom_item_id,
+                                process_type: item.process_type,
+                                wip_part_no: item.wip_part_no,
+                                wip_part_name: item.wip_part_name,
+                                rm_part_no: item.rm_part_no,
+                                rm_part_name: item.rm_part_name,
+                                target_qty: item.target_qty,
+                                remaining_qty: item.remaining_qty,
+                                qty_sent: '',
+                            }));
+                        } else {
+                            this.rows = [];
+                            // Don't inject empty row if no items mapped. Must set mapping in master data first.
+                        }
+                    } else {
+                        this.rows = [];
                     }
-                    this.rows.splice(index, 1);
-                },
-                onWipChange(index, overwrite = true) {
-                    const selected = this.subconParts.find(part => part.id === this.rows[index].gci_part_id);
-                    if (!selected) {
-                        return;
-                    }
-                    if (overwrite || !this.rows[index].process_type) {
-                        this.rows[index].process_type = selected.process_name || '';
-                    }
-                    this.rows[index].bom_item_id = selected.bom_item_id || '';
-                    if (selected.rm_part_id) {
-                        this.rows[index].rm_gci_part_id = selected.rm_part_id;
-                        this.onRmChange(index, overwrite);
-                    }
-                },
-                onRmChange(index, overwrite = true) {
-                    const selected = this.rmParts.find(part => part.rm_part_id === this.rows[index].rm_gci_part_id);
-                    if (!selected) {
-                        return;
-                    }
-                },
+                }
             }
         }
     </script>

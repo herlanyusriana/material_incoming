@@ -16,7 +16,7 @@ class ContractNumberController extends Controller
         $status = trim((string) $request->query('status', 'active'));
 
         $contracts = ContractNumber::query()
-            ->with(['vendor', 'creator'])
+            ->with(['vendor', 'creator', 'items.gciPart', 'items.rmPart'])
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('contract_no', 'like', '%' . $search . '%')
@@ -36,10 +36,27 @@ class ContractNumberController extends Controller
             ->orderBy('vendor_name')
             ->get(['id', 'vendor_name']);
 
+        $subconParts = $this->getSubconPartOptions();
+
+        $subconPartsJson = collect($subconParts)->values()->map(function ($part, $idx) {
+            return [
+                'key' => 'wip-' . $idx,
+                'id' => isset($part['id']) ? (string) $part['id'] : '',
+                'part_no' => $part['part_no'] ?? '',
+                'part_name' => $part['part_name'] ?? '',
+                'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
+                'rm_part_no' => $part['rm_part_no'] ?? '',
+                'rm_part_name' => $part['rm_part_name'] ?? '',
+                'process_name' => $part['process_name'] ?? '',
+                'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
+            ];
+        })->all();
+
         return view('contract-numbers.index', [
             'contracts' => $contracts,
             'vendors' => $vendors,
             'filters' => compact('search', 'vendorId', 'status'),
+            'subconPartsJson' => $subconPartsJson,
         ]);
     }
 
@@ -49,7 +66,10 @@ class ContractNumberController extends Controller
         $data['created_by'] = auth()->id();
         $data['updated_by'] = auth()->id();
 
-        ContractNumber::create($data);
+        \Illuminate\Support\Facades\DB::transaction(function() use ($data, $request) {
+            $contractNumber = ContractNumber::create($data);
+            $this->syncItems($contractNumber, $request->input('items', []));
+        });
 
         return redirect()->route('contract-numbers.index')->with('success', 'Nomor kontrak berhasil dibuat.');
     }
@@ -59,7 +79,10 @@ class ContractNumberController extends Controller
         $data = $this->validatedData($request, $contractNumber);
         $data['updated_by'] = auth()->id();
 
-        $contractNumber->update($data);
+        \Illuminate\Support\Facades\DB::transaction(function() use ($data, $request, $contractNumber) {
+            $contractNumber->update($data);
+            $this->syncItems($contractNumber, $request->input('items', []));
+        });
 
         return redirect()->route('contract-numbers.index')->with('success', 'Nomor kontrak berhasil diperbarui.');
     }
@@ -74,6 +97,7 @@ class ContractNumberController extends Controller
     public function byVendor(Vendor $vendor)
     {
         $contracts = ContractNumber::query()
+            ->with(['items.gciPart', 'items.rmPart'])
             ->where('vendor_id', $vendor->id)
             ->where('status', 'active')
             ->orderByDesc('effective_from')
@@ -85,12 +109,41 @@ class ContractNumberController extends Controller
                 'description' => $contract->description,
                 'effective_from' => optional($contract->effective_from)->format('Y-m-d'),
                 'effective_to' => optional($contract->effective_to)->format('Y-m-d'),
+                'items' => $contract->items->map(fn($item) => [
+                    'gci_part_id' => $item->gci_part_id,
+                    'wip_part_no' => $item->gciPart->part_no ?? '-',
+                    'wip_part_name' => $item->gciPart->part_name ?? '-',
+                    'rm_gci_part_id' => $item->rm_gci_part_id,
+                    'rm_part_no' => $item->rmPart->part_no ?? '-',
+                    'rm_part_name' => $item->rmPart->part_name ?? '-',
+                    'process_type' => $item->process_type,
+                    'bom_item_id' => $item->bom_item_id,
+                    'target_qty' => $item->target_qty,
+                    'sent_qty' => $item->sent_qty,
+                    'remaining_qty' => max(0, (float)$item->target_qty - (float)$item->sent_qty),
+                ]),
             ])
             ->values();
 
         return response()->json([
             'contracts' => $contracts,
         ]);
+    }
+
+    private function syncItems(ContractNumber $contractNumber, array $items)
+    {
+        $contractNumber->items()->delete();
+        foreach ($items as $item) {
+            if (!empty($item['gci_part_id']) && !empty($item['rm_gci_part_id'])) {
+                $contractNumber->items()->create([
+                    'gci_part_id' => $item['gci_part_id'],
+                    'rm_gci_part_id' => $item['rm_gci_part_id'],
+                    'process_type' => $item['process_type'] ?? '',
+                    'bom_item_id' => $item['bom_item_id'] ?? null,
+                    'target_qty' => $item['target_qty'] ?? 0,
+                ]);
+            }
+        }
     }
 
     private function validatedData(Request $request, ?ContractNumber $contractNumber = null): array
@@ -108,6 +161,52 @@ class ContractNumberController extends Controller
             'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
             'status' => ['required', 'in:active,inactive'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'items' => ['nullable', 'array'],
+            'items.*.gci_part_id' => ['required_with:items', 'exists:gci_parts,id'],
+            'items.*.rm_gci_part_id' => ['required_with:items', 'exists:gci_parts,id'],
+            'items.*.target_qty' => ['required_with:items', 'numeric', 'min:0'],
         ]);
+    }
+
+    private function getSubconPartOptions()
+    {
+        $today = now()->toDateString();
+        return \App\Models\BomItem::query()
+            ->where('special', 'T')
+            ->whereNotNull('wip_part_id')
+            ->whereNotNull('component_part_id')
+            ->whereHas('bom', function ($query) use ($today) {
+                $query->where('status', 'active')
+                    ->whereDate('effective_date', '<=', $today)
+                    ->where(function ($subQuery) use ($today) {
+                        $subQuery->whereNull('end_date')
+                            ->orWhereDate('end_date', '>=', $today);
+                    });
+            })
+            ->with(['wipPart', 'componentPart'])
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->wip_part_id,
+                    'part_no' => $item->wipPart->part_no ?? $item->wip_part_no,
+                    'part_name' => $item->wipPart->part_name ?? $item->wip_part_name,
+                    'rm_part_id' => $item->component_part_id,
+                    'rm_part_no' => $item->componentPart->part_no ?? $item->component_part_no,
+                    'rm_part_name' => $item->componentPart->part_name ?? $item->material_name,
+                    'process_name' => $item->process_name,
+                    'bom_item_id' => $item->id,
+                ];
+            })
+            ->filter(fn ($item) => !empty($item['id']) && !empty($item['part_no']))
+            ->unique(fn ($item) => implode('|', [
+                $item['id'] ?? '',
+                $item['rm_part_id'] ?? '',
+                strtoupper(trim((string) ($item['process_name'] ?? ''))),
+            ]))
+            ->sortBy([
+                ['part_no', 'asc'],
+                ['process_name', 'asc'],
+            ])
+            ->values();
     }
 }

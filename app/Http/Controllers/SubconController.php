@@ -146,14 +146,28 @@ class SubconController extends Controller
         ]]);
 
         $contractsJson = ContractNumber::query()
+            ->with(['items.gciPart', 'items.rmPart'])
             ->where('status', 'active')
             ->orderBy('contract_no')
-            ->get(['id', 'vendor_id', 'contract_no', 'description'])
+            ->get()
             ->map(fn (ContractNumber $contract) => [
                 'id' => (string) $contract->id,
                 'vendor_id' => (string) $contract->vendor_id,
                 'contract_no' => $contract->contract_no,
                 'description' => $contract->description ?? '',
+                'items' => $contract->items->map(fn($item) => [
+                    'gci_part_id' => (string)$item->gci_part_id,
+                    'rm_gci_part_id' => (string)$item->rm_gci_part_id,
+                    'wip_part_no' => $item->gciPart->part_no ?? '-',
+                    'wip_part_name' => $item->gciPart->part_name ?? '-',
+                    'rm_part_no' => $item->rmPart->part_no ?? '-',
+                    'rm_part_name' => $item->rmPart->part_name ?? '-',
+                    'process_type' => $item->process_type,
+                    'bom_item_id' => (string)$item->bom_item_id,
+                    'target_qty' => (float)$item->target_qty,
+                    'sent_qty' => (float)$item->sent_qty,
+                    'remaining_qty' => max(0, (float)$item->target_qty - (float)$item->sent_qty),
+                ]),
             ])
             ->values()
             ->all();
@@ -179,7 +193,7 @@ class SubconController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($validated) {
+            return DB::transaction(function () use ($validated, $request) {
                 $today = now()->format('Ymd');
                 $lastOrder = SubconOrder::where('order_no', 'like', "SC-{$today}-%")
                     ->lockForUpdate()
@@ -191,15 +205,37 @@ class SubconController extends Controller
                 $contractNo = strtoupper(trim((string) $validated['contract_no']));
                 $createdOrders = [];
 
+                // Validate if this contract is recorded in master contract numbers, enforce quantity limit
+                $masterContract = \App\Models\ContractNumber::with('items')
+                    ->where('contract_no', $contractNo)
+                    ->where('vendor_id', $validated['vendor_id'])
+                    ->first();
+
                 foreach ($validated['items'] as $item) {
                     $rmPart = GciPart::query()->findOrFail((int) $item['rm_gci_part_id']);
                     $resolvedSendLocation = strtoupper(trim((string) ($item['send_location_code'] ?? '')));
                     if ($resolvedSendLocation === '') {
                         $resolvedSendLocation = strtoupper(trim((string) ($rmPart->default_location ?? '')));
                     }
-
                     if ($resolvedSendLocation === '') {
                         throw new \RuntimeException('Default location untuk RM part ' . ($rmPart->part_no ?? '-') . ' belum di-set. Mohon lengkapi default location part terlebih dahulu.');
+                    }
+                    
+                    // Quantity Limit check against master contract
+                    if ($masterContract && $masterContract->items->isNotEmpty()) {
+                        $matchedItem = $masterContract->items->first(function($i) use ($item) {
+                            return $i->gci_part_id == $item['gci_part_id'] && 
+                                   $i->rm_gci_part_id == $item['rm_gci_part_id'] && 
+                                   $i->process_type === $item['process_type'];
+                        });
+                        
+                        if (!$matchedItem) {
+                            throw new \RuntimeException('Part/Proses belum dipetakan (mapping) di dalam Kontrak No: ' . $contractNo);
+                        }
+                        
+                        if ((float)$item['qty_sent'] > $matchedItem->remaining_qty) {
+                            throw new \RuntimeException("Qty dikirim (" . $item['qty_sent'] . ") untuk RM " . ($rmPart->part_no ?? '-') . " melebihi sisa kontrak (" . $matchedItem->remaining_qty . ").");
+                        }
                     }
 
                     $orderNo = sprintf('SC-%s-%03d', $today, $seq++);
