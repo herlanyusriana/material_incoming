@@ -42,6 +42,8 @@ class ContractNumberItem extends Model
         return $this->belongsTo(BomItem::class, 'bom_item_id');
     }
 
+    protected $appends = ['sent_qty', 'remaining_qty'];
+
     public function getSentQtyAttribute()
     {
         // Calculate sent qty from SubconOrder
@@ -52,5 +54,10 @@ class ContractNumberItem extends Model
             // considering all status that deducted from WH (sent, partial, completed), not cancelled.
             ->whereIn('status', ['sent', 'partial', 'completed'])
             ->sum('qty_sent');
+    }
+
+    public function getRemainingQtyAttribute()
+    {
+        return max(0, $this->target_qty - $this->sent_qty);
     }
 }
