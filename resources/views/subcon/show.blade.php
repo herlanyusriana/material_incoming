@@ -83,10 +83,6 @@
                     <div class="mt-1 text-slate-900">{{ $subconOrder->creator->name ?? '-' }}</div>
                 </div>
                 <div>
-                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">WH Send Location</div>
-                    <div class="mt-1 text-slate-900 font-semibold">{{ $subconOrder->send_location_code ?? '-' }}</div>
-                </div>
-                <div>
                     <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Stock Sent Posted</div>
                     <div class="mt-1 text-slate-900">
                         {{ $subconOrder->sent_posted_at?->format('d/m/Y H:i') ?? '-' }}

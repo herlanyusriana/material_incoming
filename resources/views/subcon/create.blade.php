@@ -155,7 +155,7 @@
                                     </div>
                                 </div>
 
-                                <div class="mt-4 grid gap-4 md:grid-cols-2">
+                                <div class="mt-4">
                                     <div>
                                         <label class="block text-sm font-bold text-slate-700 mb-1">Process Type <span class="text-red-500">*</span></label>
                                         <input type="text"
@@ -163,16 +163,6 @@
                                             x-model="row.process_type"
                                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                             placeholder="e.g. plating, hardening"
-                                            required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-1">WH Send Location <span class="text-red-500">*</span></label>
-                                        <input type="text"
-                                            :name="`items[${index}][send_location_code]`"
-                                            x-model="row.send_location_code"
-                                            class="w-full rounded-lg border-slate-300 bg-slate-50 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                            placeholder="Auto dari default location RM part"
-                                            readonly
                                             required>
                                     </div>
                                 </div>
@@ -229,7 +219,6 @@
                         bom_item_id: row.bom_item_id ? String(row.bom_item_id) : '',
                         process_type: row.process_type || '',
                         qty_sent: row.qty_sent || '',
-                        send_location_code: row.send_location_code || '',
                     }));
 
                     if (this.rows.length === 0) {
@@ -286,7 +275,6 @@
                         bom_item_id: '',
                         process_type: '',
                         qty_sent: '',
-                        send_location_code: '',
                     });
                 },
                 removeRow(index) {
@@ -313,9 +301,6 @@
                     const selected = this.rmParts.find(part => part.rm_part_id === this.rows[index].rm_gci_part_id);
                     if (!selected) {
                         return;
-                    }
-                    if (overwrite || !this.rows[index].send_location_code) {
-                        this.rows[index].send_location_code = selected.default_location || '';
                     }
                 },
             }
