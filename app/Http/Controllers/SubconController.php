@@ -188,9 +188,21 @@ class SubconController extends Controller
             'items.*.gci_part_id' => 'required|exists:gci_parts,id',
             'items.*.bom_item_id' => 'nullable|exists:bom_items,id',
             'items.*.process_type' => 'required|string|max:50',
-            'items.*.qty_sent' => 'required|numeric|min:0.0001',
+            'items.*.qty_sent' => 'required|numeric|min:0',
             'items.*.send_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
         ]);
+
+        // Guard: Ensure at least one item has qty > 0
+        $allZero = true;
+        foreach($validated['items'] as $it) {
+            if ((float)($it['qty_sent'] ?? 0) > 0) {
+                $allZero = false;
+                break;
+            }
+        }
+        if ($allZero) {
+            return back()->withInput()->with('error', 'Minimal harus mengisi 1 part dengan Qty Sent lebih dari 0.');
+        }
 
         try {
             return DB::transaction(function () use ($validated, $request) {
@@ -212,6 +224,9 @@ class SubconController extends Controller
                     ->first();
 
                 foreach ($validated['items'] as $item) {
+                    if ((float)$item['qty_sent'] <= 0) {
+                        continue;
+                    }
                     $rmPart = GciPart::query()->findOrFail((int) $item['rm_gci_part_id']);
                     $resolvedSendLocation = strtoupper(trim((string) ($item['send_location_code'] ?? '')));
                     if ($resolvedSendLocation === '') {

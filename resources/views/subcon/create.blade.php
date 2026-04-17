@@ -102,9 +102,17 @@
                             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm relative overflow-hidden">
                                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
                                 <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
-                                    <div class="text-sm font-black text-indigo-900 flex items-center gap-2">
-                                        <div class="h-6 w-6 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs" x-text="(index + 1)"></div>
-                                        <span x-text="row.process_type || 'Unknown Process'"></span>
+                                    <div class="flex items-center gap-4">
+                                        <div class="text-sm font-black text-indigo-900 flex items-center gap-2">
+                                            <div class="h-6 w-6 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs" x-text="(index + 1)"></div>
+                                            <span x-text="row.process_type || 'Unknown Process'"></span>
+                                        </div>
+                                        <button type="button" @click="removeRow(index)" class="group flex items-center gap-1 text-rose-500 hover:text-rose-700 transition-colors">
+                                            <div class="p-1.5 rounded-lg group-hover:bg-rose-50">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </div>
+                                            <span class="text-[10px] font-bold uppercase">Remove</span>
+                                        </button>
                                     </div>
                                     <div class="text-right" x-show="row.target_qty !== undefined">
                                         <div class="text-[10px] font-bold text-slate-500 uppercase">Sisa Qty Kontrak</div>
@@ -276,6 +284,11 @@
                         }
                     } else {
                         this.rows = [];
+                    }
+                },
+                removeRow(index) {
+                    if (confirm('Hapus baris ini dari pengiriman?')) {
+                        this.rows.splice(index, 1);
                     }
                 }
             }
