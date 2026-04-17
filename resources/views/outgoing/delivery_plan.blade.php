@@ -605,7 +605,16 @@
 						console.error('Save failed');
 						btn.disabled = false;
 						btn.innerHTML = originalText;
-						alert('Failed to save. Please try again.');
+						
+						let errorMsg = 'Failed to save. Please try again.';
+						try {
+							const errorData = await response.json();
+							if (errorData.message) {
+								errorMsg = errorData.message;
+							}
+						} catch (jsonErr) {}
+						
+						alert(errorMsg);
 						return false;
 					}
 				} catch (e) {

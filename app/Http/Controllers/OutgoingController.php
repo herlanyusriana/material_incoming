@@ -1669,17 +1669,7 @@ class OutgoingController extends Controller
 
         $source = $request->input('source', 'daily_plan');
 
-        // Block OSP parts — they must go through OSP order flow, not delivery plan
-        $isOsp = \App\Models\BomItem::where('special', 'OSP')
-            ->whereHas('bom', fn($q) => $q->where('part_id', $request->gci_part_id))
-            ->exists();
 
-        if ($isOsp && $request->qty > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Part ini adalah OSP — pengeluaran harus melalui jalur OSP Order, bukan Delivery Plan.',
-            ], 422);
-        }
 
         $line = OutgoingDeliveryPlanningLine::updateOrCreate(
             [
@@ -1717,19 +1707,7 @@ class OutgoingController extends Controller
         $deliveryDate = $request->delivery_date;
         $data = $request->input('data', []);
 
-        // Block OSP parts from bulk trip update
-        $partIdsWithQty = collect($data)->where('qty', '>', 0)->pluck('gci_part_id')->unique()->values();
-        if ($partIdsWithQty->isNotEmpty()) {
-            $ospBlocked = \App\Models\BomItem::where('special', 'OSP')
-                ->whereHas('bom', fn($q) => $q->whereIn('part_id', $partIdsWithQty))
-                ->exists();
-            if ($ospBlocked) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ada part OSP — pengeluaran harus melalui jalur OSP Order.',
-                ], 422);
-            }
-        }
+
 
         DB::transaction(function () use ($deliveryDate, $data) {
             foreach ($data as $item) {
