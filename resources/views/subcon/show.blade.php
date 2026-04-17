@@ -127,37 +127,49 @@
         @if (!in_array($subconOrder->status, ['completed', 'cancelled']))
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                 <h2 class="text-lg font-bold text-slate-900 mb-4">Record Receive</h2>
-                <form action="{{ route('subcon.receive', $subconOrder) }}" method="POST" class="space-y-4 max-w-xl">
+                <form action="{{ route('subcon.receive', $subconOrder) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                     @csrf
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span></label>
-                            <input type="number" name="qty_good" step="0.0001" min="0" value="{{ old('qty_good', 0) }}" required
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                            <input type="number" step="0.0001" min="0" name="qty_good" value="{{ old('qty_good', max(0, $subconOrder->qty_outstanding)) }}"
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" required />
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
-                            <input type="number" name="qty_rejected" step="0.0001" min="0" value="{{ old('qty_rejected', 0) }}"
+                            <input type="number" step="0.0001" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Received Date <span class="text-red-500">*</span></label>
+                            <input type="date" name="received_date" value="{{ old('received_date', now()->format('Y-m-d')) }}"
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" required />
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Received Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="received_date" required value="{{ old('received_date', now()->toDateString()) }}"
-                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 max-w-xs" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Upload Surat Jalan (SJ)</label>
+                            <input type="file" name="sj_file" accept=".pdf,image/jpeg,image/png"
+                                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Upload Invoice</label>
+                            <input type="file" name="invoice_file" accept=".pdf,image/jpeg,image/png"
+                                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500" />
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">WH Receive Good Location</label>
                             <input type="text" name="receive_location_code" value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                            <div class="mt-1 text-xs text-slate-500">Wajib jika Qty Good lebih dari nol. Lokasi ini untuk WIP hasil vendor.</div>
+                            <div class="mt-1 text-xs text-slate-500">Opsional. Default: Bypass constraint lokasi.</div>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">WH Reject Location</label>
                             <input type="text" name="reject_location_code" value="{{ old('reject_location_code') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                            <div class="mt-1 text-xs text-slate-500">Gunakan lokasi NG / reject / rework jika Qty Rejected lebih dari nol.</div>
+                            <div class="mt-1 text-xs text-slate-500">Opsional. Default: Bypass constraint lokasi.</div>
                         </div>
                     </div>
                     <div>
@@ -208,8 +220,28 @@
                                     <div class="font-semibold">{{ $rec->reject_location_code ?? '-' }}</div>
                                     <div class="text-xs text-slate-400">{{ $rec->reject_posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-slate-600">{{ $rec->notes ?? '-' }}</td>
-                                <td class="px-4 py-3 text-slate-600">{{ $rec->creator->name ?? '-' }}</td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <div class="flex flex-col gap-1">
+                                        <div>{{ $rec->notes ?? '-' }}</div>
+                                        <div class="flex gap-2">
+                                            @if($rec->sj_file_path)
+                                                <a href="{{ Storage::url($rec->sj_file_path) }}" target="_blank" class="text-xs text-indigo-600 hover:underline">View SJ</a>
+                                            @endif
+                                            @if($rec->invoice_file_path)
+                                                <a href="{{ Storage::url($rec->invoice_file_path) }}" target="_blank" class="text-xs text-indigo-600 hover:underline">View Invoice</a>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <div class="flex flex-col items-start gap-1">
+                                        <span>{{ $rec->creator->name ?? '-' }}</span>
+                                        <div class="flex gap-2 mt-1">
+                                            <a href="{{ route('subcon.receive.print-label', $rec) }}" target="_blank" class="rounded border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50">Label</a>
+                                            <a href="{{ route('subcon.receive.print-pl', $rec) }}" target="_blank" class="rounded border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50">PL</a>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -18,6 +18,8 @@ class SubconOrderReceive extends Model
         'reject_location_code',
         'posted_to_wh_at',
         'reject_posted_to_wh_at',
+        'sj_file_path',
+        'invoice_file_path',
         'notes',
         'created_by',
     ];

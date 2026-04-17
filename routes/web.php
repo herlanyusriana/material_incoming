@@ -332,6 +332,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/{subconOrder}/print-invoice', [SubconController::class, 'printInvoice'])->name('print-invoice');
         Route::get('/{subconOrder}', [SubconController::class, 'show'])->name('show');
         Route::post('/{subconOrder}/receive', [SubconController::class, 'receive'])->name('receive');
+        Route::get('/receive/{subconOrderReceive}/print-label', [SubconController::class, 'printReceiveLabel'])->name('receive.print-label');
+        Route::get('/receive/{subconOrderReceive}/print-pl', [SubconController::class, 'printReceivePL'])->name('receive.print-pl');
         Route::post('/{subconOrder}/cancel', [SubconController::class, 'cancel'])->name('cancel');
     });
 

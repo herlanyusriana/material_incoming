@@ -215,10 +215,10 @@ class SubconController extends Controller
                     $rmPart = GciPart::query()->findOrFail((int) $item['rm_gci_part_id']);
                     $resolvedSendLocation = strtoupper(trim((string) ($item['send_location_code'] ?? '')));
                     if ($resolvedSendLocation === '') {
-                        $resolvedSendLocation = strtoupper(trim((string) ($rmPart->default_location ?? '')));
+                        $resolvedSendLocation = strtoupper(trim((string) ($rmPart->default_location ?? 'WIP-BYPASS')));
                     }
                     if ($resolvedSendLocation === '') {
-                        throw new \RuntimeException('Default location untuk RM part ' . ($rmPart->part_no ?? '-') . ' belum di-set. Mohon lengkapi default location part terlebih dahulu.');
+                        $resolvedSendLocation = 'WIP-BYPASS';
                     }
                     
                     // Quantity Limit check against master contract
@@ -318,6 +318,18 @@ class SubconController extends Controller
         return view('subcon.print_invoice', $payload);
     }
 
+    public function printReceiveLabel(SubconOrderReceive $subconOrderReceive)
+    {
+        $subconOrderReceive->load(['subconOrder.gciPart']);
+        return view('subcon.print_receive_label', compact('subconOrderReceive'));
+    }
+
+    public function printReceivePL(SubconOrderReceive $subconOrderReceive)
+    {
+        $subconOrderReceive->load(['subconOrder.gciPart', 'subconOrder.vendor']);
+        return view('subcon.print_receive_pl', compact('subconOrderReceive'));
+    }
+
     public function receive(Request $request, SubconOrder $subconOrder)
     {
         if (in_array($subconOrder->status, ['completed', 'cancelled'])) {
@@ -328,8 +340,10 @@ class SubconController extends Controller
             'qty_good' => 'required|numeric|min:0',
             'qty_rejected' => 'nullable|numeric|min:0',
             'received_date' => 'required|date',
-            'receive_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
-            'reject_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
+            'receive_location_code' => ['nullable', 'string', 'max:50'],
+            'reject_location_code' => ['nullable', 'string', 'max:50'],
+            'sj_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'invoice_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -340,21 +354,24 @@ class SubconController extends Controller
             return back()->withInput()->with('error', 'Isi minimal Qty Good atau Qty Rejected lebih dari nol.');
         }
 
-        if ($validated['qty_good'] > 0 && empty($validated['receive_location_code'])) {
-            return back()->withInput()->with('error', 'WH Receive Location wajib diisi jika Qty Good lebih dari nol.');
+        // Bypass Location validation (biarkan ambil dari mana aja)
+        if (empty($validated['receive_location_code'])) {
+            $validated['receive_location_code'] = 'WIP-BYPASS';
+        }
+        if (empty($validated['reject_location_code'])) {
+            $validated['reject_location_code'] = 'WIP-REJECT';
         }
 
-        if ($validated['qty_rejected'] > 0 && empty($validated['reject_location_code'])) {
-            return back()->withInput()->with('error', 'WH Reject Location wajib diisi jika Qty Rejected lebih dari nol.');
+        if ($request->hasFile('sj_file')) {
+            $validated['sj_file_path'] = $request->file('sj_file')->store('subcon_docs', 'public');
+        }
+        if ($request->hasFile('invoice_file')) {
+            $validated['invoice_file_path'] = $request->file('invoice_file')->store('subcon_docs', 'public');
         }
 
         $validated['created_by'] = Auth::id();
-        $validated['receive_location_code'] = !empty($validated['receive_location_code'])
-            ? strtoupper(trim((string) $validated['receive_location_code']))
-            : null;
-        $validated['reject_location_code'] = !empty($validated['reject_location_code'])
-            ? strtoupper(trim((string) $validated['reject_location_code']))
-            : null;
+        $validated['receive_location_code'] = strtoupper(trim((string) $validated['receive_location_code']));
+        $validated['reject_location_code'] = strtoupper(trim((string) $validated['reject_location_code']));
         $validated['posted_to_wh_at'] = $validated['qty_good'] > 0 ? now() : null;
         $validated['reject_posted_to_wh_at'] = $validated['qty_rejected'] > 0 ? now() : null;
 
