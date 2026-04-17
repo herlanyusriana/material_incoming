@@ -305,7 +305,7 @@
                             </div>
                             <div class="md:col-span-1">
                                 <label class="text-[10px] font-bold text-indigo-700 uppercase">Consumption</label>
-                                <input type="number" step="any" min="0" name="usage_qty" placeholder="0.000"
+                                <input type="number" step="any" min="0" name="usage_qty" x-ref="compQtyInput" placeholder="0.000"
                                     class="mt-1 w-full rounded-xl border-indigo-200 bg-white text-sm" required>
                             </div>
                             <div class="md:col-span-1">
@@ -339,16 +339,23 @@
                                             <td class="px-4 py-3 text-right font-mono font-bold text-indigo-600"
                                                 x-text="Number(c.usage_qty).toFixed(3)"></td>
                                             <td class="px-4 py-3 text-right">
-                                                <form
-                                                    :action="'{{ url('/planning/customer-parts/components') }}/' + c.id"
-                                                    method="POST" onsubmit="return confirm('Remove component?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button
-                                                        class="p-1 px-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-bold transition-colors">
-                                                        ×
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <button type="button"
+                                                        class="p-1 px-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-xs transition-colors"
+                                                        @click="editComponent(c)">
+                                                        EDIT
                                                     </button>
-                                                </form>
+                                                    <form
+                                                        :action="'{{ url('/planning/customer-part-components') }}/' + c.id"
+                                                        method="POST" onsubmit="return confirm('Remove component?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button
+                                                            class="p-1 px-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-bold transition-colors" title="Delete">
+                                                            ×
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     </template>
@@ -487,7 +494,19 @@
                                 this.ts.clear();
                                 this.ts.focus();
                             }
+                            if (this.$refs.compQtyInput) {
+                                this.$refs.compQtyInput.value = '';
+                            }
                         });
+                    },
+                    editComponent(c) {
+                        if (this.ts) {
+                            this.ts.setValue(String(c.part_id));
+                        }
+                        if (this.$refs.compQtyInput) {
+                            this.$refs.compQtyInput.value = c.usage_qty;
+                            this.$refs.compQtyInput.focus();
+                        }
                     },
                     closeComponentModal() {
                         this.compModalOpen = false;
