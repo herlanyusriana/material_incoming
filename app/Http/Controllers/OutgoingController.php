@@ -78,7 +78,7 @@ class OutgoingController extends Controller
 
         $days = $this->daysBetween($dateFrom, $dateTo);
 
-        // Fetch rows based on the plan
+        // Fetch rows based on the plan - Consolidate twins (components) into one view row
         if ($plan) {
             $rows = $plan->rows()
                 ->with([
@@ -95,6 +95,12 @@ class OutgoingController extends Controller
                                 $sq->where('part_name', 'like', '%' . $search . '%');
                             });
                     });
+                })
+                // Grouping to hide twin component rows from input view
+                ->whereIn('outgoing_daily_plan_rows.id', function($q) {
+                    $q->selectRaw('MIN(id)')
+                      ->from('outgoing_daily_plan_rows')
+                      ->groupBy('plan_id', 'production_line', 'part_no', 'customer_part_id');
                 })
                 ->paginate($perPage)
                 ->withQueryString();
@@ -387,15 +393,36 @@ class OutgoingController extends Controller
         $field = $validated['field'];
         $value = max(0, (int) $value);
 
-        $cell = OutgoingDailyPlanCell::updateOrCreate(
-            [
-                'row_id' => $row->id,
-                'plan_date' => $date,
-            ],
-            [
-                $field => $value,
-            ]
-        );
+        // Propagate update to all "twin" rows (components of the same assembly)
+        $twinRowIds = OutgoingDailyPlanRow::where('plan_id', $row->plan_id)
+            ->where('production_line', $row->production_line)
+            ->where('part_no', $row->part_no)
+            ->where('customer_part_id', $row->customer_part_id)
+            ->pluck('id');
+
+        $cell = null;
+        foreach ($twinRowIds as $tid) {
+            $updatedCell = OutgoingDailyPlanCell::updateOrCreate(
+                [
+                    'row_id' => $tid,
+                    'plan_date' => $date,
+                ],
+                [
+                    $field => $value,
+                ]
+            );
+            if ($tid == $row->id) {
+                $cell = $updatedCell;
+            }
+        }
+
+        if (!$cell) {
+             // Fallback just in case
+             $cell = OutgoingDailyPlanCell::updateOrCreate(
+                ['row_id' => $row->id, 'plan_date' => $date],
+                [$field => $value]
+            );
+        }
 
         if ($row->plan) {
             $row->plan->update([
