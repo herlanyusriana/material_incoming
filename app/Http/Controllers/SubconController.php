@@ -215,9 +215,7 @@ class SubconController extends Controller
                     $rmPart = GciPart::query()->findOrFail((int) $item['rm_gci_part_id']);
                     $resolvedSendLocation = strtoupper(trim((string) ($item['send_location_code'] ?? '')));
                     if ($resolvedSendLocation === '') {
-                        $resolvedSendLocation = strtoupper(trim((string) ($rmPart->default_location ?? 'WIP-BYPASS')));
-                    }
-                    if ($resolvedSendLocation === '') {
+                        // User left it blank -> "pull from anywhere" dummy code
                         $resolvedSendLocation = 'WIP-BYPASS';
                     }
                     

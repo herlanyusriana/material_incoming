@@ -228,7 +228,7 @@ class LocationInventory extends Model
         $remaining = $qty;
 
         $rows = self::query()
-            ->where('location_code', $locationCode)
+            ->when($locationCode !== 'WIP-BYPASS', fn ($q) => $q->where('location_code', $locationCode))
             ->where('qty_on_hand', '>', 0)
             ->when($gciPartId, fn ($q) => $q->where('gci_part_id', $gciPartId))
             ->when(!$gciPartId, fn ($q) => $q->where('part_id', $partId))

@@ -2163,16 +2163,13 @@ class OutgoingController extends Controller
                 ->unique()
                 ->values();
 
-            if ($ospPartIds->isNotEmpty()) {
-                $ospPartNos = GciPart::whereIn('id', $ospPartIds)->pluck('part_no')->implode(', ');
-                return back()->with('error', "Part OSP tidak boleh di-generate DO dari Delivery Plan. Gunakan jalur OSP Order. Part: {$ospPartNos}");
-            }
+            // OSP parts block has been removed. OSP parts will now generate OspOrder underneath.
 
             $created = [];
             $updated = [];
             $skipped = [];
 
-            DB::transaction(function () use ($selectedLines, $planDate, &$created, &$updated, &$skipped) {
+            DB::transaction(function () use ($selectedLines, $planDate, $ospPartIds, &$created, &$updated, &$skipped) {
                 \Log::info('Generate DO Transaction Start', [
                     'plan_date' => $planDate,
                     'lines_count' => $selectedLines->count()
@@ -2201,6 +2198,65 @@ class OutgoingController extends Controller
                         $tripQty = (int) $planningLine->{"trip_{$t}"};
                         if ($tripQty <= 0)
                             continue;
+
+                        // ==========================================
+                        // OSP PART ROUTING LOGIC
+                        // ==========================================
+                        if ($ospPartIds->contains($partId)) {
+                            $bomItem = \App\Models\BomItem::where('gci_part_id', $partId)
+                                ->where('special', 'OSP')
+                                ->first();
+
+                            // Search for existing OSP order generated for this trip
+                            $existingOsp = \App\Models\OspOrder::where('customer_id', $customerId)
+                                ->where('gci_part_id', $partId)
+                                ->where('received_date', $planDate)
+                                ->where('notes', 'like', "%Trip {$t}")
+                                ->first();
+
+                            if ($existingOsp && !in_array($existingOsp->status, ['received', 'in_progress', 'ready'])) {
+                                $skipped[$existingOsp->order_no] = $existingOsp->status;
+                                continue;
+                            }
+
+                            if (!$existingOsp) {
+                                $today = now()->format('Ymd');
+                                $lastOrder = \App\Models\OspOrder::where('order_no', 'like', "OSP-{$today}-%")
+                                    ->lockForUpdate()
+                                    ->orderByDesc('order_no')
+                                    ->first();
+                                $seq = $lastOrder ? ((int) substr($lastOrder->order_no, -3)) + 1 : 1;
+                                $ospNo = sprintf('OSP-%s-%03d', $today, $seq);
+
+                                $ospOrder = \App\Models\OspOrder::create([
+                                    'order_no' => $ospNo,
+                                    'customer_id' => $customerId,
+                                    'gci_part_id' => $partId,
+                                    'bom_item_id' => $bomItem?->id,
+                                    'qty_received_material' => $tripQty,
+                                    'qty_assembled' => $tripQty,
+                                    'qty_shipped' => 0, // Since it's just planned, not shipped yet. Or if it's mirrored shipment plan, we can keep it 0 so they can "Ship" it in OSP manually if required.
+                                    'received_date' => $planDate,
+                                    'target_ship_date' => $planDate,
+                                    'status' => 'received',
+                                    'notes' => "Auto-generated from Delivery Planning Trip {$t}",
+                                    'created_by' => auth()->id(),
+                                ]);
+                                $created[] = $ospOrder->order_no;
+                            } else {
+                                $existingOsp->update([
+                                    'qty_received_material' => $tripQty,
+                                    'qty_assembled' => $tripQty,
+                                ]);
+                                $updated[] = $existingOsp->order_no;
+                            }
+
+                            continue; // Move to next trip (skip standard DO generation)
+                        }
+                        
+                        // ==========================================
+                        // NORMAL DO TRIPS GENERATION FOR NON-OSP PARTS
+                        // ==========================================
 
                         // Check for existing DO (any status) for this customer+date+trip
                         $do = DeliveryOrder::where('customer_id', $customerId)
