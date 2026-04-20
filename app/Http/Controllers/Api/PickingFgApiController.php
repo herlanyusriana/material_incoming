@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DnItem;
 use App\Models\DeliveryNote;
 use App\Models\DeliveryOrder;
 use App\Models\OutgoingPickingFg;
@@ -565,7 +566,8 @@ class PickingFgApiController extends Controller
             ], 422);
         }
 
-        $result = DB::transaction(function () use ($request, $part, $locationCode) {
+        try {
+            $result = DB::transaction(function () use ($request, $part, $locationCode) {
             $pick = OutgoingPickingFg::where('delivery_order_id', $request->delivery_order_id)
                 ->where('delivery_date', $request->date)
                 ->where('gci_part_id', $part->id)
@@ -618,20 +620,7 @@ class PickingFgApiController extends Controller
                 if ($pendingCount === 0) {
                     DeliveryOrder::where('id', $pick->delivery_order_id)->update(['status' => 'completed']);
 
-                    // Auto-create Delivery Note
-                    $do = DeliveryOrder::find($pick->delivery_order_id);
-                    $service = app(\App\Services\DeliveryOutgoingService::class);
-                    $service->createDeliveryNote(
-                        [$do->id],
-                        $do->customer_id,
-                        null,
-                        null,
-                        [
-                            'delivery_date' => $do->delivery_date ?? now()->toDateString(),
-                            'notes' => 'Auto-generated from mobile picking',
-                            'created_by' => Auth::id(),
-                        ]
-                    );
+                    $this->autoCreateDeliveryNote((int) $pick->delivery_order_id);
 
                     $doCompleted = true;
                 } else {
@@ -664,8 +653,92 @@ class PickingFgApiController extends Controller
                 ],
             ]);
         });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => $this->friendlyPickError($e->getMessage()),
+            ], 422);
+        }
 
         return $result;
+    }
+
+    private function autoCreateDeliveryNote(int $deliveryOrderId): void
+    {
+        $alreadyExists = DeliveryNote::whereHas('deliveryOrders', function ($q) use ($deliveryOrderId) {
+            $q->where('delivery_order_id', $deliveryOrderId);
+        })->exists();
+
+        if ($alreadyExists) {
+            return;
+        }
+
+        $do = DeliveryOrder::find($deliveryOrderId);
+        if (!$do) {
+            return;
+        }
+
+        $completedPicks = OutgoingPickingFg::with('part')
+            ->where('delivery_order_id', $deliveryOrderId)
+            ->where('status', 'completed')
+            ->get();
+
+        if ($completedPicks->isEmpty()) {
+            return;
+        }
+
+        $dn = DeliveryNote::create([
+            'customer_id' => $do->customer_id,
+            'delivery_date' => $do->do_date ?? now()->toDateString(),
+            'status' => 'ready_to_ship',
+            'notes' => 'Auto-created from completed Picking FG (DO: ' . $do->do_no . ') at ' . now()->format('d M Y H:i'),
+            'created_by' => Auth::id(),
+        ]);
+
+        foreach ($completedPicks as $pick) {
+            DnItem::create([
+                'dn_id' => $dn->id,
+                'gci_part_id' => $pick->gci_part_id,
+                'qty' => $pick->qty_picked,
+                'outgoing_po_item_id' => $pick->outgoing_po_item_id,
+            ]);
+        }
+
+        $dn->deliveryOrders()->sync([$deliveryOrderId]);
+
+        if (empty($dn->transaction_no)) {
+            $dn->transaction_no = DeliveryNote::generateTransactionNo($dn->delivery_date->toDateString());
+            $dn->save();
+        }
+
+        $gciPartIds = $completedPicks->pluck('gci_part_id')->unique()->toArray();
+        if (!empty($gciPartIds)) {
+            $woIds = \App\Models\ProductionOrder::whereIn('gci_part_id', $gciPartIds)
+                ->whereNotNull('transaction_no')
+                ->orderBy('created_at', 'asc')
+                ->limit(20)
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($woIds)) {
+                $dn->productionOrders()->sync($woIds);
+            }
+        }
+    }
+
+    private function friendlyPickError(string $message): string
+    {
+        if (str_contains($message, 'Not enough stock')) {
+            return 'Stok lokasi tidak cukup untuk qty picking ini. Cek lokasi / qty stock FG dulu.';
+        }
+
+        if (str_contains($message, 'Cannot reduce stock below zero')) {
+            return 'Qty picking melebihi stock lokasi. Cek qty stock FG dulu.';
+        }
+
+        return $message !== '' ? $message : 'Gagal simpan qty picking.';
     }
 
     /**

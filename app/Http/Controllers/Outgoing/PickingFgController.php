@@ -314,7 +314,8 @@ class PickingFgController extends Controller
             return response()->json(['success' => false, 'message' => 'Picking record not found'], 404);
         }
 
-        [$status, $qtyPicked, $qtyRemaining, $progressPercent] = DB::transaction(function () use ($pickId, $request) {
+        try {
+            [$status, $qtyPicked, $qtyRemaining, $progressPercent] = DB::transaction(function () use ($pickId, $request) {
             $pick = OutgoingPickingFg::whereKey($pickId)->lockForUpdate()->firstOrFail();
             $qtyBefore = (int) $pick->qty_picked;
 
@@ -392,6 +393,14 @@ class PickingFgController extends Controller
 
             return [$status, $qtyPicked, max(0, (int) $pick->qty_plan - $qtyPicked), $pick->progress_percent];
         });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => $this->friendlyPickError($e->getMessage()),
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
@@ -400,6 +409,19 @@ class PickingFgController extends Controller
             'qty_remaining' => $qtyRemaining,
             'progress_percent' => $progressPercent,
         ]);
+    }
+
+    private function friendlyPickError(string $message): string
+    {
+        if (str_contains($message, 'Not enough stock')) {
+            return 'Stok lokasi tidak cukup untuk qty picking ini. Cek lokasi / qty stock FG dulu.';
+        }
+
+        if (str_contains($message, 'Cannot reduce stock below zero')) {
+            return 'Qty picking melebihi stock lokasi. Cek qty stock FG dulu.';
+        }
+
+        return $message !== '' ? $message : 'Gagal simpan qty picking.';
     }
 
     /**
