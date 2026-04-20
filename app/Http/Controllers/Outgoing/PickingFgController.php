@@ -222,31 +222,49 @@ class PickingFgController extends Controller
             return;
         }
 
-        $dn = DeliveryNote::create([
+        $deliveryNotePayload = [
             'customer_id' => $do->customer_id,
             'delivery_date' => $do->do_date ?? now()->toDateString(),
             'status' => 'ready_to_ship',
             'notes' => 'Auto-created from completed Picking FG (DO: ' . $do->do_no . ') at ' . now()->format('d M Y H:i'),
-            'created_by' => Auth::id(),
-        ]);
+        ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('delivery_notes', 'created_by')) {
+            $deliveryNotePayload['created_by'] = Auth::id();
+        }
+
+        $dn = DeliveryNote::create($deliveryNotePayload);
 
         foreach ($completedPicks as $pick) {
-            DnItem::create([
+            $dnItemPayload = [
                 'dn_id' => $dn->id,
                 'gci_part_id' => $pick->gci_part_id,
                 'qty' => $pick->qty_picked,
-                'outgoing_po_item_id' => $pick->outgoing_po_item_id,
-            ]);
+            ];
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn('dn_items', 'outgoing_po_item_id')) {
+                $dnItemPayload['outgoing_po_item_id'] = $pick->outgoing_po_item_id;
+            }
+
+            DnItem::create($dnItemPayload);
         }
 
-        $dn->deliveryOrders()->sync([$deliveryOrderId]);
+        if (\Illuminate\Support\Facades\Schema::hasTable('delivery_note_delivery_order')) {
+            $dn->deliveryOrders()->sync([$deliveryOrderId]);
+        }
 
-        $dn->transaction_no = DeliveryNote::generateTransactionNo($dn->delivery_date->toDateString());
-        $dn->save();
+        if (\Illuminate\Support\Facades\Schema::hasColumn('delivery_notes', 'transaction_no')) {
+            $dn->transaction_no = DeliveryNote::generateTransactionNo($dn->delivery_date->toDateString());
+            $dn->save();
+        }
 
         // Auto-link production orders for traceability (FIFO)
         $gciPartIds = $completedPicks->pluck('gci_part_id')->unique()->toArray();
-        if (!empty($gciPartIds)) {
+        if (
+            !empty($gciPartIds)
+            && \Illuminate\Support\Facades\Schema::hasTable('delivery_note_production_orders')
+            && \Illuminate\Support\Facades\Schema::hasColumn('production_orders', 'transaction_no')
+        ) {
             $woIds = \App\Models\ProductionOrder::whereIn('gci_part_id', $gciPartIds)
                 ->whereNotNull('transaction_no')
                 ->orderBy('created_at', 'asc')
