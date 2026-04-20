@@ -33,6 +33,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -1488,9 +1489,10 @@ class OutgoingController extends Controller
             }
 
             // OSP Status check
-            $isOsp = \App\Models\BomItem::where('special', 'OSP')
-                ->whereHas('bom', fn(\Illuminate\Database\Eloquent\Builder $q) => $q->where('part_id', $partId))
-                ->exists();
+            $isOsp = $this->hasBomSpecialColumn()
+                && \App\Models\BomItem::where('special', 'OSP')
+                    ->whereHas('bom', fn(\Illuminate\Database\Eloquent\Builder $q) => $q->where('part_id', $partId))
+                    ->exists();
             $ospOrder = null;
             if ($isOsp) {
                 $ospOrder = \App\Models\OspOrder::where('gci_part_id', $partId)
@@ -2207,13 +2209,15 @@ class OutgoingController extends Controller
             }
 
             // Block OSP parts — they must go through OSP order flow
-            $ospPartIds = \App\Models\BomItem::where('special', 'OSP')
-                ->whereHas('bom', fn($q) => $q->whereIn('part_id', $partIds))
-                ->get()
-                ->map(fn($bi) => $bi->bom->part_id ?? null)
-                ->filter()
-                ->unique()
-                ->values();
+            $ospPartIds = $this->hasBomSpecialColumn()
+                ? \App\Models\BomItem::where('special', 'OSP')
+                    ->whereHas('bom', fn($q) => $q->whereIn('part_id', $partIds))
+                    ->get()
+                    ->map(fn($bi) => $bi->bom->part_id ?? null)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                : collect();
 
             // OSP parts block has been removed. OSP parts will now generate OspOrder underneath.
 
@@ -2255,9 +2259,11 @@ class OutgoingController extends Controller
                         // OSP PART ROUTING LOGIC
                         // ==========================================
                         if ($ospPartIds->contains($partId)) {
-                            $bomItem = \App\Models\BomItem::where('gci_part_id', $partId)
-                                ->where('special', 'OSP')
-                                ->first();
+                            $bomItem = $this->hasBomSpecialColumn()
+                                ? \App\Models\BomItem::where('gci_part_id', $partId)
+                                    ->where('special', 'OSP')
+                                    ->first()
+                                : null;
 
                             // Search for existing OSP order generated for this trip
                             $existingOsp = \App\Models\OspOrder::where('customer_id', $customerId)
@@ -2459,5 +2465,16 @@ class OutgoingController extends Controller
         }
 
         return $prefix . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+    }
+
+    private function hasBomSpecialColumn(): bool
+    {
+        static $hasColumn = null;
+
+        if ($hasColumn === null) {
+            $hasColumn = Schema::hasColumn('bom_items', 'special');
+        }
+
+        return $hasColumn;
     }
 }
