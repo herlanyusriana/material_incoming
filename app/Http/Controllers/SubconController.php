@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BomItem;
 use App\Models\ContractNumber;
+use App\Models\ContractNumberItem;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
 use App\Models\LocationInventoryAdjustment;
@@ -59,6 +60,15 @@ class SubconController extends Controller
         }
 
         $orders = $query->paginate(25)->withQueryString();
+        $contractRemainRows = collect();
+        $contractAlarmRows = collect();
+
+        if ($mode === 'traceability') {
+            $contractRemainRows = $this->buildContractRemainRows($request);
+            $contractAlarmRows = $contractRemainRows
+                ->filter(fn ($row) => $row['is_alarm'])
+                ->values();
+        }
 
         // Stats
         $stats = SubconOrder::selectRaw("
@@ -76,10 +86,74 @@ class SubconController extends Controller
 
         $pageTitle = $mode === 'traceability' ? 'Subcon Traceability' : 'WH Receive Subcon';
         $pageDescription = $mode === 'traceability'
-            ? 'Histori dan audit trail send / receive / reject untuk order subcon.'
+            ? 'Monitor sisa kontrak/SKEP subcon dan alarm material yang perlu dibuatkan SKEP baru.'
             : 'Daftar order subcon yang masih outstanding dan siap diterima kembali dari vendor.';
 
-        return view('subcon.index', compact('orders', 'stats', 'vendors', 'mode', 'pageTitle', 'pageDescription'));
+        return view('subcon.index', compact(
+            'orders',
+            'stats',
+            'vendors',
+            'mode',
+            'pageTitle',
+            'pageDescription',
+            'contractRemainRows',
+            'contractAlarmRows'
+        ));
+    }
+
+    private function buildContractRemainRows(Request $request)
+    {
+        return ContractNumberItem::query()
+            ->with(['contractNumber.vendor', 'gciPart', 'rmPart'])
+            ->whereHas('contractNumber', function ($query) use ($request) {
+                $query->where('status', 'active');
+
+                if ($request->filled('vendor_id')) {
+                    $query->where('vendor_id', $request->vendor_id);
+                }
+
+                if ($request->filled('date_from')) {
+                    $query->where(function ($dateQuery) use ($request) {
+                        $dateQuery->whereNull('effective_to')
+                            ->orWhereDate('effective_to', '>=', $request->date_from);
+                    });
+                }
+
+                if ($request->filled('date_to')) {
+                    $query->whereDate('effective_from', '<=', $request->date_to);
+                }
+            })
+            ->get()
+            ->map(function (ContractNumberItem $item) {
+                $targetQty = (float) $item->target_qty;
+                $sentQty = (float) $item->sent_qty;
+                $remainingQty = max(0, $targetQty - $sentQty);
+                $warningLimit = $item->warning_limit_qty !== null ? (float) $item->warning_limit_qty : null;
+
+                return [
+                    'contract_no' => $item->contractNumber?->contract_no ?? '-',
+                    'vendor_name' => $item->contractNumber?->vendor?->vendor_name ?? '-',
+                    'rm_part_no' => $item->rmPart?->part_no ?? '-',
+                    'rm_part_name' => $item->rmPart?->part_name ?? '-',
+                    'wip_part_no' => $item->gciPart?->part_no ?? '-',
+                    'wip_part_name' => $item->gciPart?->part_name ?? '-',
+                    'process_type' => $item->process_type ?: '-',
+                    'target_qty' => $targetQty,
+                    'sent_qty' => $sentQty,
+                    'remaining_qty' => $remainingQty,
+                    'warning_limit_qty' => $warningLimit,
+                    'is_alarm' => $remainingQty > 0 && $warningLimit !== null && $remainingQty <= $warningLimit,
+                    'effective_to' => $item->contractNumber?->effective_to,
+                ];
+            })
+            ->filter(fn ($row) => $row['remaining_qty'] > 0)
+            ->sortBy([
+                ['is_alarm', 'desc'],
+                ['remaining_qty', 'asc'],
+                ['contract_no', 'asc'],
+                ['rm_part_no', 'asc'],
+            ])
+            ->values();
     }
 
     public function create()

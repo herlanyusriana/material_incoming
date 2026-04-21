@@ -16,10 +16,12 @@ class ContractNumberItem extends Model
         'bom_item_id',
         'process_type',
         'target_qty',
+        'warning_limit_qty',
     ];
 
     protected $casts = [
         'target_qty' => 'decimal:4',
+        'warning_limit_qty' => 'decimal:4',
     ];
 
     public function contractNumber()

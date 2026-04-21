@@ -46,15 +46,17 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-col gap-4">
                 <form action="{{ ($mode ?? 'receive') === 'traceability' ? route('subcon.traceability-index') : route('subcon.receive-index') }}" method="GET" class="flex flex-wrap items-end gap-3">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
-                        <select name="status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">All</option>
-                            @foreach (['draft','sent','partial','completed','cancelled'] as $s)
-                                <option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst($s) }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if (($mode ?? 'receive') !== 'traceability')
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
+                            <select name="status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">All</option>
+                                @foreach (['draft','sent','partial','completed','cancelled'] as $s)
+                                    <option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst($s) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Vendor</label>
                         <select name="vendor_id" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -91,6 +93,94 @@
             </div>
         </div>
 
+        @if (($mode ?? 'receive') === 'traceability')
+            <div class="grid gap-4 lg:grid-cols-3">
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Kontrak Ada Sisa</div>
+                    <div class="mt-1 text-3xl font-black text-slate-900">{{ $contractRemainRows->count() }}</div>
+                </div>
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-amber-700">Perlu Alarm</div>
+                    <div class="mt-1 text-3xl font-black text-amber-800">{{ $contractAlarmRows->count() }}</div>
+                </div>
+                <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-indigo-700">Setting Limit</div>
+                    <a href="{{ route('contract-numbers.index') }}" class="mt-2 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
+                        Buka Master Kontrak
+                    </a>
+                </div>
+            </div>
+
+            @if ($contractAlarmRows->isNotEmpty())
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                    <div class="font-black">Alarm sisa kontrak mendekati limit</div>
+                    <div class="mt-1">Segera siapkan SKEP/kontrak baru untuk material yang ditandai.</div>
+                </div>
+            @endif
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <h2 class="text-lg font-black text-slate-900">Remain Kontrak / SKEP</h2>
+                    <div class="mt-1 text-sm text-slate-500">Yang ditampilkan hanya item kontrak aktif yang masih punya sisa qty.</div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">Vendor</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
+                                <th class="px-4 py-3 text-center font-bold text-slate-700">Process</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">Target</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">Remain</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">Limit Alarm</th>
+                                <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse ($contractRemainRows as $row)
+                                <tr class="{{ $row['is_alarm'] ? 'bg-amber-50/70' : 'hover:bg-slate-50' }}">
+                                    <td class="px-4 py-3 font-mono font-bold text-indigo-700">{{ $row['contract_no'] }}</td>
+                                    <td class="px-4 py-3 text-slate-700 font-semibold">{{ $row['vendor_name'] }}</td>
+                                    <td class="px-4 py-3 text-slate-700">
+                                        {{ $row['rm_part_name'] }}
+                                        <div class="text-[10px] text-slate-400 font-mono">{{ $row['rm_part_no'] }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-700">
+                                        {{ $row['wip_part_name'] }}
+                                        <div class="text-[10px] text-slate-400 font-mono">{{ $row['wip_part_no'] }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                            {{ $row['process_type'] }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono">{{ number_format($row['target_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono">{{ number_format($row['sent_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-black {{ $row['is_alarm'] ? 'text-amber-700' : 'text-emerald-700' }}">
+                                        {{ number_format($row['remaining_qty']) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono">{{ $row['warning_limit_qty'] !== null ? number_format($row['warning_limit_qty']) : '-' }}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        @if ($row['is_alarm'])
+                                            <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-black text-amber-800">Buat SKEP Baru</span>
+                                        @else
+                                            <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">Aman</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="10" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @else
         {{-- Table --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
@@ -175,5 +265,6 @@
                 </div>
             @endif
         </div>
+        @endif
     </div>
 @endsection

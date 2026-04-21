@@ -72,7 +72,7 @@
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold text-slate-900">Items/Parts</h3>
-                                <p class="text-xs text-slate-500">Definisikan part apa saja yang masuk ke dalam master kontrak ini beserta target kuantitasnya.</p>
+                                <p class="text-xs text-slate-500">Isi target kontrak dan batas alarm untuk sisa kontrak per material.</p>
                             </div>
                             <button type="button" @click="addCreateRow()" class="rounded-lg bg-indigo-100 text-indigo-700 px-3 py-1.5 text-xs font-bold hover:bg-indigo-200">
                                 + Tambah Part
@@ -81,7 +81,7 @@
                         <div class="space-y-4">
                             <template x-for="(row, index) in createRows" :key="row.id">
                                 <div class="grid grid-cols-12 gap-3 items-end p-3 rounded-xl border border-slate-100 bg-slate-50">
-                                    <div class="col-span-12 lg:col-span-7">
+                                    <div class="col-span-12 lg:col-span-6">
                                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Part Mapping (WIP - RM) <span class="text-red-500">*</span></label>
                                         <select class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
                                             x-model="row.selected_part_key" @change="onCreatePartChange(index)" required>
@@ -95,9 +95,13 @@
                                         <input type="hidden" :name="`items[${index}][process_type]`" x-model="row.process_type">
                                         <input type="hidden" :name="`items[${index}][bom_item_id]`" x-model="row.bom_item_id">
                                     </div>
-                                    <div class="col-span-6 lg:col-span-4">
+                                    <div class="col-span-6 lg:col-span-3">
                                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Target Qty Kontrak <span class="text-red-500">*</span></label>
                                         <input type="number" step="0.0001" min="0" :name="`items[${index}][target_qty]`" x-model="row.target_qty" class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" required>
+                                    </div>
+                                    <div class="col-span-6 lg:col-span-2">
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Alarm Sisa</label>
+                                        <input type="number" step="0.0001" min="0" :name="`items[${index}][warning_limit_qty]`" x-model="row.warning_limit_qty" class="w-full rounded-lg border-slate-300 text-sm focus:ring-amber-500 focus:border-amber-500" placeholder="Opsional">
                                     </div>
                                     <div class="col-span-6 lg:col-span-1 pb-1">
                                         <button type="button" x-show="createRows.length > 1" @click="createRows.splice(index, 1)" class="w-full rounded-lg border border-red-200 text-red-600 px-3 py-2 text-xs font-bold hover:bg-red-50">
@@ -167,6 +171,7 @@
                                         'process_type' => $item->process_type,
                                         'bom_item_id' => $item->bom_item_id,
                                         'target_qty' => (float)$item->target_qty,
+                                        'warning_limit_qty' => $item->warning_limit_qty !== null ? (float)$item->warning_limit_qty : '',
                                     ];
                                 })->toJson();
                             @endphp
@@ -253,7 +258,7 @@
                                             <div class="rounded-2xl border border-slate-200 bg-white p-4 mt-4 shadow-sm">
                                                 <div class="flex items-center justify-between mb-4">
                                                     <div>
-                                                        <h3 class="text-sm font-bold text-slate-900 border-b-2 border-indigo-500 inline-block pb-1">Master Items / Target Qty</h3>
+                                                        <h3 class="text-sm font-bold text-slate-900 border-b-2 border-indigo-500 inline-block pb-1">Master Items / Target & Alarm</h3>
                                                     </div>
                                                     <button type="button" @click="addEditRow()" class="rounded-lg bg-indigo-100 text-indigo-700 px-3 py-1.5 text-xs font-bold hover:bg-indigo-200">
                                                         + Tambah Part
@@ -263,7 +268,7 @@
                                                 <div class="space-y-3">
                                                     <template x-for="(row, index) in editRows" :key="row.id">
                                                         <div class="grid grid-cols-12 gap-3 items-end p-3 rounded-xl border border-slate-100 bg-slate-50">
-                                                            <div class="col-span-12 lg:col-span-7">
+                                                            <div class="col-span-12 lg:col-span-6">
                                                                 <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Part Mapping <span class="text-red-500">*</span></label>
                                                                 <select class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
                                                                     x-model="row.selected_part_key" @change="onEditPartChange(index)" required>
@@ -277,9 +282,13 @@
                                                                 <input type="hidden" :name="`items[${index}][process_type]`" x-model="row.process_type">
                                                                 <input type="hidden" :name="`items[${index}][bom_item_id]`" x-model="row.bom_item_id">
                                                             </div>
-                                                            <div class="col-span-6 lg:col-span-4">
+                                                            <div class="col-span-6 lg:col-span-3">
                                                                 <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Target Qty Kontrak <span class="text-red-500">*</span></label>
                                                                 <input type="number" step="0.0001" min="0" :name="`items[${index}][target_qty]`" x-model="row.target_qty" class="w-full rounded-lg border-slate-300 text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" required>
+                                                            </div>
+                                                            <div class="col-span-6 lg:col-span-2">
+                                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Alarm Sisa</label>
+                                                                <input type="number" step="0.0001" min="0" :name="`items[${index}][warning_limit_qty]`" x-model="row.warning_limit_qty" class="w-full rounded-lg border-slate-300 text-sm font-semibold focus:ring-amber-500 focus:border-amber-500" placeholder="Opsional">
                                                             </div>
                                                             <div class="col-span-6 lg:col-span-1 pb-1">
                                                                 <button type="button" @click="editRows.splice(index, 1)" class="w-full rounded-lg border border-red-200 text-red-600 px-3 py-2 text-xs font-bold hover:bg-red-50">
@@ -345,7 +354,8 @@
                         rm_gci_part_id: '',
                         process_type: '',
                         bom_item_id: '',
-                        target_qty: ''
+                        target_qty: '',
+                        warning_limit_qty: ''
                     });
                 },
 
@@ -383,7 +393,8 @@
                         rm_gci_part_id: '',
                         process_type: '',
                         bom_item_id: '',
-                        target_qty: ''
+                        target_qty: '',
+                        warning_limit_qty: ''
                     });
                 },
 

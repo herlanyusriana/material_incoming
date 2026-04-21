@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignId('bom_item_id')->nullable()->constrained('bom_items')->nullOnDelete();
             $table->string('process_type', 50);
             $table->decimal('target_qty', 12, 4);
+            $table->decimal('warning_limit_qty', 12, 4)->nullable();
             $table->timestamps();
         });
     }

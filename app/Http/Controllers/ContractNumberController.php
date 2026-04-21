@@ -121,6 +121,7 @@ class ContractNumberController extends Controller
                     'target_qty' => $item->target_qty,
                     'sent_qty' => $item->sent_qty,
                     'remaining_qty' => max(0, (float)$item->target_qty - (float)$item->sent_qty),
+                    'warning_limit_qty' => $item->warning_limit_qty,
                 ]),
             ])
             ->values();
@@ -141,6 +142,7 @@ class ContractNumberController extends Controller
                     'process_type' => $item['process_type'] ?? '',
                     'bom_item_id' => $item['bom_item_id'] ?? null,
                     'target_qty' => $item['target_qty'] ?? 0,
+                    'warning_limit_qty' => $item['warning_limit_qty'] ?? null,
                 ]);
             }
         }
@@ -165,6 +167,7 @@ class ContractNumberController extends Controller
             'items.*.gci_part_id' => ['required_with:items', 'exists:gci_parts,id'],
             'items.*.rm_gci_part_id' => ['required_with:items', 'exists:gci_parts,id'],
             'items.*.target_qty' => ['required_with:items', 'numeric', 'min:0'],
+            'items.*.warning_limit_qty' => ['nullable', 'numeric', 'min:0'],
         ]);
     }
 
