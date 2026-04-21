@@ -76,6 +76,7 @@
                                 <th class="px-4 py-3">WIP Part</th>
                                 <th class="px-4 py-3">RM Part</th>
                                 <th class="px-4 py-3">Process</th>
+                                <th class="px-4 py-3 text-center">UOM</th>
                                 <th class="px-4 py-3 text-right">Target</th>
                                 <th class="px-4 py-3 text-right">Sent</th>
                                 <th class="px-4 py-3 text-right">Remain</th>
@@ -88,6 +89,13 @@
                                     $remaining = (float) $item->remaining_qty;
                                     $alarm = $item->warning_limit_qty !== null ? (float) $item->warning_limit_qty : null;
                                     $isAlarm = $alarm !== null && $remaining <= $alarm;
+                                    $uom = $item->bomItem?->consumptionUom?->code
+                                        ?? $item->bomItem?->consumption_uom
+                                        ?? $item->rmPart?->uom
+                                        ?? $item->bomItem?->wipUom?->code
+                                        ?? $item->bomItem?->wip_uom
+                                        ?? $item->gciPart?->uom
+                                        ?? 'PCS';
                                 @endphp
                                 <tr class="{{ $isAlarm ? 'bg-amber-50/70' : '' }}">
                                     <td class="px-4 py-3">
@@ -99,6 +107,7 @@
                                         <div class="max-w-[260px] truncate text-xs text-slate-500">{{ $item->rmPart?->part_name ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-xs font-bold text-slate-600">{{ $item->process_type ?: '-' }}</td>
+                                    <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">{{ $uom }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black text-slate-900">{{ number_format((float) $item->target_qty, 2) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold text-blue-700">{{ number_format((float) $item->sent_qty, 2) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black {{ $isAlarm ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($remaining, 2) }}</td>
@@ -106,7 +115,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-400">Belum ada item pada kontrak ini.</td>
+                                    <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-400">Belum ada item pada kontrak ini.</td>
                                 </tr>
                             @endforelse
                         </tbody>

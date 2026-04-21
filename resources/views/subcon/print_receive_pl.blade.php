@@ -1,11 +1,19 @@
 @php
+    $subconUom = $subconOrderReceive->subconOrder->bomItem?->consumptionUom?->code
+        ?? $subconOrderReceive->subconOrder->bomItem?->consumption_uom
+        ?? $subconOrderReceive->subconOrder->rmPart?->uom
+        ?? $subconOrderReceive->subconOrder->bomItem?->wipUom?->code
+        ?? $subconOrderReceive->subconOrder->bomItem?->wip_uom
+        ?? $subconOrderReceive->subconOrder->gciPart?->uom
+        ?? 'PCS';
+
     $items = [
         [
             'no' => 1,
             'part_no' => $subconOrderReceive->subconOrder->gciPart->part_no ?? '-',
             'part_name' => $subconOrderReceive->subconOrder->gciPart->part_name ?? '-',
             'description' => 'Received from Subcon. Order: ' . $subconOrderReceive->subconOrder->order_no,
-            'uom' => $subconOrderReceive->subconOrder->gciPart->uom->uom_code ?? 'PCS',
+            'uom' => $subconUom,
             'qty' => $subconOrderReceive->qty_good,
             'unit_price' => 0,
             'amount' => 0,
@@ -17,7 +25,7 @@
             'part_no' => $subconOrderReceive->subconOrder->gciPart->part_no ?? '-',
             'part_name' => ($subconOrderReceive->subconOrder->gciPart->part_name ?? '-') . ' (REJECTED)',
             'description' => 'Rejected parts from Subcon.',
-            'uom' => $subconOrderReceive->subconOrder->gciPart->uom->uom_code ?? 'PCS',
+            'uom' => $subconUom,
             'qty' => $subconOrderReceive->qty_rejected,
             'unit_price' => 0,
             'amount' => 0,

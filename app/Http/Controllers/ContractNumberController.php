@@ -121,6 +121,7 @@ class ContractNumberController extends Controller
                 'rm_gci_part_id' => $item->rm_gci_part_id,
                 'process_type' => $item->process_type,
                 'bom_item_id' => $item->bom_item_id,
+                'uom' => $this->resolveSubconUom($item->bomItem, $item->rmPart, $item->gciPart),
                 'target_qty' => (float) $item->target_qty,
                 'warning_limit_qty' => $item->warning_limit_qty !== null ? (float) $item->warning_limit_qty : '',
             ];

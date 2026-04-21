@@ -87,7 +87,7 @@
                                             x-model="row.selected_part_key" @change="onCreatePartChange(index)" required>
                                             <option value="">Pilih Part & Process...</option>
                                             <template x-for="opt in subconPartsOptions" :key="opt.key">
-                                                <option :value="opt.key" x-text="`${opt.part_no} | ${opt.part_name} (${opt.process_name}) => RM: ${opt.rm_part_no}`"></option>
+                                                <option :value="opt.key" x-text="`${opt.part_no} | ${opt.part_name} (${opt.process_name}) => RM: ${opt.rm_part_no} / ${opt.uom || 'PCS'}`"></option>
                                             </template>
                                         </select>
                                         <input type="hidden" :name="`items[${index}][gci_part_id]`" x-model="row.gci_part_id">
@@ -96,7 +96,10 @@
                                         <input type="hidden" :name="`items[${index}][bom_item_id]`" x-model="row.bom_item_id">
                                     </div>
                                     <div class="col-span-6 lg:col-span-3">
-                                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Target Qty Kontrak <span class="text-red-500">*</span></label>
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                                            Target Qty Kontrak <span class="text-red-500">*</span>
+                                            <span class="text-indigo-600" x-text="row.uom ? `(${row.uom})` : ''"></span>
+                                        </label>
                                         <input type="number" step="0.0001" min="0" :name="`items[${index}][target_qty]`" x-model="row.target_qty" class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" required>
                                     </div>
                                     <div class="col-span-6 lg:col-span-2">
@@ -236,6 +239,7 @@
                         rm_gci_part_id: '',
                         process_type: '',
                         bom_item_id: '',
+                        uom: '',
                         target_qty: '',
                         warning_limit_qty: ''
                     });
@@ -249,11 +253,13 @@
                         row.rm_gci_part_id = selected.rm_part_id;
                         row.process_type = selected.process_name;
                         row.bom_item_id = selected.bom_item_id;
+                        row.uom = selected.uom || 'PCS';
                     } else {
                         row.gci_part_id = '';
                         row.rm_gci_part_id = '';
                         row.process_type = '';
                         row.bom_item_id = '';
+                        row.uom = '';
                     }
                 },
 
@@ -275,6 +281,7 @@
                         rm_gci_part_id: '',
                         process_type: '',
                         bom_item_id: '',
+                        uom: '',
                         target_qty: '',
                         warning_limit_qty: ''
                     });
@@ -288,11 +295,13 @@
                         row.rm_gci_part_id = selected.rm_part_id;
                         row.process_type = selected.process_name;
                         row.bom_item_id = selected.bom_item_id;
+                        row.uom = selected.uom || 'PCS';
                     } else {
                         row.gci_part_id = '';
                         row.rm_gci_part_id = '';
                         row.process_type = '';
                         row.bom_item_id = '';
+                        row.uom = '';
                     }
                 }
             }));
