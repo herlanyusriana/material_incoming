@@ -74,6 +74,53 @@ class ContractNumberController extends Controller
         return redirect()->route('contract-numbers.index')->with('success', 'Nomor kontrak berhasil dibuat.');
     }
 
+    public function show(ContractNumber $contractNumber)
+    {
+        $contractNumber->load(['vendor', 'creator', 'updater', 'items.gciPart', 'items.rmPart', 'items.bomItem']);
+
+        $vendors = Vendor::query()
+            ->where('status', 'active')
+            ->orderBy('vendor_name')
+            ->get(['id', 'vendor_name']);
+
+        $subconParts = $this->getSubconPartOptions();
+        $subconPartsJson = collect($subconParts)->values()->map(function ($part, $idx) {
+            return [
+                'key' => 'wip-' . $idx,
+                'id' => isset($part['id']) ? (string) $part['id'] : '',
+                'part_no' => $part['part_no'] ?? '',
+                'part_name' => $part['part_name'] ?? '',
+                'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
+                'rm_part_no' => $part['rm_part_no'] ?? '',
+                'rm_part_name' => $part['rm_part_name'] ?? '',
+                'process_name' => $part['process_name'] ?? '',
+                'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
+            ];
+        })->all();
+
+        $editItemsJson = $contractNumber->items->map(function ($item) use ($subconPartsJson) {
+            $opt = collect($subconPartsJson)->firstWhere('bom_item_id', (string) $item->bom_item_id);
+
+            return [
+                'id' => $item->id,
+                'selected_part_key' => $opt ? $opt['key'] : '',
+                'gci_part_id' => $item->gci_part_id,
+                'rm_gci_part_id' => $item->rm_gci_part_id,
+                'process_type' => $item->process_type,
+                'bom_item_id' => $item->bom_item_id,
+                'target_qty' => (float) $item->target_qty,
+                'warning_limit_qty' => $item->warning_limit_qty !== null ? (float) $item->warning_limit_qty : '',
+            ];
+        })->values()->all();
+
+        return view('contract-numbers.show', [
+            'contract' => $contractNumber,
+            'vendors' => $vendors,
+            'subconPartsJson' => $subconPartsJson,
+            'editItemsJson' => $editItemsJson,
+        ]);
+    }
+
     public function update(Request $request, ContractNumber $contractNumber)
     {
         $data = $this->validatedData($request, $contractNumber);
@@ -84,7 +131,7 @@ class ContractNumberController extends Controller
             $this->syncItems($contractNumber, $request->input('items', []));
         });
 
-        return redirect()->route('contract-numbers.index')->with('success', 'Nomor kontrak berhasil diperbarui.');
+        return redirect()->route('contract-numbers.show', $contractNumber)->with('success', 'Nomor kontrak berhasil diperbarui.');
     }
 
     public function destroy(ContractNumber $contractNumber)

@@ -160,21 +160,6 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($contracts as $contract)
-                            @php 
-                                $jsItems = $contract->items->map(function($item) use ($subconPartsJson) {
-                                    $opt = collect($subconPartsJson)->firstWhere('bom_item_id', (string)$item->bom_item_id);
-                                    return [
-                                        'id' => rand(1000, 999999),
-                                        'selected_part_key' => $opt ? $opt['key'] : '',
-                                        'gci_part_id' => $item->gci_part_id,
-                                        'rm_gci_part_id' => $item->rm_gci_part_id,
-                                        'process_type' => $item->process_type,
-                                        'bom_item_id' => $item->bom_item_id,
-                                        'target_qty' => (float)$item->target_qty,
-                                        'warning_limit_qty' => $item->warning_limit_qty !== null ? (float)$item->warning_limit_qty : '',
-                                    ];
-                                })->toJson();
-                            @endphp
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3">
                                     <div class="font-bold text-slate-900">{{ $contract->contract_no }}</div>
@@ -201,116 +186,13 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                                            @click="toggleEdit({{ $contract->id }}, {{ $jsItems }})">
-                                            Tinjau / Edit
-                                        </button>
+                                        <a href="{{ route('contract-numbers.show', $contract) }}" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100">
+                                            Detail / Edit
+                                        </a>
                                         <form action="{{ route('contract-numbers.destroy', $contract) }}" method="POST" onsubmit="return confirm('Hapus nomor kontrak beserta itemnya secara permanen?')">
                                             @csrf
                                             @method('DELETE')
                                             <button class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50">Del</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            
-                            {{-- Inline Edit Form for this Contract --}}
-                            <tr x-show="openEditId === {{ $contract->id }}" x-cloak>
-                                <td colspan="6" class="bg-indigo-50/20 px-0 py-0 border-b-2 border-indigo-200">
-                                    <div class="p-6">
-                                        <form action="{{ route('contract-numbers.update', $contract) }}" method="POST" class="space-y-6">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="grid gap-4 lg:grid-cols-4">
-                                                <div class="col-span-2">
-                                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor</label>
-                                                    <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                                                        @foreach($vendors as $vendor)
-                                                            <option value="{{ $vendor->id }}" @selected($contract->vendor_id === $vendor->id)>{{ $vendor->vendor_name }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div class="col-span-2">
-                                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Nomor Kontrak</label>
-                                                    <input type="text" name="contract_no" value="{{ $contract->contract_no }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                                                </div>
-                                                <div class="col-span-4">
-                                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi</label>
-                                                    <input type="text" name="description" value="{{ $contract->description }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                                                </div>
-                                                <div>
-                                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From</label>
-                                                    <input type="date" name="effective_from" value="{{ $contract->effective_from?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                                                </div>
-                                                <div>
-                                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Expired Date</label>
-                                                    <input type="date" name="effective_to" value="{{ $contract->effective_to?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                                                </div>
-                                                <div>
-                                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
-                                                    <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                                                        <option value="active" @selected($contract->status === 'active')>Active</option>
-                                                        <option value="inactive" @selected($contract->status === 'inactive')>Inactive</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div class="rounded-2xl border border-slate-200 bg-white p-4 mt-4 shadow-sm">
-                                                <div class="flex items-center justify-between mb-4">
-                                                    <div>
-                                                        <h3 class="text-sm font-bold text-slate-900 border-b-2 border-indigo-500 inline-block pb-1">Master Items / Target & Alarm</h3>
-                                                    </div>
-                                                    <button type="button" @click="addEditRow()" class="rounded-lg bg-indigo-100 text-indigo-700 px-3 py-1.5 text-xs font-bold hover:bg-indigo-200">
-                                                        + Tambah Part
-                                                    </button>
-                                                </div>
-                                                
-                                                <div class="space-y-3">
-                                                    <template x-for="(row, index) in editRows" :key="row.id">
-                                                        <div class="grid grid-cols-12 gap-3 items-end p-3 rounded-xl border border-slate-100 bg-slate-50">
-                                                            <div class="col-span-12 lg:col-span-6">
-                                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Part Mapping <span class="text-red-500">*</span></label>
-                                                                <select class="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                                                    x-model="row.selected_part_key" @change="onEditPartChange(index)" required>
-                                                                    <option value="">Pilih Part & Process...</option>
-                                                                    <template x-for="opt in subconPartsOptions" :key="opt.key">
-                                                                        <option :value="opt.key" x-text="`${opt.part_no} | ${opt.part_name} (${opt.process_name}) => RM: ${opt.rm_part_no}`"></option>
-                                                                    </template>
-                                                                </select>
-                                                                <input type="hidden" :name="`items[${index}][gci_part_id]`" x-model="row.gci_part_id">
-                                                                <input type="hidden" :name="`items[${index}][rm_gci_part_id]`" x-model="row.rm_gci_part_id">
-                                                                <input type="hidden" :name="`items[${index}][process_type]`" x-model="row.process_type">
-                                                                <input type="hidden" :name="`items[${index}][bom_item_id]`" x-model="row.bom_item_id">
-                                                            </div>
-                                                            <div class="col-span-6 lg:col-span-3">
-                                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Target Qty Kontrak <span class="text-red-500">*</span></label>
-                                                                <input type="number" step="0.0001" min="0" :name="`items[${index}][target_qty]`" x-model="row.target_qty" class="w-full rounded-lg border-slate-300 text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" required>
-                                                            </div>
-                                                            <div class="col-span-6 lg:col-span-2">
-                                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Alarm Sisa</label>
-                                                                <input type="number" step="0.0001" min="0" :name="`items[${index}][warning_limit_qty]`" x-model="row.warning_limit_qty" class="w-full rounded-lg border-slate-300 text-sm font-semibold focus:ring-amber-500 focus:border-amber-500" placeholder="Opsional">
-                                                            </div>
-                                                            <div class="col-span-6 lg:col-span-1 pb-1">
-                                                                <button type="button" @click="editRows.splice(index, 1)" class="w-full rounded-lg border border-red-200 text-red-600 px-3 py-2 text-xs font-bold hover:bg-red-50">
-                                                                    X
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </template>
-                                                    <div x-show="editRows.length === 0" class="text-center py-4 bg-slate-50 rounded-lg border border-slate-100 text-slate-500 text-sm italic">
-                                                        Belum ada item di kontrak ini. Silakan klik + Tambah Part.
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="mt-4">
-                                                <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Notes / Lampiran Info</label>
-                                                <textarea name="notes" rows="2" class="mt-1 w-full rounded-xl border-slate-200 text-sm">{{ $contract->notes }}</textarea>
-                                            </div>
-                                            <div class="flex justify-end gap-3 mt-6">
-                                                <button type="button" @click="openEditId = null" class="rounded-lg border border-slate-300 px-6 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">Cancel</button>
-                                                <button class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 focus:ring focus:ring-indigo-200 transition-colors">Update Contract</button>
-                                            </div>
                                         </form>
                                     </div>
                                 </td>

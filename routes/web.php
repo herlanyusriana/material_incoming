@@ -128,6 +128,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pricing/{pricing}', [PricingController::class, 'destroy'])->name('pricing.destroy');
     Route::get('/contract-numbers', [ContractNumberController::class, 'index'])->name('contract-numbers.index');
     Route::post('/contract-numbers', [ContractNumberController::class, 'store'])->name('contract-numbers.store');
+    Route::get('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'show'])->name('contract-numbers.show');
     Route::put('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'update'])->name('contract-numbers.update');
     Route::delete('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'destroy'])->name('contract-numbers.destroy');
     // Vendor part CRUD under a GCI part
