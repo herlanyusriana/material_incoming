@@ -23,6 +23,13 @@ use Illuminate\Support\Str;
 
 class ProductionGciApiController extends Controller
 {
+    /**
+     * Temporary management decision: production may start WO without waiting
+     * for WH RM supply while operators are training / WH discipline is being fixed.
+     * Set to false to restore the normal material gate.
+     */
+    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = true;
+
     private const CLOSED_EXECUTION_STAGES = [
         'final_inspection',
         'kanban_update',
@@ -33,6 +40,11 @@ class ProductionGciApiController extends Controller
     private function inventoryFlowService(): ProductionInventoryFlowService
     {
         return app(ProductionInventoryFlowService::class);
+    }
+
+    private function bypassMaterialGateForWoStart(): bool
+    {
+        return self::TEMP_ALLOW_START_WITHOUT_WH_SUPPLY;
     }
 
     private function isRmBuyRequirement(array $req): bool
@@ -239,9 +251,10 @@ class ProductionGciApiController extends Controller
         $handoverDone = !is_null($order->material_handed_over_at);
         $issuedTags = $this->normalizeIssuedTags($order);
 
-        $materialReady = !$requiresIssue
+        $materialReadyWithoutBypass = !$requiresIssue
             ? true
             : ($shortageCount === 0 && $issuePosted && $handoverDone && $issueLines->isNotEmpty());
+        $materialReady = $materialReadyWithoutBypass || $this->bypassMaterialGateForWoStart();
 
         return [
             'requires_issue' => $requiresIssue,
@@ -252,10 +265,12 @@ class ProductionGciApiController extends Controller
             'handover_done' => $handoverDone,
             'handed_over_at' => $order->material_handed_over_at ? $order->material_handed_over_at->toDateTimeString() : null,
             'material_ready' => $materialReady,
+            'material_ready_without_bypass' => $materialReadyWithoutBypass,
+            'material_bypass_active' => $this->bypassMaterialGateForWoStart(),
             'issued_tag_count' => count($issuedTags),
             'issued_tags' => $issuedTags,
             'start_block_reason' => $materialReady
-                ? null
+                ? ($materialReadyWithoutBypass ? null : 'Bypass sementara aktif: WO boleh start tanpa menunggu WH supply RM.')
                 : (!$requiresIssue
                     ? null
                     : ($shortageCount > 0
@@ -309,6 +324,10 @@ class ProductionGciApiController extends Controller
 
     private function backflushIssuedMaterialsForOutput(ProductionOrder $order, float $outputQty): array
     {
+        if ($this->bypassMaterialGateForWoStart()) {
+            return [];
+        }
+
         if ($outputQty <= 0) {
             return [];
         }
@@ -750,13 +769,16 @@ class ProductionGciApiController extends Controller
     {
         $machineId = $request->query('machine_id');
         $date = $request->query('date', now()->toDateString());
+        $blockedStatuses = $this->bypassMaterialGateForWoStart()
+            ? ['resource_hold', 'cancelled', 'completed']
+            : ['material_hold', 'resource_hold', 'cancelled', 'completed'];
 
         $machineIdInt = (int) $machineId;
         $query = ProductionOrder::with('part:id,part_no,part_name,model')
             ->where('machine_id', $machineIdInt)
             ->whereDate('plan_date', $date)
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
-            ->whereNotIn('status', ['material_hold', 'resource_hold', 'cancelled', 'completed'])
+            ->whereNotIn('status', $blockedStatuses)
             ->orderBy('plan_date', 'asc')
             ->orderBy('production_sequence', 'asc');
 
@@ -785,8 +807,10 @@ class ProductionGciApiController extends Controller
                 'start_time' => $o->start_time ? (string) $o->start_time : null,
                 'end_time' => $o->end_time ? (string) $o->end_time : null,
                 'material_status' => $materialStatus,
-                'can_start' => $materialStatus['material_ready']
-                    && in_array((string) $o->status, ['released', 'kanban_released'], true),
+                'can_start' => $this->bypassMaterialGateForWoStart()
+                    ? in_array((string) $o->status, ['released', 'kanban_released', 'material_hold'], true)
+                    : ($materialStatus['material_ready']
+                        && in_array((string) $o->status, ['released', 'kanban_released'], true)),
             ];
         });
 
@@ -957,7 +981,7 @@ class ProductionGciApiController extends Controller
         }
 
         $materialStatus = $this->buildMaterialStatus($order);
-        if (!$materialStatus['material_ready']) {
+        if (!$this->bypassMaterialGateForWoStart() && !$materialStatus['material_ready']) {
             return response()->json([
                 'message' => $materialStatus['start_block_reason'] ?? 'Material untuk WO ini belum siap.',
                 'material_status' => $materialStatus,

@@ -9,13 +9,28 @@ use Illuminate\Http\Request;
 
 class StartProductionController extends Controller
 {
+    /**
+     * Temporary management decision: production may start WO without waiting
+     * for WH RM supply while operators are training / WH discipline is being fixed.
+     * Set to false to restore the normal material gate.
+     */
+    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = true;
+
+    private function bypassMaterialGateForWoStart(): bool
+    {
+        return self::TEMP_ALLOW_START_WITHOUT_WH_SUPPLY;
+    }
+
     public function index(Request $request)
     {
         $search = $request->query('search', '');
+        $allowedStatuses = $this->bypassMaterialGateForWoStart()
+            ? ['released', 'kanban_released', 'material_hold']
+            : ['released'];
         
         $query = ProductionOrder::query()
             ->with(['part'])
-            ->where('status', 'released')
+            ->whereIn('status', $allowedStatuses)
             ->when($search !== '', function($q) use ($search) {
                 $q->where('production_order_number', 'like', "%{$search}%")
                     ->orWhereHas('part', function($qp) use ($search) {
@@ -38,7 +53,11 @@ class StartProductionController extends Controller
     
     public function start(ProductionOrder $order)
     {
-        if ($order->status !== 'released') {
+        $allowedStatuses = $this->bypassMaterialGateForWoStart()
+            ? ['released', 'kanban_released', 'material_hold']
+            : ['released'];
+
+        if (!in_array($order->status, $allowedStatuses, true)) {
             return back()->with('error', 'Order must be Released to start production.');
         }
 

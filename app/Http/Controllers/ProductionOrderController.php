@@ -20,6 +20,18 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductionOrderController extends Controller
 {
+    /**
+     * Temporary management decision: production may start WO without waiting
+     * for WH RM supply while operators are training / WH discipline is being fixed.
+     * Set to false to restore the normal material gate.
+     */
+    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = true;
+
+    private function bypassMaterialGateForWoStart(): bool
+    {
+        return self::TEMP_ALLOW_START_WITHOUT_WH_SUPPLY;
+    }
+
     private function isRmBuyRequirement(array $req): bool
     {
         $makeOrBuy = strtoupper(trim((string) ($req['make_or_buy'] ?? 'BUY')));
@@ -724,15 +736,19 @@ class ProductionOrderController extends Controller
 
     public function startProduction(ProductionOrder $order)
     {
-        if ($order->status !== 'released') {
+        $allowedStatuses = $this->bypassMaterialGateForWoStart()
+            ? ['released', 'kanban_released', 'material_hold']
+            : ['released'];
+
+        if (!in_array($order->status, $allowedStatuses, true)) {
             return back()->with('error', 'Order must be Released to start.');
         }
 
-        if (!empty($order->material_request_lines) && !$order->material_issued_at) {
+        if (!$this->bypassMaterialGateForWoStart() && !empty($order->material_request_lines) && !$order->material_issued_at) {
             return back()->with('error', 'Material request sudah ada, tapi WH supply belum diposting. Lakukan supply material dulu.');
         }
 
-        if ($order->material_issued_at && !$order->material_handed_over_at) {
+        if (!$this->bypassMaterialGateForWoStart() && $order->material_issued_at && !$order->material_handed_over_at) {
             return back()->with('error', 'WH supply sudah diposting, tapi serah terima ke production belum dicatat.');
         }
 
