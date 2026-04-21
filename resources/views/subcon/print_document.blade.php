@@ -199,7 +199,8 @@
                     <th>Description</th>
                     <th style="width: 140px;">WIP Return</th>
                     <th style="width: 70px;">UOM</th>
-                    <th style="width: 110px;" class="text-right">Qty</th>
+                    <th style="width: 100px;" class="text-right">Qty</th>
+                    <th style="width: 100px;" class="text-right">KGM</th>
                     @if ($showPricing)
                         <th style="width: 120px;" class="text-right">Unit Price</th>
                         <th style="width: 140px;" class="text-right">Amount</th>
@@ -218,6 +219,7 @@
                         <td style="font-family: monospace;">{{ $subconOrder->gciPart->part_no ?? '-' }}</td>
                         <td>{{ $line['uom'] }}</td>
                         <td class="text-right">{{ number_format((float) $line['qty'], 4) }}</td>
+                        <td class="text-right">{{ number_format((float) ($line['weight_kgm'] ?? 0), 4) }}</td>
                         @if ($showPricing)
                             <td class="text-right">{{ number_format((float) $line['unit_price'], 3) }}</td>
                             <td class="text-right">{{ number_format((float) $line['amount'], 2) }}</td>
@@ -231,6 +233,10 @@
             <tr>
                 <td>Total Qty</td>
                 <td class="text-right">{{ number_format($totalQty, 4) }}</td>
+            </tr>
+            <tr class="total">
+                <td>Total Weight (KGM)</td>
+                <td class="text-right">{{ number_format($totalWeight, 4) }}</td>
             </tr>
             @if ($showPricing)
                 <tr class="total">

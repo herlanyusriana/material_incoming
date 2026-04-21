@@ -139,12 +139,14 @@ class SubconController extends Controller
                     'wip_part_name' => $item->gciPart?->part_name ?? '-',
                     'process_type' => $item->process_type ?: '-',
                     'uom' => $this->resolveSubconUom($item->bomItem, $item->rmPart, $item->gciPart),
+                    'rm_net_weight' => (float) ($item->rmPart->net_weight ?? 0),
                     'target_qty' => $targetQty,
                     'sent_qty' => $sentQty,
                     'remaining_qty' => $remainingQty,
                     'warning_limit_qty' => $warningLimit,
                     'is_alarm' => $remainingQty > 0 && $warningLimit !== null && $remainingQty <= $warningLimit,
                     'effective_to' => $item->contractNumber?->effective_to,
+                    'remaining_kgm' => $remainingQty * (float) ($item->rmPart->net_weight ?? 0),
                 ];
             })
             ->filter(fn ($row) => $row['remaining_qty'] > 0)
@@ -266,6 +268,7 @@ class SubconController extends Controller
             'items.*.bom_item_id' => 'nullable|exists:bom_items,id',
             'items.*.process_type' => 'required|string|max:50',
             'items.*.qty_sent' => 'required|numeric|min:0',
+            'items.*.weight_kgm' => 'nullable|numeric|min:0',
             'items.*.send_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
         ]);
 
@@ -346,6 +349,7 @@ class SubconController extends Controller
                         'send_location_code' => $resolvedSendLocation,
                         'sent_posted_at' => now(),
                         'sent_posted_by' => Auth::id(),
+                        'weight_kgm' => $item['weight_kgm'] ?? null,
                     ];
 
                     $order = SubconOrder::create($payload);
@@ -357,7 +361,9 @@ class SubconController extends Controller
                         null,
                         (int) $item['rm_gci_part_id'],
                         'SUBCON_SEND',
-                        $order->order_no
+                        $order->order_no,
+                        [],
+                        (float) ($item['weight_kgm'] ?? 0)
                     );
 
                     $createdOrders[] = $order->order_no;
@@ -429,6 +435,8 @@ class SubconController extends Controller
         $validated = $request->validate([
             'qty_good' => 'required|numeric|min:0',
             'qty_rejected' => 'nullable|numeric|min:0',
+            'weight_kgm' => 'nullable|numeric|min:0',
+            'weight_rejected_kgm' => 'nullable|numeric|min:0',
             'received_date' => 'required|date',
             'receive_location_code' => ['nullable', 'string', 'max:50'],
             'reject_location_code' => ['nullable', 'string', 'max:50'],
@@ -477,7 +485,10 @@ class SubconController extends Controller
                     $validated['received_date'],
                     (int) $subconOrder->gci_part_id,
                     'SUBCON_RECEIVE',
-                    $subconOrder->order_no
+                    $subconOrder->order_no,
+                    [],
+                    null,
+                    (float) ($validated['weight_kgm'] ?? 0)
                 );
             }
 
@@ -490,7 +501,10 @@ class SubconController extends Controller
                     $validated['received_date'],
                     (int) $subconOrder->gci_part_id,
                     'SUBCON_REJECT_RECEIVE',
-                    $subconOrder->order_no
+                    $subconOrder->order_no,
+                    [],
+                    null,
+                    (float) ($validated['weight_rejected_kgm'] ?? 0)
                 );
             }
 
@@ -563,6 +577,8 @@ class SubconController extends Controller
                     'fg_part_name' => $item->bom?->part?->part_name ?? '',
                     'bom_item_id' => $item->id,
                     'uom' => $this->resolveSubconUom($item, $item->componentPart, $item->wipPart),
+                    'rm_net_weight' => (float) ($item->componentPart->net_weight ?? 0),
+                    'wip_net_weight' => (float) ($item->wipPart->net_weight ?? 0),
                 ];
             })
             ->filter(fn ($item) => !empty($item['id']) && !empty($item['part_no']))
@@ -597,6 +613,13 @@ class SubconController extends Controller
 
         $unitPrice = round((float) ($pricing?->price ?? 0), 3);
         $qty = round((float) $subconOrder->qty_sent, 4);
+        
+        // Use stored manual weight if available, otherwise fallback to theoretical calculation
+        $weightKgm = (float)($subconOrder->weight_kgm ?? 0) > 0 
+            ? (float)$subconOrder->weight_kgm 
+            : round($qty * (float) ($subconOrder->rmPart->net_weight ?? 0), 4);
+        
+        $weightKgm = round($weightKgm, 4);
 
         $lines = collect([[
             'no' => 1,
@@ -608,6 +631,7 @@ class SubconController extends Controller
                 . (string) ($subconOrder->gciPart->part_name ?? '-'),
             'uom' => $this->resolveSubconUom($subconOrder->bomItem, $subconOrder->rmPart, $subconOrder->gciPart),
             'qty' => $qty,
+            'weight_kgm' => $weightKgm,
             'unit_price' => $unitPrice,
             'amount' => round($qty * $unitPrice, 2),
         ]]);
@@ -620,6 +644,7 @@ class SubconController extends Controller
             'invoiceNo' => 'INV-SC-' . $subconOrder->order_no,
             'currency' => $pricing?->currency ?? 'IDR',
             'totalQty' => round((float) $lines->sum('qty'), 4),
+            'totalWeight' => round((float) $lines->sum('weight_kgm'), 4),
             'totalAmount' => round((float) $lines->sum('amount'), 2),
         ];
     }

@@ -122,7 +122,7 @@ class LocationInventory extends Model
         return (float) $q->sum('qty_on_hand');
     }
 
-    public static function updateStock(?int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = [], $adjustedAt = null): void
+    public static function updateStock(?int $partId, string $locationCode, float $qtyChange, ?string $batchNo = null, ?string $productionDate = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = [], $adjustedAt = null, ?float $weightKgm = null): void
     {
         $locationCode = strtoupper(trim($locationCode));
         $batchNo = $batchNo !== null ? strtoupper(trim($batchNo)) : null;
@@ -192,11 +192,12 @@ class LocationInventory extends Model
         }
 
         $record->update(['qty_on_hand' => $newQty]);
+        $weightKgm = $weightKgm !== null ? (float)$weightKgm : null;
 
-        self::logTransaction($partId, $gciPartId, $locationCode, $batchNo, $qtyBefore, $newQty, $qtyChange, $transactionType, $sourceReference, $traceability, $adjustedAt);
+        self::logTransaction($partId, $gciPartId, $locationCode, $batchNo, $qtyBefore, $newQty, $qtyChange, $transactionType, $sourceReference, $traceability, $adjustedAt, $weightKgm);
     }
 
-    public static function consumeStock(?int $partId, string $locationCode, float $qty, ?string $batchNo = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = []): void
+    public static function consumeStock(?int $partId, string $locationCode, float $qty, ?string $batchNo = null, ?int $gciPartId = null, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = [], ?float $weightKgm = null): void
     {
         $qty = (float) $qty;
         if ($qty <= 0) {
@@ -221,7 +222,7 @@ class LocationInventory extends Model
         }
 
         if ($batchNo !== null) {
-            self::updateStock($partId, $locationCode, -$qty, $batchNo, null, $gciPartId, $transactionType, $sourceReference, $traceability);
+            self::updateStock($partId, $locationCode, -$qty, $batchNo, null, $gciPartId, $transactionType, $sourceReference, $traceability, null, $weightKgm);
             return;
         }
 
@@ -262,7 +263,9 @@ class LocationInventory extends Model
                 -$take,
                 $transactionType,
                 $sourceReference,
-                $traceability
+                $traceability,
+                null,
+                $weightKgm !== null ? -($weightKgm * ($take / $qty)) : null
             );
         }
 
@@ -293,7 +296,7 @@ class LocationInventory extends Model
         return $q->get();
     }
 
-    protected static function logTransaction(?int $partId, ?int $gciPartId, string $locationCode, ?string $batchNo, float $qtyBefore, float $qtyAfter, float $qtyChange, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = [], $adjustedAt = null): void
+    protected static function logTransaction(?int $partId, ?int $gciPartId, string $locationCode, ?string $batchNo, float $qtyBefore, float $qtyAfter, float $qtyChange, ?string $transactionType = null, ?string $sourceReference = null, array $traceability = [], $adjustedAt = null, ?float $weightKgm = null): void
     {
         $adjustedAtValue = $adjustedAt ? Carbon::parse($adjustedAt) : now();
 
@@ -313,6 +316,7 @@ class LocationInventory extends Model
             'qty_before' => $qtyBefore,
             'qty_after' => $qtyAfter,
             'qty_change' => $qtyChange,
+            'weight_kgm' => $weightKgm,
             'adjusted_at' => $adjustedAtValue,
             'created_by' => auth()->id(),
         ]);

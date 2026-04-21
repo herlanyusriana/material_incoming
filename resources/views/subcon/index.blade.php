@@ -136,6 +136,7 @@
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Target</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Remain</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700 whitespace-nowrap">Remain (KGM)</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Limit Alarm</th>
                                 <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
                             </tr>
@@ -163,6 +164,9 @@
                                     <td class="px-4 py-3 text-right font-mono">{{ number_format($row['sent_qty']) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black {{ $row['is_alarm'] ? 'text-amber-700' : 'text-emerald-700' }}">
                                         {{ number_format($row['remaining_qty']) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold text-slate-500 whitespace-nowrap">
+                                        {{ number_format($row['remaining_kgm'], 2) }}
                                     </td>
                                     <td class="px-4 py-3 text-right font-mono">{{ $row['warning_limit_qty'] !== null ? number_format($row['warning_limit_qty']) : '-' }}</td>
                                     <td class="px-4 py-3 text-center">
@@ -228,10 +232,17 @@
                                 <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">
                                     {{ $order->bomItem?->consumptionUom?->code ?? $order->bomItem?->consumption_uom ?? $order->rmPart?->uom ?? $order->bomItem?->wipUom?->code ?? $order->bomItem?->wip_uom ?? $order->gciPart?->uom ?? 'PCS' }}
                                 </td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($order->qty_sent) }}</td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($order->qty_received) }}</td>
-                                <td class="px-4 py-3 text-right font-mono font-bold {{ $order->qty_outstanding > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
+                                <td class="px-4 py-3 text-right font-mono whitespace-nowrap">
+                                    {{ number_format($order->qty_sent) }}
+                                    <div class="text-[10px] text-slate-400 font-bold">({{ number_format((float)$order->qty_sent * (float)($order->rmPart->net_weight ?? 0), 2) }} kg)</div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono whitespace-nowrap">
+                                    {{ number_format($order->qty_received) }}
+                                    <div class="text-[10px] text-slate-400 font-bold">({{ number_format((float)$order->qty_received * (float)($order->gciPart->net_weight ?? 0), 2) }} kg)</div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono font-bold {{ $order->qty_outstanding > 0 ? 'text-rose-600' : 'text-emerald-600' }} whitespace-nowrap">
                                     {{ number_format($order->qty_outstanding) }}
+                                    <div class="text-[10px] {{ $order->qty_outstanding > 0 ? 'text-rose-400' : 'text-emerald-400' }}">({{ number_format((float)$order->qty_outstanding * (float)($order->rmPart->net_weight ?? 0), 2) }} kg)</div>
                                 </td>
                                 <td class="px-4 py-3 text-center text-slate-600">{{ $order->sent_date->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 text-center">

@@ -149,9 +149,25 @@
                                             :max="row.remaining_qty !== undefined ? row.remaining_qty : null"
                                             :name="`items[${index}][qty_sent]`"
                                             x-model="row.qty_sent"
+                                            @input="row.weight_kgm = (parseFloat(row.qty_sent || 0) * parseFloat(row.rm_net_weight)).toFixed(4)"
                                             class="w-full rounded-lg border-indigo-300 bg-indigo-50/30 text-sm font-black focus:border-indigo-600 focus:ring-indigo-600 text-indigo-900"
                                             placeholder="Masukkan Qty"
                                             required>
+                                    </div>
+
+                                    <div class="space-y-1">
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">Weight (KGM) <span class="text-red-500">*</span></label>
+                                        <input type="number"
+                                            step="0.0001"
+                                            min="0"
+                                            :name="`items[${index}][weight_kgm]`"
+                                            x-model="row.weight_kgm"
+                                            class="w-full rounded-lg border-emerald-300 bg-emerald-50/30 text-sm font-black focus:border-emerald-600 focus:ring-emerald-600 text-emerald-900"
+                                            placeholder="Manual KGM"
+                                            required>
+                                        <div class="mt-1 text-[10px] text-slate-400">
+                                            Theoretical: <span x-text="parseFloat(parseFloat(row.qty_sent || 0) * parseFloat(row.rm_net_weight)).toFixed(2)"></span> kg
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -221,9 +237,11 @@
                                     rm_part_no: item.rm_part_no,
                                     rm_part_name: item.rm_part_name,
                                     uom: item.uom || 'PCS',
+                                    rm_net_weight: item.rm_net_weight || 0,
                                     target_qty: item.target_qty,
                                     remaining_qty: item.remaining_qty,
                                     qty_sent: oldMatch ? oldMatch.qty_sent : '',
+                                    weight_kgm: oldMatch ? oldMatch.weight_kgm : '',
                                 };
                             });
                         }
@@ -282,9 +300,11 @@
                                 rm_part_no: item.rm_part_no,
                                 rm_part_name: item.rm_part_name,
                                 uom: item.uom || 'PCS',
+                                rm_net_weight: item.rm_net_weight || 0,
                                 target_qty: item.target_qty,
                                 remaining_qty: item.remaining_qty,
                                 qty_sent: '',
+                                weight_kgm: '',
                             }));
                         } else {
                             this.rows = [];

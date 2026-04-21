@@ -18,6 +18,8 @@ class SubconOrderReceive extends Model
         'reject_location_code',
         'posted_to_wh_at',
         'reject_posted_to_wh_at',
+        'weight_kgm',
+        'weight_rejected_kgm',
         'sj_file_path',
         'invoice_file_path',
         'notes',
@@ -30,6 +32,8 @@ class SubconOrderReceive extends Model
         'reject_posted_to_wh_at' => 'datetime',
         'qty_good' => 'decimal:4',
         'qty_rejected' => 'decimal:4',
+        'weight_kgm' => 'decimal:4',
+        'weight_rejected_kgm' => 'decimal:4',
     ];
 
     public function subconOrder()

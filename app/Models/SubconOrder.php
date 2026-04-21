@@ -26,6 +26,7 @@ class SubconOrder extends Model
         'status',
         'notes',
         'send_location_code',
+        'weight_kgm',
         'sent_posted_at',
         'sent_posted_by',
         'created_by',
@@ -39,6 +40,7 @@ class SubconOrder extends Model
         'qty_sent' => 'decimal:4',
         'qty_received' => 'decimal:4',
         'qty_rejected' => 'decimal:4',
+        'weight_kgm' => 'decimal:4',
     ];
 
     public function vendor()

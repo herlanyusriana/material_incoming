@@ -108,18 +108,22 @@
                     <div class="rounded-lg bg-blue-50 p-4 text-center">
                         <div class="text-xs font-bold text-blue-600 uppercase">Qty Sent</div>
                         <div class="mt-1 text-xl font-black text-blue-800">{{ number_format($subconOrder->qty_sent) }} <span class="text-xs text-blue-600">{{ $subconUom }}</span></div>
+                        <div class="text-[10px] text-blue-500 font-bold">({{ number_format((float)$subconOrder->qty_sent * (float)($subconOrder->rmPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                     <div class="rounded-lg bg-emerald-50 p-4 text-center">
                         <div class="text-xs font-bold text-emerald-600 uppercase">Qty Received</div>
                         <div class="mt-1 text-xl font-black text-emerald-800">{{ number_format($subconOrder->qty_received) }} <span class="text-xs text-emerald-600">{{ $subconUom }}</span></div>
+                        <div class="text-[10px] text-emerald-500 font-bold">({{ number_format((float)$subconOrder->qty_received * (float)($subconOrder->gciPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                     <div class="rounded-lg bg-red-50 p-4 text-center">
                         <div class="text-xs font-bold text-red-600 uppercase">Qty Rejected</div>
                         <div class="mt-1 text-xl font-black text-red-800">{{ number_format($subconOrder->qty_rejected) }} <span class="text-xs text-red-600">{{ $subconUom }}</span></div>
+                        <div class="text-[10px] text-red-500 font-bold">({{ number_format((float)$subconOrder->qty_rejected * (float)($subconOrder->gciPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                     <div class="rounded-lg bg-amber-50 p-4 text-center">
                         <div class="text-xs font-bold text-amber-600 uppercase">Outstanding</div>
                         <div class="mt-1 text-xl font-black text-amber-800">{{ number_format($subconOrder->qty_outstanding) }} <span class="text-xs text-amber-600">{{ $subconUom }}</span></div>
+                        <div class="text-[10px] text-amber-500 font-bold">({{ number_format((float)$subconOrder->qty_outstanding * (float)($subconOrder->rmPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                 </div>
             </div>
@@ -140,14 +144,24 @@
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span> <span class="text-xs text-slate-500">({{ $subconUom }})</span></label>
-                            <input type="number" step="0.0001" min="0" name="qty_good" value="{{ old('qty_good', max(0, $subconOrder->qty_outstanding)) }}"
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" required />
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.0001" min="0" name="qty_good" value="{{ old('qty_good') }}"
+                                class="w-full rounded-lg border-emerald-300 text-sm focus:border-emerald-500 focus:ring-emerald-500" required />
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected <span class="text-xs text-slate-500">({{ $subconUom }})</span></label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Weight Good (KGM) <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.0001" min="0" name="weight_kgm" value="{{ old('weight_kgm') }}"
+                                class="w-full rounded-lg border-emerald-300 text-sm focus:border-emerald-500 focus:ring-emerald-500" required />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
                             <input type="number" step="0.0001" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                                class="w-full rounded-lg border-rose-300 text-sm focus:border-rose-500 focus:ring-rose-500" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Weight Rejected (KGM)</label>
+                            <input type="number" step="0.0001" min="0" name="weight_rejected_kgm" value="{{ old('weight_rejected_kgm') }}"
+                                class="w-full rounded-lg border-rose-300 text-sm focus:border-rose-500 focus:ring-rose-500" />
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Received Date <span class="text-red-500">*</span></label>
@@ -219,8 +233,14 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 text-slate-600">{{ $i + 1 }}</td>
                                 <td class="px-4 py-3 text-center text-slate-700">{{ $rec->received_date->format('d/m/Y') }}</td>
-                                <td class="px-4 py-3 text-right font-mono text-emerald-700 font-bold">{{ number_format($rec->qty_good) }} <span class="text-[10px]">{{ $subconUom }}</span></td>
-                                <td class="px-4 py-3 text-right font-mono {{ $rec->qty_rejected > 0 ? 'text-red-600' : 'text-slate-400' }}">{{ number_format($rec->qty_rejected) }} <span class="text-[10px]">{{ $subconUom }}</span></td>
+                                <td class="px-4 py-3 text-right font-mono text-emerald-700 font-bold">
+                                    {{ number_format($rec->qty_good) }} <span class="text-[10px]">{{ $subconUom }}</span>
+                                    <div class="text-[10px] text-emerald-500">({{ number_format($rec->weight_kgm, 2) }} kg)</div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono {{ $rec->qty_rejected > 0 ? 'text-red-600' : 'text-slate-400' }}">
+                                    {{ number_format($rec->qty_rejected) }} <span class="text-[10px]">{{ $subconUom }}</span>
+                                    <div class="text-[10px] text-red-400">({{ number_format($rec->weight_rejected_kgm, 2) }} kg)</div>
+                                </td>
                                 <td class="px-4 py-3 text-slate-600">
                                     <div class="font-semibold">{{ $rec->receive_location_code ?? '-' }}</div>
                                     <div class="text-xs text-slate-400">{{ $rec->posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</div>
@@ -293,6 +313,17 @@
                                 <td class="px-4 py-3 text-slate-700">{{ $move->location_code ?? '-' }}</td>
                                 <td class="px-4 py-3 text-right font-mono {{ (float) $move->qty_change < 0 ? 'text-red-600' : 'text-emerald-700' }}">
                                     {{ number_format((float) $move->qty_change, 4) }} <span class="text-[10px]">{{ $subconUom }}</span>
+                                    @if ($move->weight_kgm !== null)
+                                        <div class="text-[10px] font-bold opacity-80 mt-1">({{ number_format(abs($move->weight_kgm), 2) }} kg)</div>
+                                    @else
+                                        @php
+                                            $weightFactor = ($move->transaction_type === 'SUBCON_SEND') 
+                                                ? ($subconOrder->rmPart->net_weight ?? 0) 
+                                                : ($subconOrder->gciPart->net_weight ?? 0);
+                                            $weightVal = abs((float)$move->qty_change) * (float)$weightFactor;
+                                        @endphp
+                                        <div class="text-[10px] opacity-70 italic">({{ number_format($weightVal, 2) }} kg*)</div>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">{{ $move->creator->name ?? '-' }}</td>
                             </tr>
