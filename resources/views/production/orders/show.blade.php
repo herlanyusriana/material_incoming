@@ -980,6 +980,80 @@
 
         <!-- Right: Inspections & History -->
         <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white border rounded-lg shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b bg-slate-50">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900">Routing, WIP & NG Progress</h3>
+                            <p class="text-sm text-slate-500">Monitoring output per proses. FG hanya dihitung dari step final, sementara WIP tetap terlihat untuk lanjut proses berikutnya.</p>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                                <div class="font-black text-emerald-700">{{ number_format((float) ($routeProgress['total_ok'] ?? 0)) }}</div>
+                                <div class="text-emerald-600">OK</div>
+                            </div>
+                            <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                                <div class="font-black text-rose-700">{{ number_format((float) ($routeProgress['total_ng'] ?? 0)) }}</div>
+                                <div class="text-rose-600">NG</div>
+                            </div>
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                                <div class="font-black text-amber-700">{{ number_format((float) ($routeProgress['total_hold'] ?? 0)) }}</div>
+                                <div class="text-amber-600">QC Hold</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 border-b text-xs uppercase text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Step</th>
+                                <th class="px-4 py-3 text-left">Output</th>
+                                <th class="px-4 py-3 text-right">OK</th>
+                                <th class="px-4 py-3 text-right">NG</th>
+                                <th class="px-4 py-3 text-right">Scrap</th>
+                                <th class="px-4 py-3 text-right">Rework</th>
+                                <th class="px-4 py-3 text-right">Hold</th>
+                                <th class="px-4 py-3 text-right">Yield</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse(($routeProgress['rows'] ?? collect()) as $row)
+                                <tr class="{{ $row['is_current'] ? 'bg-blue-50/70' : 'hover:bg-slate-50' }}">
+                                    <td class="px-4 py-3">
+                                        <div class="font-bold text-slate-900">{{ $row['step_no'] }}. {{ $row['process_name'] }}</div>
+                                        <div class="text-xs text-slate-500">{{ $row['machine_name'] }}</div>
+                                        @if($row['is_current'])
+                                            <span class="mt-1 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700">CURRENT</span>
+                                        @elseif($row['has_output'])
+                                            <span class="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">DONE / PARTIAL</span>
+                                        @else
+                                            <span class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">WAITING</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-mono font-bold {{ $row['output_type'] === 'fg' ? 'text-indigo-700' : 'text-slate-900' }}">{{ $row['output_part_no'] }}</div>
+                                        <div class="text-xs text-slate-500">{{ $row['output_part_name'] }}</div>
+                                        <div class="mt-1 text-[10px] font-black uppercase {{ $row['output_type'] === 'fg' ? 'text-indigo-600' : 'text-amber-600' }}">{{ $row['output_type'] }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold text-emerald-700">{{ number_format((float) $row['ok_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold text-rose-700">{{ number_format((float) $row['ng_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono">{{ number_format((float) $row['scrap_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono">{{ number_format((float) $row['rework_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono">{{ number_format((float) $row['hold_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold">
+                                        {{ $row['yield_rate'] === null ? '-' : number_format((float) $row['yield_rate'], 2) . '%' }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-slate-400">Belum ada routing atau output proses tercatat.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             <!-- Machine Stop / Downtime (QDC) -->
             <div class="bg-white border rounded-lg shadow-sm" x-data="{ openDowntime: false }">

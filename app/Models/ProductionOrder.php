@@ -136,6 +136,11 @@ class ProductionOrder extends Model
         return $this->hasMany(ProductionDowntime::class, 'production_order_id');
     }
 
+    public function hourlyReports()
+    {
+        return $this->hasMany(ProductionGciHourlyReport::class, 'production_order_id');
+    }
+
     public function additionalMaterialRequests()
     {
         return $this->hasMany(ProductionMaterialRequest::class, 'production_order_id');

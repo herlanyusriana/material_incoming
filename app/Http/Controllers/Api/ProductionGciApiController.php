@@ -607,6 +607,9 @@ class ProductionGciApiController extends Controller
                             'actual' => $hrParams['actual'],
                             'ng' => $hrParams['ng'],
                             'ng_reason' => $hrParams['ngReason'] ?? null,
+                            'ng_scrap' => $this->normalizeNgBreakdown($hrParams)['ng_scrap'],
+                            'ng_rework' => $this->normalizeNgBreakdown($hrParams)['ng_rework'],
+                            'ng_hold' => $this->normalizeNgBreakdown($hrParams)['ng_hold'],
                             'operator_name' => $hrParams['operatorName'] ?? null,
                             'shift' => $hrParams['shift'] ?? null,
                         ]
@@ -641,6 +644,9 @@ class ProductionGciApiController extends Controller
                                 'actual' => $hrParams['actual'],
                                 'ng' => $hrParams['ng'],
                                 'ng_reason' => $hrParams['ngReason'] ?? null,
+                                'ng_scrap' => $this->normalizeNgBreakdown($hrParams)['ng_scrap'],
+                                'ng_rework' => $this->normalizeNgBreakdown($hrParams)['ng_rework'],
+                                'ng_hold' => $this->normalizeNgBreakdown($hrParams)['ng_hold'],
                             ]
                         );
                     }
@@ -1217,6 +1223,9 @@ class ProductionGciApiController extends Controller
                 'actual' => $r->actual,
                 'ng' => $r->ng,
                 'ng_reason' => $r->ng_reason,
+                'ng_scrap' => (int) ($r->ng_scrap ?? 0),
+                'ng_rework' => (int) ($r->ng_rework ?? 0),
+                'ng_hold' => (int) ($r->ng_hold ?? 0),
                 'operator_name' => $r->operator_name,
                 'shift' => $r->shift,
                 'output_type' => $r->output_type ?: 'fg',
@@ -1233,6 +1242,35 @@ class ProductionGciApiController extends Controller
         $normalized = strtolower(trim((string) $value));
 
         return in_array($normalized, ['wip', 'fg'], true) ? $normalized : 'fg';
+    }
+
+    private function normalizeNgBreakdown(array $params): array
+    {
+        $totalNg = max(0, (int) ($params['ng'] ?? 0));
+        $scrap = max(0, (int) ($params['ng_scrap'] ?? $params['ngScrap'] ?? 0));
+        $rework = max(0, (int) ($params['ng_rework'] ?? $params['ngRework'] ?? 0));
+        $hold = max(0, (int) ($params['ng_hold'] ?? $params['ngHold'] ?? 0));
+        $classified = $scrap + $rework + $hold;
+
+        if ($classified === 0 && $totalNg > 0) {
+            // APK lama hanya kirim total NG. Simpan sebagai QC hold dulu agar tidak otomatis dianggap scrap.
+            $hold = $totalNg;
+            $classified = $totalNg;
+        }
+
+        if ($classified > $totalNg) {
+            throw new \InvalidArgumentException('Total NG kategori tidak boleh lebih besar dari total NG.');
+        }
+
+        if ($classified < $totalNg) {
+            $hold += $totalNg - $classified;
+        }
+
+        return [
+            'ng_scrap' => $scrap,
+            'ng_rework' => $rework,
+            'ng_hold' => $hold,
+        ];
     }
 
     private function resolveHourlyProcessContext(ProductionOrder $order, array $validated): array
@@ -1291,6 +1329,9 @@ class ProductionGciApiController extends Controller
             'actual' => 'required|integer|min:0',
             'ng' => 'required|integer|min:0',
             'ng_reason' => 'nullable|string|max:255',
+            'ng_scrap' => 'nullable|integer|min:0',
+            'ng_rework' => 'nullable|integer|min:0',
+            'ng_hold' => 'nullable|integer|min:0',
             'operator_name' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
             'output_type' => 'nullable|string|in:fg,wip',
@@ -1299,6 +1340,11 @@ class ProductionGciApiController extends Controller
             'output_part_name' => 'nullable|string|max:255',
         ]);
         $processContext = $this->resolveHourlyProcessContext($order, $validated);
+        try {
+            $ngBreakdown = $this->normalizeNgBreakdown($request->all());
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $report = ProductionGciHourlyReport::query()
             ->where('production_order_id', $order->id)
@@ -1357,6 +1403,9 @@ class ProductionGciApiController extends Controller
                 'actual' => (int) $report->actual + (int) $validated['actual'],
                 'ng' => (int) $report->ng + (int) $validated['ng'],
                 'ng_reason' => $validated['ng_reason'] ?? $report->ng_reason,
+                'ng_scrap' => (int) ($report->ng_scrap ?? 0) + $ngBreakdown['ng_scrap'],
+                'ng_rework' => (int) ($report->ng_rework ?? 0) + $ngBreakdown['ng_rework'],
+                'ng_hold' => (int) ($report->ng_hold ?? 0) + $ngBreakdown['ng_hold'],
                 'operator_name' => $validated['operator_name'] ?? $report->operator_name,
                 'shift' => $validated['shift'] ?? $report->shift,
                 'output_type' => $processContext['output_type'],
@@ -1374,6 +1423,9 @@ class ProductionGciApiController extends Controller
                 'actual' => $validated['actual'],
                 'ng' => $validated['ng'],
                 'ng_reason' => $validated['ng_reason'] ?? null,
+                'ng_scrap' => $ngBreakdown['ng_scrap'],
+                'ng_rework' => $ngBreakdown['ng_rework'],
+                'ng_hold' => $ngBreakdown['ng_hold'],
                 'offline_id' => $this->generateCloudOfflineId(),
                 'operator_name' => $validated['operator_name'] ?? null,
                 'shift' => $validated['shift'] ?? null,
@@ -1460,6 +1512,9 @@ class ProductionGciApiController extends Controller
             'actual' => (int) $report->actual,
             'ng' => (int) $report->ng,
             'ng_reason' => $report->ng_reason,
+            'ng_scrap' => (int) ($report->ng_scrap ?? 0),
+            'ng_rework' => (int) ($report->ng_rework ?? 0),
+            'ng_hold' => (int) ($report->ng_hold ?? 0),
             'backflush_events' => $backflushEvents,
             'handover' => $handoverMeta,
         ]);
@@ -1472,6 +1527,9 @@ class ProductionGciApiController extends Controller
                 'actual' => (int) $report->actual,
                 'ng' => (int) $report->ng,
                 'ng_reason' => $report->ng_reason,
+                'ng_scrap' => (int) ($report->ng_scrap ?? 0),
+                'ng_rework' => (int) ($report->ng_rework ?? 0),
+                'ng_hold' => (int) ($report->ng_hold ?? 0),
                 'output_type' => $report->output_type ?: 'fg',
                 'process_name' => $report->process_name,
                 'output_part_no' => $report->output_part_no,
@@ -1828,6 +1886,9 @@ class ProductionGciApiController extends Controller
                             'target' => (int) $h->target,
                             'actual' => (int) $h->actual,
                             'ng' => (int) $h->ng,
+                            'ng_scrap' => (int) ($h->ng_scrap ?? 0),
+                            'ng_rework' => (int) ($h->ng_rework ?? 0),
+                            'ng_hold' => (int) ($h->ng_hold ?? 0),
                             'output_type' => (string) ($h->output_type ?: 'fg'),
                             'process_name' => (string) ($h->process_name ?? ''),
                             'output_part_no' => (string) ($h->output_part_no ?? ''),

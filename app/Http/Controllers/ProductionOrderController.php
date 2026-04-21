@@ -408,15 +408,17 @@ class ProductionOrderController extends Controller
             'mrpRun',
             'dailyPlanCell.row.plan',
             'arrivals',
+            'hourlyReports',
         ]);
 
         $inventoryFlow = app(ProductionInventoryFlowService::class)->summarizeOrderFlow($order);
+        $routeProgress = $this->buildRouteProgress($order);
 
         if ($request->ajax()) {
-            return view('production.orders.partials.detail_content', compact('order', 'inventoryFlow'));
+            return view('production.orders.partials.detail_content', compact('order', 'inventoryFlow', 'routeProgress'));
         }
 
-        return view('production.orders.show', compact('order', 'inventoryFlow'));
+        return view('production.orders.show', compact('order', 'inventoryFlow', 'routeProgress'));
     }
 
     public function checkMaterial(ProductionOrder $order)
@@ -1271,6 +1273,109 @@ class ProductionOrderController extends Controller
             'source_invoice_no' => $receive->invoice_no ? (string) $receive->invoice_no : null,
             'source_delivery_note_no' => $receive->delivery_note_no ? (string) $receive->delivery_note_no : null,
             'source_tag' => $receive->tag ? (string) $receive->tag : $batchNo,
+        ];
+    }
+
+    private function buildRouteProgress(ProductionOrder $order): array
+    {
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+        $reports = $order->hourlyReports ?? collect();
+        $steps = collect();
+
+        if ($bom) {
+            $bom->loadMissing(['items.machine', 'items.wipPart', 'items.componentPart', 'part']);
+            $steps = $bom->items
+                ->sortBy('line_no')
+                ->values()
+                ->map(function (BomItem $item, int $index) use ($order, $reports) {
+                    $processName = trim((string) ($item->process_name ?? 'Process'));
+                    $wipPartNo = trim((string) ($item->wipPart?->part_no ?? $item->wip_part_no ?? ''));
+                    $outputType = $wipPartNo !== '' ? 'wip' : 'fg';
+                    $matchingReports = $reports->filter(function ($report) use ($processName, $outputType) {
+                        $reportOutputType = strtolower((string) ($report->output_type ?: 'fg'));
+
+                        return $reportOutputType === $outputType
+                            && strcasecmp(trim((string) $report->process_name), $processName) === 0;
+                    });
+
+                    return $this->formatRouteProgressRow(
+                        $index + 1,
+                        $processName,
+                        (string) ($item->machine?->name ?? ''),
+                        $outputType,
+                        $wipPartNo !== '' ? $wipPartNo : (string) ($order->part?->part_no ?? '-'),
+                        $wipPartNo !== ''
+                            ? (string) ($item->wipPart?->part_name ?? $item->wip_part_name ?? '')
+                            : (string) ($order->part?->part_name ?? '-'),
+                        $matchingReports,
+                        strcasecmp($processName, (string) ($order->process_name ?? '')) === 0
+                    );
+                });
+        }
+
+        $knownKeys = $steps
+            ->map(fn ($row) => strtolower($row['output_type'] . '|' . $row['process_name']))
+            ->all();
+
+        $adHocRows = $reports
+            ->groupBy(fn ($report) => strtolower((string) ($report->output_type ?: 'fg')) . '|' . trim((string) ($report->process_name ?? '')))
+            ->reject(fn ($group, $key) => in_array($key, $knownKeys, true))
+            ->map(function (Collection $group, string $key) use ($steps) {
+                [$outputType, $processName] = array_pad(explode('|', $key, 2), 2, '');
+                $first = $group->first();
+
+                return $this->formatRouteProgressRow(
+                    $steps->count() + 1,
+                    $processName !== '' ? $processName : 'Unmapped Process',
+                    '',
+                    $outputType ?: 'fg',
+                    (string) ($first?->output_part_no ?? '-'),
+                    (string) ($first?->output_part_name ?? '-'),
+                    $group,
+                    false
+                );
+            })
+            ->values();
+
+        return [
+            'rows' => $steps->concat($adHocRows)->values(),
+            'total_ok' => (float) $reports->sum('actual'),
+            'total_ng' => (float) $reports->sum('ng'),
+            'total_scrap' => (float) $reports->sum('ng_scrap'),
+            'total_rework' => (float) $reports->sum('ng_rework'),
+            'total_hold' => (float) $reports->sum('ng_hold'),
+        ];
+    }
+
+    private function formatRouteProgressRow(
+        int $stepNo,
+        string $processName,
+        string $machineName,
+        string $outputType,
+        string $outputPartNo,
+        string $outputPartName,
+        Collection $reports,
+        bool $isCurrent
+    ): array {
+        $ok = (float) $reports->sum('actual');
+        $ng = (float) $reports->sum('ng');
+        $total = $ok + $ng;
+
+        return [
+            'step_no' => $stepNo,
+            'process_name' => $processName,
+            'machine_name' => $machineName !== '' ? $machineName : '-',
+            'output_type' => strtolower($outputType) === 'wip' ? 'wip' : 'fg',
+            'output_part_no' => $outputPartNo !== '' ? $outputPartNo : '-',
+            'output_part_name' => $outputPartName !== '' ? $outputPartName : '-',
+            'ok_qty' => $ok,
+            'ng_qty' => $ng,
+            'scrap_qty' => (float) $reports->sum('ng_scrap'),
+            'rework_qty' => (float) $reports->sum('ng_rework'),
+            'hold_qty' => (float) $reports->sum('ng_hold'),
+            'yield_rate' => $total > 0 ? round(($ok / $total) * 100, 2) : null,
+            'is_current' => $isCurrent,
+            'has_output' => $total > 0,
         ];
     }
 }
