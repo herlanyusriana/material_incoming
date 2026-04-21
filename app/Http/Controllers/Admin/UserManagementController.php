@@ -40,7 +40,7 @@ class UserManagementController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'role' => ['required', 'string', 'in:' . implode(',', $roles)],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
@@ -48,7 +48,7 @@ class UserManagementController extends Controller
         User::create([
             'name' => $validated['name'],
             'username' => strtolower(trim((string) $validated['username'])),
-            'email' => strtolower(trim((string) $validated['email'])),
+            'email' => !empty($validated['email']) ? strtolower(trim((string) $validated['email'])) : null,
             'role' => strtolower(trim((string) $validated['role'])),
             'password' => Hash::make($validated['password']),
         ]);
@@ -63,7 +63,7 @@ class UserManagementController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'role' => ['required', 'string', 'in:' . implode(',', $roles)],
             'password' => ['nullable', 'confirmed', Password::defaults()],
         ]);
@@ -71,7 +71,7 @@ class UserManagementController extends Controller
         $payload = [
             'name' => $validated['name'],
             'username' => strtolower(trim((string) $validated['username'])),
-            'email' => strtolower(trim((string) $validated['email'])),
+            'email' => !empty($validated['email']) ? strtolower(trim((string) $validated['email'])) : null,
             'role' => strtolower(trim((string) $validated['role'])),
         ];
 

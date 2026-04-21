@@ -38,17 +38,27 @@
         </form>
 
         <div class="overflow-hidden rounded-xl border bg-white shadow-sm">
-            <table class="w-full text-left text-sm">
+            <table class="w-full table-fixed text-left text-sm" style="table-layout: fixed;">
+                <colgroup>
+                    <col style="width: 14%;">
+                    <col style="width: 18%;">
+                    <col style="width: 10%;">
+                    <col style="width: 13%;">
+                    <col style="width: 13%;">
+                    <col style="width: 12%;">
+                    <col style="width: 13%;">
+                    <col style="width: 7%;">
+                </colgroup>
                 <thead class="border-b bg-slate-50 text-xs uppercase text-slate-500">
                     <tr>
-                        <th class="px-6 py-4 font-semibold">WO</th>
-                        <th class="px-6 py-4 font-semibold">Part</th>
-                        <th class="px-6 py-4 font-semibold">Plan Date</th>
-                        <th class="px-6 py-4 font-semibold">Kanban Update</th>
-                        <th class="px-6 py-4 font-semibold">FG Supply to WH</th>
-                        <th class="px-6 py-4 font-semibold">Location / Qty</th>
-                        <th class="px-6 py-4 font-semibold">Serah Terima to WH</th>
-                        <th class="px-6 py-4 text-right font-semibold">Action</th>
+                        <th class="px-4 py-3 font-semibold">WO</th>
+                        <th class="px-4 py-3 font-semibold">Part</th>
+                        <th class="px-4 py-3 font-semibold">Plan Date</th>
+                        <th class="px-4 py-3 font-semibold">Kanban</th>
+                        <th class="px-4 py-3 font-semibold">FG Supply</th>
+                        <th class="px-4 py-3 font-semibold">Loc / Qty</th>
+                        <th class="px-4 py-3 font-semibold">Serah Terima</th>
+                        <th class="px-4 py-3 text-right font-semibold">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -57,8 +67,8 @@
                             $woLabel = $order->production_order_number ?: ($order->transaction_no ?: ('WO#' . $order->id));
                         @endphp
                         <tr class="hover:bg-slate-50">
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-slate-900">{{ $woLabel }}</div>
+                            <td class="px-4 py-3">
+                                <div class="truncate font-semibold text-slate-900" title="{{ $woLabel }}">{{ $woLabel }}</div>
                                 <div class="text-xs text-slate-500">
                                     @if($order->production_order_number && $order->transaction_no)
                                         {{ $order->transaction_no }}
@@ -69,12 +79,12 @@
                                     @endif
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-slate-900">{{ $order->part?->part_no ?? '-' }}</div>
-                                <div class="text-xs text-slate-500">{{ $order->part?->part_name ?? '-' }}</div>
+                            <td class="px-4 py-3">
+                                <div class="truncate font-semibold text-slate-900" title="{{ $order->part?->part_no ?? '-' }}">{{ $order->part?->part_no ?? '-' }}</div>
+                                <div class="truncate text-xs text-slate-500" title="{{ $order->part?->part_name ?? '-' }}">{{ $order->part?->part_name ?? '-' }}</div>
                             </td>
-                            <td class="px-6 py-4 text-slate-700">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3 text-slate-700">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
+                            <td class="px-4 py-3">
                                 @if($order->kanban_updated_at)
                                     <div class="text-sm font-medium text-slate-900">{{ $order->kanban_updated_at->format('d M Y H:i') }}</div>
                                     <div class="text-xs text-slate-500">Qty good {{ number_format((float) ($order->qty_actual ?? 0), 2) }}</div>
@@ -82,7 +92,7 @@
                                     <span class="text-xs italic text-slate-400">Belum kanban update</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3">
                                 @if($order->fg_supplied_to_wh_at)
                                     <div class="text-sm font-medium text-emerald-700">{{ $order->fg_supplied_to_wh_at->format('d M Y H:i') }}</div>
                                     <div class="text-xs text-slate-500">{{ $order->fgSupplier?->name ?? '-' }}</div>
@@ -90,11 +100,11 @@
                                     <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Pending</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3">
                                 <div class="text-sm font-medium text-slate-900">{{ $order->fg_supply_location_code ?: '-' }}</div>
                                 <div class="text-xs text-slate-500">{{ number_format((float) ($order->fg_supply_qty ?? 0), 2) }}</div>
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3">
                                 @if($order->fg_handed_over_to_wh_at)
                                     <div class="text-sm font-medium text-cyan-700">{{ $order->fg_handed_over_to_wh_at->format('d M Y H:i') }}</div>
                                     <div class="text-xs text-slate-500">{{ $order->fgHandoverUser?->name ?? '-' }}</div>
@@ -102,7 +112,7 @@
                                     <span class="text-xs italic text-slate-400">Belum serah terima</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-4 py-3 text-right">
                                 <a href="{{ route('production.orders.show', $order) }}"
                                     class="text-xs font-semibold uppercase tracking-wide text-indigo-600 hover:text-indigo-900">
                                     Open WO

@@ -145,8 +145,20 @@
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
                     <h4 class="text-lg font-bold text-slate-900 mb-4">📋 BOM Structure (Multi-Level Explosion)</h4>
                     
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table class="min-w-full text-sm divide-y divide-slate-200">
+                    <div class="overflow-hidden border border-slate-200 rounded-xl">
+                        <table class="w-full table-fixed text-sm divide-y divide-slate-200" style="table-layout: fixed;">
+                            <colgroup>
+                                <col style="width: 6%;">
+                                <col style="width: 6%;">
+                                <col style="width: 22%;">
+                                <col style="width: 15%;">
+                                <col style="width: 15%;">
+                                <col style="width: 9%;">
+                                <col style="width: 9%;">
+                                <col style="width: 6%;">
+                                <col style="width: 6%;">
+                                <col style="width: 6%;">
+                            </colgroup>
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                     <th class="px-4 py-3 text-left font-semibold">Level</th>
@@ -275,8 +287,16 @@
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
                     <h4 class="text-lg font-bold text-slate-900 mb-4">📦 Total Material Requirements Summary</h4>
                     
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table class="min-w-full text-sm divide-y divide-slate-200">
+                    <div class="overflow-hidden border border-slate-200 rounded-xl">
+                        <table class="w-full table-fixed text-sm divide-y divide-slate-200" style="table-layout: fixed;">
+                            <colgroup>
+                                <col style="width: 20%;">
+                                <col style="width: 28%;">
+                                <col style="width: 15%;">
+                                <col style="width: 8%;">
+                                <col style="width: 10%;">
+                                <col style="width: 19%;">
+                            </colgroup>
                             <thead class="bg-emerald-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                     <th class="px-4 py-3 text-left font-semibold">Part Number</th>

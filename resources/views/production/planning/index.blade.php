@@ -186,8 +186,21 @@
             @endphp
             {{-- Main Planning Table --}}
             <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs border-collapse" id="planningTable">
+                <div class="overflow-hidden">
+                    <table class="w-full table-fixed text-xs border-collapse" id="planningTable" style="table-layout: fixed;">
+                        <colgroup>
+                            <col style="width: 3%;">
+                            <col style="width: 13%;">
+                            <col style="width: 7%;">
+                            <col style="width: 20%;">
+                            <col style="width: 13%;">
+                            <col style="width: 7%;">
+                            <col style="width: 8%;">
+                            <col style="width: 5%;">
+                            <col style="width: 8%;">
+                            <col style="width: 6%;">
+                            <col style="width: 10%;">
+                        </colgroup>
                         <thead>
                             <tr class="bg-gradient-to-r from-slate-100 to-slate-50 border-b-2 border-slate-300">
                                 <th class="w-10 px-2 py-3 text-center"></th> <!-- Expand Toggle -->
@@ -222,7 +235,7 @@
                                             </td>
                                             <td class="px-3 py-2">
                                                 <select
-                                                    class="w-44 text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1.5 font-semibold text-slate-700 transition-all cursor-pointer"
+                                                    class="w-full min-w-0 text-xs bg-white border border-slate-200 shadow-sm hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-1.5 font-semibold text-slate-700 transition-all cursor-pointer"
                                                     @change="updateLineField($event, {{ $line->id }}, 'machine_id')">
                                                     <option value="">Assign...</option>
                                                     @foreach($machines as $machine)
@@ -232,14 +245,20 @@
                                                     @endforeach
                                                 </select>
                                             </td>
-                                            <td class="px-3 py-2 text-[11px] text-slate-500 whitespace-nowrap">
-                                                {{ $line->gciPart->model ?? '-' }}
+                                            <td class="px-3 py-2 text-[11px] text-slate-500">
+                                                <div class="truncate" title="{{ $line->gciPart->model ?? '-' }}">
+                                                    {{ $line->gciPart->model ?? '-' }}
+                                                </div>
                                             </td>
-                                            <td class="px-3 py-2 font-medium text-[12px] text-slate-800 whitespace-nowrap">
-                                                {{ $line->gciPart->part_name ?? '-' }}
+                                            <td class="px-3 py-2 font-medium text-[12px] text-slate-800">
+                                                <div class="truncate" title="{{ $line->gciPart->part_name ?? '-' }}">
+                                                    {{ $line->gciPart->part_name ?? '-' }}
+                                                </div>
                                             </td>
-                                            <td class="px-3 py-2 font-mono text-[12px] font-semibold text-slate-700 whitespace-nowrap">
-                                                {{ $line->gciPart->part_no ?? '-' }}
+                                            <td class="px-3 py-2 font-mono text-[12px] font-semibold text-slate-700">
+                                                <div class="truncate" title="{{ $line->gciPart->part_no ?? '-' }}">
+                                                    {{ $line->gciPart->part_no ?? '-' }}
+                                                </div>
                                             </td>
                                             <td class="px-3 py-2 text-right font-mono text-[12px] font-semibold text-slate-700">
                                                 {{ number_format((float) $line->stock_fg_gci, 0) }}
@@ -271,7 +290,7 @@
                                                     Auto: Req - Stock, editable manual
                                                 </div>
                                             </td>
-                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-bold text-indigo-700 whitespace-nowrap">
+                                            <td class="px-3 py-2 text-right font-mono text-[12px] font-bold text-indigo-700">
                                                 {{ $lineEstHours > 0 ? number_format($lineEstHours, 2) . 'h' : '-' }}
                                             </td>
                                             <td class="px-3 py-2 text-center">

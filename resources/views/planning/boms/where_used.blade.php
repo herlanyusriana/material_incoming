@@ -76,8 +76,16 @@
                         </button>
                     </div>
 
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table class="min-w-full text-sm divide-y divide-slate-200">
+                    <div class="overflow-hidden border border-slate-200 rounded-xl">
+                        <table class="w-full table-fixed text-sm divide-y divide-slate-200" style="table-layout: fixed;">
+                            <colgroup>
+                                <col style="width: 20%;">
+                                <col style="width: 30%;">
+                                <col style="width: 10%;">
+                                <col style="width: 10%;">
+                                <col style="width: 14%;">
+                                <col style="width: 16%;">
+                            </colgroup>
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
                                     <th class="px-4 py-3 text-left font-semibold">Parent Part (FG/WIP)</th>

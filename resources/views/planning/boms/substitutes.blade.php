@@ -101,54 +101,68 @@
 
         {{-- Table --}}
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
+            <div class="overflow-hidden">
+                <table class="w-full table-fixed divide-y divide-slate-200" style="table-layout: fixed;">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 22%;">
+                        <col style="width: 22%;">
+                        <col style="width: 10%;">
+                        <col style="width: 8%;">
+                        <col style="width: 8%;">
+                        <col style="width: 7%;">
+                        <col style="width: 3%;">
+                    </colgroup>
                     <thead class="bg-slate-50">
                         <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                            <th class="px-6 py-4 text-left">FG Part (BOM)</th>
-                            <th class="px-6 py-4 text-left">Primary Component</th>
-                            <th class="px-6 py-4 text-left">Substitute Part</th>
-                            <th class="px-6 py-4 text-left">Size</th>
-                            <th class="px-6 py-4 text-center">Ratio</th>
-                            <th class="px-6 py-4 text-center">Priority</th>
-                            <th class="px-6 py-4 text-center">Status</th>
-                            <th class="px-6 py-4 text-right">Action</th>
+                            <th class="px-4 py-3 text-left">FG Part (BOM)</th>
+                            <th class="px-4 py-3 text-left">Primary Component</th>
+                            <th class="px-4 py-3 text-left">Substitute Part</th>
+                            <th class="px-4 py-3 text-left">Size</th>
+                            <th class="px-4 py-3 text-center">Ratio</th>
+                            <th class="px-4 py-3 text-center">Priority</th>
+                            <th class="px-4 py-3 text-center">Status</th>
+                            <th class="px-4 py-3 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 bg-white">
                         @forelse($substitutes as $sub)
                             <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-3">
                                     <div class="flex flex-col">
                                         <span
-                                            class="font-mono text-sm font-bold text-slate-900">{{ $sub->bomItem?->bom?->part?->part_no ?? '-' }}</span>
+                                            class="truncate font-mono text-sm font-bold text-slate-900" title="{{ $sub->bomItem?->bom?->part?->part_no ?? '-' }}">{{ $sub->bomItem?->bom?->part?->part_no ?? '-' }}</span>
                                         <span
-                                            class="text-xs text-slate-500 truncate max-w-[200px]">{{ $sub->bomItem?->bom?->part?->part_name ?? '-' }}</span>
+                                            class="truncate text-xs text-slate-500" title="{{ $sub->bomItem?->bom?->part?->part_name ?? '-' }}">{{ $sub->bomItem?->bom?->part?->part_name ?? '-' }}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-3">
                                     <div class="flex flex-col">
                                         <span
-                                            class="font-mono text-sm font-bold text-slate-700">{{ $sub->bomItem?->componentPart?->part_no ?? $sub->bomItem?->component_part_no ?? '-' }}</span>
+                                            class="truncate font-mono text-sm font-bold text-slate-700" title="{{ $sub->bomItem?->componentPart?->part_no ?? $sub->bomItem?->component_part_no ?? '-' }}">{{ $sub->bomItem?->componentPart?->part_no ?? $sub->bomItem?->component_part_no ?? '-' }}</span>
                                         <span
-                                            class="text-xs text-slate-500 truncate max-w-[200px]">{{ $sub->bomItem?->componentPart?->part_name ?? '-' }}</span>
+                                            class="truncate text-xs text-slate-500" title="{{ $sub->bomItem?->componentPart?->part_name ?? '-' }}">{{ $sub->bomItem?->componentPart?->part_name ?? '-' }}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-3">
                                     <div class="flex flex-col">
-                                <td class="px-6 py-4">
+                                        <span class="truncate font-mono text-sm font-bold text-indigo-700" title="{{ $sub->part?->part_no ?? '-' }}">{{ $sub->part?->part_no ?? '-' }}</span>
+                                        <span class="truncate text-xs text-slate-500" title="{{ $sub->part?->part_name ?? '-' }}">{{ $sub->part?->part_name ?? '-' }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
                                     <span class="text-xs text-slate-600 italic">{{ $sub->part?->size ?: '-' }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-center text-sm font-medium text-slate-600">
+                                <td class="px-4 py-3 text-center text-sm font-medium text-slate-600">
                                     {{ number_format($sub->ratio, 4) }}
                                 </td>
-                                <td class="px-6 py-4 text-center">
+                                <td class="px-4 py-3 text-center">
                                     <span
                                         class="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
                                         #{{ $sub->priority ?? 1 }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-center">
+                                <td class="px-4 py-3 text-center">
                                     @if($sub->status === 'active')
                                         <span
                                             class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
@@ -161,7 +175,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-4 py-3 text-right">
                                     <div class="flex justify-end gap-2 text-right">
                                         <form action="{{ route('planning.bom-item-substitutes.destroy', $sub) }}" method="POST"
                                             onsubmit="return confirm('Remove this substitute link? BOM item remains.')">

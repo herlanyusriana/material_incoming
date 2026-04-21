@@ -341,49 +341,60 @@
                         </div>
 
                         {{-- Parts Table for this DO --}}
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-xs">
+                        <div class="overflow-hidden">
+                            <table class="w-full table-fixed text-xs" style="table-layout: fixed;">
+                                <colgroup>
+                                    <col style="width: 4%;">
+                                    <col style="width: 9%;">
+                                    <col style="width: 24%;">
+                                    <col style="width: 8%;">
+                                    <col style="width: 10%;">
+                                    <col style="width: 8%;">
+                                    <col style="width: 13%;">
+                                    <col style="width: 14%;">
+                                    <col style="width: 10%;">
+                                </colgroup>
                                 <thead>
                                     <tr class="bg-slate-50 border-b border-slate-100">
-                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10">No</th>
-                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
-                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Part Info</th>
-                                        <th class="px-4 py-2 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Plan</th>
-                                        <th class="px-4 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50/50">Picked</th>
-                                        <th class="px-4 py-2 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Rem.</th>
-                                        <th class="px-4 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 w-32">Progress</th>
-                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</th>
-                                        <th class="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Picker</th>
+                                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">No</th>
+                                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+                                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Part Info</th>
+                                        <th class="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Plan</th>
+                                        <th class="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50/50">Picked</th>
+                                        <th class="px-3 py-2 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Rem.</th>
+                                        <th class="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">Progress</th>
+                                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</th>
+                                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Picker</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($so->rows as $ridx => $row)
                                         @php $rowKey = $row->id; @endphp
                                         <tr class="pick-row status-{{ $row->status }} border-b border-slate-50" id="row-{{ $rowKey }}" data-qty-plan="{{ $row->qty_plan }}">
-                                            <td class="px-4 py-3 text-slate-400 font-medium text-center">{{ $ridx + 1 }}</td>
-                                            <td class="px-4 py-3">
+                                            <td class="px-3 py-3 text-slate-400 font-medium text-center">{{ $ridx + 1 }}</td>
+                                            <td class="px-3 py-3">
                                                 <span class="status-badge {{ $row->status }}" id="status-badge-{{ $rowKey }}" style="font-size: 9px; padding: 2px 8px;">
                                                     {{ ucfirst($row->status) }}
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3">
-                                                <div class="font-mono font-bold text-indigo-700">{{ $row->part_no }}</div>
-                                                <div class="text-[10px] font-bold text-slate-900 truncate max-w-[200px]">{{ $row->part_name }}</div>
-                                                <div class="text-[9px] text-slate-500 uppercase font-bold">{{ $row->model }}</div>
+                                            <td class="px-3 py-3">
+                                                <div class="truncate font-mono font-bold text-indigo-700" title="{{ $row->part_no }}">{{ $row->part_no }}</div>
+                                                <div class="truncate text-[10px] font-bold text-slate-900" title="{{ $row->part_name }}">{{ $row->part_name }}</div>
+                                                <div class="truncate text-[9px] text-slate-500 uppercase font-bold" title="{{ $row->model }}">{{ $row->model }}</div>
                                             </td>
-                                            <td class="px-4 py-3 text-right font-bold text-slate-900">{{ number_format($row->qty_plan) }}</td>
-                                            <td class="px-4 py-3 text-center bg-emerald-50/30">
+                                            <td class="px-3 py-3 text-right font-bold text-slate-900">{{ number_format($row->qty_plan) }}</td>
+                                            <td class="px-3 py-3 text-center bg-emerald-50/30">
                                                 <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
                                                     class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}"
                                                     data-source="{{ $row->source }}" data-delivery-order-id="{{ $row->delivery_order_id }}"
                                                     onchange="savePick(this)" id="pick-input-{{ $rowKey }}">
                                             </td>
-                                            <td class="px-4 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
+                                            <td class="px-3 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
                                                 <span class="{{ $row->qty_remaining > 0 ? 'text-amber-600' : 'text-green-700' }}">
                                                     {{ number_format($row->qty_remaining) }}
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3">
+                                            <td class="px-3 py-3">
                                                 <div class="flex items-center gap-2">
                                                     <div class="progress-bar-bg flex-1">
                                                         <div class="progress-bar-fill" id="progress-{{ $rowKey }}"
@@ -393,7 +404,7 @@
                                                     <span class="text-[9px] font-black text-slate-500 w-8 tabular-nums" id="pct-{{ $rowKey }}">{{ $row->progress_percent }}%</span>
                                                 </div>
                                             </td>
-                                            <td class="px-4 py-3">
+                                            <td class="px-3 py-3">
                                                 @if($row->expected_location)
                                                     <div class="text-[10px] font-black text-indigo-600 mb-0.5" title="Default Location">
                                                         📍 {{ $row->expected_location }}
@@ -413,8 +424,8 @@
                                                     onchange="savePick(document.getElementById('pick-input-{{ $rowKey }}'))"
                                                     id="loc-{{ $rowKey }}">
                                             </td>
-                                            <td class="px-4 py-3 text-slate-500 text-[10px] font-medium">
-                                                <span id="picker-{{ $rowKey }}">{{ $row->picked_by_name ?? '-' }}</span>
+                                            <td class="px-3 py-3 text-slate-500 text-[10px] font-medium">
+                                                <span class="block truncate" id="picker-{{ $rowKey }}" title="{{ $row->picked_by_name ?? '-' }}">{{ $row->picked_by_name ?? '-' }}</span>
                                             </td>
                                         </tr>
                                     @endforeach

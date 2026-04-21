@@ -212,7 +212,7 @@
                                         <div class="min-w-0">
                                             <div class="font-bold text-slate-900 truncate">{{ $user->name }}</div>
                                             <div class="text-xs text-slate-500 truncate">{{ '@' . $user->username }}</div>
-                                            <div class="text-[11px] text-slate-400 truncate">{{ $user->email }}</div>
+                                            <div class="text-[11px] text-slate-400 truncate">{{ $user->email ?: 'Email optional' }}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -231,7 +231,7 @@
                                             id: {{ $user->id }},
                                             name: '{{ addslashes($user->name) }}',
                                             username: '{{ addslashes($user->username) }}',
-                                            email: '{{ addslashes($user->email) }}',
+                                            email: '{{ addslashes((string) ($user->email ?? '')) }}',
                                             role: '{{ $user->role }}'
                                         })"
                                             class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all"
@@ -324,9 +324,9 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Email</label>
-                                <input type="email" name="email" value="{{ old('email') }}" required
-                                    class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="email@company.com">
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Email <span class="font-normal normal-case text-slate-400">(opsional)</span></label>
+                                <input type="email" name="email" value="{{ old('email') }}"
+                                    class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="boleh dikosongkan">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Role</label>
@@ -406,8 +406,8 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Email</label>
-                                <input type="email" name="email" x-model="editUser.email" required
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Email <span class="font-normal normal-case text-slate-400">(opsional)</span></label>
+                                <input type="email" name="email" x-model="editUser.email"
                                     class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>

@@ -43,17 +43,27 @@
         </form>
 
         <div class="overflow-hidden rounded-xl border bg-white shadow-sm">
-            <table class="w-full text-left text-sm">
+            <table class="w-full table-fixed text-left text-sm" style="table-layout: fixed;">
+                <colgroup>
+                    <col style="width: 14%;">
+                    <col style="width: 18%;">
+                    <col style="width: 10%;">
+                    <col style="width: 13%;">
+                    <col style="width: 13%;">
+                    <col style="width: 13%;">
+                    <col style="width: 12%;">
+                    <col style="width: 7%;">
+                </colgroup>
                 <thead class="border-b bg-slate-50 text-xs uppercase text-slate-500">
                     <tr>
-                        <th class="px-6 py-4 font-semibold">WO</th>
-                        <th class="px-6 py-4 font-semibold">Part</th>
-                        <th class="px-6 py-4 font-semibold">Plan Date</th>
-                        <th class="px-6 py-4 font-semibold">Material Request</th>
-                        <th class="px-6 py-4 font-semibold">Tahap Material</th>
-                        <th class="px-6 py-4 font-semibold">WH Supply</th>
-                        <th class="px-6 py-4 font-semibold">Serah Terima to Production</th>
-                        <th class="px-6 py-4 text-right font-semibold">Action</th>
+                        <th class="px-4 py-3 font-semibold">WO</th>
+                        <th class="px-4 py-3 font-semibold">Part</th>
+                        <th class="px-4 py-3 font-semibold">Plan Date</th>
+                        <th class="px-4 py-3 font-semibold">Material Request</th>
+                        <th class="px-4 py-3 font-semibold">Tahap Material</th>
+                        <th class="px-4 py-3 font-semibold">WH Supply</th>
+                        <th class="px-4 py-3 font-semibold">Serah Terima</th>
+                        <th class="px-4 py-3 text-right font-semibold">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -81,8 +91,8 @@
                             }
                         @endphp
                         <tr class="hover:bg-slate-50">
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-slate-900">{{ $woLabel }}</div>
+                            <td class="px-4 py-3">
+                                <div class="truncate font-semibold text-slate-900" title="{{ $woLabel }}">{{ $woLabel }}</div>
                                 <div class="text-xs text-slate-500">
                                     @if($order->production_order_number && $order->transaction_no)
                                         {{ $order->transaction_no }}
@@ -93,12 +103,12 @@
                                     @endif
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-slate-900">{{ $order->part?->part_no ?? '-' }}</div>
-                                <div class="text-xs text-slate-500">{{ $order->part?->part_name ?? '-' }}</div>
+                            <td class="px-4 py-3">
+                                <div class="truncate font-semibold text-slate-900" title="{{ $order->part?->part_no ?? '-' }}">{{ $order->part?->part_no ?? '-' }}</div>
+                                <div class="truncate text-xs text-slate-500" title="{{ $order->part?->part_name ?? '-' }}">{{ $order->part?->part_name ?? '-' }}</div>
                             </td>
-                            <td class="px-6 py-4 text-slate-700">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3 text-slate-700">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
+                            <td class="px-4 py-3">
                                 @if($order->material_requested_at)
                                     <div class="text-sm font-medium text-slate-900">{{ $order->material_requested_at->format('d M Y H:i') }}</div>
                                     <div class="text-xs text-slate-500">{{ $order->material_request_lines ? count($order->material_request_lines) : 0 }} item</div>
@@ -106,7 +116,7 @@
                                     <span class="text-xs italic text-slate-400">Belum dibuat</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3">
                                 <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $stageClass }}">
                                     {{ $stageLabel }}
                                 </span>
@@ -117,7 +127,7 @@
                                     Sudah discan: {{ $scanCount }} tag
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3">
                                 @if($order->material_issued_at)
                                     <div class="text-sm font-medium text-emerald-700">{{ $order->material_issued_at->format('d M Y H:i') }}</div>
                                     <div class="text-xs text-slate-500">{{ $order->materialIssuer?->name ?? '-' }}</div>
@@ -125,7 +135,7 @@
                                     <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Belum diposting</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3">
                                 @if($order->material_handed_over_at)
                                     <div class="text-sm font-medium text-blue-700">{{ $order->material_handed_over_at->format('d M Y H:i') }}</div>
                                     <div class="text-xs text-slate-500">{{ $order->materialHandoverUser?->name ?? '-' }}</div>
@@ -133,7 +143,7 @@
                                     <span class="text-xs italic text-slate-400">Belum diterima line</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-4 py-3 text-right">
                                 <div class="flex flex-col items-end gap-2">
                                     @if(!$order->material_issued_at && $hasRequest)
                                         <form action="{{ route('production.orders.material-issue', $order) }}" method="POST">

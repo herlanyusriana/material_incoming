@@ -115,11 +115,16 @@
         }
 
         function initMonitoringRealtime() {
-            if (!window.Echo) {
+            if (!window.initRealtimeEcho) {
                 return;
             }
 
-            monitoringChannel = window.Echo.channel('production.monitoring')
+            const echo = window.initRealtimeEcho();
+            if (!echo) {
+                return;
+            }
+
+            monitoringChannel = echo.channel('production.monitoring')
                 .listen('.production.monitoring.updated', (payload) => {
                     const selectedDate = document.getElementById('monitorDate').value;
                     const dates = Array.isArray(payload.dates) ? payload.dates : [];
