@@ -77,6 +77,35 @@ class ContractNumberController extends Controller
         return redirect()->route('contract-numbers.index')->with('success', 'Nomor kontrak berhasil dibuat.');
     }
 
+    public function create()
+    {
+        $vendors = Vendor::query()
+            ->where('status', 'active')
+            ->orderBy('vendor_name')
+            ->get(['id', 'vendor_name']);
+
+        $subconParts = $this->getSubconPartOptions();
+        $subconPartsJson = collect($subconParts)->values()->map(function ($part, $idx) {
+            return [
+                'key' => 'wip-' . $idx,
+                'id' => isset($part['id']) ? (string) $part['id'] : '',
+                'part_no' => $part['part_no'] ?? '',
+                'part_name' => $part['part_name'] ?? '',
+                'rm_part_id' => isset($part['rm_part_id']) ? (string) $part['rm_part_id'] : '',
+                'rm_part_no' => $part['rm_part_no'] ?? '',
+                'rm_part_name' => $part['rm_part_name'] ?? '',
+                'process_name' => $part['process_name'] ?? '',
+                'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
+                'uom' => $part['uom'] ?? 'PCS',
+            ];
+        })->all();
+
+        return view('contract-numbers.create', [
+            'vendors' => $vendors,
+            'subconPartsJson' => $subconPartsJson,
+        ]);
+    }
+
     public function show(ContractNumber $contractNumber)
     {
         $contractNumber->load(['vendor', 'creator', 'updater', 'items.gciPart', 'items.rmPart', 'items.bomItem.consumptionUom', 'items.bomItem.wipUom']);

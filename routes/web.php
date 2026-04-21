@@ -127,6 +127,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/pricing/{pricing}', [PricingController::class, 'update'])->name('pricing.update');
     Route::delete('/pricing/{pricing}', [PricingController::class, 'destroy'])->name('pricing.destroy');
     Route::get('/contract-numbers', [ContractNumberController::class, 'index'])->name('contract-numbers.index');
+    Route::get('/contract-numbers/create', [ContractNumberController::class, 'create'])->name('contract-numbers.create');
     Route::post('/contract-numbers', [ContractNumberController::class, 'store'])->name('contract-numbers.store');
     Route::get('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'show'])->name('contract-numbers.show');
     Route::get('/contract-numbers/{contractNumber}/edit', [ContractNumberController::class, 'edit'])->name('contract-numbers.edit');
