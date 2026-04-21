@@ -37,7 +37,7 @@ class SubconController extends Controller
 
     private function buildIndexResponse(Request $request, string $mode)
     {
-        $query = SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'creator'])
+        $query = SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom'])
             ->orderByDesc('created_at');
 
         if ($request->filled('status')) {
@@ -104,7 +104,7 @@ class SubconController extends Controller
     private function buildContractRemainRows(Request $request)
     {
         return ContractNumberItem::query()
-            ->with(['contractNumber.vendor', 'gciPart', 'rmPart'])
+            ->with(['contractNumber.vendor', 'gciPart', 'rmPart', 'bomItem.consumptionUom', 'bomItem.wipUom'])
             ->whereHas('contractNumber', function ($query) use ($request) {
                 $query->where('status', 'active');
 
@@ -138,6 +138,7 @@ class SubconController extends Controller
                     'wip_part_no' => $item->gciPart?->part_no ?? '-',
                     'wip_part_name' => $item->gciPart?->part_name ?? '-',
                     'process_type' => $item->process_type ?: '-',
+                    'uom' => $this->resolveSubconUom($item->bomItem, $item->rmPart, $item->gciPart),
                     'target_qty' => $targetQty,
                     'sent_qty' => $sentQty,
                     'remaining_qty' => $remainingQty,
@@ -197,6 +198,7 @@ class SubconController extends Controller
                 'fg_part_no' => $part['fg_part_no'] ?? '',
                 'fg_part_name' => $part['fg_part_name'] ?? '',
                 'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
+                'uom' => $part['uom'] ?? 'PCS',
             ];
         })->all();
 
@@ -220,7 +222,7 @@ class SubconController extends Controller
         ]]);
 
         $contractsJson = ContractNumber::query()
-            ->with(['items.gciPart', 'items.rmPart'])
+            ->with(['items.gciPart', 'items.rmPart', 'items.bomItem.consumptionUom', 'items.bomItem.wipUom'])
             ->where('status', 'active')
             ->orderBy('contract_no')
             ->get()
@@ -238,6 +240,7 @@ class SubconController extends Controller
                     'rm_part_name' => $item->rmPart->part_name ?? '-',
                     'process_type' => $item->process_type,
                     'bom_item_id' => (string)$item->bom_item_id,
+                    'uom' => $this->resolveSubconUom($item->bomItem, $item->rmPart, $item->gciPart),
                     'target_qty' => (float)$item->target_qty,
                     'sent_qty' => (float)$item->sent_qty,
                     'remaining_qty' => max(0, (float)$item->target_qty - (float)$item->sent_qty),
@@ -374,7 +377,7 @@ class SubconController extends Controller
 
     public function show(SubconOrder $subconOrder)
     {
-        $subconOrder->load(['vendor', 'rmPart', 'gciPart', 'bomItem', 'receives.creator', 'creator', 'sender']);
+        $subconOrder->load(['vendor', 'rmPart', 'gciPart', 'bomItem.consumptionUom', 'bomItem.wipUom', 'receives.creator', 'creator', 'sender']);
         $traceability = LocationInventoryAdjustment::with(['creator'])
             ->where('source_reference', $subconOrder->order_no)
             ->orderBy('adjusted_at')
@@ -407,13 +410,13 @@ class SubconController extends Controller
 
     public function printReceiveLabel(SubconOrderReceive $subconOrderReceive)
     {
-        $subconOrderReceive->load(['subconOrder.gciPart']);
+        $subconOrderReceive->load(['subconOrder.gciPart', 'subconOrder.rmPart', 'subconOrder.bomItem.consumptionUom', 'subconOrder.bomItem.wipUom']);
         return view('subcon.print_receive_label', compact('subconOrderReceive'));
     }
 
     public function printReceivePL(SubconOrderReceive $subconOrderReceive)
     {
-        $subconOrderReceive->load(['subconOrder.gciPart', 'subconOrder.vendor']);
+        $subconOrderReceive->load(['subconOrder.gciPart', 'subconOrder.rmPart', 'subconOrder.vendor', 'subconOrder.bomItem.consumptionUom', 'subconOrder.bomItem.wipUom']);
         return view('subcon.print_receive_pl', compact('subconOrderReceive'));
     }
 
@@ -545,7 +548,7 @@ class SubconController extends Controller
                             ->orWhereDate('end_date', '>=', $today);
                     });
             })
-            ->with(['wipPart', 'componentPart', 'bom.part'])
+            ->with(['wipPart', 'componentPart', 'bom.part', 'consumptionUom', 'wipUom'])
             ->get()
             ->map(function (BomItem $item) {
                 return [
@@ -559,6 +562,7 @@ class SubconController extends Controller
                     'fg_part_no' => $item->bom?->part?->part_no ?? '',
                     'fg_part_name' => $item->bom?->part?->part_name ?? '',
                     'bom_item_id' => $item->id,
+                    'uom' => $this->resolveSubconUom($item, $item->componentPart, $item->wipPart),
                 ];
             })
             ->filter(fn ($item) => !empty($item['id']) && !empty($item['part_no']))
@@ -577,7 +581,7 @@ class SubconController extends Controller
 
     private function buildPrintPayload(SubconOrder $subconOrder): array
     {
-        $subconOrder->loadMissing(['vendor', 'rmPart', 'gciPart', 'creator']);
+        $subconOrder->loadMissing(['vendor', 'rmPart', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom']);
 
         $pricing = PricingMaster::resolveCurrentPrice(
             (int) ($subconOrder->rm_gci_part_id ?? 0),
@@ -602,7 +606,7 @@ class SubconController extends Controller
                 . (string) ($subconOrder->gciPart->part_no ?? '-')
                 . ' - '
                 . (string) ($subconOrder->gciPart->part_name ?? '-'),
-            'uom' => (string) ($subconOrder->rmPart->uom ?? 'PCS'),
+            'uom' => $this->resolveSubconUom($subconOrder->bomItem, $subconOrder->rmPart, $subconOrder->gciPart),
             'qty' => $qty,
             'unit_price' => $unitPrice,
             'amount' => round($qty * $unitPrice, 2),
@@ -618,5 +622,20 @@ class SubconController extends Controller
             'totalQty' => round((float) $lines->sum('qty'), 4),
             'totalAmount' => round((float) $lines->sum('amount'), 2),
         ];
+    }
+
+    private function resolveSubconUom(?BomItem $bomItem, ?GciPart $rmPart = null, ?GciPart $wipPart = null): string
+    {
+        $uom = $bomItem?->consumptionUom?->code
+            ?? $bomItem?->consumption_uom
+            ?? $rmPart?->uom
+            ?? $bomItem?->wipUom?->code
+            ?? $bomItem?->wip_uom
+            ?? $wipPart?->uom
+            ?? 'PCS';
+
+        $uom = strtoupper(trim((string) $uom));
+
+        return $uom !== '' ? $uom : 'PCS';
     }
 }

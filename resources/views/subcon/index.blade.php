@@ -132,6 +132,7 @@
                                 <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
                                 <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
                                 <th class="px-4 py-3 text-center font-bold text-slate-700">Process</th>
+                                <th class="px-4 py-3 text-center font-bold text-slate-700">UOM</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Target</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Remain</th>
@@ -157,6 +158,7 @@
                                             {{ $row['process_type'] }}
                                         </span>
                                     </td>
+                                    <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">{{ $row['uom'] ?? 'PCS' }}</td>
                                     <td class="px-4 py-3 text-right font-mono">{{ number_format($row['target_qty']) }}</td>
                                     <td class="px-4 py-3 text-right font-mono">{{ number_format($row['sent_qty']) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black {{ $row['is_alarm'] ? 'text-amber-700' : 'text-emerald-700' }}">
@@ -173,7 +175,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
+                                    <td colspan="11" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -193,6 +195,7 @@
                             <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
                             <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Process</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">UOM</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Received</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Outstanding</th>
@@ -221,6 +224,9 @@
                                     <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                                         {{ ucfirst($order->process_type) }}
                                     </span>
+                                </td>
+                                <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">
+                                    {{ $order->bomItem?->consumptionUom?->code ?? $order->bomItem?->consumption_uom ?? $order->rmPart?->uom ?? $order->bomItem?->wipUom?->code ?? $order->bomItem?->wip_uom ?? $order->gciPart?->uom ?? 'PCS' }}
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono">{{ number_format($order->qty_sent) }}</td>
                                 <td class="px-4 py-3 text-right font-mono">{{ number_format($order->qty_received) }}</td>
@@ -253,7 +259,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="12" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
+                                <td colspan="13" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
                             </tr>
                         @endforelse
                     </tbody>

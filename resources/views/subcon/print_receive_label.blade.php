@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+@php
+    $subconUom = $subconOrderReceive->subconOrder->bomItem?->consumptionUom?->code
+        ?? $subconOrderReceive->subconOrder->bomItem?->consumption_uom
+        ?? $subconOrderReceive->subconOrder->rmPart?->uom
+        ?? $subconOrderReceive->subconOrder->bomItem?->wipUom?->code
+        ?? $subconOrderReceive->subconOrder->bomItem?->wip_uom
+        ?? $subconOrderReceive->subconOrder->gciPart?->uom
+        ?? 'PCS';
+@endphp
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -140,12 +149,12 @@
             </div>
             <div class="detail-row">
                 <div class="detail-label">Qty Good:</div>
-                <div class="detail-val">{{ number_format($subconOrderReceive->qty_good) }} PCS</div>
+                <div class="detail-val">{{ number_format($subconOrderReceive->qty_good) }} {{ $subconUom }}</div>
             </div>
             @if($subconOrderReceive->qty_rejected > 0)
             <div class="detail-row">
                 <div class="detail-label">Qty Reject:</div>
-                <div class="detail-val">{{ number_format($subconOrderReceive->qty_rejected) }} PCS</div>
+                <div class="detail-val">{{ number_format($subconOrderReceive->qty_rejected) }} {{ $subconUom }}</div>
             </div>
             @endif
             <div class="detail-row">

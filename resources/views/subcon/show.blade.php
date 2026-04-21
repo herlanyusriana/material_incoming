@@ -1,6 +1,15 @@
 @extends('subcon.layout')
 
 @section('content')
+    @php
+        $subconUom = $subconOrder->bomItem?->consumptionUom?->code
+            ?? $subconOrder->bomItem?->consumption_uom
+            ?? $subconOrder->rmPart?->uom
+            ?? $subconOrder->bomItem?->wipUom?->code
+            ?? $subconOrder->bomItem?->wip_uom
+            ?? $subconOrder->gciPart?->uom
+            ?? 'PCS';
+    @endphp
     <div class="space-y-6">
         @if (session('success'))
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
@@ -98,19 +107,19 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="rounded-lg bg-blue-50 p-4 text-center">
                         <div class="text-xs font-bold text-blue-600 uppercase">Qty Sent</div>
-                        <div class="mt-1 text-xl font-black text-blue-800">{{ number_format($subconOrder->qty_sent) }}</div>
+                        <div class="mt-1 text-xl font-black text-blue-800">{{ number_format($subconOrder->qty_sent) }} <span class="text-xs text-blue-600">{{ $subconUom }}</span></div>
                     </div>
                     <div class="rounded-lg bg-emerald-50 p-4 text-center">
                         <div class="text-xs font-bold text-emerald-600 uppercase">Qty Received</div>
-                        <div class="mt-1 text-xl font-black text-emerald-800">{{ number_format($subconOrder->qty_received) }}</div>
+                        <div class="mt-1 text-xl font-black text-emerald-800">{{ number_format($subconOrder->qty_received) }} <span class="text-xs text-emerald-600">{{ $subconUom }}</span></div>
                     </div>
                     <div class="rounded-lg bg-red-50 p-4 text-center">
                         <div class="text-xs font-bold text-red-600 uppercase">Qty Rejected</div>
-                        <div class="mt-1 text-xl font-black text-red-800">{{ number_format($subconOrder->qty_rejected) }}</div>
+                        <div class="mt-1 text-xl font-black text-red-800">{{ number_format($subconOrder->qty_rejected) }} <span class="text-xs text-red-600">{{ $subconUom }}</span></div>
                     </div>
                     <div class="rounded-lg bg-amber-50 p-4 text-center">
                         <div class="text-xs font-bold text-amber-600 uppercase">Outstanding</div>
-                        <div class="mt-1 text-xl font-black text-amber-800">{{ number_format($subconOrder->qty_outstanding) }}</div>
+                        <div class="mt-1 text-xl font-black text-amber-800">{{ number_format($subconOrder->qty_outstanding) }} <span class="text-xs text-amber-600">{{ $subconUom }}</span></div>
                     </div>
                 </div>
             </div>
@@ -131,12 +140,12 @@
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span> <span class="text-xs text-slate-500">({{ $subconUom }})</span></label>
                             <input type="number" step="0.0001" min="0" name="qty_good" value="{{ old('qty_good', max(0, $subconOrder->qty_outstanding)) }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" required />
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected <span class="text-xs text-slate-500">({{ $subconUom }})</span></label>
                             <input type="number" step="0.0001" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
@@ -210,8 +219,8 @@
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 text-slate-600">{{ $i + 1 }}</td>
                                 <td class="px-4 py-3 text-center text-slate-700">{{ $rec->received_date->format('d/m/Y') }}</td>
-                                <td class="px-4 py-3 text-right font-mono text-emerald-700 font-bold">{{ number_format($rec->qty_good) }}</td>
-                                <td class="px-4 py-3 text-right font-mono {{ $rec->qty_rejected > 0 ? 'text-red-600' : 'text-slate-400' }}">{{ number_format($rec->qty_rejected) }}</td>
+                                <td class="px-4 py-3 text-right font-mono text-emerald-700 font-bold">{{ number_format($rec->qty_good) }} <span class="text-[10px]">{{ $subconUom }}</span></td>
+                                <td class="px-4 py-3 text-right font-mono {{ $rec->qty_rejected > 0 ? 'text-red-600' : 'text-slate-400' }}">{{ number_format($rec->qty_rejected) }} <span class="text-[10px]">{{ $subconUom }}</span></td>
                                 <td class="px-4 py-3 text-slate-600">
                                     <div class="font-semibold">{{ $rec->receive_location_code ?? '-' }}</div>
                                     <div class="text-xs text-slate-400">{{ $rec->posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</div>
@@ -283,7 +292,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-slate-700">{{ $move->location_code ?? '-' }}</td>
                                 <td class="px-4 py-3 text-right font-mono {{ (float) $move->qty_change < 0 ? 'text-red-600' : 'text-emerald-700' }}">
-                                    {{ number_format((float) $move->qty_change, 4) }}
+                                    {{ number_format((float) $move->qty_change, 4) }} <span class="text-[10px]">{{ $subconUom }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">{{ $move->creator->name ?? '-' }}</td>
                             </tr>

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContractNumber;
+use App\Models\BomItem;
+use App\Models\GciPart;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,7 +18,7 @@ class ContractNumberController extends Controller
         $status = trim((string) $request->query('status', 'active'));
 
         $contracts = ContractNumber::query()
-            ->with(['vendor', 'creator', 'items.gciPart', 'items.rmPart'])
+            ->with(['vendor', 'creator', 'items.gciPart', 'items.rmPart', 'items.bomItem.consumptionUom', 'items.bomItem.wipUom'])
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('contract_no', 'like', '%' . $search . '%')
@@ -49,6 +51,7 @@ class ContractNumberController extends Controller
                 'rm_part_name' => $part['rm_part_name'] ?? '',
                 'process_name' => $part['process_name'] ?? '',
                 'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
+                'uom' => $part['uom'] ?? 'PCS',
             ];
         })->all();
 
@@ -76,7 +79,16 @@ class ContractNumberController extends Controller
 
     public function show(ContractNumber $contractNumber)
     {
-        $contractNumber->load(['vendor', 'creator', 'updater', 'items.gciPart', 'items.rmPart', 'items.bomItem']);
+        $contractNumber->load(['vendor', 'creator', 'updater', 'items.gciPart', 'items.rmPart', 'items.bomItem.consumptionUom', 'items.bomItem.wipUom']);
+
+        return view('contract-numbers.show', [
+            'contract' => $contractNumber,
+        ]);
+    }
+
+    public function edit(ContractNumber $contractNumber)
+    {
+        $contractNumber->load(['vendor', 'creator', 'updater', 'items.gciPart', 'items.rmPart', 'items.bomItem.consumptionUom', 'items.bomItem.wipUom']);
 
         $vendors = Vendor::query()
             ->where('status', 'active')
@@ -95,6 +107,7 @@ class ContractNumberController extends Controller
                 'rm_part_name' => $part['rm_part_name'] ?? '',
                 'process_name' => $part['process_name'] ?? '',
                 'bom_item_id' => isset($part['bom_item_id']) ? (string) $part['bom_item_id'] : '',
+                'uom' => $part['uom'] ?? 'PCS',
             ];
         })->all();
 
@@ -113,7 +126,7 @@ class ContractNumberController extends Controller
             ];
         })->values()->all();
 
-        return view('contract-numbers.show', [
+        return view('contract-numbers.edit', [
             'contract' => $contractNumber,
             'vendors' => $vendors,
             'subconPartsJson' => $subconPartsJson,
@@ -144,7 +157,7 @@ class ContractNumberController extends Controller
     public function byVendor(Vendor $vendor)
     {
         $contracts = ContractNumber::query()
-            ->with(['items.gciPart', 'items.rmPart'])
+            ->with(['items.gciPart', 'items.rmPart', 'items.bomItem.consumptionUom', 'items.bomItem.wipUom'])
             ->where('vendor_id', $vendor->id)
             ->where('status', 'active')
             ->orderByDesc('effective_from')
@@ -165,6 +178,7 @@ class ContractNumberController extends Controller
                     'rm_part_name' => $item->rmPart->part_name ?? '-',
                     'process_type' => $item->process_type,
                     'bom_item_id' => $item->bom_item_id,
+                    'uom' => $this->resolveSubconUom($item->bomItem, $item->rmPart, $item->gciPart),
                     'target_qty' => $item->target_qty,
                     'sent_qty' => $item->sent_qty,
                     'remaining_qty' => max(0, (float)$item->target_qty - (float)$item->sent_qty),
@@ -233,7 +247,7 @@ class ContractNumberController extends Controller
                             ->orWhereDate('end_date', '>=', $today);
                     });
             })
-            ->with(['wipPart', 'componentPart'])
+            ->with(['wipPart', 'componentPart', 'consumptionUom', 'wipUom'])
             ->get()
             ->map(function ($item) {
                 return [
@@ -245,6 +259,7 @@ class ContractNumberController extends Controller
                     'rm_part_name' => $item->componentPart->part_name ?? $item->material_name,
                     'process_name' => $item->process_name,
                     'bom_item_id' => $item->id,
+                    'uom' => $this->resolveSubconUom($item, $item->componentPart, $item->wipPart),
                 ];
             })
             ->filter(fn ($item) => !empty($item['id']) && !empty($item['part_no']))
@@ -258,5 +273,20 @@ class ContractNumberController extends Controller
                 ['process_name', 'asc'],
             ])
             ->values();
+    }
+
+    private function resolveSubconUom(?BomItem $bomItem, ?GciPart $rmPart = null, ?GciPart $wipPart = null): string
+    {
+        $uom = $bomItem?->consumptionUom?->code
+            ?? $bomItem?->consumption_uom
+            ?? $rmPart?->uom
+            ?? $bomItem?->wipUom?->code
+            ?? $bomItem?->wip_uom
+            ?? $wipPart?->uom
+            ?? 'PCS';
+
+        $uom = strtoupper(trim((string) $uom));
+
+        return $uom !== '' ? $uom : 'PCS';
     }
 }

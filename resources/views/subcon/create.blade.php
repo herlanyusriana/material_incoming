@@ -116,7 +116,10 @@
                                     </div>
                                     <div class="text-right" x-show="row.target_qty !== undefined">
                                         <div class="text-[10px] font-bold text-slate-500 uppercase">Sisa Qty Kontrak</div>
-                                        <div class="text-sm font-black" :class="row.remaining_qty > 0 ? 'text-emerald-600' : 'text-rose-600'" x-text="row.remaining_qty"></div>
+                                        <div class="text-sm font-black" :class="row.remaining_qty > 0 ? 'text-emerald-600' : 'text-rose-600'">
+                                            <span x-text="row.remaining_qty"></span>
+                                            <span class="text-[10px] text-slate-500" x-text="row.uom || 'PCS'"></span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -136,7 +139,10 @@
                                     </div>
 
                                     <div class="space-y-1">
-                                        <label class="block text-[10px] font-bold uppercase text-slate-500">Qty Sent <span class="text-red-500">*</span></label>
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">
+                                            Qty Sent <span class="text-red-500">*</span>
+                                            <span class="text-indigo-600" x-text="`(${row.uom || 'PCS'})`"></span>
+                                        </label>
                                         <input type="number"
                                             step="0.0001"
                                             min="0"
@@ -214,6 +220,7 @@
                                     wip_part_name: item.wip_part_name,
                                     rm_part_no: item.rm_part_no,
                                     rm_part_name: item.rm_part_name,
+                                    uom: item.uom || 'PCS',
                                     target_qty: item.target_qty,
                                     remaining_qty: item.remaining_qty,
                                     qty_sent: oldMatch ? oldMatch.qty_sent : '',
@@ -274,6 +281,7 @@
                                 wip_part_name: item.wip_part_name,
                                 rm_part_no: item.rm_part_no,
                                 rm_part_name: item.rm_part_name,
+                                uom: item.uom || 'PCS',
                                 target_qty: item.target_qty,
                                 remaining_qty: item.remaining_qty,
                                 qty_sent: '',
