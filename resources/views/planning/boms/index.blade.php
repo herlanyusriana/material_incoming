@@ -60,19 +60,12 @@
                 .bom-table {
                     border-collapse: separate;
                     border-spacing: 0;
-                    table-layout: fixed;
-                    width: 100%;
                 }
 
                 .bom-table th,
                 .bom-table td {
                     border-bottom: 1px solid #e2e8f0;
                     border-right: 1px solid #f1f5f9;
-                    max-width: 1px;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: normal !important;
-                    word-break: break-word;
                 }
 
                 .bom-table th {
@@ -85,28 +78,28 @@
 
                 /* Sticky left columns */
                 .sticky-col-1 {
-                    position: static;
+                    position: sticky;
                     left: 0;
                     z-index: 30;
                     background: inherit;
                 }
 
                 .sticky-col-2 {
-                    position: static;
+                    position: sticky;
                     left: 48px;
                     z-index: 30;
                     background: inherit;
                 }
 
                 .sticky-col-3 {
-                    position: static;
+                    position: sticky;
                     left: 248px;
                     z-index: 30;
                     background: inherit;
                 }
 
                 .sticky-col-4 {
-                    position: static;
+                    position: sticky;
                     left: 348px;
                     z-index: 30;
                     background: inherit;
@@ -115,10 +108,6 @@
                 .th-sticky {
                     z-index: 40 !important;
                     background: #f8fafc !important;
-                }
-
-                .bom-table .sticky {
-                    position: static !important;
                 }
 
                 .parent-row {
@@ -292,31 +281,8 @@
                 </div>
 
                 {{-- Table --}}
-                <div class="overflow-hidden max-h-[700px]">
-                    <table class="bom-table w-full text-xs" style="table-layout: fixed;">
-                        <colgroup>
-                            <col style="width: 2%;">
-                            <col style="width: 8%;">
-                            <col style="width: 4%;">
-                            <col style="width: 7%;">
-                            <col style="width: 5%;">
-                            <col style="width: 5%;">
-                            <col style="width: 6%;">
-                            <col style="width: 3%;">
-                            <col style="width: 3%;">
-                            <col style="width: 6%;">
-                            <col style="width: 4%;">
-                            <col style="width: 4%;">
-                            <col style="width: 5%;">
-                            <col style="width: 3%;">
-                            <col style="width: 6%;">
-                            <col style="width: 7%;">
-                            <col style="width: 4%;">
-                            <col style="width: 4%;">
-                            <col style="width: 3%;">
-                            <col style="width: 4%;">
-                            <col style="width: 7%;">
-                        </colgroup>
+                <div class="max-w-full overflow-x-auto max-h-[700px]">
+                    <table class="bom-table min-w-[2000px] w-full text-sm">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                 <th class="px-2 py-3 text-left font-bold sticky-col-1 th-sticky w-12">No</th>
