@@ -38,6 +38,28 @@ class WarehouseApiController extends Controller
         ];
     }
 
+    private function targetSupplyDate(Request $request): string
+    {
+        $selectedDate = trim((string) $request->query('date', $request->input('date', '')));
+
+        return $selectedDate !== ''
+            ? Carbon::parse($selectedDate)->toDateString()
+            : now()->toDateString();
+    }
+
+    private function supplyAllOrders(string $targetDate)
+    {
+        return ProductionOrder::query()
+            ->with('part')
+            ->whereDate('plan_date', $targetDate)
+            ->whereIn('status', ['planned', 'kanban_released', 'material_hold', 'resource_hold', 'released'])
+            ->whereNull('material_issued_at')
+            ->whereNull('material_handed_over_at')
+            ->orderBy('plan_date')
+            ->orderBy('id')
+            ->get();
+    }
+
     private function issueKeys(?int $gciPartId, ?int $partId, ?string $partNo): array
     {
         $keys = [];
@@ -75,6 +97,486 @@ class WarehouseApiController extends Controller
         }
 
         return array_values(array_unique($keys));
+    }
+
+    private function scannedQtyForRequirement(ProductionOrder $order, array $requirementKeys): array
+    {
+        return collect($order->material_issue_lines ?? [])->reduce(function (array $carry, array $issueLine) use ($requirementKeys) {
+            $lineKeys = $this->issueKeys(
+                (int) ($issueLine['gci_part_id'] ?? 0),
+                (int) ($issueLine['part_id'] ?? 0),
+                (string) ($issueLine['part_no'] ?? '')
+            );
+
+            if (!empty(array_intersect($lineKeys, $requirementKeys))) {
+                $carry['qty'] += (float) ($issueLine['qty'] ?? $issueLine['issued_qty'] ?? 0);
+                $carry['tags']++;
+            }
+
+            return $carry;
+        }, ['qty' => 0.0, 'tags' => 0]);
+    }
+
+    private function buildSupplyAllRows($orders): array
+    {
+        $rows = [];
+
+        foreach ($orders as $order) {
+            foreach (($order->material_request_lines ?? []) as $line) {
+                $componentGciPartId = (int) ($line['component_gci_part_id'] ?? 0);
+                $componentPartNo = strtoupper(trim((string) ($line['component_part_no'] ?? '')));
+
+                if ($componentGciPartId <= 0 && $componentPartNo === '') {
+                    continue;
+                }
+
+                $keys = $this->requirementKeys($line);
+                $scanProgress = $this->scannedQtyForRequirement($order, $keys);
+                $requiredQty = round((float) ($line['required_qty'] ?? 0), 4);
+                $scannedQty = round((float) ($scanProgress['qty'] ?? 0), 4);
+                $remainingQty = max(0, round($requiredQty - $scannedQty, 4));
+
+                if ($remainingQty <= 0) {
+                    continue;
+                }
+
+                $groupKey = $componentGciPartId > 0
+                    ? 'gci:' . $componentGciPartId
+                    : 'part:' . $componentPartNo;
+
+                if (!isset($rows[$groupKey])) {
+                    $primaryAllocation = ($line['allocations'] ?? [])[0] ?? null;
+                    $rows[$groupKey] = [
+                        'group_key' => $groupKey,
+                        'gci_part_id' => $componentGciPartId,
+                        'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
+                        'part_name' => (string) ($line['component_part_name'] ?? ''),
+                        'scan_part_no' => (string) ($primaryAllocation['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
+                        'scan_part_name' => (string) ($primaryAllocation['part_name'] ?? $line['component_part_name'] ?? ''),
+                        'uom' => (string) ($line['uom'] ?? 'PCS'),
+                        'total_required_qty' => 0.0,
+                        'total_scanned_qty' => 0.0,
+                        'total_remaining_qty' => 0.0,
+                        'wo_count' => 0,
+                        'orders' => [],
+                    ];
+                }
+
+                $rows[$groupKey]['total_required_qty'] = round($rows[$groupKey]['total_required_qty'] + $requiredQty, 4);
+                $rows[$groupKey]['total_scanned_qty'] = round($rows[$groupKey]['total_scanned_qty'] + $scannedQty, 4);
+                $rows[$groupKey]['total_remaining_qty'] = round($rows[$groupKey]['total_remaining_qty'] + $remainingQty, 4);
+                $rows[$groupKey]['wo_count']++;
+                $rows[$groupKey]['orders'][] = [
+                    'id' => (int) $order->id,
+                    'wo_number' => (string) ($order->production_order_number ?? $order->transaction_no ?? $order->id),
+                    'fg_part_no' => (string) ($order->part?->part_no ?? ''),
+                    'fg_part_name' => (string) ($order->part?->part_name ?? ''),
+                    'required_qty' => $requiredQty,
+                    'scanned_qty' => $scannedQty,
+                    'remaining_qty' => $remainingQty,
+                    'scan_tags' => (int) ($scanProgress['tags'] ?? 0),
+                ];
+            }
+        }
+
+        return collect($rows)
+            ->sortBy([
+                fn (array $row) => $row['part_no'],
+                fn (array $row) => $row['scan_part_no'],
+            ])
+            ->values()
+            ->all();
+    }
+
+    public function supplyAllMaterials(Request $request)
+    {
+        $targetDate = $this->targetSupplyDate($request);
+        $orders = $this->supplyAllOrders($targetDate);
+
+        return response()->json([
+            'status' => 'success',
+            'meta' => [
+                'date' => $targetDate,
+                'wo_count' => $orders->count(),
+            ],
+            'data' => $this->buildSupplyAllRows($orders),
+        ]);
+    }
+
+    private function resolveScannedTag(string $rawTag): array
+    {
+        $tagNo = trim($rawTag);
+        $filterPartNo = null;
+        $receiveId = null;
+
+        if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
+            $decoded = json_decode($tagNo, true);
+            if (is_array($decoded)) {
+                if (!empty($decoded['tag'])) {
+                    $tagNo = (string) $decoded['tag'];
+                } elseif (!empty($decoded['barcode'])) {
+                    $tagNo = (string) $decoded['barcode'];
+                } elseif (!empty($decoded['part_no'])) {
+                    $tagNo = (string) $decoded['part_no'];
+                }
+
+                if (!empty($decoded['part_no'])) {
+                    $filterPartNo = strtoupper(trim((string) $decoded['part_no']));
+                }
+
+                if (!empty($decoded['receive_id'])) {
+                    $receiveId = (int) $decoded['receive_id'];
+                }
+            }
+        }
+
+        $tagNo = strtoupper(trim($tagNo));
+        $locInv = LocationInventory::where('batch_no', $tagNo)
+            ->where('qty_on_hand', '>', 0)
+            ->orderByRaw('CASE WHEN location_code = ? THEN 1 ELSE 0 END', [self::STAGING_LOCATION_CODE])
+            ->with('part', 'gciPart')
+            ->first();
+
+        if ($locInv) {
+            return [
+                'tag_no' => $tagNo,
+                'gci_part_id' => (int) ($locInv->gci_part_id ?? 0),
+                'part_id' => (int) ($locInv->part_id ?? 0),
+                'qty_available' => (float) $locInv->qty_on_hand,
+                'part_no' => (string) ($locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown'),
+                'part_name' => (string) ($locInv->part?->part_name_gci ?? $locInv->part?->part_name_vendor ?? $locInv->gciPart?->part_name ?? ''),
+                'location_code' => (string) $locInv->location_code,
+                'source_location_code' => (string) $locInv->location_code,
+                'loc_inv' => $locInv,
+                'traceability' => [],
+            ];
+        }
+
+        $receiveQuery = Receive::query()
+            ->with('arrivalItem.part', 'arrivalItem.gciPartVendor')
+            ->where(function ($query) use ($tagNo, $receiveId) {
+                $query->where('tag', $tagNo);
+
+                if ($receiveId > 0) {
+                    $query->orWhere('id', $receiveId);
+                }
+
+                if (ctype_digit($tagNo)) {
+                    $query->orWhere('id', (int) $tagNo);
+                }
+            });
+
+        if ($filterPartNo) {
+            $receiveQuery->whereHas('arrivalItem.part', fn ($query) => $query->where('part_no', $filterPartNo));
+        }
+
+        $receive = $receiveQuery->first();
+        if (!$receive) {
+            return [];
+        }
+
+        $arrItem = $receive->arrivalItem;
+        $partNo = $arrItem?->part?->part_no
+            ?? $arrItem?->gciPartVendor?->vendor_part_no
+            ?? 'Unknown';
+
+        return [
+            'tag_no' => $tagNo,
+            'gci_part_id' => (int) ($arrItem?->part?->gci_part_id ?? $arrItem?->gciPartVendor?->gci_part_id ?? 0),
+            'part_id' => (int) ($arrItem?->part?->id ?? 0),
+            'qty_available' => (float) ($receive->qty ?? 0),
+            'part_no' => (string) $partNo,
+            'part_name' => (string) ($arrItem?->part?->part_name_gci ?? $arrItem?->part?->part_name_vendor ?? ''),
+            'location_code' => null,
+            'source_location_code' => strtoupper(trim((string) ($receive->location_code ?? ''))),
+            'loc_inv' => null,
+            'traceability' => [
+                'source_receive_id' => (int) $receive->id,
+                'source_arrival_id' => (int) ($arrItem?->arrival_id ?? 0),
+                'source_invoice_no' => (string) ($receive->invoice_no ?? ''),
+                'source_delivery_note_no' => (string) ($receive->delivery_note_no ?? ''),
+                'source_tag' => $tagNo,
+            ],
+        ];
+    }
+
+    public function scanSupplyAll(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => 'nullable|date',
+            'tag_no' => 'required|string',
+            'issue_qty' => 'nullable|numeric|min:0.0001',
+        ]);
+
+        $targetDate = $this->targetSupplyDate($request);
+        $tag = $this->resolveScannedTag((string) $validated['tag_no']);
+
+        if (empty($tag) || (int) ($tag['gci_part_id'] ?? 0) <= 0 || (float) ($tag['qty_available'] ?? 0) <= 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Label/Tag tidak dikenali atau qty kosong. Pastikan ini Label RM GCI.',
+            ], 422);
+        }
+
+        $orders = $this->supplyAllOrders($targetDate);
+        $matches = [];
+        $tagKeys = $this->issueKeys((int) $tag['gci_part_id'], (int) $tag['part_id'], (string) $tag['part_no']);
+
+        foreach ($orders as $order) {
+            foreach (($order->material_request_lines ?? []) as $line) {
+                $requirementKeys = $this->requirementKeys($line);
+                if (empty(array_intersect($tagKeys, $requirementKeys))) {
+                    continue;
+                }
+
+                $alreadyScannedSameTag = collect($order->material_issue_lines ?? [])
+                    ->contains(fn (array $issueLine) => strtoupper((string) ($issueLine['tag_number'] ?? '')) === $tag['tag_no']);
+
+                if ($alreadyScannedSameTag) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "Tag {$tag['tag_no']} sudah pernah discan untuk salah satu WO pada tanggal ini.",
+                    ], 422);
+                }
+
+                $progress = $this->scannedQtyForRequirement($order, $requirementKeys);
+                $requiredQty = (float) ($line['required_qty'] ?? 0);
+                $remainingQty = max(0, round($requiredQty - (float) ($progress['qty'] ?? 0), 4));
+
+                if ($remainingQty <= 0) {
+                    continue;
+                }
+
+                $matches[] = [
+                    'order' => $order,
+                    'line' => $line,
+                    'remaining_qty' => $remainingQty,
+                ];
+            }
+        }
+
+        if (empty($matches)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Material {$tag['part_no']} tidak ada atau sudah terpenuhi pada WO tanggal {$targetDate}.",
+            ], 422);
+        }
+
+        $totalRemaining = round(collect($matches)->sum('remaining_qty'), 4);
+        $qtyAvailable = round((float) $tag['qty_available'], 4);
+        $issueQty = array_key_exists('issue_qty', $validated)
+            ? round((float) $validated['issue_qty'], 4)
+            : null;
+
+        if ($issueQty !== null && $issueQty > $qtyAvailable) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Qty issue {$issueQty} melebihi qty tag {$qtyAvailable}.",
+            ], 422);
+        }
+
+        if ($issueQty === null && $qtyAvailable > $totalRemaining) {
+            return response()->json([
+                'status' => 'needs_qty_confirmation',
+                'message' => 'Qty tag lebih besar dari total sisa kebutuhan WO. Pilih qty yang mau disupply.',
+                'data' => [
+                    'tag_no' => $tag['tag_no'],
+                    'part_no' => $tag['part_no'],
+                    'qty_available' => $qtyAvailable,
+                    'remaining_requirement_qty' => $totalRemaining,
+                    'suggested_qty' => $totalRemaining,
+                    'source_location_code' => $tag['source_location_code'],
+                    'target_date' => $targetDate,
+                ],
+            ], 409);
+        }
+
+        $issueQty ??= min($qtyAvailable, $totalRemaining);
+        $remainingTagQty = max(0, round($qtyAvailable - $issueQty, 4));
+
+        if (!$tag['loc_inv'] && $remainingTagQty > 0 && empty($tag['source_location_code'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tag ini discan partial, tapi lokasi receive kosong. Isi lokasi receive dulu supaya sisa tag tetap termonitor.',
+            ], 422);
+        }
+
+        $allocations = [];
+        $qtyToAllocate = $issueQty;
+
+        foreach ($matches as $match) {
+            if ($qtyToAllocate <= 0) {
+                break;
+            }
+
+            $allocatedQty = min($qtyToAllocate, (float) $match['remaining_qty']);
+            $allocations[] = [
+                'order' => $match['order'],
+                'line' => $match['line'],
+                'qty' => round($allocatedQty, 4),
+            ];
+            $qtyToAllocate = round($qtyToAllocate - $allocatedQty, 4);
+        }
+
+        $stagedToAa = false;
+        $locationCode = $tag['location_code'] ?: self::STAGING_LOCATION_CODE;
+        $traceability = is_array($tag['traceability'] ?? null) ? $tag['traceability'] : [];
+
+        DB::transaction(function () use ($tag, $issueQty, $remainingTagQty, $allocations, &$stagedToAa, &$locationCode, $traceability) {
+            $sourceReference = 'PROD_SUPPLY_ALL#' . now()->format('YmdHis');
+            $stagingLocation = self::STAGING_LOCATION_CODE;
+            $locInv = $tag['loc_inv'];
+
+            if ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
+                LocationInventory::consumeStock(
+                    (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                    (string) $locInv->location_code,
+                    $issueQty,
+                    (string) $tag['tag_no'],
+                    (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
+                    'PRODUCTION_STAGE_AA_OUT',
+                    $sourceReference,
+                    array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                );
+
+                LocationInventory::updateStock(
+                    (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                    $stagingLocation,
+                    $issueQty,
+                    (string) $tag['tag_no'],
+                    null,
+                    (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
+                    'PRODUCTION_STAGE_AA_IN',
+                    $sourceReference,
+                    array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                );
+
+                $locationCode = $stagingLocation;
+                $stagedToAa = true;
+            } elseif (!$locInv) {
+                if ($remainingTagQty > 0 && !empty($tag['source_location_code'])) {
+                    LocationInventory::updateStock(
+                        (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                        (string) $tag['source_location_code'],
+                        $remainingTagQty,
+                        (string) $tag['tag_no'],
+                        null,
+                        (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
+                        'RECEIVE_PARTIAL_REMAINING_IN',
+                        $sourceReference,
+                        array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                    );
+                }
+
+                LocationInventory::updateStock(
+                    (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                    $stagingLocation,
+                    $issueQty,
+                    (string) $tag['tag_no'],
+                    null,
+                    (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
+                    'PRODUCTION_STAGE_AA_IN',
+                    $sourceReference,
+                    array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                );
+
+                $locationCode = $stagingLocation;
+                $stagedToAa = true;
+            }
+
+            foreach ($allocations as $allocation) {
+                /** @var ProductionOrder $order */
+                $order = $allocation['order'];
+                $line = $allocation['line'];
+                $tags = $order->material_issue_lines ?? [];
+                $consumptionPolicy = (string) ($line['consumption_policy'] ?? (($line['is_backflush'] ?? true) ? 'backflush_return' : 'direct_issue'));
+                $isBackflush = (bool) ($line['is_backflush'] ?? $consumptionPolicy !== 'direct_issue');
+
+                $tags[] = [
+                    'tag_number' => (string) $tag['tag_no'],
+                    'part_no' => (string) $tag['part_no'],
+                    'part_name' => (string) $tag['part_name'],
+                    'qty' => (float) $allocation['qty'],
+                    'tag_qty' => (float) $tag['qty_available'],
+                    'remaining_qty_after_issue' => $remainingTagQty,
+                    'is_partial_issue' => $issueQty < round((float) $tag['qty_available'], 4),
+                    'consumption_policy' => $consumptionPolicy,
+                    'is_backflush' => $isBackflush,
+                    'backflushed_qty' => 0,
+                    'gci_part_id' => (int) $tag['gci_part_id'],
+                    'part_id' => (int) $tag['part_id'],
+                    'location_code' => $locationCode,
+                    'source_location_code' => $tag['source_location_code'],
+                    'staged_to_aa' => $stagedToAa,
+                    'traceability' => array_merge(['source_tag' => $tag['tag_no'], 'supply_all' => true], $traceability),
+                    'scanned_at' => now()->toDateTimeString(),
+                ];
+
+                $order->update(['material_issue_lines' => array_values($tags)]);
+            }
+        });
+
+        $orders = $this->supplyAllOrders($targetDate);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Tag {$tag['tag_no']} dialokasikan ke " . count($allocations) . ' WO.',
+            'data' => [
+                'tag_no' => $tag['tag_no'],
+                'part_no' => $tag['part_no'],
+                'issue_qty' => $issueQty,
+                'allocations' => collect($allocations)->map(fn ($allocation) => [
+                    'wo_id' => (int) $allocation['order']->id,
+                    'wo_number' => (string) ($allocation['order']->production_order_number ?? $allocation['order']->transaction_no ?? $allocation['order']->id),
+                    'qty' => (float) $allocation['qty'],
+                ])->values(),
+                'materials' => $this->buildSupplyAllRows($orders),
+            ],
+        ]);
+    }
+
+    public function postSupplyAll(Request $request)
+    {
+        $targetDate = $this->targetSupplyDate($request);
+        $orders = $this->supplyAllOrders($targetDate)
+            ->filter(fn (ProductionOrder $order) => !empty($order->material_issue_lines))
+            ->values();
+
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Belum ada tag yang discan untuk WO tanggal ini.',
+            ], 422);
+        }
+
+        $posted = [];
+
+        foreach ($orders as $order) {
+            $response = $this->postSupply($request, $order->id);
+            if ($response->getStatusCode() >= 400) {
+                $payload = $response->getData(true);
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => ($payload['message'] ?? 'Gagal posting salah satu WO') . ' WO: ' . ($order->production_order_number ?? $order->id),
+                    'posted_before_error' => $posted,
+                ], $response->getStatusCode());
+            }
+
+            $posted[] = [
+                'id' => (int) $order->id,
+                'wo_number' => (string) ($order->production_order_number ?? $order->transaction_no ?? $order->id),
+            ];
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => count($posted) . ' WO berhasil diposting supply WH.',
+            'data' => [
+                'date' => $targetDate,
+                'posted_orders' => $posted,
+            ],
+        ]);
     }
 
     private function resolveRequirementBalance(ProductionOrder $order, ?int $gciPartId, ?int $partId, string $partNo): ?array

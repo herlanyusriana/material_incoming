@@ -37,7 +37,7 @@ class SubconController extends Controller
 
     private function buildIndexResponse(Request $request, string $mode)
     {
-        $query = SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom'])
+        $query = SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'creator', 'receives', 'bomItem.consumptionUom', 'bomItem.wipUom'])
             ->orderByDesc('created_at');
 
         if ($request->filled('status')) {

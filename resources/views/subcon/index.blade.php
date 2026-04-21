@@ -179,7 +179,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
+                                    <td colspan="12" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -234,11 +234,11 @@
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono whitespace-nowrap">
                                     {{ number_format($order->qty_sent) }}
-                                    <div class="text-[10px] text-slate-400 font-bold">({{ number_format((float)$order->qty_sent * (float)($order->rmPart->net_weight ?? 0), 2) }} kg)</div>
+                                    <div class="text-[10px] text-slate-400 font-bold">({{ number_format((float) ($order->weight_kgm ?? ((float)$order->qty_sent * (float)($order->rmPart->net_weight ?? 0))), 2) }} kg)</div>
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono whitespace-nowrap">
                                     {{ number_format($order->qty_received) }}
-                                    <div class="text-[10px] text-slate-400 font-bold">({{ number_format((float)$order->qty_received * (float)($order->gciPart->net_weight ?? 0), 2) }} kg)</div>
+                                    <div class="text-[10px] text-slate-400 font-bold">({{ number_format((float) $order->receives->sum('weight_kgm'), 2) }} kg)</div>
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono font-bold {{ $order->qty_outstanding > 0 ? 'text-rose-600' : 'text-emerald-600' }} whitespace-nowrap">
                                     {{ number_format($order->qty_outstanding) }}
