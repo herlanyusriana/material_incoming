@@ -99,6 +99,56 @@ class WarehouseApiController extends Controller
         return array_values(array_unique($keys));
     }
 
+    private function scanOptionsForRequirement(array $line): array
+    {
+        $options = collect($line['allocations'] ?? [])->map(function (array $allocation) {
+            return [
+                'source_type' => (string) ($allocation['source_type'] ?? 'primary'),
+                'part_id' => (int) ($allocation['part_id'] ?? 0),
+                'part_no' => (string) ($allocation['part_no'] ?? ''),
+                'part_name' => (string) ($allocation['part_name'] ?? ''),
+                'location_code' => (string) ($allocation['location_code'] ?? ''),
+                'batch_no' => (string) ($allocation['batch_no'] ?? ''),
+                'qty_on_hand' => round((float) ($allocation['qty_on_hand'] ?? 0), 4),
+                'request_qty' => round((float) ($allocation['request_qty'] ?? 0), 4),
+            ];
+        })
+            ->filter(fn (array $option) => trim($option['part_no']) !== '')
+            ->unique(fn (array $option) => strtoupper($option['source_type'] . '|' . $option['part_id'] . '|' . $option['part_no'] . '|' . $option['location_code'] . '|' . $option['batch_no']))
+            ->values();
+
+        if ($options->isEmpty()) {
+            $options->push([
+                'source_type' => 'component',
+                'part_id' => 0,
+                'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
+                'part_name' => (string) ($line['component_part_name'] ?? ''),
+                'location_code' => '',
+                'batch_no' => '',
+                'qty_on_hand' => 0.0,
+                'request_qty' => round((float) ($line['required_qty'] ?? 0), 4),
+            ]);
+        }
+
+        return $options->all();
+    }
+
+    private function preferredScanOption(array $scanOptions): array
+    {
+        return collect($scanOptions)->firstWhere('source_type', 'primary')
+            ?? collect($scanOptions)->first()
+            ?? [];
+    }
+
+    private function mergeScanOptions(array $existing, array $incoming): array
+    {
+        return collect(array_merge($existing, $incoming))
+            ->filter(fn (array $option) => trim((string) ($option['part_no'] ?? '')) !== '')
+            ->unique(fn (array $option) => strtoupper(($option['source_type'] ?? '') . '|' . ($option['part_id'] ?? 0) . '|' . ($option['part_no'] ?? '') . '|' . ($option['location_code'] ?? '') . '|' . ($option['batch_no'] ?? '')))
+            ->values()
+            ->all();
+    }
+
     private function scannedQtyForRequirement(ProductionOrder $order, array $requirementKeys): array
     {
         return collect($order->material_issue_lines ?? [])->reduce(function (array $carry, array $issueLine) use ($requirementKeys) {
@@ -143,16 +193,19 @@ class WarehouseApiController extends Controller
                 $groupKey = $componentGciPartId > 0
                     ? 'gci:' . $componentGciPartId
                     : 'part:' . $componentPartNo;
+                $scanOptions = $this->scanOptionsForRequirement($line);
+                $preferredOption = $this->preferredScanOption($scanOptions);
 
                 if (!isset($rows[$groupKey])) {
-                    $primaryAllocation = ($line['allocations'] ?? [])[0] ?? null;
                     $rows[$groupKey] = [
                         'group_key' => $groupKey,
                         'gci_part_id' => $componentGciPartId,
                         'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
                         'part_name' => (string) ($line['component_part_name'] ?? ''),
-                        'scan_part_no' => (string) ($primaryAllocation['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
-                        'scan_part_name' => (string) ($primaryAllocation['part_name'] ?? $line['component_part_name'] ?? ''),
+                        'scan_part_no' => (string) ($preferredOption['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
+                        'scan_part_name' => (string) ($preferredOption['part_name'] ?? $line['component_part_name'] ?? ''),
+                        'scan_options' => [],
+                        'accepted_part_nos' => [],
                         'uom' => (string) ($line['uom'] ?? 'PCS'),
                         'total_required_qty' => 0.0,
                         'total_scanned_qty' => 0.0,
@@ -162,6 +215,13 @@ class WarehouseApiController extends Controller
                     ];
                 }
 
+                $rows[$groupKey]['scan_options'] = $this->mergeScanOptions($rows[$groupKey]['scan_options'], $scanOptions);
+                $rows[$groupKey]['accepted_part_nos'] = collect($rows[$groupKey]['scan_options'])
+                    ->pluck('part_no')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
                 $rows[$groupKey]['total_required_qty'] = round($rows[$groupKey]['total_required_qty'] + $requiredQty, 4);
                 $rows[$groupKey]['total_scanned_qty'] = round($rows[$groupKey]['total_scanned_qty'] + $scannedQty, 4);
                 $rows[$groupKey]['total_remaining_qty'] = round($rows[$groupKey]['total_remaining_qty'] + $remainingQty, 4);
@@ -175,6 +235,7 @@ class WarehouseApiController extends Controller
                     'scanned_qty' => $scannedQty,
                     'remaining_qty' => $remainingQty,
                     'scan_tags' => (int) ($scanProgress['tags'] ?? 0),
+                    'scan_options' => $scanOptions,
                 ];
             }
         }
