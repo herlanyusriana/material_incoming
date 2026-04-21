@@ -292,7 +292,11 @@
 										rowspan="{{ $rowSpan }}" @endif>
 											<div class="flex items-center justify-center gap-1">
 												<input type="checkbox" name="selected[]" value="{{ $no - 1 }}"
-													class="rounded border-slate-300 cursor-pointer">
+													class="rounded border-slate-300 cursor-pointer"
+													data-rowkey="{{ $rowKey }}"
+													data-row-no="{{ $no }}"
+													data-part-no="{{ $row->fg_part_no }}"
+													data-delivery-req="{{ (float) $row->delivery_requirement }}">
 												<button type="button" onclick="toggleRow('{{ $rowKey }}')" class="expand-btn"
 													title="Toggle trip inputs">
 													<svg id="icon-{{ $rowKey }}"
@@ -485,11 +489,12 @@
 					{{-- Hidden fields for form submission --}}
 					<input type="hidden" name="date" value="{{ $selectedDate->toDateString() }}">
 					@foreach($rows as $idx => $row)
+						@php $hiddenRowKey = 'r' . ($idx + 1) . '-' . $row->gci_part_id; @endphp
 						<input type="hidden" name="lines[{{ $idx }}][gci_part_id]" value="{{ $row->gci_part_id }}">
 						<input type="hidden" name="lines[{{ $idx }}][customer_id]" value="{{ $row->customer_id ?? 0 }}">
 						<input type="hidden" name="lines[{{ $idx }}][part_no]" value="{{ $row->fg_part_no }}">
 						<input type="hidden" name="lines[{{ $idx }}][part_name]" value="{{ $row->fg_part_name }}">
-						<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}">
+						<input type="hidden" name="lines[{{ $idx }}][qty]" value="{{ $row->delivery_requirement }}" id="line-qty-{{ $hiddenRowKey }}">
 						<input type="hidden" name="lines[{{ $idx }}][source]" value="{{ $row->source ?? 'daily_plan' }}">
 						<input type="hidden" name="lines[{{ $idx }}][outgoing_po_item_id]"
 							value="{{ $row->outgoing_po_item_id ?? '' }}">
@@ -556,21 +561,19 @@
 				btn.disabled = true;
 				btn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
 
-				// Collect all inputs with values
+				// Send every trip input, including blanks as 0, so clearing a trip is saved too.
 				const inputs = document.querySelectorAll('.trip-input');
 				const data = [];
 
 				inputs.forEach(input => {
 					const val = parseInt(input.value);
-					if (!isNaN(val)) {
-						data.push({
-							gci_part_id: input.dataset.part,
-							trip_no: input.dataset.trip,
-							qty: val,
-							source: input.dataset.source || 'daily_plan',
-							outgoing_po_item_id: input.dataset.poItemId || null
-						});
-					}
+					data.push({
+						gci_part_id: input.dataset.part,
+						trip_no: input.dataset.trip,
+						qty: Number.isNaN(val) ? 0 : val,
+						source: input.dataset.source || 'daily_plan',
+						outgoing_po_item_id: input.dataset.poItemId || null
+					});
 				});
 
 				if (data.length === 0) {
@@ -634,11 +637,21 @@
 					return;
 				}
 
+				const invalidRows = Array.from(checkboxes).filter(cb => getSelectedRowQty(cb) <= 0);
+				if (invalidRows.length > 0) {
+					const first = invalidRows[0];
+					const rowKey = first.dataset.rowkey;
+					toggleRow(rowKey, true);
+					alert(`Baris #${first.dataset.rowNo} (${first.dataset.partNo}): Qty masih 0. Isi trip dulu, lalu Save Planning sebelum Generate DO.`);
+					return;
+				}
+
 				if (!confirm(`Generate DO untuk ${checkboxes.length} part yang dipilih?`)) return;
 
 				// Trigger save first
 				const saved = await savePlanning();
 				if (saved) {
+					checkboxes.forEach(cb => syncHiddenLineQty(cb.dataset.rowkey));
 					const btn = document.getElementById('generateDoBtn');
 					btn.disabled = true;
 					btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating DO...';
@@ -655,6 +668,7 @@
 				// Update Total
 				const totalEl = document.getElementById(`total-${rowKey}`);
 				if (totalEl) totalEl.textContent = total > 0 ? total.toLocaleString() : '-';
+				syncHiddenLineQty(rowKey, total);
 
 				// Finish Time = 07:00 + delivery_requirement / production_rate (format HH:MM)
 				const prodRate = parseFloat(document.getElementById(`prod-rate-${rowKey}`)?.textContent) || 0;
@@ -701,6 +715,40 @@
 				}
 			}
 
+			function getSelectedRowQty(checkbox) {
+				const rowKey = checkbox.dataset.rowkey;
+				const inputs = document.querySelectorAll(`input[data-rowkey="${rowKey}"]`);
+				let total = 0;
+				inputs.forEach(input => {
+					total += parseInt(input.value) || 0;
+				});
+
+				if (total > 0) {
+					return total;
+				}
+
+				return parseFloat(checkbox.dataset.deliveryReq || '0') || 0;
+			}
+
+			function syncHiddenLineQty(rowKey, knownTotal = null) {
+				const hidden = document.getElementById(`line-qty-${rowKey}`);
+				if (!hidden) return;
+
+				let total = knownTotal;
+				if (total === null) {
+					total = 0;
+					document.querySelectorAll(`input[data-rowkey="${rowKey}"]`).forEach(input => {
+						total += parseInt(input.value) || 0;
+					});
+				}
+
+				hidden.value = total;
+				const checkbox = document.querySelector(`input[name="selected[]"][data-rowkey="${rowKey}"]`);
+				if (checkbox) {
+					checkbox.dataset.deliveryReq = total;
+				}
+			}
+
 			// Enable/disable Generate DO button based on checkbox selection
 			function updateDoButtonState() {
 				const checkboxes = document.querySelectorAll('input[name="selected[]"]');
@@ -709,11 +757,11 @@
 				generateDoBtn.disabled = !hasChecked;
 			}
 
-			function toggleRow(rowKey) {
+			function toggleRow(rowKey, forceOpen = false) {
 				const row = document.getElementById('trip-row-' + rowKey);
 				const icon = document.getElementById('icon-' + rowKey);
 
-				if (row.classList.contains('hidden')) {
+				if (forceOpen || row.classList.contains('hidden')) {
 					row.classList.remove('hidden');
 					icon.classList.add('rotate-90');
 				} else {

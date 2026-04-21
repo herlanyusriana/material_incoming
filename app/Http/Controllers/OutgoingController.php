@@ -2169,16 +2169,32 @@ class OutgoingController extends Controller
                 return back()->with('error', 'Pilih minimal 1 part untuk generate DO.');
             }
 
+            $selectedLines = $selectedLines->map(function (array $line) use ($planDate) {
+                $qty = (float) ($line['qty'] ?? 0);
+                if ($qty <= 0 && !empty($line['gci_part_id'])) {
+                    $planningLine = OutgoingDeliveryPlanningLine::where('delivery_date', $planDate)
+                        ->where('gci_part_id', (int) $line['gci_part_id'])
+                        ->where('source', $line['source'] ?? 'daily_plan')
+                        ->first();
+
+                    $qty = (float) ($planningLine?->total_trips ?? 0);
+                }
+
+                $line['qty'] = $qty;
+                return $line;
+            });
+
             // Validate selected lines have required data
-            foreach ($selectedLines as $idx => $line) {
+            foreach ($selectedLines as $line) {
+                $displayRowNo = ((int) ($line['_idx'] ?? 0)) + 1;
                 if (empty($line['gci_part_id'])) {
-                    return back()->with('error', "Baris #" . ($idx + 1) . ": GCI Part ID tidak valid.");
+                    return back()->with('error', "Baris #{$displayRowNo}: GCI Part ID tidak valid.");
                 }
                 if (empty($line['customer_id'])) {
-                    return back()->with('error', "Baris #" . ($idx + 1) . ": Customer ID tidak valid.");
+                    return back()->with('error', "Baris #{$displayRowNo}: Customer ID tidak valid.");
                 }
                 if (!isset($line['qty']) || $line['qty'] <= 0) {
-                    return back()->with('error', "Baris #" . ($idx + 1) . ": Qty harus lebih dari 0.");
+                    return back()->with('error', "Baris #{$displayRowNo}: Delivery Req masih 0. Isi Trip dulu lalu Save Planning sebelum Generate DO.");
                 }
             }
 
