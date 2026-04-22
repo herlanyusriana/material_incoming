@@ -271,9 +271,6 @@
                                 <td class="px-4 py-3 text-center">
                                     <div class="flex items-center justify-center gap-2 text-xs">
                                         <a href="{{ route('subcon.show', $order) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">{{ ($mode ?? 'receive') === 'receive' ? 'Receive' : 'Trace' }}</a>
-                                        <a href="{{ route('subcon.print-sj', $order) }}" target="_blank" class="font-semibold text-slate-600 hover:text-slate-900">SJ</a>
-                                        <a href="{{ route('subcon.print-pl', $order) }}" target="_blank" class="font-semibold text-slate-600 hover:text-slate-900">PL</a>
-                                        <a href="{{ route('subcon.print-invoice', $order) }}" target="_blank" class="font-semibold text-slate-600 hover:text-slate-900">INV</a>
                                     </div>
                                 </td>
                             </tr>

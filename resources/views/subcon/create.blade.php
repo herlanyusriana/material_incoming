@@ -198,6 +198,91 @@
                 </div>
             </form>
         </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="flex flex-col gap-2 border-b border-slate-100 px-6 py-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="text-lg font-black text-slate-900">WH Send to Vendor - Dokumen</h2>
+                    <div class="text-sm text-slate-500">Cetak dokumen pengiriman subcon dari sini: SJ, PL, dan Invoice.</div>
+                </div>
+                <a href="{{ route('subcon.receive-index') }}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">
+                    Ke WH Receive Subcon
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Order No</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Vendor</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">Sent Date</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">Dokumen</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse (($sendOrders ?? collect()) as $order)
+                            @php
+                                $sendUom = $order->bomItem?->consumptionUom?->code
+                                    ?? $order->bomItem?->consumption_uom
+                                    ?? $order->rmPart?->uom
+                                    ?? $order->bomItem?->wipUom?->code
+                                    ?? $order->bomItem?->wip_uom
+                                    ?? $order->gciPart?->uom
+                                    ?? 'PCS';
+                                $statusColors = [
+                                    'sent' => 'bg-blue-100 text-blue-700',
+                                    'partial' => 'bg-amber-100 text-amber-700',
+                                    'completed' => 'bg-emerald-100 text-emerald-700',
+                                    'cancelled' => 'bg-red-100 text-red-700',
+                                ];
+                            @endphp
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-mono font-bold text-indigo-700">
+                                    <a href="{{ route('subcon.show', $order) }}">{{ $order->order_no }}</a>
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-slate-700">{{ $order->contract_no ?? '-' }}</td>
+                                <td class="px-4 py-3 text-slate-700">{{ $order->vendor?->vendor_name ?? '-' }}</td>
+                                <td class="px-4 py-3 text-slate-700">
+                                    {{ $order->rmPart?->part_name ?? '-' }}
+                                    <div class="font-mono text-[10px] text-slate-400">{{ $order->rmPart?->part_no ?? '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-slate-700">
+                                    {{ $order->gciPart?->part_name ?? '-' }}
+                                    <div class="font-mono text-[10px] text-slate-400">{{ $order->gciPart?->part_no ?? '' }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono whitespace-nowrap">
+                                    {{ number_format((float) $order->qty_sent) }}
+                                    <span class="text-[10px] text-slate-500">{{ $sendUom }}</span>
+                                    <div class="text-[10px] font-bold text-slate-400">({{ number_format((float) ($order->weight_kgm ?? 0), 2) }} kg)</div>
+                                </td>
+                                <td class="px-4 py-3 text-center text-slate-600">{{ $order->sent_date?->format('d/m/Y') ?? '-' }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold {{ $statusColors[$order->status] ?? 'bg-slate-100 text-slate-700' }}">
+                                        {{ ucfirst($order->status) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <div class="flex items-center justify-center gap-2 text-xs">
+                                        <a href="{{ route('subcon.print-sj', $order) }}" target="_blank" class="rounded-lg border border-slate-200 px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50">SJ</a>
+                                        <a href="{{ route('subcon.print-pl', $order) }}" target="_blank" class="rounded-lg border border-slate-200 px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50">PL</a>
+                                        <a href="{{ route('subcon.print-invoice', $order) }}" target="_blank" class="rounded-lg border border-slate-200 px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50">INV</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="px-4 py-8 text-center text-slate-400">Belum ada order yang dikirim ke vendor.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>

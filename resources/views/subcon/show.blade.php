@@ -42,12 +42,6 @@
                     <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold {{ $statusColors[$subconOrder->status] ?? '' }}">
                         {{ ucfirst($subconOrder->status) }}
                     </span>
-                    <a href="{{ route('subcon.print-sj', $subconOrder) }}" target="_blank"
-                        class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Print SJ</a>
-                    <a href="{{ route('subcon.print-pl', $subconOrder) }}" target="_blank"
-                        class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Print PL</a>
-                    <a href="{{ route('subcon.print-invoice', $subconOrder) }}" target="_blank"
-                        class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Print Invoice</a>
                     <a href="{{ route('subcon.index') }}" class="text-sm text-slate-500 hover:text-slate-800">&larr; Back</a>
                 </div>
             </div>

@@ -254,7 +254,14 @@ class SubconController extends Controller
             ->values()
             ->all();
 
-        return view('subcon.create', compact('vendors', 'subconParts', 'rmParts', 'subconPartsJson', 'rmPartsJson', 'oldRows', 'contractsJson'));
+        $sendOrders = SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'receives', 'bomItem.consumptionUom', 'bomItem.wipUom'])
+            ->whereIn('status', ['sent', 'partial', 'completed'])
+            ->orderByDesc('sent_date')
+            ->orderByDesc('id')
+            ->limit(25)
+            ->get();
+
+        return view('subcon.create', compact('vendors', 'subconParts', 'rmParts', 'subconPartsJson', 'rmPartsJson', 'oldRows', 'contractsJson', 'sendOrders'));
     }
 
     public function store(Request $request)
