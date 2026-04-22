@@ -115,7 +115,7 @@
                                         </button>
                                     </div>
                                     <div class="text-right" x-show="row.target_qty !== undefined">
-                                        <div class="text-[10px] font-bold text-slate-500 uppercase">Sisa Qty Kontrak</div>
+                                        <div class="text-[10px] font-bold text-slate-500 uppercase">Sisa Efektif Kontrak</div>
                                         <div class="text-sm font-black" :class="row.remaining_qty > 0 ? 'text-emerald-600' : 'text-rose-600'">
                                             <span x-text="row.remaining_qty"></span>
                                             <span class="text-[10px] text-slate-500" x-text="row.uom || 'PCS'"></span>

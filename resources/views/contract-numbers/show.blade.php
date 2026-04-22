@@ -66,7 +66,7 @@
             <div class="p-6">
                 <div class="mb-4">
                     <h2 class="text-lg font-black text-slate-900">Detail Item Kontrak</h2>
-                    <p class="text-sm text-slate-500">Monitoring target, pemakaian, sisa kontrak, dan alarm per part.</p>
+                    <p class="text-sm text-slate-500">Monitoring target, pemakaian, NG, sisa efektif kontrak, dan alarm per part.</p>
                 </div>
 
                 <div class="overflow-x-auto rounded-2xl border border-slate-200">
@@ -79,7 +79,8 @@
                                 <th class="px-4 py-3 text-center">UOM</th>
                                 <th class="px-4 py-3 text-right">Target</th>
                                 <th class="px-4 py-3 text-right">Sent</th>
-                                <th class="px-4 py-3 text-right">Remain</th>
+                                <th class="px-4 py-3 text-right">NG</th>
+                                <th class="px-4 py-3 text-right">Remain Efektif</th>
                                 <th class="px-4 py-3 text-right">Alarm</th>
                             </tr>
                         </thead>
@@ -110,12 +111,13 @@
                                     <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">{{ $uom }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black text-slate-900">{{ number_format((float) $item->target_qty, 2) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold text-blue-700">{{ number_format((float) $item->sent_qty, 2) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold {{ (float) $item->rejected_qty > 0 ? 'text-rose-700' : 'text-slate-400' }}">{{ number_format((float) $item->rejected_qty, 2) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black {{ $isAlarm ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($remaining, 2) }}</td>
                                     <td class="px-4 py-3 text-right font-mono text-xs font-bold text-slate-500">{{ $alarm !== null ? number_format($alarm, 2) : '-' }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-400">Belum ada item pada kontrak ini.</td>
+                                    <td colspan="9" class="px-4 py-10 text-center text-sm text-slate-400">Belum ada item pada kontrak ini.</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -96,7 +96,7 @@
         @if (($mode ?? 'receive') === 'traceability')
             <div class="grid gap-4 lg:grid-cols-3">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Kontrak Ada Sisa</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Kontrak Ada Sisa Efektif</div>
                     <div class="mt-1 text-3xl font-black text-slate-900">{{ $contractRemainRows->count() }}</div>
                 </div>
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
@@ -120,8 +120,8 @@
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="border-b border-slate-100 px-5 py-4">
-                    <h2 class="text-lg font-black text-slate-900">Remain Kontrak / SKEP</h2>
-                    <div class="mt-1 text-sm text-slate-500">Yang ditampilkan hanya item kontrak aktif yang masih punya sisa qty.</div>
+                    <h2 class="text-lg font-black text-slate-900">Remain Efektif Kontrak / SKEP</h2>
+                    <div class="mt-1 text-sm text-slate-500">Sisa dihitung dari target dikurangi qty sent dan NG.</div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm divide-y divide-slate-200">
@@ -135,8 +135,9 @@
                                 <th class="px-4 py-3 text-center font-bold text-slate-700">UOM</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Target</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Remain</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700 whitespace-nowrap">Remain (KGM)</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">NG</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">Remain Efektif</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700 whitespace-nowrap">Remain Efektif (KGM)</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Limit Alarm</th>
                                 <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
                             </tr>
@@ -162,6 +163,7 @@
                                     <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">{{ $row['uom'] ?? 'PCS' }}</td>
                                     <td class="px-4 py-3 text-right font-mono">{{ number_format($row['target_qty']) }}</td>
                                     <td class="px-4 py-3 text-right font-mono">{{ number_format($row['sent_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono {{ ($row['rejected_qty'] ?? 0) > 0 ? 'font-bold text-rose-700' : 'text-slate-400' }}">{{ number_format($row['rejected_qty'] ?? 0) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black {{ $row['is_alarm'] ? 'text-amber-700' : 'text-emerald-700' }}">
                                         {{ number_format($row['remaining_qty']) }}
                                     </td>
@@ -179,7 +181,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="12" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
+                                    <td colspan="13" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -202,6 +204,7 @@
                             <th class="px-4 py-3 text-center font-bold text-slate-700">UOM</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Received</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">Rejected</th>
                             <th class="px-4 py-3 text-right font-bold text-slate-700">Outstanding</th>
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Sent Date</th>
                             <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
@@ -240,6 +243,12 @@
                                     {{ number_format($order->qty_received) }}
                                     <div class="text-[10px] text-slate-400 font-bold">({{ number_format((float) $order->receives->sum('weight_kgm'), 2) }} kg)</div>
                                 </td>
+                                <td class="px-4 py-3 text-right font-mono font-bold {{ (float) $order->qty_rejected > 0 ? 'text-rose-700' : 'text-slate-400' }} whitespace-nowrap">
+                                    {{ number_format((float) $order->qty_rejected) }}
+                                    <div class="text-[10px] {{ (float) $order->qty_rejected > 0 ? 'text-rose-500' : 'text-slate-400' }} font-bold">
+                                        ({{ number_format((float) $order->receives->sum('weight_rejected_kgm'), 2) }} kg)
+                                    </div>
+                                </td>
                                 <td class="px-4 py-3 text-right font-mono font-bold {{ $order->qty_outstanding > 0 ? 'text-rose-600' : 'text-emerald-600' }} whitespace-nowrap">
                                     {{ number_format($order->qty_outstanding) }}
                                     <div class="text-[10px] {{ $order->qty_outstanding > 0 ? 'text-rose-400' : 'text-emerald-400' }}">({{ number_format((float)$order->qty_outstanding * (float)($order->rmPart->net_weight ?? 0), 2) }} kg)</div>
@@ -270,7 +279,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="13" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
+                                <td colspan="14" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
                             </tr>
                         @endforelse
                     </tbody>

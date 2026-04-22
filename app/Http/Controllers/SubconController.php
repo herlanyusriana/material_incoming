@@ -127,7 +127,8 @@ class SubconController extends Controller
             ->map(function (ContractNumberItem $item) {
                 $targetQty = (float) $item->target_qty;
                 $sentQty = (float) $item->sent_qty;
-                $remainingQty = max(0, $targetQty - $sentQty);
+                $rejectedQty = (float) $item->rejected_qty;
+                $remainingQty = max(0, $targetQty - $sentQty - $rejectedQty);
                 $warningLimit = $item->warning_limit_qty !== null ? (float) $item->warning_limit_qty : null;
 
                 return [
@@ -142,6 +143,7 @@ class SubconController extends Controller
                     'rm_net_weight' => (float) ($item->rmPart->net_weight ?? 0),
                     'target_qty' => $targetQty,
                     'sent_qty' => $sentQty,
+                    'rejected_qty' => $rejectedQty,
                     'remaining_qty' => $remainingQty,
                     'warning_limit_qty' => $warningLimit,
                     'is_alarm' => $remainingQty > 0 && $warningLimit !== null && $remainingQty <= $warningLimit,
@@ -245,7 +247,8 @@ class SubconController extends Controller
                     'uom' => $this->resolveSubconUom($item->bomItem, $item->rmPart, $item->gciPart),
                     'target_qty' => (float)$item->target_qty,
                     'sent_qty' => (float)$item->sent_qty,
-                    'remaining_qty' => max(0, (float)$item->target_qty - (float)$item->sent_qty),
+                    'rejected_qty' => (float)$item->rejected_qty,
+                    'remaining_qty' => (float)$item->remaining_qty,
                 ]),
             ])
             ->values()
@@ -384,13 +387,16 @@ class SubconController extends Controller
     public function show(SubconOrder $subconOrder)
     {
         $subconOrder->load(['vendor', 'rmPart', 'gciPart', 'bomItem.consumptionUom', 'bomItem.wipUom', 'receives.creator', 'creator', 'sender']);
+        $rejectReceives = $subconOrder->receives
+            ->filter(fn (SubconOrderReceive $receive) => (float) $receive->qty_rejected > 0)
+            ->values();
         $traceability = LocationInventoryAdjustment::with(['creator'])
             ->where('source_reference', $subconOrder->order_no)
             ->orderBy('adjusted_at')
             ->orderBy('id')
             ->get();
 
-        return view('subcon.show', compact('subconOrder', 'traceability'));
+        return view('subcon.show', compact('subconOrder', 'rejectReceives', 'traceability'));
     }
 
     public function printSuratJalan(SubconOrder $subconOrder)

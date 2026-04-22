@@ -140,7 +140,7 @@
         @if (!in_array($subconOrder->status, ['completed', 'cancelled']))
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                 <h2 class="text-lg font-bold text-slate-900 mb-4">Record Receive</h2>
-                <form action="{{ route('subcon.receive', $subconOrder) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <form action="{{ route('subcon.receive', $subconOrder) }}" method="POST" enctype="multipart/form-data" class="space-y-4" onsubmit="return confirmSubconNgReceive(this);">
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
@@ -157,6 +157,7 @@
                             <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
                             <input type="number" step="0.0001" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
                                 class="w-full rounded-lg border-rose-300 text-sm focus:border-rose-500 focus:ring-rose-500" />
+                            <div class="mt-1 text-xs font-semibold text-rose-600">NG akan mengurangi remain efektif kontrak/SKEP.</div>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Weight Rejected (KGM)</label>
@@ -278,6 +279,75 @@
             </div>
         @endif
 
+        {{-- Reject History --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-rose-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-rose-100 bg-rose-50/60">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-rose-950">Reject History</h2>
+                        <div class="mt-1 text-sm text-rose-700">Catatan part NG dari vendor subcon yang masuk ke lokasi reject.</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs font-black uppercase tracking-wider text-rose-600">Total Reject</div>
+                        <div class="text-xl font-black text-rose-800">
+                            {{ number_format((float) $subconOrder->qty_rejected, 4) }}
+                            <span class="text-xs">{{ $subconUom }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">#</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">Receive Date</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">Qty Reject</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">Weight KGM</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Reject Location</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Posted WH</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Notes / Docs</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">By</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse (($rejectReceives ?? collect()) as $i => $rec)
+                            <tr class="hover:bg-rose-50/40">
+                                <td class="px-4 py-3 text-slate-600">{{ $i + 1 }}</td>
+                                <td class="px-4 py-3 text-center text-slate-700">{{ $rec->received_date?->format('d/m/Y') ?? '-' }}</td>
+                                <td class="px-4 py-3 text-right font-mono font-black text-rose-700">
+                                    {{ number_format((float) $rec->qty_rejected, 4) }}
+                                    <span class="text-[10px]">{{ $subconUom }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono font-bold text-rose-600">
+                                    {{ number_format((float) $rec->weight_rejected_kgm, 4) }}
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-slate-800">{{ $rec->reject_location_code ?? '-' }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ $rec->reject_posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <div>{{ $rec->notes ?? '-' }}</div>
+                                    <div class="mt-1 flex gap-2">
+                                        @if($rec->sj_file_path)
+                                            <a href="{{ Storage::url($rec->sj_file_path) }}" target="_blank" class="text-xs font-semibold text-indigo-600 hover:underline">SJ</a>
+                                        @endif
+                                        @if($rec->invoice_file_path)
+                                            <a href="{{ Storage::url($rec->invoice_file_path) }}" target="_blank" class="text-xs font-semibold text-indigo-600 hover:underline">Invoice</a>
+                                        @endif
+                                        <a href="{{ route('subcon.receive.print-pl', $rec) }}" target="_blank" class="text-xs font-semibold text-slate-600 hover:underline">PL</a>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">{{ $rec->creator->name ?? '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="px-4 py-8 text-center text-slate-400">Belum ada reject untuk order ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         @if(isset($traceability) && $traceability->isNotEmpty())
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200">
@@ -347,4 +417,17 @@
             </div>
         @endif
     </div>
+
+    <script>
+        function confirmSubconNgReceive(form) {
+            const rejectedInput = form.querySelector('[name="qty_rejected"]');
+            const rejectedQty = Number(rejectedInput?.value || 0);
+
+            if (rejectedQty <= 0) {
+                return true;
+            }
+
+            return confirm(`Qty Rejected/NG ${rejectedQty} akan mengurangi remain efektif kontrak/SKEP. Lanjut simpan receive ini?`);
+        }
+    </script>
 @endsection

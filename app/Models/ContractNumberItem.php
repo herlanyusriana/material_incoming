@@ -44,12 +44,12 @@ class ContractNumberItem extends Model
         return $this->belongsTo(BomItem::class, 'bom_item_id');
     }
 
-    protected $appends = ['sent_qty', 'remaining_qty'];
+    protected $appends = ['sent_qty', 'rejected_qty', 'remaining_qty'];
 
     public function getSentQtyAttribute()
     {
         // Calculate sent qty from SubconOrder
-        return SubconOrder::where('contract_no', $this->contractNumber->contract_no)
+        return SubconOrder::where('contract_no', $this->contractNumber?->contract_no)
             ->where('gci_part_id', $this->gci_part_id)
             ->where('rm_gci_part_id', $this->rm_gci_part_id)
             ->where('process_type', $this->process_type)
@@ -58,8 +58,18 @@ class ContractNumberItem extends Model
             ->sum('qty_sent');
     }
 
+    public function getRejectedQtyAttribute()
+    {
+        return SubconOrder::where('contract_no', $this->contractNumber?->contract_no)
+            ->where('gci_part_id', $this->gci_part_id)
+            ->where('rm_gci_part_id', $this->rm_gci_part_id)
+            ->where('process_type', $this->process_type)
+            ->whereIn('status', ['sent', 'partial', 'completed'])
+            ->sum('qty_rejected');
+    }
+
     public function getRemainingQtyAttribute()
     {
-        return max(0, $this->target_qty - $this->sent_qty);
+        return max(0, (float) $this->target_qty - (float) $this->sent_qty - (float) $this->rejected_qty);
     }
 }

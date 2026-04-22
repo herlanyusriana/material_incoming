@@ -212,7 +212,8 @@ class ContractNumberController extends Controller
                     'uom' => $this->resolveSubconUom($item->bomItem, $item->rmPart, $item->gciPart),
                     'target_qty' => $item->target_qty,
                     'sent_qty' => $item->sent_qty,
-                    'remaining_qty' => max(0, (float)$item->target_qty - (float)$item->sent_qty),
+                    'rejected_qty' => $item->rejected_qty,
+                    'remaining_qty' => $item->remaining_qty,
                     'warning_limit_qty' => $item->warning_limit_qty,
                 ]),
             ])
