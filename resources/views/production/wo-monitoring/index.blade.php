@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'WO Monitoring - Real-time')
+@section('title', 'Monitoring WO Produksi')
 
 @section('content')
     <div class="max-w-full mx-auto">
@@ -16,10 +16,10 @@
                                     d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
                             </svg>
                         </div>
-                        WO MONITORING
+                        Monitoring WO Produksi
                     </h1>
                     <p class="mt-1 text-sm text-slate-500">
-                        Production monitoring real-time per mesin. QDC ditampilkan per WO dan per mesin supaya lebih mudah ditracking.
+                        Pantau progress WO dari APK: output per shift, proses, mesin aktual, WIP, FG, NG, downtime, dan QDC.
                     </p>
                 </div>
                 <div class="flex items-center gap-3">

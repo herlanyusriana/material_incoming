@@ -407,11 +407,11 @@
                                 <div class="pt-2 mt-2 border-t border-slate-200">
                                     <div
                                         class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                        Monitoring & KPI</div>
+                                        Monitoring Produksi</div>
                                 </div>
                                 <a href="{{ route('production.wo-monitoring.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.wo-monitoring.*'), $subInactive => !request()->routeIs('production.wo-monitoring.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
-                                    <span class="flex-1">Live WO Monitoring</span>
+                                    <span class="flex-1">Monitoring WO Produksi</span>
                                 </a>
                                 <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>
@@ -1248,11 +1248,11 @@
                             {{-- Monitoring Section --}}
                             <div class="pt-2 mt-2 border-t border-slate-200">
                                 <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                    Monitoring & Performance</div>
+                                    Monitoring Produksi</div>
                             </div>
                             <a href="{{ route('production.wo-monitoring.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.wo-monitoring.*'), $subInactive => !request()->routeIs('production.wo-monitoring.*')])>
                                 <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
-                                <span class="flex-1">Live WO Monitoring</span>
+                                <span class="flex-1">Monitoring WO Produksi</span>
                             </a>
                             <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')])>
                                 <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>
