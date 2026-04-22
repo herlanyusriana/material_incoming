@@ -28,6 +28,7 @@ use App\Models\Driver;
 use App\Models\DeliveryOrderItem;
 use App\Models\DeliveryOrder;
 use App\Models\Customer;
+use App\Models\BomItem;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -1489,8 +1490,7 @@ class OutgoingController extends Controller
             }
 
             // OSP Status check
-            $isOsp = $this->hasBomSpecialColumn()
-                && \App\Models\BomItem::where('special', 'OSP')
+            $isOsp = $this->ospBomItemsQuery()
                     ->whereHas('bom', fn(\Illuminate\Database\Eloquent\Builder $q) => $q->where('part_id', $partId))
                     ->exists();
             $ospOrder = null;
@@ -2225,15 +2225,14 @@ class OutgoingController extends Controller
             }
 
             // Block OSP parts — they must go through OSP order flow
-            $ospPartIds = $this->hasBomSpecialColumn()
-                ? \App\Models\BomItem::where('special', 'OSP')
-                    ->whereHas('bom', fn($q) => $q->whereIn('part_id', $partIds))
-                    ->get()
-                    ->map(fn($bi) => $bi->bom->part_id ?? null)
-                    ->filter()
-                    ->unique()
-                    ->values()
-                : collect();
+            $ospPartIds = $this->ospBomItemsQuery()
+                ->whereHas('bom', fn($q) => $q->whereIn('part_id', $partIds))
+                ->with('bom')
+                ->get()
+                ->map(fn($bi) => $bi->bom->part_id ?? null)
+                ->filter()
+                ->unique()
+                ->values();
 
             // OSP parts block has been removed. OSP parts will now generate OspOrder underneath.
 
@@ -2275,11 +2274,9 @@ class OutgoingController extends Controller
                         // OSP PART ROUTING LOGIC
                         // ==========================================
                         if ($ospPartIds->contains($partId)) {
-                            $bomItem = $this->hasBomSpecialColumn()
-                                ? \App\Models\BomItem::where('gci_part_id', $partId)
-                                    ->where('special', 'OSP')
-                                    ->first()
-                                : null;
+                            $bomItem = $this->ospBomItemsQuery()
+                                ->whereHas('bom', fn($q) => $q->where('part_id', $partId))
+                                ->first();
 
                             // Search for existing OSP order generated for this trip
                             $existingOsp = \App\Models\OspOrder::where('customer_id', $customerId)
@@ -2488,9 +2485,25 @@ class OutgoingController extends Controller
         static $hasColumn = null;
 
         if ($hasColumn === null) {
-            $hasColumn = Schema::hasColumn('bom_items', 'special');
+            try {
+                $hasColumn = Schema::hasTable('bom_items')
+                    && Schema::hasColumn('bom_items', 'special');
+            } catch (\Throwable $e) {
+                $hasColumn = false;
+            }
         }
 
         return $hasColumn;
+    }
+
+    private function ospBomItemsQuery()
+    {
+        $query = BomItem::query()->with('bom');
+
+        if (!$this->hasBomSpecialColumn()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('special', 'OSP');
     }
 }

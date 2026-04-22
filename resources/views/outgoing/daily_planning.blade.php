@@ -278,9 +278,10 @@
                                     <div class="flex items-center gap-1.5 min-w-0">
                                         <span class="truncate">{{ $row->customerPart->customer_part_name ?? $row->part_name ?? '-' }}</span>
                                         @php
-                                            $isOspRow = \App\Models\BomItem::where('special', 'OSP')
-                                                ->whereHas('bom', fn($q) => $q->where('part_id', $row->gci_part_id))
-                                                ->exists();
+                                            $isOspRow = \Illuminate\Support\Facades\Schema::hasColumn('bom_items', 'special')
+                                                && \App\Models\BomItem::where('special', 'OSP')
+                                                    ->whereHas('bom', fn($q) => $q->where('part_id', $row->gci_part_id))
+                                                    ->exists();
                                         @endphp
                                         @if($isOspRow)
                                             <span class="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-800 border border-emerald-200">OSP</span>

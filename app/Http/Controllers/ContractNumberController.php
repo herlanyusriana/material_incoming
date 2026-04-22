@@ -7,6 +7,7 @@ use App\Models\BomItem;
 use App\Models\GciPart;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class ContractNumberController extends Controller
@@ -266,7 +267,11 @@ class ContractNumberController extends Controller
     {
         $today = now()->toDateString();
         return \App\Models\BomItem::query()
-            ->where('special', 'T')
+            ->when(
+                Schema::hasColumn('bom_items', 'special'),
+                fn ($query) => $query->where('special', 'T'),
+                fn ($query) => $query->whereRaw('1 = 0')
+            )
             ->whereNotNull('wip_part_id')
             ->whereNotNull('component_part_id')
             ->whereHas('bom', function ($query) use ($today) {

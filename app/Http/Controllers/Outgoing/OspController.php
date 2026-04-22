@@ -12,6 +12,7 @@ use App\Models\PricingMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class OspController extends Controller
 {
@@ -47,7 +48,12 @@ class OspController extends Controller
         $customers = Customer::orderBy('name')->get(['id', 'name']);
 
         // OSP parts must use a dedicated outgoing document flow, separate from normal FG outgoing.
-        $ospParts = BomItem::where('special', 'OSP')
+        $ospParts = BomItem::query()
+            ->when(
+                Schema::hasColumn('bom_items', 'special'),
+                fn ($query) => $query->where('special', 'OSP'),
+                fn ($query) => $query->whereRaw('1 = 0')
+            )
             ->where('make_or_buy', 'free_issue')
             ->whereNotNull('wip_part_id')
             ->with(['wipPart', 'bom.part'])
