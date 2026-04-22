@@ -1035,6 +1035,14 @@
                                         <div class="font-mono font-bold {{ $row['output_type'] === 'fg' ? 'text-indigo-700' : 'text-slate-900' }}">{{ $row['output_part_no'] }}</div>
                                         <div class="text-xs text-slate-500">{{ $row['output_part_name'] }}</div>
                                         <div class="mt-1 text-[10px] font-black uppercase {{ $row['output_type'] === 'fg' ? 'text-indigo-600' : 'text-amber-600' }}">{{ $row['output_type'] }}</div>
+                                        @if($row['output_type'] === 'wip' && $row['wip_stock'] !== null)
+                                            <div class="mt-2 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
+                                                Stock WIP: {{ number_format((float) $row['wip_stock']) }}
+                                                @if(!empty($row['wip_location']))
+                                                    <div class="mt-0.5 font-normal text-amber-700">{{ $row['wip_location'] }}</div>
+                                                @endif
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-right font-mono font-bold text-emerald-700">{{ number_format((float) $row['ok_qty']) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold text-rose-700">{{ number_format((float) $row['ng_qty']) }}</td>

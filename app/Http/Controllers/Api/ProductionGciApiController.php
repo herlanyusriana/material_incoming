@@ -18,6 +18,7 @@ use App\Models\ProductionGciHourlyReport;
 use App\Models\ProductionGciDowntime;
 use App\Models\ProductionGciMaterialLot;
 use App\Models\Bom;
+use App\Models\GciPart;
 use App\Models\GciInventory;
 use App\Models\LocationInventory;
 use App\Services\ProductionInventoryFlowService;
@@ -626,30 +627,37 @@ class ProductionGciApiController extends Controller
                 foreach ($data['hourly_reports'] as $hrParams) {
                     // New format: direct production_order_id from Android app
                     if (isset($hrParams['productionOrderId'])) {
-                    ProductionGciHourlyReport::updateOrCreate(
-                        [
-                            'offline_id' => $hrParams['id'],
-                            'production_order_id' => $hrParams['productionOrderId'],
-                        ],
-                        [
-                            'time_range' => $hrParams['timeRange'],
-                            'target' => $hrParams['target'],
-                            'actual' => $hrParams['actual'],
-                            'ng' => $hrParams['ng'],
-                            'ng_reason' => $hrParams['ngReason'] ?? null,
-                            'ng_scrap' => $this->normalizeNgBreakdown($hrParams)['ng_scrap'],
-                            'ng_rework' => $this->normalizeNgBreakdown($hrParams)['ng_rework'],
-                            'ng_hold' => $this->normalizeNgBreakdown($hrParams)['ng_hold'],
-                            'operator_name' => $hrParams['operatorName'] ?? null,
-                            'shift' => $hrParams['shift'] ?? null,
-                            'machine_id' => $hrParams['machineId'] ?? null,
-                            'machine_name' => $hrParams['machineName'] ?? null,
-                            'output_type' => $this->normalizeHourlyOutputType($hrParams['outputType'] ?? null),
-                            'process_name' => $hrParams['processName'] ?? null,
-                            'output_part_no' => $hrParams['outputPartNo'] ?? null,
-                            'output_part_name' => $hrParams['outputPartName'] ?? null,
-                        ]
-                    );
+                        $existingReport = ProductionGciHourlyReport::query()
+                            ->where('offline_id', $hrParams['id'])
+                            ->where('production_order_id', $hrParams['productionOrderId'])
+                            ->first();
+                        $previousActual = (float) ($existingReport?->actual ?? 0);
+                        $outputType = $this->normalizeHourlyOutputType($hrParams['outputType'] ?? null);
+
+                        $report = ProductionGciHourlyReport::updateOrCreate(
+                            [
+                                'offline_id' => $hrParams['id'],
+                                'production_order_id' => $hrParams['productionOrderId'],
+                            ],
+                            [
+                                'time_range' => $hrParams['timeRange'],
+                                'target' => $hrParams['target'],
+                                'actual' => $hrParams['actual'],
+                                'ng' => $hrParams['ng'],
+                                'ng_reason' => $hrParams['ngReason'] ?? null,
+                                'ng_scrap' => $this->normalizeNgBreakdown($hrParams)['ng_scrap'],
+                                'ng_rework' => $this->normalizeNgBreakdown($hrParams)['ng_rework'],
+                                'ng_hold' => $this->normalizeNgBreakdown($hrParams)['ng_hold'],
+                                'operator_name' => $hrParams['operatorName'] ?? null,
+                                'shift' => $hrParams['shift'] ?? null,
+                                'machine_id' => $hrParams['machineId'] ?? null,
+                                'machine_name' => $hrParams['machineName'] ?? null,
+                                'output_type' => $outputType,
+                                'process_name' => $hrParams['processName'] ?? null,
+                                'output_part_no' => $hrParams['outputPartNo'] ?? null,
+                                'output_part_name' => $hrParams['outputPartName'] ?? null,
+                            ]
+                        );
 
                         // Update production order actual totals
                         $po = ProductionOrder::find($hrParams['productionOrderId']);
@@ -675,6 +683,21 @@ class ProductionGciApiController extends Controller
                             $affectedDates[] = $po->plan_date;
                             $affectedMachineIds[] = (int) $po->machine_id;
                             $affectedOrderIds[] = (int) $po->id;
+
+                            $wipDelta = (float) ($hrParams['actual'] ?? 0) - $previousActual;
+                            if ($outputType === 'wip' && $wipDelta > 0) {
+                                $this->recordWipInventoryOutput(
+                                    $po,
+                                    [
+                                        'output_type' => 'wip',
+                                        'process_name' => $hrParams['processName'] ?? $po->process_name,
+                                        'output_part_no' => $hrParams['outputPartNo'] ?? null,
+                                        'output_part_name' => $hrParams['outputPartName'] ?? null,
+                                    ],
+                                    $wipDelta,
+                                    $report
+                                );
+                            }
                         }
                         continue;
                     }
@@ -1387,6 +1410,175 @@ class ProductionGciApiController extends Controller
         return in_array($normalized, ['wip', 'fg'], true) ? $normalized : 'fg';
     }
 
+    private function wipLocationCode(?string $processName): string
+    {
+        $normalized = strtoupper(preg_replace('/[^A-Za-z0-9]+/', '-', trim((string) $processName)));
+        $normalized = trim($normalized, '-');
+
+        return $normalized !== ''
+            ? 'WIP-' . substr($normalized, 0, 36)
+            : 'WIP-PROD';
+    }
+
+    private function recordWipInventoryOutput(ProductionOrder $order, array $processContext, float $qty, ?ProductionGciHourlyReport $report = null): ?array
+    {
+        if (($processContext['output_type'] ?? 'fg') !== 'wip' || $qty <= 0) {
+            return null;
+        }
+
+        $outputPartNo = strtoupper(trim((string) ($processContext['output_part_no'] ?? '')));
+        if ($outputPartNo === '' || $outputPartNo === '-') {
+            Log::warning('WIP inventory output skipped: output part is empty', [
+                'production_order_id' => $order->id,
+                'process_name' => $processContext['process_name'] ?? null,
+            ]);
+
+            return [
+                'status' => 'skipped',
+                'reason' => 'output_part_empty',
+            ];
+        }
+
+        $wipPart = GciPart::firstOrCreate(
+            ['part_no' => $outputPartNo],
+            [
+                'part_name' => $processContext['output_part_name'] ?: $outputPartNo,
+                'classification' => 'WIP',
+                'status' => 'active',
+            ]
+        );
+
+        if (strtoupper((string) ($wipPart->classification ?? '')) !== 'WIP') {
+            $wipPart->update(['classification' => 'WIP']);
+        }
+
+        $locationCode = $this->wipLocationCode($processContext['process_name'] ?? null);
+        $sourceReference = sprintf(
+            'WO:%s|HR:%s|PROC:%s',
+            $order->production_order_number ?? $order->transaction_no ?? $order->id,
+            $report?->id ?? '-',
+            $processContext['process_name'] ?? '-'
+        );
+
+        LocationInventory::updateStock(
+            null,
+            $locationCode,
+            $qty,
+            null,
+            now()->toDateString(),
+            (int) $wipPart->id,
+            'WIP_OUTPUT',
+            $sourceReference,
+            [
+                'production_order_id' => $order->id,
+                'production_order_number' => $order->production_order_number,
+                'process_name' => $processContext['process_name'] ?? null,
+                'hourly_report_id' => $report?->id,
+            ]
+        );
+
+        return [
+            'status' => 'posted',
+            'gci_part_id' => (int) $wipPart->id,
+            'part_no' => (string) $wipPart->part_no,
+            'location_code' => $locationCode,
+            'qty' => $qty,
+        ];
+    }
+
+    private function consumePreviousWipInventoryInput(ProductionOrder $order, array $processContext, float $qty, ?ProductionGciHourlyReport $report = null): ?array
+    {
+        if ($qty <= 0) {
+            return null;
+        }
+
+        $processName = trim((string) ($processContext['process_name'] ?? ''));
+        if ($processName === '') {
+            return null;
+        }
+
+        $steps = $this->buildRoutingStepsForOrder($order);
+        $currentIndex = null;
+        foreach ($steps as $index => $step) {
+            if (strcasecmp((string) ($step['process_name'] ?? ''), $processName) === 0) {
+                $currentIndex = $index;
+                break;
+            }
+        }
+
+        if ($currentIndex === null || $currentIndex <= 0) {
+            return null;
+        }
+
+        $previousStep = $steps[$currentIndex - 1] ?? null;
+        if (!$previousStep || ($previousStep['output_type'] ?? '') !== 'wip') {
+            return null;
+        }
+
+        $previousPartNo = strtoupper(trim((string) ($previousStep['output_part_no'] ?? '')));
+        if ($previousPartNo === '' || $previousPartNo === '-') {
+            return null;
+        }
+
+        $previousPart = GciPart::where('part_no', $previousPartNo)->first();
+        if (!$previousPart) {
+            return [
+                'status' => 'skipped',
+                'reason' => 'previous_wip_part_not_found',
+                'part_no' => $previousPartNo,
+            ];
+        }
+
+        $sourceReference = sprintf(
+            'WO:%s|HR:%s|PROC:%s',
+            $order->production_order_number ?? $order->transaction_no ?? $order->id,
+            $report?->id ?? '-',
+            $processName
+        );
+
+        try {
+            LocationInventory::consumeStock(
+                null,
+                'WIP-BYPASS',
+                $qty,
+                null,
+                (int) $previousPart->id,
+                'WIP_CONSUME',
+                $sourceReference,
+                [
+                    'production_order_id' => $order->id,
+                    'production_order_number' => $order->production_order_number,
+                    'from_wip_part_no' => $previousPartNo,
+                    'process_name' => $processName,
+                    'hourly_report_id' => $report?->id,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Previous WIP consume skipped', [
+                'production_order_id' => $order->id,
+                'process_name' => $processName,
+                'part_no' => $previousPartNo,
+                'qty' => $qty,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => 'skipped',
+                'reason' => 'not_enough_previous_wip',
+                'part_no' => $previousPartNo,
+                'qty' => $qty,
+                'message' => $e->getMessage(),
+            ];
+        }
+
+        return [
+            'status' => 'consumed',
+            'gci_part_id' => (int) $previousPart->id,
+            'part_no' => $previousPartNo,
+            'qty' => $qty,
+        ];
+    }
+
     private function normalizeNgBreakdown(array $params): array
     {
         $totalNg = max(0, (int) ($params['ng'] ?? 0));
@@ -1642,6 +1834,40 @@ class ProductionGciApiController extends Controller
             }
         }
 
+        $previousWipConsumeEvent = null;
+        $processedQty = $incrementActual + $incrementNg;
+        if ($processedQty > 0) {
+            $previousWipConsumeEvent = $this->consumePreviousWipInventoryInput(
+                $order,
+                $processContext,
+                $processedQty,
+                $report
+            );
+        }
+
+        $wipInventoryEvent = null;
+        if ($processContext['output_type'] === 'wip' && $incrementActual > 0) {
+            try {
+                $wipInventoryEvent = $this->recordWipInventoryOutput(
+                    $order,
+                    $processContext,
+                    $incrementActual,
+                    $report
+                );
+            } catch (\Throwable $e) {
+                Log::warning('WIP inventory output failed on hourly save', [
+                    'production_order_id' => $order->id,
+                    'output_qty' => $incrementActual,
+                    'output_part_no' => $processContext['output_part_no'] ?? null,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+        }
+
         $this->recordProductionActivity($order->fresh(), 'hourly_saved', [
             'process_name' => $processContext['process_name'],
             'machine_id' => $report->machine_id,
@@ -1660,6 +1886,8 @@ class ProductionGciApiController extends Controller
                 'ng_rework' => (int) ($report->ng_rework ?? 0),
                 'ng_hold' => (int) ($report->ng_hold ?? 0),
                 'backflush_events' => $backflushEvents,
+                'wip_inventory_event' => $wipInventoryEvent,
+                'previous_wip_consume_event' => $previousWipConsumeEvent,
             ],
         ]);
 
@@ -1706,6 +1934,8 @@ class ProductionGciApiController extends Controller
             'ng_rework' => (int) ($report->ng_rework ?? 0),
             'ng_hold' => (int) ($report->ng_hold ?? 0),
             'backflush_events' => $backflushEvents,
+            'wip_inventory_event' => $wipInventoryEvent,
+            'previous_wip_consume_event' => $previousWipConsumeEvent,
             'handover' => $handoverMeta,
         ]);
 
@@ -1733,6 +1963,8 @@ class ProductionGciApiController extends Controller
                 'qty_actual_total' => $totalActual,
                 'qty_ng_total' => $totalNg,
                 'backflush_events' => $backflushEvents,
+                'wip_inventory_event' => $wipInventoryEvent,
+                'previous_wip_consume_event' => $previousWipConsumeEvent,
                 'handover' => $handoverMeta,
             ],
         ]);

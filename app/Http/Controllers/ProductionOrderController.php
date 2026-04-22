@@ -1358,6 +1358,24 @@ class ProductionOrderController extends Controller
         $ok = (float) $reports->sum('actual');
         $ng = (float) $reports->sum('ng');
         $total = $ok + $ng;
+        $wipStock = null;
+        $wipLocation = null;
+
+        if (strtolower($outputType) === 'wip') {
+            $wipPartId = GciPart::where('part_no', $outputPartNo)->value('id');
+            if ($wipPartId) {
+                $locationRows = LocationInventory::query()
+                    ->where('gci_part_id', $wipPartId)
+                    ->where('qty_on_hand', '>', 0)
+                    ->get(['location_code', 'qty_on_hand']);
+                $wipStock = (float) $locationRows->sum('qty_on_hand');
+                $wipLocation = $locationRows
+                    ->groupBy('location_code')
+                    ->map(fn ($rows, $location) => $location . ': ' . number_format((float) $rows->sum('qty_on_hand')))
+                    ->values()
+                    ->implode(', ');
+            }
+        }
 
         return [
             'step_no' => $stepNo,
@@ -1372,6 +1390,8 @@ class ProductionOrderController extends Controller
             'rework_qty' => (float) $reports->sum('ng_rework'),
             'hold_qty' => (float) $reports->sum('ng_hold'),
             'yield_rate' => $total > 0 ? round(($ok / $total) * 100, 2) : null,
+            'wip_stock' => $wipStock,
+            'wip_location' => $wipLocation,
             'is_current' => $isCurrent,
             'has_output' => $total > 0,
         ];
