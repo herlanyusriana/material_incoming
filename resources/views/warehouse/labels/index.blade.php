@@ -9,6 +9,10 @@
             <form method="GET" class="flex gap-4">
                 <input type="text" name="q" value="{{ request('q') }}" placeholder="Search part no or name..."
                     class="flex-1 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+                <select name="policy" class="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">All Policy</option>
+                    <option value="line_stock" @selected(($policy ?? '') === 'line_stock')>Simpan di Line</option>
+                </select>
                 <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                     Search
                 </button>
@@ -45,6 +49,7 @@
                             <th class="px-6 py-4 text-left font-semibold">Barcode</th>
                             <th class="px-6 py-4 text-left font-semibold">Part Name</th>
                             <th class="px-6 py-4 text-left font-semibold">Classification</th>
+                            <th class="px-6 py-4 text-left font-semibold">Policy</th>
                             <th class="px-6 py-4 text-right">Action</th>
                         </tr>
                     </thead>
@@ -68,16 +73,25 @@
                                         {{ $part->classification }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-6 py-4 text-xs text-slate-600">
+                                    {{ $part->consumption_policy === 'backflush_line_stock' ? 'Simpan di Line' : ($part->consumption_policy ?: '-') }}
+                                </td>
+                                <td class="px-6 py-4 text-right space-x-3">
                                     <a href="{{ route('warehouse.labels.part', $part) }}" target="_blank"
                                         class="text-indigo-600 hover:text-indigo-900 font-medium text-xs uppercase">
                                         Print Single
                                     </a>
+                                    @if($part->consumption_policy === 'backflush_line_stock')
+                                        <a href="{{ route('warehouse.labels.line-stock', $part) }}" target="_blank"
+                                            class="text-emerald-700 hover:text-emerald-900 font-medium text-xs uppercase">
+                                            Line Stock QR
+                                        </a>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-slate-500 italic">
+                                <td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">
                                     No parts found.
                                 </td>
                             </tr>

@@ -28,6 +28,26 @@ class BarcodeLabelController extends Controller
         return view('warehouse.labels.part_label', compact('part', 'barcodeImage', 'barcode', 'qrSvg', 'batch'));
     }
 
+    public function printLineStockLabel(GciPart $part, Request $request)
+    {
+        $location = strtoupper(trim((string) $request->query('location', $part->default_location ?: 'LINE-STOCK')));
+        if ($location === '') {
+            $location = 'LINE-STOCK';
+        }
+
+        $payload = [
+            'type' => 'LINE_STOCK',
+            'gci_part_id' => (int) $part->id,
+            'part_no' => (string) $part->part_no,
+            'location' => $location,
+            'policy' => 'backflush_line_stock',
+        ];
+
+        $qrSvg = QrSvg::make(json_encode($payload, JSON_UNESCAPED_SLASHES), 360, 0);
+
+        return view('warehouse.labels.line_stock_label', compact('part', 'location', 'qrSvg', 'payload'));
+    }
+
     /**
      * Print bulk labels
      */
@@ -68,6 +88,7 @@ class BarcodeLabelController extends Controller
     public function index(Request $request)
     {
         $query = GciPart::query()->where('status', 'active');
+        $policy = trim((string) $request->query('policy', ''));
 
         if ($search = $request->query('q')) {
             $query->where(function ($q) use ($search) {
@@ -76,8 +97,12 @@ class BarcodeLabelController extends Controller
             });
         }
 
+        if ($policy === 'line_stock') {
+            $query->where('consumption_policy', 'backflush_line_stock');
+        }
+
         $parts = $query->orderBy('part_no')->paginate(50);
 
-        return view('warehouse.labels.index', compact('parts'));
+        return view('warehouse.labels.index', compact('parts', 'policy'));
     }
 }

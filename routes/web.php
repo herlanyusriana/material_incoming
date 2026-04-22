@@ -473,6 +473,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('warehouse')->name('warehouse.')->group(function () {
         Route::get('/labels', [App\Http\Controllers\BarcodeLabelController::class, 'index'])->name('labels.index');
         Route::get('/labels/part/{part}', [App\Http\Controllers\BarcodeLabelController::class, 'printPartLabel'])->name('labels.part');
+        Route::get('/labels/line-stock/{part}', [App\Http\Controllers\BarcodeLabelController::class, 'printLineStockLabel'])->name('labels.line-stock');
         Route::post('/labels/bulk', [App\Http\Controllers\BarcodeLabelController::class, 'printBulkLabels'])->name('labels.bulk');
 
         // Stock Opname

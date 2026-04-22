@@ -10,6 +10,18 @@ use App\Models\Receive;
 
 class ProductionMaterialRequestService
 {
+    private function cleanText(...$values): string
+    {
+        foreach ($values as $value) {
+            $text = trim((string) ($value ?? ''));
+            if ($text !== '' && $text !== '-') {
+                return $text;
+            }
+        }
+
+        return '';
+    }
+
     private function normalizeConsumptionPolicy(?string $policy, ?bool $legacyBackflush = null): string
     {
         $policy = strtolower(trim((string) $policy));
@@ -80,37 +92,64 @@ class ProductionMaterialRequestService
 
             $candidateParts = collect();
             if ($item->incomingPart) {
+                $partNo = $this->cleanText($item->incomingPart->part_no, $item->componentPart?->part_no, $item->component_part_no);
                 $candidateParts->push([
                     'type' => 'primary',
                     'part_id' => (int) $item->incomingPart->id,
-                    'part_no' => (string) ($item->incomingPart->part_no ?? '-'),
-                    'part_name' => (string) ($item->incomingPart->part_name ?? '-'),
+                    'gci_part_id' => (int) ($item->incomingPart->gci_part_id ?? $item->component_part_id ?? 0),
+                    'part_no' => $partNo,
+                    'part_name' => $this->cleanText(
+                        $item->incomingPart->part_name_gci,
+                        $item->incomingPart->part_name_vendor,
+                        $item->incomingPart->part_name,
+                        $item->componentPart?->part_name,
+                        $partNo
+                    ),
                 ]);
             }
 
             foreach (($item->substitutes ?? collect()) as $substitute) {
-                if (!$substitute->incomingPart) {
+                if (!$substitute->incomingPart && !$substitute->part) {
                     continue;
                 }
 
+                $partNo = $this->cleanText(
+                    $substitute->incomingPart?->part_no,
+                    $substitute->part?->part_no,
+                    $substitute->substitute_part_no
+                );
                 $candidateParts->push([
                     'type' => 'substitute',
-                    'part_id' => (int) $substitute->incomingPart->id,
-                    'part_no' => (string) ($substitute->incomingPart->part_no ?? $substitute->substitute_part_no ?? '-'),
-                    'part_name' => (string) ($substitute->incomingPart->part_name ?? $substitute->part?->part_name ?? '-'),
+                    'part_id' => (int) ($substitute->incomingPart?->id ?? 0),
+                    'gci_part_id' => (int) ($substitute->incomingPart?->gci_part_id ?? $substitute->substitute_part_id ?? 0),
+                    'part_no' => $partNo,
+                    'part_name' => $this->cleanText(
+                        $substitute->incomingPart?->part_name_gci,
+                        $substitute->incomingPart?->part_name_vendor,
+                        $substitute->incomingPart?->part_name,
+                        $substitute->part?->part_name,
+                        $partNo
+                    ),
                 ]);
             }
 
             $candidateParts = $candidateParts
-                ->filter(fn($part) => !empty($part['part_id']))
-                ->unique('part_id')
+                ->filter(fn($part) => !empty($part['part_id']) || !empty($part['gci_part_id']) || trim((string) ($part['part_no'] ?? '')) !== '')
+                ->unique(fn($part) => ($part['part_id'] ?? 0) . '|' . ($part['gci_part_id'] ?? 0) . '|' . strtoupper((string) ($part['part_no'] ?? '')))
                 ->values();
+            $scanOptions = $candidateParts->map(fn($part) => [
+                'source_type' => $part['type'],
+                'part_id' => (int) ($part['part_id'] ?? 0),
+                'gci_part_id' => (int) ($part['gci_part_id'] ?? 0),
+                'part_no' => $this->cleanText($part['part_no'] ?? ''),
+                'part_name' => $this->cleanText($part['part_name'] ?? '', $part['part_no'] ?? ''),
+            ])->values()->all();
 
             if ($candidateParts->isEmpty()) {
                 $lines[] = [
                     'component_gci_part_id' => (int) ($item->component_part_id ?? 0),
-                    'component_part_no' => (string) ($item->componentPart?->part_no ?? $item->component_part_no ?? '-'),
-                    'component_part_name' => (string) ($item->componentPart?->part_name ?? '-'),
+                    'component_part_no' => $this->cleanText($item->componentPart?->part_no, $item->component_part_no),
+                    'component_part_name' => $this->cleanText($item->componentPart?->part_name, $item->material_name, $item->componentPart?->part_no, $item->component_part_no),
                     'uom' => (string) ($item->consumption_uom ?? $item->componentPart?->uom ?? 'PCS'),
                     'make_or_buy' => $makeOrBuy,
                     'consumption_policy' => $consumptionPolicy,
@@ -120,6 +159,7 @@ class ProductionMaterialRequestService
                     'available_qty' => 0,
                     'shortage_qty' => $requiredQty,
                     'allocations' => [],
+                    'scan_options' => [],
                     'notes' => 'Incoming RM part belum dipetakan pada BOM.',
                 ];
                 continue;
@@ -158,6 +198,7 @@ class ProductionMaterialRequestService
                     $allocations[] = [
                         'source_type' => $candidate['type'],
                         'part_id' => $candidate['part_id'],
+                        'gci_part_id' => (int) ($candidate['gci_part_id'] ?? 0),
                         'part_no' => $candidate['part_no'],
                         'part_name' => $candidate['part_name'],
                         'location_code' => (string) $stock->location_code,
@@ -184,8 +225,8 @@ class ProductionMaterialRequestService
             $availableQty = collect($allocations)->sum('request_qty');
             $lines[] = [
                 'component_gci_part_id' => (int) ($item->component_part_id ?? 0),
-                'component_part_no' => (string) ($item->componentPart?->part_no ?? $item->component_part_no ?? '-'),
-                'component_part_name' => (string) ($item->componentPart?->part_name ?? '-'),
+                'component_part_no' => $this->cleanText($item->componentPart?->part_no, $item->component_part_no),
+                'component_part_name' => $this->cleanText($item->componentPart?->part_name, $item->material_name, $item->componentPart?->part_no, $item->component_part_no),
                 'uom' => (string) ($item->consumption_uom ?? $item->componentPart?->uom ?? 'PCS'),
                 'make_or_buy' => $makeOrBuy,
                 'consumption_policy' => $consumptionPolicy,
@@ -195,6 +236,7 @@ class ProductionMaterialRequestService
                 'available_qty' => $availableQty,
                 'shortage_qty' => max(0, round($requiredQty - $availableQty, 4)),
                 'allocations' => $allocations,
+                'scan_options' => $scanOptions,
                 'notes' => null,
             ];
         }

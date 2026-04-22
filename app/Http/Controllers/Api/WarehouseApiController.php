@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionOrder;
 use App\Models\Bom;
+use App\Models\GciPart;
 use App\Models\Receive;
 use App\Models\LocationInventory;
 use App\Models\GciInventory;
@@ -16,6 +17,18 @@ use Illuminate\Http\Request;
 class WarehouseApiController extends Controller
 {
     private const STAGING_LOCATION_CODE = 'AA-BULK';
+
+    private function cleanText(...$values): string
+    {
+        foreach ($values as $value) {
+            $text = trim((string) ($value ?? ''));
+            if ($text !== '' && $text !== '-') {
+                return $text;
+            }
+        }
+
+        return '';
+    }
 
     private function inventoryFlowService(): ProductionInventoryFlowService
     {
@@ -36,6 +49,145 @@ class WarehouseApiController extends Controller
             'line_received' => !is_null($order->material_handed_over_at),
             'line_received_at' => $order->material_handed_over_at ? $order->material_handed_over_at->toDateTimeString() : null,
         ];
+    }
+
+    private function parseLineStockPayload(string $raw): ?array
+    {
+        $raw = trim($raw);
+        if (!str_starts_with($raw, '{') || !str_ends_with($raw, '}')) {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded) || strtoupper(trim((string) ($decoded['type'] ?? ''))) !== 'LINE_STOCK') {
+            return null;
+        }
+
+        $part = null;
+        $gciPartId = (int) ($decoded['gci_part_id'] ?? 0);
+        $partNo = strtoupper(trim((string) ($decoded['part_no'] ?? '')));
+
+        if ($gciPartId > 0) {
+            $part = GciPart::find($gciPartId);
+        }
+
+        if (!$part && $partNo !== '') {
+            $part = GciPart::query()
+                ->whereRaw('UPPER(TRIM(part_no)) = ?', [$partNo])
+                ->first();
+        }
+
+        if (!$part) {
+            return null;
+        }
+
+        $location = strtoupper(trim((string) ($decoded['location'] ?? $part->default_location ?? 'LINE-STOCK')));
+        if ($location === '') {
+            $location = 'LINE-STOCK';
+        }
+
+        return [
+            'gci_part_id' => (int) $part->id,
+            'part_id' => 0,
+            'part_no' => (string) $part->part_no,
+            'part_name' => $this->cleanText($part->part_name, $part->part_no),
+            'location_code' => $location,
+            'tag_no' => 'LINESTOCK-' . $part->part_no . '-' . now()->format('YmdHis'),
+            'qty_available' => $this->availableLineStockQty((int) $part->id),
+            'payload' => $decoded,
+        ];
+    }
+
+    private function availableLineStockQty(int $gciPartId): float
+    {
+        if ($gciPartId <= 0) {
+            return 0.0;
+        }
+
+        return round((float) LocationInventory::query()
+            ->where('gci_part_id', $gciPartId)
+            ->where('qty_on_hand', '>', 0)
+            ->sum('qty_on_hand'), 4);
+    }
+
+    private function transferLineStockByFifo(
+        int $gciPartId,
+        ?int $partId,
+        float $qty,
+        string $targetLocation,
+        string $targetTagNo,
+        string $sourceReference,
+        array $traceability = []
+    ): array {
+        $qty = round($qty, 4);
+        $remaining = $qty;
+        $breakdown = [];
+
+        $stocks = LocationInventory::query()
+            ->where('gci_part_id', $gciPartId)
+            ->where('qty_on_hand', '>', 0)
+            ->whereRaw('UPPER(TRIM(location_code)) <> ?', [strtoupper(trim($targetLocation))])
+            ->orderByRaw('production_date IS NULL')
+            ->orderBy('production_date')
+            ->orderBy('batch_no')
+            ->orderBy('location_code')
+            ->get();
+
+        foreach ($stocks as $stock) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $takeQty = min($remaining, (float) $stock->qty_on_hand);
+            if ($takeQty <= 0) {
+                continue;
+            }
+
+            $sourceLocation = (string) $stock->location_code;
+            $sourceBatch = (string) ($stock->batch_no ?? '');
+            $lineTrace = array_merge($traceability, [
+                'source_tag' => $sourceBatch,
+                'line_stock_qr' => true,
+                'line_stock_tag' => $targetTagNo,
+            ]);
+
+            LocationInventory::consumeStock(
+                $partId && $partId > 0 ? $partId : null,
+                $sourceLocation,
+                $takeQty,
+                $sourceBatch,
+                $gciPartId,
+                'LINE_STOCK_QR_OUT',
+                $sourceReference,
+                $lineTrace
+            );
+
+            LocationInventory::updateStock(
+                $partId && $partId > 0 ? $partId : null,
+                $targetLocation,
+                $takeQty,
+                $targetTagNo,
+                null,
+                $gciPartId,
+                'LINE_STOCK_QR_IN',
+                $sourceReference,
+                $lineTrace
+            );
+
+            $breakdown[] = [
+                'location_code' => $sourceLocation,
+                'batch_no' => $sourceBatch,
+                'qty' => round($takeQty, 4),
+            ];
+
+            $remaining = round($remaining - $takeQty, 4);
+        }
+
+        if ($remaining > 0) {
+            throw new \RuntimeException("Stock line stock kurang {$remaining}.");
+        }
+
+        return $breakdown;
     }
 
     private function targetSupplyDate(Request $request): string
@@ -80,7 +232,7 @@ class WarehouseApiController extends Controller
         return array_values(array_unique($keys));
     }
 
-    private function requirementKeys(array $line): array
+    private function requirementKeys(array $line, ?ProductionOrder $order = null): array
     {
         $keys = $this->issueKeys(
             (int) ($line['component_gci_part_id'] ?? 0),
@@ -88,41 +240,132 @@ class WarehouseApiController extends Controller
             (string) ($line['component_part_no'] ?? '')
         );
 
-        foreach (($line['allocations'] ?? []) as $allocation) {
+        foreach ($this->scanOptionsForRequirement($line, $order) as $option) {
+            $keys = array_merge($keys, $this->issueKeys(
+                (int) ($option['gci_part_id'] ?? 0),
+                null,
+                (string) ($option['part_no'] ?? '')
+            ));
             $keys = array_merge($keys, $this->issueKeys(
                 null,
-                (int) ($allocation['part_id'] ?? 0),
-                (string) ($allocation['part_no'] ?? '')
+                (int) ($option['part_id'] ?? 0),
+                (string) ($option['part_no'] ?? '')
             ));
         }
 
         return array_values(array_unique($keys));
     }
 
-    private function scanOptionsForRequirement(array $line): array
+    private function bomScanOptionsForRequirement(?ProductionOrder $order, array $line): array
     {
-        $options = collect($line['allocations'] ?? [])->map(function (array $allocation) {
+        if (!$order) {
+            return [];
+        }
+
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+        if (!$bom) {
+            return [];
+        }
+
+        $componentGciPartId = (int) ($line['component_gci_part_id'] ?? 0);
+        $componentPartNo = strtoupper(trim((string) ($line['component_part_no'] ?? '')));
+
+        $items = $bom->items()
+            ->with(['componentPart', 'incomingPart', 'substitutes.part', 'substitutes.incomingPart'])
+            ->get()
+            ->filter(function ($item) use ($componentGciPartId, $componentPartNo) {
+                $itemComponentId = (int) ($item->component_part_id ?? 0);
+                $itemComponentNo = strtoupper(trim((string) ($item->componentPart?->part_no ?? $item->component_part_no ?? '')));
+
+                return ($componentGciPartId > 0 && $itemComponentId === $componentGciPartId)
+                    || ($componentPartNo !== '' && $itemComponentNo === $componentPartNo);
+            });
+
+        return $items->flatMap(function ($item) {
+            $options = collect();
+
+            if ($item->incomingPart) {
+                $options->push([
+                    'source_type' => 'primary',
+                    'part_id' => (int) $item->incomingPart->id,
+                    'gci_part_id' => (int) ($item->incomingPart->gci_part_id ?? $item->component_part_id ?? 0),
+                    'part_no' => $this->cleanText($item->incomingPart->part_no, $item->componentPart?->part_no, $item->component_part_no),
+                    'part_name' => $this->cleanText($item->incomingPart->part_name_gci, $item->incomingPart->part_name_vendor, $item->incomingPart->part_name, $item->componentPart?->part_name, $item->incomingPart->part_no),
+                    'location_code' => '',
+                    'batch_no' => '',
+                    'qty_on_hand' => 0.0,
+                    'request_qty' => 0.0,
+                ]);
+            }
+
+            foreach (($item->substitutes ?? collect()) as $substitute) {
+                if (!$substitute->incomingPart && !$substitute->part) {
+                    continue;
+                }
+
+                $options->push([
+                    'source_type' => 'substitute',
+                    'part_id' => (int) ($substitute->incomingPart?->id ?? 0),
+                    'gci_part_id' => (int) ($substitute->incomingPart?->gci_part_id ?? $substitute->substitute_part_id ?? 0),
+                    'part_no' => $this->cleanText($substitute->incomingPart?->part_no, $substitute->part?->part_no, $substitute->substitute_part_no),
+                    'part_name' => $this->cleanText($substitute->incomingPart?->part_name_gci, $substitute->incomingPart?->part_name_vendor, $substitute->incomingPart?->part_name, $substitute->part?->part_name, $substitute->incomingPart?->part_no, $substitute->part?->part_no),
+                    'location_code' => '',
+                    'batch_no' => '',
+                    'qty_on_hand' => 0.0,
+                    'request_qty' => 0.0,
+                ]);
+            }
+
+            return $options;
+        })
+            ->filter(fn (array $option) => trim((string) ($option['part_no'] ?? '')) !== '')
+            ->unique(fn (array $option) => strtoupper(($option['source_type'] ?? '') . '|' . ($option['part_id'] ?? 0) . '|' . ($option['gci_part_id'] ?? 0) . '|' . ($option['part_no'] ?? '')))
+            ->values()
+            ->all();
+    }
+
+    private function scanOptionsForRequirement(array $line, ?ProductionOrder $order = null): array
+    {
+        $options = collect($line['scan_options'] ?? [])->map(function (array $option) {
+            return [
+                'source_type' => (string) ($option['source_type'] ?? 'primary'),
+                'part_id' => (int) ($option['part_id'] ?? 0),
+                'gci_part_id' => (int) ($option['gci_part_id'] ?? 0),
+                'part_no' => $this->cleanText($option['part_no'] ?? ''),
+                'part_name' => $this->cleanText($option['part_name'] ?? '', $option['part_no'] ?? ''),
+                'location_code' => '',
+                'batch_no' => '',
+                'qty_on_hand' => 0.0,
+                'request_qty' => round((float) ($line['required_qty'] ?? 0), 4),
+            ];
+        });
+
+        $options = $options
+            ->merge($this->bomScanOptionsForRequirement($order, $line))
+            ->merge(collect($line['allocations'] ?? [])->map(function (array $allocation) {
             return [
                 'source_type' => (string) ($allocation['source_type'] ?? 'primary'),
                 'part_id' => (int) ($allocation['part_id'] ?? 0),
-                'part_no' => (string) ($allocation['part_no'] ?? ''),
-                'part_name' => (string) ($allocation['part_name'] ?? ''),
+                'gci_part_id' => (int) ($allocation['gci_part_id'] ?? 0),
+                'part_no' => $this->cleanText($allocation['part_no'] ?? ''),
+                'part_name' => $this->cleanText($allocation['part_name'] ?? '', $allocation['part_no'] ?? ''),
                 'location_code' => (string) ($allocation['location_code'] ?? ''),
                 'batch_no' => (string) ($allocation['batch_no'] ?? ''),
                 'qty_on_hand' => round((float) ($allocation['qty_on_hand'] ?? 0), 4),
                 'request_qty' => round((float) ($allocation['request_qty'] ?? 0), 4),
             ];
-        })
+        }))
             ->filter(fn (array $option) => trim($option['part_no']) !== '')
-            ->unique(fn (array $option) => strtoupper($option['source_type'] . '|' . $option['part_id'] . '|' . $option['part_no'] . '|' . $option['location_code'] . '|' . $option['batch_no']))
+            ->unique(fn (array $option) => strtoupper($option['source_type'] . '|' . $option['part_id'] . '|' . $option['gci_part_id'] . '|' . $option['part_no'] . '|' . $option['location_code'] . '|' . $option['batch_no']))
             ->values();
 
         if ($options->isEmpty()) {
             $options->push([
                 'source_type' => 'component',
                 'part_id' => 0,
-                'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
-                'part_name' => (string) ($line['component_part_name'] ?? ''),
+                'gci_part_id' => (int) ($line['component_gci_part_id'] ?? 0),
+                'part_no' => $this->cleanText($line['component_part_no'] ?? 'Unknown'),
+                'part_name' => $this->cleanText($line['component_part_name'] ?? '', $line['component_part_no'] ?? 'Unknown'),
                 'location_code' => '',
                 'batch_no' => '',
                 'qty_on_hand' => 0.0,
@@ -144,7 +387,7 @@ class WarehouseApiController extends Controller
     {
         return collect(array_merge($existing, $incoming))
             ->filter(fn (array $option) => trim((string) ($option['part_no'] ?? '')) !== '')
-            ->unique(fn (array $option) => strtoupper(($option['source_type'] ?? '') . '|' . ($option['part_id'] ?? 0) . '|' . ($option['part_no'] ?? '') . '|' . ($option['location_code'] ?? '') . '|' . ($option['batch_no'] ?? '')))
+            ->unique(fn (array $option) => strtoupper(($option['source_type'] ?? '') . '|' . ($option['part_id'] ?? 0) . '|' . ($option['gci_part_id'] ?? 0) . '|' . ($option['part_no'] ?? '') . '|' . ($option['location_code'] ?? '') . '|' . ($option['batch_no'] ?? '')))
             ->values()
             ->all();
     }
@@ -180,7 +423,7 @@ class WarehouseApiController extends Controller
                     continue;
                 }
 
-                $keys = $this->requirementKeys($line);
+                $keys = $this->requirementKeys($line, $order);
                 $scanProgress = $this->scannedQtyForRequirement($order, $keys);
                 $requiredQty = round((float) ($line['required_qty'] ?? 0), 4);
                 $scannedQty = round((float) ($scanProgress['qty'] ?? 0), 4);
@@ -193,17 +436,17 @@ class WarehouseApiController extends Controller
                 $groupKey = $componentGciPartId > 0
                     ? 'gci:' . $componentGciPartId
                     : 'part:' . $componentPartNo;
-                $scanOptions = $this->scanOptionsForRequirement($line);
+                $scanOptions = $this->scanOptionsForRequirement($line, $order);
                 $preferredOption = $this->preferredScanOption($scanOptions);
 
                 if (!isset($rows[$groupKey])) {
                     $rows[$groupKey] = [
                         'group_key' => $groupKey,
                         'gci_part_id' => $componentGciPartId,
-                        'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
-                        'part_name' => (string) ($line['component_part_name'] ?? ''),
-                        'scan_part_no' => (string) ($preferredOption['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
-                        'scan_part_name' => (string) ($preferredOption['part_name'] ?? $line['component_part_name'] ?? ''),
+                        'part_no' => $this->cleanText($line['component_part_no'] ?? 'Unknown'),
+                        'part_name' => $this->cleanText($line['component_part_name'] ?? '', $line['component_part_no'] ?? 'Unknown'),
+                        'scan_part_no' => $this->cleanText($preferredOption['part_no'] ?? null, $line['component_part_no'] ?? 'Unknown'),
+                        'scan_part_name' => $this->cleanText($preferredOption['part_name'] ?? null, $line['component_part_name'] ?? '', $preferredOption['part_no'] ?? null, $line['component_part_no'] ?? 'Unknown'),
                         'scan_options' => [],
                         'accepted_part_nos' => [],
                         'uom' => (string) ($line['uom'] ?? 'PCS'),
@@ -230,7 +473,7 @@ class WarehouseApiController extends Controller
                     'id' => (int) $order->id,
                     'wo_number' => (string) ($order->production_order_number ?? $order->transaction_no ?? $order->id),
                     'fg_part_no' => (string) ($order->part?->part_no ?? ''),
-                    'fg_part_name' => (string) ($order->part?->part_name ?? ''),
+                    'fg_part_name' => $this->cleanText($order->part?->part_name, $order->part?->part_no),
                     'required_qty' => $requiredQty,
                     'scanned_qty' => $scannedQty,
                     'remaining_qty' => $remainingQty,
@@ -266,6 +509,27 @@ class WarehouseApiController extends Controller
 
     private function resolveScannedTag(string $rawTag): array
     {
+        $lineStock = $this->parseLineStockPayload($rawTag);
+        if ($lineStock) {
+            return [
+                'tag_no' => $lineStock['tag_no'],
+                'gci_part_id' => (int) $lineStock['gci_part_id'],
+                'part_id' => 0,
+                'qty_available' => (float) $lineStock['qty_available'],
+                'part_no' => (string) $lineStock['part_no'],
+                'part_name' => (string) $lineStock['part_name'],
+                'location_code' => (string) $lineStock['location_code'],
+                'source_location_code' => 'FIFO',
+                'loc_inv' => null,
+                'line_stock_qr' => true,
+                'traceability' => [
+                    'line_stock_qr' => true,
+                    'line_stock_payload' => $lineStock['payload'],
+                    'target_location_code' => $lineStock['location_code'],
+                ],
+            ];
+        }
+
         $tagNo = trim($rawTag);
         $filterPartNo = null;
         $receiveId = null;
@@ -305,7 +569,7 @@ class WarehouseApiController extends Controller
                 'part_id' => (int) ($locInv->part_id ?? 0),
                 'qty_available' => (float) $locInv->qty_on_hand,
                 'part_no' => (string) ($locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown'),
-                'part_name' => (string) ($locInv->part?->part_name_gci ?? $locInv->part?->part_name_vendor ?? $locInv->gciPart?->part_name ?? ''),
+                'part_name' => $this->cleanText($locInv->part?->part_name_gci, $locInv->part?->part_name_vendor, $locInv->gciPart?->part_name, $locInv->part?->part_no, $locInv->gciPart?->part_no),
                 'location_code' => (string) $locInv->location_code,
                 'source_location_code' => (string) $locInv->location_code,
                 'loc_inv' => $locInv,
@@ -347,7 +611,7 @@ class WarehouseApiController extends Controller
             'part_id' => (int) ($arrItem?->part?->id ?? 0),
             'qty_available' => (float) ($receive->qty ?? 0),
             'part_no' => (string) $partNo,
-            'part_name' => (string) ($arrItem?->part?->part_name_gci ?? $arrItem?->part?->part_name_vendor ?? ''),
+            'part_name' => $this->cleanText($arrItem?->part?->part_name_gci, $arrItem?->part?->part_name_vendor, $arrItem?->gciPart?->part_name, $partNo),
             'location_code' => null,
             'source_location_code' => strtoupper(trim((string) ($receive->location_code ?? ''))),
             'loc_inv' => null,
@@ -385,7 +649,7 @@ class WarehouseApiController extends Controller
 
         foreach ($orders as $order) {
             foreach (($order->material_request_lines ?? []) as $line) {
-                $requirementKeys = $this->requirementKeys($line);
+                $requirementKeys = $this->requirementKeys($line, $order);
                 if (empty(array_intersect($tagKeys, $requirementKeys))) {
                     continue;
                 }
@@ -423,6 +687,20 @@ class WarehouseApiController extends Controller
             ], 422);
         }
 
+        $lineStockQr = (bool) ($tag['line_stock_qr'] ?? false);
+        if ($lineStockQr) {
+            $invalidPolicy = collect($matches)->first(function (array $match) {
+                return (string) ($match['line']['consumption_policy'] ?? '') !== 'backflush_line_stock';
+            });
+
+            if ($invalidPolicy) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'QR Line Stock hanya boleh untuk material policy Simpan di Line.',
+                ], 422);
+            }
+        }
+
         $totalRemaining = round(collect($matches)->sum('remaining_qty'), 4);
         $qtyAvailable = round((float) $tag['qty_available'], 4);
         $issueQty = array_key_exists('issue_qty', $validated)
@@ -434,6 +712,23 @@ class WarehouseApiController extends Controller
                 'status' => 'error',
                 'message' => "Qty issue {$issueQty} melebihi qty tag {$qtyAvailable}.",
             ], 422);
+        }
+
+        if ($lineStockQr && $issueQty === null) {
+            return response()->json([
+                'status' => 'needs_qty_confirmation',
+                'message' => 'Isi qty Line Stock yang mau disupply.',
+                'data' => [
+                    'tag_no' => $tag['tag_no'],
+                    'part_no' => $tag['part_no'],
+                    'qty_available' => $qtyAvailable,
+                    'remaining_requirement_qty' => $totalRemaining,
+                    'suggested_qty' => min($qtyAvailable, $totalRemaining),
+                    'source_location_code' => 'FIFO',
+                    'target_date' => $targetDate,
+                    'line_stock_qr' => true,
+                ],
+            ], 409);
         }
 
         if ($issueQty === null && $qtyAvailable > $totalRemaining) {
@@ -483,12 +778,28 @@ class WarehouseApiController extends Controller
         $locationCode = $tag['location_code'] ?: self::STAGING_LOCATION_CODE;
         $traceability = is_array($tag['traceability'] ?? null) ? $tag['traceability'] : [];
 
-        DB::transaction(function () use ($tag, $issueQty, $remainingTagQty, $allocations, &$stagedToAa, &$locationCode, $traceability) {
+        DB::transaction(function () use ($tag, $issueQty, $remainingTagQty, $allocations, &$stagedToAa, &$locationCode, &$traceability) {
             $sourceReference = 'PROD_SUPPLY_ALL#' . now()->format('YmdHis');
             $stagingLocation = self::STAGING_LOCATION_CODE;
             $locInv = $tag['loc_inv'];
 
-            if ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
+            if (!empty($tag['line_stock_qr'])) {
+                $breakdown = $this->transferLineStockByFifo(
+                    (int) $tag['gci_part_id'],
+                    (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                    $issueQty,
+                    (string) $locationCode,
+                    (string) $tag['tag_no'],
+                    $sourceReference,
+                    $traceability
+                );
+
+                $traceability = array_merge($traceability, [
+                    'line_stock_qr' => true,
+                    'source_breakdown' => $breakdown,
+                ]);
+                $stagedToAa = true;
+            } elseif ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
                 LocationInventory::consumeStock(
                     (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
                     (string) $locInv->location_code,
@@ -651,7 +962,7 @@ class WarehouseApiController extends Controller
         $issueLines = collect($order->material_issue_lines ?? []);
 
         foreach (($order->material_request_lines ?? []) as $line) {
-            $requirementKeys = $this->requirementKeys($line);
+            $requirementKeys = $this->requirementKeys($line, $order);
 
             if (empty(array_intersect($issueKeys, $requirementKeys))) {
                 continue;
@@ -763,15 +1074,17 @@ class WarehouseApiController extends Controller
         if (!empty($order->material_request_lines)) {
             foreach (($order->material_request_lines ?? []) as $line) {
                 $allocations = array_values($line['allocations'] ?? []);
+                $scanOptions = $this->scanOptionsForRequirement($line, $order);
                 $primaryAllocation = $allocations[0] ?? null;
+                $preferredOption = $this->preferredScanOption($scanOptions);
                 $requirements[] = [
                     'gci_part_id' => (int) ($line['component_gci_part_id'] ?? 0),
-                    'part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
-                    'part_name' => (string) ($line['component_part_name'] ?? ''),
-                    'component_part_no' => (string) ($line['component_part_no'] ?? 'Unknown'),
-                    'component_part_name' => (string) ($line['component_part_name'] ?? ''),
-                    'scan_part_no' => (string) ($primaryAllocation['part_no'] ?? $line['component_part_no'] ?? 'Unknown'),
-                    'scan_part_name' => (string) ($primaryAllocation['part_name'] ?? $line['component_part_name'] ?? ''),
+                    'part_no' => $this->cleanText($line['component_part_no'] ?? 'Unknown'),
+                    'part_name' => $this->cleanText($line['component_part_name'] ?? '', $line['component_part_no'] ?? 'Unknown'),
+                    'component_part_no' => $this->cleanText($line['component_part_no'] ?? 'Unknown'),
+                    'component_part_name' => $this->cleanText($line['component_part_name'] ?? '', $line['component_part_no'] ?? 'Unknown'),
+                    'scan_part_no' => $this->cleanText($preferredOption['part_no'] ?? null, $primaryAllocation['part_no'] ?? null, $line['component_part_no'] ?? 'Unknown'),
+                    'scan_part_name' => $this->cleanText($preferredOption['part_name'] ?? null, $primaryAllocation['part_name'] ?? null, $line['component_part_name'] ?? '', $preferredOption['part_no'] ?? null, $primaryAllocation['part_no'] ?? null, $line['component_part_no'] ?? 'Unknown'),
                     'uom' => (string) ($line['uom'] ?? 'PCS'),
                     'consumption_policy' => (string) ($line['consumption_policy'] ?? (($line['is_backflush'] ?? true) ? 'backflush_return' : 'direct_issue')),
                     'policy_source' => (string) ($line['policy_source'] ?? 'legacy_default'),
@@ -780,6 +1093,7 @@ class WarehouseApiController extends Controller
                     'allocated_qty' => (float) ($line['available_qty'] ?? 0),
                     'shortage_qty' => (float) ($line['shortage_qty'] ?? 0),
                     'allocations' => $allocations,
+                    'scan_options' => $scanOptions,
                     'notes' => $line['notes'] ?? null,
                 ];
             }
@@ -794,12 +1108,12 @@ class WarehouseApiController extends Controller
 
                     $requirements[] = [
                         'gci_part_id' => (int) ($req['part']?->id ?? 0),
-                        'part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
-                        'part_name' => (string) ($req['part']?->part_name ?? ''),
-                        'component_part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
-                        'component_part_name' => (string) ($req['part']?->part_name ?? ''),
-                        'scan_part_no' => (string) ($req['part']?->part_no ?? $req['part_no'] ?? 'Unknown'),
-                        'scan_part_name' => (string) ($req['part']?->part_name ?? ''),
+                        'part_no' => $this->cleanText($req['part']?->part_no, $req['part_no'] ?? 'Unknown'),
+                        'part_name' => $this->cleanText($req['part']?->part_name, $req['part']?->part_no, $req['part_no'] ?? 'Unknown'),
+                        'component_part_no' => $this->cleanText($req['part']?->part_no, $req['part_no'] ?? 'Unknown'),
+                        'component_part_name' => $this->cleanText($req['part']?->part_name, $req['part']?->part_no, $req['part_no'] ?? 'Unknown'),
+                        'scan_part_no' => $this->cleanText($req['part']?->part_no, $req['part_no'] ?? 'Unknown'),
+                        'scan_part_name' => $this->cleanText($req['part']?->part_name, $req['part']?->part_no, $req['part_no'] ?? 'Unknown'),
                         'uom' => (string) ($req['uom'] ?? 'PCS'),
                         'consumption_policy' => 'backflush_return',
                         'policy_source' => 'bom_fallback',
@@ -826,13 +1140,31 @@ class WarehouseApiController extends Controller
                     $keys[] = 'part:' . $partNo;
                 }
                 foreach (($requirement['allocations'] ?? []) as $allocation) {
+                    $allocationGciPartId = (int) ($allocation['gci_part_id'] ?? 0);
                     $allocationPartId = (int) ($allocation['part_id'] ?? 0);
                     $allocationPartNo = strtoupper(trim((string) ($allocation['part_no'] ?? '')));
+                    if ($allocationGciPartId > 0) {
+                        $keys[] = 'gci:' . $allocationGciPartId;
+                    }
                     if ($allocationPartId > 0) {
                         $keys[] = 'incoming:' . $allocationPartId;
                     }
                     if ($allocationPartNo !== '') {
                         $keys[] = 'part:' . $allocationPartNo;
+                    }
+                }
+                foreach (($requirement['scan_options'] ?? []) as $option) {
+                    $optionGciPartId = (int) ($option['gci_part_id'] ?? 0);
+                    $optionPartId = (int) ($option['part_id'] ?? 0);
+                    $optionPartNo = strtoupper(trim((string) ($option['part_no'] ?? '')));
+                    if ($optionGciPartId > 0) {
+                        $keys[] = 'gci:' . $optionGciPartId;
+                    }
+                    if ($optionPartId > 0) {
+                        $keys[] = 'incoming:' . $optionPartId;
+                    }
+                    if ($optionPartNo !== '') {
+                        $keys[] = 'part:' . $optionPartNo;
                     }
                 }
 
@@ -894,10 +1226,12 @@ class WarehouseApiController extends Controller
 
         $tags = $order->material_issue_lines ?? [];
         $tagNo = trim((string) $validated['tag_no']);
+        $lineStock = $this->parseLineStockPayload($tagNo);
+        $lineStockQr = $lineStock !== null;
         $filterPartNo = null;
         $receiveId = null;
 
-        if (str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
+        if (!$lineStockQr && str_starts_with($tagNo, '{') && str_ends_with($tagNo, '}')) {
             $decoded = json_decode($tagNo, true);
             if (is_array($decoded)) {
                 if (!empty($decoded['tag'])) {
@@ -932,6 +1266,7 @@ class WarehouseApiController extends Controller
         $partId = null;
         $qtyAvailable = 0;
         $partNo = 'Unknown';
+        $partName = 'Unknown';
         $locationCode = null;
         $traceability = [];
         $sourceLocationCode = null;
@@ -939,52 +1274,71 @@ class WarehouseApiController extends Controller
         $receive = null;
 
         // 1. Cek apakah barang sudah masuk rak (Location Inventory)
-        $locInv = LocationInventory::where('batch_no', $tagNo)
+        $locInv = null;
+        if ($lineStockQr) {
+            $tagNo = (string) $lineStock['tag_no'];
+            $gciPartId = (int) $lineStock['gci_part_id'];
+            $partId = 0;
+            $qtyAvailable = (float) $lineStock['qty_available'];
+            $partNo = (string) $lineStock['part_no'];
+            $partName = $this->cleanText($lineStock['part_name'], $partNo);
+            $locationCode = (string) $lineStock['location_code'];
+            $sourceLocationCode = 'FIFO';
+            $traceability = [
+                'line_stock_qr' => true,
+                'line_stock_payload' => $lineStock['payload'],
+                'target_location_code' => $lineStock['location_code'],
+            ];
+        } else {
+            $locInv = LocationInventory::where('batch_no', $tagNo)
             ->where('qty_on_hand', '>', 0)
             ->orderByRaw('CASE WHEN location_code = ? THEN 1 ELSE 0 END', [self::STAGING_LOCATION_CODE])
             ->with('part', 'gciPart')
             ->first();
-        if ($locInv) {
-            $gciPartId = $locInv->gci_part_id;
-            $partId = $locInv->part_id;
-            $qtyAvailable = $locInv->qty_on_hand;
-            $partNo = $locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown';
-            $locationCode = $locInv->location_code;
-            $sourceLocationCode = $locInv->location_code;
-        } else {
-            $receiveQuery = Receive::query()
-                ->with('arrivalItem.part', 'arrivalItem.gciPartVendor')
-                ->where(function ($query) use ($tagNo, $receiveId) {
-                    $query->where('tag', $tagNo);
+            if ($locInv) {
+                $gciPartId = $locInv->gci_part_id;
+                $partId = $locInv->part_id;
+                $qtyAvailable = $locInv->qty_on_hand;
+                $partNo = $locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown';
+                $partName = $this->cleanText($locInv->part?->part_name_gci, $locInv->part?->part_name_vendor, $locInv->gciPart?->part_name, $partNo);
+                $locationCode = $locInv->location_code;
+                $sourceLocationCode = $locInv->location_code;
+            } else {
+                $receiveQuery = Receive::query()
+                    ->with('arrivalItem.part', 'arrivalItem.gciPartVendor')
+                    ->where(function ($query) use ($tagNo, $receiveId) {
+                        $query->where('tag', $tagNo);
 
-                    if ($receiveId > 0) {
-                        $query->orWhere('id', $receiveId);
-                    }
+                        if ($receiveId > 0) {
+                            $query->orWhere('id', $receiveId);
+                        }
 
-                    if (ctype_digit($tagNo)) {
-                        $query->orWhere('id', (int) $tagNo);
-                    }
-                });
-            if ($filterPartNo) {
-                $receiveQuery->whereHas('arrivalItem.part', fn($query) => $query->where('part_no', $filterPartNo));
-            }
-            $receive = $receiveQuery->first();
-            if ($receive) {
-                $arrItem = $receive->arrivalItem;
-                $partNo = $arrItem?->part?->part_no
-                    ?? $arrItem?->gciPartVendor?->vendor_part_no
-                    ?? 'Unknown';
-                $gciPartId = (int) ($arrItem?->part?->gci_part_id ?? $arrItem?->gciPartVendor?->gci_part_id ?? 0);
-                $partId = (int) ($arrItem?->part?->id ?? 0);
-                $qtyAvailable = (float) ($receive->qty ?? 0);
-                $sourceLocationCode = strtoupper(trim((string) ($receive->location_code ?? '')));
-                $traceability = [
-                    'source_receive_id' => (int) $receive->id,
-                    'source_arrival_id' => (int) ($arrItem?->arrival_id ?? 0),
-                    'source_invoice_no' => (string) ($receive->invoice_no ?? ''),
-                    'source_delivery_note_no' => (string) ($receive->delivery_note_no ?? ''),
-                    'source_tag' => $tagNo,
-                ];
+                        if (ctype_digit($tagNo)) {
+                            $query->orWhere('id', (int) $tagNo);
+                        }
+                    });
+                if ($filterPartNo) {
+                    $receiveQuery->whereHas('arrivalItem.part', fn($query) => $query->where('part_no', $filterPartNo));
+                }
+                $receive = $receiveQuery->first();
+                if ($receive) {
+                    $arrItem = $receive->arrivalItem;
+                    $partNo = $arrItem?->part?->part_no
+                        ?? $arrItem?->gciPartVendor?->vendor_part_no
+                        ?? 'Unknown';
+                    $partName = $this->cleanText($arrItem?->part?->part_name_gci, $arrItem?->part?->part_name_vendor, $arrItem?->gciPart?->part_name, $partNo);
+                    $gciPartId = (int) ($arrItem?->part?->gci_part_id ?? $arrItem?->gciPartVendor?->gci_part_id ?? 0);
+                    $partId = (int) ($arrItem?->part?->id ?? 0);
+                    $qtyAvailable = (float) ($receive->qty ?? 0);
+                    $sourceLocationCode = strtoupper(trim((string) ($receive->location_code ?? '')));
+                    $traceability = [
+                        'source_receive_id' => (int) $receive->id,
+                        'source_arrival_id' => (int) ($arrItem?->arrival_id ?? 0),
+                        'source_invoice_no' => (string) ($receive->invoice_no ?? ''),
+                        'source_delivery_note_no' => (string) ($receive->delivery_note_no ?? ''),
+                        'source_tag' => $tagNo,
+                    ];
+                }
             }
         }
 
@@ -995,24 +1349,9 @@ class WarehouseApiController extends Controller
         $materialSesuaiBom = false;
 
         if (!empty($order->material_request_lines)) {
+            $tagKeys = $this->issueKeys($gciPartId, $partId, $partNo);
             foreach (($order->material_request_lines ?? []) as $line) {
-                $componentGciPartId = (int) ($line['component_gci_part_id'] ?? 0);
-                $componentPartNo = strtoupper(trim((string) ($line['component_part_no'] ?? '')));
-                $allocations = collect($line['allocations'] ?? []);
-
-                $matchesAllocation = $allocations->contains(function ($allocation) use ($partId, $partNo) {
-                    $allocationPartId = (int) ($allocation['part_id'] ?? 0);
-                    $allocationPartNo = strtoupper(trim((string) ($allocation['part_no'] ?? '')));
-
-                    return ($partId > 0 && $allocationPartId === $partId)
-                        || ($allocationPartNo !== '' && $allocationPartNo === strtoupper(trim($partNo)));
-                });
-
-                if (
-                    ($componentGciPartId > 0 && $componentGciPartId === $gciPartId)
-                    || ($componentPartNo !== '' && $componentPartNo === strtoupper(trim($partNo)))
-                    || $matchesAllocation
-                ) {
+                if (!empty(array_intersect($tagKeys, $this->requirementKeys($line, $order)))) {
                     $materialSesuaiBom = true;
                     break;
                 }
@@ -1041,11 +1380,20 @@ class WarehouseApiController extends Controller
 
         $requirementBalance = $this->resolveRequirementBalance($order, $gciPartId, $partId, $partNo);
         $remainingRequirementQty = (float) ($requirementBalance['remaining_qty'] ?? $qtyAvailable);
+        $consumptionPolicy = (string) ($requirementBalance['consumption_policy'] ?? 'backflush_return');
+        $isBackflush = (bool) ($requirementBalance['is_backflush'] ?? $consumptionPolicy !== 'direct_issue');
 
         if ($requirementBalance && $remainingRequirementQty <= 0) {
             return response()->json([
                 'status' => 'error',
                 'message' => "Requirement {$partNo} sudah terpenuhi untuk WO ini.",
+            ], 422);
+        }
+
+        if ($lineStockQr && $consumptionPolicy !== 'backflush_line_stock') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'QR Line Stock hanya boleh untuk material policy Simpan di Line.',
             ], 422);
         }
 
@@ -1058,6 +1406,25 @@ class WarehouseApiController extends Controller
                 'status' => 'error',
                 'message' => "Qty issue {$issueQty} melebihi qty tag {$qtyAvailable}.",
             ], 422);
+        }
+
+        if ($lineStockQr && $issueQty === null) {
+            return response()->json([
+                'status' => 'needs_qty_confirmation',
+                'message' => 'Isi qty Line Stock yang mau disupply.',
+                'data' => [
+                    'tag_no' => $tagNo,
+                    'part_no' => $partNo,
+                    'qty_available' => round((float) $qtyAvailable, 4),
+                    'remaining_requirement_qty' => $remainingRequirementQty,
+                    'suggested_qty' => min(round((float) $qtyAvailable, 4), $remainingRequirementQty),
+                    'component_part_no' => $requirementBalance['component_part_no'] ?? '',
+                    'component_part_name' => $requirementBalance['component_part_name'] ?? '',
+                    'location_code' => $locationCode,
+                    'source_location_code' => 'FIFO',
+                    'line_stock_qr' => true,
+                ],
+            ], 409);
         }
 
         if ($issueQty === null && $requirementBalance && round((float) $qtyAvailable, 4) > $remainingRequirementQty) {
@@ -1088,14 +1455,12 @@ class WarehouseApiController extends Controller
             ], 422);
         }
 
-        $consumptionPolicy = (string) ($requirementBalance['consumption_policy'] ?? 'backflush_return');
-        $isBackflush = (bool) ($requirementBalance['is_backflush'] ?? $consumptionPolicy !== 'direct_issue');
-
         DB::transaction(function () use (
             &$tags,
             $order,
             $tagNo,
             $partNo,
+            $partName,
             $qtyAvailable,
             $issueQty,
             $remainingTagQty,
@@ -1107,12 +1472,29 @@ class WarehouseApiController extends Controller
             &$stagedToAa,
             $locInv,
             $consumptionPolicy,
-            $isBackflush
+            $isBackflush,
+            $lineStockQr
         ) {
             $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
             $stagingLocation = self::STAGING_LOCATION_CODE;
 
-            if ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
+            if ($lineStockQr) {
+                $breakdown = $this->transferLineStockByFifo(
+                    $gciPartId,
+                    $partId > 0 ? $partId : null,
+                    $issueQty,
+                    (string) $locationCode,
+                    $tagNo,
+                    $sourceReference,
+                    $traceability
+                );
+
+                $traceability = array_merge($traceability, [
+                    'line_stock_qr' => true,
+                    'source_breakdown' => $breakdown,
+                ]);
+                $stagedToAa = true;
+            } elseif ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
                 LocationInventory::consumeStock(
                     $partId > 0 ? $partId : null,
                     (string) $locInv->location_code,
@@ -1180,6 +1562,7 @@ class WarehouseApiController extends Controller
             $tags[] = [
                 'tag_number' => $tagNo,
                 'part_no' => $partNo,
+                'part_name' => $partName,
                 'qty' => $issueQty,
                 'tag_qty' => round((float) $qtyAvailable, 4),
                 'remaining_qty_after_issue' => $remainingTagQty,
@@ -1224,8 +1607,44 @@ class WarehouseApiController extends Controller
                 $gciPartId = (int) ($removedTag['gci_part_id'] ?? 0);
                 $tagNo = (string) ($removedTag['tag_number'] ?? '');
                 $sourceLocationCode = strtoupper(trim((string) ($removedTag['source_location_code'] ?? '')));
+                $locationCode = strtoupper(trim((string) ($removedTag['location_code'] ?? self::STAGING_LOCATION_CODE)));
                 $traceability = is_array($removedTag['traceability'] ?? null) ? $removedTag['traceability'] : [];
                 $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
+
+                if (($traceability['line_stock_qr'] ?? false) && !empty($traceability['source_breakdown']) && $qty > 0 && $tagNo !== '') {
+                    LocationInventory::consumeStock(
+                        $partId > 0 ? $partId : null,
+                        $locationCode,
+                        $qty,
+                        $tagNo,
+                        $gciPartId > 0 ? $gciPartId : null,
+                        'LINE_STOCK_QR_CANCEL_OUT',
+                        $sourceReference,
+                        array_merge(['source_tag' => $tagNo], $traceability)
+                    );
+
+                    foreach ($traceability['source_breakdown'] as $source) {
+                        $sourceQty = (float) ($source['qty'] ?? 0);
+                        $sourceLocation = strtoupper(trim((string) ($source['location_code'] ?? '')));
+                        if ($sourceQty <= 0 || $sourceLocation === '') {
+                            continue;
+                        }
+
+                        LocationInventory::updateStock(
+                            $partId > 0 ? $partId : null,
+                            $sourceLocation,
+                            $sourceQty,
+                            (string) ($source['batch_no'] ?? ''),
+                            null,
+                            $gciPartId > 0 ? $gciPartId : null,
+                            'LINE_STOCK_QR_CANCEL_IN',
+                            $sourceReference,
+                            array_merge(['source_tag' => $tagNo], $traceability)
+                        );
+                    }
+
+                    return;
+                }
 
                 if ($qty > 0 && $tagNo !== '') {
                     LocationInventory::consumeStock(
