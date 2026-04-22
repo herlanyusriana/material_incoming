@@ -10,6 +10,8 @@ class ProductionGciHourlyReport extends Model
     protected $fillable = [
         'production_gci_work_order_id',
         'production_order_id',
+        'machine_id',
+        'machine_name',
         'time_range',
         'target',
         'actual',

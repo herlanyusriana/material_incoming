@@ -8,9 +8,11 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Machine;
 use App\Models\ProductionOrder;
 use App\Models\ProductionInspection;
+use App\Models\ProductionOrderActivity;
 use App\Models\ProductionGciWorkOrder;
 use App\Models\ProductionGciHourlyReport;
 use App\Models\ProductionGciDowntime;
@@ -45,6 +47,34 @@ class ProductionGciApiController extends Controller
     private function bypassMaterialGateForWoStart(): bool
     {
         return self::TEMP_ALLOW_START_WITHOUT_WH_SUPPLY;
+    }
+
+    private function recordProductionActivity(ProductionOrder $order, string $type, array $data = []): void
+    {
+        try {
+            ProductionOrderActivity::create([
+                'production_order_id' => $order->id,
+                'activity_type' => $type,
+                'process_name' => $data['process_name'] ?? $order->process_name,
+                'machine_id' => $data['machine_id'] ?? $order->machine_id,
+                'machine_name' => $data['machine_name'] ?? ($order->machine?->name ?? null),
+                'shift' => $data['shift'] ?? $order->shift,
+                'operator_name' => $data['operator_name'] ?? null,
+                'output_type' => $data['output_type'] ?? null,
+                'output_part_no' => $data['output_part_no'] ?? null,
+                'output_part_name' => $data['output_part_name'] ?? null,
+                'qty_ok' => (float) ($data['qty_ok'] ?? 0),
+                'qty_ng' => (float) ($data['qty_ng'] ?? 0),
+                'notes' => $data['notes'] ?? null,
+                'meta' => $data['meta'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to record production activity', [
+                'production_order_id' => $order->id,
+                'activity_type' => $type,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function isRmBuyRequirement(array $req): bool
@@ -612,17 +642,35 @@ class ProductionGciApiController extends Controller
                             'ng_hold' => $this->normalizeNgBreakdown($hrParams)['ng_hold'],
                             'operator_name' => $hrParams['operatorName'] ?? null,
                             'shift' => $hrParams['shift'] ?? null,
+                            'machine_id' => $hrParams['machineId'] ?? null,
+                            'machine_name' => $hrParams['machineName'] ?? null,
+                            'output_type' => $this->normalizeHourlyOutputType($hrParams['outputType'] ?? null),
+                            'process_name' => $hrParams['processName'] ?? null,
+                            'output_part_no' => $hrParams['outputPartNo'] ?? null,
+                            'output_part_name' => $hrParams['outputPartName'] ?? null,
                         ]
                     );
 
                         // Update production order actual totals
                         $po = ProductionOrder::find($hrParams['productionOrderId']);
                         if ($po) {
-                            $totalActual = ProductionGciHourlyReport::where('production_order_id', $po->id)->sum('actual');
-                            $totalNg = ProductionGciHourlyReport::where('production_order_id', $po->id)->sum('ng');
+                            $totalActual = ProductionGciHourlyReport::where('production_order_id', $po->id)
+                                ->where(function ($query) {
+                                    $query->where('output_type', 'fg')
+                                        ->orWhereNull('output_type');
+                                })
+                                ->sum('actual');
+                            $totalNg = ProductionGciHourlyReport::where('production_order_id', $po->id)
+                                ->where(function ($query) {
+                                    $query->where('output_type', 'fg')
+                                        ->orWhereNull('output_type');
+                                })
+                                ->sum('ng');
                             $po->update([
                                 'qty_actual' => $totalActual,
                                 'qty_ng' => $totalNg,
+                                'machine_id' => $hrParams['machineId'] ?? $po->machine_id,
+                                'process_name' => $hrParams['processName'] ?? $po->process_name,
                             ]);
                             $affectedDates[] = $po->plan_date;
                             $affectedMachineIds[] = (int) $po->machine_id;
@@ -773,15 +821,12 @@ class ProductionGciApiController extends Controller
 
     public function workOrders(Request $request)
     {
-        $machineId = $request->query('machine_id');
         $date = $request->query('date', now()->toDateString());
         $blockedStatuses = $this->bypassMaterialGateForWoStart()
             ? ['resource_hold', 'cancelled', 'completed']
             : ['material_hold', 'resource_hold', 'cancelled', 'completed'];
 
-        $machineIdInt = (int) $machineId;
-        $query = ProductionOrder::with('part:id,part_no,part_name,model')
-            ->where('machine_id', $machineIdInt)
+        $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
             ->whereDate('plan_date', $date)
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
             ->whereNotIn('status', $blockedStatuses)
@@ -805,6 +850,8 @@ class ProductionGciApiController extends Controller
                 'status' => (string) $o->status,
                 'workflow_stage' => (string) $o->workflow_stage,
                 'process_name' => (string) ($o->process_name ?? ''),
+                'machine_id' => $o->machine_id ? (int) $o->machine_id : null,
+                'machine_name' => (string) ($o->machine?->name ?? ($o->machine_name ?? '')),
                 'last_handover_from_process' => (string) ($o->last_handover_from_process ?? ''),
                 'last_handover_from_machine_name' => (string) ($o->last_handover_from_machine_name ?? ''),
                 'last_handover_at' => $o->last_handover_at ? (string) $o->last_handover_at : null,
@@ -897,12 +944,17 @@ class ProductionGciApiController extends Controller
                 $isFinal = $wipPartNo === '';
                 $isCurrent = $processName !== '' && strcasecmp($processName, (string) $order->process_name) === 0;
 
+                $recommendedMachineId = $item->machine?->id ? (int) $item->machine->id : null;
+                $recommendedMachineName = (string) ($item->machine?->name ?? '');
+
                 return [
                     'step_no' => $index + 1,
                     'line_no' => (int) ($item->line_no ?? ($index + 1)),
                     'process_name' => $processName !== '' ? $processName : 'Process',
-                    'machine_id' => $item->machine?->id ? (int) $item->machine->id : null,
-                    'machine_name' => (string) ($item->machine?->name ?? ''),
+                    'machine_id' => $recommendedMachineId,
+                    'machine_name' => $recommendedMachineName,
+                    'recommended_machine_id' => $recommendedMachineId,
+                    'recommended_machine_name' => $recommendedMachineName,
                     'input_part_no' => (string) ($item->componentPart?->part_no ?? $item->component_part_no ?? '-'),
                     'input_part_name' => (string) ($item->componentPart?->part_name ?? ''),
                     'output_part_no' => $outputPartNo,
@@ -927,15 +979,6 @@ class ProductionGciApiController extends Controller
             if ($currentProcessName && strcasecmp((string) $step['process_name'], $currentProcessName) === 0) {
                 $currentIndex = $index;
                 break;
-            }
-        }
-
-        if ($currentIndex === null) {
-            foreach ($steps as $index => $step) {
-                if ((int) ($step['machine_id'] ?? 0) === (int) ($order->machine_id ?? 0)) {
-                    $currentIndex = $index;
-                    break;
-                }
             }
         }
 
@@ -967,8 +1010,25 @@ class ProductionGciApiController extends Controller
     public function startWo(Request $request, $id)
     {
         $order = ProductionOrder::findOrFail($id);
+        $validated = $request->validate([
+            'machine_id' => 'nullable|integer|exists:machines,id',
+            'actual_machine_id' => 'nullable|integer|exists:machines,id',
+            'machine_name' => 'nullable|string|max:255',
+            'process_name' => 'nullable|string|max:255',
+            'operator_name' => 'nullable|string|max:255',
+            'shift' => 'nullable|string|max:50',
+        ]);
 
-        $isMachineBusy = ProductionOrder::where('machine_id', $order->machine_id)
+        $actualMachineId = (int) ($validated['actual_machine_id'] ?? $validated['machine_id'] ?? $order->machine_id ?? 0);
+        if ($actualMachineId <= 0) {
+            return response()->json([
+                'message' => 'Pilih mesin aktual terlebih dahulu sebelum start WO.'
+            ], 422);
+        }
+
+        $actualMachine = Machine::find($actualMachineId);
+
+        $isMachineBusy = ProductionOrder::where('machine_id', $actualMachineId)
             ->whereIn('status', ['in_production', 'paused'])
             ->where('id', '!=', $order->id)
             ->exists();
@@ -999,19 +1059,70 @@ class ProductionGciApiController extends Controller
             return response()->json(['message' => 'WO sudah selesai atau dibatalkan'], 422);
         }
 
-        if ($order->status === 'in_production') {
-            return response()->json(['message' => 'WO sudah berjalan', 'data' => $order], 200);
+        $processName = trim((string) ($validated['process_name'] ?? $order->process_name ?? ''));
+        if ($processName === '') {
+            $firstStep = $this->buildRoutingStepsForOrder($order)[0] ?? null;
+            $processName = (string) ($firstStep['process_name'] ?? '');
         }
 
-        $order->update([
+        $updatePayload = [
             'status' => 'in_production',
             'workflow_stage' => 'mass_production',
             'start_time' => $order->start_time ?? now(),
+            'machine_id' => $actualMachineId,
+            'process_name' => $processName !== '' ? $processName : $order->process_name,
+        ];
+
+        if (Schema::hasColumn('production_orders', 'machine_name')) {
+            $updatePayload['machine_name'] = $actualMachine?->name ?? ($validated['machine_name'] ?? null);
+        }
+
+        if (!empty($validated['shift'])) {
+            $updatePayload['shift'] = $validated['shift'];
+        }
+
+        if ($order->status === 'in_production') {
+            $order->update($updatePayload);
+            $this->recordProductionActivity($order->fresh(), 'activity_switched', [
+                'process_name' => $processName,
+                'machine_id' => $actualMachineId,
+                'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
+                'shift' => $validated['shift'] ?? $order->shift,
+                'operator_name' => $validated['operator_name'] ?? null,
+                'meta' => ['source' => 'apk_start_while_running'],
+            ]);
+
+            $this->broadcastMonitoringUpdate('wo_activity_switched', $order, meta: [
+                'status' => 'in_production',
+                'workflow_stage' => 'mass_production',
+                'machine_id' => $actualMachineId,
+                'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
+                'process_name' => $processName,
+            ]);
+
+            return response()->json([
+                'message' => 'Aktivitas WO diperbarui',
+                'status' => 'success',
+                'data' => $order->fresh(),
+            ], 200);
+        }
+
+        $order->update($updatePayload);
+        $this->recordProductionActivity($order->fresh(), 'started', [
+            'process_name' => $processName,
+            'machine_id' => $actualMachineId,
+            'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
+            'shift' => $validated['shift'] ?? $order->shift,
+            'operator_name' => $validated['operator_name'] ?? null,
+            'meta' => ['source' => 'apk_start'],
         ]);
 
         $this->broadcastMonitoringUpdate('wo_started', $order, meta: [
             'status' => 'in_production',
             'workflow_stage' => 'mass_production',
+            'machine_id' => $actualMachineId,
+            'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
+            'process_name' => $processName,
         ]);
 
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
@@ -1062,6 +1173,15 @@ class ProductionGciApiController extends Controller
                 'notes' => $validated['notes'] ?? '',
             ]),
         ]);
+        $this->recordProductionActivity($order->fresh(), 'paused', [
+            'shift' => $validated['shift'] ?? $order->shift,
+            'operator_name' => $validated['operator_name'] ?? null,
+            'notes' => $validated['reason'],
+            'meta' => [
+                'reason' => $validated['reason'],
+                'notes' => $validated['notes'] ?? '',
+            ],
+        ]);
 
         $this->broadcastMonitoringUpdate('wo_paused', $order, meta: [
             'reason' => $validated['reason'],
@@ -1102,6 +1222,9 @@ class ProductionGciApiController extends Controller
             'status' => 'in_production',
             'workflow_stage' => 'mass_production',
         ]);
+        $this->recordProductionActivity($order->fresh(), 'resumed', [
+            'meta' => ['source' => 'apk_resume'],
+        ]);
 
         $this->broadcastMonitoringUpdate('wo_resumed', $order, meta: [
             'status' => 'in_production',
@@ -1138,8 +1261,18 @@ class ProductionGciApiController extends Controller
         }
 
         // Priority: request body > hourly sum > existing order value
-        $hourlyActual = (float) ProductionGciHourlyReport::where('production_order_id', $id)->sum('actual');
-        $hourlyNg = (float) ProductionGciHourlyReport::where('production_order_id', $id)->sum('ng');
+        $hourlyActual = (float) ProductionGciHourlyReport::where('production_order_id', $id)
+            ->where(function ($query) {
+                $query->where('output_type', 'fg')
+                    ->orWhereNull('output_type');
+            })
+            ->sum('actual');
+        $hourlyNg = (float) ProductionGciHourlyReport::where('production_order_id', $id)
+            ->where(function ($query) {
+                $query->where('output_type', 'fg')
+                    ->orWhereNull('output_type');
+            })
+            ->sum('ng');
 
         $finalActual = isset($validated['qty_actual'])
             ? (float) $validated['qty_actual']
@@ -1187,6 +1320,14 @@ class ProductionGciApiController extends Controller
             'qty_actual' => $finalActual,
             'qty_ng' => $finalNg,
         ]);
+        $this->recordProductionActivity($order->fresh(), 'finished', [
+            'qty_ok' => $finalActual,
+            'qty_ng' => $finalNg,
+            'output_type' => 'fg',
+            'output_part_no' => (string) ($order->part?->part_no ?? ''),
+            'output_part_name' => (string) ($order->part?->part_name ?? ''),
+            'meta' => ['source' => 'apk_finish'],
+        ]);
 
         // Create final inspection if not exists
         if (!$order->inspections()->where('type', 'final')->exists()) {
@@ -1228,6 +1369,8 @@ class ProductionGciApiController extends Controller
                 'ng_hold' => (int) ($r->ng_hold ?? 0),
                 'operator_name' => $r->operator_name,
                 'shift' => $r->shift,
+                'machine_id' => $r->machine_id ? (int) $r->machine_id : null,
+                'machine_name' => $r->machine_name,
                 'output_type' => $r->output_type ?: 'fg',
                 'process_name' => $r->process_name,
                 'output_part_no' => $r->output_part_no,
@@ -1334,11 +1477,24 @@ class ProductionGciApiController extends Controller
             'ng_hold' => 'nullable|integer|min:0',
             'operator_name' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
+            'machine_id' => 'nullable|integer|exists:machines,id',
+            'actual_machine_id' => 'nullable|integer|exists:machines,id',
+            'machine_name' => 'nullable|string|max:255',
             'output_type' => 'nullable|string|in:fg,wip',
             'process_name' => 'nullable|string|max:255',
             'output_part_no' => 'nullable|string|max:255',
             'output_part_name' => 'nullable|string|max:255',
         ]);
+
+        $actualMachineId = (int) ($validated['actual_machine_id'] ?? $validated['machine_id'] ?? $order->machine_id ?? 0);
+        if ($actualMachineId <= 0) {
+            return response()->json([
+                'message' => 'Pilih mesin aktual terlebih dahulu sebelum catat hourly.'
+            ], 422);
+        }
+
+        $actualMachine = Machine::find($actualMachineId);
+        $actualMachineName = $actualMachine?->name ?? ($validated['machine_name'] ?? null);
         $processContext = $this->resolveHourlyProcessContext($order, $validated);
         try {
             $ngBreakdown = $this->normalizeNgBreakdown($request->all());
@@ -1349,6 +1505,7 @@ class ProductionGciApiController extends Controller
         $report = ProductionGciHourlyReport::query()
             ->where('production_order_id', $order->id)
             ->where('time_range', $validated['time_range'])
+            ->where('machine_id', $actualMachineId)
             ->where(function ($query) use ($processContext) {
                 if ($processContext['output_type'] === 'fg') {
                     $query->where('output_type', 'fg')
@@ -1408,6 +1565,8 @@ class ProductionGciApiController extends Controller
                 'ng_hold' => (int) ($report->ng_hold ?? 0) + $ngBreakdown['ng_hold'],
                 'operator_name' => $validated['operator_name'] ?? $report->operator_name,
                 'shift' => $validated['shift'] ?? $report->shift,
+                'machine_id' => $actualMachineId,
+                'machine_name' => $actualMachineName ?? $report->machine_name,
                 'output_type' => $processContext['output_type'],
                 'process_name' => $processContext['process_name'],
                 'output_part_no' => $processContext['output_part_no'],
@@ -1418,6 +1577,8 @@ class ProductionGciApiController extends Controller
             $report = ProductionGciHourlyReport::create([
                 'production_gci_work_order_id' => $legacyWorkOrder->id,
                 'production_order_id' => $order->id,
+                'machine_id' => $actualMachineId,
+                'machine_name' => $actualMachineName,
                 'time_range' => $validated['time_range'],
                 'target' => $validated['target'] ?? 0,
                 'actual' => $validated['actual'],
@@ -1451,10 +1612,18 @@ class ProductionGciApiController extends Controller
             })
             ->sum('ng');
 
-        $order->update([
+        $orderUpdatePayload = [
             'qty_actual' => $totalActual,
             'qty_ng' => $totalNg,
-        ]);
+            'machine_id' => $actualMachineId,
+            'process_name' => $processContext['process_name'] ?? $order->process_name,
+        ];
+
+        if (Schema::hasColumn('production_orders', 'machine_name')) {
+            $orderUpdatePayload['machine_name'] = $actualMachineName;
+        }
+
+        $order->update($orderUpdatePayload);
 
         $backflushEvents = [];
         if ($processContext['output_type'] === 'fg' && ($incrementActual + $incrementNg) > 0) {
@@ -1473,22 +1642,41 @@ class ProductionGciApiController extends Controller
             }
         }
 
+        $this->recordProductionActivity($order->fresh(), 'hourly_saved', [
+            'process_name' => $processContext['process_name'],
+            'machine_id' => $report->machine_id,
+            'machine_name' => $report->machine_name,
+            'shift' => $report->shift,
+            'operator_name' => $report->operator_name,
+            'output_type' => $report->output_type ?: 'fg',
+            'output_part_no' => $report->output_part_no,
+            'output_part_name' => $report->output_part_name,
+            'qty_ok' => $incrementActual,
+            'qty_ng' => $incrementNg,
+            'notes' => $report->ng_reason,
+            'meta' => [
+                'time_range' => $report->time_range,
+                'ng_scrap' => (int) ($report->ng_scrap ?? 0),
+                'ng_rework' => (int) ($report->ng_rework ?? 0),
+                'ng_hold' => (int) ($report->ng_hold ?? 0),
+                'backflush_events' => $backflushEvents,
+            ],
+        ]);
+
         $handoverMeta = null;
         if ($processContext['output_type'] === 'wip' && $incrementActual > 0) {
             $nextStep = $this->findNextRoutingStep($order->fresh(), $processContext['process_name']);
             if ($nextStep) {
-                $currentMachineId = (int) ($order->machine_id ?? 0);
-                $nextMachineId = (int) ($nextStep['machine_id'] ?? 0);
-                $movesMachine = $nextMachineId > 0 && $nextMachineId !== $currentMachineId;
+                $currentMachineId = $actualMachineId;
 
                 $order->update([
                     'process_name' => $nextStep['process_name'] ?? $order->process_name,
-                    'machine_id' => $nextMachineId > 0 ? $nextMachineId : $order->machine_id,
-                    'status' => $movesMachine ? 'released' : 'in_production',
+                    'machine_id' => $actualMachineId,
+                    'status' => 'in_production',
                     'workflow_stage' => 'mass_production',
                     'last_handover_from_process' => $processContext['process_name'],
                     'last_handover_from_machine_id' => $currentMachineId > 0 ? $currentMachineId : null,
-                    'last_handover_from_machine_name' => optional($order->machine)->name,
+                    'last_handover_from_machine_name' => $actualMachineName,
                     'last_handover_at' => now(),
                 ]);
 
@@ -1496,9 +1684,9 @@ class ProductionGciApiController extends Controller
                     'from_process_name' => $processContext['process_name'],
                     'to_process_name' => $nextStep['process_name'] ?? null,
                     'from_machine_id' => $currentMachineId > 0 ? $currentMachineId : null,
-                    'to_machine_id' => $nextMachineId > 0 ? $nextMachineId : null,
-                    'to_machine_name' => $nextStep['machine_name'] ?? null,
-                    'status' => $movesMachine ? 'released' : 'in_production',
+                    'to_machine_id' => null,
+                    'to_machine_name' => $nextStep['recommended_machine_name'] ?? ($nextStep['machine_name'] ?? null),
+                    'status' => 'in_production',
                 ];
             }
         }
@@ -1509,6 +1697,8 @@ class ProductionGciApiController extends Controller
             'process_name' => $report->process_name,
             'output_part_no' => $report->output_part_no,
             'output_part_name' => $report->output_part_name,
+            'machine_id' => $report->machine_id ? (int) $report->machine_id : null,
+            'machine_name' => $report->machine_name,
             'actual' => (int) $report->actual,
             'ng' => (int) $report->ng,
             'ng_reason' => $report->ng_reason,
@@ -1534,6 +1724,8 @@ class ProductionGciApiController extends Controller
                 'process_name' => $report->process_name,
                 'output_part_no' => $report->output_part_no,
                 'output_part_name' => $report->output_part_name,
+                'machine_id' => $report->machine_id ? (int) $report->machine_id : null,
+                'machine_name' => $report->machine_name,
                 'input_actual' => (int) $incrementActual,
                 'input_ng' => (int) $incrementNg,
                 'operator_name' => $report->operator_name,
@@ -1785,8 +1977,13 @@ class ProductionGciApiController extends Controller
         $result = [];
         foreach ($machines as $machine) {
             $query = ProductionOrder::with('part:id,part_no,part_name,model')
-                ->where('machine_id', $machine->id)
                 ->whereDate('plan_date', $date)
+                ->where(function ($query) use ($machine) {
+                    $query->where('machine_id', $machine->id)
+                        ->orWhereHas('hourlyReports', function ($hourlyQuery) use ($machine) {
+                            $hourlyQuery->where('machine_id', $machine->id);
+                        });
+                })
                 ->orderBy('production_sequence');
 
             $orders = $query->get();
@@ -1848,7 +2045,12 @@ class ProductionGciApiController extends Controller
 
             // Get hourly reports for orders on this machine
             $orderIds = $orders->pluck('id');
-            $hourlyReports = ProductionGciHourlyReport::whereIn('production_order_id', $orderIds)->get();
+            $hourlyReports = ProductionGciHourlyReport::whereIn('production_order_id', $orderIds)
+                ->where(function ($query) use ($machine) {
+                    $query->where('machine_id', $machine->id)
+                        ->orWhereNull('machine_id');
+                })
+                ->get();
 
             $result[] = [
                 'machine' => [
@@ -1893,6 +2095,8 @@ class ProductionGciApiController extends Controller
                             'process_name' => (string) ($h->process_name ?? ''),
                             'output_part_no' => (string) ($h->output_part_no ?? ''),
                             'output_part_name' => (string) ($h->output_part_name ?? ''),
+                            'machine_id' => $h->machine_id ? (int) $h->machine_id : null,
+                            'machine_name' => (string) ($h->machine_name ?? ''),
                         ])->values(),
                         'handover_history' => $hourlyReports
                             ->where('production_order_id', $o->id)
@@ -1908,6 +2112,8 @@ class ProductionGciApiController extends Controller
                                 'actual' => (int) ($h->actual ?? 0),
                                 'operator_name' => (string) ($h->operator_name ?? ''),
                                 'shift' => (string) ($h->shift ?? ''),
+                                'machine_id' => $h->machine_id ? (int) $h->machine_id : null,
+                                'machine_name' => (string) ($h->machine_name ?? ''),
                             ])->values(),
                     ];
                 }),

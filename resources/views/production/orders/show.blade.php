@@ -1055,6 +1055,67 @@
                 </div>
             </div>
 
+            <div class="bg-white border rounded-lg shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b bg-slate-50">
+                    <div class="flex flex-col gap-1">
+                        <h3 class="text-lg font-semibold text-slate-900">Activity Timeline</h3>
+                        <p class="text-sm text-slate-500">Jejak aktivitas WO dari APK: start, pindah proses/mesin, hourly, pause, resume, dan finish.</p>
+                    </div>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    @forelse($order->activities->sortByDesc('created_at')->take(20) as $activity)
+                        @php
+                            $activityType = str_replace('_', ' ', strtoupper((string) $activity->activity_type));
+                            $qtyOk = (float) ($activity->qty_ok ?? 0);
+                            $qtyNg = (float) ($activity->qty_ng ?? 0);
+                        @endphp
+                        <div class="px-6 py-4">
+                            <div class="flex items-start gap-3">
+                                <div class="mt-1 h-3 w-3 shrink-0 rounded-full bg-emerald-500"></div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                                        <div class="font-bold text-slate-900">{{ $activityType }}</div>
+                                        <div class="text-xs font-semibold text-slate-400">{{ optional($activity->created_at)->format('d M Y H:i') }}</div>
+                                    </div>
+                                    <div class="mt-1 flex flex-wrap gap-2 text-xs text-slate-600">
+                                        @if($activity->process_name)
+                                            <span class="rounded-full bg-teal-50 px-2 py-1 font-semibold text-teal-700">Proses: {{ $activity->process_name }}</span>
+                                        @endif
+                                        @if($activity->machine_name)
+                                            <span class="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">Mesin: {{ $activity->machine_name }}</span>
+                                        @endif
+                                        @if($activity->shift)
+                                            <span class="rounded-full bg-indigo-50 px-2 py-1 font-semibold text-indigo-700">Shift: {{ $activity->shift }}</span>
+                                        @endif
+                                        @if($activity->operator_name)
+                                            <span class="rounded-full bg-blue-50 px-2 py-1 font-semibold text-blue-700">Operator: {{ $activity->operator_name }}</span>
+                                        @endif
+                                    </div>
+                                    @if($activity->output_part_no || $qtyOk > 0 || $qtyNg > 0)
+                                        <div class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                                            @if($activity->output_part_no)
+                                                <div class="font-mono font-bold">{{ $activity->output_part_no }} {{ $activity->output_part_name ? '- ' . $activity->output_part_name : '' }}</div>
+                                            @endif
+                                            <div class="mt-1">
+                                                Output: {{ strtoupper((string) ($activity->output_type ?? '-')) }}
+                                                @if($qtyOk > 0 || $qtyNg > 0)
+                                                    - OK {{ number_format($qtyOk) }} - NG {{ number_format($qtyNg) }}
+                                                @endif
+                                            </div>
+                                            @if($activity->notes)
+                                                <div class="mt-1 text-rose-700">Catatan: {{ $activity->notes }}</div>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="px-6 py-8 text-center text-sm text-slate-400">Belum ada activity log untuk WO ini.</div>
+                    @endforelse
+                </div>
+            </div>
+
             <!-- Machine Stop / Downtime (QDC) -->
             <div class="bg-white border rounded-lg shadow-sm" x-data="{ openDowntime: false }">
                 <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">

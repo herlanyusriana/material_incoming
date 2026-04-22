@@ -97,12 +97,9 @@ class ProductionOrderController extends Controller
 
     private function transitionFromMaterialHold(ProductionOrder $order): void
     {
-        $nextStatus = (!$order->process_name || !$order->machine_id) ? 'resource_hold' : 'released';
-        $nextWorkflowStage = $nextStatus === 'resource_hold' ? 'resource_check' : 'material_ready';
-
         $order->update([
-            'status' => $nextStatus,
-            'workflow_stage' => $nextWorkflowStage,
+            'status' => 'released',
+            'workflow_stage' => 'material_ready',
         ]);
     }
 
@@ -409,6 +406,7 @@ class ProductionOrderController extends Controller
             'dailyPlanCell.row.plan',
             'arrivals',
             'hourlyReports',
+            'activities',
         ]);
 
         $inventoryFlow = app(ProductionInventoryFlowService::class)->summarizeOrderFlow($order);

@@ -148,7 +148,7 @@
                                 <input type="hidden" name="source_mode" value="{{ $sourceMode ?? 'delivery' }}">
                                 <button type="submit"
                                     class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-fuchsia-600 hover:to-violet-700 transition-all whitespace-nowrap"
-                                    onclick="return confirm('Auto-populate planning lines from FG parts with BOM? Machine will be auto-filled from BOM data.')">
+                                    onclick="return confirm('Auto-populate planning lines from FG parts with BOM? Recommended machine will be filled from BOM data when available.')">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -233,7 +233,7 @@
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-900 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
                                 <th class="w-10 px-2 py-3 text-center"></th>
-                                <th class="px-3 py-3 text-left">Machine</th>
+                                <th class="px-3 py-3 text-left">Rekom. Mesin</th>
                                 <th class="px-3 py-3 text-left">Model</th>
                                 <th class="px-3 py-3 text-left">Part Name</th>
                                 <th class="px-3 py-3 text-left">Part No</th>
@@ -241,7 +241,7 @@
                                 <th class="px-3 py-3 text-right text-sky-200">Delivery</th>
                                 <th class="px-3 py-3 text-center">Seq</th>
                                 <th class="px-3 py-3 text-right text-emerald-200">Plan Qty</th>
-                                <th class="px-3 py-3 text-right text-indigo-200">Hours</th>
+                                <th class="px-3 py-3 text-right text-indigo-200">Est. Hrs</th>
                                 <th class="px-3 py-3 text-center">Action</th>
                             </tr>
                         </thead>
@@ -462,7 +462,7 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">3</span>
-                            Fill target total WO
+                            Pilih recommended machine bila perlu sebagai panduan kapasitas
                         </li>
                         <li class="flex items-center gap-2">
                             <span
@@ -477,7 +477,7 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">6</span>
-                            Check Material &amp; Dies availability
+                            Operator produksi pilih proses, mesin aktual, dan shift di APK
                         </li>
                     </ol>
                 </div>
@@ -502,11 +502,11 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-yellow-50 rounded border border-yellow-200"></div>
-                            <span class="text-slate-600">Editable fields (seq, qty, distribusi shift)</span>
+                            <span class="text-slate-600">Editable fields (seq, total qty, recommended machine)</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-emerald-100 rounded border border-emerald-300"></div>
-                            <span class="text-slate-600">Machine grouping from BOM data</span>
+                            <span class="text-slate-600">Recommended machine grouping from BOM data</span>
                         </div>
                     </div>
                 </div>
@@ -538,7 +538,7 @@
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                 <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6" @click.outside="showAddPartModal = false">
                     <h3 class="text-lg font-bold text-slate-800 mb-4">Add Part to Planning</h3>
-                    <p class="text-xs text-slate-500 mb-4">Machine will be auto-filled from BOM data if available.</p>
+                    <p class="text-xs text-slate-500 mb-4">Recommended machine will be auto-filled from BOM data if available. Actual machine is selected by operator in production.</p>
 
                     <div class="space-y-4">
                         <div>

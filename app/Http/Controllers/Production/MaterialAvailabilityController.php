@@ -107,23 +107,12 @@ class MaterialAvailabilityController extends Controller
         }
         
         if ($allAvailable) {
-            // Check if machine/process is filled
-            if (!$order->process_name || !$order->machine_id) {
-                $order->update([
-                    'status' => 'resource_hold',
-                    'workflow_stage' => 'resource_check'
-                ]);
-                return back()
-                    ->with('warning', 'Material available but Machine/Process information is missing.')
-                    ->with('materials', $materials);
-            }
-            
             $order->update([
                 'status' => 'released',
                 'workflow_stage' => 'ready'
             ]);
             return back()
-                ->with('success', 'Material check passed! Order released.')
+                ->with('success', 'Material check passed! Order released. Process and actual machine will be selected by operator in production.')
                 ->with('materials', $materials);
         } else {
             $order->update([

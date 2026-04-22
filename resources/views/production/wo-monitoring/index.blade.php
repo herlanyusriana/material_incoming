@@ -163,6 +163,7 @@
             const unassignedQdc = qdcSessions.filter(session => !session.production_order_id);
             const hasRunning = orders.some(o => (o.display_status || o.status) === 'in_production');
             const hasPaused = orders.some(o => (o.display_status || o.status) === 'paused');
+            const summaryHtml = renderMachineSummary(machine);
 
             const statusDot = hasRunning
                 ? '<span class="relative flex h-3 w-3"><span class="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span></span>'
@@ -207,10 +208,10 @@
                                     <span class="mt-1 inline-flex h-2 w-2 rounded-full bg-sky-500"></span>
                                     <div>
                                         <div class="font-semibold text-slate-800">
-                                            ${escapeHtml(item.process_name || '-')} • ${escapeHtml(item.output_part_no || '-')}
+                                            ${escapeHtml(item.process_name || '-')} - ${escapeHtml(item.output_part_no || '-')}
                                         </div>
                                         <div class="text-slate-500">
-                                            ${escapeHtml(item.time_range || '-')} • Qty ${Math.round(item.actual || 0)}${item.operator_name ? ` • ${escapeHtml(item.operator_name)}` : ''}${item.shift ? ` • ${escapeHtml(item.shift)}` : ''}
+                                            ${escapeHtml(item.time_range || '-')} - Qty ${Math.round(item.actual || 0)}${item.operator_name ? ` - ${escapeHtml(item.operator_name)}` : ''}${item.shift ? ` - ${escapeHtml(item.shift)}` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -252,7 +253,7 @@
                         ` : ''}
                         ${hasHandover ? `
                             <div class="mb-2 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] text-amber-800 ring-1 ring-amber-100">
-                                Handover masuk${(o.last_handover_from_process || '').trim() ? ` dari <b>${escapeHtml(o.last_handover_from_process)}</b>` : ''}${(o.last_handover_from_machine_name || '').trim() ? ` • ${escapeHtml(o.last_handover_from_machine_name)}` : ''}
+                                Handover masuk${(o.last_handover_from_process || '').trim() ? ` dari <b>${escapeHtml(o.last_handover_from_process)}</b>` : ''}${(o.last_handover_from_machine_name || '').trim() ? ` - ${escapeHtml(o.last_handover_from_machine_name)}` : ''}
                             </div>
                         ` : ''}
                         <div class="mb-1 flex items-center gap-3">
@@ -319,14 +320,119 @@
                         </div>
                         ${machine.total_downtime_minutes > 0 ?
                             `<span class="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-600 ring-1 ring-rose-200">
-                                ${machine.total_downtime_minutes} mnt downtime
+                            ${machine.total_downtime_minutes} mnt downtime
                             </span>` : ''}
                     </div>
+                    ${summaryHtml}
                     ${machineQdcHtml}
                     <div class="px-5 py-2">
                         ${orders.length > 0 ? ordersHtml : '<div class="py-6 text-center text-xs text-slate-400">Tidak ada WO</div>'}
                     </div>
                     ${unassignedQdcHtml}
+                </div>
+            `;
+        }
+
+        function addAggregate(bucket, key, actual, ng) {
+            if (!key) {
+                key = '-';
+            }
+
+            if (!bucket[key]) {
+                bucket[key] = { actual: 0, ng: 0 };
+            }
+
+            bucket[key].actual += Number(actual || 0);
+            bucket[key].ng += Number(ng || 0);
+        }
+
+        function renderAggregateList(title, bucket, toneClass) {
+            const rows = Object.entries(bucket)
+                .sort((a, b) => (b[1].actual + b[1].ng) - (a[1].actual + a[1].ng))
+                .slice(0, 4);
+
+            if (rows.length === 0) {
+                return '';
+            }
+
+            return `
+                <div class="rounded-xl bg-white/80 p-3 ring-1 ring-slate-200">
+                    <div class="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">${title}</div>
+                    <div class="space-y-1.5">
+                        ${rows.map(([key, value]) => `
+                            <div class="flex items-center justify-between gap-3 text-[11px]">
+                                <span class="min-w-0 truncate font-bold text-slate-700" title="${escapeHtml(key)}">${escapeHtml(key)}</span>
+                                <span class="shrink-0 rounded-lg px-2 py-0.5 font-black ${toneClass}">
+                                    OK ${Math.round(value.actual)}${value.ng > 0 ? ` / NG ${Math.round(value.ng)}` : ''}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderMachineSummary(machine) {
+            const processBucket = {};
+            const shiftBucket = {};
+            const machineBucket = {};
+            let totalOk = 0;
+            let totalNg = 0;
+            let fgOk = 0;
+            let wipOk = 0;
+
+            (machine.orders || []).forEach(order => {
+                (order.hourly || []).forEach(report => {
+                    const actual = Number(report.actual || 0);
+                    const ng = Number(report.ng || 0);
+                    const outputType = String(report.output_type || 'fg').toLowerCase();
+                    const processName = String(report.process_name || order.process_name || '-').trim();
+                    const shiftName = String(report.shift || order.shift || '-').trim();
+                    const actualMachine = String(report.machine_name || machine.machine?.name || '-').trim();
+
+                    totalOk += actual;
+                    totalNg += ng;
+                    if (outputType === 'fg') {
+                        fgOk += actual;
+                    } else {
+                        wipOk += actual;
+                    }
+
+                    addAggregate(processBucket, processName, actual, ng);
+                    addAggregate(shiftBucket, shiftName, actual, ng);
+                    addAggregate(machineBucket, actualMachine, actual, ng);
+                });
+            });
+
+            if (totalOk <= 0 && totalNg <= 0) {
+                return '';
+            }
+
+            return `
+                <div class="border-b border-slate-100 bg-slate-50/70 px-5 py-4">
+                    <div class="mb-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                        <div class="rounded-xl bg-emerald-50 px-3 py-2 ring-1 ring-emerald-100">
+                            <div class="text-[10px] font-bold uppercase text-emerald-600">Total OK</div>
+                            <div class="font-mono text-lg font-black text-emerald-700">${Math.round(totalOk)}</div>
+                        </div>
+                        <div class="rounded-xl bg-rose-50 px-3 py-2 ring-1 ring-rose-100">
+                            <div class="text-[10px] font-bold uppercase text-rose-600">Total NG</div>
+                            <div class="font-mono text-lg font-black text-rose-700">${Math.round(totalNg)}</div>
+                        </div>
+                        <div class="rounded-xl bg-sky-50 px-3 py-2 ring-1 ring-sky-100">
+                            <div class="text-[10px] font-bold uppercase text-sky-600">WIP OK</div>
+                            <div class="font-mono text-lg font-black text-sky-700">${Math.round(wipOk)}</div>
+                        </div>
+                        <div class="rounded-xl bg-blue-50 px-3 py-2 ring-1 ring-blue-100">
+                            <div class="text-[10px] font-bold uppercase text-blue-600">FG OK</div>
+                            <div class="font-mono text-lg font-black text-blue-700">${Math.round(fgOk)}</div>
+                        </div>
+                    </div>
+                    <div class="grid gap-2 xl:grid-cols-3">
+                        ${renderAggregateList('Per Proses', processBucket, 'bg-teal-50 text-teal-700')}
+                        ${renderAggregateList('Per Shift', shiftBucket, 'bg-indigo-50 text-indigo-700')}
+                        ${renderAggregateList('Mesin Aktual', machineBucket, 'bg-slate-100 text-slate-700')}
+                    </div>
                 </div>
             `;
         }
