@@ -57,38 +57,38 @@
         @endphp
 
         {{-- Planning Control Panel --}}
-        <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="mb-4 overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
             <div class="grid gap-0 lg:grid-cols-[minmax(260px,1fr)_auto]">
-                <div class="border-b border-slate-100 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-5 py-4 text-white lg:border-b-0 lg:border-r">
-                    <div class="text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-200">Planning Date</div>
+                <div class="border-b border-blue-100 bg-gradient-to-br from-white via-blue-50 to-sky-100 px-5 py-4 text-slate-900 lg:border-b-0 lg:border-r lg:border-blue-100">
+                    <div class="text-[11px] font-bold uppercase tracking-[0.24em] text-blue-700">Planning Date</div>
                     <div class="mt-1 flex flex-wrap items-end gap-2">
-                        <div class="text-3xl font-black leading-none">{{ $planDate->format('d') }}</div>
-                        <div class="pb-0.5 text-lg font-semibold text-slate-200">{{ $planDate->format('F Y') }}</div>
+                        <div class="text-3xl font-black leading-none text-blue-950">{{ $planDate->format('d') }}</div>
+                        <div class="pb-0.5 text-lg font-semibold text-slate-700">{{ $planDate->format('F Y') }}</div>
                     </div>
                     <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-6">
-                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Lines</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($lineCount) }}</div>
+                        <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-500">Lines</div>
+                            <div class="font-mono text-lg font-black text-blue-950">{{ number_format($lineCount) }}</div>
                         </div>
-                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Shift 1</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($totalShift1Qty, 0) }}</div>
+                        <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-500">Shift 1</div>
+                            <div class="font-mono text-lg font-black text-blue-700">{{ number_format($totalShift1Qty, 0) }}</div>
                         </div>
-                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Shift 2</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($totalShift2Qty, 0) }}</div>
+                        <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-500">Shift 2</div>
+                            <div class="font-mono text-lg font-black text-blue-700">{{ number_format($totalShift2Qty, 0) }}</div>
                         </div>
-                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Shift 3</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($totalShift3Qty, 0) }}</div>
+                        <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-500">Shift 3</div>
+                            <div class="font-mono text-lg font-black text-blue-700">{{ number_format($totalShift3Qty, 0) }}</div>
                         </div>
-                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Total</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($totalPlanQty, 0) }}</div>
+                        <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-500">Total</div>
+                            <div class="font-mono text-lg font-black text-sky-700">{{ number_format($totalPlanQty, 0) }}</div>
                         </div>
-                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">WO</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($generatedWoCount) }}</div>
+                        <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-500">WO</div>
+                            <div class="font-mono text-lg font-black text-blue-950">{{ number_format($generatedWoCount) }}</div>
                         </div>
                     </div>
                 </div>
