@@ -182,8 +182,9 @@
                     <table class="w-full table-fixed text-xs border-collapse" id="planningTable" style="table-layout: fixed;">
                         <colgroup>
                             <col style="width: 10%;">
-                            <col style="width: 20%;">
-                            <col style="width: 14%;">
+                            <col style="width: 18%;">
+                            <col style="width: 13%;">
+                            <col style="width: 11%;">
                             <col style="width: 8%;">
                             <col style="width: 7%;">
                             <col style="width: 8%;">
@@ -197,6 +198,7 @@
                                 <th class="px-3 py-3 text-left">Model</th>
                                 <th class="px-3 py-3 text-left">Part Name</th>
                                 <th class="px-3 py-3 text-left">Part No</th>
+                                <th class="px-3 py-3 text-left">Process</th>
                                 <th class="px-3 py-3 text-right">Stock</th>
                                 <th class="px-3 py-3 text-center">Seq</th>
                                 <th class="px-3 py-3 text-right text-emerald-200">Shift 1</th>
@@ -211,6 +213,12 @@
                                 <tbody class="border-b border-slate-100 odd:bg-white even:bg-slate-50/40 hover:bg-emerald-50/40 transition-colors group">
                                         @php
                                             $primaryWo = $line->productionOrders->first();
+                                            $processOptions = collect($line->gciPart?->bom?->items ?? [])
+                                                ->pluck('process_name')
+                                                ->map(fn($process) => trim((string) $process))
+                                                ->filter()
+                                                ->unique()
+                                                ->values();
                                         @endphp
                                         <tr data-line-id="{{ $line->id }}">
                                             <td class="px-3 py-2 text-[11px] font-semibold text-slate-500">
@@ -227,6 +235,18 @@
                                                 <div class="truncate" title="{{ $line->gciPart->part_no ?? '-' }}">
                                                     {{ $line->gciPart->part_no ?? '-' }}
                                                 </div>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <select
+                                                    class="w-full min-w-0 rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:border-blue-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                                    @change="updateLineField($event, {{ $line->id }}, 'process_name')">
+                                                    <option value="">Pilih process</option>
+                                                    @foreach($processOptions as $process)
+                                                        <option value="{{ $process }}" {{ (string) $line->process_name === (string) $process ? 'selected' : '' }}>
+                                                            {{ $process }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
                                             </td>
                                             <td class="px-3 py-2 text-right">
                                                 <span class="font-mono text-sm font-black text-slate-900">{{ number_format((float) $line->stock_fg_gci, 0) }}</span>
@@ -268,7 +288,7 @@
                                                     @if($line->productionOrders->count())
                                                         <div class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-green-700 border border-green-200"
                                                             title="{{ $line->productionOrders->pluck('production_order_number')->implode(', ') }}">
-                                                            <span class="text-[10px] font-black">1 WO</span>
+                                                            <span class="text-[10px] font-black">{{ $line->productionOrders->count() }} WO</span>
                                                         </div>
                                                         @if($primaryWo)
                                                             <div class="hidden text-[10px] font-mono font-semibold text-slate-500 xl:block">
@@ -278,7 +298,7 @@
                                                     @elseif($line->plan_qty > 0)
                                                         <button @click="generateMoLine({{ $line->id }}, '{{ addslashes($line->gciPart->part_no ?? '') }}')"
                                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors shadow-sm"
-                                                                title="Generate 1 WO untuk total plan line ini">
+                                                                title="Generate WO per shift untuk line ini">
                                                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                                                 </svg>
@@ -298,7 +318,7 @@
                         @empty
                             <tbody>
                                 <tr>
-                                    <td colspan="10"
+                                    <td colspan="11"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center gap-3">
                                             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -318,7 +338,7 @@
                             <tbody>
                                 {{-- Grand Total Row --}}
                                 <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
-                                    <td colspan="3" class="px-4 py-3 text-right text-slate-700">
+                                    <td colspan="4" class="px-4 py-3 text-right text-slate-700">
                                         Grand Total ({{ $totalParts }} parts)
                                     </td>
                                     <td class="px-3 py-3 text-right font-mono text-slate-800">
@@ -586,7 +606,7 @@
                         // Wait briefly to allow AJAX to complete
                         await new Promise(r => setTimeout(r, 400));
 
-                        if (!confirm(`Generate WO untuk ${partNo || 'part ini'}?`)) return;
+                        if (!confirm(`Generate WO per shift untuk ${partNo || 'part ini'}?`)) return;
                         
                         const form = document.createElement('form');
                         form.method = 'POST';
@@ -615,7 +635,7 @@
 
                         await new Promise(r => setTimeout(r, 400));
 
-                        if (!confirm('Generate WO untuk semua planning lines yang belum punya WO?')) return;
+                        if (!confirm('Generate WO per shift untuk semua planning lines yang belum punya WO?')) return;
                         
                         const form = document.createElement('form');
                         form.method = 'POST';
