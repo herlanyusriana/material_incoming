@@ -10,7 +10,6 @@ use App\Models\GciPart;
 use App\Models\GciInventory;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\Machine;
 use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDeliveryPlanningLine;
@@ -36,32 +35,17 @@ class ProductionPlanningController extends Controller
         // Get or create session
         $session = ProductionPlanningSession::where('plan_date', $planDate->format('Y-m-d'))->first();
 
-        // Get planning lines grouped by machine (from BOM)
-        $machineGroups = [];
+        // Planning is based on part + target. Machine is selected later as actual machine in the APK.
         $processLoadRows = collect();
         $planningLines = collect();
         if ($session) {
             $allLines = ProductionPlanningLine::where('session_id', $session->id)
-                ->with(['gciPart.bom.items', 'productionOrders', 'machine'])
-                ->orderByRaw('CASE WHEN machine_id IS NULL THEN 1 ELSE 0 END')
-                ->orderBy('machine_id')
+                ->with(['gciPart.bom.items.machine', 'productionOrders'])
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
             $planningLines = $allLines
                 ->sort(function ($a, $b) {
-                    $aMachineNull = $a->machine_id === null ? 1 : 0;
-                    $bMachineNull = $b->machine_id === null ? 1 : 0;
-                    if ($aMachineNull !== $bMachineNull) {
-                        return $aMachineNull <=> $bMachineNull;
-                    }
-
-                    $aMachineId = (int) ($a->machine_id ?? PHP_INT_MAX);
-                    $bMachineId = (int) ($b->machine_id ?? PHP_INT_MAX);
-                    if ($aMachineId !== $bMachineId) {
-                        return $aMachineId <=> $bMachineId;
-                    }
-
                     $aSortOrder = (int) ($a->sort_order ?? PHP_INT_MAX);
                     $bSortOrder = (int) ($b->sort_order ?? PHP_INT_MAX);
                     if ($aSortOrder !== $bSortOrder) {
@@ -84,27 +68,6 @@ class ProductionPlanningController extends Controller
                 })
                 ->values();
 
-            // Group by machine_id
-            foreach ($planningLines as $line) {
-                $machineKey = $line->machine_id ?: 'unassigned';
-                $machineName = $line->machine?->name ?: 'Unassigned';
-                if (!isset($machineGroups[$machineKey])) {
-                    $machineGroups[$machineKey] = [
-                        'machine_id' => $line->machine_id,
-                        'machine_name' => $machineName,
-                        'process_name' => $line->process_name ?: '-',
-                        'lines' => [],
-                        'subtotal_fg_gci' => 0,
-                        'subtotal_delivery_requirement_qty' => 0,
-                        'subtotal_plan_qty' => 0,
-                    ];
-                }
-                $machineGroups[$machineKey]['lines'][] = $line;
-                $machineGroups[$machineKey]['subtotal_fg_gci'] += (float) $line->stock_fg_gci;
-                $machineGroups[$machineKey]['subtotal_delivery_requirement_qty'] += (float) $line->delivery_requirement_qty;
-                $machineGroups[$machineKey]['subtotal_plan_qty'] += (float) $line->plan_qty;
-            }
-
             $processLoadRows = $this->buildProcessLoadRows($planningLines, $planDate);
         }
 
@@ -120,9 +83,6 @@ class ProductionPlanningController extends Controller
             $dateRange[] = $planDate->copy()->addDays($i);
         }
 
-        // Get active machines for dropdown
-        $machines = Machine::where('is_active', true)->orderBy('name')->get();
-
         // Get existing sessions for navigation
         $existingSessions = ProductionPlanningSession::orderBy('plan_date', 'desc')
             ->limit(30)
@@ -136,7 +96,6 @@ class ProductionPlanningController extends Controller
 
         return view('production.planning.index', compact(
             'session',
-            'machineGroups',
             'planningLines',
             'dailyPlanData',
             'fgStockGci',
@@ -144,7 +103,6 @@ class ProductionPlanningController extends Controller
             'dateRange',
             'existingSessions',
             'planningDays',
-            'machines',
             'grandTotalFgGci',
             'grandTotalDeliveryRequirementQty',
             'grandTotalPlanQty',
@@ -208,34 +166,25 @@ class ProductionPlanningController extends Controller
 
             $parts = $parts
                 ->map(function ($part) {
-                    $machineName = 'ZZZ_UNASSIGNED';
                     $processName = null;
-                    $machineId = null;
 
                     $activeBom = $part->bom;
                     if ($activeBom) {
                         foreach ($activeBom->items as $bomItem) {
-                            if (!$machineId && !empty($bomItem->machine_id)) {
-                                $machineId = $bomItem->machine_id;
-                                $machineName = optional($bomItem->machine)->name ?? $machineName;
-                            }
                             if (!$processName && !empty($bomItem->process_name)) {
                                 $processName = $bomItem->process_name;
                             }
-                            if ($machineId && $processName) {
+                            if ($processName) {
                                 break;
                             }
                         }
                     }
 
-                    $part->resolved_machine_id = $machineId;
-                    $part->resolved_machine_name = $machineName;
                     $part->resolved_process_name = $processName;
 
                     return $part;
                 })
                 ->sortBy([
-                    fn ($part) => $part->resolved_machine_name ?? 'ZZZ_UNASSIGNED',
                     fn ($part) => $part->part_name ?? '',
                     fn ($part) => $part->part_no ?? '',
                     fn ($part) => $part->model ?? '',
@@ -252,8 +201,7 @@ class ProductionPlanningController extends Controller
                 if ($exists)
                     continue;
 
-                // Get machine_id and process_name from BOM
-                $machineId = $part->resolved_machine_id;
+                // Process is only a routing hint; actual process and machine are selected in the APK.
                 $processName = $part->resolved_process_name;
 
                 $sortOrder++;
@@ -266,7 +214,7 @@ class ProductionPlanningController extends Controller
                 ProductionPlanningLine::create([
                     'session_id' => $session->id,
                     'gci_part_id' => $part->id,
-                    'machine_id' => $machineId,
+                    'machine_id' => null,
                     'process_name' => $processName,
                     'stock_fg_gci' => $fgStockGci[$part->id] ?? 0,
                     'delivery_requirement_qty' => (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
@@ -304,7 +252,7 @@ class ProductionPlanningController extends Controller
         ]);
 
         $field = $request->field;
-        $allowed = ['machine_id', 'process_name', 'production_sequence', 'plan_qty', 'shift', 'shift_1_qty', 'shift_2_qty', 'shift_3_qty', 'remark', 'sort_order'];
+        $allowed = ['process_name', 'production_sequence', 'plan_qty', 'shift', 'shift_1_qty', 'shift_2_qty', 'shift_3_qty', 'remark', 'sort_order'];
 
         if (!in_array($field, $allowed)) {
             return response()->json(['error' => 'Invalid field'], 422);
@@ -355,17 +303,14 @@ class ProductionPlanningController extends Controller
         $deliveryRequirements = $this->getDailyPlanningData(Carbon::parse($session->plan_date), $sourceMode);
         $fgStockGci = $this->getFgStockGci();
 
-        // Get machine/process from BOM
+        // Process is only a routing hint; actual process and machine are selected in the APK.
         $part = GciPart::with('bom.items')->find($request->gci_part_id);
-        $machineId = null;
         $processName = null;
         if ($part && $part->bom) {
             foreach ($part->bom->items as $bomItem) {
-                if (!empty($bomItem->machine_id))
-                    $machineId = $bomItem->machine_id;
                 if (!empty($bomItem->process_name))
                     $processName = $bomItem->process_name;
-                if ($machineId && $processName)
+                if ($processName)
                     break;
             }
         }
@@ -378,7 +323,7 @@ class ProductionPlanningController extends Controller
         $line = ProductionPlanningLine::create([
             'session_id' => $request->session_id,
             'gci_part_id' => $request->gci_part_id,
-            'machine_id' => $machineId,
+            'machine_id' => null,
             'process_name' => $processName,
             'stock_fg_gci' => $fgStockGci[$request->gci_part_id] ?? 0,
             'delivery_requirement_qty' => (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),

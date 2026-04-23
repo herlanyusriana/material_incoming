@@ -148,7 +148,7 @@
                                 <input type="hidden" name="source_mode" value="{{ $sourceMode ?? 'delivery' }}">
                                 <button type="submit"
                                     class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-fuchsia-600 hover:to-violet-700 transition-all whitespace-nowrap"
-                                    onclick="return confirm('Auto-populate planning lines from FG parts with BOM? Recommended machine will be filled from BOM data when available.')">
+                                    onclick="return confirm('Auto-populate planning lines dari FG part dan BOM? WO tetap dibuat per part dan target, bukan per mesin.')">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -204,36 +204,24 @@
         @endif
 
         @if($session)
-            @php
-                $grandTotalEstHours = collect($planningLines ?? [])->sum(function ($line) {
-                    if (!$line->machine || (float) $line->plan_qty <= 0) {
-                        return 0;
-                    }
-
-                    return (float) $line->machine->estimateHours((float) $line->plan_qty);
-                });
-            @endphp
             {{-- Main Planning Table --}}
             <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div class="overflow-hidden">
                     <table class="w-full table-fixed text-xs border-collapse" id="planningTable" style="table-layout: fixed;">
                         <colgroup>
-                            <col style="width: 3%;">
-                            <col style="width: 13%;">
-                            <col style="width: 7%;">
-                            <col style="width: 20%;">
-                            <col style="width: 13%;">
-                            <col style="width: 7%;">
-                            <col style="width: 8%;">
-                            <col style="width: 5%;">
-                            <col style="width: 8%;">
-                            <col style="width: 6%;">
+                            <col style="width: 4%;">
                             <col style="width: 10%;">
+                            <col style="width: 25%;">
+                            <col style="width: 16%;">
+                            <col style="width: 10%;">
+                            <col style="width: 12%;">
+                            <col style="width: 7%;">
+                            <col style="width: 10%;">
+                            <col style="width: 6%;">
                         </colgroup>
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-900 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
                                 <th class="w-10 px-2 py-3 text-center"></th>
-                                <th class="px-3 py-3 text-left">Rekom. Mesin</th>
                                 <th class="px-3 py-3 text-left">Model</th>
                                 <th class="px-3 py-3 text-left">Part Name</th>
                                 <th class="px-3 py-3 text-left">Part No</th>
@@ -241,7 +229,6 @@
                                 <th class="px-3 py-3 text-right text-sky-200">Delivery</th>
                                 <th class="px-3 py-3 text-center">Seq</th>
                                 <th class="px-3 py-3 text-right text-emerald-200">Plan Qty</th>
-                                <th class="px-3 py-3 text-right text-indigo-200">Est. Hrs</th>
                                 <th class="px-3 py-3 text-center">Action</th>
                             </tr>
                         </thead>
@@ -249,9 +236,6 @@
                                 <!-- Main Row Data -->
                                 <tbody x-data="{ expanded: false }" class="border-b border-slate-100 odd:bg-white even:bg-slate-50/40 hover:bg-emerald-50/40 transition-colors group">
                                         @php
-                                            $lineEstHours = ($line->machine && (float) $line->plan_qty > 0)
-                                                ? (float) $line->machine->estimateHours((float) $line->plan_qty)
-                                                : 0;
                                             $primaryWo = $line->productionOrders->first();
                                         @endphp
                                         <tr data-line-id="{{ $line->id }}">
@@ -261,18 +245,6 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                                     </svg>
                                                 </div>
-                                            </td>
-                                            <td class="px-3 py-2">
-                                                <select
-                                                    class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'machine_id')">
-                                                    <option value="">Assign...</option>
-                                                    @foreach($machines as $machine)
-                                                        <option value="{{ $machine->id }}" {{ (int) $line->machine_id === (int) $machine->id ? 'selected' : '' }}>
-                                                            {{ $machine->name }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
                                             </td>
                                             <td class="px-3 py-2 text-[11px] font-semibold text-slate-500">
                                                 <div class="truncate" title="{{ $line->gciPart->model ?? '-' }}">
@@ -317,9 +289,6 @@
                                                     title="Total target WO. Realisasi per shift dibaca dari transaksi operator."
                                                     @change="updateLineField($event, {{ $line->id }}, 'plan_qty')">
                                             </td>
-                                            <td class="px-3 py-2 text-right font-mono text-sm font-black text-indigo-700">
-                                                {{ $lineEstHours > 0 ? number_format($lineEstHours, 2) . 'h' : '-' }}
-                                            </td>
                                             <td class="px-3 py-2 text-center">
                                                 <div class="flex items-center justify-center gap-1.5 transition-opacity">
                                                     @if($line->productionOrders->count())
@@ -353,7 +322,7 @@
 
                                         <!-- Expandable Detail Row (Projected Stock) -->
                                         <tr x-show="expanded" x-transition.opacity x-cloak>
-                                            <td colspan="11" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+                                            <td colspan="9" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
                                                 <div class="mb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
                                                     <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
@@ -392,7 +361,7 @@
                         @empty
                             <tbody>
                                 <tr>
-                                    <td colspan="11"
+                                    <td colspan="9"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center gap-3">
                                             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -412,7 +381,7 @@
                             <tbody>
                                 {{-- Grand Total Row --}}
                                 <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
-                                    <td colspan="5" class="px-4 py-3 text-right text-slate-700">
+                                    <td colspan="4" class="px-4 py-3 text-right text-slate-700">
                                         Grand Total ({{ $totalParts }} parts)
                                     </td>
                                     <td class="px-3 py-3 text-right font-mono text-slate-800">
@@ -424,10 +393,6 @@
                                     <td class="px-3 py-3"></td>
                                     <td class="px-3 py-3 text-right font-mono text-emerald-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
-                                    </td>
-                                    <td colspan="3" class="px-3 py-3"></td>
-                                    <td class="px-3 py-3 text-right font-mono text-indigo-700">
-                                        {{ $grandTotalEstHours > 0 ? number_format($grandTotalEstHours, 2) . 'h' : '-' }}
                                     </td>
                                     <td class="px-3 py-3"></td>
                                 </tr>
@@ -462,22 +427,22 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">3</span>
-                            Pilih recommended machine bila perlu sebagai panduan kapasitas
+                            Pastikan target total WO sudah sesuai kebutuhan produksi
                         </li>
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">4</span>
-                            Isi target total WO
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span
-                                class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">5</span>
                             Generate WO bulk atau per line
                         </li>
                         <li class="flex items-center gap-2">
                             <span
-                                class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">6</span>
+                                class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">5</span>
                             Operator produksi pilih proses, mesin aktual, dan shift di APK
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span
+                                class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">6</span>
+                            Pantau progress WO di Monitoring WO Produksi
                         </li>
                     </ol>
                 </div>
@@ -502,11 +467,11 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-yellow-50 rounded border border-yellow-200"></div>
-                            <span class="text-slate-600">Editable fields (seq, total qty, recommended machine)</span>
+                            <span class="text-slate-600">Editable fields (sequence dan total target WO)</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-emerald-100 rounded border border-emerald-300"></div>
-                            <span class="text-slate-600">Recommended machine grouping from BOM data</span>
+                            <span class="text-slate-600">Mesin aktual dicatat saat operator start WO di APK</span>
                         </div>
                     </div>
                 </div>
@@ -538,7 +503,7 @@
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                 <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6" @click.outside="showAddPartModal = false">
                     <h3 class="text-lg font-bold text-slate-800 mb-4">Add Part to Planning</h3>
-                    <p class="text-xs text-slate-500 mb-4">Recommended machine will be auto-filled from BOM data if available. Actual machine is selected by operator in production.</p>
+                    <p class="text-xs text-slate-500 mb-4">Planning cukup pilih part dan target. Proses mengikuti routing BOM, mesin aktual dipilih operator di APK.</p>
 
                     <div class="space-y-4">
                         <div>
@@ -644,9 +609,6 @@
                                 return;
                             }
 
-                            if (field === 'machine_id') {
-                                window.location.reload();
-                            }
                         } catch (e) {
                             console.error('Update error:', e);
                         }
