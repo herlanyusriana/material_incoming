@@ -147,25 +147,6 @@ class ProductionPlanningController extends Controller
                 ->get();
 
             $parts = $parts
-                ->map(function ($part) {
-                    $processName = null;
-
-                    $activeBom = $part->bom;
-                    if ($activeBom) {
-                        foreach ($activeBom->items as $bomItem) {
-                            if (!$processName && !empty($bomItem->process_name)) {
-                                $processName = $bomItem->process_name;
-                            }
-                            if ($processName) {
-                                break;
-                            }
-                        }
-                    }
-
-                    $part->resolved_process_name = $processName;
-
-                    return $part;
-                })
                 ->sortBy([
                     fn ($part) => $part->part_name ?? '',
                     fn ($part) => $part->part_no ?? '',
@@ -183,16 +164,13 @@ class ProductionPlanningController extends Controller
                 if ($exists)
                     continue;
 
-                // Process is only a routing hint; actual process and machine are selected in the APK.
-                $processName = $part->resolved_process_name;
-
                 $sortOrder++;
 
                 ProductionPlanningLine::create([
                     'session_id' => $session->id,
                     'gci_part_id' => $part->id,
                     'machine_id' => null,
-                    'process_name' => $processName,
+                    'process_name' => null,
                     'stock_fg_gci' => $fgStockGci[$part->id] ?? 0,
                     'delivery_requirement_qty' => 0,
                     'delivery_requirement_date_from' => $session->plan_date,
@@ -228,7 +206,7 @@ class ProductionPlanningController extends Controller
         ]);
 
         $field = $request->field;
-        $allowed = ['process_name', 'production_sequence', 'plan_qty', 'shift', 'shift_1_qty', 'shift_2_qty', 'shift_3_qty', 'remark', 'sort_order'];
+        $allowed = ['production_sequence', 'plan_qty', 'shift', 'shift_1_qty', 'shift_2_qty', 'shift_3_qty', 'remark', 'sort_order'];
 
         if (!in_array($field, $allowed)) {
             return response()->json(['error' => 'Invalid field'], 422);
@@ -256,13 +234,6 @@ class ProductionPlanningController extends Controller
             $line->update([$field => $value]);
         }
 
-        if ($field === 'process_name') {
-            ProductionOrder::query()
-                ->where('planning_line_id', $line->id)
-                ->where('status', 'planned')
-                ->update(['process_name' => $value ?: null]);
-        }
-
         return response()->json(['success' => true, 'line' => $line->fresh()->load('gciPart')]);
     }
 
@@ -281,23 +252,11 @@ class ProductionPlanningController extends Controller
         $session = ProductionPlanningSession::findOrFail($request->session_id);
         $fgStockGci = $this->getFgStockGci();
 
-        // Process is only a routing hint; actual process and machine are selected in the APK.
-        $part = GciPart::with('bom.items')->find($request->gci_part_id);
-        $processName = null;
-        if ($part && $part->bom) {
-            foreach ($part->bom->items as $bomItem) {
-                if (!empty($bomItem->process_name))
-                    $processName = $bomItem->process_name;
-                if ($processName)
-                    break;
-            }
-        }
-
         $line = ProductionPlanningLine::create([
             'session_id' => $request->session_id,
             'gci_part_id' => $request->gci_part_id,
             'machine_id' => null,
-            'process_name' => $processName,
+            'process_name' => null,
             'stock_fg_gci' => $fgStockGci[$request->gci_part_id] ?? 0,
             'delivery_requirement_qty' => 0,
             'delivery_requirement_date_from' => $session->plan_date,
@@ -385,7 +344,7 @@ class ProductionPlanningController extends Controller
                         'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
                         'gci_part_id' => $line->gci_part_id,
                         'machine_id' => null,
-                        'process_name' => $line->process_name ?: null,
+                        'process_name' => null,
                         'planning_line_id' => $line->id,
                         'plan_date' => $session->plan_date,
                         'qty_planned' => $plannedQty,
@@ -481,7 +440,7 @@ class ProductionPlanningController extends Controller
                     'transaction_no' => ProductionOrder::generateTransactionNo($planDateStr),
                     'gci_part_id' => $line->gci_part_id,
                     'machine_id' => null,
-                    'process_name' => $line->process_name ?: null,
+                    'process_name' => null,
                     'planning_line_id' => $line->id,
                     'plan_date' => $session->plan_date,
                     'qty_planned' => $plannedQty,

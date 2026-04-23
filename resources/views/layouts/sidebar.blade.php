@@ -413,6 +413,10 @@
                                     <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
                                     <span class="flex-1">Monitoring WO Produksi</span>
                                 </a>
+                                <a href="{{ route('production.board.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.board.*'), $subInactive => !request()->routeIs('production.board.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.board.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.board.*')])></span>
+                                    <span class="flex-1">Production Board</span>
+                                </a>
                                 <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>
                                     <span class="flex-1">Operator KPI</span>
@@ -1253,6 +1257,10 @@
                             <a href="{{ route('production.wo-monitoring.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.wo-monitoring.*'), $subInactive => !request()->routeIs('production.wo-monitoring.*')])>
                                 <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
                                 <span class="flex-1">Monitoring WO Produksi</span>
+                            </a>
+                            <a href="{{ route('production.board.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.board.*'), $subInactive => !request()->routeIs('production.board.*')])>
+                                <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.board.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.board.*')])></span>
+                                <span class="flex-1">Production Board</span>
                             </a>
                             <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')])>
                                 <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>

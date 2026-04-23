@@ -537,6 +537,7 @@ Route::middleware('auth')->group(function () {
 
         // WO Monitoring Dashboard (real-time)
         Route::get('/wo-monitoring', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'woMonitoring'])->name('wo-monitoring.index');
+        Route::get('/board', [\App\Http\Controllers\Production\ProductionBoardController::class, 'index'])->name('board.index');
 
         // Plant Performance Dashboard
         Route::get('/plant-performance', fn() => redirect()->route('dashboard', request()->only('date_from', 'date_to')))->name('plant-performance.index');

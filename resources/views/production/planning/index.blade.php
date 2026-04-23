@@ -182,9 +182,8 @@
                     <table class="w-full table-fixed text-xs border-collapse" id="planningTable" style="table-layout: fixed;">
                         <colgroup>
                             <col style="width: 10%;">
-                            <col style="width: 18%;">
-                            <col style="width: 13%;">
-                            <col style="width: 11%;">
+                            <col style="width: 20%;">
+                            <col style="width: 14%;">
                             <col style="width: 8%;">
                             <col style="width: 7%;">
                             <col style="width: 8%;">
@@ -198,7 +197,6 @@
                                 <th class="px-3 py-3 text-left">Model</th>
                                 <th class="px-3 py-3 text-left">Part Name</th>
                                 <th class="px-3 py-3 text-left">Part No</th>
-                                <th class="px-3 py-3 text-left">Process</th>
                                 <th class="px-3 py-3 text-right">Stock</th>
                                 <th class="px-3 py-3 text-center">Seq</th>
                                 <th class="px-3 py-3 text-right text-emerald-200">Shift 1</th>
@@ -213,12 +211,6 @@
                                 <tbody class="border-b border-slate-100 odd:bg-white even:bg-slate-50/40 hover:bg-emerald-50/40 transition-colors group">
                                         @php
                                             $primaryWo = $line->productionOrders->first();
-                                            $processOptions = collect($line->gciPart?->bom?->items ?? [])
-                                                ->pluck('process_name')
-                                                ->map(fn($process) => trim((string) $process))
-                                                ->filter()
-                                                ->unique()
-                                                ->values();
                                         @endphp
                                         <tr data-line-id="{{ $line->id }}">
                                             <td class="px-3 py-2 text-[11px] font-semibold text-slate-500">
@@ -235,18 +227,6 @@
                                                 <div class="truncate" title="{{ $line->gciPart->part_no ?? '-' }}">
                                                     {{ $line->gciPart->part_no ?? '-' }}
                                                 </div>
-                                            </td>
-                                            <td class="px-3 py-2">
-                                                <select
-                                                    class="w-full min-w-0 rounded-lg border border-blue-100 bg-white px-2 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:border-blue-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                                    @change="updateLineField($event, {{ $line->id }}, 'process_name')">
-                                                    <option value="">Pilih process</option>
-                                                    @foreach($processOptions as $process)
-                                                        <option value="{{ $process }}" {{ (string) $line->process_name === (string) $process ? 'selected' : '' }}>
-                                                            {{ $process }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
                                             </td>
                                             <td class="px-3 py-2 text-right">
                                                 <span class="font-mono text-sm font-black text-slate-900">{{ number_format((float) $line->stock_fg_gci, 0) }}</span>
@@ -318,7 +298,7 @@
                         @empty
                             <tbody>
                                 <tr>
-                                    <td colspan="11"
+                                    <td colspan="10"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center gap-3">
                                             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -338,7 +318,7 @@
                             <tbody>
                                 {{-- Grand Total Row --}}
                                 <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
-                                    <td colspan="4" class="px-4 py-3 text-right text-slate-700">
+                                    <td colspan="3" class="px-4 py-3 text-right text-slate-700">
                                         Grand Total ({{ $totalParts }} parts)
                                     </td>
                                     <td class="px-3 py-3 text-right font-mono text-slate-800">

@@ -1040,6 +1040,10 @@ class ProductionGciApiController extends Controller
             'process_name' => 'nullable|string|max:255',
             'operator_name' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
+            'start_source' => 'nullable|string|in:rm,wip',
+            'source_wip_part_no' => 'nullable|string|max:255',
+            'source_wip_part_name' => 'nullable|string|max:255',
+            'source_wip_process_name' => 'nullable|string|max:255',
         ]);
 
         $actualMachineId = (int) ($validated['actual_machine_id'] ?? $validated['machine_id'] ?? $order->machine_id ?? 0);
@@ -1088,6 +1092,18 @@ class ProductionGciApiController extends Controller
             $processName = (string) ($firstStep['process_name'] ?? '');
         }
 
+        $startSource = strtolower(trim((string) ($validated['start_source'] ?? 'rm')));
+        if (!in_array($startSource, ['rm', 'wip'], true)) {
+            $startSource = 'rm';
+        }
+
+        $startSourceMeta = [
+            'start_source' => $startSource,
+            'source_wip_part_no' => $validated['source_wip_part_no'] ?? null,
+            'source_wip_part_name' => $validated['source_wip_part_name'] ?? null,
+            'source_wip_process_name' => $validated['source_wip_process_name'] ?? null,
+        ];
+
         $updatePayload = [
             'status' => 'in_production',
             'workflow_stage' => 'mass_production',
@@ -1112,7 +1128,7 @@ class ProductionGciApiController extends Controller
                 'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
                 'shift' => $validated['shift'] ?? $order->shift,
                 'operator_name' => $validated['operator_name'] ?? null,
-                'meta' => ['source' => 'apk_start_while_running'],
+                'meta' => array_merge(['source' => 'apk_start_while_running'], $startSourceMeta),
             ]);
 
             $this->broadcastMonitoringUpdate('wo_activity_switched', $order, meta: [
@@ -1121,6 +1137,7 @@ class ProductionGciApiController extends Controller
                 'machine_id' => $actualMachineId,
                 'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
                 'process_name' => $processName,
+                ...$startSourceMeta,
             ]);
 
             return response()->json([
@@ -1137,7 +1154,7 @@ class ProductionGciApiController extends Controller
             'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
             'shift' => $validated['shift'] ?? $order->shift,
             'operator_name' => $validated['operator_name'] ?? null,
-            'meta' => ['source' => 'apk_start'],
+            'meta' => array_merge(['source' => 'apk_start'], $startSourceMeta),
         ]);
 
         $this->broadcastMonitoringUpdate('wo_started', $order, meta: [
@@ -1146,6 +1163,7 @@ class ProductionGciApiController extends Controller
             'machine_id' => $actualMachineId,
             'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
             'process_name' => $processName,
+            ...$startSourceMeta,
         ]);
 
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);

@@ -38,4 +38,9 @@ class ProductionGciHourlyReport extends Model
     {
         return $this->belongsTo(ProductionOrder::class, 'production_order_id');
     }
+
+    public function machine()
+    {
+        return $this->belongsTo(Machine::class, 'machine_id');
+    }
 }
