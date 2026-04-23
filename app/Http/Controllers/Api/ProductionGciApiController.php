@@ -846,7 +846,7 @@ class ProductionGciApiController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
         $blockedStatuses = $this->bypassMaterialGateForWoStart()
-            ? ['resource_hold', 'cancelled', 'completed']
+            ? ['cancelled', 'completed']
             : ['material_hold', 'resource_hold', 'cancelled', 'completed'];
 
         $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
@@ -884,7 +884,7 @@ class ProductionGciApiController extends Controller
                 'end_time' => $o->end_time ? (string) $o->end_time : null,
                 'material_status' => $materialStatus,
                 'can_start' => $this->bypassMaterialGateForWoStart()
-                    ? in_array((string) $o->status, ['released', 'kanban_released', 'material_hold'], true)
+                    ? in_array((string) $o->status, ['released', 'kanban_released', 'material_hold', 'resource_hold'], true)
                     : ($materialStatus['material_ready']
                         && in_array((string) $o->status, ['released', 'kanban_released'], true)),
             ];
