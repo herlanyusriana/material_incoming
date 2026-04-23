@@ -1105,6 +1105,7 @@ class ProductionGciApiController extends Controller
             'source_wip_part_name' => $validated['source_wip_part_name'] ?? null,
             'source_wip_process_name' => $validated['source_wip_process_name'] ?? null,
         ];
+        $normalizedOrderShift = $this->normalizeShiftNumber($validated['shift'] ?? null);
 
         $updatePayload = [
             'status' => 'in_production',
@@ -1118,8 +1119,8 @@ class ProductionGciApiController extends Controller
             $updatePayload['machine_name'] = $actualMachine?->name ?? ($validated['machine_name'] ?? null);
         }
 
-        if (!empty($validated['shift'])) {
-            $updatePayload['shift'] = $validated['shift'];
+        if ($normalizedOrderShift !== null) {
+            $updatePayload['shift'] = $normalizedOrderShift;
         }
 
         if ($order->status === 'in_production') {
@@ -1169,6 +1170,25 @@ class ProductionGciApiController extends Controller
         ]);
 
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
+    }
+
+    private function normalizeShiftNumber($rawShift): ?int
+    {
+        if ($rawShift === null) {
+            return null;
+        }
+
+        $text = trim((string) $rawShift);
+        if ($text === '') {
+            return null;
+        }
+
+        if (preg_match('/\d+/', $text, $matches)) {
+            $value = (int) $matches[0];
+            return $value > 0 ? $value : null;
+        }
+
+        return null;
     }
 
     /**
