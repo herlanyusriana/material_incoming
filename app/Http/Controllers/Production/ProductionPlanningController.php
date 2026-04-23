@@ -27,11 +27,6 @@ class ProductionPlanningController extends Controller
     {
         $planDate = $request->get('date', now()->format('Y-m-d'));
         $planDate = Carbon::parse($planDate);
-        $sourceMode = strtolower((string) $request->get('source_mode', 'delivery'));
-        if (!in_array($sourceMode, ['delivery', 'raw'], true)) {
-            $sourceMode = 'delivery';
-        }
-
         // Get or create session
         $session = ProductionPlanningSession::where('plan_date', $planDate->format('Y-m-d'))->first();
 
@@ -71,9 +66,6 @@ class ProductionPlanningController extends Controller
             $processLoadRows = $this->buildProcessLoadRows($planningLines, $planDate);
         }
 
-        // Get daily planning data from outgoing
-        $dailyPlanData = $this->getDailyPlanningData($planDate, $sourceMode);
-
         $fgStockGci = $this->getFgStockGci();
 
         // Date range for planning
@@ -90,24 +82,20 @@ class ProductionPlanningController extends Controller
 
         // Grand totals
         $grandTotalFgGci = (float) $planningLines->sum(fn($line) => (float) $line->stock_fg_gci);
-        $grandTotalDeliveryRequirementQty = (float) $planningLines->sum(fn($line) => (float) $line->delivery_requirement_qty);
         $grandTotalPlanQty = (float) $planningLines->sum(fn($line) => (float) $line->plan_qty);
         $totalParts = $planningLines->count();
 
         return view('production.planning.index', compact(
             'session',
             'planningLines',
-            'dailyPlanData',
             'fgStockGci',
             'planDate',
             'dateRange',
             'existingSessions',
             'planningDays',
             'grandTotalFgGci',
-            'grandTotalDeliveryRequirementQty',
             'grandTotalPlanQty',
             'totalParts',
-            'sourceMode',
             'processLoadRows'
         ));
     }
@@ -144,12 +132,6 @@ class ProductionPlanningController extends Controller
         ]);
 
         $session = ProductionPlanningSession::findOrFail($request->session_id);
-        $sourceMode = strtolower((string) $request->input('source_mode', 'delivery'));
-        if (!in_array($sourceMode, ['delivery', 'raw'], true)) {
-            $sourceMode = 'delivery';
-        }
-        $deliveryRequirements = $this->getDailyPlanningData(Carbon::parse($session->plan_date), $sourceMode);
-
         $fgStockGci = $this->getFgStockGci();
 
         $sortOrder = ProductionPlanningLine::where('session_id', $session->id)->max('sort_order') ?? 0;
@@ -206,21 +188,16 @@ class ProductionPlanningController extends Controller
 
                 $sortOrder++;
 
-                $recommendedPlanQty = $this->calculateRecommendedPlanQty(
-                    (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
-                    (float) ($fgStockGci[$part->id] ?? 0)
-                );
-
                 ProductionPlanningLine::create([
                     'session_id' => $session->id,
                     'gci_part_id' => $part->id,
                     'machine_id' => null,
                     'process_name' => $processName,
                     'stock_fg_gci' => $fgStockGci[$part->id] ?? 0,
-                    'delivery_requirement_qty' => (float) ($deliveryRequirements[$part->id]['total_qty'] ?? 0),
+                    'delivery_requirement_qty' => 0,
                     'delivery_requirement_date_from' => $session->plan_date,
                     'delivery_requirement_date_to' => $session->plan_date,
-                    'plan_qty' => $recommendedPlanQty,
+                    'plan_qty' => 0,
                     'shift_1_qty' => 0,
                     'shift_2_qty' => 0,
                     'shift_3_qty' => 0,
@@ -232,7 +209,6 @@ class ProductionPlanningController extends Controller
 
             return redirect()->route('production.planning.index', [
                 'date' => Carbon::parse($session->plan_date)->format('Y-m-d'),
-                'source_mode' => $sourceMode,
             ])
                 ->with('success', 'Planning lines auto-populated from BOM data. ' . $parts->count() . ' FG parts processed.');
         } catch (\Exception $e) {
@@ -296,11 +272,6 @@ class ProductionPlanningController extends Controller
         $sortOrder = ProductionPlanningLine::where('session_id', $request->session_id)->max('sort_order') + 1;
 
         $session = ProductionPlanningSession::findOrFail($request->session_id);
-        $sourceMode = strtolower((string) $request->input('source_mode', 'delivery'));
-        if (!in_array($sourceMode, ['delivery', 'raw'], true)) {
-            $sourceMode = 'delivery';
-        }
-        $deliveryRequirements = $this->getDailyPlanningData(Carbon::parse($session->plan_date), $sourceMode);
         $fgStockGci = $this->getFgStockGci();
 
         // Process is only a routing hint; actual process and machine are selected in the APK.
@@ -315,21 +286,16 @@ class ProductionPlanningController extends Controller
             }
         }
 
-        $recommendedPlanQty = $this->calculateRecommendedPlanQty(
-            (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
-            (float) ($fgStockGci[$request->gci_part_id] ?? 0)
-        );
-
         $line = ProductionPlanningLine::create([
             'session_id' => $request->session_id,
             'gci_part_id' => $request->gci_part_id,
             'machine_id' => null,
             'process_name' => $processName,
             'stock_fg_gci' => $fgStockGci[$request->gci_part_id] ?? 0,
-            'delivery_requirement_qty' => (float) ($deliveryRequirements[$request->gci_part_id]['total_qty'] ?? 0),
+            'delivery_requirement_qty' => 0,
             'delivery_requirement_date_from' => $session->plan_date,
             'delivery_requirement_date_to' => $session->plan_date,
-            'plan_qty' => $recommendedPlanQty,
+            'plan_qty' => 0,
             'shift_1_qty' => 0,
             'shift_2_qty' => 0,
             'shift_3_qty' => 0,

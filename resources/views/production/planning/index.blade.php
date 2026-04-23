@@ -19,7 +19,7 @@
                         </div>
                         GCI PLANNING PRODUKSI
                     </h1>
-                    <p class="mt-1 text-sm text-slate-500">FG planning ditampilkan per baris part dengan target total WO. Realisasi per shift dibaca dari transaksi operator saat produksi berjalan.</p>
+                    <p class="mt-1 text-sm text-slate-500">FG planning ditampilkan per baris part. Isi target Shift 1/2/3, lalu sistem hitung total WO otomatis.</p>
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
@@ -29,18 +29,7 @@
                         <input type="date" name="date" value="{{ $planDate->format('Y-m-d') }}"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             onchange="this.form.submit()">
-                        <input type="hidden" name="source_mode" value="{{ $sourceMode ?? 'delivery' }}">
                     </form>
-                    <div class="inline-flex items-center rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-                        <a href="{{ route('production.planning.index', ['date' => $planDate->format('Y-m-d'), 'source_mode' => 'delivery']) }}"
-                            class="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold transition-all {{ ($sourceMode ?? 'delivery') === 'delivery' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100' }}">
-                            Pull
-                        </a>
-                        <a href="{{ route('production.planning.index', ['date' => $planDate->format('Y-m-d'), 'source_mode' => 'raw']) }}"
-                            class="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold transition-all {{ ($sourceMode ?? 'delivery') === 'raw' ? 'bg-orange-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100' }}">
-                            Raw
-                        </a>
-                    </div>
 
                     @if($session)
                         <span
@@ -60,8 +49,10 @@
         @php
             $planningLineCollection = collect($planningLines ?? []);
             $lineCount = $planningLineCollection->count();
+            $totalShift1Qty = $planningLineCollection->sum(fn($line) => (float) $line->shift_1_qty);
+            $totalShift2Qty = $planningLineCollection->sum(fn($line) => (float) $line->shift_2_qty);
+            $totalShift3Qty = $planningLineCollection->sum(fn($line) => (float) $line->shift_3_qty);
             $totalPlanQty = $planningLineCollection->sum(fn($line) => (float) $line->plan_qty);
-            $totalDeliveryQty = $planningLineCollection->sum(fn($line) => (float) $line->delivery_requirement_qty);
             $generatedWoCount = $planningLineCollection->sum(fn($line) => $line->productionOrders?->count() ?? 0);
         @endphp
 
@@ -74,18 +65,26 @@
                         <div class="text-3xl font-black leading-none">{{ $planDate->format('d') }}</div>
                         <div class="pb-0.5 text-lg font-semibold text-slate-200">{{ $planDate->format('F Y') }}</div>
                     </div>
-                    <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-6">
                         <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
                             <div class="text-[10px] uppercase tracking-wide text-slate-300">Lines</div>
                             <div class="font-mono text-lg font-black">{{ number_format($lineCount) }}</div>
                         </div>
                         <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Plan Qty</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($totalPlanQty, 0) }}</div>
+                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Shift 1</div>
+                            <div class="font-mono text-lg font-black">{{ number_format($totalShift1Qty, 0) }}</div>
                         </div>
                         <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
-                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Delivery</div>
-                            <div class="font-mono text-lg font-black">{{ number_format($totalDeliveryQty, 0) }}</div>
+                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Shift 2</div>
+                            <div class="font-mono text-lg font-black">{{ number_format($totalShift2Qty, 0) }}</div>
+                        </div>
+                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Shift 3</div>
+                            <div class="font-mono text-lg font-black">{{ number_format($totalShift3Qty, 0) }}</div>
+                        </div>
+                        <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
+                            <div class="text-[10px] uppercase tracking-wide text-slate-300">Total</div>
+                            <div class="font-mono text-lg font-black">{{ number_format($totalPlanQty, 0) }}</div>
                         </div>
                         <div class="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10">
                             <div class="text-[10px] uppercase tracking-wide text-slate-300">WO</div>
@@ -115,37 +114,10 @@
                             </button>
                         </form>
                     @else
-                        <form action="{{ route('production.planning.pull-delivery-requirement') }}" method="POST"
-                            class="flex flex-wrap items-end gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
-                            @csrf
-                            <input type="hidden" name="session_id" value="{{ $session->id }}">
-                            <div>
-                                <label class="mb-1 block text-[10px] font-bold uppercase tracking-wide text-emerald-700">From</label>
-                                <input type="date" name="date_from" value="{{ old('date_from', $planDate->format('Y-m-d')) }}"
-                                    class="h-9 rounded-lg border-emerald-200 bg-white text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-[10px] font-bold uppercase tracking-wide text-emerald-700">To</label>
-                                <input type="date" name="date_to"
-                                    value="{{ old('date_to', $planDate->copy()->addDays(max($planningDays - 1, 0))->format('Y-m-d')) }}"
-                                    class="h-9 rounded-lg border-emerald-200 bg-white text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                            </div>
-                            <button type="submit"
-                                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-700 transition-all whitespace-nowrap"
-                                onclick="return confirm('Tarik Delivery Requirement ke kolom terpisah? Plan Qty produksi tidak akan di-overwrite.')">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                Pull Delivery Req
-                            </button>
-                        </form>
-
                         <div class="flex flex-wrap items-center justify-end gap-2">
                             <form action="{{ route('production.planning.auto-populate') }}" method="POST" class="shrink-0">
                                 @csrf
                                 <input type="hidden" name="session_id" value="{{ $session->id }}">
-                                <input type="hidden" name="source_mode" value="{{ $sourceMode ?? 'delivery' }}">
                                 <button type="submit"
                                     class="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-sm font-semibold text-white shadow-sm hover:from-fuchsia-600 hover:to-violet-700 transition-all whitespace-nowrap"
                                     onclick="return confirm('Auto-populate planning lines dari FG part dan BOM? WO tetap dibuat per part dan target, bukan per mesin.')">
@@ -209,43 +181,38 @@
                 <div class="overflow-hidden">
                     <table class="w-full table-fixed text-xs border-collapse" id="planningTable" style="table-layout: fixed;">
                         <colgroup>
-                            <col style="width: 4%;">
                             <col style="width: 10%;">
-                            <col style="width: 25%;">
-                            <col style="width: 16%;">
-                            <col style="width: 10%;">
-                            <col style="width: 12%;">
+                            <col style="width: 20%;">
+                            <col style="width: 14%;">
+                            <col style="width: 8%;">
                             <col style="width: 7%;">
-                            <col style="width: 10%;">
-                            <col style="width: 6%;">
+                            <col style="width: 8%;">
+                            <col style="width: 8%;">
+                            <col style="width: 8%;">
+                            <col style="width: 8%;">
+                            <col style="width: 9%;">
                         </colgroup>
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-900 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
-                                <th class="w-10 px-2 py-3 text-center"></th>
                                 <th class="px-3 py-3 text-left">Model</th>
                                 <th class="px-3 py-3 text-left">Part Name</th>
                                 <th class="px-3 py-3 text-left">Part No</th>
                                 <th class="px-3 py-3 text-right">Stock</th>
-                                <th class="px-3 py-3 text-right text-sky-200">Delivery</th>
                                 <th class="px-3 py-3 text-center">Seq</th>
-                                <th class="px-3 py-3 text-right text-emerald-200">Plan Qty</th>
+                                <th class="px-3 py-3 text-right text-emerald-200">Shift 1</th>
+                                <th class="px-3 py-3 text-right text-emerald-200">Shift 2</th>
+                                <th class="px-3 py-3 text-right text-emerald-200">Shift 3</th>
+                                <th class="px-3 py-3 text-right text-cyan-200">Total WO</th>
                                 <th class="px-3 py-3 text-center">Action</th>
                             </tr>
                         </thead>
                         @forelse(($planningLines ?? collect()) as $line)
                                 <!-- Main Row Data -->
-                                <tbody x-data="{ expanded: false }" class="border-b border-slate-100 odd:bg-white even:bg-slate-50/40 hover:bg-emerald-50/40 transition-colors group">
+                                <tbody class="border-b border-slate-100 odd:bg-white even:bg-slate-50/40 hover:bg-emerald-50/40 transition-colors group">
                                         @php
                                             $primaryWo = $line->productionOrders->first();
                                         @endphp
                                         <tr data-line-id="{{ $line->id }}">
-                                            <td class="w-10 px-2 py-2 text-center cursor-pointer" @click="expanded = !expanded">
-                                                <div class="h-6 w-6 rounded-md hover:bg-slate-200 flex items-center justify-center transition-colors text-slate-400 group-hover:text-emerald-600">
-                                                    <svg class="h-4 w-4 transform transition-transform" :class="expanded ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </div>
-                                            </td>
                                             <td class="px-3 py-2 text-[11px] font-semibold text-slate-500">
                                                 <div class="truncate" title="{{ $line->gciPart->model ?? '-' }}">
                                                     {{ $line->gciPart->model ?? '-' }}
@@ -264,18 +231,6 @@
                                             <td class="px-3 py-2 text-right">
                                                 <span class="font-mono text-sm font-black text-slate-900">{{ number_format((float) $line->stock_fg_gci, 0) }}</span>
                                             </td>
-                                            <td class="px-3 py-2 text-right">
-                                                <div class="font-mono text-sm font-black text-blue-700">
-                                                    {{ number_format((float) $line->delivery_requirement_qty, 0) }}
-                                                </div>
-                                                @if($line->delivery_requirement_date_from || $line->delivery_requirement_date_to)
-                                                    <div class="whitespace-nowrap text-[10px] font-medium text-slate-400">
-                                                        {{ optional($line->delivery_requirement_date_from)->format('d M') ?? '-' }}
-                                                        -
-                                                        {{ optional($line->delivery_requirement_date_to)->format('d M') ?? '-' }}
-                                                    </div>
-                                                @endif
-                                            </td>
                                             <td class="px-3 py-2 text-center">
                                                 <input type="number" step="1" min="1"
                                                     class="mx-auto w-14 rounded-lg border border-slate-200 bg-white p-1.5 text-center text-xs font-black text-slate-700 shadow-sm transition-all hover:border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
@@ -284,10 +239,29 @@
                                             </td>
                                             <td class="px-3 py-2 text-right">
                                                 <input type="number" step="1" min="0"
-                                                    class="ml-auto w-24 rounded-lg border border-emerald-200 bg-emerald-50/60 p-1.5 text-right text-sm font-black text-emerald-700 shadow-sm transition-all hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                                                    value="{{ $line->plan_qty > 0 ? intval($line->plan_qty) : '' }}" placeholder="0"
-                                                    title="Total target WO. Realisasi per shift dibaca dari transaksi operator."
-                                                    @change="updateLineField($event, {{ $line->id }}, 'plan_qty')">
+                                                    class="ml-auto w-20 rounded-lg border border-emerald-200 bg-emerald-50/60 p-1.5 text-right text-sm font-black text-emerald-700 shadow-sm transition-all hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                                    value="{{ $line->shift_1_qty > 0 ? intval($line->shift_1_qty) : '' }}" placeholder="0"
+                                                    title="Target internal shift 1."
+                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_1_qty')">
+                                            </td>
+                                            <td class="px-3 py-2 text-right">
+                                                <input type="number" step="1" min="0"
+                                                    class="ml-auto w-20 rounded-lg border border-emerald-200 bg-emerald-50/60 p-1.5 text-right text-sm font-black text-emerald-700 shadow-sm transition-all hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                                    value="{{ $line->shift_2_qty > 0 ? intval($line->shift_2_qty) : '' }}" placeholder="0"
+                                                    title="Target internal shift 2."
+                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_2_qty')">
+                                            </td>
+                                            <td class="px-3 py-2 text-right">
+                                                <input type="number" step="1" min="0"
+                                                    class="ml-auto w-20 rounded-lg border border-emerald-200 bg-emerald-50/60 p-1.5 text-right text-sm font-black text-emerald-700 shadow-sm transition-all hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                                    value="{{ $line->shift_3_qty > 0 ? intval($line->shift_3_qty) : '' }}" placeholder="0"
+                                                    title="Target internal shift 3."
+                                                    @change="updateLineField($event, {{ $line->id }}, 'shift_3_qty')">
+                                            </td>
+                                            <td class="px-3 py-2 text-right">
+                                                <span class="font-mono text-sm font-black text-cyan-700">
+                                                    {{ number_format((float) $line->plan_qty, 0) }}
+                                                </span>
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <div class="flex items-center justify-center gap-1.5 transition-opacity">
@@ -320,48 +294,11 @@
                                             </td>
                                         </tr>
 
-                                        <!-- Expandable Detail Row (Projected Stock) -->
-                                        <tr x-show="expanded" x-transition.opacity x-cloak>
-                                            <td colspan="9" class="px-4 py-4 bg-slate-50 border-t border-slate-100 shadow-inner">
-                                                <div class="mb-2 text-xs font-semibold text-slate-500 flex items-center gap-2">
-                                                    <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                                                    </svg>
-                                                    Projected Daily Stock vs Plan Requirement
-                                                </div>
-                                                <div class="flex gap-2 overflow-x-auto pb-2">
-                                                    @foreach($dateRange as $dIdx => $date)
-                                                        @php
-                                                            $fgStock = (float) $line->stock_fg_gci;
-                                                            $planQty = (float) $line->plan_qty;
-                                                            $dailyReq = isset($dailyPlanData[$line->gci_part_id]) ? ($dailyPlanData[$line->gci_part_id]['total_qty'] ?? 0) : 0;
-                                                            $projectedStock = $fgStock + $planQty - ($dailyReq * ($dIdx + 1));
-                                                        @endphp
-                                                        <div class="flex-shrink-0 w-24 bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-                                                            <div class="bg-blue-50/50 px-2 py-1.5 border-b border-slate-100 text-center">
-                                                                <div class="text-xs font-bold text-slate-700">{{ $date->format('d') }}</div>
-                                                                <div class="text-[9px] font-medium text-slate-500 uppercase">{{ $date->format('D') }}</div>
-                                                            </div>
-                                                            <div class="px-2 py-1.5 text-center bg-white border-b border-slate-50">
-                                                                <div class="text-[9px] text-slate-400 mb-0.5">Req</div>
-                                                                <div class="font-mono text-[11px] font-semibold text-slate-700">{{ $dailyReq > 0 ? number_format($dailyReq, 0) : '-' }}</div>
-                                                            </div>
-                                                            <div class="px-2 py-1.5 text-center {{ $projectedStock < 0 ? 'bg-red-50' : ($projectedStock < ($dailyReq * 2) ? 'bg-amber-50' : 'bg-emerald-50/30') }}">
-                                                                <div class="text-[9px] text-slate-400 mb-0.5">Proj. Stock</div>
-                                                                <div class="font-mono text-[12px] font-bold {{ $projectedStock < 0 ? 'text-red-700' : ($projectedStock < ($dailyReq * 2) ? 'text-amber-700' : 'text-emerald-700') }}">
-                                                                    {{ number_format($projectedStock, 0) }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </td>
-                                        </tr>
                                 </tbody>
                         @empty
                             <tbody>
                                 <tr>
-                                    <td colspan="9"
+                                    <td colspan="10"
                                         class="border border-slate-300 px-4 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center gap-3">
                                             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -381,17 +318,23 @@
                             <tbody>
                                 {{-- Grand Total Row --}}
                                 <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold text-sm">
-                                    <td colspan="4" class="px-4 py-3 text-right text-slate-700">
+                                    <td colspan="3" class="px-4 py-3 text-right text-slate-700">
                                         Grand Total ({{ $totalParts }} parts)
                                     </td>
                                     <td class="px-3 py-3 text-right font-mono text-slate-800">
                                         {{ number_format($grandTotalFgGci, 0) }}
                                     </td>
-                                    <td class="px-3 py-3 text-right font-mono text-blue-700">
-                                        {{ number_format($grandTotalDeliveryRequirementQty, 0) }}
-                                    </td>
                                     <td class="px-3 py-3"></td>
                                     <td class="px-3 py-3 text-right font-mono text-emerald-700">
+                                        {{ number_format($totalShift1Qty, 0) }}
+                                    </td>
+                                    <td class="px-3 py-3 text-right font-mono text-emerald-700">
+                                        {{ number_format($totalShift2Qty, 0) }}
+                                    </td>
+                                    <td class="px-3 py-3 text-right font-mono text-emerald-700">
+                                        {{ number_format($totalShift3Qty, 0) }}
+                                    </td>
+                                    <td class="px-3 py-3 text-right font-mono text-cyan-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>
                                     <td class="px-3 py-3"></td>
@@ -427,7 +370,7 @@
                         <li class="flex items-center gap-2">
                             <span
                                 class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">3</span>
-                            Pastikan target total WO sudah sesuai kebutuhan produksi
+                            Isi target Shift 1, Shift 2, dan Shift 3
                         </li>
                         <li class="flex items-center gap-2">
                             <span
@@ -467,7 +410,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-yellow-50 rounded border border-yellow-200"></div>
-                            <span class="text-slate-600">Editable fields (sequence dan total target WO)</span>
+                            <span class="text-slate-600">Editable fields (sequence dan target Shift 1/2/3)</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="h-4 w-8 bg-emerald-100 rounded border border-emerald-300"></div>
@@ -577,7 +520,6 @@
                                 body: JSON.stringify({
                                     session_id: {{ $session ? $session->id : 'null' }},
                                     gci_part_id: part.id,
-                                    source_mode: @js($sourceMode ?? 'delivery'),
                                 }),
                             });
                             const data = await res.json();
@@ -609,6 +551,9 @@
                                 return;
                             }
 
+                            if (['shift_1_qty', 'shift_2_qty', 'shift_3_qty'].includes(field)) {
+                                window.location.reload();
+                            }
                         } catch (e) {
                             console.error('Update error:', e);
                         }
