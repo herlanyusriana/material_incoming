@@ -1055,15 +1055,17 @@ class ProductionGciApiController extends Controller
 
         $actualMachine = Machine::find($actualMachineId);
 
-        $isMachineBusy = ProductionOrder::where('machine_id', $actualMachineId)
-            ->whereIn('status', ['in_production', 'paused'])
-            ->where('id', '!=', $order->id)
-            ->exists();
+        if (!$this->bypassMaterialGateForWoStart()) {
+            $isMachineBusy = ProductionOrder::where('machine_id', $actualMachineId)
+                ->whereIn('status', ['in_production', 'paused'])
+                ->where('id', '!=', $order->id)
+                ->exists();
 
-        if ($isMachineBusy) {
-            return response()->json([
-                'message' => 'Pekerjaan ditolak. Masih ada Work Order lain yang sedang aktif (Running/Paused) pada mesin ini.'
-            ], 422);
+            if ($isMachineBusy) {
+                return response()->json([
+                    'message' => 'Pekerjaan ditolak. Masih ada Work Order lain yang sedang aktif (Running/Paused) pada mesin ini.'
+                ], 422);
+            }
         }
 
         // Block PLANNED status
