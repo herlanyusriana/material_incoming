@@ -955,7 +955,7 @@ class ProductionGciApiController extends Controller
 
         $bom->loadMissing('items.machine', 'items.wipPart', 'items.componentPart', 'part');
 
-        return $bom->items
+        $steps = $bom->items
             ->sortBy('line_no')
             ->values()
             ->map(function ($item, $index) use ($order) {
@@ -988,6 +988,45 @@ class ProductionGciApiController extends Controller
                 ];
             })
             ->all();
+
+        foreach ($steps as $index => &$step) {
+            $previousStep = $steps[$index - 1] ?? null;
+            $previousOutputType = (string) ($previousStep['output_type'] ?? '');
+            $previousPartNo = strtoupper(trim((string) ($previousStep['output_part_no'] ?? '')));
+            $outputPartNo = strtoupper(trim((string) ($step['output_part_no'] ?? '')));
+
+            $step['input_available_qty'] = $previousOutputType === 'wip' && $previousPartNo !== ''
+                ? $this->availableQtyForPartNo($previousPartNo)
+                : null;
+            $step['output_available_qty'] = $outputPartNo !== '' && $outputPartNo !== '-'
+                ? $this->availableQtyForPartNo($outputPartNo)
+                : 0;
+            $step['input_from_part_no'] = $previousOutputType === 'wip' ? ($previousStep['output_part_no'] ?? null) : null;
+            $step['input_from_part_name'] = $previousOutputType === 'wip' ? ($previousStep['output_part_name'] ?? null) : null;
+            $step['next_process_name'] = $steps[$index + 1]['process_name'] ?? null;
+            $step['next_machine_name'] = $steps[$index + 1]['recommended_machine_name']
+                ?? ($steps[$index + 1]['machine_name'] ?? null);
+        }
+        unset($step);
+
+        return $steps;
+    }
+
+    private function availableQtyForPartNo(?string $partNo): float
+    {
+        $normalized = strtoupper(trim((string) $partNo));
+        if ($normalized === '' || $normalized === '-') {
+            return 0;
+        }
+
+        $part = GciPart::query()->where('part_no', $normalized)->first();
+        if (!$part) {
+            return 0;
+        }
+
+        return (float) LocationInventory::query()
+            ->where('gci_part_id', $part->id)
+            ->sum('qty_on_hand');
     }
 
     private function findNextRoutingStep(ProductionOrder $order, ?string $currentProcessName): ?array
