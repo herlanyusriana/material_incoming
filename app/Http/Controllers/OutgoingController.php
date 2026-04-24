@@ -1366,7 +1366,7 @@ class OutgoingController extends Controller
         // visible in delivery planning instead of disappearing until qty is posted.
         $mappedRowPartIds = OutgoingDailyPlanRow::query()
             ->whereNotNull('gci_part_id')
-            ->whereHas('plan', function ($q) use ($dateStr, $nextDateStr) {
+            ->whereHas('cells', function ($q) use ($dateStr, $nextDateStr) {
                 $q->whereIn('plan_date', [$dateStr, $nextDateStr]);
             })
             ->pluck('gci_part_id');
