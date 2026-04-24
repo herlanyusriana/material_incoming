@@ -1361,6 +1361,18 @@ class OutgoingController extends Controller
             ->unique()
             ->values();
 
+        // Also include parts that already have mapped daily-plan rows for H / H+1,
+        // even when today's qty is still 0. This keeps FG parts like Plate Rear
+        // visible in delivery planning instead of disappearing until qty is posted.
+        $mappedRowPartIds = OutgoingDailyPlanRow::query()
+            ->whereNotNull('gci_part_id')
+            ->whereHas('plan', function ($q) use ($dateStr, $nextDateStr) {
+                $q->whereIn('plan_date', [$dateStr, $nextDateStr]);
+            })
+            ->pluck('gci_part_id');
+
+        $allPartIds = $allPartIds->merge($mappedRowPartIds)->unique()->values();
+
         // Also include parts that already have delivery planning lines for this date (daily_plan only)
         $existingLines = OutgoingDeliveryPlanningLine::where('delivery_date', $dateStr)
             ->where(function ($q) {
