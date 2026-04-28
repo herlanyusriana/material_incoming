@@ -852,8 +852,17 @@ class ProductionGciApiController extends Controller
         $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
             ->whereDate('plan_date', $date)
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
-            ->whereNotIn('status', $blockedStatuses)
-            ->orderBy('plan_date', 'asc')
+            ->whereNotIn('status', $blockedStatuses);
+
+        if ($request->has('machine_id')) {
+            $query->where('machine_id', $request->query('machine_id'));
+        }
+
+        if ($request->has('shift')) {
+            $query->where('shift', $request->query('shift'));
+        }
+
+        $query->orderBy('plan_date', 'asc')
             ->orderBy('production_sequence', 'asc');
 
         $orders = $query->get()->map(function (ProductionOrder $o) {
@@ -955,7 +964,7 @@ class ProductionGciApiController extends Controller
 
         $bom->loadMissing('items.machine', 'items.wipPart', 'items.componentPart', 'part');
 
-        $steps = $bom->items
+        $rawSteps = $bom->items
             ->sortBy('line_no')
             ->values()
             ->map(function ($item, $index) use ($order) {
@@ -988,6 +997,35 @@ class ProductionGciApiController extends Controller
                 ];
             })
             ->all();
+
+        $mergedSteps = [];
+        foreach ($rawSteps as $step) {
+            $lastIndex = count($mergedSteps) - 1;
+            
+            // Check if it's the same machine (and machine is not null)
+            $isSameMachine = $lastIndex >= 0 
+                && $mergedSteps[$lastIndex]['machine_id'] !== null 
+                && $mergedSteps[$lastIndex]['machine_id'] === $step['machine_id'];
+
+            if ($isSameMachine) {
+                // Merge the current step into the last one
+                $mergedSteps[$lastIndex]['process_name'] .= ' + ' . $step['process_name'];
+                $mergedSteps[$lastIndex]['output_part_no'] = $step['output_part_no'];
+                $mergedSteps[$lastIndex]['output_part_name'] = $step['output_part_name'];
+                $mergedSteps[$lastIndex]['output_type'] = $step['output_type'];
+                $mergedSteps[$lastIndex]['is_final'] = $step['is_final'];
+                $mergedSteps[$lastIndex]['is_current'] = $mergedSteps[$lastIndex]['is_current'] || $step['is_current'];
+            } else {
+                $mergedSteps[] = $step;
+            }
+        }
+
+        // Re-assign step numbers sequentially after merge
+        $steps = [];
+        foreach ($mergedSteps as $index => $mStep) {
+            $mStep['step_no'] = $index + 1;
+            $steps[] = $mStep;
+        }
 
         foreach ($steps as $index => &$step) {
             $previousStep = $steps[$index - 1] ?? null;
