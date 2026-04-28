@@ -1,0 +1,8 @@
+<?php
+require 'vendor/autoload.php';
+$app = require_once 'bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+
+$count = \App\Models\ProductionOrder::whereDate('plan_date', now()->toDateString())->count();
+echo 'WOs for today: ' . $count . "\n";

@@ -859,7 +859,17 @@ class ProductionGciApiController extends Controller
         }
 
         if ($request->has('shift')) {
-            $query->where('shift', $request->query('shift'));
+            $shiftInput = $request->query('shift');
+            $shiftNum = $this->normalizeShiftNumber($shiftInput);
+            $query->where(function($q) use ($shiftInput, $shiftNum) {
+                $q->where('shift', $shiftInput);
+                if ($shiftNum !== null) {
+                    $q->orWhere('shift', $shiftNum)
+                      ->orWhere('shift', (string)$shiftNum)
+                      ->orWhere('shift', "Shift $shiftNum")
+                      ->orWhere('shift', "SHIFT $shiftNum");
+                }
+            });
         }
 
         $query->orderBy('plan_date', 'asc')
