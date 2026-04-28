@@ -106,7 +106,7 @@
                             <th class="px-6 py-4 font-semibold">Part</th>
                             <th class="px-6 py-4 font-semibold">Process / Machine</th>
                             <th class="px-6 py-4 font-semibold">Plan Date</th>
-                            <th class="px-6 py-4 font-semibold">Daily Planning</th>
+                            <th class="px-6 py-4 font-semibold">Shift</th>
                             <th class="px-6 py-4 font-semibold">Qty</th>
                             <th class="px-6 py-4 font-semibold">Status</th>
                             <th class="px-6 py-4 font-semibold">Stage</th>
@@ -170,19 +170,12 @@
                                     {{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}
                                 </td>
                                 <td class="px-6 py-4">
-                                    @if($order->dailyPlanCell)
-                                        <div class="text-sm">
-                                            <div class="font-medium text-indigo-600">
-                                                {{ $order->dailyPlanCell->row->production_line ?? '-' }}</div>
-                                            <div class="text-xs text-slate-500">
-                                                Seq: {{ $order->dailyPlanCell->seq ?? '-' }}
-                                                @if($order->dailyPlanCell->qty)
-                                                    • Qty: {{ number_format($order->dailyPlanCell->qty) }}
-                                                @endif
-                                            </div>
-                                        </div>
+                                    @if($order->shift)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-800">
+                                            Shift {{ $order->shift }}
+                                        </span>
                                     @else
-                                        <span class="text-xs text-slate-400 italic">No mapping</span>
+                                        <span class="text-xs text-slate-400 italic">No shift</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_planned) }}</td>
