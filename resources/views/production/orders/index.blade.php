@@ -104,7 +104,7 @@
                             <th class="px-6 py-4 font-semibold">Order #</th>
                             <th class="px-6 py-4 font-semibold">Transaction No</th>
                             <th class="px-6 py-4 font-semibold">Part</th>
-                            <th class="px-6 py-4 font-semibold">Process / Machine</th>
+                            <th class="px-6 py-4 font-semibold">Active Process</th>
                             <th class="px-6 py-4 font-semibold">Plan Date</th>
                             <th class="px-6 py-4 font-semibold">Shift</th>
                             <th class="px-6 py-4 font-semibold">Qty</th>
@@ -161,10 +161,16 @@
                                     <div class="text-xs text-slate-500">{{ $order->part->part_name }}</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm font-medium text-slate-900">{{ $order->process_name ?: '-' }}</div>
-                                    <div class="text-xs text-slate-500">
-                                        {{ $order->machine?->name ?: '-' }}{{ $order->die_name ? ' • ' . $order->die_name : '' }}
-                                    </div>
+                                    @if($order->process_name)
+                                        <div class="text-sm font-medium text-slate-900">{{ $order->process_name }}</div>
+                                        <div class="text-xs text-slate-500">
+                                            {{ $order->machine?->name ?: '-' }}{{ $order->die_name ? ' • ' . $order->die_name : '' }}
+                                        </div>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wider">
+                                            Not Started
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">
                                     {{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}
