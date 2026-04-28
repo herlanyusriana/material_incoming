@@ -854,10 +854,6 @@ class ProductionGciApiController extends Controller
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
             ->whereNotIn('status', $blockedStatuses);
 
-        if ($request->has('machine_id')) {
-            $query->where('machine_id', $request->query('machine_id'));
-        }
-
         if ($request->has('shift')) {
             $shiftInput = $request->query('shift');
             $shiftNum = $this->normalizeShiftNumber($shiftInput);
