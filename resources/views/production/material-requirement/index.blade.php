@@ -153,6 +153,14 @@
                                         <td class="px-4 py-3">
                                             <div class="font-mono text-xs font-bold text-slate-800">{{ $material['component_part_no'] }}</div>
                                             <div class="text-xs text-slate-500">{{ $material['component_part_name'] }}</div>
+                                            @if(!empty($material['size_display']))
+                                                <div class="mt-1 text-[10px] text-slate-500">
+                                                    Size: <span class="font-semibold text-slate-700">{{ $material['size_display'] }}</span>
+                                                </div>
+                                            @endif
+                                            @if(!empty($material['size_note']))
+                                                <div class="text-[10px] text-indigo-600">{{ $material['size_note'] }}</div>
+                                            @endif
                                         </td>
                                         <td class="px-3 py-3">
                                             <span class="text-xs font-semibold text-slate-700">{{ $material['process_name'] ?: ($material['component_classification'] === 'RM' ? 'Base Material' : '-') }}</span>

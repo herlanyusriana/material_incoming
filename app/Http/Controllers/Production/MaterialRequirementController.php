@@ -82,10 +82,13 @@ class MaterialRequirementController extends Controller
                         $componentPartNo = trim((string) ($item['component_part']?->part_no ?? ''));
                     }
 
+                    $componentSize = trim((string) ($item['component_part']?->size ?? $item['material_size'] ?? ''));
+
                     $aggregated[$componentPartId] = [
                         'component_part_id' => $componentPartId,
                         'component_part_no' => $componentPartNo !== '' ? $componentPartNo : '-',
                         'component_part_name' => (string) ($item['component_part']?->part_name ?? 'Unknown'),
+                        'component_size' => $componentSize,
                         'component_classification' => (string) ($item['component_part']?->classification ?? ''),
                         'make_or_buy' => strtoupper(trim((string) ($item['make_or_buy'] ?? ''))),
                         'gross_qty' => 0,
@@ -152,6 +155,27 @@ class MaterialRequirementController extends Controller
                         })
                         ->values();
 
+                    $substituteWithStock = $substitutes
+                        ->first(fn (array $substitute) => (float) ($substitute['stock_on_hand'] ?? 0) > 0);
+
+                    $distinctSizes = collect([$material['component_size'] ?? ''])
+                        ->merge($substitutes->pluck('size'))
+                        ->map(fn ($size) => trim((string) $size))
+                        ->filter()
+                        ->unique()
+                        ->values();
+
+                    $sizeDisplay = trim((string) ($material['component_size'] ?? ''));
+                    $sizeNote = null;
+
+                    if ($calcMode === 'with_substitute' && $substituteWithStock && $stockOnHand <= 0) {
+                        $sizeDisplay = trim((string) ($substituteWithStock['size'] ?? $sizeDisplay));
+                        $sizeNote = 'Ikut substitute aktif: ' . ($substituteWithStock['part_no'] ?? '-');
+                    } elseif ($substitutes->isNotEmpty() && $distinctSizes->count() > 1) {
+                        $sizeDisplay = $sizeDisplay !== '' ? $sizeDisplay : 'Flexible';
+                        $sizeNote = 'Flexible, ikut part substitute yang dipakai';
+                    }
+
                     $substituteStock = (float) $substitutes->sum('stock_on_hand');
                     $effectiveStock = $calcMode === 'strict'
                         ? $stockOnHand
@@ -163,6 +187,9 @@ class MaterialRequirementController extends Controller
                         'component_part_id' => $material['component_part_id'],
                         'component_part_no' => $material['component_part_no'],
                         'component_part_name' => $material['component_part_name'],
+                        'component_size' => $material['component_size'] ?? '',
+                        'size_display' => $sizeDisplay,
+                        'size_note' => $sizeNote,
                         'component_classification' => $material['component_classification'],
                         'make_or_buy' => $material['make_or_buy'] ?: 'N/A',
                         'gross_qty' => (float) $material['gross_qty'],
