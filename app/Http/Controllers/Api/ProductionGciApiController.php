@@ -1201,11 +1201,13 @@ class ProductionGciApiController extends Controller
 
                 $recommendedMachineId = $item->machine?->id ? (int) $item->machine->id : null;
                 $recommendedMachineName = (string) ($item->machine?->name ?? '');
+                $normalizedProcess = $processName !== '' ? $processName : 'Process';
 
                 return [
                     'step_no' => $index + 1,
                     'line_no' => (int) ($item->line_no ?? ($index + 1)),
-                    'process_name' => $processName !== '' ? $processName : 'Process',
+                    'process_name' => $normalizedProcess,
+                    'process_names' => [$normalizedProcess],
                     'machine_id' => $recommendedMachineId,
                     'machine_name' => $recommendedMachineName,
                     'recommended_machine_id' => $recommendedMachineId,
@@ -1231,8 +1233,18 @@ class ProductionGciApiController extends Controller
                 && $mergedSteps[$lastIndex]['machine_id'] === $step['machine_id'];
 
             if ($isSameMachine) {
-                // Merge the current step into the last one
-                $mergedSteps[$lastIndex]['process_name'] .= ' + ' . $step['process_name'];
+                $mergedSteps[$lastIndex]['process_names'] = collect([
+                    ...($mergedSteps[$lastIndex]['process_names'] ?? []),
+                    ...($step['process_names'] ?? [$step['process_name']]),
+                ])
+                    ->map(fn ($name) => trim((string) $name))
+                    ->filter()
+                    ->unique(fn ($name) => Str::lower($name))
+                    ->values()
+                    ->all();
+                $mergedSteps[$lastIndex]['process_name'] = $this->summarizeRoutingProcessNames(
+                    $mergedSteps[$lastIndex]['process_names']
+                );
                 $mergedSteps[$lastIndex]['output_part_no'] = $step['output_part_no'];
                 $mergedSteps[$lastIndex]['output_part_name'] = $step['output_part_name'];
                 $mergedSteps[$lastIndex]['output_type'] = $step['output_type'];
@@ -1282,7 +1294,7 @@ class ProductionGciApiController extends Controller
         $currentProcess = trim((string) ($order->process_name ?? ''));
         if ($currentProcess !== '') {
             foreach ($steps as $step) {
-                if (strcasecmp((string) ($step['process_name'] ?? ''), $currentProcess) === 0) {
+                if ($this->routingStepContainsProcess($step, $currentProcess)) {
                     return $step;
                 }
             }
@@ -1354,12 +1366,47 @@ class ProductionGciApiController extends Controller
         }
 
         foreach ($steps as $step) {
-            if (strcasecmp((string) ($step['process_name'] ?? ''), $normalized) === 0) {
+            if ($this->routingStepContainsProcess($step, $normalized)) {
                 return $step;
             }
         }
 
         return null;
+    }
+
+    private function summarizeRoutingProcessNames(array $names): string
+    {
+        $normalized = collect($names)
+            ->map(fn ($name) => trim((string) $name))
+            ->filter()
+            ->unique(fn ($name) => Str::lower($name))
+            ->values();
+
+        if ($normalized->isEmpty()) {
+            return 'Process';
+        }
+
+        if ($normalized->count() === 1) {
+            return (string) $normalized->first();
+        }
+
+        return $normalized->join(' -> ');
+    }
+
+    private function routingStepContainsProcess(array $step, string $processName): bool
+    {
+        $needle = Str::lower(trim($processName));
+        if ($needle === '') {
+            return false;
+        }
+
+        $processNames = collect($step['process_names'] ?? [$step['process_name'] ?? null])
+            ->map(fn ($name) => Str::lower(trim((string) $name)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        return $processNames->contains($needle);
     }
 
     private function assertMachineAllowedForProcess(ProductionOrder $order, int $machineId, ?string $processName): void
