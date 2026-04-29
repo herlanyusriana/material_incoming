@@ -813,11 +813,71 @@ class ProductionGciApiController extends Controller
 
     public function machines()
     {
+        $date = request()->query('date', now()->toDateString());
+        $activeWoCounts = ProductionOrder::query()
+            ->selectRaw('machine_id, COUNT(*) as total')
+            ->whereDate('plan_date', $date)
+            ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->whereNotNull('machine_id')
+            ->groupBy('machine_id')
+            ->pluck('total', 'machine_id');
+
         $machines = Machine::active()
             ->orderBy('name')
-            ->get(['id', 'code', 'name', 'group_name', 'cycle_time', 'cycle_time_unit']);
+            ->get(['id', 'code', 'name', 'group_name', 'cycle_time', 'cycle_time_unit'])
+            ->map(function (Machine $machine) use ($activeWoCounts) {
+                $capability = $this->machineCapabilitySummary($machine);
+
+                return [
+                    'id' => (int) $machine->id,
+                    'code' => (string) $machine->code,
+                    'name' => (string) $machine->name,
+                    'group_name' => (string) ($machine->group_name ?? ''),
+                    'cycle_time' => $machine->cycle_time !== null ? (float) $machine->cycle_time : null,
+                    'cycle_time_unit' => (string) ($machine->cycle_time_unit ?? ''),
+                    'active_wo_count' => (int) ($activeWoCounts[(int) $machine->id] ?? 0),
+                    'capability_processes' => $capability['processes'],
+                    'capability_parts' => $capability['parts'],
+                    'capability_process_count' => $capability['process_count'],
+                    'capability_part_count' => $capability['part_count'],
+                ];
+            })
+            ->values();
 
         return response()->json(['data' => $machines]);
+    }
+
+    private function machineCapabilitySummary(Machine $machine): array
+    {
+        $items = Bom::query()
+            ->with([
+                'part:id,part_no,part_name',
+                'items' => function ($query) use ($machine) {
+                    $query->where('machine_id', $machine->id);
+                },
+            ])
+            ->where('status', 'active')
+            ->whereHas('items', fn ($query) => $query->where('machine_id', $machine->id))
+            ->get()
+            ->flatMap(function (Bom $bom) {
+                return $bom->items->map(function ($item) use ($bom) {
+                    return [
+                        'process_name' => trim((string) ($item->process_name ?? '')),
+                        'part_no' => trim((string) ($bom->part?->part_no ?? '')),
+                    ];
+                });
+            });
+
+        $allProcesses = $items->pluck('process_name')->filter()->unique()->values();
+        $allParts = $items->pluck('part_no')->filter()->unique()->values();
+
+        return [
+            'processes' => $allProcesses->take(8)->all(),
+            'parts' => $allParts->take(8)->all(),
+            'process_count' => $allProcesses->count(),
+            'part_count' => $allParts->count(),
+        ];
     }
 
     public function parts(Request $request)
@@ -842,37 +902,51 @@ class ProductionGciApiController extends Controller
         return response()->json(['data' => $parts]);
     }
 
-    public function workOrders(Request $request)
+    private function buildWorkOrderCardData($orders)
     {
-        $date = $request->query('date', now()->toDateString());
-        $blockedStatuses = $this->bypassMaterialGateForWoStart()
-            ? ['cancelled', 'completed']
-            : ['material_hold', 'resource_hold', 'cancelled', 'completed'];
+        $orders = collect($orders)->values();
+        $hourlyByOrder = ProductionGciHourlyReport::query()
+            ->whereIn('production_order_id', $orders->pluck('id')->all())
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('production_order_id');
 
-        $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
-            ->whereDate('plan_date', $date)
-            ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
-            ->whereNotIn('status', $blockedStatuses);
-
-        if ($request->has('shift')) {
-            $shiftInput = $request->query('shift');
-            $shiftNum = $this->normalizeShiftNumber($shiftInput);
-            $query->where(function($q) use ($shiftInput, $shiftNum) {
-                $q->where('shift', $shiftInput);
-                if ($shiftNum !== null) {
-                    $q->orWhere('shift', $shiftNum)
-                      ->orWhere('shift', (string)$shiftNum)
-                      ->orWhere('shift', "Shift $shiftNum")
-                      ->orWhere('shift', "SHIFT $shiftNum");
-                }
+        $machinePeerMap = $orders
+            ->filter(fn (ProductionOrder $order) => (int) ($order->machine_id ?? 0) > 0)
+            ->groupBy(fn (ProductionOrder $order) => (int) $order->machine_id)
+            ->map(function ($machineOrders) {
+                return $machineOrders->map(function (ProductionOrder $peer) {
+                    return [
+                        'id' => (int) $peer->id,
+                        'wo_number' => (string) ($peer->production_order_number ?? $peer->transaction_no ?? '-'),
+                        'part_no' => (string) ($peer->part?->part_no ?? '-'),
+                        'process_name' => (string) ($peer->process_name ?? ''),
+                        'status' => (string) $peer->status,
+                    ];
+                })->values();
             });
-        }
 
-        $query->orderBy('plan_date', 'asc')
-            ->orderBy('production_sequence', 'asc');
-
-        $orders = $query->get()->map(function (ProductionOrder $o) {
+        return $orders->map(function (ProductionOrder $o) use ($machinePeerMap, $hourlyByOrder) {
             $materialStatus = $this->buildMaterialStatus($o);
+            $steps = $this->buildRoutingStepsForOrder($o);
+            $currentStep = collect($steps)->first(fn ($step) => (bool) ($step['is_current'] ?? false)) ?? ($steps[0] ?? null);
+            $nextStep = null;
+
+            if ($currentStep) {
+                $currentIndex = collect($steps)->search(function ($step) use ($currentStep) {
+                    return (int) ($step['step_no'] ?? 0) === (int) ($currentStep['step_no'] ?? 0);
+                });
+                if ($currentIndex !== false) {
+                    $nextStep = $steps[$currentIndex + 1] ?? null;
+                }
+            }
+
+            $machinePeers = collect($machinePeerMap[(int) ($o->machine_id ?? 0)] ?? []);
+            $otherActiveWos = $machinePeers
+                ->reject(fn (array $peer) => (int) ($peer['id'] ?? 0) === (int) $o->id)
+                ->values();
+
+            $latestHourly = collect($hourlyByOrder[(int) $o->id] ?? [])->first();
 
             return [
                 'id' => (int) $o->id,
@@ -900,15 +974,155 @@ class ProductionGciApiController extends Controller
                 'production_sequence' => $o->production_sequence !== null ? (int) $o->production_sequence : null,
                 'start_time' => $o->start_time ? (string) $o->start_time : null,
                 'end_time' => $o->end_time ? (string) $o->end_time : null,
+                'routing_steps_count' => count($steps),
+                'current_step' => $currentStep ? [
+                    'step_no' => (int) ($currentStep['step_no'] ?? 0),
+                    'process_name' => (string) ($currentStep['process_name'] ?? ''),
+                    'output_type' => (string) ($currentStep['output_type'] ?? 'fg'),
+                    'output_part_no' => (string) ($currentStep['output_part_no'] ?? ''),
+                    'output_part_name' => (string) ($currentStep['output_part_name'] ?? ''),
+                    'recommended_machine_name' => (string) ($currentStep['recommended_machine_name'] ?? ($currentStep['machine_name'] ?? '')),
+                ] : null,
+                'next_step' => $nextStep ? [
+                    'step_no' => (int) ($nextStep['step_no'] ?? 0),
+                    'process_name' => (string) ($nextStep['process_name'] ?? ''),
+                    'output_type' => (string) ($nextStep['output_type'] ?? 'fg'),
+                    'output_part_no' => (string) ($nextStep['output_part_no'] ?? ''),
+                    'output_part_name' => (string) ($nextStep['output_part_name'] ?? ''),
+                    'recommended_machine_name' => (string) ($nextStep['recommended_machine_name'] ?? ($nextStep['machine_name'] ?? '')),
+                ] : null,
+                'latest_hourly' => $latestHourly ? [
+                    'time_range' => (string) $latestHourly->time_range,
+                    'actual' => (int) ($latestHourly->actual ?? 0),
+                    'ng' => (int) ($latestHourly->ng ?? 0),
+                    'output_type' => (string) ($latestHourly->output_type ?: 'fg'),
+                    'process_name' => (string) ($latestHourly->process_name ?? ''),
+                    'machine_name' => (string) ($latestHourly->machine_name ?? ''),
+                    'operator_name' => (string) ($latestHourly->operator_name ?? ''),
+                ] : null,
+                'machine_active_wo_count' => $machinePeers->count(),
+                'other_active_wos_on_machine' => $otherActiveWos->all(),
                 'material_status' => $materialStatus,
                 'can_start' => $this->bypassMaterialGateForWoStart()
                     ? in_array((string) $o->status, ['released', 'kanban_released', 'material_hold', 'resource_hold'], true)
                     : ($materialStatus['material_ready']
                         && in_array((string) $o->status, ['released', 'kanban_released'], true)),
             ];
-        });
+        })->values();
+    }
+
+    public function workOrders(Request $request)
+    {
+        $date = $request->query('date', now()->toDateString());
+        $machineId = $request->filled('machine_id') ? (int) $request->query('machine_id') : null;
+        $blockedStatuses = $this->bypassMaterialGateForWoStart()
+            ? ['cancelled', 'completed']
+            : ['material_hold', 'resource_hold', 'cancelled', 'completed'];
+
+        $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
+            ->whereDate('plan_date', $date)
+            ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
+            ->whereNotIn('status', $blockedStatuses);
+
+        if ($request->has('shift')) {
+            $shiftInput = $request->query('shift');
+            $shiftNum = $this->normalizeShiftNumber($shiftInput);
+            $query->where(function($q) use ($shiftInput, $shiftNum) {
+                $q->where('shift', $shiftInput);
+                if ($shiftNum !== null) {
+                    $q->orWhere('shift', $shiftNum)
+                      ->orWhere('shift', (string)$shiftNum)
+                      ->orWhere('shift', "Shift $shiftNum")
+                      ->orWhere('shift', "SHIFT $shiftNum");
+                }
+            });
+        }
+
+        $query->orderBy('plan_date', 'asc')
+            ->orderBy('production_sequence', 'asc');
+
+        $orders = $query->get();
+        if ($machineId !== null && $machineId > 0) {
+            $orders = $orders
+                ->filter(fn (ProductionOrder $order) => $this->orderMatchesMachineContext($order, $machineId))
+                ->values();
+        }
+
+        $orders = $this->buildWorkOrderCardData($orders);
 
         return response()->json(['data' => $orders]);
+    }
+
+    public function machineWorkOrders(Request $request, $id)
+    {
+        $request->merge(['machine_id' => (int) $id]);
+
+        return $this->workOrders($request);
+    }
+
+    public function machineOperatorBoard(Request $request, $id)
+    {
+        $date = $request->query('date', now()->toDateString());
+        $machine = Machine::query()->findOrFail((int) $id);
+
+        $ordersQuery = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
+            ->where('machine_id', (int) $id)
+            ->whereDate('plan_date', $date)
+            ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
+            ->whereNotIn('status', ['cancelled', 'completed']);
+
+        if ($request->has('shift')) {
+            $shiftInput = $request->query('shift');
+            $shiftNum = $this->normalizeShiftNumber($shiftInput);
+            $ordersQuery->where(function ($q) use ($shiftInput, $shiftNum) {
+                $q->where('shift', $shiftInput);
+                if ($shiftNum !== null) {
+                    $q->orWhere('shift', $shiftNum)
+                        ->orWhere('shift', (string) $shiftNum)
+                        ->orWhere('shift', "Shift $shiftNum")
+                        ->orWhere('shift', "SHIFT $shiftNum");
+                }
+            });
+        }
+
+        $orders = $this->buildWorkOrderCardData(
+            $ordersQuery
+                ->orderBy('production_sequence')
+                ->orderBy('id')
+                ->get()
+        );
+
+        $activeDowntime = ProductionGciDowntime::query()
+            ->where('machine_id', (int) $id)
+            ->whereNull('end_time')
+            ->latest('id')
+            ->first();
+
+        $summary = [
+            'total_wo' => $orders->count(),
+            'running_wo' => $orders->where('status', 'in_production')->count(),
+            'queued_wo' => $orders->filter(fn ($order) => in_array((string) ($order['status'] ?? ''), ['released', 'kanban_released', 'material_hold', 'resource_hold'], true))->count(),
+            'total_good' => (int) round($orders->sum('qty_actual')),
+            'total_ng' => (int) round($orders->sum('qty_ng')),
+        ];
+
+        return response()->json([
+            'data' => [
+                'machine' => [
+                    'id' => (int) $machine->id,
+                    'code' => (string) $machine->code,
+                    'name' => (string) $machine->name,
+                    'group_name' => (string) ($machine->group_name ?? ''),
+                    'cycle_time' => $machine->cycle_time !== null ? (float) $machine->cycle_time : null,
+                    'cycle_time_unit' => (string) ($machine->cycle_time_unit ?? ''),
+                ],
+                'date' => $date,
+                'shift' => $request->query('shift'),
+                'summary' => $summary,
+                'active_downtime' => $activeDowntime ? $this->formatDowntime($activeDowntime) : null,
+                'orders' => $orders->values()->all(),
+            ],
+        ]);
     }
 
     public function materialStatus($id)
@@ -1059,6 +1273,115 @@ class ProductionGciApiController extends Controller
         return $steps;
     }
 
+    private function currentRoutingStepFromSteps(ProductionOrder $order, array $steps): ?array
+    {
+        if (empty($steps)) {
+            return null;
+        }
+
+        $currentProcess = trim((string) ($order->process_name ?? ''));
+        if ($currentProcess !== '') {
+            foreach ($steps as $step) {
+                if (strcasecmp((string) ($step['process_name'] ?? ''), $currentProcess) === 0) {
+                    return $step;
+                }
+            }
+        }
+
+        foreach ($steps as $step) {
+            if ((bool) ($step['is_current'] ?? false)) {
+                return $step;
+            }
+        }
+
+        return $steps[0] ?? null;
+    }
+
+    private function machineMatchesRoutingStep(int $machineId, array $step): bool
+    {
+        $stepMachineId = (int) ($step['recommended_machine_id'] ?? $step['machine_id'] ?? 0);
+        if ($stepMachineId > 0) {
+            return $stepMachineId === $machineId;
+        }
+
+        $machine = Machine::query()->find($machineId);
+        if (!$machine) {
+            return false;
+        }
+
+        $stepNames = collect([
+            $step['recommended_machine_name'] ?? null,
+            $step['machine_name'] ?? null,
+        ])->filter()->map(fn ($value) => Str::lower(trim((string) $value)))->unique();
+
+        if ($stepNames->isEmpty()) {
+            return false;
+        }
+
+        return $stepNames->contains(Str::lower(trim((string) $machine->name)))
+            || ($machine->code && $stepNames->contains(Str::lower(trim((string) $machine->code))));
+    }
+
+    private function orderMatchesMachineContext(ProductionOrder $order, int $machineId): bool
+    {
+        if (in_array((string) $order->status, ['in_production', 'paused'], true) && (int) ($order->machine_id ?? 0) > 0) {
+            return (int) $order->machine_id === $machineId;
+        }
+
+        $steps = $this->buildRoutingStepsForOrder($order);
+        if (empty($steps)) {
+            return (int) ($order->machine_id ?? 0) === $machineId;
+        }
+
+        $currentStep = $this->currentRoutingStepFromSteps($order, $steps);
+        if ($currentStep === null) {
+            return false;
+        }
+
+        return $this->machineMatchesRoutingStep($machineId, $currentStep);
+    }
+
+    private function resolveRoutingStepForProcess(ProductionOrder $order, ?string $processName): ?array
+    {
+        $steps = $this->buildRoutingStepsForOrder($order);
+        if (empty($steps)) {
+            return null;
+        }
+
+        $normalized = trim((string) $processName);
+        if ($normalized === '') {
+            return $this->currentRoutingStepFromSteps($order, $steps);
+        }
+
+        foreach ($steps as $step) {
+            if (strcasecmp((string) ($step['process_name'] ?? ''), $normalized) === 0) {
+                return $step;
+            }
+        }
+
+        return null;
+    }
+
+    private function assertMachineAllowedForProcess(ProductionOrder $order, int $machineId, ?string $processName): void
+    {
+        $step = $this->resolveRoutingStepForProcess($order, $processName);
+        if (!$step) {
+            return;
+        }
+
+        if ($this->machineMatchesRoutingStep($machineId, $step)) {
+            return;
+        }
+
+        $recommended = trim((string) ($step['recommended_machine_name'] ?? $step['machine_name'] ?? '-'));
+        $processLabel = trim((string) ($step['process_name'] ?? $processName ?? 'proses ini'));
+
+        abort(response()->json([
+            'message' => "Mesin yang dipilih tidak valid untuk proses {$processLabel}. Gunakan mesin yang sesuai routing BOM" . ($recommended !== '' && $recommended !== '-' ? ": {$recommended}." : '.'),
+            'routing_step' => $step,
+        ], 422));
+    }
+
     private function availableQtyForPartNo(?string $partNo): float
     {
         $normalized = strtoupper(trim((string) $partNo));
@@ -1179,6 +1502,8 @@ class ProductionGciApiController extends Controller
             $firstStep = $this->buildRoutingStepsForOrder($order)[0] ?? null;
             $processName = (string) ($firstStep['process_name'] ?? '');
         }
+
+        $this->assertMachineAllowedForProcess($order, $actualMachineId, $processName);
 
         $startSource = strtolower(trim((string) ($validated['start_source'] ?? 'rm')));
         if (!in_array($startSource, ['rm', 'wip'], true)) {
@@ -1814,6 +2139,7 @@ class ProductionGciApiController extends Controller
         $actualMachine = Machine::find($actualMachineId);
         $actualMachineName = $actualMachine?->name ?? ($validated['machine_name'] ?? null);
         $processContext = $this->resolveHourlyProcessContext($order, $validated);
+        $this->assertMachineAllowedForProcess($order, $actualMachineId, $processContext['process_name'] ?? null);
         try {
             $ngBreakdown = $this->normalizeNgBreakdown($request->all());
         } catch (\InvalidArgumentException $e) {

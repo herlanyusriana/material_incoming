@@ -11,6 +11,8 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'sync']);
 Route::get('/production-gci/machines', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machines']);
 Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrders']);
+Route::get('/production-gci/machines/{id}/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineWorkOrders']);
+Route::get('/production-gci/machines/{id}/operator-board', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineOperatorBoard']);
 Route::get('/production-gci/parts', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'parts']);
 Route::get('/production-gci/wo/{id}/material-status', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialStatus']);
 Route::get('/production-gci/wo/{id}/material-issue-history', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialIssueHistory']);
