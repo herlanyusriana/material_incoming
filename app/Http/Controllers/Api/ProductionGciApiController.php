@@ -1754,6 +1754,183 @@ class ProductionGciApiController extends Controller
         return response()->json(['status' => 'success', 'data' => $order->fresh()]);
     }
 
+    public function handoverProcess(Request $request, $id)
+    {
+        $order = ProductionOrder::with('part', 'machine')->findOrFail($id);
+
+        $validated = $request->validate([
+            'handover_mode' => 'required|string|in:next,carry',
+            'output_type' => 'nullable|string|in:WIP,FG,wip,fg',
+            'from_process_name' => 'nullable|string|max:255',
+            'from_machine_id' => 'nullable|integer',
+            'from_machine_name' => 'nullable|string|max:255',
+            'to_process_name' => 'nullable|string|max:255',
+            'to_machine_id' => 'nullable|integer',
+            'to_machine_name' => 'nullable|string|max:255',
+            'output_part_no' => 'nullable|string|max:255',
+            'output_part_name' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $mode = strtolower((string) $validated['handover_mode']);
+        $outputType = strtolower((string) ($validated['output_type'] ?? 'wip'));
+
+        $steps = $this->buildRoutingStepsForOrder($order);
+        $currentStep = $this->resolveRoutingStepForProcess(
+            $order,
+            $validated['from_process_name'] ?? $order->process_name
+        ) ?? $this->currentRoutingStepFromSteps($order, $steps);
+
+        $nextStep = $this->findNextRoutingStep(
+            $order,
+            $validated['from_process_name'] ?? $order->process_name
+        );
+
+        $fromMachineId = (int) ($validated['from_machine_id'] ?? $order->machine_id ?? $currentStep['machine_id'] ?? 0);
+        $fromMachine = $fromMachineId > 0 ? Machine::find($fromMachineId) : null;
+        $fromMachineName = $fromMachine?->name
+            ?? ($validated['from_machine_name'] ?? null)
+            ?? ($currentStep['recommended_machine_name'] ?? $currentStep['machine_name'] ?? null);
+
+        $resolvedOutputPartNo = trim((string) (
+            $validated['output_part_no']
+            ?? $currentStep['output_part_no']
+            ?? ($outputType === 'fg' ? ($order->part?->part_no ?? 'FG') : 'WIP')
+        ));
+        $resolvedOutputPartName = trim((string) (
+            $validated['output_part_name']
+            ?? $currentStep['output_part_name']
+            ?? ($outputType === 'fg' ? ($order->part?->part_name ?? 'Finished Good') : 'WIP')
+        ));
+
+        $updatePayload = [
+            'last_handover_from_process' => $validated['from_process_name']
+                ?? $currentStep['process_name']
+                ?? $order->process_name,
+            'last_handover_from_machine_id' => $fromMachineId > 0 ? $fromMachineId : null,
+            'last_handover_from_machine_name' => $fromMachineName,
+            'last_handover_at' => now(),
+            'workflow_stage' => 'mass_production',
+        ];
+
+        if ($mode === 'next') {
+            if ($outputType !== 'fg' && !$nextStep) {
+                return response()->json([
+                    'message' => 'Belum ada proses berikutnya yang bisa dituju untuk handover.',
+                ], 422);
+            }
+
+            $toProcessName = $validated['to_process_name']
+                ?? ($outputType === 'fg' ? null : ($nextStep['process_name'] ?? null));
+            $toMachineId = (int) ($validated['to_machine_id']
+                ?? ($outputType === 'fg' ? 0 : ($nextStep['recommended_machine_id'] ?? $nextStep['machine_id'] ?? 0)));
+            $toMachine = $toMachineId > 0 ? Machine::find($toMachineId) : null;
+            $toMachineName = $toMachine?->name
+                ?? ($validated['to_machine_name'] ?? null)
+                ?? ($outputType === 'fg' ? null : ($nextStep['recommended_machine_name'] ?? $nextStep['machine_name'] ?? null));
+
+            $updatePayload['status'] = $outputType === 'fg' ? 'paused' : 'released';
+            $updatePayload['process_name'] = $toProcessName;
+            $updatePayload['machine_id'] = $toMachineId > 0 ? $toMachineId : null;
+
+            if (Schema::hasColumn('production_orders', 'machine_name')) {
+                $updatePayload['machine_name'] = $toMachineName;
+            }
+
+            $order->update($updatePayload);
+
+            $this->recordProductionActivity($order->fresh(), 'process_handover_next', [
+                'process_name' => $updatePayload['last_handover_from_process'],
+                'machine_id' => $fromMachineId > 0 ? $fromMachineId : null,
+                'machine_name' => $fromMachineName,
+                'output_type' => $outputType,
+                'output_part_no' => $resolvedOutputPartNo,
+                'output_part_name' => $resolvedOutputPartName,
+                'notes' => $validated['notes'] ?? null,
+                'meta' => [
+                    'handover_mode' => 'next',
+                    'to_process_name' => $toProcessName,
+                    'to_machine_id' => $toMachineId > 0 ? $toMachineId : null,
+                    'to_machine_name' => $toMachineName,
+                ],
+            ]);
+
+            $this->broadcastMonitoringUpdate('wo_handover_next', $order, meta: [
+                'from_process_name' => $updatePayload['last_handover_from_process'],
+                'from_machine_name' => $fromMachineName,
+                'to_process_name' => $toProcessName,
+                'to_machine_name' => $toMachineName,
+                'output_type' => $outputType,
+                'output_part_no' => $resolvedOutputPartNo,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $outputType === 'fg'
+                    ? 'Hasil proses diserahkan sebagai FG dan WO menunggu penyelesaian akhir.'
+                    : 'WO berhasil diserahkan ke proses berikutnya.',
+                'data' => [
+                    'mode' => 'next',
+                    'output_type' => $outputType,
+                    'output_part_no' => $resolvedOutputPartNo,
+                    'output_part_name' => $resolvedOutputPartName,
+                    'from_process_name' => $updatePayload['last_handover_from_process'],
+                    'from_machine_name' => $fromMachineName,
+                    'to_process_name' => $toProcessName,
+                    'to_machine_id' => $toMachineId > 0 ? $toMachineId : null,
+                    'to_machine_name' => $toMachineName,
+                    'status' => $order->fresh()->status,
+                ],
+            ]);
+        }
+
+        $updatePayload['status'] = 'paused';
+        $updatePayload['process_name'] = $validated['from_process_name']
+            ?? $currentStep['process_name']
+            ?? $order->process_name;
+        $updatePayload['machine_id'] = $fromMachineId > 0 ? $fromMachineId : $order->machine_id;
+
+        if (Schema::hasColumn('production_orders', 'machine_name')) {
+            $updatePayload['machine_name'] = $fromMachineName;
+        }
+
+        $order->update($updatePayload);
+
+        $this->recordProductionActivity($order->fresh(), 'process_handover_carry', [
+            'process_name' => $updatePayload['process_name'],
+            'machine_id' => $fromMachineId > 0 ? $fromMachineId : null,
+            'machine_name' => $fromMachineName,
+            'output_type' => $outputType,
+            'output_part_no' => $resolvedOutputPartNo,
+            'output_part_name' => $resolvedOutputPartName,
+            'notes' => $validated['notes'] ?? null,
+            'meta' => [
+                'handover_mode' => 'carry',
+            ],
+        ]);
+
+        $this->broadcastMonitoringUpdate('wo_handover_carry', $order, meta: [
+            'from_process_name' => $updatePayload['process_name'],
+            'from_machine_name' => $fromMachineName,
+            'output_type' => $outputType,
+            'output_part_no' => $resolvedOutputPartNo,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'WO disimpan sebagai carry over untuk shift berikutnya.',
+            'data' => [
+                'mode' => 'carry',
+                'output_type' => $outputType,
+                'output_part_no' => $resolvedOutputPartNo,
+                'output_part_name' => $resolvedOutputPartName,
+                'from_process_name' => $updatePayload['process_name'],
+                'from_machine_name' => $fromMachineName,
+                'status' => $order->fresh()->status,
+            ],
+        ]);
+    }
+
     /**
      * Finish a WO from Android app
      */

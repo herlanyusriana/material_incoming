@@ -20,6 +20,7 @@ Route::get('/production-gci/wo/{id}/routing', [\App\Http\Controllers\Api\Product
 Route::post('/production-gci/wo/{id}/start', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startWo']);
 Route::post('/production-gci/wo/{id}/pause', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'pauseWo']);
 Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'resumeWo']);
+Route::post('/production-gci/wo/{id}/handover-process', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'handoverProcess']);
 Route::post('/production-gci/wo/{id}/finish', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'finishWo']);
 Route::get('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'getHourlyReports']);
 Route::post('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'saveHourlyReport']);
