@@ -885,6 +885,9 @@ class ProductionGciApiController extends Controller
                 'qty_planned' => (float) $o->qty_planned,
                 'qty_actual' => (float) ($o->qty_actual ?? 0),
                 'qty_ng' => (float) ($o->qty_ng ?? 0),
+                'efficiency' => $o->qty_planned > 0 ? min(100, round(((float)($o->qty_actual ?? 0) / (float)$o->qty_planned) * 100, 1)) : 0,
+                'assignee' => (string) ($o->operator_name ?? 'Unassigned'),
+                'due_time' => $o->qty_planned > 0 && ($o->qty_planned - ($o->qty_actual ?? 0)) > 0 ? 'Due ' . max(1, round(($o->qty_planned - ($o->qty_actual ?? 0)) / 100)) . 'h' : 'Completed',
                 'status' => (string) $o->status,
                 'workflow_stage' => (string) $o->workflow_stage,
                 'process_name' => (string) ($o->process_name ?? ''),
@@ -2091,6 +2094,36 @@ class ProductionGciApiController extends Controller
                 'handover' => $handoverMeta,
             ],
         ]);
+    }
+
+    public function incrementProduction(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'good_qty' => 'required|integer|min:0',
+            'ng_qty' => 'required|integer|min:0',
+            'operator_name' => 'nullable|string|max:255',
+            'machine_id' => 'nullable|integer',
+        ]);
+
+        $goodQty = (int) $validated['good_qty'];
+        $ngQty = (int) $validated['ng_qty'];
+
+        if ($goodQty === 0 && $ngQty === 0) {
+            return response()->json(['message' => 'No increment provided'], 422);
+        }
+
+        $now = now();
+        $timeRange = $now->format('H:00') . ' - ' . $now->copy()->addHour()->format('H:00');
+
+        $request->merge([
+            'time_range' => $timeRange,
+            'actual' => $goodQty,
+            'ng' => $ngQty,
+            'ng_scrap' => $ngQty, // Default all NG to scrap for simple +1
+            'output_type' => 'fg',
+        ]);
+
+        return $this->saveHourlyReport($request, $id);
     }
 
     public function machineDowntimes(Request $request, $id)

@@ -21,6 +21,7 @@ Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\Product
 Route::post('/production-gci/wo/{id}/finish', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'finishWo']);
 Route::get('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'getHourlyReports']);
 Route::post('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'saveHourlyReport']);
+Route::post('/production-gci/wo/{id}/increment-production', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'incrementProduction']);
 Route::get('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineDowntimes']);
 Route::post('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startMachineDowntime']);
 Route::post('/production-gci/downtimes/{id}/stop', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'stopMachineDowntime']);
