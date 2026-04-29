@@ -33,10 +33,18 @@
                     'backflush_return' => ['label' => 'Balik Sisa', 'class' => 'bg-orange-100 text-orange-800 border-orange-200'],
                     'backflush_line_stock' => ['label' => 'Simpan di Line', 'class' => 'bg-emerald-100 text-emerald-800 border-emerald-200'],
                 ];
+                $tabQuery = array_filter([
+                    'status' => $status ?? '',
+                    'q' => $search ?? '',
+                    'vendor_id' => $vendorId ?? null,
+                    'vendor_part_name' => $vendorPartName ?? '',
+                    'consumption_policy' => $consumptionPolicy ?? '',
+                    'policy_confirmation' => $policyConfirmation ?? '',
+                ], fn($value) => $value !== null && $value !== '');
             @endphp
             <div class="flex items-center gap-2 border-b border-slate-200 pb-0">
                 @foreach($tabs as $key => $tab)
-                    <a href="{{ route('parts.index', ['classification' => $key, 'status' => $status ?? '']) }}"
+                    <a href="{{ route('parts.index', array_merge(['classification' => $key], $tabQuery)) }}"
                        class="px-5 py-2.5 text-sm font-semibold rounded-t-xl border border-b-0 transition-all
                               {{ $activeTab === $key
                                   ? 'bg-white text-slate-900 border-slate-200 -mb-px z-10 shadow-sm'
@@ -59,6 +67,28 @@
                                 <option value="inactive" @selected(($status ?? '') === 'inactive')>Inactive</option>
                             </select>
                         </div>
+                        @if($activeTab === 'RM')
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">Vendor</label>
+                                <select name="vendor_id" class="mt-1 rounded-xl border-slate-200 text-sm min-w-[220px]">
+                                    <option value="">All Vendor</option>
+                                    @foreach($vendors as $vendor)
+                                        <option value="{{ $vendor->id }}" @selected((int) ($vendorId ?? 0) === (int) $vendor->id)>
+                                            {{ $vendor->vendor_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600">Part Vendor Name</label>
+                                <input
+                                    type="text"
+                                    name="vendor_part_name"
+                                    value="{{ $vendorPartName ?? '' }}"
+                                    class="mt-1 rounded-xl border-slate-200 text-sm min-w-[240px]"
+                                    placeholder="Filter nama part vendor">
+                            </div>
+                        @endif
                         @if($activeTab !== 'SUB')
                             <div>
                                 <label class="text-xs font-semibold text-slate-600">Policy</label>
@@ -106,6 +136,8 @@
                         <input type="hidden" name="classification" value="{{ $activeTab }}">
                         <input type="hidden" name="status" value="{{ $status ?? '' }}">
                         <input type="hidden" name="q" value="{{ $search ?? '' }}">
+                        <input type="hidden" name="vendor_id" value="{{ $vendorId ?? '' }}">
+                        <input type="hidden" name="vendor_part_name" value="{{ $vendorPartName ?? '' }}">
                         <input type="hidden" name="consumption_policy_filter" value="{{ $consumptionPolicy ?? '' }}">
                         <input type="hidden" name="policy_confirmation" value="{{ $policyConfirmation ?? '' }}">
                         <template x-for="id in selectedPartIds" :key="'bulk-' + id">
@@ -162,6 +194,7 @@
                                     <th class="px-4 py-3 text-left font-semibold w-8"></th>
                                     <th class="px-4 py-3 text-left font-semibold">Part No</th>
                                     <th class="px-4 py-3 text-left font-semibold">Part Name</th>
+                                    <th class="px-4 py-3 text-left font-semibold">Part Vendor Name</th>
                                     <th class="px-4 py-3 text-left font-semibold">Size</th>
                                     <th class="px-4 py-3 text-left font-semibold">Policy</th>
                                     <th class="px-4 py-3 text-center font-semibold">Vendors</th>
@@ -182,6 +215,23 @@
                                         </td>
                                         <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-slate-700">
+                                            @php
+                                                $vendorNames = $p->vendorLinks
+                                                    ->pluck('vendor_part_name')
+                                                    ->filter()
+                                                    ->unique()
+                                                    ->values();
+                                            @endphp
+                                            @if($vendorNames->isNotEmpty())
+                                                <div class="font-medium text-slate-800">{{ $vendorNames->first() }}</div>
+                                                @if($vendorNames->count() > 1)
+                                                    <div class="text-[10px] text-slate-500">+{{ $vendorNames->count() - 1 }} vendor part name lain</div>
+                                                @endif
+                                            @else
+                                                <span class="text-slate-400">-</span>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->size ?? '-' }}</td>
                                         <td class="px-4 py-3">
                                             @php
@@ -226,7 +276,7 @@
                                     @if($p->vendorLinks->count() > 0)
                                         <template x-if="expanded[{{ $p->id }}]">
                                             <tr>
-                                                <td colspan="9" class="px-0 py-0">
+                                                <td colspan="10" class="px-0 py-0">
                                                     <div class="bg-gradient-to-r from-emerald-50/50 to-slate-50 border-l-4 border-emerald-300 mx-4 my-2 rounded-lg overflow-hidden">
                                                         <table class="min-w-full text-xs divide-y divide-emerald-100">
                                                             <thead class="bg-emerald-50/80">
@@ -280,7 +330,7 @@
                                         </template>
                                     @endif
                                 @empty
-                                    <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No RM parts found</td></tr>
+                                    <tr><td colspan="10" class="px-4 py-8 text-center text-slate-500">No RM parts found</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

@@ -179,6 +179,8 @@ class PartController extends Controller
         $classification = $request->query('classification', 'RM');
         $status = $request->query('status', 'active');
         $search = $request->query('q');
+        $vendorId = (int) $request->query('vendor_id', 0);
+        $vendorPartName = trim((string) $request->query('vendor_part_name', ''));
         $consumptionPolicy = $this->normalizeConsumptionPolicy($request->query('consumption_policy'));
         $policyConfirmation = trim((string) $request->query('policy_confirmation', ''));
 
@@ -230,6 +232,14 @@ class PartController extends Controller
         $parts = GciPart::with($eagerLoads)
             ->where('classification', strtoupper($classification))
             ->when($status, fn($q) => $q->where('status', $status))
+            ->when($classification === 'RM' && $vendorId > 0, function ($query) use ($vendorId) {
+                $query->whereHas('vendorLinks', fn($vq) => $vq->where('vendor_id', $vendorId));
+            })
+            ->when($classification === 'RM' && $vendorPartName !== '', function ($query) use ($vendorPartName) {
+                $query->whereHas('vendorLinks', function ($vq) use ($vendorPartName) {
+                    $vq->where('vendor_part_name', 'like', "%{$vendorPartName}%");
+                });
+            })
             ->when($consumptionPolicy, fn($q) => $q->where('consumption_policy', $consumptionPolicy))
             ->when($policyConfirmation === 'confirmed', fn($q) => $q->whereNotNull('policy_confirmed_at'))
             ->when($policyConfirmation === 'unconfirmed', fn($q) => $q->whereNull('policy_confirmed_at'))
@@ -338,7 +348,7 @@ class PartController extends Controller
                 ->get(['id', 'part_no', 'part_name']);
         }
 
-        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'consumptionPolicy', 'policyConfirmation', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'rmFgMap', 'fgPartsWithBom'));
+        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'vendorId', 'vendorPartName', 'consumptionPolicy', 'policyConfirmation', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'rmFgMap', 'fgPartsWithBom'));
     }
 
     public function export(Request $request)
