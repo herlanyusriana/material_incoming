@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bom;
 use App\Models\ProductionOrder;
 use App\Models\ProductionInspection;
 use Illuminate\Http\Request;
@@ -21,6 +22,60 @@ class StartProductionController extends Controller
         return self::TEMP_ALLOW_START_WITHOUT_WH_SUPPLY;
     }
 
+    private function buildStartReadiness(ProductionOrder $order): array
+    {
+        $requestLines = collect($order->material_request_lines ?? []);
+        $shortageLines = $requestLines
+            ->filter(fn ($line) => (float) ($line['shortage_qty'] ?? 0) > 0)
+            ->values();
+
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+        $bomLineCount = 0;
+        $processMatched = false;
+        $machineMatched = false;
+        $recommendedMachines = collect();
+
+        if ($bom) {
+            $bom->loadMissing('items.machine');
+            $items = collect($bom->items ?? []);
+            $bomLineCount = $items->count();
+
+            $normalizedOrderProcess = strtoupper(trim((string) $order->process_name));
+            $processItems = $items->filter(function ($item) use ($normalizedOrderProcess) {
+                return strtoupper(trim((string) ($item->process_name ?? ''))) === $normalizedOrderProcess;
+            })->values();
+
+            $processMatched = $normalizedOrderProcess === '' ? $items->isNotEmpty() : $processItems->isNotEmpty();
+
+            $recommendedMachines = ($processItems->isNotEmpty() ? $processItems : $items)
+                ->map(fn ($item) => trim((string) ($item->machine?->name ?? '')))
+                ->filter()
+                ->unique()
+                ->values();
+
+            $machineMatched = $order->machine_id
+                ? ($processItems->isNotEmpty()
+                    ? $processItems->contains(fn ($item) => (int) ($item->machine_id ?? 0) === (int) $order->machine_id)
+                    : $items->contains(fn ($item) => (int) ($item->machine_id ?? 0) === (int) $order->machine_id))
+                : false;
+        }
+
+        return [
+            'has_bom' => (bool) $bom,
+            'bom_line_count' => $bomLineCount,
+            'process_matched' => $processMatched,
+            'machine_matched' => $machineMatched,
+            'recommended_machines' => $recommendedMachines->all(),
+            'material_line_count' => $requestLines->count(),
+            'shortage_count' => $shortageLines->count(),
+            'first_shortage_part_no' => (string) ($shortageLines->first()['component_part_no'] ?? ''),
+            'has_material_request' => $requestLines->isNotEmpty(),
+            'material_issued' => !is_null($order->material_issued_at),
+            'material_handed_over' => !is_null($order->material_handed_over_at),
+            'bypass_active' => $this->bypassMaterialGateForWoStart(),
+        ];
+    }
+
     public function index(Request $request)
     {
         $search = $request->query('search', '');
@@ -29,7 +84,7 @@ class StartProductionController extends Controller
             : ['released'];
         
         $query = ProductionOrder::query()
-            ->with(['part'])
+            ->with(['part', 'machine'])
             ->whereIn('status', $allowedStatuses)
             ->when($search !== '', function($q) use ($search) {
                 $q->where('production_order_number', 'like', "%{$search}%")
@@ -41,14 +96,29 @@ class StartProductionController extends Controller
             ->latest();
         
         $orders = $query->paginate(20)->withQueryString();
+        $orders->getCollection()->transform(function (ProductionOrder $order) {
+            $order->start_readiness = $this->buildStartReadiness($order);
+            return $order;
+        });
         
-        return view('production.start-production.index', compact('orders', 'search'));
+        $pageOrders = collect($orders->items());
+        $summary = [
+            'total' => $pageOrders->count(),
+            'shortage' => $pageOrders->filter(fn ($order) => (int) data_get($order, 'start_readiness.shortage_count', 0) > 0)->count(),
+            'missing_bom' => $pageOrders->filter(fn ($order) => !data_get($order, 'start_readiness.has_bom', false))->count(),
+            'machine_mismatch' => $pageOrders->filter(function ($order) {
+                $hasBom = (bool) data_get($order, 'start_readiness.has_bom', false);
+                $machineMatched = (bool) data_get($order, 'start_readiness.machine_matched', false);
+                return $hasBom && !$machineMatched;
+            })->count(),
+        ];
+        
+        return view('production.start-production.index', compact('orders', 'search', 'summary'));
     }
     
     public function show(ProductionOrder $order)
     {
-        $order->load(['part', 'creator']);
-        return view('production.start-production.show', compact('order'));
+        return redirect()->route('production.orders.show', $order);
     }
     
     public function start(ProductionOrder $order)
