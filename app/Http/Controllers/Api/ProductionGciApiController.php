@@ -940,6 +940,22 @@ class ProductionGciApiController extends Controller
                     $nextStep = $steps[$currentIndex + 1] ?? null;
                 }
             }
+            $currentIndexInt = $currentIndex !== false ? (int) $currentIndex : 0;
+            $completedSteps = collect($steps)
+                ->slice(0, max(0, $currentIndexInt))
+                ->map(fn (array $step) => [
+                    'step_no' => (int) ($step['step_no'] ?? 0),
+                    'process_name' => (string) ($step['process_name'] ?? ''),
+                    'machine_name' => (string) ($step['recommended_machine_name'] ?? ($step['machine_name'] ?? '')),
+                    'output_type' => (string) ($step['output_type'] ?? 'wip'),
+                    'output_part_no' => (string) ($step['output_part_no'] ?? ''),
+                ])
+                ->values();
+            $completedProcessLabels = $completedSteps
+                ->pluck('process_name')
+                ->filter()
+                ->values()
+                ->all();
 
             $machinePeers = collect($machinePeerMap[(int) ($o->machine_id ?? 0)] ?? []);
             $otherActiveWos = $machinePeers
@@ -976,6 +992,12 @@ class ProductionGciApiController extends Controller
                 'start_time' => $o->start_time ? (string) $o->start_time : null,
                 'end_time' => $o->end_time ? (string) $o->end_time : null,
                 'routing_steps_count' => count($steps),
+                'current_step_index' => $currentIndex !== false ? $currentIndexInt + 1 : null,
+                'completed_processes' => $completedSteps->all(),
+                'completed_process_labels' => $completedProcessLabels,
+                'completed_process_summary' => !empty($completedProcessLabels)
+                    ? implode(' -> ', $completedProcessLabels)
+                    : '',
                 'current_step' => $currentStep ? [
                     'step_no' => (int) ($currentStep['step_no'] ?? 0),
                     'process_name' => (string) ($currentStep['process_name'] ?? ''),
