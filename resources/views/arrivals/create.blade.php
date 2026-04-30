@@ -1265,6 +1265,44 @@
             });
         }
 
+        function clearLineRow(row) {
+            const groupEl = row.closest('.material-group');
+            const vendorId = vendorIdInput.value;
+            const groupTitle = groupEl ? getGroupTitle(groupEl) : '';
+            const partSelect = row.querySelector('.part-select');
+            const sizeWrap = row.querySelector('.size-dropdown-wrap');
+
+            if (partSelect) {
+                partSelect.innerHTML = buildPartOptions(vendorId, groupTitle, '');
+                partSelect.value = '';
+            }
+
+            if (sizeWrap?._sizeDropdown) {
+                sizeWrap._sizeDropdown.refresh(vendorId, groupTitle);
+            }
+
+            row.querySelectorAll('input').forEach((input) => {
+                if (input.type === 'hidden') {
+                    if (input.classList.contains('price')) input.value = '';
+                    if (input.classList.contains('material-group-field')) input.value = groupTitle;
+                    if (input.name?.includes('[notes]')) input.value = '';
+                    return;
+                }
+
+                input.value = input.readOnly ? '' : '';
+            });
+
+            const unitGoodsSelect = row.querySelector('.input-unit-goods');
+            if (unitGoodsSelect) unitGoodsSelect.value = '';
+
+            const unitBundleSelect = row.querySelector('.input-unit-bundle');
+            if (unitBundleSelect) unitBundleSelect.value = 'PALLET';
+
+            applyPartDefaults(row, vendorId, '');
+            updateTotal(row);
+            validateWeights(row);
+        }
+
         function addRowToGroup(groupEl, existing = null) {
             const vendorId = vendorIdInput.value;
             const rowsContainer = groupEl.querySelector('.group-rows');
@@ -1492,8 +1530,17 @@
             }
 
             row.querySelector('.remove-line').addEventListener('click', () => {
-                row.remove();
-                ensureAtLeastOneRow(groupEl);
+                const remainingRows = Array.from(groupEl.querySelectorAll('.line-row'));
+
+                if (remainingRows.length > 1) {
+                    row.remove();
+                } else if (groupsContainer.children.length > 1) {
+                    groupEl.remove();
+                } else {
+                    clearLineRow(row);
+                    row.querySelector('.size-autocomplete')?.focus();
+                }
+
                 requestSaveDraft();
             });
 

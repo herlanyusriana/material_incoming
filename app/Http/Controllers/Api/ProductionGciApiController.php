@@ -968,6 +968,7 @@ class ProductionGciApiController extends Controller
                 'machine_id' => $o->machine_id ? (int) $o->machine_id : null,
                 'machine_name' => (string) ($o->machine?->name ?? ($o->machine_name ?? '')),
                 'last_handover_from_process' => (string) ($o->last_handover_from_process ?? ''),
+                'last_handover_from_machine_id' => $o->last_handover_from_machine_id ? (int) $o->last_handover_from_machine_id : null,
                 'last_handover_from_machine_name' => (string) ($o->last_handover_from_machine_name ?? ''),
                 'last_handover_at' => $o->last_handover_at ? (string) $o->last_handover_at : null,
                 'shift' => (string) $o->shift,
@@ -1044,7 +1045,10 @@ class ProductionGciApiController extends Controller
         $orders = $query->get();
         if ($machineId !== null && $machineId > 0) {
             $orders = $orders
-                ->filter(fn (ProductionOrder $order) => $this->orderMatchesMachineContext($order, $machineId))
+                ->filter(fn (ProductionOrder $order) =>
+                    $this->orderMatchesMachineContext($order, $machineId)
+                    || $this->orderRecentlyHandedOverFromMachine($order, $machineId)
+                )
                 ->values();
         }
 
@@ -1351,6 +1355,24 @@ class ProductionGciApiController extends Controller
         }
 
         return $this->machineMatchesRoutingStep($machineId, $currentStep);
+    }
+
+    private function orderRecentlyHandedOverFromMachine(ProductionOrder $order, int $machineId): bool
+    {
+        $fromMachineId = (int) ($order->last_handover_from_machine_id ?? 0);
+        if ($fromMachineId !== $machineId || $fromMachineId <= 0) {
+            return false;
+        }
+
+        if (!$order->last_handover_at) {
+            return false;
+        }
+
+        if (!in_array((string) $order->status, ['released', 'kanban_released', 'paused'], true)) {
+            return false;
+        }
+
+        return Carbon::parse($order->last_handover_at)->greaterThanOrEqualTo(now()->subHours(12));
     }
 
     private function resolveRoutingStepForProcess(ProductionOrder $order, ?string $processName): ?array
