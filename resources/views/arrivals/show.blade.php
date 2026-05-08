@@ -32,10 +32,10 @@
                         <a href="{{ route('receives.invoice.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
                             Receive Invoice
                         </a>
-                        <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
-                            Edit Departure
-                        </a>
                     @endif
+                    <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
+                        Edit Departure
+                    </a>
                     @php
                         $hasContainerInspection = ($arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
                     @endphp
@@ -440,14 +440,12 @@
                         <h3 class="text-lg font-bold text-slate-900">Departure Items</h3>
                         <p class="text-sm text-slate-600 mt-1">Parts and receiving details</p>
                     </div>
-                    @if (!($isReceiveComplete ?? false))
-                        <a href="{{ route('departure-items.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Item
-                        </a>
-                    @endif
+                    <a href="{{ route('departure-items.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Item
+                    </a>
                 </div>
                 
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
@@ -500,15 +498,9 @@
                                     </td>
 		                                    <td class="px-4 py-4">
 		                                        <div class="flex justify-center">
-		                                            @if (!($isReceiveComplete ?? false) && $item->receives->count() === 0)
-		                                                <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-		                                                    Edit Item
-		                                                </a>
-		                                            @else
-		                                                <span class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-600 text-sm font-semibold rounded-lg">
-		                                                    Locked
-		                                                </span>
-		                                            @endif
+		                                            <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+		                                                Edit Item
+		                                            </a>
 		                                        </div>
 		                                    </td>
 	                                </tr>

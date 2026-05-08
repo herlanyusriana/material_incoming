@@ -597,12 +597,6 @@ class ArrivalController extends Controller
     {
         $customsOnly = request()->boolean('customs_only');
 
-        if (!$customsOnly && !$this->hasPendingReceives($departure)) {
-            return redirect()
-                ->route('departures.show', $departure)
-                ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
-        }
-
         $departure->load('containers');
 
         return view('arrivals.edit', ['arrival' => $departure, 'customsOnly' => $customsOnly]);
@@ -611,12 +605,6 @@ class ArrivalController extends Controller
     public function update(Request $request, Arrival $departure)
     {
         $customsOnly = $request->boolean('customs_only');
-
-        if (!$customsOnly && !$this->hasPendingReceives($departure)) {
-            return redirect()
-                ->route('departures.show', $departure)
-                ->with('error', 'Departure sudah complete receive, tidak bisa di-edit.');
-        }
 
         if ($customsOnly) {
             $data = $request->validate([
@@ -796,18 +784,6 @@ class ArrivalController extends Controller
     {
         $arrivalItem->load(['arrival', 'part', 'gciPart', 'vendorPart', 'receives']);
 
-        if (!$this->hasPendingReceives($arrivalItem->arrival)) {
-            return redirect()
-                ->route('departures.show', $arrivalItem->arrival)
-                ->with('error', 'Departure sudah complete receive, item tidak bisa di-edit.');
-        }
-
-        if ($arrivalItem->receives()->exists()) {
-            return redirect()
-                ->route('departures.show', $arrivalItem->arrival)
-                ->with('error', 'Item sudah punya receive, tidak bisa di-edit.');
-        }
-
         return view('arrival-items.edit', ['item' => $arrivalItem, 'arrival' => $arrivalItem->arrival]);
     }
 
@@ -815,12 +791,6 @@ class ArrivalController extends Controller
     {
         $arrival = $departure;
         $arrival->loadMissing(['vendor', 'items.receives']);
-
-        if (!$this->hasPendingReceives($arrival)) {
-            return redirect()
-                ->route('departures.show', $arrival)
-                ->with('error', 'Departure sudah complete receive, item tidak bisa ditambah.');
-        }
 
         $parts = Part::query()
             ->where('vendor_id', $arrival->vendor_id)
@@ -837,12 +807,6 @@ class ArrivalController extends Controller
     {
         $arrival = $departure;
         $arrival->loadMissing(['vendor', 'items.receives']);
-
-        if (!$this->hasPendingReceives($arrival)) {
-            return redirect()
-                ->route('departures.show', $arrival)
-                ->with('error', 'Departure sudah complete receive, item tidak bisa ditambah.');
-        }
 
         $request->merge([
             'weight_nett' => $this->normalizeDecimalInput($request->input('weight_nett')),
@@ -951,18 +915,6 @@ class ArrivalController extends Controller
             'unit_goods' => ($request->input('unit_goods') === null) ? null : strtoupper(trim((string) $request->input('unit_goods'))),
             'unit_bundle' => ($request->input('unit_bundle') === null) ? null : strtoupper(trim((string) $request->input('unit_bundle'))),
         ]);
-
-        if (!$this->hasPendingReceives($arrivalItem->arrival)) {
-            return redirect()
-                ->route('departures.show', $arrivalItem->arrival)
-                ->with('error', 'Departure sudah complete receive, item tidak bisa di-edit.');
-        }
-
-        if ($arrivalItem->receives()->exists()) {
-            return redirect()
-                ->route('departures.show', $arrivalItem->arrival)
-                ->with('error', 'Item sudah punya receive, tidak bisa di-edit.');
-        }
 
         $data = $request->validate([
             'material_group' => ['nullable', 'string', 'max:255'],
