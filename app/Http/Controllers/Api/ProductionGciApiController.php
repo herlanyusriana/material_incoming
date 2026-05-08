@@ -1857,23 +1857,96 @@ class ProductionGciApiController extends Controller
             'workflow_stage' => 'mass_production',
         ];
 
+        if ($outputType === 'fg') {
+            $finalActual = (float) ($order->qty_actual ?? 0);
+            $finalNg = (float) ($order->qty_ng ?? 0);
+
+            $order->update(array_merge($updatePayload, [
+                'status' => 'finished',
+                'workflow_stage' => 'final_inspection',
+                'process_name' => null,
+                'machine_id' => null,
+                'end_time' => now(),
+                'qty_actual' => $finalActual,
+                'qty_ng' => $finalNg,
+            ]));
+
+            if (Schema::hasColumn('production_orders', 'machine_name')) {
+                $order->update([
+                    'machine_name' => null,
+                ]);
+            }
+
+            $freshOrder = $order->fresh();
+
+            $this->recordProductionActivity($freshOrder, 'finished', [
+                'process_name' => $updatePayload['last_handover_from_process'],
+                'machine_id' => $fromMachineId > 0 ? $fromMachineId : null,
+                'machine_name' => $fromMachineName,
+                'qty_ok' => $finalActual,
+                'qty_ng' => $finalNg,
+                'output_type' => 'fg',
+                'output_part_no' => $resolvedOutputPartNo,
+                'output_part_name' => $resolvedOutputPartName,
+                'notes' => $validated['notes'] ?? null,
+                'meta' => [
+                    'source' => 'apk_handover_fg_finish',
+                    'handover_mode' => $mode,
+                ],
+            ]);
+
+            if (!$freshOrder->inspections()->where('type', 'final')->exists()) {
+                ProductionInspection::create([
+                    'production_order_id' => $freshOrder->id,
+                    'type' => 'final',
+                    'status' => 'pending',
+                ]);
+            }
+
+            $this->broadcastMonitoringUpdate('wo_finished', $freshOrder, meta: [
+                'status' => 'finished',
+                'workflow_stage' => 'final_inspection',
+                'from_process_name' => $updatePayload['last_handover_from_process'],
+                'from_machine_name' => $fromMachineName,
+                'output_type' => 'fg',
+                'output_part_no' => $resolvedOutputPartNo,
+                'qty_actual' => $finalActual,
+                'qty_ng' => $finalNg,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'WO selesai. Hasil proses terakhir sudah ditutup sebagai FG final.',
+                'data' => [
+                    'mode' => 'finish',
+                    'output_type' => 'fg',
+                    'output_part_no' => $resolvedOutputPartNo,
+                    'output_part_name' => $resolvedOutputPartName,
+                    'from_process_name' => $updatePayload['last_handover_from_process'],
+                    'from_machine_name' => $fromMachineName,
+                    'status' => $freshOrder->status,
+                    'workflow_stage' => $freshOrder->workflow_stage,
+                ],
+            ]);
+        }
+
         if ($mode === 'next') {
-            if ($outputType !== 'fg' && !$nextStep) {
+            if (!$nextStep) {
                 return response()->json([
                     'message' => 'Belum ada proses berikutnya yang bisa dituju untuk handover.',
                 ], 422);
             }
 
             $toProcessName = $validated['to_process_name']
-                ?? ($outputType === 'fg' ? null : ($nextStep['process_name'] ?? null));
+                ?? ($nextStep['process_name'] ?? null);
             $toMachineId = (int) ($validated['to_machine_id']
-                ?? ($outputType === 'fg' ? 0 : ($nextStep['recommended_machine_id'] ?? $nextStep['machine_id'] ?? 0)));
+                ?? ($nextStep['recommended_machine_id'] ?? $nextStep['machine_id'] ?? 0));
             $toMachine = $toMachineId > 0 ? Machine::find($toMachineId) : null;
             $toMachineName = $toMachine?->name
                 ?? ($validated['to_machine_name'] ?? null)
-                ?? ($outputType === 'fg' ? null : ($nextStep['recommended_machine_name'] ?? $nextStep['machine_name'] ?? null));
+                ?? ($nextStep['recommended_machine_name'] ?? $nextStep['machine_name'] ?? null);
 
-            $updatePayload['status'] = $outputType === 'fg' ? 'paused' : 'released';
+            $updatePayload['status'] = 'released';
             $updatePayload['process_name'] = $toProcessName;
             $updatePayload['machine_id'] = $toMachineId > 0 ? $toMachineId : null;
 
@@ -1910,9 +1983,7 @@ class ProductionGciApiController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => $outputType === 'fg'
-                    ? 'Hasil proses diserahkan sebagai FG dan WO menunggu penyelesaian akhir.'
-                    : 'WO berhasil diserahkan ke proses berikutnya.',
+                'message' => 'WO berhasil diserahkan ke proses berikutnya.',
                 'data' => [
                     'mode' => 'next',
                     'output_type' => $outputType,
