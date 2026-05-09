@@ -2162,6 +2162,63 @@ class ProductionGciApiController extends Controller
     }
 
     /**
+     * Cancel a WO from Android app
+     */
+    public function cancelWo(Request $request, $id)
+    {
+        $order = ProductionOrder::findOrFail($id);
+
+        if (in_array((string) $order->status, ['completed', 'cancelled'], true)) {
+            return response()->json(['message' => 'WO sudah selesai atau sudah dicancel'], 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+            'notes' => 'nullable|string|max:500',
+            'operator_name' => 'nullable|string|max:255',
+        ]);
+
+        // Close any active pause downtime
+        if ($order->status === 'paused' && $activePause = $this->findActivePauseDowntime($order)) {
+            $cancelledAt = now();
+            $startedAt = strtotime((string) $activePause->start_time);
+            $duration = $startedAt ? max(0, (int) ceil(($cancelledAt->timestamp - $startedAt) / 60)) : 0;
+
+            $activePause->update([
+                'end_time' => $cancelledAt->toDateTimeString(),
+                'duration_minutes' => $duration,
+            ]);
+        }
+
+        $order->update([
+            'status' => 'cancelled',
+            'workflow_stage' => 'finished',
+            'end_time' => $order->end_time ?? now(),
+        ]);
+
+        $this->recordProductionActivity($order->fresh(), 'cancelled', [
+            'operator_name' => $validated['operator_name'] ?? null,
+            'notes' => $validated['reason'] . ($validated['notes'] ? ' — ' . $validated['notes'] : ''),
+            'meta' => [
+                'source' => 'apk_cancel',
+                'reason' => $validated['reason'],
+                'notes' => $validated['notes'] ?? '',
+            ],
+        ]);
+
+        $this->broadcastMonitoringUpdate('wo_cancelled', $order, meta: [
+            'status' => 'cancelled',
+            'reason' => $validated['reason'],
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'WO berhasil dicancel.',
+            'data' => $order->fresh(),
+        ]);
+    }
+
+    /**
      * Get hourly reports for a specific WO
      */
     public function getHourlyReports($id)

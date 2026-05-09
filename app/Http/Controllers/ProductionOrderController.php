@@ -20,6 +20,21 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductionOrderController extends Controller
 {
+    private const OPEN_STATUSES = [
+        'draft',
+        'planned',
+        'kanban_released',
+        'resource_hold',
+        'material_hold',
+        'released',
+        'in_production',
+    ];
+
+    private const HISTORY_STATUSES = [
+        'completed',
+        'cancelled',
+    ];
+
     /**
      * Temporary management decision: production may start WO without waiting
      * for WH RM supply while operators are training / WH discipline is being fixed.
@@ -101,6 +116,13 @@ class ProductionOrderController extends Controller
             'status' => 'released',
             'workflow_stage' => 'material_ready',
         ]);
+    }
+
+    private function getOrderListStatuses(string $scope): array
+    {
+        return $scope === 'history'
+            ? self::HISTORY_STATUSES
+            : self::OPEN_STATUSES;
     }
 
     public function warehouseSupplyIndex(Request $request)
@@ -239,6 +261,16 @@ class ProductionOrderController extends Controller
 
     public function index(Request $request)
     {
+        return $this->renderOrderIndex($request, 'open');
+    }
+
+    public function history(Request $request)
+    {
+        return $this->renderOrderIndex($request, 'history');
+    }
+
+    private function renderOrderIndex(Request $request, string $scope)
+    {
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
         $month = $request->query('month');
@@ -246,6 +278,11 @@ class ProductionOrderController extends Controller
         $inventoryBalance = strtolower(trim((string) $request->query('inventory_balance', '')));
         $q = trim((string) $request->query('q', ''));
         $gciPartId = (int) $request->query('gci_part_id', 0);
+        $allowedStatuses = $this->getOrderListStatuses($scope);
+
+        if ($status !== '' && !in_array($status, $allowedStatuses, true)) {
+            $status = '';
+        }
 
         if ($month && preg_match('/^\\d{4}-\\d{2}$/', (string) $month)) {
             try {
@@ -262,6 +299,7 @@ class ProductionOrderController extends Controller
             ->withSum('inventorySupplies as inventory_supply_total', 'qty_supply')
             ->withSum('inventorySupplies as inventory_consumed_total', 'qty_consumed')
             ->withSum('inventorySupplies as inventory_returned_total', 'qty_returned')
+            ->whereIn('status', $allowedStatuses)
             ->when($gciPartId > 0, fn($qr) => $qr->where('gci_part_id', $gciPartId))
             ->when($status !== '', fn($qr) => $qr->where('status', $status))
             ->when($inventoryBalance === 'remaining', fn($qr) => $qr->whereHas('inventorySupplies', fn($supply) => $supply->whereRemainingPositive()))
@@ -288,7 +326,18 @@ class ProductionOrderController extends Controller
 
         $orders = $query->paginate(20)->withQueryString();
 
-        return view('production.orders.index', compact('orders', 'dateFrom', 'dateTo', 'month', 'status', 'inventoryBalance', 'q', 'gciPartId'));
+        return view('production.orders.index', compact(
+            'orders',
+            'dateFrom',
+            'dateTo',
+            'month',
+            'status',
+            'inventoryBalance',
+            'q',
+            'gciPartId',
+            'scope',
+            'allowedStatuses'
+        ));
     }
 
     public function create()

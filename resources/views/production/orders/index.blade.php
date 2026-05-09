@@ -34,7 +34,26 @@
         <!-- Main Content -->
         <div class="space-y-6">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-slate-800">Order List</h2>
+                <div class="space-y-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-slate-800">
+                            {{ ($scope ?? 'open') === 'history' ? 'Order History' : 'Open Orders' }}
+                        </h2>
+                        <p class="text-sm text-slate-500">
+                            {{ ($scope ?? 'open') === 'history' ? 'WO selesai dan cancel dipisah supaya pencarian histori lebih rapi.' : 'WO aktif, hold, dan yang masih perlu ditindak ditampilkan di sini.' }}
+                        </p>
+                    </div>
+                    <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                        <a href="{{ route('production.orders.index') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ ($scope ?? 'open') === 'history' ? 'text-slate-600 hover:text-slate-900' : 'bg-white text-slate-900 shadow-sm' }}">
+                            Open Orders
+                        </a>
+                        <a href="{{ route('production.orders.history') }}"
+                            class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {{ ($scope ?? 'open') === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                            Order History
+                        </a>
+                    </div>
+                </div>
                 <a href="{{ route('production.orders.create') }}"
                     class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
                     New Production Order
@@ -60,12 +79,9 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600">Status</label>
-                        @php
-                            $statuses = ['draft', 'planned', 'kanban_released', 'resource_hold', 'material_hold', 'released', 'in_production', 'completed', 'cancelled'];
-                        @endphp
                         <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                             <option value="">All</option>
-                            @foreach($statuses as $s)
+                            @foreach(($allowedStatuses ?? []) as $s)
                                 <option value="{{ $s }}" @selected(($status ?? '') === $s)>
                                     {{ strtoupper(str_replace('_', ' ', $s)) }}</option>
                             @endforeach
@@ -89,7 +105,7 @@
                         @endif
                     </div>
                     <div class="md:col-span-6 flex justify-end gap-2">
-                        <a href="{{ route('production.orders.index') }}"
+                        <a href="{{ ($scope ?? 'open') === 'history' ? route('production.orders.history') : route('production.orders.index') }}"
                             class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
                         <button
                             class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800">Apply</button>

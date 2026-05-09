@@ -22,6 +22,7 @@ Route::post('/production-gci/wo/{id}/pause', [\App\Http\Controllers\Api\Producti
 Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'resumeWo']);
 Route::post('/production-gci/wo/{id}/handover-process', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'handoverProcess']);
 Route::post('/production-gci/wo/{id}/finish', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'finishWo']);
+Route::post('/production-gci/wo/{id}/cancel', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'cancelWo']);
 Route::get('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'getHourlyReports']);
 Route::post('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'saveHourlyReport']);
 Route::post('/production-gci/wo/{id}/increment-production', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'incrementProduction']);
