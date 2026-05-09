@@ -228,36 +228,36 @@
                 <details class="group" open>
                     <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
                         <div>
-                            <h3 class="text-lg font-semibold">RM Material Suggestion per WO</h3>
-                            <p class="text-sm text-gray-500">
+                            <h3 class="text-2xl font-bold text-slate-900">RM Material Suggestion per WO</h3>
+                            <p class="mt-1 text-base text-gray-600">
                                 Expand untuk lihat alokasi tag, lokasi prioritas, dan status scan material.
                             </p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <div class="text-sm font-medium text-slate-600">{{ $materialItemCount }} item</div>
-                            <svg class="h-5 w-5 text-slate-400 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <div class="text-lg font-semibold text-slate-700">{{ $materialItemCount }} item</div>
+                            <svg class="h-6 w-6 text-slate-400 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
                             </svg>
                         </div>
                     </summary>
 
-                    <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-lg leading-8 text-amber-900">
                         Prioritaskan material dengan status <span class="font-semibold">Belum discan</span> atau <span class="font-semibold">Parsial</span>, lalu ambil dari <span class="font-semibold">lokasi prioritas</span> yang sudah dialokasikan sistem.
                     </div>
 
-                    <div class="mt-4 overflow-x-auto border rounded-lg">
-                        <table class="min-w-full text-sm">
-                            <thead class="bg-slate-50 text-slate-600">
+                    <div class="mt-5 overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="min-w-full text-base">
+                            <thead class="bg-slate-50 text-slate-700">
                                 <tr>
-                                    <th class="px-4 py-3 text-left">RM Component</th>
-                                    <th class="px-4 py-3 text-center">UOM</th>
-                                    <th class="px-4 py-3 text-right">Required</th>
-                                    <th class="px-4 py-3 text-right">Sudah Scan</th>
-                                    <th class="px-4 py-3 text-center">Tag Scan</th>
-                                    <th class="px-4 py-3 text-center">Status Scan</th>
-                                    <th class="px-4 py-3 text-right">Allocated</th>
-                                    <th class="px-4 py-3 text-right">Shortage</th>
-                                    <th class="px-4 py-3 text-left">Source Inventory</th>
+                                    <th class="px-5 py-4 text-left text-xl font-bold">RM Component</th>
+                                    <th class="px-5 py-4 text-center text-xl font-bold">UOM</th>
+                                    <th class="px-5 py-4 text-right text-xl font-bold">Required</th>
+                                    <th class="px-5 py-4 text-right text-xl font-bold">Sudah Scan</th>
+                                    <th class="px-5 py-4 text-center text-xl font-bold">Tag Scan</th>
+                                    <th class="px-5 py-4 text-center text-xl font-bold">Status Scan</th>
+                                    <th class="px-5 py-4 text-right text-xl font-bold">Allocated</th>
+                                    <th class="px-5 py-4 text-right text-xl font-bold">Shortage</th>
+                                    <th class="px-5 py-4 text-left text-xl font-bold">Source Inventory</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y">
@@ -282,75 +282,75 @@
                                         }
                                     @endphp
                                     <tr class="align-top">
-                                        <td class="px-4 py-3">
-                                            <div class="font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
-                                            <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                        <td class="px-5 py-5">
+                                            <div class="text-2xl font-bold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                            <div class="mt-1 text-lg text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
                                             @if(!empty($line['notes']))
-                                                <div class="mt-1 text-xs text-amber-700">{{ $line['notes'] }}</div>
+                                                <div class="mt-2 text-base text-amber-700">{{ $line['notes'] }}</div>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-center">{{ $line['uom'] ?? '-' }}</td>
-                                        <td class="px-4 py-3 text-right font-mono">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-4 py-3 text-right font-mono {{ $scanRemaining > 0 ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($scanQty, 4) }}</td>
-                                        <td class="px-4 py-3 text-center font-semibold text-slate-700">{{ $scanTags }}</td>
-                                        <td class="px-4 py-3 text-center">
-                                            <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $scanClass }}">
+                                        <td class="px-5 py-5 text-center text-xl font-medium text-slate-800">{{ $line['uom'] ?? '-' }}</td>
+                                        <td class="px-5 py-5 text-right font-mono text-xl text-slate-900">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono text-xl {{ $scanRemaining > 0 ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($scanQty, 4) }}</td>
+                                        <td class="px-5 py-5 text-center text-xl font-bold text-slate-700">{{ $scanTags }}</td>
+                                        <td class="px-5 py-5 text-center">
+                                            <span class="inline-flex rounded-full px-4 py-2 text-lg font-bold {{ $scanClass }}">
                                                 {{ $scanLabel }}
                                             </span>
                                             @if($scanRemaining > 0)
-                                                <div class="mt-1 text-[11px] text-slate-500">Sisa {{ number_format($scanRemaining, 4) }}</div>
+                                                <div class="mt-2 text-base text-slate-500">Sisa {{ number_format($scanRemaining, 4) }}</div>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-4 py-3 text-right font-mono {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">{{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-4 py-3">
+                                        <td class="px-5 py-5 text-right font-mono text-xl text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono text-xl {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">{{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5">
                                             @if(!empty($line['allocations']))
                                                 @php
                                                     $primaryAllocation = collect($line['allocations'])->first();
                                                     $alternativeAllocations = collect($line['allocations'])->slice(1)->values();
                                                 @endphp
-                                                <div class="space-y-2">
+                                                <div class="space-y-3">
                                                     @if($primaryAllocation)
-                                                        <div class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2">
-                                                            <div class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Lokasi Prioritas Scan</div>
-                                                            <div class="mt-1 text-sm font-semibold text-slate-900">
+                                                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                                                            <div class="text-sm font-black uppercase tracking-wide text-emerald-700">Lokasi Prioritas Scan</div>
+                                                            <div class="mt-2 text-xl font-bold text-slate-900">
                                                                 {{ $primaryAllocation['part_no'] ?? '-' }} | {{ $primaryAllocation['location_code'] ?? '-' }}
                                                                 @if(!empty($primaryAllocation['batch_no']))
                                                                     | Batch {{ $primaryAllocation['batch_no'] }}
                                                                 @endif
                                                             </div>
-                                                            <div class="text-xs text-slate-600">
+                                                            <div class="mt-1 text-base leading-7 text-slate-600">
                                                                 Ambil {{ number_format((float) ($primaryAllocation['request_qty'] ?? 0), 4) }}
                                                                 dari stock {{ number_format((float) ($primaryAllocation['qty_on_hand'] ?? 0), 4) }}
                                                             </div>
                                                         </div>
                                                     @endif
                                                     @foreach($line['allocations'] as $allocation)
-                                                        <div class="rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                                                            <div class="text-xs font-semibold text-slate-900">
+                                                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                                            <div class="text-lg font-semibold text-slate-900">
                                                                 {{ $allocation['part_no'] ?? '-' }} | {{ $allocation['location_code'] ?? '-' }}
                                                                 @if(!empty($allocation['batch_no']))
                                                                     | Batch {{ $allocation['batch_no'] }}
                                                                 @endif
                                                             </div>
-                                                            <div class="text-xs text-slate-600">
+                                                            <div class="mt-1 text-base leading-7 text-slate-600">
                                                                 Request {{ number_format((float) ($allocation['request_qty'] ?? 0), 4) }}
                                                                 dari stock {{ number_format((float) ($allocation['qty_on_hand'] ?? 0), 4) }}
                                                                 @if(($allocation['source_type'] ?? 'primary') === 'substitute')
-                                                                    <span class="ml-1 inline-flex rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">SUB</span>
+                                                                    <span class="ml-2 inline-flex rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">SUB</span>
                                                                 @endif
                                                             </div>
                                                         </div>
                                                     @endforeach
                                                     @if($alternativeAllocations->isNotEmpty())
-                                                        <div class="text-[11px] text-slate-500">
+                                                        <div class="text-base text-slate-500">
                                                             Alternatif lokasi:
                                                             {{ $alternativeAllocations->map(fn($allocation) => ($allocation['location_code'] ?? '-') . (!empty($allocation['batch_no']) ? ' / Batch ' . $allocation['batch_no'] : ''))->implode(', ') }}
                                                         </div>
                                                     @endif
                                                 </div>
                                             @else
-                                                <span class="text-sm text-slate-400">No stock allocation</span>
+                                                <span class="text-base text-slate-400">No stock allocation</span>
                                             @endif
                                         </td>
                                     </tr>
