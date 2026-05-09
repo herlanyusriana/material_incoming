@@ -1,7 +1,23 @@
 @php
     $materialRequestLines = collect($order->material_request_lines ?? []);
+    $materialItemCount = $materialRequestLines->count();
     $materialShortageLines = $materialRequestLines->where('shortage_qty', '>', 0)->values();
     $materialShortageCount = $materialShortageLines->count();
+    $materialShortageTotal = (float) $materialShortageLines->sum(fn ($line) => (float) ($line['shortage_qty'] ?? 0));
+    $materialAllocatedTotal = (float) $materialRequestLines->sum(fn ($line) => (float) ($line['available_qty'] ?? 0));
+    $materialRequiredTotal = (float) $materialRequestLines->sum(fn ($line) => (float) ($line['required_qty'] ?? 0));
+    $materialIssueLines = collect($order->material_issue_lines ?? []);
+    $scanProgressByPart = $materialIssueLines->reduce(function ($carry, $line) {
+        $gciPartId = (int) ($line['gci_part_id'] ?? 0);
+        $partNo = strtoupper(trim((string) ($line['part_no'] ?? $line['component_part_no'] ?? '')));
+        $key = $gciPartId > 0 ? 'gci:' . $gciPartId : 'part:' . $partNo;
+        if (!isset($carry[$key])) {
+            $carry[$key] = ['qty' => 0.0, 'tags' => 0];
+        }
+        $carry[$key]['qty'] += (float) ($line['qty'] ?? $line['issued_qty'] ?? 0);
+        $carry[$key]['tags']++;
+        return $carry;
+    }, []);
     $holdReason = null;
     if ($order->status === 'material_hold') {
         $holdReason = 'Material shortage';
@@ -146,6 +162,203 @@
                         WO berstatus resource hold. Detail alasan resource belum tersimpan sebagai daftar item di sistem saat ini.
                     </div>
                 @endif
+            </div>
+        @endif
+
+        @if($materialItemCount > 0)
+            <div class="bg-white border rounded-lg shadow-sm p-6">
+                <div class="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold">Material Quick View</h3>
+                        <p class="text-sm text-slate-500">Ringkasan permintaan RM dan shortage untuk WO ini.</p>
+                    </div>
+                    <div class="text-right text-xs text-slate-500">
+                        Last request<br>
+                        <span class="font-semibold text-slate-700">{{ $order->material_requested_at?->format('d M Y H:i') ?? '-' }}</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Material Items</div>
+                        <div class="mt-1 text-xl font-bold text-slate-900">{{ $materialItemCount }}</div>
+                    </div>
+                    <div class="rounded-lg border {{ $materialShortageCount > 0 ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50' }} p-3">
+                        <div class="text-[11px] uppercase tracking-wide {{ $materialShortageCount > 0 ? 'text-red-500' : 'text-emerald-600' }}">Shortage Items</div>
+                        <div class="mt-1 text-xl font-bold {{ $materialShortageCount > 0 ? 'text-red-700' : 'text-emerald-700' }}">{{ $materialShortageCount }}</div>
+                    </div>
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <div class="text-[11px] uppercase tracking-wide text-amber-600">Required Total</div>
+                        <div class="mt-1 text-lg font-bold text-amber-800">{{ number_format($materialRequiredTotal, 4) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <div class="text-[11px] uppercase tracking-wide text-blue-600">Allocated Total</div>
+                        <div class="mt-1 text-lg font-bold text-blue-800">{{ number_format($materialAllocatedTotal, 4) }}</div>
+                    </div>
+                </div>
+
+                @if($materialShortageCount > 0)
+                    <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+                        <div class="flex items-center justify-between gap-4 mb-3">
+                            <div class="font-semibold text-red-800">Material Kurang</div>
+                            <div class="text-sm font-bold text-red-700">Total shortage: {{ number_format($materialShortageTotal, 4) }}</div>
+                        </div>
+                        <div class="space-y-2">
+                            @foreach($materialShortageLines->take(5) as $line)
+                                <div class="rounded border border-red-200 bg-white px-3 py-2">
+                                    <div class="text-sm font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                    <div class="mt-1 text-xs text-red-700">
+                                        Required {{ number_format((float) ($line['required_qty'] ?? 0), 4) }}
+                                        • Allocated {{ number_format((float) ($line['available_qty'] ?? 0), 4) }}
+                                        • Shortage {{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @else
+                    <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                        Semua item material request sudah teralokasi. Tidak ada shortage untuk WO ini.
+                    </div>
+                @endif
+            </div>
+
+            <div class="bg-white border rounded-lg shadow-sm p-6">
+                <details class="group" open>
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-semibold">RM Material Suggestion per WO</h3>
+                            <p class="text-sm text-gray-500">
+                                Expand untuk lihat alokasi tag, lokasi prioritas, dan status scan material.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-sm font-medium text-slate-600">{{ $materialItemCount }} item</div>
+                            <svg class="h-5 w-5 text-slate-400 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        Prioritaskan material dengan status <span class="font-semibold">Belum discan</span> atau <span class="font-semibold">Parsial</span>, lalu ambil dari <span class="font-semibold">lokasi prioritas</span> yang sudah dialokasikan sistem.
+                    </div>
+
+                    <div class="mt-4 overflow-x-auto border rounded-lg">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-600">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">RM Component</th>
+                                    <th class="px-4 py-3 text-center">UOM</th>
+                                    <th class="px-4 py-3 text-right">Required</th>
+                                    <th class="px-4 py-3 text-right">Sudah Scan</th>
+                                    <th class="px-4 py-3 text-center">Tag Scan</th>
+                                    <th class="px-4 py-3 text-center">Status Scan</th>
+                                    <th class="px-4 py-3 text-right">Allocated</th>
+                                    <th class="px-4 py-3 text-right">Shortage</th>
+                                    <th class="px-4 py-3 text-left">Source Inventory</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach($materialRequestLines as $line)
+                                    @php
+                                        $scanKey = !empty($line['component_gci_part_id'])
+                                            ? 'gci:' . (int) $line['component_gci_part_id']
+                                            : 'part:' . strtoupper(trim((string) ($line['component_part_no'] ?? '')));
+                                        $scanQty = (float) ($scanProgressByPart[$scanKey]['qty'] ?? 0);
+                                        $scanTags = (int) ($scanProgressByPart[$scanKey]['tags'] ?? 0);
+                                        $requiredQty = (float) ($line['required_qty'] ?? 0);
+                                        $scanRemaining = max(0, round($requiredQty - $scanQty, 4));
+                                        if ($scanQty <= 0) {
+                                            $scanLabel = 'Belum discan';
+                                            $scanClass = 'bg-rose-100 text-rose-700';
+                                        } elseif ($scanRemaining > 0) {
+                                            $scanLabel = 'Parsial';
+                                            $scanClass = 'bg-amber-100 text-amber-700';
+                                        } else {
+                                            $scanLabel = 'Siap supply';
+                                            $scanClass = 'bg-emerald-100 text-emerald-700';
+                                        }
+                                    @endphp
+                                    <tr class="align-top">
+                                        <td class="px-4 py-3">
+                                            <div class="font-semibold text-slate-900">{{ $line['component_part_no'] ?? '-' }}</div>
+                                            <div class="text-xs text-slate-500">{{ $line['component_part_name'] ?? '-' }}</div>
+                                            @if(!empty($line['notes']))
+                                                <div class="mt-1 text-xs text-amber-700">{{ $line['notes'] }}</div>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-center">{{ $line['uom'] ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-right font-mono">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono {{ $scanRemaining > 0 ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($scanQty, 4) }}</td>
+                                        <td class="px-4 py-3 text-center font-semibold text-slate-700">{{ $scanTags }}</td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $scanClass }}">
+                                                {{ $scanLabel }}
+                                            </span>
+                                            @if($scanRemaining > 0)
+                                                <div class="mt-1 text-[11px] text-slate-500">Sisa {{ number_format($scanRemaining, 4) }}</div>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">{{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3">
+                                            @if(!empty($line['allocations']))
+                                                @php
+                                                    $primaryAllocation = collect($line['allocations'])->first();
+                                                    $alternativeAllocations = collect($line['allocations'])->slice(1)->values();
+                                                @endphp
+                                                <div class="space-y-2">
+                                                    @if($primaryAllocation)
+                                                        <div class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2">
+                                                            <div class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Lokasi Prioritas Scan</div>
+                                                            <div class="mt-1 text-sm font-semibold text-slate-900">
+                                                                {{ $primaryAllocation['part_no'] ?? '-' }} | {{ $primaryAllocation['location_code'] ?? '-' }}
+                                                                @if(!empty($primaryAllocation['batch_no']))
+                                                                    | Batch {{ $primaryAllocation['batch_no'] }}
+                                                                @endif
+                                                            </div>
+                                                            <div class="text-xs text-slate-600">
+                                                                Ambil {{ number_format((float) ($primaryAllocation['request_qty'] ?? 0), 4) }}
+                                                                dari stock {{ number_format((float) ($primaryAllocation['qty_on_hand'] ?? 0), 4) }}
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                    @foreach($line['allocations'] as $allocation)
+                                                        <div class="rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                                                            <div class="text-xs font-semibold text-slate-900">
+                                                                {{ $allocation['part_no'] ?? '-' }} | {{ $allocation['location_code'] ?? '-' }}
+                                                                @if(!empty($allocation['batch_no']))
+                                                                    | Batch {{ $allocation['batch_no'] }}
+                                                                @endif
+                                                            </div>
+                                                            <div class="text-xs text-slate-600">
+                                                                Request {{ number_format((float) ($allocation['request_qty'] ?? 0), 4) }}
+                                                                dari stock {{ number_format((float) ($allocation['qty_on_hand'] ?? 0), 4) }}
+                                                                @if(($allocation['source_type'] ?? 'primary') === 'substitute')
+                                                                    <span class="ml-1 inline-flex rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">SUB</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                    @if($alternativeAllocations->isNotEmpty())
+                                                        <div class="text-[11px] text-slate-500">
+                                                            Alternatif lokasi:
+                                                            {{ $alternativeAllocations->map(fn($allocation) => ($allocation['location_code'] ?? '-') . (!empty($allocation['batch_no']) ? ' / Batch ' . $allocation['batch_no'] : ''))->implode(', ') }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="text-sm text-slate-400">No stock allocation</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             </div>
         @endif
 

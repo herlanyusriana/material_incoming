@@ -299,7 +299,7 @@
             <div class="fixed inset-0 overflow-hidden pointer-events-none">
                 <div class="absolute inset-0 overflow-hidden">
                     <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-                        <div class="pointer-events-auto w-screen max-w-md" x-show="slideOverOpen"
+                        <div class="pointer-events-auto w-screen max-w-4xl" x-show="slideOverOpen"
                             x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700"
                             x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
                             x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700"
