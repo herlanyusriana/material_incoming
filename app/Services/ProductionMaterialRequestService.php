@@ -176,10 +176,7 @@ class ProductionMaterialRequestService
                 $stocks = LocationInventory::query()
                     ->where('part_id', $candidate['part_id'])
                     ->where('qty_on_hand', '>', 0)
-                    ->orderByRaw('production_date IS NULL')
-                    ->orderBy('production_date')
-                    ->orderBy('batch_no')
-                    ->orderBy('location_code')
+                    ->orderByWarehouseFifo()
                     ->get();
 
                 foreach ($stocks as $stock) {

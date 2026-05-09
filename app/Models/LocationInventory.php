@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class LocationInventory extends Model
@@ -90,6 +92,42 @@ class LocationInventory extends Model
     public function location()
     {
         return $this->belongsTo(WarehouseLocation::class, 'location_code', 'location_code');
+    }
+
+    protected static function fifoReceiptSubquery()
+    {
+        return DB::table('receives')
+            ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
+            ->selectRaw("
+                arrival_items.part_id as part_id,
+                UPPER(TRIM(COALESCE(receives.location_code, ''))) as fifo_location_code,
+                COALESCE(NULLIF(UPPER(TRIM(COALESCE(receives.tag, ''))), ''), '__NO_BATCH__') as fifo_batch_no,
+                MIN(COALESCE(receives.ata_date, receives.created_at)) as fifo_received_at
+            ")
+            ->groupByRaw("
+                arrival_items.part_id,
+                UPPER(TRIM(COALESCE(receives.location_code, ''))),
+                COALESCE(NULLIF(UPPER(TRIM(COALESCE(receives.tag, ''))), ''), '__NO_BATCH__')
+            ");
+    }
+
+    public function scopeOrderByWarehouseFifo(Builder $query): Builder
+    {
+        $table = $this->getTable();
+
+        return $query
+            ->leftJoinSub(static::fifoReceiptSubquery(), 'fifo_receipts', function ($join) use ($table) {
+                $join->on('fifo_receipts.part_id', '=', "{$table}.part_id")
+                    ->whereRaw("fifo_receipts.fifo_location_code = UPPER(TRIM({$table}.location_code))")
+                    ->whereRaw("fifo_receipts.fifo_batch_no = COALESCE(NULLIF(UPPER(TRIM({$table}.batch_no)), ''), '__NO_BATCH__')");
+            })
+            ->select("{$table}.*")
+            ->orderByRaw('fifo_receipts.fifo_received_at IS NULL')
+            ->orderBy('fifo_receipts.fifo_received_at')
+            ->orderByRaw("{$table}.production_date IS NULL")
+            ->orderBy("{$table}.production_date")
+            ->orderBy("{$table}.batch_no")
+            ->orderBy("{$table}.location_code");
     }
 
     public static function getStockByLocation(int $partId, string $locationCode, ?string $batchNo = null, ?int $gciPartId = null): float
@@ -233,9 +271,7 @@ class LocationInventory extends Model
             ->where('qty_on_hand', '>', 0)
             ->when($gciPartId, fn ($q) => $q->where('gci_part_id', $gciPartId))
             ->when(!$gciPartId, fn ($q) => $q->where('part_id', $partId))
-            ->orderByRaw('production_date IS NULL')
-            ->orderBy('production_date')
-            ->orderBy('batch_no')
+            ->orderByWarehouseFifo()
             ->lockForUpdate()
             ->get();
 
