@@ -28,11 +28,21 @@ class ProductionOrderController extends Controller
         'material_hold',
         'released',
         'in_production',
+        'paused',
     ];
 
-    private const HISTORY_STATUSES = [
+    private const HISTORY_DEFAULT_STATUSES = [
+        'finished',
         'completed',
         'cancelled',
+    ];
+
+    private const HISTORY_FILTER_STATUSES = [
+        'finished',
+        'completed',
+        'cancelled',
+        'material_hold',
+        'resource_hold',
     ];
 
     /**
@@ -121,7 +131,7 @@ class ProductionOrderController extends Controller
     private function getOrderListStatuses(string $scope): array
     {
         return $scope === 'history'
-            ? self::HISTORY_STATUSES
+            ? self::HISTORY_FILTER_STATUSES
             : self::OPEN_STATUSES;
     }
 
@@ -299,9 +309,7 @@ class ProductionOrderController extends Controller
             ->withSum('inventorySupplies as inventory_supply_total', 'qty_supply')
             ->withSum('inventorySupplies as inventory_consumed_total', 'qty_consumed')
             ->withSum('inventorySupplies as inventory_returned_total', 'qty_returned')
-            ->whereIn('status', $allowedStatuses)
             ->when($gciPartId > 0, fn($qr) => $qr->where('gci_part_id', $gciPartId))
-            ->when($status !== '', fn($qr) => $qr->where('status', $status))
             ->when($inventoryBalance === 'remaining', fn($qr) => $qr->whereHas('inventorySupplies', fn($supply) => $supply->whereRemainingPositive()))
             ->when($inventoryBalance === 'clean', function ($qr) {
                 $qr->whereDoesntHave('inventorySupplies', fn($supply) => $supply->whereRemainingPositive())
@@ -323,6 +331,19 @@ class ProductionOrderController extends Controller
                     });
             })
             ->latest();
+
+        if ($scope === 'history') {
+            if ($status !== '') {
+                $query->where('status', $status);
+            } else {
+                $query->whereIn('status', self::HISTORY_DEFAULT_STATUSES);
+            }
+        } else {
+            $query->whereIn('status', self::OPEN_STATUSES);
+            if ($status !== '') {
+                $query->where('status', $status);
+            }
+        }
 
         $orders = $query->paginate(20)->withQueryString();
         $orders->getCollection()->transform(function (ProductionOrder $order) {

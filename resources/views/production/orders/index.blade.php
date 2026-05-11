@@ -40,7 +40,7 @@
                             {{ ($scope ?? 'open') === 'history' ? 'Order History' : 'Open Orders' }}
                         </h2>
                         <p class="text-sm text-slate-500">
-                            {{ ($scope ?? 'open') === 'history' ? 'WO selesai dan cancel dipisah supaya pencarian histori lebih rapi.' : 'WO aktif, hold, dan yang masih perlu ditindak ditampilkan di sini.' }}
+                            {{ ($scope ?? 'open') === 'history' ? 'WO finish, cancel, dan hold bisa ditelusuri per tanggal transaksi di sini.' : 'WO operasional harian saja: active, pending, dan hold.' }}
                         </p>
                     </div>
                     <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">

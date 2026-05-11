@@ -1052,14 +1052,38 @@ class ProductionGciApiController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
         $machineId = $request->filled('machine_id') ? (int) $request->query('machine_id') : null;
+        $scope = strtolower(trim((string) $request->query('scope', 'open')));
+        $statusFilter = strtolower(trim((string) $request->query('status', '')));
         $blockedStatuses = $this->bypassMaterialGateForWoStart()
             ? ['cancelled', 'completed']
             : ['material_hold', 'resource_hold', 'cancelled', 'completed'];
+        $historyStatusMap = [
+            'done' => ['finished', 'completed'],
+            'cancelled' => ['cancelled'],
+            'hold' => ['material_hold', 'resource_hold'],
+            'material_hold' => ['material_hold'],
+            'resource_hold' => ['resource_hold'],
+            'finished' => ['finished'],
+            'completed' => ['completed'],
+        ];
 
         $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
-            ->whereDate('plan_date', $date)
-            ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
-            ->whereNotIn('status', $blockedStatuses);
+            ->whereDate('plan_date', $date);
+
+        if ($scope === 'history') {
+            if (isset($historyStatusMap[$statusFilter])) {
+                $query->whereIn('status', $historyStatusMap[$statusFilter]);
+            } else {
+                $query->where(function ($historyQuery) {
+                    $historyQuery
+                        ->whereIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
+                        ->orWhereIn('status', ['finished', 'completed', 'cancelled']);
+                });
+            }
+        } else {
+            $query->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
+                ->whereNotIn('status', $blockedStatuses);
+        }
 
         if ($request->has('shift')) {
             $shiftInput = $request->query('shift');
@@ -1081,9 +1105,12 @@ class ProductionGciApiController extends Controller
         $orders = $query->get();
         if ($machineId !== null && $machineId > 0) {
             $orders = $orders
-                ->filter(fn (ProductionOrder $order) =>
-                    $this->orderMatchesMachineContext($order, $machineId)
-                    || $this->orderRecentlyHandedOverFromMachine($order, $machineId)
+                ->filter(fn (ProductionOrder $order) => $scope === 'history'
+                    ? $this->orderMatchesMachineHistoryContext($order, $machineId)
+                    : (
+                        $this->orderMatchesMachineContext($order, $machineId)
+                        || $this->orderRecentlyHandedOverFromMachine($order, $machineId)
+                    )
                 )
                 ->values();
         }
@@ -1091,6 +1118,19 @@ class ProductionGciApiController extends Controller
         $orders = $this->buildWorkOrderCardData($orders);
 
         return response()->json(['data' => $orders]);
+    }
+
+    private function orderMatchesMachineHistoryContext(ProductionOrder $order, int $machineId): bool
+    {
+        if ((int) ($order->machine_id ?? 0) === $machineId) {
+            return true;
+        }
+
+        if ((int) ($order->last_handover_from_machine_id ?? 0) === $machineId) {
+            return true;
+        }
+
+        return false;
     }
 
     public function machineWorkOrders(Request $request, $id)
