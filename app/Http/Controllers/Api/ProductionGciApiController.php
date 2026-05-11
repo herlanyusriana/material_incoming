@@ -974,31 +974,12 @@ class ProductionGciApiController extends Controller
             $yieldPercent = $processedQty > 0
                 ? round(($qtyActual / $processedQty) * 100, 2)
                 : null;
-            $sumActualForStep = function (?array $step) use ($hourliesForOrder): float {
-                if (!$step) {
-                    return 0;
-                }
-
-                return (float) $hourliesForOrder
-                    ->filter(fn (ProductionGciHourlyReport $report) => $this->routingStepContainsProcess($step, (string) ($report->process_name ?? '')))
-                    ->sum('actual');
-            };
-            $sumNgForStep = function (?array $step) use ($hourliesForOrder): float {
-                if (!$step) {
-                    return 0;
-                }
-
-                return (float) $hourliesForOrder
-                    ->filter(fn (ProductionGciHourlyReport $report) => $this->routingStepContainsProcess($step, (string) ($report->process_name ?? '')))
-                    ->sum('ng');
-            };
             $previousStep = $currentIndexInt > 0 ? ($steps[$currentIndexInt - 1] ?? null) : null;
-            $previousProcessActual = $previousStep ? $sumActualForStep($previousStep) : 0;
-            $processTargetQty = $previousStep
-                ? ($previousProcessActual > 0 ? $previousProcessActual : (float) ($o->qty_actual ?? $o->qty_planned ?? 0))
-                : (float) ($o->qty_planned ?? 0);
-            $processActualQty = $sumActualForStep($currentStep);
-            $processNgQty = $sumNgForStep($currentStep);
+            $previousProcessActual = $previousStep ? $this->processTotalsForStep((int) $o->id, $previousStep)['actual'] : 0;
+            $processTargetQty = $this->processTargetForStep($o, $currentStep);
+            $currentProcessTotals = $this->processTotalsForStep((int) $o->id, $currentStep);
+            $processActualQty = $currentProcessTotals['actual'];
+            $processNgQty = $currentProcessTotals['ng'];
             $processRemainingQty = max(0, round($processTargetQty - $processActualQty, 4));
 
             return [
@@ -1419,6 +1400,49 @@ class ProductionGciApiController extends Controller
         }
 
         return $steps[0] ?? null;
+    }
+
+    private function processTotalsForStep(int $orderId, ?array $step): array
+    {
+        if (!$step) {
+            return ['actual' => 0.0, 'ng' => 0.0];
+        }
+
+        $reports = ProductionGciHourlyReport::query()
+            ->where('production_order_id', $orderId)
+            ->get(['actual', 'ng', 'process_name']);
+
+        return [
+            'actual' => (float) $reports
+                ->filter(fn (ProductionGciHourlyReport $report) => $this->routingStepContainsProcess($step, (string) ($report->process_name ?? '')))
+                ->sum('actual'),
+            'ng' => (float) $reports
+                ->filter(fn (ProductionGciHourlyReport $report) => $this->routingStepContainsProcess($step, (string) ($report->process_name ?? '')))
+                ->sum('ng'),
+        ];
+    }
+
+    private function processTargetForStep(ProductionOrder $order, ?array $step): float
+    {
+        $steps = $this->buildRoutingStepsForOrder($order);
+        if (!$step || empty($steps)) {
+            return (float) ($order->qty_planned ?? 0);
+        }
+
+        $currentIndex = collect($steps)->search(function ($candidate) use ($step) {
+            return (int) ($candidate['step_no'] ?? 0) === (int) ($step['step_no'] ?? 0);
+        });
+
+        if ($currentIndex === false || (int) $currentIndex <= 0) {
+            return (float) ($order->qty_planned ?? 0);
+        }
+
+        $previousStep = $steps[((int) $currentIndex) - 1] ?? null;
+        $previousTotals = $this->processTotalsForStep((int) $order->id, $previousStep);
+
+        return $previousTotals['actual'] > 0
+            ? (float) $previousTotals['actual']
+            : (float) ($order->qty_actual ?? $order->qty_planned ?? 0);
     }
 
     private function machineMatchesRoutingStep(int $machineId, array $step): bool
@@ -2663,32 +2687,18 @@ class ProductionGciApiController extends Controller
             })
             ->first();
 
-        // 110% limit only guards FG accumulation; WIP is tracked separately.
-        $totalCurrentActual = (float) ProductionGciHourlyReport::query()
-            ->where('production_order_id', $order->id)
-            ->where(function ($query) {
-                $query->where('output_type', 'fg')
-                    ->orWhereNull('output_type');
-            })
-            ->sum('actual');
-        $totalCurrentNg = (float) ProductionGciHourlyReport::query()
-            ->where('production_order_id', $order->id)
-            ->where(function ($query) {
-                $query->where('output_type', 'fg')
-                    ->orWhereNull('output_type');
-            })
-            ->sum('ng');
-
         $incrementActual = (float) $validated['actual'];
         $incrementNg = (float) $validated['ng'];
-        $newTotalActual = $totalCurrentActual + ($processContext['output_type'] === 'fg' ? $incrementActual : 0);
-        $newTotalNg = $totalCurrentNg + ($processContext['output_type'] === 'fg' ? $incrementNg : 0);
+        $currentStep = $this->resolveRoutingStepForProcess($order, $processContext['process_name'] ?? null);
+        $currentProcessTotals = $this->processTotalsForStep((int) $order->id, $currentStep);
+        $newProcessActual = $currentProcessTotals['actual'] + $incrementActual;
+        $newProcessNg = $currentProcessTotals['ng'] + $incrementNg;
+        $processTarget = $this->processTargetForStep($order, $currentStep);
+        $maxAllowed = ceil($processTarget * 1.1);
 
-        $maxAllowed = ceil((float)$order->qty_planned * 1.1);
-
-        if ($processContext['output_type'] === 'fg' && ($newTotalActual + $newTotalNg) > $maxAllowed) {
+        if (($newProcessActual + $newProcessNg) > $maxAllowed) {
             return response()->json([
-                'message' => "Akumulasi total (" . $newTotalActual . " OK + " . $newTotalNg . " NG) melampaui toleransi 110% dari target plan (" . $maxAllowed . "). Harap periksa kembali input Anda!"
+                'message' => "Akumulasi proses (" . $newProcessActual . " OK + " . $newProcessNg . " NG) melampaui toleransi 110% dari target proses (" . $maxAllowed . "). Harap periksa kembali input Anda!"
             ], 422);
         }
 
