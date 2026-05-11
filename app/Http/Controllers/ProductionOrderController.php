@@ -325,6 +325,24 @@ class ProductionOrderController extends Controller
             ->latest();
 
         $orders = $query->paginate(20)->withQueryString();
+        $orders->getCollection()->transform(function (ProductionOrder $order) {
+            $routeProgress = $this->buildRouteProgress($order);
+            $rows = collect($routeProgress['rows'] ?? []);
+
+            $doneCount = $rows->where('has_output', true)->where('is_current', false)->count();
+            $currentRow = $rows->firstWhere('is_current', true);
+            $waitingCount = $rows->where('has_output', false)->where('is_current', false)->count();
+
+            $order->setAttribute('route_status_summary', [
+                'done_count' => $doneCount,
+                'waiting_count' => $waitingCount,
+                'current_process' => $currentRow['process_name'] ?? null,
+                'current_machine' => $currentRow['machine_name'] ?? null,
+                'current_output_type' => $currentRow['output_type'] ?? null,
+            ]);
+
+            return $order;
+        });
 
         return view('production.orders.index', compact(
             'orders',

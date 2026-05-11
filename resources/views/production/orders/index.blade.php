@@ -177,6 +177,13 @@
                                     <div class="text-xs text-slate-500">{{ $order->part->part_name }}</div>
                                 </td>
                                 <td class="px-6 py-4">
+                                    @php
+                                        $routeSummary = $order->route_status_summary ?? [];
+                                        $currentProcess = $routeSummary['current_process'] ?? null;
+                                        $currentMachine = $routeSummary['current_machine'] ?? null;
+                                        $doneCount = (int) ($routeSummary['done_count'] ?? 0);
+                                        $waitingCount = (int) ($routeSummary['waiting_count'] ?? 0);
+                                    @endphp
                                     @if($order->process_name)
                                         <div class="text-sm font-medium text-slate-900">{{ $order->process_name }}</div>
                                         <div class="text-xs text-slate-500">
@@ -186,6 +193,30 @@
                                         <span class="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wider">
                                             Not Started
                                         </span>
+                                    @endif
+                                    @if($currentProcess || $doneCount > 0 || $waitingCount > 0)
+                                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                            @if($currentProcess)
+                                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700">
+                                                    CURRENT: {{ $currentProcess }}
+                                                </span>
+                                            @endif
+                                            @if($doneCount > 0)
+                                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                                    DONE {{ $doneCount }}
+                                                </span>
+                                            @endif
+                                            @if($waitingCount > 0)
+                                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                                    WAITING {{ $waitingCount }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        @if($currentMachine && $currentMachine !== '-')
+                                            <div class="mt-1 text-[11px] text-blue-600 font-medium">
+                                                Step aktif di {{ $currentMachine }}
+                                            </div>
+                                        @endif
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">
