@@ -962,7 +962,8 @@ class ProductionGciApiController extends Controller
                 ->reject(fn (array $peer) => (int) ($peer['id'] ?? 0) === (int) $o->id)
                 ->values();
 
-            $latestHourly = collect($hourlyByOrder[(int) $o->id] ?? [])->first();
+            $hourliesForOrder = collect($hourlyByOrder[(int) $o->id] ?? []);
+            $latestHourly = $hourliesForOrder->first();
             $qtyActual = (float) ($o->qty_actual ?? 0);
             $qtyNg = (float) ($o->qty_ng ?? 0);
             $processedQty = $qtyActual + $qtyNg;
@@ -973,6 +974,32 @@ class ProductionGciApiController extends Controller
             $yieldPercent = $processedQty > 0
                 ? round(($qtyActual / $processedQty) * 100, 2)
                 : null;
+            $sumActualForStep = function (?array $step) use ($hourliesForOrder): float {
+                if (!$step) {
+                    return 0;
+                }
+
+                return (float) $hourliesForOrder
+                    ->filter(fn (ProductionGciHourlyReport $report) => $this->routingStepContainsProcess($step, (string) ($report->process_name ?? '')))
+                    ->sum('actual');
+            };
+            $sumNgForStep = function (?array $step) use ($hourliesForOrder): float {
+                if (!$step) {
+                    return 0;
+                }
+
+                return (float) $hourliesForOrder
+                    ->filter(fn (ProductionGciHourlyReport $report) => $this->routingStepContainsProcess($step, (string) ($report->process_name ?? '')))
+                    ->sum('ng');
+            };
+            $previousStep = $currentIndexInt > 0 ? ($steps[$currentIndexInt - 1] ?? null) : null;
+            $previousProcessActual = $previousStep ? $sumActualForStep($previousStep) : 0;
+            $processTargetQty = $previousStep
+                ? ($previousProcessActual > 0 ? $previousProcessActual : (float) ($o->qty_actual ?? $o->qty_planned ?? 0))
+                : (float) ($o->qty_planned ?? 0);
+            $processActualQty = $sumActualForStep($currentStep);
+            $processNgQty = $sumNgForStep($currentStep);
+            $processRemainingQty = max(0, round($processTargetQty - $processActualQty, 4));
 
             return [
                 'id' => (int) $o->id,
@@ -985,6 +1012,11 @@ class ProductionGciApiController extends Controller
                 'qty_planned' => (float) $o->qty_planned,
                 'qty_actual' => $qtyActual,
                 'qty_ng' => $qtyNg,
+                'process_target_qty' => $processTargetQty,
+                'process_actual_qty' => $processActualQty,
+                'process_ng_qty' => $processNgQty,
+                'process_remaining_qty' => $processRemainingQty,
+                'previous_process_actual_qty' => $previousProcessActual,
                 'processed_qty' => $processedQty,
                 'remaining_qty' => $remainingQty,
                 'yield_percent' => $yieldPercent,
@@ -1586,111 +1618,138 @@ class ProductionGciApiController extends Controller
      */
     public function startWo(Request $request, $id)
     {
-        $order = ProductionOrder::findOrFail($id);
-        $validated = $request->validate([
-            'machine_id' => 'nullable|integer|exists:machines,id',
-            'actual_machine_id' => 'nullable|integer|exists:machines,id',
-            'machine_name' => 'nullable|string|max:255',
-            'process_name' => 'nullable|string|max:255',
-            'operator_name' => 'nullable|string|max:255',
-            'shift' => 'nullable|string|max:50',
-            'start_source' => 'nullable|string|in:rm,wip',
-            'source_wip_part_no' => 'nullable|string|max:255',
-            'source_wip_part_name' => 'nullable|string|max:255',
-            'source_wip_process_name' => 'nullable|string|max:255',
-        ]);
+        try {
+            $order = ProductionOrder::findOrFail($id);
+            $validated = $request->validate([
+                'machine_id' => 'nullable|integer|exists:machines,id',
+                'actual_machine_id' => 'nullable|integer|exists:machines,id',
+                'machine_name' => 'nullable|string|max:255',
+                'process_name' => 'nullable|string|max:255',
+                'operator_name' => 'nullable|string|max:255',
+                'shift' => 'nullable|string|max:50',
+                'start_source' => 'nullable|string|in:rm,wip',
+                'source_wip_part_no' => 'nullable|string|max:255',
+                'source_wip_part_name' => 'nullable|string|max:255',
+                'source_wip_process_name' => 'nullable|string|max:255',
+            ]);
 
-        $actualMachineId = (int) ($validated['actual_machine_id'] ?? $validated['machine_id'] ?? $order->machine_id ?? 0);
-        if ($actualMachineId <= 0) {
-            return response()->json([
-                'message' => 'Pilih mesin aktual terlebih dahulu sebelum start WO.'
-            ], 422);
-        }
-
-        $actualMachine = Machine::find($actualMachineId);
-
-        if (!$this->bypassMaterialGateForWoStart()) {
-            $isMachineBusy = ProductionOrder::where('machine_id', $actualMachineId)
-                ->whereIn('status', ['in_production', 'paused'])
-                ->where('id', '!=', $order->id)
-                ->exists();
-
-            if ($isMachineBusy) {
+            $actualMachineId = (int) ($validated['actual_machine_id'] ?? $validated['machine_id'] ?? $order->machine_id ?? 0);
+            if ($actualMachineId <= 0) {
                 return response()->json([
-                    'message' => 'Pekerjaan ditolak. Masih ada Work Order lain yang sedang aktif (Running/Paused) pada mesin ini.'
+                    'message' => 'Pilih mesin aktual terlebih dahulu sebelum start WO.'
                 ], 422);
             }
-        }
 
-        // Block PLANNED status
-        if ($order->status === 'planned') {
-            return response()->json([
-                'message' => 'WO masih dalam status PLANNED. Silakan hubungi admin untuk melakukan RELEASE WO terlebih dahulu.'
-            ], 422);
-        }
+            $actualMachine = Machine::find($actualMachineId);
 
-        $materialStatus = $this->buildMaterialStatus($order);
-        if (!$this->bypassMaterialGateForWoStart() && !$materialStatus['material_ready']) {
-            return response()->json([
-                'message' => $materialStatus['start_block_reason'] ?? 'Material untuk WO ini belum siap.',
-                'material_status' => $materialStatus,
-            ], 422);
-        }
+            if (!$this->bypassMaterialGateForWoStart()) {
+                $isMachineBusy = ProductionOrder::where('machine_id', $actualMachineId)
+                    ->whereIn('status', ['in_production', 'paused'])
+                    ->where('id', '!=', $order->id)
+                    ->exists();
 
-        // Allow starting from kanban_released or released status
-        if (in_array($order->status, ['completed', 'cancelled'])) {
-            return response()->json(['message' => 'WO sudah selesai atau dibatalkan'], 422);
-        }
+                if ($isMachineBusy) {
+                    return response()->json([
+                        'message' => 'Pekerjaan ditolak. Masih ada Work Order lain yang sedang aktif (Running/Paused) pada mesin ini.'
+                    ], 422);
+                }
+            }
 
-        $processName = trim((string) ($validated['process_name'] ?? $order->process_name ?? ''));
-        if ($processName === '') {
-            $firstStep = $this->buildRoutingStepsForOrder($order)[0] ?? null;
-            $processName = (string) ($firstStep['process_name'] ?? '');
-        }
+            // Block PLANNED status
+            if ($order->status === 'planned') {
+                return response()->json([
+                    'message' => 'WO masih dalam status PLANNED. Silakan hubungi admin untuk melakukan RELEASE WO terlebih dahulu.'
+                ], 422);
+            }
 
-        $this->assertMachineAllowedForProcess($order, $actualMachineId, $processName);
+            $materialStatus = $this->buildMaterialStatus($order);
+            if (!$this->bypassMaterialGateForWoStart() && !$materialStatus['material_ready']) {
+                return response()->json([
+                    'message' => $materialStatus['start_block_reason'] ?? 'Material untuk WO ini belum siap.',
+                    'material_status' => $materialStatus,
+                ], 422);
+            }
 
-        $startSource = strtolower(trim((string) ($validated['start_source'] ?? 'rm')));
-        if (!in_array($startSource, ['rm', 'wip'], true)) {
-            $startSource = 'rm';
-        }
+            // Allow starting from kanban_released or released status
+            if (in_array($order->status, ['completed', 'cancelled'])) {
+                return response()->json(['message' => 'WO sudah selesai atau dibatalkan'], 422);
+            }
 
-        $startSourceMeta = [
-            'start_source' => $startSource,
-            'source_wip_part_no' => $validated['source_wip_part_no'] ?? null,
-            'source_wip_part_name' => $validated['source_wip_part_name'] ?? null,
-            'source_wip_process_name' => $validated['source_wip_process_name'] ?? null,
-        ];
-        $normalizedOrderShift = $this->normalizeShiftNumber($validated['shift'] ?? null);
+            $processName = trim((string) ($validated['process_name'] ?? $order->process_name ?? ''));
+            if ($processName === '') {
+                $firstStep = $this->buildRoutingStepsForOrder($order)[0] ?? null;
+                $processName = (string) ($firstStep['process_name'] ?? '');
+            }
 
-        $updatePayload = [
-            'status' => 'in_production',
-            'workflow_stage' => 'mass_production',
-            'start_time' => $order->start_time ?? now(),
-            'machine_id' => $actualMachineId,
-            'process_name' => $processName !== '' ? $processName : $order->process_name,
-        ];
+            $this->assertMachineAllowedForProcess($order, $actualMachineId, $processName);
 
-        if (Schema::hasColumn('production_orders', 'machine_name')) {
-            $updatePayload['machine_name'] = $actualMachine?->name ?? ($validated['machine_name'] ?? null);
-        }
+            $startSource = strtolower(trim((string) ($validated['start_source'] ?? 'rm')));
+            if (!in_array($startSource, ['rm', 'wip'], true)) {
+                $startSource = 'rm';
+            }
 
-        if ($normalizedOrderShift !== null) {
-            $updatePayload['shift'] = $normalizedOrderShift;
-        }
+            $startSourceMeta = [
+                'start_source' => $startSource,
+                'source_wip_part_no' => $validated['source_wip_part_no'] ?? null,
+                'source_wip_part_name' => $validated['source_wip_part_name'] ?? null,
+                'source_wip_process_name' => $validated['source_wip_process_name'] ?? null,
+            ];
+            $normalizedOrderShift = $this->normalizeShiftNumber($validated['shift'] ?? null);
 
-        if ($order->status === 'in_production') {
+            $updatePayload = [
+                'status' => 'in_production',
+                'workflow_stage' => 'mass_production',
+                'start_time' => $order->start_time ?? now(),
+                'machine_id' => $actualMachineId,
+                'process_name' => $processName !== '' ? $processName : $order->process_name,
+            ];
+
+            if (Schema::hasColumn('production_orders', 'machine_name')) {
+                $updatePayload['machine_name'] = $actualMachine?->name ?? ($validated['machine_name'] ?? null);
+            }
+
+            if ($normalizedOrderShift !== null) {
+                $updatePayload['shift'] = $normalizedOrderShift;
+            }
+
+            if ($order->status === 'in_production') {
+                $order->update($updatePayload);
+                $this->recordProductionActivity($order->fresh(), 'activity_switched', [
+                    'process_name' => $processName,
+                    'machine_id' => $actualMachineId,
+                    'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
+                    'shift' => $validated['shift'] ?? $order->shift,
+                    'operator_name' => $validated['operator_name'] ?? null,
+                    'meta' => array_merge(['source' => 'apk_start_while_running'], $startSourceMeta),
+                ]);
+
+                $this->broadcastMonitoringUpdate('wo_activity_switched', $order, meta: [
+                    'status' => 'in_production',
+                    'workflow_stage' => 'mass_production',
+                    'machine_id' => $actualMachineId,
+                    'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
+                    'process_name' => $processName,
+                    ...$startSourceMeta,
+                ]);
+
+                return response()->json([
+                    'message' => 'Aktivitas WO diperbarui',
+                    'status' => 'success',
+                    'data' => $order->fresh(),
+                ], 200);
+            }
+
             $order->update($updatePayload);
-            $this->recordProductionActivity($order->fresh(), 'activity_switched', [
+            $this->recordProductionActivity($order->fresh(), 'started', [
                 'process_name' => $processName,
                 'machine_id' => $actualMachineId,
                 'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
                 'shift' => $validated['shift'] ?? $order->shift,
                 'operator_name' => $validated['operator_name'] ?? null,
-                'meta' => array_merge(['source' => 'apk_start_while_running'], $startSourceMeta),
+                'meta' => array_merge(['source' => 'apk_start'], $startSourceMeta),
             ]);
 
-            $this->broadcastMonitoringUpdate('wo_activity_switched', $order, meta: [
+            $this->broadcastMonitoringUpdate('wo_started', $order, meta: [
                 'status' => 'in_production',
                 'workflow_stage' => 'mass_production',
                 'machine_id' => $actualMachineId,
@@ -1699,33 +1758,18 @@ class ProductionGciApiController extends Controller
                 ...$startSourceMeta,
             ]);
 
+            return response()->json(['status' => 'success', 'data' => $order->fresh()]);
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            throw $e;
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
             return response()->json([
-                'message' => 'Aktivitas WO diperbarui',
-                'status' => 'success',
-                'data' => $order->fresh(),
-            ], 200);
+                'message' => 'Gagal start WO: ' . $e->getMessage(),
+            ], 422);
         }
-
-        $order->update($updatePayload);
-        $this->recordProductionActivity($order->fresh(), 'started', [
-            'process_name' => $processName,
-            'machine_id' => $actualMachineId,
-            'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
-            'shift' => $validated['shift'] ?? $order->shift,
-            'operator_name' => $validated['operator_name'] ?? null,
-            'meta' => array_merge(['source' => 'apk_start'], $startSourceMeta),
-        ]);
-
-        $this->broadcastMonitoringUpdate('wo_started', $order, meta: [
-            'status' => 'in_production',
-            'workflow_stage' => 'mass_production',
-            'machine_id' => $actualMachineId,
-            'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
-            'process_name' => $processName,
-            ...$startSourceMeta,
-        ]);
-
-        return response()->json(['status' => 'success', 'data' => $order->fresh()]);
     }
 
     private function normalizeShiftNumber($rawShift): ?int
