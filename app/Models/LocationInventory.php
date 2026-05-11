@@ -99,7 +99,7 @@ class LocationInventory extends Model
         return DB::table('receives')
             ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
             ->selectRaw("
-                arrival_items.part_id as part_id,
+                arrival_items.part_id as fifo_part_id,
                 UPPER(TRIM(COALESCE(receives.location_code, ''))) as fifo_location_code,
                 COALESCE(NULLIF(UPPER(TRIM(COALESCE(receives.tag, ''))), ''), '__NO_BATCH__') as fifo_batch_no,
                 MIN(COALESCE(receives.ata_date, receives.created_at)) as fifo_received_at
@@ -117,7 +117,7 @@ class LocationInventory extends Model
 
         return $query
             ->leftJoinSub(static::fifoReceiptSubquery(), 'fifo_receipts', function ($join) use ($table) {
-                $join->on('fifo_receipts.part_id', '=', "{$table}.part_id")
+                $join->on('fifo_receipts.fifo_part_id', '=', "{$table}.part_id")
                     ->whereRaw("fifo_receipts.fifo_location_code = UPPER(TRIM({$table}.location_code))")
                     ->whereRaw("fifo_receipts.fifo_batch_no = COALESCE(NULLIF(UPPER(TRIM({$table}.batch_no)), ''), '__NO_BATCH__')");
             })
