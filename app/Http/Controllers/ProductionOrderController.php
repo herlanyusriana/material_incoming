@@ -1355,7 +1355,7 @@ class ProductionOrderController extends Controller
                             ? (string) ($item->wipPart?->part_name ?? $item->wip_part_name ?? '')
                             : (string) ($order->part?->part_name ?? '-'),
                         $matchingReports,
-                        strcasecmp($processName, (string) ($order->process_name ?? '')) === 0
+                        $this->routeProgressMatchesCurrentProcess($processName, (string) ($order->process_name ?? ''))
                     );
                 });
         }
@@ -1384,14 +1384,55 @@ class ProductionOrderController extends Controller
             })
             ->values();
 
+        $fgReports = $reports->filter(function ($report) {
+            $outputType = strtolower((string) ($report->output_type ?: 'fg'));
+            return $outputType === 'fg';
+        });
+
         return [
             'rows' => $steps->concat($adHocRows)->values(),
-            'total_ok' => (float) $reports->sum('actual'),
-            'total_ng' => (float) $reports->sum('ng'),
+            'total_ok' => (float) $fgReports->sum('actual'),
+            'total_ng' => (float) $fgReports->sum('ng'),
             'total_scrap' => (float) $reports->sum('ng_scrap'),
             'total_rework' => (float) $reports->sum('ng_rework'),
             'total_hold' => (float) $reports->sum('ng_hold'),
         ];
+    }
+
+    private function routeProgressMatchesCurrentProcess(string $stepProcessName, string $currentProcessName): bool
+    {
+        $stepProcessName = trim($stepProcessName);
+        $currentProcessName = trim($currentProcessName);
+
+        if ($stepProcessName === '' || $currentProcessName === '') {
+            return false;
+        }
+
+        if (strcasecmp($stepProcessName, $currentProcessName) === 0) {
+            return true;
+        }
+
+        $stepParts = collect(preg_split('/\s*\+\s*/', $stepProcessName) ?: [])
+            ->map(fn ($part) => strtolower(trim((string) $part)))
+            ->filter()
+            ->values();
+
+        $currentParts = collect(preg_split('/\s*\+\s*/', $currentProcessName) ?: [])
+            ->map(fn ($part) => strtolower(trim((string) $part)))
+            ->filter()
+            ->values();
+
+        if ($stepParts->isEmpty() || $currentParts->isEmpty()) {
+            return false;
+        }
+
+        foreach ($stepParts as $stepPart) {
+            if ($currentParts->contains($stepPart)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function formatRouteProgressRow(

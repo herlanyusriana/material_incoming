@@ -963,6 +963,16 @@ class ProductionGciApiController extends Controller
                 ->values();
 
             $latestHourly = collect($hourlyByOrder[(int) $o->id] ?? [])->first();
+            $qtyActual = (float) ($o->qty_actual ?? 0);
+            $qtyNg = (float) ($o->qty_ng ?? 0);
+            $processedQty = $qtyActual + $qtyNg;
+            $progressPercent = $o->qty_planned > 0
+                ? min(100, round(($processedQty / (float) $o->qty_planned) * 100, 1))
+                : 0;
+            $remainingQty = max(0, round((float) $o->qty_planned - $processedQty, 4));
+            $yieldPercent = $processedQty > 0
+                ? round(($qtyActual / $processedQty) * 100, 2)
+                : null;
 
             return [
                 'id' => (int) $o->id,
@@ -973,11 +983,15 @@ class ProductionGciApiController extends Controller
                 'part_name' => (string) ($o->part?->part_name ?? '-'),
                 'model' => (string) ($o->part?->model ?? '-'),
                 'qty_planned' => (float) $o->qty_planned,
-                'qty_actual' => (float) ($o->qty_actual ?? 0),
-                'qty_ng' => (float) ($o->qty_ng ?? 0),
-                'efficiency' => $o->qty_planned > 0 ? min(100, round(((float)($o->qty_actual ?? 0) / (float)$o->qty_planned) * 100, 1)) : 0,
+                'qty_actual' => $qtyActual,
+                'qty_ng' => $qtyNg,
+                'processed_qty' => $processedQty,
+                'remaining_qty' => $remainingQty,
+                'yield_percent' => $yieldPercent,
+                'efficiency' => $progressPercent,
+                'progress_percent' => $progressPercent,
                 'assignee' => (string) ($o->operator_name ?? 'Unassigned'),
-                'due_time' => $o->qty_planned > 0 && ($o->qty_planned - ($o->qty_actual ?? 0)) > 0 ? 'Due ' . max(1, round(($o->qty_planned - ($o->qty_actual ?? 0)) / 100)) . 'h' : 'Completed',
+                'due_time' => $o->qty_planned > 0 && $remainingQty > 0 ? 'Due ' . max(1, round($remainingQty / 100)) . 'h' : 'Completed',
                 'status' => (string) $o->status,
                 'workflow_stage' => (string) $o->workflow_stage,
                 'process_name' => (string) ($o->process_name ?? ''),

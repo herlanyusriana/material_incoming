@@ -172,7 +172,11 @@
                     : '<span class="flex h-3 w-3"><span class="inline-flex h-3 w-3 rounded-full bg-slate-300"></span></span>');
 
             const ordersHtml = orders.map(o => {
-                const pct = o.qty_planned > 0 ? Math.min(Math.round((o.qty_actual / o.qty_planned) * 100), 100) : 0;
+                const processedQty = Number(o.processed_qty ?? ((o.qty_actual || 0) + (o.qty_ng || 0)));
+                const remainingQty = Number(o.remaining_qty ?? Math.max((o.qty_planned || 0) - processedQty, 0));
+                const pct = o.progress_percent != null
+                    ? Math.min(Math.round(Number(o.progress_percent)), 100)
+                    : (o.qty_planned > 0 ? Math.min(Math.round((processedQty / o.qty_planned) * 100), 100) : 0);
                 const displayStatus = o.display_status || o.status;
                 const barColor = displayStatus === 'completed'
                     ? 'bg-blue-500'
@@ -260,6 +264,8 @@
                             <span class="text-xs text-slate-400">Target: <b class="text-slate-700">${Math.round(o.qty_planned)}</b></span>
                             <span class="text-xs text-slate-400">OK: <b class="text-emerald-600">${Math.round(o.qty_actual)}</b></span>
                             <span class="text-xs text-slate-400">NG: <b class="text-rose-600">${Math.round(o.qty_ng)}</b></span>
+                            <span class="text-xs text-slate-400">Processed: <b class="text-indigo-600">${Math.round(processedQty)}</b></span>
+                            <span class="text-xs text-slate-400">Sisa: <b class="${remainingQty > 0 ? 'text-amber-600' : 'text-emerald-600'}">${Math.round(remainingQty)}</b></span>
                         </div>
                         <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                             <div class="h-full ${barColor} transition-all duration-500" style="width: ${pct}%"></div>
