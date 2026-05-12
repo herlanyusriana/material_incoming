@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\BomItem;
+use App\Models\Bom;
 use App\Models\ContractNumber;
 use App\Models\ContractNumberItem;
 use App\Models\GciPart;
 use App\Models\LocationInventory;
 use App\Models\LocationInventoryAdjustment;
 use App\Models\PricingMaster;
+use App\Models\ProductionInspection;
+use App\Models\ProductionOrder;
+use App\Models\ProductionOrderActivity;
 use App\Models\SubconOrder;
 use App\Models\SubconOrderReceive;
 use App\Models\Vendor;
@@ -486,7 +490,9 @@ class SubconController extends Controller
         $validated['posted_to_wh_at'] = $validated['qty_good'] > 0 ? now() : null;
         $validated['reject_posted_to_wh_at'] = $validated['qty_rejected'] > 0 ? now() : null;
 
-        DB::transaction(function () use ($subconOrder, $validated) {
+        $productionMessage = null;
+
+        DB::transaction(function () use ($subconOrder, $validated, &$productionMessage) {
             $receive = $subconOrder->receives()->create($validated);
 
             if ((float) $validated['qty_good'] > 0) {
@@ -533,12 +539,175 @@ class SubconController extends Controller
                     'status' => 'completed',
                     'received_date' => $validated['received_date'],
                 ]);
+
+                $productionMessage = $this->releaseLinkedProductionOrderFromSubcon($subconOrder->fresh(), $receive);
             } else {
                 $subconOrder->update(['status' => 'partial']);
             }
         });
 
-        return back()->with('success', 'Receive recorded successfully.');
+        return back()->with('success', 'Receive recorded successfully.' . ($productionMessage ? ' ' . $productionMessage : ''));
+    }
+
+    private function releaseLinkedProductionOrderFromSubcon(SubconOrder $subconOrder, SubconOrderReceive $receive): ?string
+    {
+        if (!Schema::hasColumn('subcon_orders', 'production_order_id') || !$subconOrder->production_order_id) {
+            return null;
+        }
+
+        $order = ProductionOrder::with('part')->find($subconOrder->production_order_id);
+        if (!$order) {
+            return null;
+        }
+
+        if (in_array((string) $order->workflow_stage, ['final_inspection', 'kanban_update', 'warehouse_supply', 'finished'], true)
+            || in_array((string) $order->status, ['finished', 'completed', 'cancelled'], true)
+        ) {
+            return null;
+        }
+
+        $nextItem = $this->nextBomItemAfterSubcon($order, $subconOrder);
+        $qtyGood = (float) ($receive->qty_good ?? 0);
+        $qtyRejected = (float) ($receive->qty_rejected ?? 0);
+        $targetProcess = (string) ($subconOrder->target_process_name ?: $subconOrder->process_type);
+
+        if ($nextItem) {
+            $machineName = $nextItem->machine?->name;
+            $payload = [
+                'status' => 'released',
+                'workflow_stage' => 'mass_production',
+                'process_name' => trim((string) ($nextItem->process_name ?? '')) ?: 'Process',
+                'machine_id' => $nextItem->machine_id,
+                'last_handover_from_process' => $targetProcess,
+                'last_handover_from_machine_id' => null,
+                'last_handover_from_machine_name' => $subconOrder->vendor?->vendor_name,
+                'last_handover_at' => now(),
+            ];
+
+            if (Schema::hasColumn('production_orders', 'machine_name')) {
+                $payload['machine_name'] = $machineName;
+            }
+
+            $order->update($payload);
+
+            $this->recordSubconProductionActivity($order->fresh(), 'subcon_received_release', $subconOrder, $receive, [
+                'process_name' => $targetProcess,
+                'output_type' => 'wip',
+                'output_part_no' => $subconOrder->gciPart?->part_no,
+                'output_part_name' => $subconOrder->gciPart?->part_name,
+                'qty_ok' => $qtyGood,
+                'qty_ng' => $qtyRejected,
+                'meta' => [
+                    'next_process_name' => $payload['process_name'],
+                    'next_machine_id' => $nextItem->machine_id,
+                    'next_machine_name' => $machineName,
+                ],
+            ]);
+
+            return 'WO ' . ($order->production_order_number ?? $order->id) . ' lanjut ke proses ' . $payload['process_name'] . '.';
+        }
+
+        $finalActual = max((float) ($order->qty_actual ?? 0), (float) $subconOrder->qty_received);
+        $finalNg = max((float) ($order->qty_ng ?? 0), (float) $subconOrder->qty_rejected);
+
+        $order->update([
+            'status' => 'finished',
+            'workflow_stage' => 'final_inspection',
+            'process_name' => null,
+            'machine_id' => null,
+            'end_time' => now(),
+            'qty_actual' => $finalActual,
+            'qty_ng' => $finalNg,
+            'last_handover_from_process' => $targetProcess,
+            'last_handover_from_machine_id' => null,
+            'last_handover_from_machine_name' => $subconOrder->vendor?->vendor_name,
+            'last_handover_at' => now(),
+        ]);
+
+        if (Schema::hasColumn('production_orders', 'machine_name')) {
+            $order->update(['machine_name' => null]);
+        }
+
+        if (!$order->inspections()->where('type', 'final')->exists()) {
+            ProductionInspection::create([
+                'production_order_id' => $order->id,
+                'type' => 'final',
+                'status' => 'pending',
+            ]);
+        }
+
+        $this->recordSubconProductionActivity($order->fresh(), 'subcon_received_finish', $subconOrder, $receive, [
+            'process_name' => $targetProcess,
+            'output_type' => 'fg',
+            'output_part_no' => $order->part?->part_no,
+            'output_part_name' => $order->part?->part_name,
+            'qty_ok' => $qtyGood,
+            'qty_ng' => $qtyRejected,
+        ]);
+
+        return 'WO ' . ($order->production_order_number ?? $order->id) . ' selesai dan masuk final inspection.';
+    }
+
+    private function nextBomItemAfterSubcon(ProductionOrder $order, SubconOrder $subconOrder): ?BomItem
+    {
+        $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
+        if (!$bom) {
+            return null;
+        }
+
+        $items = $bom->items()
+            ->with('machine')
+            ->orderBy('line_no')
+            ->orderBy('id')
+            ->get()
+            ->values();
+
+        $currentIndex = $items->search(fn (BomItem $item) => (int) $item->id === (int) ($subconOrder->bom_item_id ?? 0));
+        if ($currentIndex === false) {
+            $targetProcess = strtolower(trim((string) ($subconOrder->target_process_name ?: $subconOrder->process_type)));
+            $currentIndex = $items->search(function (BomItem $item) use ($targetProcess) {
+                return strtolower(trim((string) $item->process_name)) === $targetProcess;
+            });
+        }
+
+        if ($currentIndex === false) {
+            return null;
+        }
+
+        return $items->get($currentIndex + 1);
+    }
+
+    private function recordSubconProductionActivity(
+        ProductionOrder $order,
+        string $type,
+        SubconOrder $subconOrder,
+        SubconOrderReceive $receive,
+        array $data
+    ): void {
+        ProductionOrderActivity::create([
+            'production_order_id' => $order->id,
+            'activity_type' => $type,
+            'process_name' => $data['process_name'] ?? $order->process_name,
+            'machine_id' => null,
+            'machine_name' => $subconOrder->vendor?->vendor_name,
+            'shift' => $order->shift,
+            'operator_name' => Auth::user()?->name,
+            'output_type' => $data['output_type'] ?? null,
+            'output_part_no' => $data['output_part_no'] ?? null,
+            'output_part_name' => $data['output_part_name'] ?? null,
+            'qty_ok' => (float) ($data['qty_ok'] ?? 0),
+            'qty_ng' => (float) ($data['qty_ng'] ?? 0),
+            'notes' => 'Receive Subcon ' . $subconOrder->order_no,
+            'meta' => array_merge([
+                'source' => 'web_subcon_receive',
+                'subcon_order_id' => $subconOrder->id,
+                'subcon_order_no' => $subconOrder->order_no,
+                'subcon_receive_id' => $receive->id,
+                'vendor_id' => $subconOrder->vendor_id,
+                'vendor_name' => $subconOrder->vendor?->vendor_name,
+                'contract_no' => $subconOrder->contract_no,
+            ], $data['meta'] ?? []),
+        ]);
     }
 
     public function cancel(SubconOrder $subconOrder)

@@ -21,6 +21,8 @@ use App\Models\Bom;
 use App\Models\GciPart;
 use App\Models\GciInventory;
 use App\Models\LocationInventory;
+use App\Models\ContractNumberItem;
+use App\Models\SubconOrder;
 use App\Services\ProductionInventoryFlowService;
 use Illuminate\Support\Str;
 
@@ -1027,6 +1029,7 @@ class ProductionGciApiController extends Controller
                     : '',
                 'current_step' => $currentStep ? [
                     'step_no' => (int) ($currentStep['step_no'] ?? 0),
+                    'bom_item_id' => (int) ($currentStep['bom_item_id'] ?? 0),
                     'process_name' => (string) ($currentStep['process_name'] ?? ''),
                     'output_type' => (string) ($currentStep['output_type'] ?? 'fg'),
                     'output_part_no' => (string) ($currentStep['output_part_no'] ?? ''),
@@ -1038,6 +1041,7 @@ class ProductionGciApiController extends Controller
                 ] : null,
                 'next_step' => $nextStep ? [
                     'step_no' => (int) ($nextStep['step_no'] ?? 0),
+                    'bom_item_id' => (int) ($nextStep['bom_item_id'] ?? 0),
                     'process_name' => (string) ($nextStep['process_name'] ?? ''),
                     'output_type' => (string) ($nextStep['output_type'] ?? 'fg'),
                     'output_part_no' => (string) ($nextStep['output_part_no'] ?? ''),
@@ -1306,6 +1310,7 @@ class ProductionGciApiController extends Controller
                 return [
                     'step_no' => $index + 1,
                     'line_no' => (int) ($item->line_no ?? ($index + 1)),
+                    'bom_item_id' => (int) $item->id,
                     'process_name' => $normalizedProcess,
                     'process_names' => [$normalizedProcess],
                     'process_type' => $isSubcon ? 'subcon' : 'internal',
@@ -2095,6 +2100,7 @@ class ProductionGciApiController extends Controller
             $toMachineName = $toMachine?->name
                 ?? ($validated['to_machine_name'] ?? null)
                 ?? ($nextStep['recommended_machine_name'] ?? $nextStep['machine_name'] ?? null);
+            $subconOrder = null;
 
             $updatePayload['status'] = 'released';
             $updatePayload['process_name'] = $toProcessName;
@@ -2104,23 +2110,52 @@ class ProductionGciApiController extends Controller
                 $updatePayload['machine_name'] = $toMachineName;
             }
 
-            $order->update($updatePayload);
+            DB::transaction(function () use (
+                $order,
+                $currentStep,
+                $nextStep,
+                $updatePayload,
+                $toProcessName,
+                $toMachineId,
+                $toMachineName,
+                $fromMachineId,
+                $fromMachineName,
+                $outputType,
+                $resolvedOutputPartNo,
+                $resolvedOutputPartName,
+                $validated,
+                &$subconOrder
+            ) {
+                if ((bool) ($nextStep['is_subcon'] ?? false)) {
+                    $subconOrder = $this->ensureSubconOrderForHandover(
+                        $order,
+                        $currentStep,
+                        $nextStep,
+                        $resolvedOutputPartNo,
+                        $resolvedOutputPartName
+                    );
+                }
 
-            $this->recordProductionActivity($order->fresh(), 'process_handover_next', [
-                'process_name' => $updatePayload['last_handover_from_process'],
-                'machine_id' => $fromMachineId > 0 ? $fromMachineId : null,
-                'machine_name' => $fromMachineName,
-                'output_type' => $outputType,
-                'output_part_no' => $resolvedOutputPartNo,
-                'output_part_name' => $resolvedOutputPartName,
-                'notes' => $validated['notes'] ?? null,
-                'meta' => [
-                    'handover_mode' => 'next',
-                    'to_process_name' => $toProcessName,
-                    'to_machine_id' => $toMachineId > 0 ? $toMachineId : null,
-                    'to_machine_name' => $toMachineName,
-                ],
-            ]);
+                $order->update($updatePayload);
+
+                $this->recordProductionActivity($order->fresh(), 'process_handover_next', [
+                    'process_name' => $updatePayload['last_handover_from_process'],
+                    'machine_id' => $fromMachineId > 0 ? $fromMachineId : null,
+                    'machine_name' => $fromMachineName,
+                    'output_type' => $outputType,
+                    'output_part_no' => $resolvedOutputPartNo,
+                    'output_part_name' => $resolvedOutputPartName,
+                    'notes' => $validated['notes'] ?? null,
+                    'meta' => [
+                        'handover_mode' => 'next',
+                        'to_process_name' => $toProcessName,
+                        'to_machine_id' => $toMachineId > 0 ? $toMachineId : null,
+                        'to_machine_name' => $toMachineName,
+                        'subcon_order_id' => $subconOrder?->id,
+                        'subcon_order_no' => $subconOrder?->order_no,
+                    ],
+                ]);
+            });
 
             $this->broadcastMonitoringUpdate('wo_handover_next', $order, meta: [
                 'from_process_name' => $updatePayload['last_handover_from_process'],
@@ -2129,6 +2164,7 @@ class ProductionGciApiController extends Controller
                 'to_machine_name' => $toMachineName,
                 'output_type' => $outputType,
                 'output_part_no' => $resolvedOutputPartNo,
+                'subcon_order_no' => $subconOrder?->order_no,
             ]);
 
             return response()->json([
@@ -2144,6 +2180,8 @@ class ProductionGciApiController extends Controller
                     'to_process_name' => $toProcessName,
                     'to_machine_id' => $toMachineId > 0 ? $toMachineId : null,
                     'to_machine_name' => $toMachineName,
+                    'subcon_order_id' => $subconOrder?->id,
+                    'subcon_order_no' => $subconOrder?->order_no,
                     'status' => $order->fresh()->status,
                 ],
             ]);
@@ -2194,6 +2232,211 @@ class ProductionGciApiController extends Controller
                 'status' => $order->fresh()->status,
             ],
         ]);
+    }
+
+    private function ensureSubconOrderForHandover(
+        ProductionOrder $order,
+        ?array $currentStep,
+        array $nextStep,
+        string $outputPartNo,
+        string $outputPartName
+    ): SubconOrder {
+        $targetProcess = trim((string) ($nextStep['process_name'] ?? 'SUBCON'));
+        $sourceProcess = trim((string) ($currentStep['process_name'] ?? $order->process_name ?? ''));
+        $bomItemId = (int) ($nextStep['bom_item_id'] ?? 0);
+        $stationLabel = trim((string) ($nextStep['station_label'] ?? $nextStep['recommended_machine_name'] ?? $nextStep['machine_name'] ?? ''));
+
+        $rmPart = GciPart::query()
+            ->whereRaw('UPPER(part_no) = ?', [strtoupper(trim($outputPartNo))])
+            ->first();
+
+        if (!$rmPart) {
+            abort(response()->json([
+                'message' => "Part WIP untuk kirim subcon tidak ditemukan: {$outputPartNo}. Cek output part pada routing BOM.",
+            ], 422));
+        }
+
+        $returnPartNo = trim((string) ($nextStep['output_part_no'] ?? ''));
+        $returnPart = $returnPartNo !== '' && $returnPartNo !== '-'
+            ? GciPart::query()->whereRaw('UPPER(part_no) = ?', [strtoupper($returnPartNo)])->first()
+            : null;
+        $returnPart ??= $order->part;
+
+        if (!$returnPart) {
+            abort(response()->json([
+                'message' => 'Part hasil subcon tidak ditemukan. Cek output part pada routing BOM.',
+            ], 422));
+        }
+
+        $query = ContractNumberItem::query()
+            ->with('contractNumber')
+            ->where('rm_gci_part_id', $rmPart->id)
+            ->where('gci_part_id', $returnPart->id)
+            ->whereHas('contractNumber', function ($contractQuery) {
+                $contractQuery->where('status', 'active')
+                    ->whereDate('effective_from', '<=', now()->toDateString())
+                    ->where(function ($dateQuery) {
+                        $dateQuery->whereNull('effective_to')
+                            ->orWhereDate('effective_to', '>=', now()->toDateString());
+                    });
+            });
+
+        if ($bomItemId > 0) {
+            $query->where(function ($itemQuery) use ($bomItemId, $targetProcess, $stationLabel) {
+                $itemQuery->where('bom_item_id', $bomItemId)
+                    ->orWhereRaw('LOWER(process_type) = ?', [
+                        Str::lower($this->subconProcessTypeForMatch($targetProcess, $stationLabel)),
+                    ]);
+            });
+        } else {
+            $query->whereRaw('LOWER(process_type) = ?', [
+                Str::lower($this->subconProcessTypeForMatch($targetProcess, $stationLabel)),
+            ]);
+        }
+
+        $contractItem = $query->first();
+
+        if (!$contractItem || !$contractItem->contractNumber) {
+            abort(response()->json([
+                'message' => 'Mapping Contract Number untuk subcon belum ditemukan. Buat mapping kontrak aktif di web Subcon untuk RM '
+                    . ($rmPart->part_no ?? '-')
+                    . ' -> WIP '
+                    . ($returnPart->part_no ?? '-')
+                    . ' proses '
+                    . $this->subconProcessTypeForMatch($targetProcess, $stationLabel)
+                    . '.',
+            ], 422));
+        }
+
+        $existingQuery = SubconOrder::query()
+            ->where('status', '!=', 'cancelled')
+            ->where('contract_no', $contractItem->contractNumber->contract_no)
+            ->where('rm_gci_part_id', $rmPart->id)
+            ->where('gci_part_id', $returnPart->id)
+            ->where('process_type', $contractItem->process_type);
+
+        if (Schema::hasColumn('subcon_orders', 'production_order_id')) {
+            $existingQuery->where('production_order_id', $order->id);
+        } else {
+            $existingQuery->where('notes', 'like', '%' . ($order->production_order_number ?? $order->transaction_no ?? $order->id) . '%');
+        }
+
+        if ($bomItemId > 0) {
+            $existingQuery->where('bom_item_id', $bomItemId);
+        }
+
+        if ($existing = $existingQuery->first()) {
+            return $existing;
+        }
+
+        $qtySent = $this->subconSendQtyForHandover($order, $currentStep);
+        if ($qtySent <= 0) {
+            abort(response()->json([
+                'message' => 'Qty kirim subcon belum ada. Input hasil proses sebelumnya dulu sebelum kirim ke vendor.',
+            ], 422));
+        }
+
+        if ($qtySent > (float) $contractItem->remaining_qty) {
+            abort(response()->json([
+                'message' => 'Qty kirim subcon (' . number_format($qtySent) . ') melebihi sisa kontrak ('
+                    . number_format((float) $contractItem->remaining_qty) . ') untuk '
+                    . ($contractItem->contractNumber->contract_no ?? '-') . '.',
+            ], 422));
+        }
+
+        $today = now()->format('Ymd');
+        $lastOrder = SubconOrder::where('order_no', 'like', "SC-{$today}-%")
+            ->lockForUpdate()
+            ->orderByDesc('order_no')
+            ->first();
+        $seq = $lastOrder ? ((int) substr($lastOrder->order_no, -3)) + 1 : 1;
+        $orderNo = sprintf('SC-%s-%03d', $today, $seq);
+        $sendLocation = strtoupper(trim((string) ($rmPart->default_location ?? '')));
+        if ($sendLocation === '') {
+            $sendLocation = 'WIP-BYPASS';
+        }
+
+        $payload = [
+            'order_no' => $orderNo,
+            'contract_no' => $contractItem->contractNumber->contract_no,
+            'vendor_id' => $contractItem->contractNumber->vendor_id,
+            'rm_gci_part_id' => $rmPart->id,
+            'gci_part_id' => $returnPart->id,
+            'bom_item_id' => $bomItemId > 0 ? $bomItemId : ($contractItem->bom_item_id ?: null),
+            'process_type' => $contractItem->process_type,
+            'qty_sent' => $qtySent,
+            'sent_date' => now()->toDateString(),
+            'expected_return_date' => null,
+            'notes' => 'Auto from Production APK WO '
+                . ($order->production_order_number ?? $order->transaction_no ?? $order->id)
+                . ' | From: '
+                . ($sourceProcess ?: '-')
+                . ' | To: '
+                . ($targetProcess ?: 'SUBCON')
+                . ($outputPartName !== '' ? ' | Output: ' . $outputPartName : ''),
+            'status' => 'sent',
+            'created_by' => auth()->id(),
+            'send_location_code' => $sendLocation,
+            'sent_posted_at' => now(),
+            'sent_posted_by' => auth()->id(),
+            'weight_kgm' => round($qtySent * (float) ($rmPart->net_weight ?? 0), 4),
+        ];
+
+        if (Schema::hasColumn('subcon_orders', 'production_order_id')) {
+            $payload['production_order_id'] = $order->id;
+        }
+        if (Schema::hasColumn('subcon_orders', 'production_order_number')) {
+            $payload['production_order_number'] = $order->production_order_number ?? $order->transaction_no;
+        }
+        if (Schema::hasColumn('subcon_orders', 'source_process_name')) {
+            $payload['source_process_name'] = $sourceProcess ?: null;
+        }
+        if (Schema::hasColumn('subcon_orders', 'target_process_name')) {
+            $payload['target_process_name'] = $targetProcess ?: null;
+        }
+
+        $subconOrder = SubconOrder::create($payload);
+
+        LocationInventory::consumeStock(
+            null,
+            $sendLocation,
+            $qtySent,
+            null,
+            (int) $rmPart->id,
+            'SUBCON_SEND',
+            $subconOrder->order_no,
+            [
+                'production_order_id' => $order->id,
+                'production_order_number' => $order->production_order_number ?? $order->transaction_no,
+                'source_process_name' => $sourceProcess,
+                'target_process_name' => $targetProcess,
+            ],
+            (float) ($payload['weight_kgm'] ?? 0)
+        );
+
+        return $subconOrder;
+    }
+
+    private function subconProcessTypeForMatch(string $processName, string $stationLabel): string
+    {
+        $value = trim($stationLabel) !== '' ? $stationLabel : $processName;
+        $value = preg_replace('/\b(vendor|subcon|sub-con|sub con)\b/i', '', $value) ?? $value;
+        $value = trim(preg_replace('/\s+/', ' ', $value) ?? $value);
+
+        return $value !== '' ? $value : 'SUBCON';
+    }
+
+    private function subconSendQtyForHandover(ProductionOrder $order, ?array $currentStep): float
+    {
+        $target = $this->processTargetForStep($order, $currentStep);
+        $totals = $currentStep ? $this->processTotalsForStep((int) $order->id, $currentStep) : ['actual' => 0, 'ng' => 0];
+        $actualOutput = (float) ($totals['actual'] ?? 0) + (float) ($totals['ng'] ?? 0);
+
+        if ($actualOutput > 0 && ($target <= 0 || $actualOutput <= ceil($target * 1.1))) {
+            return round($actualOutput, 4);
+        }
+
+        return round((float) ($target > 0 ? $target : ($order->qty_planned ?? 0)), 4);
     }
 
     /**

@@ -16,7 +16,11 @@ class SubconOrder extends Model
         'rm_gci_part_id',
         'gci_part_id',
         'bom_item_id',
+        'production_order_id',
+        'production_order_number',
         'process_type',
+        'source_process_name',
+        'target_process_name',
         'qty_sent',
         'qty_received',
         'qty_rejected',
@@ -61,6 +65,11 @@ class SubconOrder extends Model
     public function bomItem()
     {
         return $this->belongsTo(BomItem::class);
+    }
+
+    public function productionOrder()
+    {
+        return $this->belongsTo(ProductionOrder::class);
     }
 
     public function receives()
