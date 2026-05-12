@@ -1032,6 +1032,9 @@ class ProductionGciApiController extends Controller
                     'output_part_no' => (string) ($currentStep['output_part_no'] ?? ''),
                     'output_part_name' => (string) ($currentStep['output_part_name'] ?? ''),
                     'recommended_machine_name' => (string) ($currentStep['recommended_machine_name'] ?? ($currentStep['machine_name'] ?? '')),
+                    'resource_type' => (string) ($currentStep['resource_type'] ?? 'machine'),
+                    'is_subcon' => (bool) ($currentStep['is_subcon'] ?? false),
+                    'station_label' => (string) ($currentStep['station_label'] ?? ''),
                 ] : null,
                 'next_step' => $nextStep ? [
                     'step_no' => (int) ($nextStep['step_no'] ?? 0),
@@ -1040,6 +1043,9 @@ class ProductionGciApiController extends Controller
                     'output_part_no' => (string) ($nextStep['output_part_no'] ?? ''),
                     'output_part_name' => (string) ($nextStep['output_part_name'] ?? ''),
                     'recommended_machine_name' => (string) ($nextStep['recommended_machine_name'] ?? ($nextStep['machine_name'] ?? '')),
+                    'resource_type' => (string) ($nextStep['resource_type'] ?? 'machine'),
+                    'is_subcon' => (bool) ($nextStep['is_subcon'] ?? false),
+                    'station_label' => (string) ($nextStep['station_label'] ?? ''),
                 ] : null,
                 'latest_hourly' => $latestHourly ? [
                     'time_range' => (string) $latestHourly->time_range,
@@ -1295,16 +1301,23 @@ class ProductionGciApiController extends Controller
                 $recommendedMachineId = $item->machine?->id ? (int) $item->machine->id : null;
                 $recommendedMachineName = (string) ($item->machine?->name ?? '');
                 $normalizedProcess = $processName !== '' ? $processName : 'Process';
+                $isSubcon = $this->isSubconProcess($normalizedProcess, $recommendedMachineName);
 
                 return [
                     'step_no' => $index + 1,
                     'line_no' => (int) ($item->line_no ?? ($index + 1)),
                     'process_name' => $normalizedProcess,
                     'process_names' => [$normalizedProcess],
+                    'process_type' => $isSubcon ? 'subcon' : 'internal',
+                    'resource_type' => $isSubcon ? 'vendor' : 'machine',
+                    'is_subcon' => $isSubcon,
                     'machine_id' => $recommendedMachineId,
                     'machine_name' => $recommendedMachineName,
                     'recommended_machine_id' => $recommendedMachineId,
                     'recommended_machine_name' => $recommendedMachineName,
+                    'station_label' => $isSubcon
+                        ? ($recommendedMachineName !== '' ? $recommendedMachineName : 'Vendor Subcon')
+                        : ($recommendedMachineName !== '' ? $recommendedMachineName : 'Assigned Machine'),
                     'input_part_no' => (string) ($item->componentPart?->part_no ?? $item->component_part_no ?? '-'),
                     'input_part_name' => (string) ($item->componentPart?->part_name ?? ''),
                     'output_part_no' => $outputPartNo,
@@ -1372,10 +1385,25 @@ class ProductionGciApiController extends Controller
             $step['next_process_name'] = $steps[$index + 1]['process_name'] ?? null;
             $step['next_machine_name'] = $steps[$index + 1]['recommended_machine_name']
                 ?? ($steps[$index + 1]['machine_name'] ?? null);
+            $step['next_station_label'] = $steps[$index + 1]['station_label']
+                ?? $step['next_machine_name'];
         }
         unset($step);
 
         return $steps;
+    }
+
+    private function isSubconProcess(?string $processName, ?string $resourceName = null): bool
+    {
+        $haystack = Str::lower(trim((string) $processName) . ' ' . trim((string) $resourceName));
+
+        return Str::contains($haystack, [
+            'subcon',
+            'sub-con',
+            'sub con',
+            'vendor ',
+            ' vendor',
+        ]);
     }
 
     private function currentRoutingStepFromSteps(ProductionOrder $order, array $steps): ?array
