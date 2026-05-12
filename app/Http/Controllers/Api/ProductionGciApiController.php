@@ -1738,6 +1738,14 @@ class ProductionGciApiController extends Controller
                 $processName = (string) ($firstStep['process_name'] ?? '');
             }
 
+            $startStep = $this->resolveRoutingStepForProcess($order, $processName);
+            if ($startStep && (bool) ($startStep['is_subcon'] ?? false)) {
+                return response()->json([
+                    'message' => 'Proses Subcon tidak dijalankan di mesin produksi internal. Buka step Subcon lalu lakukan serah-terima/receive lewat module Subcon.',
+                    'routing_step' => $startStep,
+                ], 422);
+            }
+
             $this->assertMachineAllowedForProcess($order, $actualMachineId, $processName);
 
             $startSource = strtolower(trim((string) ($validated['start_source'] ?? 'rm')));
