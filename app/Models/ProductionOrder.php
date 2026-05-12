@@ -37,7 +37,8 @@ class ProductionOrder extends Model
         $dateStr = $dateObj->format('dmy');
         $suffix = $dateStr;
 
-        $lastOrder = self::where('transaction_no', 'like', 'WO%' . $suffix)
+        $lastOrder = self::withTrashed()
+            ->where('transaction_no', 'like', 'WO%' . $suffix)
             ->orderByRaw('LENGTH(transaction_no) DESC, transaction_no DESC')
             ->first();
 

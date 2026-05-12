@@ -313,11 +313,7 @@ class ProductionPlanningController extends Controller
             $generated = 0;
             $planDateStr = Carbon::parse($session->plan_date)->format('Y-m-d');
             $woPrefix = 'WO-' . now()->format('ymd');
-
-            $lastOrder = ProductionOrder::where('production_order_number', 'like', $woPrefix . '%')
-                ->orderBy('production_order_number', 'desc')
-                ->first();
-            $woSeq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) : 0;
+            $woSeq = $this->nextWoSequenceBase($woPrefix);
 
             foreach ($lines as $line) {
                 if (!$line->gciPart) {
@@ -415,10 +411,7 @@ class ProductionPlanningController extends Controller
         DB::beginTransaction();
         try {
             $prefix = 'WO-' . now()->format('ymd');
-            $lastOrder = ProductionOrder::where('production_order_number', 'like', $prefix . '%')
-                ->orderBy('production_order_number', 'desc')
-                ->first();
-            $seq = $lastOrder ? intval(substr($lastOrder->production_order_number, -4)) : 0;
+            $seq = $this->nextWoSequenceBase($prefix);
             $planDateStr = Carbon::parse($session->plan_date)->format('Y-m-d');
             $sequence = $line->production_sequence ?: ($line->sort_order ?: $line->id);
             $shiftPlanMap = $this->resolveShiftPlanMap($line);
@@ -490,6 +483,25 @@ class ProductionPlanningController extends Controller
             return redirect()->route('production.planning.index', ['date' => Carbon::parse($session->plan_date)->format('Y-m-d')])
                 ->with('error', 'Gagal generate WO: ' . $e->getMessage());
         }
+    }
+
+    private function nextWoSequenceBase(string $prefix): int
+    {
+        return ProductionOrder::withTrashed()
+            ->where('production_order_number', 'like', $prefix . '-S%')
+            ->pluck('production_order_number')
+            ->reduce(function (int $max, ?string $orderNumber) use ($prefix) {
+                if (!is_string($orderNumber)) {
+                    return $max;
+                }
+
+                $pattern = '/^' . preg_quote($prefix, '/') . '-S\d+-(\d+)$/';
+                if (preg_match($pattern, $orderNumber, $matches)) {
+                    return max($max, (int) $matches[1]);
+                }
+
+                return $max;
+            }, 0);
     }
 
     /**
