@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
                 <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800 flex items-center gap-3 shadow-sm">
                     <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,17 +142,17 @@
 
                 <!-- Table -->
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="min-w-[1180px] w-full table-fixed text-sm divide-y divide-slate-200">
+                    <table class="min-w-[1380px] w-full table-fixed text-sm divide-y divide-slate-200">
                         <colgroup>
-                            <col class="w-[16%]">
-                            <col class="w-[17%]">
-                            <col class="w-[6%]">
+                            <col class="w-[14%]">
                             <col class="w-[15%]">
+                            <col class="w-[6%]">
+                            <col class="w-[22%]">
                             <col class="w-[9%]">
                             <col class="w-[9%]">
                             <col class="w-[9%]">
                             <col class="w-[5%]">
-                            <col class="w-[8%]">
+                            <col class="w-[7%]">
                             <col class="w-[6%]">
                         </colgroup>
                         <thead class="bg-slate-100">
@@ -197,10 +197,10 @@
                                     </td>
                                     <td class="px-4 py-4 align-top">
                                         <div class="space-y-1.5">
-                                            <div class="font-mono text-xs text-slate-800 truncate" title="{{ $batchNo ?: 'No batch' }}">{{ $batchNo ?: '-' }}</div>
+                                            <div class="font-mono text-xs text-slate-800 break-all" title="{{ $batchNo ?: 'No batch' }}">{{ $batchNo ?: '-' }}</div>
                                             @if($invoiceNo)
-                                                <div class="inline-flex max-w-full rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-                                                    <span class="truncate" title="{{ $invoiceNo }}">INV: {{ $invoiceNo }}</span>
+                                                <div class="inline-flex max-w-full rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold leading-4 text-blue-700">
+                                                    <span class="break-all" title="{{ $invoiceNo }}">INV: {{ $invoiceNo }}</span>
                                                 </div>
                                             @else
                                                 <div class="text-[11px] text-slate-400">No invoice</div>
