@@ -71,6 +71,21 @@ class InventoryController extends Controller
                     ->whereNotNull('receives.tag')
                     ->orderByDesc('receives.created_at')
                     ->limit(1),
+                'latest_receive_invoice_no' => \App\Models\Receive::query()
+                    ->selectRaw("COALESCE(NULLIF(receives.invoice_no, ''), NULLIF(arrivals.invoice_no, ''))")
+                    ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
+                    ->leftJoin('arrivals', 'arrivals.id', '=', 'arrival_items.arrival_id')
+                    ->whereColumn('arrival_items.gci_part_id', 'gci_parts.id')
+                    ->where(function ($q) {
+                        $q->whereNotNull('receives.invoice_no')
+                            ->where('receives.invoice_no', '!=', '')
+                            ->orWhere(function ($qq) {
+                                $qq->whereNotNull('arrivals.invoice_no')
+                                    ->where('arrivals.invoice_no', '!=', '');
+                            });
+                    })
+                    ->orderByDesc('receives.created_at')
+                    ->limit(1),
                 'latest_source_invoice_no' => LocationInventoryAdjustment::query()
                     ->select('source_invoice_no')
                     ->whereColumn('location_inventory_adjustments.gci_part_id', 'gci_parts.id')
