@@ -15,6 +15,7 @@ class QdcHistoryController extends Controller
         'Mesin Rusak',
         'Robot Trouble',
         'Dies Trouble',
+        'Refill Material',
         'Material NG Quality',
         'Tooling Trouble',
         'Listrik Trouble / Mati Lampu',
@@ -23,7 +24,6 @@ class QdcHistoryController extends Controller
         'Perbaikan Coil',
         'Material Kendor/Jatuh',
         'Tunggu Material',
-        'Quality Check',
     ];
 
     // QDC = aktivitas rutin/planned
@@ -31,6 +31,7 @@ class QdcHistoryController extends Controller
         'Ganti Type',
         'Ganti Tipe/Setting',
         'Ganti Material / Reffil Material',
+        'Ganti Material / Refill Material',
         'Cleaning Machine',
         'Cleaning',
         'Briefing',
@@ -98,26 +99,31 @@ class QdcHistoryController extends Controller
                 $appQuery->where('machine_id', $machine);
             }
 
-            $appDowntimes = $appQuery->get()->map(fn($dt) => (object) [
-                'meta' => is_array($meta = json_decode($dt->notes ?? '{}', true)) ? $meta : [],
-                'source' => 'app',
-                'date' => $dt->created_at,
-                'machine_name' => $dt->machine?->name ?? $dt->machine_name ?? '-',
-                'wo_no' => (is_array($meta ?? null) ? ($meta['production_order_number'] ?? null) : null),
-                'wo_id' => (is_array($meta ?? null) ? ($meta['production_order_id'] ?? null) : null),
-                'part_no' => (is_array($meta ?? null) ? ($meta['part_no'] ?? '-') : '-'),
-                'part_name' => (is_array($meta ?? null) ? ($meta['part_name'] ?? null) : null),
-                'category' => $dt->reason,
-                'start_time' => $dt->start_time,
-                'end_time' => $dt->end_time,
-                'duration_minutes' => $dt->duration_minutes,
-                'notes' => $dt->notes,
-                'operator' => $dt->operator_name ?? '-',
-                'shift' => $dt->shift,
-                'refill_part_no' => $dt->refill_part_no,
-                'refill_part_name' => $dt->refill_part_name,
-                'refill_qty' => $dt->refill_qty,
-            ]);
+            $appDowntimes = $appQuery->get()->map(function ($dt) {
+                $meta = json_decode($dt->notes ?? '{}', true);
+                $meta = is_array($meta) ? $meta : [];
+
+                return (object) [
+                    'meta' => $meta,
+                    'source' => 'app',
+                    'date' => $dt->created_at,
+                    'machine_name' => $dt->machine?->name ?? $dt->machine_name ?? '-',
+                    'wo_no' => $meta['production_order_number'] ?? null,
+                    'wo_id' => $meta['production_order_id'] ?? null,
+                    'part_no' => $meta['part_no'] ?? '-',
+                    'part_name' => $meta['part_name'] ?? null,
+                    'category' => $dt->reason,
+                    'start_time' => $dt->start_time,
+                    'end_time' => $dt->end_time,
+                    'duration_minutes' => $dt->duration_minutes,
+                    'notes' => $meta['notes'] ?? $dt->notes,
+                    'operator' => $dt->operator_name ?? '-',
+                    'shift' => $dt->shift,
+                    'refill_part_no' => $dt->refill_part_no,
+                    'refill_part_name' => $dt->refill_part_name,
+                    'refill_qty' => $dt->refill_qty,
+                ];
+            });
         }
 
         $allDowntimes = collect($woDowntimes->all())->merge($appDowntimes->all());

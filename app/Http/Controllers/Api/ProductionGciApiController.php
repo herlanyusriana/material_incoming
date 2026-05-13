@@ -145,6 +145,23 @@ class ProductionGciApiController extends Controller
         ];
     }
 
+    private function downtimeReasonType(string $reason): string
+    {
+        $normalized = Str::of($reason)->lower()->replace(['/', '-'], ' ')->squish()->toString();
+
+        if (in_array($normalized, ['refill material', 'material refill', 'reffil material'], true)) {
+            return 'downtime';
+        }
+
+        foreach (['ganti type', 'ganti tipe', 'ganti material', 'cleaning machine', 'briefing', 'trial'] as $qdcReason) {
+            if (str_contains($normalized, $qdcReason)) {
+                return 'qdc_reason';
+            }
+        }
+
+        return 'downtime';
+    }
+
     private function resolveLegacyGciWorkOrder(ProductionOrder $order): ProductionGciWorkOrder
     {
         return ProductionGciWorkOrder::firstOrCreate(
@@ -3257,23 +3274,45 @@ class ProductionGciApiController extends Controller
 
     public function startMachineDowntime(Request $request, $id)
     {
+        $validated = $request->validate([
+            'machine_name' => 'nullable|string|max:255',
+            'shift' => 'nullable|string|max:50',
+            'operator_name' => 'nullable|string|max:255',
+            'reason' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+            'refill_part_no' => 'nullable|string|max:255',
+            'refill_part_name' => 'nullable|string|max:255',
+            'refill_qty' => 'nullable|numeric|min:0',
+            'production_order_id' => 'nullable|integer|exists:production_orders,id',
+            'start_time' => 'nullable|date',
+        ]);
+
         try {
-            $validated = $request->validate([
-                'machine_name' => 'nullable|string|max:255',
-                'shift' => 'nullable|string|max:50',
-                'operator_name' => 'nullable|string|max:255',
-                'reason' => 'required|string|max:255',
-                'notes' => 'nullable|string',
-                'refill_part_no' => 'nullable|string|max:255',
-                'refill_part_name' => 'nullable|string|max:255',
-                'refill_qty' => 'nullable|numeric|min:0',
-                'production_order_id' => 'nullable|integer|exists:production_orders,id',
-                'start_time' => 'nullable|date',
-            ]);
+            if ($this->downtimeReasonType($validated['reason']) === 'downtime'
+                && Str::of($validated['reason'])->lower()->squish()->toString() === 'refill material'
+                && trim((string) ($validated['refill_part_no'] ?? '')) === '') {
+                return response()->json([
+                    'message' => 'Part No RM wajib diisi untuk downtime Refill Material.',
+                ], 422);
+            }
 
             $order = !empty($validated['production_order_id'])
                 ? ProductionOrder::find($validated['production_order_id'])
                 : null;
+            $activeDowntime = ProductionGciDowntime::query()
+                ->where('machine_id', (int) $id)
+                ->whereNull('end_time')
+                ->latest('id')
+                ->first();
+
+            if ($activeDowntime) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Downtime mesin masih aktif.',
+                    'data' => $this->formatDowntime($activeDowntime),
+                ]);
+            }
+
             $legacyWorkOrder = $order
                 ? $this->resolveLegacyGciWorkOrder($order)
                 : $this->resolveMachineDowntimeWorkOrder(
@@ -3283,9 +3322,7 @@ class ProductionGciApiController extends Controller
                 );
 
             $meta = [
-                'type' => in_array($validated['reason'], ['Ganti Type', 'Ganti Material / Reffil Material', 'Cleaning Machine', 'Briefing', 'Trial'], true)
-                    ? 'qdc_reason'
-                    : 'downtime',
+                'type' => $this->downtimeReasonType($validated['reason']),
                 'production_order_id' => $order?->id,
                 'production_order_number' => $order?->production_order_number,
                 'notes' => $validated['notes'] ?? '',

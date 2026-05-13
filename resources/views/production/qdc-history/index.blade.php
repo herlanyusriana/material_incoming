@@ -208,9 +208,7 @@
                             <th class="px-4 py-3 text-center text-xs font-bold text-slate-900 uppercase tracking-wider">End</th>
                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-900 uppercase tracking-wider">Duration</th>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">Notes</th>
-                            @if(!$isDowntime)
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">Refill</th>
-                            @endif
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">Operator</th>
                         </tr>
                     </thead>
@@ -229,6 +227,7 @@
                                     'material ng quality' => 'bg-purple-100 text-purple-700',
                                     'quality check' => 'bg-purple-100 text-purple-700',
                                     'maintenance' => 'bg-teal-100 text-teal-700',
+                                    'refill material' => 'bg-cyan-100 text-cyan-700',
                                     'tunggu material' => 'bg-blue-100 text-blue-700',
                                     'material kendor/jatuh' => 'bg-blue-100 text-blue-700',
                                     'ganti type' => 'bg-amber-100 text-amber-700',
@@ -297,21 +296,22 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-xs text-slate-600 max-w-[200px] truncate" title="{{ $dt->notes }}">{{ $dt->notes ?? '-' }}</td>
-                                @if(!$isDowntime)
                                 <td class="px-4 py-3 text-xs text-slate-600">
                                     @if($dt->refill_part_no)
                                         <span class="font-mono font-semibold text-blue-700">{{ $dt->refill_part_no }}</span>
+                                        @if($dt->refill_part_name)
+                                            <span class="block text-[10px] text-slate-500 truncate">{{ $dt->refill_part_name }}</span>
+                                        @endif
                                         <span class="text-slate-400">x{{ number_format($dt->refill_qty ?? 0) }}</span>
                                     @else
                                         -
                                     @endif
                                 </td>
-                                @endif
                                 <td class="px-4 py-3 text-xs text-slate-600">{{ $dt->operator }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $isDowntime ? 10 : 11 }}" class="px-6 py-20 text-center text-slate-500 bg-white">
+                                <td colspan="11" class="px-6 py-20 text-center text-slate-500 bg-white">
                                     <div class="flex flex-col items-center">
                                         <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
