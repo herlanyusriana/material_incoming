@@ -57,7 +57,7 @@
                 </div>
         <div class="rounded-3xl bg-white shadow-sm">
             <div class="border-b border-slate-100 px-6 py-4">
-                <form method="GET" class="grid gap-3 lg:grid-cols-5">
+                <form method="GET" class="grid gap-3 lg:grid-cols-6">
                     <input name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="Search part, vendor, customer">
                     <select name="classification" class="rounded-xl border-slate-200 text-sm">
                         <option value="">All Class</option>
@@ -76,6 +76,14 @@
                         <option value="active" @selected($filters['status'] === 'active')>Active</option>
                         <option value="inactive" @selected($filters['status'] === 'inactive')>Inactive</option>
                     </select>
+                    <div class="flex items-center gap-2">
+                        <button type="submit" class="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+                            Search
+                        </button>
+                        <a href="{{ route('pricing.index') }}" class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                            Reset
+                        </a>
+                    </div>
                 </form>
                 <div class="mt-3 text-xs text-slate-500">
                     Harga yang tampil adalah master pricing. Dokumen transaksi tetap menyimpan snapshot harga masing-masing.
