@@ -10,7 +10,10 @@ return new class extends Migration
     {
         Schema::table('production_orders', function (Blueprint $table) {
             if (!Schema::hasColumn('production_orders', 'active_operator_name')) {
-                $table->string('active_operator_name')->nullable()->after('machine_name');
+                $column = $table->string('active_operator_name')->nullable();
+                if (Schema::hasColumn('production_orders', 'machine_name')) {
+                    $column->after('machine_name');
+                }
             }
 
             if (!Schema::hasColumn('production_orders', 'active_operator_started_at')) {
