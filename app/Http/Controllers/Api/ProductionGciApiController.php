@@ -1110,8 +1110,6 @@ class ProductionGciApiController extends Controller
         $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code']);
 
         if ($scope === 'history') {
-            $query->whereDate('plan_date', $date);
-
             if (isset($historyStatusMap[$statusFilter])) {
                 $query->whereIn('status', $historyStatusMap[$statusFilter]);
             } else {
@@ -1141,8 +1139,12 @@ class ProductionGciApiController extends Controller
             });
         }
 
-        $query->orderBy('plan_date', 'asc')
-            ->orderBy('production_sequence', 'asc');
+        if ($scope === 'history') {
+            $query->orderByDesc('plan_date')->orderByDesc('id');
+        } else {
+            $query->orderBy('plan_date', 'asc')
+                ->orderBy('production_sequence', 'asc');
+        }
 
         $orders = $query->get();
         if ($machineId !== null && $machineId > 0) {
