@@ -24,6 +24,7 @@ class ProductionOrder extends Model
         'fg_supplied_to_wh_at' => 'datetime',
         'fg_handed_over_to_wh_at' => 'datetime',
         'last_handover_at' => 'datetime',
+        'active_operator_started_at' => 'datetime',
     ];
 
     /**

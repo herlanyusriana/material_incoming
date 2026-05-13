@@ -52,6 +52,85 @@ class ProductionGciApiController extends Controller
         return self::TEMP_ALLOW_START_WITHOUT_WH_SUPPLY;
     }
 
+    private function normalizeOperatorName(?string $operatorName): ?string
+    {
+        $name = trim((string) $operatorName);
+        return $name === '' ? null : $name;
+    }
+
+    private function operatorsMatch(?string $left, ?string $right): bool
+    {
+        $leftName = Str::lower(trim((string) $left));
+        $rightName = Str::lower(trim((string) $right));
+
+        return $leftName !== '' && $rightName !== '' && $leftName === $rightName;
+    }
+
+    private function activeOperatorForOrder(ProductionOrder $order): ?string
+    {
+        if (Schema::hasColumn('production_orders', 'active_operator_name')) {
+            $name = $this->normalizeOperatorName($order->active_operator_name ?? null);
+            if ($name !== null) {
+                return $name;
+            }
+        }
+
+        if (!in_array((string) $order->status, ['in_production', 'paused'], true)) {
+            return null;
+        }
+
+        $latestActivity = ProductionOrderActivity::query()
+            ->where('production_order_id', $order->id)
+            ->whereNotNull('operator_name')
+            ->where('operator_name', '!=', '')
+            ->latest('id')
+            ->first();
+
+        return $this->normalizeOperatorName($latestActivity?->operator_name);
+    }
+
+    private function assertOrderAvailableForOperator(ProductionOrder $order, ?string $operatorName): void
+    {
+        if (!in_array((string) $order->status, ['in_production', 'paused'], true)) {
+            return;
+        }
+
+        $activeOperator = $this->activeOperatorForOrder($order);
+        if ($activeOperator === null || $this->operatorsMatch($activeOperator, $operatorName)) {
+            return;
+        }
+
+        abort(response()->json([
+            'message' => "WO sedang diproses oleh {$activeOperator}. Selesaikan atau handover dulu sebelum operator lain membuka WO ini.",
+            'locked_by' => $activeOperator,
+        ], 423));
+    }
+
+    private function applyActiveOperatorLock(array &$payload, ?string $operatorName, bool $clear = false): void
+    {
+        if (!Schema::hasColumn('production_orders', 'active_operator_name')) {
+            return;
+        }
+
+        if ($clear) {
+            $payload['active_operator_name'] = null;
+            if (Schema::hasColumn('production_orders', 'active_operator_started_at')) {
+                $payload['active_operator_started_at'] = null;
+            }
+            return;
+        }
+
+        $name = $this->normalizeOperatorName($operatorName);
+        if ($name === null) {
+            return;
+        }
+
+        $payload['active_operator_name'] = $name;
+        if (Schema::hasColumn('production_orders', 'active_operator_started_at')) {
+            $payload['active_operator_started_at'] = now();
+        }
+    }
+
     private function recordProductionActivity(ProductionOrder $order, string $type, array $data = []): void
     {
         try {
@@ -1000,6 +1079,7 @@ class ProductionGciApiController extends Controller
             $processActualQty = $currentProcessTotals['actual'];
             $processNgQty = $currentProcessTotals['ng'];
             $processRemainingQty = max(0, round($processTargetQty - $processActualQty, 4));
+            $activeOperator = $this->activeOperatorForOrder($o);
 
             return [
                 'id' => (int) $o->id,
@@ -1022,7 +1102,11 @@ class ProductionGciApiController extends Controller
                 'yield_percent' => $yieldPercent,
                 'efficiency' => $progressPercent,
                 'progress_percent' => $progressPercent,
-                'assignee' => (string) ($o->operator_name ?? 'Unassigned'),
+                'assignee' => (string) ($activeOperator ?? 'Unassigned'),
+                'active_operator_name' => $activeOperator,
+                'active_operator_started_at' => Schema::hasColumn('production_orders', 'active_operator_started_at') && $o->active_operator_started_at
+                    ? (string) $o->active_operator_started_at
+                    : null,
                 'due_time' => $o->qty_planned > 0 && $remainingQty > 0 ? 'Due ' . max(1, round($remainingQty / 100)) . 'h' : 'Completed',
                 'status' => (string) $o->status,
                 'workflow_stage' => (string) $o->workflow_stage,
@@ -1734,6 +1818,8 @@ class ProductionGciApiController extends Controller
                     'message' => 'Pilih mesin aktual terlebih dahulu sebelum start WO.'
                 ], 422);
             }
+            $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
+            $this->assertOrderAvailableForOperator($order, $operatorName);
 
             $actualMachine = Machine::find($actualMachineId);
 
@@ -1816,6 +1902,7 @@ class ProductionGciApiController extends Controller
             if ($normalizedOrderShift !== null) {
                 $updatePayload['shift'] = $normalizedOrderShift;
             }
+            $this->applyActiveOperatorLock($updatePayload, $operatorName);
 
             if ($order->status === 'in_production') {
                 $order->update($updatePayload);
@@ -1824,7 +1911,7 @@ class ProductionGciApiController extends Controller
                     'machine_id' => $actualMachineId,
                     'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
                     'shift' => $activityShift,
-                    'operator_name' => $validated['operator_name'] ?? null,
+                    'operator_name' => $operatorName,
                     'meta' => array_merge(['source' => 'apk_start_while_running'], $startSourceMeta),
                 ]);
 
@@ -1850,7 +1937,7 @@ class ProductionGciApiController extends Controller
                 'machine_id' => $actualMachineId,
                 'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
                 'shift' => $activityShift,
-                'operator_name' => $validated['operator_name'] ?? null,
+                'operator_name' => $operatorName,
                 'meta' => array_merge(['source' => 'apk_start'], $startSourceMeta),
             ]);
 
@@ -1917,19 +2004,23 @@ class ProductionGciApiController extends Controller
             'operator_name' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
         ]);
+        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
+        $this->assertOrderAvailableForOperator($order, $operatorName);
 
         $pausedAt = now();
 
-        $order->update([
+        $pausePayload = [
             'status' => 'paused',
             'workflow_stage' => 'mass_production',
-        ]);
+        ];
+        $this->applyActiveOperatorLock($pausePayload, $operatorName);
+        $order->update($pausePayload);
 
         ProductionGciDowntime::create([
             'machine_id' => $order->machine_id,
             'machine_name' => optional($order->machine)->name,
             'shift' => $validated['shift'] ?? $order->shift,
-            'operator_name' => $validated['operator_name'] ?? null,
+            'operator_name' => $operatorName,
             'start_time' => $pausedAt->toDateTimeString(),
             'end_time' => null,
             'duration_minutes' => 0,
@@ -1943,7 +2034,7 @@ class ProductionGciApiController extends Controller
         ]);
         $this->recordProductionActivity($order->fresh(), 'paused', [
             'shift' => $validated['shift'] ?? $order->shift,
-            'operator_name' => $validated['operator_name'] ?? null,
+            'operator_name' => $operatorName,
             'notes' => $validated['reason'],
             'meta' => [
                 'reason' => $validated['reason'],
@@ -1965,6 +2056,12 @@ class ProductionGciApiController extends Controller
     public function resumeWo(Request $request, $id)
     {
         $order = ProductionOrder::findOrFail($id);
+        $validated = $request->validate([
+            'operator_name' => 'nullable|string|max:255',
+            'shift' => 'nullable|string|max:50',
+        ]);
+        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
+        $this->assertOrderAvailableForOperator($order, $operatorName);
 
         if ($order->status === 'in_production') {
             return response()->json(['message' => 'WO sudah running', 'data' => $order], 200);
@@ -1986,11 +2083,15 @@ class ProductionGciApiController extends Controller
             ]);
         }
 
-        $order->update([
+        $updatePayload = [
             'status' => 'in_production',
             'workflow_stage' => 'mass_production',
-        ]);
+        ];
+        $this->applyActiveOperatorLock($updatePayload, $operatorName);
+        $order->update($updatePayload);
         $this->recordProductionActivity($order->fresh(), 'resumed', [
+            'shift' => $validated['shift'] ?? $order->shift,
+            'operator_name' => $operatorName,
             'meta' => ['source' => 'apk_resume'],
         ]);
 
@@ -2017,7 +2118,10 @@ class ProductionGciApiController extends Controller
             'output_part_no' => 'nullable|string|max:255',
             'output_part_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
+            'operator_name' => 'nullable|string|max:255',
         ]);
+        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
+        $this->assertOrderAvailableForOperator($order, $operatorName);
 
         $mode = strtolower((string) $validated['handover_mode']);
         $outputType = strtolower((string) ($validated['output_type'] ?? 'wip'));
@@ -2064,7 +2168,7 @@ class ProductionGciApiController extends Controller
             $finalActual = (float) ($order->qty_actual ?? 0);
             $finalNg = (float) ($order->qty_ng ?? 0);
 
-            $order->update(array_merge($updatePayload, [
+            $finishPayload = array_merge($updatePayload, [
                 'status' => 'finished',
                 'workflow_stage' => 'final_inspection',
                 'process_name' => null,
@@ -2072,7 +2176,9 @@ class ProductionGciApiController extends Controller
                 'end_time' => now(),
                 'qty_actual' => $finalActual,
                 'qty_ng' => $finalNg,
-            ]));
+            ]);
+            $this->applyActiveOperatorLock($finishPayload, null, true);
+            $order->update($finishPayload);
 
             if (Schema::hasColumn('production_orders', 'machine_name')) {
                 $order->update([
@@ -2088,6 +2194,7 @@ class ProductionGciApiController extends Controller
                 'machine_name' => $fromMachineName,
                 'qty_ok' => $finalActual,
                 'qty_ng' => $finalNg,
+                'operator_name' => $operatorName,
                 'output_type' => 'fg',
                 'output_part_no' => $resolvedOutputPartNo,
                 'output_part_name' => $resolvedOutputPartName,
@@ -2153,6 +2260,7 @@ class ProductionGciApiController extends Controller
             $updatePayload['status'] = 'released';
             $updatePayload['process_name'] = $toProcessName;
             $updatePayload['machine_id'] = $toMachineId > 0 ? $toMachineId : null;
+            $this->applyActiveOperatorLock($updatePayload, null, true);
 
             if (Schema::hasColumn('production_orders', 'machine_name')) {
                 $updatePayload['machine_name'] = $toMachineName;
@@ -2172,6 +2280,7 @@ class ProductionGciApiController extends Controller
                 $resolvedOutputPartNo,
                 $resolvedOutputPartName,
                 $validated,
+                $operatorName,
                 &$subconOrder
             ) {
                 if ((bool) ($nextStep['is_subcon'] ?? false)) {
@@ -2193,6 +2302,7 @@ class ProductionGciApiController extends Controller
                     'output_type' => $outputType,
                     'output_part_no' => $resolvedOutputPartNo,
                     'output_part_name' => $resolvedOutputPartName,
+                    'operator_name' => $operatorName,
                     'notes' => $validated['notes'] ?? null,
                     'meta' => [
                         'handover_mode' => 'next',
@@ -2240,6 +2350,7 @@ class ProductionGciApiController extends Controller
             ?? $currentStep['process_name']
             ?? $order->process_name;
         $updatePayload['machine_id'] = $fromMachineId > 0 ? $fromMachineId : $order->machine_id;
+        $this->applyActiveOperatorLock($updatePayload, $operatorName);
 
         if (Schema::hasColumn('production_orders', 'machine_name')) {
             $updatePayload['machine_name'] = $fromMachineName;
@@ -2254,6 +2365,7 @@ class ProductionGciApiController extends Controller
             'output_type' => $outputType,
             'output_part_no' => $resolvedOutputPartNo,
             'output_part_name' => $resolvedOutputPartName,
+            'operator_name' => $operatorName,
             'notes' => $validated['notes'] ?? null,
             'meta' => [
                 'handover_mode' => 'carry',
@@ -2501,7 +2613,10 @@ class ProductionGciApiController extends Controller
         $validated = $request->validate([
             'qty_actual' => 'nullable|numeric|min:0',
             'qty_ng' => 'nullable|numeric|min:0',
+            'operator_name' => 'nullable|string|max:255',
         ]);
+        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
+        $this->assertOrderAvailableForOperator($order, $operatorName);
 
         if ($order->status === 'paused' && $activePause = $this->findActivePauseDowntime($order)) {
             $finishedAt = now();
@@ -2567,14 +2682,17 @@ class ProductionGciApiController extends Controller
             }
         }
 
-        $order->update([
+        $finishPayload = [
             'status' => 'finished',
             'workflow_stage' => 'final_inspection',
             'end_time' => now(),
             'qty_actual' => $finalActual,
             'qty_ng' => $finalNg,
-        ]);
+        ];
+        $this->applyActiveOperatorLock($finishPayload, null, true);
+        $order->update($finishPayload);
         $this->recordProductionActivity($order->fresh(), 'finished', [
+            'operator_name' => $operatorName,
             'qty_ok' => $finalActual,
             'qty_ng' => $finalNg,
             'output_type' => 'fg',
@@ -2618,6 +2736,8 @@ class ProductionGciApiController extends Controller
             'notes' => 'nullable|string|max:500',
             'operator_name' => 'nullable|string|max:255',
         ]);
+        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
+        $this->assertOrderAvailableForOperator($order, $operatorName);
 
         // Close any active pause downtime
         if ($order->status === 'paused' && $activePause = $this->findActivePauseDowntime($order)) {
@@ -2631,14 +2751,16 @@ class ProductionGciApiController extends Controller
             ]);
         }
 
-        $order->update([
+        $cancelPayload = [
             'status' => 'cancelled',
             'workflow_stage' => 'finished',
             'end_time' => $order->end_time ?? now(),
-        ]);
+        ];
+        $this->applyActiveOperatorLock($cancelPayload, null, true);
+        $order->update($cancelPayload);
 
         $this->recordProductionActivity($order->fresh(), 'cancelled', [
-            'operator_name' => $validated['operator_name'] ?? null,
+            'operator_name' => $operatorName,
             'notes' => $validated['reason'] . ($validated['notes'] ? ' — ' . $validated['notes'] : ''),
             'meta' => [
                 'source' => 'apk_cancel',
@@ -2965,6 +3087,8 @@ class ProductionGciApiController extends Controller
             'output_part_no' => 'nullable|string|max:255',
             'output_part_name' => 'nullable|string|max:255',
         ]);
+        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
+        $this->assertOrderAvailableForOperator($order, $operatorName);
 
         $actualMachineId = (int) ($validated['actual_machine_id'] ?? $validated['machine_id'] ?? $order->machine_id ?? 0);
         if ($actualMachineId <= 0) {
@@ -3030,7 +3154,7 @@ class ProductionGciApiController extends Controller
                 'ng_scrap' => (int) ($report->ng_scrap ?? 0) + $ngBreakdown['ng_scrap'],
                 'ng_rework' => (int) ($report->ng_rework ?? 0) + $ngBreakdown['ng_rework'],
                 'ng_hold' => (int) ($report->ng_hold ?? 0) + $ngBreakdown['ng_hold'],
-                'operator_name' => $validated['operator_name'] ?? $report->operator_name,
+                'operator_name' => $operatorName ?? $report->operator_name,
                 'shift' => $validated['shift'] ?? $report->shift,
                 'machine_id' => $actualMachineId,
                 'machine_name' => $actualMachineName ?? $report->machine_name,
@@ -3055,7 +3179,7 @@ class ProductionGciApiController extends Controller
                 'ng_rework' => $ngBreakdown['ng_rework'],
                 'ng_hold' => $ngBreakdown['ng_hold'],
                 'offline_id' => $this->generateCloudOfflineId(),
-                'operator_name' => $validated['operator_name'] ?? null,
+                'operator_name' => $operatorName,
                 'shift' => $validated['shift'] ?? null,
                 'output_type' => $processContext['output_type'],
                 'process_name' => $processContext['process_name'],
@@ -3089,6 +3213,7 @@ class ProductionGciApiController extends Controller
         if (Schema::hasColumn('production_orders', 'machine_name')) {
             $orderUpdatePayload['machine_name'] = $actualMachineName;
         }
+        $this->applyActiveOperatorLock($orderUpdatePayload, $operatorName);
 
         $order->update($orderUpdatePayload);
 
