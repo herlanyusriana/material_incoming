@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ProductionOrdersExport;
 use App\Models\ProductionOrder;
 use App\Models\ProductionInspection;
 use App\Models\GciPart;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProductionOrderController extends Controller
 {
@@ -279,7 +281,24 @@ class ProductionOrderController extends Controller
         return $this->renderOrderIndex($request, 'history');
     }
 
-    private function renderOrderIndex(Request $request, string $scope)
+    public function export(Request $request)
+    {
+        $scope = strtolower(trim((string) $request->query('scope', 'open')));
+        if (!in_array($scope, ['open', 'history'], true)) {
+            $scope = 'open';
+        }
+
+        $filters = $this->orderIndexFilters($request, $scope);
+        $query = $this->buildOrderIndexQuery($filters, $scope);
+        $fileScope = $scope === 'history' ? 'history' : 'open';
+
+        return Excel::download(
+            new ProductionOrdersExport($query),
+            'production_orders_' . $fileScope . '_' . now()->format('Ymd_His') . '.xlsx'
+        );
+    }
+
+    private function orderIndexFilters(Request $request, string $scope): array
     {
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
@@ -304,6 +323,27 @@ class ProductionOrderController extends Controller
             }
         }
 
+        return compact(
+            'dateFrom',
+            'dateTo',
+            'month',
+            'status',
+            'inventoryBalance',
+            'q',
+            'gciPartId',
+            'allowedStatuses'
+        );
+    }
+
+    private function buildOrderIndexQuery(array $filters, string $scope)
+    {
+        $dateFrom = $filters['dateFrom'];
+        $dateTo = $filters['dateTo'];
+        $status = $filters['status'];
+        $inventoryBalance = $filters['inventoryBalance'];
+        $q = $filters['q'];
+        $gciPartId = $filters['gciPartId'];
+
         $query = ProductionOrder::query()
             ->with(['part', 'machine', 'dailyPlanCell.row'])
             ->withSum('inventorySupplies as inventory_supply_total', 'qty_supply')
@@ -323,12 +363,15 @@ class ProductionOrderController extends Controller
             })
             ->when($q !== '', function ($qr) use ($q) {
                 $s = strtoupper($q);
-                $qr->where('production_order_number', 'like', '%' . $s . '%')
-                    ->orWhereHas('part', function ($qp) use ($s) {
-                        $qp->where('part_no', 'like', '%' . $s . '%')
-                            ->orWhere('part_name', 'like', '%' . $s . '%')
-                            ->orWhere('model', 'like', '%' . $s . '%');
-                    });
+                $qr->where(function ($searchQuery) use ($s) {
+                    $searchQuery->where('production_order_number', 'like', '%' . $s . '%')
+                        ->orWhere('transaction_no', 'like', '%' . $s . '%')
+                        ->orWhereHas('part', function ($qp) use ($s) {
+                            $qp->where('part_no', 'like', '%' . $s . '%')
+                                ->orWhere('part_name', 'like', '%' . $s . '%')
+                                ->orWhere('model', 'like', '%' . $s . '%');
+                        });
+                });
             })
             ->latest();
 
@@ -344,6 +387,22 @@ class ProductionOrderController extends Controller
                 $query->where('status', $status);
             }
         }
+
+        return $query;
+    }
+
+    private function renderOrderIndex(Request $request, string $scope)
+    {
+        $filters = $this->orderIndexFilters($request, $scope);
+        $dateFrom = $filters['dateFrom'];
+        $dateTo = $filters['dateTo'];
+        $month = $filters['month'];
+        $status = $filters['status'];
+        $inventoryBalance = $filters['inventoryBalance'];
+        $q = $filters['q'];
+        $gciPartId = $filters['gciPartId'];
+        $allowedStatuses = $filters['allowedStatuses'];
+        $query = $this->buildOrderIndexQuery($filters, $scope);
 
         $orders = $query->paginate(20)->withQueryString();
         $orders->getCollection()->transform(function (ProductionOrder $order) {

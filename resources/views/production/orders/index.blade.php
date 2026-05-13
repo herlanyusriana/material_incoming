@@ -54,10 +54,16 @@
                         </a>
                     </div>
                 </div>
-                <a href="{{ route('production.orders.create') }}"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-                    New Production Order
-                </a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('production.orders.export', array_merge(request()->query(), ['scope' => ($scope ?? 'open')])) }}"
+                        class="px-4 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 shadow-sm transition-colors">
+                        Export Excel
+                    </a>
+                    <a href="{{ route('production.orders.create') }}"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
+                        New Production Order
+                    </a>
+                </div>
             </div>
 
             <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">

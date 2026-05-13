@@ -518,6 +518,7 @@ Route::middleware('auth')->group(function () {
 
         // Production Orders
         Route::get('/orders-history', [\App\Http\Controllers\ProductionOrderController::class, 'history'])->name('orders.history');
+        Route::get('/orders-export', [\App\Http\Controllers\ProductionOrderController::class, 'export'])->name('orders.export');
         Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
         Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');
         Route::post('/orders/{order}/check-material', [\App\Http\Controllers\ProductionOrderController::class, 'checkMaterial'])->name('orders.check-material');
