@@ -835,9 +835,9 @@ class ProductionGciApiController extends Controller
         $date = request()->query('date', now()->toDateString());
         $activeWoCounts = ProductionOrder::query()
             ->selectRaw('machine_id, COUNT(*) as total')
-            ->whereDate('plan_date', $date)
+            ->whereDate('plan_date', '<=', $date)
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
-            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->whereNotIn('status', ['cancelled', 'finished', 'completed'])
             ->whereNotNull('machine_id')
             ->groupBy('machine_id')
             ->pluck('total', 'machine_id');
@@ -1095,8 +1095,8 @@ class ProductionGciApiController extends Controller
         $scope = strtolower(trim((string) $request->query('scope', 'open')));
         $statusFilter = strtolower(trim((string) $request->query('status', '')));
         $blockedStatuses = $this->bypassMaterialGateForWoStart()
-            ? ['cancelled', 'completed']
-            : ['material_hold', 'resource_hold', 'cancelled', 'completed'];
+            ? ['cancelled', 'finished', 'completed']
+            : ['material_hold', 'resource_hold', 'cancelled', 'finished', 'completed'];
         $historyStatusMap = [
             'done' => ['finished', 'completed'],
             'cancelled' => ['cancelled'],
@@ -1107,10 +1107,11 @@ class ProductionGciApiController extends Controller
             'completed' => ['completed'],
         ];
 
-        $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
-            ->whereDate('plan_date', $date);
+        $query = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code']);
 
         if ($scope === 'history') {
+            $query->whereDate('plan_date', $date);
+
             if (isset($historyStatusMap[$statusFilter])) {
                 $query->whereIn('status', $historyStatusMap[$statusFilter]);
             } else {
@@ -1121,7 +1122,8 @@ class ProductionGciApiController extends Controller
                 });
             }
         } else {
-            $query->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
+            $query->whereDate('plan_date', '<=', $date)
+                ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
                 ->whereNotIn('status', $blockedStatuses);
         }
 
@@ -1187,9 +1189,9 @@ class ProductionGciApiController extends Controller
 
         $ordersQuery = ProductionOrder::with(['part:id,part_no,part_name,model', 'machine:id,name,code'])
             ->where('machine_id', (int) $id)
-            ->whereDate('plan_date', $date)
+            ->whereDate('plan_date', '<=', $date)
             ->whereNotIn('workflow_stage', self::CLOSED_EXECUTION_STAGES)
-            ->whereNotIn('status', ['cancelled', 'completed']);
+            ->whereNotIn('status', ['cancelled', 'finished', 'completed']);
 
         if ($request->has('shift')) {
             $shiftInput = $request->query('shift');
