@@ -1524,6 +1524,19 @@ class ProductionGciApiController extends Controller
             || ($machine->code && $stepNames->contains(Str::lower(trim((string) $machine->code))));
     }
 
+    private function routingStepHasMachineMapping(array $step): bool
+    {
+        $stepMachineId = (int) ($step['recommended_machine_id'] ?? $step['machine_id'] ?? 0);
+        if ($stepMachineId > 0) {
+            return true;
+        }
+
+        return collect([
+            $step['recommended_machine_name'] ?? null,
+            $step['machine_name'] ?? null,
+        ])->filter(fn ($value) => trim((string) $value) !== '')->isNotEmpty();
+    }
+
     private function orderMatchesMachineContext(ProductionOrder $order, int $machineId): bool
     {
         if (in_array((string) $order->status, ['in_production', 'paused'], true) && (int) ($order->machine_id ?? 0) > 0) {
@@ -1621,6 +1634,10 @@ class ProductionGciApiController extends Controller
     {
         $step = $this->resolveRoutingStepForProcess($order, $processName);
         if (!$step) {
+            return;
+        }
+
+        if (!$this->routingStepHasMachineMapping($step)) {
             return;
         }
 
@@ -1781,13 +1798,15 @@ class ProductionGciApiController extends Controller
                 'source_wip_process_name' => $validated['source_wip_process_name'] ?? null,
             ];
             $normalizedOrderShift = $this->normalizeShiftNumber($validated['shift'] ?? null);
+            $activityShift = $normalizedOrderShift !== null ? (string) $normalizedOrderShift : ($order->shift ?: null);
+            $processNameForSave = Str::substr($processName !== '' ? $processName : (string) ($order->process_name ?? ''), 0, 255);
 
             $updatePayload = [
                 'status' => 'in_production',
                 'workflow_stage' => 'mass_production',
                 'start_time' => $order->start_time ?? now(),
                 'machine_id' => $actualMachineId,
-                'process_name' => $processName !== '' ? $processName : $order->process_name,
+                'process_name' => $processNameForSave !== '' ? $processNameForSave : null,
             ];
 
             if (Schema::hasColumn('production_orders', 'machine_name')) {
@@ -1801,10 +1820,10 @@ class ProductionGciApiController extends Controller
             if ($order->status === 'in_production') {
                 $order->update($updatePayload);
                 $this->recordProductionActivity($order->fresh(), 'activity_switched', [
-                    'process_name' => $processName,
+                    'process_name' => $processNameForSave,
                     'machine_id' => $actualMachineId,
                     'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
-                    'shift' => $validated['shift'] ?? $order->shift,
+                    'shift' => $activityShift,
                     'operator_name' => $validated['operator_name'] ?? null,
                     'meta' => array_merge(['source' => 'apk_start_while_running'], $startSourceMeta),
                 ]);
@@ -1814,7 +1833,7 @@ class ProductionGciApiController extends Controller
                     'workflow_stage' => 'mass_production',
                     'machine_id' => $actualMachineId,
                     'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
-                    'process_name' => $processName,
+                    'process_name' => $processNameForSave,
                     ...$startSourceMeta,
                 ]);
 
@@ -1827,10 +1846,10 @@ class ProductionGciApiController extends Controller
 
             $order->update($updatePayload);
             $this->recordProductionActivity($order->fresh(), 'started', [
-                'process_name' => $processName,
+                'process_name' => $processNameForSave,
                 'machine_id' => $actualMachineId,
                 'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
-                'shift' => $validated['shift'] ?? $order->shift,
+                'shift' => $activityShift,
                 'operator_name' => $validated['operator_name'] ?? null,
                 'meta' => array_merge(['source' => 'apk_start'], $startSourceMeta),
             ]);
@@ -1840,7 +1859,7 @@ class ProductionGciApiController extends Controller
                 'workflow_stage' => 'mass_production',
                 'machine_id' => $actualMachineId,
                 'machine_name' => $actualMachine?->name ?? ($validated['machine_name'] ?? null),
-                'process_name' => $processName,
+                'process_name' => $processNameForSave,
                 ...$startSourceMeta,
             ]);
 
