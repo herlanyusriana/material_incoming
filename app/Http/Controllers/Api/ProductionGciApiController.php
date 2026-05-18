@@ -2338,7 +2338,7 @@ class ProductionGciApiController extends Controller
             $toMachineName = $toMachine?->name
                 ?? ($validated['to_machine_name'] ?? null)
                 ?? ($nextStep['recommended_machine_name'] ?? $nextStep['machine_name'] ?? null);
-            $subconOrder = null;
+            $subconHandover = null;
 
             $updatePayload['status'] = 'released';
             $updatePayload['process_name'] = $toProcessName;
@@ -2364,16 +2364,28 @@ class ProductionGciApiController extends Controller
                 $resolvedOutputPartName,
                 $validated,
                 $operatorName,
-                &$subconOrder
+                $operatorUsername,
+                &$subconHandover
             ) {
                 if ((bool) ($nextStep['is_subcon'] ?? false)) {
-                    $subconOrder = $this->ensureSubconOrderForHandover(
+                    $subconHandover = $this->ensureSubconOrderForHandover(
                         $order,
                         $currentStep,
                         $nextStep,
                         $resolvedOutputPartNo,
                         $resolvedOutputPartName
                     );
+                }
+                $subconOrder = $subconHandover['order'] ?? null;
+                if ((float) ($subconHandover['unsent_qty'] ?? 0) > 0) {
+                    $updatePayload['status'] = 'paused';
+                    $updatePayload['process_name'] = $updatePayload['last_handover_from_process'] ?? $order->process_name;
+                    $updatePayload['machine_id'] = $fromMachineId > 0 ? $fromMachineId : $order->machine_id;
+                    $this->applyActiveOperatorLock($updatePayload, $operatorName, operatorUsername: $operatorUsername);
+
+                    if (Schema::hasColumn('production_orders', 'machine_name')) {
+                        $updatePayload['machine_name'] = $fromMachineName;
+                    }
                 }
 
                 $order->update($updatePayload);
@@ -2394,9 +2406,15 @@ class ProductionGciApiController extends Controller
                         'to_machine_name' => $toMachineName,
                         'subcon_order_id' => $subconOrder?->id,
                         'subcon_order_no' => $subconOrder?->order_no,
+                        'subcon_requested_qty' => $subconHandover['requested_qty'] ?? null,
+                        'subcon_sent_qty' => $subconHandover['sent_qty'] ?? null,
+                        'subcon_unsent_qty' => $subconHandover['unsent_qty'] ?? null,
                     ],
                 ]);
             });
+
+            $subconOrder = $subconHandover['order'] ?? null;
+            $subconUnsentQty = (float) ($subconHandover['unsent_qty'] ?? 0);
 
             $this->broadcastMonitoringUpdate('wo_handover_next', $order, meta: [
                 'from_process_name' => $updatePayload['last_handover_from_process'],
@@ -2406,11 +2424,16 @@ class ProductionGciApiController extends Controller
                 'output_type' => $outputType,
                 'output_part_no' => $resolvedOutputPartNo,
                 'subcon_order_no' => $subconOrder?->order_no,
+                'subcon_requested_qty' => $subconHandover['requested_qty'] ?? null,
+                'subcon_sent_qty' => $subconHandover['sent_qty'] ?? null,
+                'subcon_unsent_qty' => $subconUnsentQty > 0 ? $subconUnsentQty : null,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'WO berhasil diserahkan ke proses berikutnya.',
+                'message' => $subconUnsentQty > 0
+                    ? 'WO berhasil diserahkan sebagian ke proses berikutnya. Sisa ' . number_format($subconUnsentQty) . ' belum terkirim karena sisa kontrak tidak cukup.'
+                    : 'WO berhasil diserahkan ke proses berikutnya.',
                 'data' => [
                     'mode' => 'next',
                     'output_type' => $outputType,
@@ -2423,6 +2446,10 @@ class ProductionGciApiController extends Controller
                     'to_machine_name' => $toMachineName,
                     'subcon_order_id' => $subconOrder?->id,
                     'subcon_order_no' => $subconOrder?->order_no,
+                    'subcon_requested_qty' => $subconHandover['requested_qty'] ?? null,
+                    'subcon_sent_qty' => $subconHandover['sent_qty'] ?? null,
+                    'subcon_unsent_qty' => $subconUnsentQty > 0 ? $subconUnsentQty : 0,
+                    'needs_contract_follow_up' => $subconUnsentQty > 0,
                     'status' => $order->fresh()->status,
                 ],
             ]);
@@ -2483,7 +2510,7 @@ class ProductionGciApiController extends Controller
         array $nextStep,
         string $outputPartNo,
         string $outputPartName
-    ): SubconOrder {
+    ): array {
         $targetProcess = trim((string) ($nextStep['process_name'] ?? 'SUBCON'));
         $sourceProcess = trim((string) ($currentStep['process_name'] ?? $order->process_name ?? ''));
         $bomItemId = (int) ($nextStep['bom_item_id'] ?? 0);
@@ -2537,7 +2564,9 @@ class ProductionGciApiController extends Controller
             ]);
         }
 
-        $contractItem = $query->first();
+        $contractItems = $query->get();
+        $contractItem = $contractItems->first(fn ($item) => (float) $item->remaining_qty > 0)
+            ?? $contractItems->first();
 
         if (!$contractItem || !$contractItem->contractNumber) {
             abort(response()->json([
@@ -2551,9 +2580,15 @@ class ProductionGciApiController extends Controller
             ], 422));
         }
 
+        $requestedQty = $this->subconSendQtyForHandover($order, $currentStep);
+        if ($requestedQty <= 0) {
+            abort(response()->json([
+                'message' => 'Qty kirim subcon belum ada. Input hasil proses sebelumnya dulu sebelum kirim ke vendor.',
+            ], 422));
+        }
+
         $existingQuery = SubconOrder::query()
             ->where('status', '!=', 'cancelled')
-            ->where('contract_no', $contractItem->contractNumber->contract_no)
             ->where('rm_gci_part_id', $rmPart->id)
             ->where('gci_part_id', $returnPart->id)
             ->where('process_type', $contractItem->process_type);
@@ -2568,24 +2603,37 @@ class ProductionGciApiController extends Controller
             $existingQuery->where('bom_item_id', $bomItemId);
         }
 
-        if ($existing = $existingQuery->first()) {
-            return $existing;
+        $existingOrders = $existingQuery->get();
+        $alreadySentQty = (float) $existingOrders->sum(fn ($existing) => (float) ($existing->qty_sent ?? 0));
+        $pendingQty = max(0, round($requestedQty - $alreadySentQty, 4));
+
+        if ($pendingQty <= 0 && $existingOrders->isNotEmpty()) {
+            $existing = $existingOrders->sortByDesc('id')->first();
+
+            return [
+                'order' => $existing,
+                'requested_qty' => $requestedQty,
+                'already_sent_qty' => $alreadySentQty,
+                'sent_qty' => 0,
+                'unsent_qty' => 0,
+                'contract_remaining_qty' => (float) ($contractItem->remaining_qty ?? 0),
+                'reused_existing' => true,
+            ];
         }
 
-        $qtySent = $this->subconSendQtyForHandover($order, $currentStep);
-        if ($qtySent <= 0) {
+        $contractRemainingQty = (float) ($contractItem->remaining_qty ?? 0);
+        if ($contractRemainingQty <= 0) {
             abort(response()->json([
-                'message' => 'Qty kirim subcon belum ada. Input hasil proses sebelumnya dulu sebelum kirim ke vendor.',
+                'message' => 'Sisa kontrak untuk '
+                    . ($contractItem->contractNumber->contract_no ?? '-')
+                    . ' sudah habis. Buat / aktifkan kontrak baru untuk kirim sisa WIP '
+                    . number_format($pendingQty)
+                    . '.',
             ], 422));
         }
 
-        if ($qtySent > (float) $contractItem->remaining_qty) {
-            abort(response()->json([
-                'message' => 'Qty kirim subcon (' . number_format($qtySent) . ') melebihi sisa kontrak ('
-                    . number_format((float) $contractItem->remaining_qty) . ') untuk '
-                    . ($contractItem->contractNumber->contract_no ?? '-') . '.',
-            ], 422));
-        }
+        $qtySent = min($pendingQty, $contractRemainingQty);
+        $unsentQty = max(0, round($pendingQty - $qtySent, 4));
 
         $today = now()->format('Ymd');
         $lastOrder = SubconOrder::where('order_no', 'like', "SC-{$today}-%")
@@ -2616,7 +2664,10 @@ class ProductionGciApiController extends Controller
                 . ($sourceProcess ?: '-')
                 . ' | To: '
                 . ($targetProcess ?: 'SUBCON')
-                . ($outputPartName !== '' ? ' | Output: ' . $outputPartName : ''),
+                . ($outputPartName !== '' ? ' | Output: ' . $outputPartName : '')
+                . ($unsentQty > 0
+                    ? ' | Partial by contract limit: requested ' . number_format($pendingQty) . ', sent ' . number_format($qtySent) . ', pending ' . number_format($unsentQty)
+                    : ''),
             'status' => 'sent',
             'created_by' => auth()->id(),
             'send_location_code' => $sendLocation,
@@ -2657,7 +2708,15 @@ class ProductionGciApiController extends Controller
             (float) ($payload['weight_kgm'] ?? 0)
         );
 
-        return $subconOrder;
+        return [
+            'order' => $subconOrder,
+            'requested_qty' => $requestedQty,
+            'already_sent_qty' => $alreadySentQty,
+            'sent_qty' => $qtySent,
+            'unsent_qty' => $unsentQty,
+            'contract_remaining_qty' => $contractRemainingQty,
+            'reused_existing' => false,
+        ];
     }
 
     private function subconProcessTypeForMatch(string $processName, string $stationLabel): string
