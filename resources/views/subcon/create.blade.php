@@ -144,7 +144,7 @@
                                             <span class="text-indigo-600" x-text="`(${row.uom || 'PCS'})`"></span>
                                         </label>
                                         <input type="number"
-                                            step="0.0001"
+                                            step="1"
                                             min="0"
                                             :max="row.remaining_qty !== undefined ? row.remaining_qty : null"
                                             :name="`items[${index}][qty_sent]`"

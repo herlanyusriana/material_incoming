@@ -187,7 +187,7 @@
                 <div><strong>{{ $subconOrder->order_no }}</strong></div>
                 <div class="muted">RM: {{ $subconOrder->rmPart->part_no ?? '-' }} - {{ $subconOrder->rmPart->part_name ?? '-' }}</div>
                 <div class="muted">WIP Return: {{ $subconOrder->gciPart->part_no ?? '-' }} - {{ $subconOrder->gciPart->part_name ?? '-' }}</div>
-                <div class="muted">Qty Sent: {{ number_format((float) $subconOrder->qty_sent, 4) }}</div>
+                <div class="muted">Qty Sent: {{ number_format((float) $subconOrder->qty_sent) }}</div>
             </div>
         </div>
 

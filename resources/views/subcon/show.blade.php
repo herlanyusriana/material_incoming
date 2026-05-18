@@ -139,7 +139,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span></label>
-                            <input type="number" step="0.0001" min="0" name="qty_good" value="{{ old('qty_good') }}"
+                            <input type="number" step="1" min="0" name="qty_good" value="{{ old('qty_good') }}"
                                 class="w-full rounded-lg border-emerald-300 text-sm focus:border-emerald-500 focus:ring-emerald-500" required />
                         </div>
                         <div>
@@ -149,7 +149,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
-                            <input type="number" step="0.0001" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
+                            <input type="number" step="1" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
                                 class="w-full rounded-lg border-rose-300 text-sm focus:border-rose-500 focus:ring-rose-500" />
                             <div class="mt-1 text-xs font-semibold text-rose-600">NG akan mengurangi remain efektif kontrak/SKEP.</div>
                         </div>
@@ -284,7 +284,7 @@
                     <div class="text-right">
                         <div class="text-xs font-black uppercase tracking-wider text-rose-600">Total Reject</div>
                         <div class="text-xl font-black text-rose-800">
-                            {{ number_format((float) $subconOrder->qty_rejected, 4) }}
+                            {{ number_format((float) $subconOrder->qty_rejected) }}
                             <span class="text-xs">{{ $subconUom }}</span>
                         </div>
                     </div>
@@ -310,7 +310,7 @@
                                 <td class="px-4 py-3 text-slate-600">{{ $i + 1 }}</td>
                                 <td class="px-4 py-3 text-center text-slate-700">{{ $rec->received_date?->format('d/m/Y') ?? '-' }}</td>
                                 <td class="px-4 py-3 text-right font-mono font-black text-rose-700">
-                                    {{ number_format((float) $rec->qty_rejected, 4) }}
+                                    {{ number_format((float) $rec->qty_rejected) }}
                                     <span class="text-[10px]">{{ $subconUom }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono font-bold text-rose-600">

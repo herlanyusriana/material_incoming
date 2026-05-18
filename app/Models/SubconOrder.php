@@ -41,9 +41,9 @@ class SubconOrder extends Model
         'expected_return_date' => 'date',
         'received_date' => 'date',
         'sent_posted_at' => 'datetime',
-        'qty_sent' => 'decimal:4',
-        'qty_received' => 'decimal:4',
-        'qty_rejected' => 'decimal:4',
+        'qty_sent' => 'integer',
+        'qty_received' => 'integer',
+        'qty_rejected' => 'integer',
         'weight_kgm' => 'decimal:4',
     ];
 
@@ -89,6 +89,6 @@ class SubconOrder extends Model
 
     public function getQtyOutstandingAttribute(): float
     {
-        return (float) $this->qty_sent - (float) $this->qty_received - (float) $this->qty_rejected;
+        return (int) $this->qty_sent - (int) $this->qty_received - (int) $this->qty_rejected;
     }
 }

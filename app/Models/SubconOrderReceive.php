@@ -30,8 +30,8 @@ class SubconOrderReceive extends Model
         'received_date' => 'date',
         'posted_to_wh_at' => 'datetime',
         'reject_posted_to_wh_at' => 'datetime',
-        'qty_good' => 'decimal:4',
-        'qty_rejected' => 'decimal:4',
+        'qty_good' => 'integer',
+        'qty_rejected' => 'integer',
         'weight_kgm' => 'decimal:4',
         'weight_rejected_kgm' => 'decimal:4',
     ];

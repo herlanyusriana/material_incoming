@@ -281,7 +281,7 @@ class SubconController extends Controller
             'items.*.gci_part_id' => 'required|exists:gci_parts,id',
             'items.*.bom_item_id' => 'nullable|exists:bom_items,id',
             'items.*.process_type' => 'required|string|max:50',
-            'items.*.qty_sent' => 'required|numeric|min:0',
+            'items.*.qty_sent' => 'required|integer|min:0',
             'items.*.weight_kgm' => 'nullable|numeric|min:0',
             'items.*.send_location_code' => ['nullable', 'string', 'max:50', Rule::exists('warehouse_locations', 'location_code')],
         ]);
@@ -318,7 +318,8 @@ class SubconController extends Controller
                     ->first();
 
                 foreach ($validated['items'] as $item) {
-                    if ((float)$item['qty_sent'] <= 0) {
+                    $qtySent = (int) ($item['qty_sent'] ?? 0);
+                    if ($qtySent <= 0) {
                         continue;
                     }
                     $rmPart = GciPart::query()->findOrFail((int) $item['rm_gci_part_id']);
@@ -340,8 +341,8 @@ class SubconController extends Controller
                             throw new \RuntimeException('Part/Proses belum dipetakan (mapping) di dalam Kontrak No: ' . $contractNo);
                         }
                         
-                        if ((float)$item['qty_sent'] > $matchedItem->remaining_qty) {
-                            throw new \RuntimeException("Qty dikirim (" . $item['qty_sent'] . ") untuk RM " . ($rmPart->part_no ?? '-') . " melebihi sisa kontrak (" . $matchedItem->remaining_qty . ").");
+                        if ($qtySent > (int) floor((float) $matchedItem->remaining_qty)) {
+                            throw new \RuntimeException("Qty dikirim (" . number_format($qtySent) . ") untuk RM " . ($rmPart->part_no ?? '-') . " melebihi sisa kontrak (" . number_format((float) $matchedItem->remaining_qty) . ").");
                         }
                     }
 
@@ -354,7 +355,7 @@ class SubconController extends Controller
                         'gci_part_id' => $item['gci_part_id'],
                         'bom_item_id' => $item['bom_item_id'] ?? null,
                         'process_type' => $item['process_type'],
-                        'qty_sent' => $item['qty_sent'],
+                        'qty_sent' => $qtySent,
                         'sent_date' => $validated['sent_date'],
                         'expected_return_date' => $validated['expected_return_date'] ?? null,
                         'notes' => $validated['notes'] ?? null,
@@ -371,7 +372,7 @@ class SubconController extends Controller
                     LocationInventory::consumeStock(
                         null,
                         $resolvedSendLocation,
-                        (float) $item['qty_sent'],
+                        (float) $qtySent,
                         null,
                         (int) $item['rm_gci_part_id'],
                         'SUBCON_SEND',
@@ -450,8 +451,8 @@ class SubconController extends Controller
         }
 
         $validated = $request->validate([
-            'qty_good' => 'required|numeric|min:0',
-            'qty_rejected' => 'nullable|numeric|min:0',
+            'qty_good' => 'required|integer|min:0',
+            'qty_rejected' => 'nullable|integer|min:0',
             'weight_kgm' => 'nullable|numeric|min:0',
             'weight_rejected_kgm' => 'nullable|numeric|min:0',
             'received_date' => 'required|date',
@@ -462,8 +463,8 @@ class SubconController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $validated['qty_good'] = (float) ($validated['qty_good'] ?? 0);
-        $validated['qty_rejected'] = (float) ($validated['qty_rejected'] ?? 0);
+        $validated['qty_good'] = (int) ($validated['qty_good'] ?? 0);
+        $validated['qty_rejected'] = (int) ($validated['qty_rejected'] ?? 0);
 
         if ($validated['qty_good'] <= 0 && $validated['qty_rejected'] <= 0) {
             return back()->withInput()->with('error', 'Isi minimal Qty Good atau Qty Rejected lebih dari nol.');

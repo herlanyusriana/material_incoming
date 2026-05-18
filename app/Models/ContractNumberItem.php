@@ -20,8 +20,8 @@ class ContractNumberItem extends Model
     ];
 
     protected $casts = [
-        'target_qty' => 'decimal:4',
-        'warning_limit_qty' => 'decimal:4',
+        'target_qty' => 'integer',
+        'warning_limit_qty' => 'integer',
     ];
 
     public function contractNumber()
@@ -49,27 +49,27 @@ class ContractNumberItem extends Model
     public function getSentQtyAttribute()
     {
         // Calculate sent qty from SubconOrder
-        return SubconOrder::where('contract_no', $this->contractNumber?->contract_no)
+        return (int) round((float) SubconOrder::where('contract_no', $this->contractNumber?->contract_no)
             ->where('gci_part_id', $this->gci_part_id)
             ->where('rm_gci_part_id', $this->rm_gci_part_id)
             ->where('process_type', $this->process_type)
             // considering all status that deducted from WH (sent, partial, completed), not cancelled.
             ->whereIn('status', ['sent', 'partial', 'completed'])
-            ->sum('qty_sent');
+            ->sum('qty_sent'));
     }
 
     public function getRejectedQtyAttribute()
     {
-        return SubconOrder::where('contract_no', $this->contractNumber?->contract_no)
+        return (int) round((float) SubconOrder::where('contract_no', $this->contractNumber?->contract_no)
             ->where('gci_part_id', $this->gci_part_id)
             ->where('rm_gci_part_id', $this->rm_gci_part_id)
             ->where('process_type', $this->process_type)
             ->whereIn('status', ['sent', 'partial', 'completed'])
-            ->sum('qty_rejected');
+            ->sum('qty_rejected'));
     }
 
     public function getRemainingQtyAttribute()
     {
-        return max(0, (float) $this->target_qty - (float) $this->sent_qty - (float) $this->rejected_qty);
+        return max(0, (int) $this->target_qty - (int) $this->sent_qty - (int) $this->rejected_qty);
     }
 }

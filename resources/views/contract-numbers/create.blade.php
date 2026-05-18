@@ -44,7 +44,12 @@
                     </div>
                     <div class="lg:col-span-4">
                         <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi Kontrak</label>
-                        <input type="text" name="description" value="{{ old('description') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" placeholder="Contoh: Hardening & Plating Parts Q2">
+                        @php $description = old('description'); @endphp
+                        <select name="description" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                            <option value="">Pilih deskripsi</option>
+                            <option value="Hardening" @selected($description === 'Hardening')>Hardening</option>
+                            <option value="Plating" @selected($description === 'Plating')>Plating</option>
+                        </select>
                     </div>
                     <div>
                         <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From <span class="text-red-500">*</span></label>
@@ -95,11 +100,11 @@
                                         Target
                                         <span class="text-indigo-600" x-text="row.uom ? `(${row.uom})` : ''"></span>
                                     </label>
-                                    <input type="number" step="0.0001" min="0" :name="`items[${index}][target_qty]`" x-model="row.target_qty" class="mt-1 w-full rounded-lg border-slate-300 text-sm font-bold" required>
+                                    <input type="number" step="1" min="0" :name="`items[${index}][target_qty]`" x-model="row.target_qty" class="mt-1 w-full rounded-lg border-slate-300 text-sm font-bold" required>
                                 </div>
                                 <div class="col-span-6 lg:col-span-2">
                                     <label class="block text-[10px] font-bold uppercase text-slate-500">Alarm</label>
-                                    <input type="number" step="0.0001" min="0" :name="`items[${index}][warning_limit_qty]`" x-model="row.warning_limit_qty" class="mt-1 w-full rounded-lg border-slate-300 text-sm font-bold">
+                                    <input type="number" step="1" min="0" :name="`items[${index}][warning_limit_qty]`" x-model="row.warning_limit_qty" class="mt-1 w-full rounded-lg border-slate-300 text-sm font-bold">
                                 </div>
                                 <div class="col-span-12 flex items-end lg:col-span-1">
                                     <button type="button" x-show="rows.length > 1" @click="rows.splice(index, 1)" class="w-full rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">

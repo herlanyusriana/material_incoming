@@ -109,7 +109,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-xs font-bold text-slate-600">{{ $item->process_type ?: '-' }}</td>
                                     <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">{{ $uom }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-black text-slate-900">{{ number_format((float) $item->target_qty, 2) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-black text-slate-900">{{ number_format((float) $item->target_qty) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold text-blue-700">{{ number_format((float) $item->sent_qty, 2) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold {{ (float) $item->rejected_qty > 0 ? 'text-rose-700' : 'text-slate-400' }}">{{ number_format((float) $item->rejected_qty, 2) }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-black {{ $isAlarm ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($remaining, 2) }}</td>

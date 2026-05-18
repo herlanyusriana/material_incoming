@@ -2624,8 +2624,8 @@ class ProductionGciApiController extends Controller
         }
 
         $existingOrders = $existingQuery->get();
-        $alreadySentQty = (float) $existingOrders->sum(fn ($existing) => (float) ($existing->qty_sent ?? 0));
-        $pendingQty = max(0, round($requestedQty - $alreadySentQty, 4));
+        $alreadySentQty = (int) round((float) $existingOrders->sum(fn ($existing) => (float) ($existing->qty_sent ?? 0)));
+        $pendingQty = max(0, (int) round($requestedQty) - $alreadySentQty);
 
         if ($pendingQty <= 0 && $existingOrders->isNotEmpty()) {
             $existing = $existingOrders->sortByDesc('id')->first();
@@ -2641,7 +2641,7 @@ class ProductionGciApiController extends Controller
             ];
         }
 
-        $contractRemainingQty = (float) ($contractItem->remaining_qty ?? 0);
+        $contractRemainingQty = (int) floor((float) ($contractItem->remaining_qty ?? 0));
         if ($contractRemainingQty <= 0) {
             abort(response()->json([
                 'message' => 'Sisa kontrak untuk '
@@ -2653,7 +2653,7 @@ class ProductionGciApiController extends Controller
         }
 
         $qtySent = min($pendingQty, $contractRemainingQty);
-        $unsentQty = max(0, round($pendingQty - $qtySent, 4));
+        $unsentQty = max(0, $pendingQty - $qtySent);
 
         $today = now()->format('Ymd');
         $lastOrder = SubconOrder::where('order_no', 'like', "SC-{$today}-%")
@@ -2755,10 +2755,10 @@ class ProductionGciApiController extends Controller
         $actualOutput = (float) ($totals['actual'] ?? 0) + (float) ($totals['ng'] ?? 0);
 
         if ($actualOutput > 0 && ($target <= 0 || $actualOutput <= ceil($target * 1.1))) {
-            return round($actualOutput, 4);
+            return (float) max(0, (int) round($actualOutput));
         }
 
-        return round((float) ($target > 0 ? $target : ($order->qty_planned ?? 0)), 4);
+        return (float) max(0, (int) round((float) ($target > 0 ? $target : ($order->qty_planned ?? 0))));
     }
 
     /**
