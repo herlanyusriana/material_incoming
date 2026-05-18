@@ -842,7 +842,7 @@
                                         <td>
                                             {{ strtoupper($item->display_part_name ?? '') }}
                                             @if ($item->is_foc)
-                                                <span style="font-size:9px; font-weight:bold;"> FOC</span>
+                                                FOC
                                             @endif
                                         </td>
                                         <td class="ci-center">{{ $item->size ?? '' }}</td>
@@ -1132,7 +1132,7 @@
                                     <td>
                                         {{ strtoupper($item->display_part_name ?? '') }}
                                         @if ($item->is_foc)
-                                            <span style="font-size:9px; font-weight:bold;"> FOC</span>
+                                            FOC
                                         @endif
                                     </td>
                                     <td class="text-center" style="white-space:nowrap;">{{ $item->size ?? '' }}</td>
