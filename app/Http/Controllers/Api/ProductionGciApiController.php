@@ -1150,6 +1150,23 @@ class ProductionGciApiController extends Controller
             $processNgQty = $currentProcessTotals['ng'];
             $processRemainingQty = max(0, round($processTargetQty - $processActualQty, 4));
             $activeOperator = $this->activeOperatorForOrder($o);
+            $statusLabel = match ((string) $o->status) {
+                'in_production' => 'Sedang diproses',
+                'paused' => 'Pause / carry over',
+                'released', 'kanban_released' => 'Siap dikerjakan',
+                'material_hold' => 'Menunggu material',
+                'resource_hold' => 'Menunggu proses/mesin',
+                'finished', 'completed' => 'Selesai',
+                'cancelled' => 'Dibatalkan',
+                default => Str::headline((string) $o->status),
+            };
+            $processName = (string) ($o->process_name ?? '');
+            $processStatusLabel = trim($statusLabel
+                . ($processName !== '' ? ' di ' . $processName : '')
+                . ($activeOperator ? ' oleh ' . $activeOperator : ''));
+            $operatorLockState = $activeOperator
+                ? (in_array((string) $o->status, ['in_production', 'paused'], true) ? 'locked' : 'assigned')
+                : 'available';
 
             return [
                 'id' => (int) $o->id,
@@ -1175,6 +1192,9 @@ class ProductionGciApiController extends Controller
                 'assignee' => (string) ($activeOperator ?? 'Unassigned'),
                 'active_operator_name' => $activeOperator,
                 'active_operator_username' => $this->activeOperatorUsernameForOrder($o),
+                'operator_lock_state' => $operatorLockState,
+                'status_label' => $statusLabel,
+                'process_status_label' => $processStatusLabel,
                 'active_operator_started_at' => Schema::hasColumn('production_orders', 'active_operator_started_at') && $o->active_operator_started_at
                     ? (string) $o->active_operator_started_at
                     : null,
