@@ -25,8 +25,13 @@ class ArrivalItem extends Model
         'weight_gross',
         'price',
         'total_price',
+        'is_foc',
         'notes',
         'purchase_order_item_id',
+    ];
+
+    protected $casts = [
+        'is_foc' => 'boolean',
     ];
 
     public function arrival()

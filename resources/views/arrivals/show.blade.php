@@ -480,7 +480,12 @@
 	                                @endphp
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-4 py-4 text-slate-800 whitespace-nowrap">
-                                        <div class="font-semibold">{{ $item->display_part_name }}</div>
+                                        <div class="font-semibold">
+                                            {{ $item->display_part_name }}
+                                            @if ($item->is_foc)
+                                                <span class="ml-1 inline-flex align-middle items-center rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-sky-200">FOC</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-4 py-4 text-slate-700 font-mono text-xs whitespace-nowrap">{{ $item->size ?? '-' }}</td>
                                     <td class="px-4 py-4 text-slate-700 whitespace-nowrap">{{ $item->qty_bundle }}</td>

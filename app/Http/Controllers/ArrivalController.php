@@ -827,6 +827,7 @@ class ArrivalController extends Controller
             'weight_nett' => ['required', 'numeric', 'min:0'],
             'weight_gross' => ['required', 'numeric', 'min:0'],
             'total_amount' => ['required', 'numeric', 'min:0'],
+            'is_foc' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -882,6 +883,7 @@ class ArrivalController extends Controller
             'weight_gross' => $normalizedGross,
             'price' => $price,
             'total_price' => $totalPrice,
+            'is_foc' => $request->boolean('is_foc'),
             'notes' => $data['notes'] ?? null,
         ]);
 
@@ -926,6 +928,7 @@ class ArrivalController extends Controller
             'weight_nett' => ['required', 'numeric', 'min:0'],
             'weight_gross' => ['required', 'numeric', 'min:0'],
             'total_amount' => ['required', 'numeric', 'min:0'],
+            'is_foc' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -953,7 +956,7 @@ class ArrivalController extends Controller
 
         $price = $this->formatMilli($priceMilli);
 
-        DB::transaction(function () use ($arrivalItem, $data, $qtyGoods, $normalizedNett, $normalizedGross, $totalPrice, $price) {
+        DB::transaction(function () use ($arrivalItem, $data, $request, $qtyGoods, $normalizedNett, $normalizedGross, $totalPrice, $price) {
             $beforeQty = $this->getIncomingOrderQty($arrivalItem->unit_goods, $arrivalItem->qty_goods, $arrivalItem->weight_nett);
 
             $arrivalItem->update([
@@ -968,6 +971,7 @@ class ArrivalController extends Controller
                 'weight_gross' => $normalizedGross,
                 'total_price' => $totalPrice,
                 'price' => $price,
+                'is_foc' => $request->boolean('is_foc'),
                 'notes' => $data['notes'] ?? null,
             ]);
 

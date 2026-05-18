@@ -138,6 +138,14 @@
                     </div>
 
                     <div>
+                        <label class="inline-flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <input type="hidden" name="is_foc" value="0">
+                            <input type="checkbox" name="is_foc" value="1" @checked(old('is_foc', $item->is_foc)) class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm font-medium text-slate-700">Label FOC</span>
+                        </label>
+                    </div>
+
+                    <div>
                         <label for="notes" class="text-sm font-medium text-slate-700">Notes</label>
                         <textarea id="notes" name="notes" rows="3" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">{{ old('notes', $item->notes) }}</textarea>
                     </div>

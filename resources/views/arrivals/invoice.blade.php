@@ -839,7 +839,12 @@
                                             : '-';
                                     @endphp
                                     <tr>
-                                        <td>{{ strtoupper($item->display_part_name ?? '') }}</td>
+                                        <td>
+                                            {{ strtoupper($item->display_part_name ?? '') }}
+                                            @if ($item->is_foc)
+                                                <span style="font-size:9px; font-weight:bold;"> FOC</span>
+                                            @endif
+                                        </td>
                                         <td class="ci-center">{{ $item->size ?? '' }}</td>
                                         <td class="ci-center" style="white-space:nowrap;">{{ $qtyText }}</td>
                                         <td class="ci-center" style="white-space:nowrap;">{{ $nettText }}</td>
@@ -1124,7 +1129,12 @@
                             {{-- Item rows --}}
                             @foreach($items as $item)
                                 <tr>
-                                    <td>{{ strtoupper($item->display_part_name ?? '') }}</td>
+                                    <td>
+                                        {{ strtoupper($item->display_part_name ?? '') }}
+                                        @if ($item->is_foc)
+                                            <span style="font-size:9px; font-weight:bold;"> FOC</span>
+                                        @endif
+                                    </td>
                                     <td class="text-center" style="white-space:nowrap;">{{ $item->size ?? '' }}</td>
                                     @php
                                         $packageText = (($item->qty_bundle ?? 0) > 0)
