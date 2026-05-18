@@ -55,15 +55,52 @@ class ProductionGciApiController extends Controller
     private function normalizeOperatorName(?string $operatorName): ?string
     {
         $name = trim((string) $operatorName);
+        $name = preg_replace('/\s+/', ' ', $name);
         return $name === '' ? null : $name;
+    }
+
+    private function normalizeOperatorUsername(?string $operatorUsername): ?string
+    {
+        $username = trim((string) $operatorUsername);
+        $username = preg_replace('/\s+/', '', $username);
+
+        return $username === '' ? null : Str::lower($username);
+    }
+
+    private function operatorNameFromPayload(array $payload): ?string
+    {
+        return $this->normalizeOperatorName(
+            $payload['operator_name']
+            ?? $payload['operator_username']
+            ?? $payload['username']
+            ?? null
+        );
+    }
+
+    private function operatorUsernameFromPayload(array $payload): ?string
+    {
+        return $this->normalizeOperatorUsername(
+            $payload['operator_username']
+            ?? $payload['username']
+            ?? null
+        );
     }
 
     private function operatorsMatch(?string $left, ?string $right): bool
     {
-        $leftName = Str::lower(trim((string) $left));
-        $rightName = Str::lower(trim((string) $right));
+        $leftName = Str::lower((string) $this->normalizeOperatorName($left));
+        $rightName = Str::lower((string) $this->normalizeOperatorName($right));
 
         return $leftName !== '' && $rightName !== '' && $leftName === $rightName;
+    }
+
+    private function activeOperatorUsernameForOrder(ProductionOrder $order): ?string
+    {
+        if (!Schema::hasColumn('production_orders', 'active_operator_username')) {
+            return null;
+        }
+
+        return $this->normalizeOperatorUsername($order->active_operator_username ?? null);
     }
 
     private function activeOperatorForOrder(ProductionOrder $order): ?string
@@ -89,24 +126,50 @@ class ProductionGciApiController extends Controller
         return $this->normalizeOperatorName($latestActivity?->operator_name);
     }
 
-    private function assertOrderAvailableForOperator(ProductionOrder $order, ?string $operatorName): void
+    private function assertOrderAvailableForOperator(ProductionOrder $order, ?string $operatorName, ?string $operatorUsername = null): void
     {
         if (!in_array((string) $order->status, ['in_production', 'paused'], true)) {
             return;
         }
 
         $activeOperator = $this->activeOperatorForOrder($order);
+        $activeUsername = $this->activeOperatorUsernameForOrder($order);
+        $operatorUsername = $this->normalizeOperatorUsername($operatorUsername);
+
+        if ($activeUsername !== null && $operatorUsername !== null && $activeUsername === $operatorUsername) {
+            return;
+        }
+
         if ($activeOperator === null || $this->operatorsMatch($activeOperator, $operatorName)) {
+            return;
+        }
+
+        if ($this->operatorsMatch($activeOperator, $operatorUsername)) {
             return;
         }
 
         abort(response()->json([
             'message' => "WO sedang diproses oleh {$activeOperator}. Selesaikan atau handover dulu sebelum operator lain membuka WO ini.",
             'locked_by' => $activeOperator,
+            'locked_by_username' => $activeUsername,
         ], 423));
     }
 
-    private function applyActiveOperatorLock(array &$payload, ?string $operatorName, bool $clear = false): void
+    private function operatorNameOrActiveLock(ProductionOrder $order, ?string $operatorName): ?string
+    {
+        $name = $this->normalizeOperatorName($operatorName);
+
+        return $name ?? $this->activeOperatorForOrder($order);
+    }
+
+    private function operatorUsernameOrActiveLock(ProductionOrder $order, ?string $operatorUsername): ?string
+    {
+        $username = $this->normalizeOperatorUsername($operatorUsername);
+
+        return $username ?? $this->activeOperatorUsernameForOrder($order);
+    }
+
+    private function applyActiveOperatorLock(array &$payload, ?string $operatorName, bool $clear = false, ?string $operatorUsername = null): void
     {
         if (!Schema::hasColumn('production_orders', 'active_operator_name')) {
             return;
@@ -114,6 +177,9 @@ class ProductionGciApiController extends Controller
 
         if ($clear) {
             $payload['active_operator_name'] = null;
+            if (Schema::hasColumn('production_orders', 'active_operator_username')) {
+                $payload['active_operator_username'] = null;
+            }
             if (Schema::hasColumn('production_orders', 'active_operator_started_at')) {
                 $payload['active_operator_started_at'] = null;
             }
@@ -126,6 +192,10 @@ class ProductionGciApiController extends Controller
         }
 
         $payload['active_operator_name'] = $name;
+        if (Schema::hasColumn('production_orders', 'active_operator_username')) {
+            $username = $this->normalizeOperatorUsername($operatorUsername ?? $operatorName);
+            $payload['active_operator_username'] = $username;
+        }
         if (Schema::hasColumn('production_orders', 'active_operator_started_at')) {
             $payload['active_operator_started_at'] = now();
         }
@@ -1104,6 +1174,7 @@ class ProductionGciApiController extends Controller
                 'progress_percent' => $progressPercent,
                 'assignee' => (string) ($activeOperator ?? 'Unassigned'),
                 'active_operator_name' => $activeOperator,
+                'active_operator_username' => $this->activeOperatorUsernameForOrder($o),
                 'active_operator_started_at' => Schema::hasColumn('production_orders', 'active_operator_started_at') && $o->active_operator_started_at
                     ? (string) $o->active_operator_started_at
                     : null,
@@ -1805,6 +1876,8 @@ class ProductionGciApiController extends Controller
                 'machine_name' => 'nullable|string|max:255',
                 'process_name' => 'nullable|string|max:255',
                 'operator_name' => 'nullable|string|max:255',
+                'operator_username' => 'nullable|string|max:255',
+                'username' => 'nullable|string|max:255',
                 'shift' => 'nullable|string|max:50',
                 'start_source' => 'nullable|string|in:rm,wip',
                 'source_wip_part_no' => 'nullable|string|max:255',
@@ -1818,8 +1891,9 @@ class ProductionGciApiController extends Controller
                     'message' => 'Pilih mesin aktual terlebih dahulu sebelum start WO.'
                 ], 422);
             }
-            $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
-            $this->assertOrderAvailableForOperator($order, $operatorName);
+            $operatorName = $this->operatorNameFromPayload($validated);
+            $operatorUsername = $this->operatorUsernameFromPayload($validated);
+            $this->assertOrderAvailableForOperator($order, $operatorName, $operatorUsername);
 
             $actualMachine = Machine::find($actualMachineId);
 
@@ -1902,7 +1976,7 @@ class ProductionGciApiController extends Controller
             if ($normalizedOrderShift !== null) {
                 $updatePayload['shift'] = $normalizedOrderShift;
             }
-            $this->applyActiveOperatorLock($updatePayload, $operatorName);
+            $this->applyActiveOperatorLock($updatePayload, $operatorName, operatorUsername: $operatorUsername);
 
             if ($order->status === 'in_production') {
                 $order->update($updatePayload);
@@ -2002,10 +2076,13 @@ class ProductionGciApiController extends Controller
             'reason' => 'required|string|max:255',
             'notes' => 'nullable|string',
             'operator_name' => 'nullable|string|max:255',
+            'operator_username' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
         ]);
-        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
-        $this->assertOrderAvailableForOperator($order, $operatorName);
+        $operatorName = $this->operatorNameOrActiveLock($order, $this->operatorNameFromPayload($validated));
+        $operatorUsername = $this->operatorUsernameOrActiveLock($order, $this->operatorUsernameFromPayload($validated));
+        $this->assertOrderAvailableForOperator($order, $operatorName, $operatorUsername);
 
         $pausedAt = now();
 
@@ -2013,7 +2090,7 @@ class ProductionGciApiController extends Controller
             'status' => 'paused',
             'workflow_stage' => 'mass_production',
         ];
-        $this->applyActiveOperatorLock($pausePayload, $operatorName);
+        $this->applyActiveOperatorLock($pausePayload, $operatorName, operatorUsername: $operatorUsername);
         $order->update($pausePayload);
 
         ProductionGciDowntime::create([
@@ -2058,10 +2135,13 @@ class ProductionGciApiController extends Controller
         $order = ProductionOrder::findOrFail($id);
         $validated = $request->validate([
             'operator_name' => 'nullable|string|max:255',
+            'operator_username' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
         ]);
-        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
-        $this->assertOrderAvailableForOperator($order, $operatorName);
+        $operatorName = $this->operatorNameOrActiveLock($order, $this->operatorNameFromPayload($validated));
+        $operatorUsername = $this->operatorUsernameOrActiveLock($order, $this->operatorUsernameFromPayload($validated));
+        $this->assertOrderAvailableForOperator($order, $operatorName, $operatorUsername);
 
         if ($order->status === 'in_production') {
             return response()->json(['message' => 'WO sudah running', 'data' => $order], 200);
@@ -2087,7 +2167,7 @@ class ProductionGciApiController extends Controller
             'status' => 'in_production',
             'workflow_stage' => 'mass_production',
         ];
-        $this->applyActiveOperatorLock($updatePayload, $operatorName);
+        $this->applyActiveOperatorLock($updatePayload, $operatorName, operatorUsername: $operatorUsername);
         $order->update($updatePayload);
         $this->recordProductionActivity($order->fresh(), 'resumed', [
             'shift' => $validated['shift'] ?? $order->shift,
@@ -2119,9 +2199,12 @@ class ProductionGciApiController extends Controller
             'output_part_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
             'operator_name' => 'nullable|string|max:255',
+            'operator_username' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
         ]);
-        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
-        $this->assertOrderAvailableForOperator($order, $operatorName);
+        $operatorName = $this->operatorNameOrActiveLock($order, $this->operatorNameFromPayload($validated));
+        $operatorUsername = $this->operatorUsernameOrActiveLock($order, $this->operatorUsernameFromPayload($validated));
+        $this->assertOrderAvailableForOperator($order, $operatorName, $operatorUsername);
 
         $mode = strtolower((string) $validated['handover_mode']);
         $outputType = strtolower((string) ($validated['output_type'] ?? 'wip'));
@@ -2350,7 +2433,7 @@ class ProductionGciApiController extends Controller
             ?? $currentStep['process_name']
             ?? $order->process_name;
         $updatePayload['machine_id'] = $fromMachineId > 0 ? $fromMachineId : $order->machine_id;
-        $this->applyActiveOperatorLock($updatePayload, $operatorName);
+        $this->applyActiveOperatorLock($updatePayload, $operatorName, operatorUsername: $operatorUsername);
 
         if (Schema::hasColumn('production_orders', 'machine_name')) {
             $updatePayload['machine_name'] = $fromMachineName;
@@ -2614,9 +2697,12 @@ class ProductionGciApiController extends Controller
             'qty_actual' => 'nullable|numeric|min:0',
             'qty_ng' => 'nullable|numeric|min:0',
             'operator_name' => 'nullable|string|max:255',
+            'operator_username' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
         ]);
-        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
-        $this->assertOrderAvailableForOperator($order, $operatorName);
+        $operatorName = $this->operatorNameOrActiveLock($order, $this->operatorNameFromPayload($validated));
+        $operatorUsername = $this->operatorUsernameOrActiveLock($order, $this->operatorUsernameFromPayload($validated));
+        $this->assertOrderAvailableForOperator($order, $operatorName, $operatorUsername);
 
         if ($order->status === 'paused' && $activePause = $this->findActivePauseDowntime($order)) {
             $finishedAt = now();
@@ -2735,9 +2821,12 @@ class ProductionGciApiController extends Controller
             'reason' => 'required|string|max:255',
             'notes' => 'nullable|string|max:500',
             'operator_name' => 'nullable|string|max:255',
+            'operator_username' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
         ]);
-        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
-        $this->assertOrderAvailableForOperator($order, $operatorName);
+        $operatorName = $this->operatorNameOrActiveLock($order, $this->operatorNameFromPayload($validated));
+        $operatorUsername = $this->operatorUsernameOrActiveLock($order, $this->operatorUsernameFromPayload($validated));
+        $this->assertOrderAvailableForOperator($order, $operatorName, $operatorUsername);
 
         // Close any active pause downtime
         if ($order->status === 'paused' && $activePause = $this->findActivePauseDowntime($order)) {
@@ -3078,6 +3167,8 @@ class ProductionGciApiController extends Controller
             'ng_rework' => 'nullable|integer|min:0',
             'ng_hold' => 'nullable|integer|min:0',
             'operator_name' => 'nullable|string|max:255',
+            'operator_username' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
             'shift' => 'nullable|string|max:50',
             'machine_id' => 'nullable|integer|exists:machines,id',
             'actual_machine_id' => 'nullable|integer|exists:machines,id',
@@ -3087,8 +3178,9 @@ class ProductionGciApiController extends Controller
             'output_part_no' => 'nullable|string|max:255',
             'output_part_name' => 'nullable|string|max:255',
         ]);
-        $operatorName = $this->normalizeOperatorName($validated['operator_name'] ?? null);
-        $this->assertOrderAvailableForOperator($order, $operatorName);
+        $operatorName = $this->operatorNameOrActiveLock($order, $this->operatorNameFromPayload($validated));
+        $operatorUsername = $this->operatorUsernameOrActiveLock($order, $this->operatorUsernameFromPayload($validated));
+        $this->assertOrderAvailableForOperator($order, $operatorName, $operatorUsername);
 
         $actualMachineId = (int) ($validated['actual_machine_id'] ?? $validated['machine_id'] ?? $order->machine_id ?? 0);
         if ($actualMachineId <= 0) {
@@ -3213,7 +3305,7 @@ class ProductionGciApiController extends Controller
         if (Schema::hasColumn('production_orders', 'machine_name')) {
             $orderUpdatePayload['machine_name'] = $actualMachineName;
         }
-        $this->applyActiveOperatorLock($orderUpdatePayload, $operatorName);
+        $this->applyActiveOperatorLock($orderUpdatePayload, $operatorName, operatorUsername: $operatorUsername);
 
         $order->update($orderUpdatePayload);
 
