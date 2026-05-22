@@ -18,6 +18,7 @@ use App\Http\Controllers\Outgoing\OspController;
 use App\Http\Controllers\Outgoing\PickingFgController;
 use App\Http\Controllers\Outgoing\OutgoingPoController;
 use App\Http\Controllers\SubconController;
+use App\Http\Controllers\SubcountController;
 use App\Http\Controllers\TruckingController;
 use App\Http\Controllers\LogisticsDashboardController;
 use App\Http\Controllers\WarehousePutawayController;
@@ -62,6 +63,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/parts/search', [PartController::class, 'search'])->name('parts.search');
     Route::get('/api/gci-parts/search', [PlanningGciPartController::class, 'search'])->name('gci-parts.search');
     Route::get('/api/gci-parts/{gciPart}/bom-info', [PlanningGciPartController::class, 'getBomInfo'])->name('gci-parts.bom-info');
+
+    Route::get('/subcounts', [SubcountController::class, 'index'])->name('subcounts.index');
+    Route::get('/subcounts/{subcount}', [SubcountController::class, 'show'])->name('subcounts.show');
 
     // Traceability suggest endpoints (FIFO)
     Route::get('/api/suggest-arrivals/{gciPartId}', function (int $gciPartId) {

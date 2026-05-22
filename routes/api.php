@@ -4,11 +4,13 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContainerInspectionController;
 use App\Http\Controllers\Api\InspectionController;
 use App\Http\Controllers\Api\OutgoingPickingController;
+use App\Http\Controllers\Api\SubcountApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
 Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'sync']);
+Route::post('/subcounts', [SubcountApiController::class, 'store']);
 Route::get('/production-gci/machines', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machines']);
 Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrders']);
 Route::get('/production-gci/machines/{id}/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineWorkOrders']);
