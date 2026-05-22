@@ -444,6 +444,128 @@ class SubconController extends Controller
         return view('subcon.print_receive_pl', compact('subconOrderReceive'));
     }
 
+    public function contractReceive(Request $request)
+    {
+        $validated = $request->validate([
+            'contract_no' => ['required', 'string', 'max:100'],
+            'vendor_id' => ['nullable', 'integer'],
+        ]);
+
+        $orders = $this->contractOutstandingQuery($validated['contract_no'], $validated['vendor_id'] ?? null)
+            ->orderBy('sent_date')
+            ->orderBy('order_no')
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return redirect()->route('subcon.receive-index')->with('error', 'Tidak ada item outstanding untuk kontrak tersebut.');
+        }
+
+        $contractNo = $validated['contract_no'];
+        $vendorId = $validated['vendor_id'] ?? null;
+        $vendor = $orders->first()->vendor;
+
+        return view('subcon.contract_receive', compact('orders', 'contractNo', 'vendorId', 'vendor'));
+    }
+
+    public function storeContractReceive(Request $request)
+    {
+        $validated = $request->validate([
+            'contract_no' => ['required', 'string', 'max:100'],
+            'vendor_id' => ['nullable', 'integer'],
+            'received_date' => ['required', 'date'],
+            'receive_location_code' => ['nullable', 'string', 'max:50'],
+            'reject_location_code' => ['nullable', 'string', 'max:50'],
+            'sj_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'invoice_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'items' => ['required', 'array'],
+            'items.*.subcon_order_id' => ['required', 'integer', 'exists:subcon_orders,id'],
+            'items.*.qty_good' => ['nullable', 'integer', 'min:0'],
+            'items.*.qty_rejected' => ['nullable', 'integer', 'min:0'],
+            'items.*.weight_kgm' => ['nullable', 'numeric', 'min:0'],
+            'items.*.weight_rejected_kgm' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $items = collect($validated['items'])
+            ->map(function ($item) {
+                $item['qty_good'] = (int) ($item['qty_good'] ?? 0);
+                $item['qty_rejected'] = (int) ($item['qty_rejected'] ?? 0);
+                return $item;
+            })
+            ->filter(fn ($item) => $item['qty_good'] > 0 || $item['qty_rejected'] > 0)
+            ->values();
+
+        if ($items->isEmpty()) {
+            return back()->withInput()->with('error', 'Isi minimal satu item dengan Qty Good atau Qty Rejected lebih dari nol.');
+        }
+
+        $allowedOrders = $this->contractOutstandingQuery($validated['contract_no'], $validated['vendor_id'] ?? null)
+            ->whereIn('id', $items->pluck('subcon_order_id')->all())
+            ->get()
+            ->keyBy('id');
+
+        if ($allowedOrders->count() !== $items->count()) {
+            return back()->withInput()->with('error', 'Ada item yang tidak valid atau sudah tidak outstanding.');
+        }
+
+        foreach ($items as $item) {
+            $order = $allowedOrders->get((int) $item['subcon_order_id']);
+            $qtyTotal = (int) $item['qty_good'] + (int) $item['qty_rejected'];
+
+            if ($qtyTotal > (int) $order->qty_outstanding) {
+                return back()->withInput()->with('error', "Qty receive {$order->order_no} melebihi outstanding.");
+            }
+        }
+
+        $common = [
+            'received_date' => $validated['received_date'],
+            'receive_location_code' => strtoupper(trim((string) ($validated['receive_location_code'] ?? ''))) ?: 'WIP-BYPASS',
+            'reject_location_code' => strtoupper(trim((string) ($validated['reject_location_code'] ?? ''))) ?: 'WIP-REJECT',
+            'notes' => $validated['notes'] ?? null,
+            'created_by' => Auth::id(),
+        ];
+
+        if ($request->hasFile('sj_file')) {
+            $common['sj_file_path'] = $request->file('sj_file')->store('subcon_docs', 'public');
+        }
+        if ($request->hasFile('invoice_file')) {
+            $common['invoice_file_path'] = $request->file('invoice_file')->store('subcon_docs', 'public');
+        }
+
+        $productionMessages = [];
+
+        DB::transaction(function () use ($items, $allowedOrders, $common, &$productionMessages) {
+            foreach ($items as $item) {
+                $order = $allowedOrders->get((int) $item['subcon_order_id']);
+                $netWeight = (float) ($order->rmPart?->net_weight ?? 0);
+                $goodWeight = array_key_exists('weight_kgm', $item) && (float) ($item['weight_kgm'] ?? 0) > 0
+                    ? (float) $item['weight_kgm']
+                    : (float) $item['qty_good'] * $netWeight;
+                $rejectedWeight = array_key_exists('weight_rejected_kgm', $item) && (float) ($item['weight_rejected_kgm'] ?? 0) > 0
+                    ? (float) $item['weight_rejected_kgm']
+                    : (float) $item['qty_rejected'] * $netWeight;
+                $payload = array_merge($common, [
+                    'qty_good' => (int) $item['qty_good'],
+                    'qty_rejected' => (int) $item['qty_rejected'],
+                    'weight_kgm' => $goodWeight,
+                    'weight_rejected_kgm' => $rejectedWeight,
+                ]);
+
+                $message = $this->recordSubconReceive($order, $payload);
+                if ($message) {
+                    $productionMessages[] = $message;
+                }
+            }
+        });
+
+        $message = 'Receive kontrak berhasil disimpan untuk ' . $items->count() . ' item.';
+        if ($productionMessages) {
+            $message .= ' ' . implode(' ', array_unique($productionMessages));
+        }
+
+        return redirect()->route('subcon.receive-index')->with('success', $message);
+    }
+
     public function receive(Request $request, SubconOrder $subconOrder)
     {
         if (in_array($subconOrder->status, ['completed', 'cancelled'])) {
@@ -470,7 +592,6 @@ class SubconController extends Controller
             return back()->withInput()->with('error', 'Isi minimal Qty Good atau Qty Rejected lebih dari nol.');
         }
 
-        // Bypass Location validation (biarkan ambil dari mana aja)
         if (empty($validated['receive_location_code'])) {
             $validated['receive_location_code'] = 'WIP-BYPASS';
         }
@@ -494,60 +615,76 @@ class SubconController extends Controller
         $productionMessage = null;
 
         DB::transaction(function () use ($subconOrder, $validated, &$productionMessage) {
-            $receive = $subconOrder->receives()->create($validated);
-
-            if ((float) $validated['qty_good'] > 0) {
-                LocationInventory::updateStock(
-                    null,
-                    $validated['receive_location_code'],
-                    (float) $validated['qty_good'],
-                    null,
-                    $validated['received_date'],
-                    (int) $subconOrder->gci_part_id,
-                    'SUBCON_RECEIVE',
-                    $subconOrder->order_no,
-                    [],
-                    null,
-                    (float) ($validated['weight_kgm'] ?? 0)
-                );
-            }
-
-            if ((float) $validated['qty_rejected'] > 0) {
-                LocationInventory::updateStock(
-                    null,
-                    $validated['reject_location_code'],
-                    (float) $validated['qty_rejected'],
-                    null,
-                    $validated['received_date'],
-                    (int) $subconOrder->gci_part_id,
-                    'SUBCON_REJECT_RECEIVE',
-                    $subconOrder->order_no,
-                    [],
-                    null,
-                    (float) ($validated['weight_rejected_kgm'] ?? 0)
-                );
-            }
-
-            $subconOrder->increment('qty_received', $validated['qty_good']);
-            $subconOrder->increment('qty_rejected', $validated['qty_rejected']);
-
-            $subconOrder->refresh();
-
-            // Update status
-            $outstanding = $subconOrder->qty_outstanding;
-            if ($outstanding <= 0) {
-                $subconOrder->update([
-                    'status' => 'completed',
-                    'received_date' => $validated['received_date'],
-                ]);
-
-                $productionMessage = $this->releaseLinkedProductionOrderFromSubcon($subconOrder->fresh(), $receive);
-            } else {
-                $subconOrder->update(['status' => 'partial']);
-            }
+            $productionMessage = $this->recordSubconReceive($subconOrder, $validated);
         });
 
         return back()->with('success', 'Receive recorded successfully.' . ($productionMessage ? ' ' . $productionMessage : ''));
+    }
+
+    private function contractOutstandingQuery(string $contractNo, ?int $vendorId = null)
+    {
+        return SubconOrder::with(['vendor', 'rmPart', 'gciPart', 'creator', 'receives', 'bomItem.consumptionUom', 'bomItem.wipUom'])
+            ->where('contract_no', $contractNo)
+            ->when($vendorId, fn ($query) => $query->where('vendor_id', $vendorId))
+            ->whereIn('status', ['sent', 'partial'])
+            ->whereRaw('(qty_sent - qty_received - qty_rejected) > 0');
+    }
+
+    private function recordSubconReceive(SubconOrder $subconOrder, array $payload): ?string
+    {
+        $payload['posted_to_wh_at'] = (int) ($payload['qty_good'] ?? 0) > 0 ? now() : null;
+        $payload['reject_posted_to_wh_at'] = (int) ($payload['qty_rejected'] ?? 0) > 0 ? now() : null;
+
+        $receive = $subconOrder->receives()->create($payload);
+
+        if ((float) $payload['qty_good'] > 0) {
+            LocationInventory::updateStock(
+                null,
+                $payload['receive_location_code'],
+                (float) $payload['qty_good'],
+                null,
+                $payload['received_date'],
+                (int) $subconOrder->gci_part_id,
+                'SUBCON_RECEIVE',
+                $subconOrder->order_no,
+                [],
+                null,
+                (float) ($payload['weight_kgm'] ?? 0)
+            );
+        }
+
+        if ((float) $payload['qty_rejected'] > 0) {
+            LocationInventory::updateStock(
+                null,
+                $payload['reject_location_code'],
+                (float) $payload['qty_rejected'],
+                null,
+                $payload['received_date'],
+                (int) $subconOrder->gci_part_id,
+                'SUBCON_REJECT_RECEIVE',
+                $subconOrder->order_no,
+                [],
+                null,
+                (float) ($payload['weight_rejected_kgm'] ?? 0)
+            );
+        }
+
+        $subconOrder->increment('qty_received', (int) $payload['qty_good']);
+        $subconOrder->increment('qty_rejected', (int) $payload['qty_rejected']);
+        $subconOrder->refresh();
+
+        if ($subconOrder->qty_outstanding <= 0) {
+            $subconOrder->update([
+                'status' => 'completed',
+                'received_date' => $payload['received_date'],
+            ]);
+
+            return $this->releaseLinkedProductionOrderFromSubcon($subconOrder->fresh(), $receive);
+        }
+
+        $subconOrder->update(['status' => 'partial']);
+
+        return null;
     }
 
     private function releaseLinkedProductionOrderFromSubcon(SubconOrder $subconOrder, SubconOrderReceive $receive): ?string
@@ -784,7 +921,7 @@ class SubconController extends Controller
 
     private function buildPrintPayload(SubconOrder $subconOrder): array
     {
-        $subconOrder->loadMissing(['vendor', 'rmPart', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom']);
+        $subconOrder->loadMissing(['vendor', 'rmPart.standardPacking', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom']);
 
         $pricing = PricingMaster::resolveCurrentPrice(
             (int) ($subconOrder->rm_gci_part_id ?? 0),
@@ -807,6 +944,10 @@ class SubconController extends Controller
             : round($qty * (float) ($subconOrder->rmPart->net_weight ?? 0), 4);
         
         $weightKgm = round($weightKgm, 4);
+        $grossWeightKgm = round($qty * (float) ($subconOrder->rmPart->gross_weight ?? 0), 4);
+        if ($grossWeightKgm <= 0) {
+            $grossWeightKgm = $weightKgm;
+        }
 
         $lines = collect([[
             'no' => 1,
@@ -819,6 +960,10 @@ class SubconController extends Controller
             'uom' => $this->resolveSubconUom($subconOrder->bomItem, $subconOrder->rmPart, $subconOrder->gciPart),
             'qty' => $qty,
             'weight_kgm' => $weightKgm,
+            'gross_weight_kgm' => $grossWeightKgm,
+            'net_weight' => round((float) ($subconOrder->rmPart->net_weight ?? 0), 4),
+            'box_qty' => $this->resolveBoxQty($qty, (float) ($subconOrder->rmPart?->standardPacking?->packing_qty ?? 0)),
+            'packing_uom' => $subconOrder->rmPart?->standardPacking?->kemasan ?: 'Box',
             'unit_price' => $unitPrice,
             'amount' => round($qty * $unitPrice, 2),
         ]]);
@@ -832,8 +977,18 @@ class SubconController extends Controller
             'currency' => $pricing?->currency ?? 'IDR',
             'totalQty' => round((float) $lines->sum('qty'), 4),
             'totalWeight' => round((float) $lines->sum('weight_kgm'), 4),
+            'totalGrossWeight' => round((float) $lines->sum('gross_weight_kgm'), 4),
             'totalAmount' => round((float) $lines->sum('amount'), 2),
         ];
+    }
+
+    private function resolveBoxQty(float $qty, float $packingQty): ?int
+    {
+        if ($qty <= 0 || $packingQty <= 0) {
+            return null;
+        }
+
+        return (int) ceil($qty / $packingQty);
     }
 
     private function resolveSubconUom(?BomItem $bomItem, ?GciPart $rmPart = null, ?GciPart $wipPart = null): string

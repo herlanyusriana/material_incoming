@@ -212,12 +212,25 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse ($orders as $order)
-                            <tr class="hover:bg-slate-50">
+                        @if ($orders->isEmpty())
+                            <tr>
+                                <td colspan="14" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
+                            </tr>
+                        @else
+                            @foreach ($orders->getCollection()->groupBy(fn ($order) => ($order->contract_no ?: 'NO-CONTRACT-' . $order->id) . '|' . $order->vendor_id) as $contractGroup)
+                                @foreach ($contractGroup as $order)
+                                    <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-mono font-bold text-indigo-600">
                                     <a href="{{ route('subcon.show', $order) }}">{{ $order->order_no }}</a>
                                 </td>
-                                <td class="px-4 py-3 text-slate-700 font-semibold">{{ $order->contract_no ?? '-' }}</td>
+                                @if ($loop->first)
+                                    <td class="px-4 py-3 text-slate-700 font-semibold align-middle border-r border-slate-100" rowspan="{{ $contractGroup->count() }}">
+                                        {{ $order->contract_no ?? '-' }}
+                                        @if ($contractGroup->count() > 1)
+                                            <div class="mt-1 text-[10px] font-bold uppercase text-indigo-500">{{ $contractGroup->count() }} items</div>
+                                        @endif
+                                    </td>
+                                @endif
                                 <td class="px-4 py-3 text-slate-700">{{ $order->vendor->vendor_name ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-700">
                                     {{ $order->rmPart->part_name ?? '-' }}
@@ -268,17 +281,23 @@
                                         {{ ucfirst($order->status) }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-center">
-                                    <div class="flex items-center justify-center gap-2 text-xs">
-                                        <a href="{{ route('subcon.show', $order) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">{{ ($mode ?? 'receive') === 'receive' ? 'Receive' : 'Trace' }}</a>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="14" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
-                            </tr>
-                        @endforelse
+                                @if ($loop->first)
+                                    <td class="px-4 py-3 text-center align-middle border-l border-slate-100" rowspan="{{ $contractGroup->count() }}">
+                                        <div class="flex items-center justify-center gap-2 text-xs">
+                                            @if ($order->contract_no)
+                                                <a href="{{ route('subcon.contract-receive', ['contract_no' => $order->contract_no, 'vendor_id' => $order->vendor_id]) }}" class="rounded-lg bg-indigo-50 px-3 py-1.5 font-bold text-indigo-700 hover:bg-indigo-100">
+                                                    Receive
+                                                </a>
+                                            @else
+                                                <a href="{{ route('subcon.show', $order) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">Receive</a>
+                                            @endif
+                                        </div>
+                                    </td>
+                                @endif
+                                    </tr>
+                                @endforeach
+                            @endforeach
+                        @endif
                     </tbody>
                 </table>
             </div>

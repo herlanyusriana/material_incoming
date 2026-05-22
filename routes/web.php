@@ -326,6 +326,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('subcon')->name('subcon.')->group(function () {
         Route::get('/', [SubconController::class, 'index'])->name('index');
         Route::get('/receive', [SubconController::class, 'receiveIndex'])->name('receive-index');
+        Route::get('/receive/contract', [SubconController::class, 'contractReceive'])->name('contract-receive');
+        Route::post('/receive/contract', [SubconController::class, 'storeContractReceive'])->name('contract-receive.store');
         Route::get('/traceability', [SubconController::class, 'traceabilityIndex'])->name('traceability-index');
         Route::get('/create', [SubconController::class, 'create'])->name('create');
         Route::get('/api/parts', [SubconController::class, 'parts'])->name('parts');

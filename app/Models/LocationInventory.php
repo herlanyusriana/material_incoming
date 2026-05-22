@@ -264,12 +264,27 @@ class LocationInventory extends Model
             return;
         }
 
-        $remaining = $qty;
+        $remaining = round((float) $qty, 4);
+        $partIdsForGci = collect();
+
+        if ($gciPartId) {
+            $partIdsForGci = Part::query()
+                ->where('gci_part_id', $gciPartId)
+                ->pluck('id');
+        }
 
         $rows = self::query()
             ->when($locationCode !== 'WIP-BYPASS', fn ($q) => $q->where('location_code', $locationCode))
             ->where('qty_on_hand', '>', 0)
-            ->when($gciPartId, fn ($q) => $q->where('gci_part_id', $gciPartId))
+            ->when($gciPartId, function ($q) use ($gciPartId, $partIdsForGci) {
+                $q->where(function ($partQuery) use ($gciPartId, $partIdsForGci) {
+                    $partQuery->where('gci_part_id', $gciPartId);
+
+                    if ($partIdsForGci->isNotEmpty()) {
+                        $partQuery->orWhereIn('part_id', $partIdsForGci->all());
+                    }
+                });
+            })
             ->when(!$gciPartId, fn ($q) => $q->where('part_id', $partId))
             ->orderByWarehouseFifo()
             ->lockForUpdate()
@@ -286,8 +301,10 @@ class LocationInventory extends Model
             }
 
             $take = min($available, $remaining);
-            $row->update(['qty_on_hand' => $available - $take]);
-            $remaining -= $take;
+            $qtyAfter = round($available - $take, 4);
+            $remaining = round($remaining - $take, 4);
+
+            $row->update(['qty_on_hand' => $qtyAfter]);
 
             self::logTransaction(
                 $partId ?: $row->part_id,
@@ -295,7 +312,7 @@ class LocationInventory extends Model
                 $locationCode,
                 $row->batch_no,
                 $available,
-                $available - $take,
+                $qtyAfter,
                 -$take,
                 $transactionType,
                 $sourceReference,
@@ -305,7 +322,7 @@ class LocationInventory extends Model
             );
         }
 
-        if ($remaining > 0) {
+        if ($remaining > 0.0001) {
             throw new \Exception("Not enough stock at {$locationCode}. Need {$qty}, remaining {$remaining}.");
         }
     }
