@@ -11,6 +11,8 @@ class SubcountBatch extends Model
 
     protected $fillable = [
         'external_id',
+        'subcon_order_id',
+        'subcon_order_no',
         'subcount_no',
         'created_at_mobile',
         'received_at',
@@ -32,5 +34,10 @@ class SubcountBatch extends Model
     public function records()
     {
         return $this->hasMany(SubcountPackagingRecord::class);
+    }
+
+    public function subconOrder()
+    {
+        return $this->belongsTo(SubconOrder::class);
     }
 }

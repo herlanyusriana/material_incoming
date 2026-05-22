@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/login', [AuthController::class, 'login']);
 
 Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'sync']);
+Route::get('/subcounts/wh-to-send', [SubcountApiController::class, 'whToSend']);
 Route::post('/subcounts', [SubcountApiController::class, 'store']);
 Route::get('/production-gci/machines', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machines']);
 Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrders']);

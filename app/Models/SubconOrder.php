@@ -77,6 +77,11 @@ class SubconOrder extends Model
         return $this->hasMany(SubconOrderReceive::class);
     }
 
+    public function subcountBatches()
+    {
+        return $this->hasMany(SubcountBatch::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

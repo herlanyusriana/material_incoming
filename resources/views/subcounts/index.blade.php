@@ -20,6 +20,7 @@
                     <table class="w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50">
                             <tr>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">WH Send</th>
                                 <th class="px-4 py-3 text-left font-bold text-slate-700">No Subcount</th>
                                 <th class="px-4 py-3 text-left font-bold text-slate-700">Judul</th>
                                 <th class="px-4 py-3 text-left font-bold text-slate-700">Part / Job / Lot</th>
@@ -33,6 +34,10 @@
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($subcounts as $subcount)
                                 <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3">
+                                        <div class="font-mono font-bold text-slate-900">{{ $subcount->subcon_order_no ?? $subcount->subconOrder?->order_no ?? '-' }}</div>
+                                        <div class="text-xs text-slate-500">{{ $subcount->subconOrder?->vendor?->vendor_name ?? '-' }}</div>
+                                    </td>
                                     <td class="px-4 py-3 font-mono font-bold text-indigo-700">{{ $subcount->subcount_no }}</td>
                                     <td class="px-4 py-3 font-semibold text-slate-900">{{ $subcount->title }}</td>
                                     <td class="px-4 py-3 text-slate-600">{{ $subcount->part_info ?? '-' }}</td>
@@ -46,7 +51,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-10 text-center text-slate-400">Belum ada subcount dari APK.</td>
+                                    <td colspan="9" class="px-4 py-10 text-center text-slate-400">Belum ada subcount dari APK.</td>
                                 </tr>
                             @endforelse
                         </tbody>

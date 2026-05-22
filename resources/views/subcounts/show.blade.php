@@ -19,6 +19,11 @@
 
             <div class="grid gap-4 md:grid-cols-4">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">WH Send</div>
+                    <div class="mt-1 font-mono font-bold text-slate-900">{{ $subcount->subcon_order_no ?? $subcount->subconOrder?->order_no ?? '-' }}</div>
+                    <div class="mt-1 text-xs text-slate-500">{{ $subcount->subconOrder?->vendor?->vendor_name ?? '-' }}</div>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Part / Job / Lot</div>
                     <div class="mt-1 font-bold text-slate-900">{{ $subcount->part_info ?? '-' }}</div>
                 </div>
