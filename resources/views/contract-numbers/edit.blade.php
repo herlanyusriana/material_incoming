@@ -93,7 +93,7 @@
                                     <select class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="row.selected_part_key" @change="onPartChange(index)" required>
                                         <option value="">Pilih WIP - RM...</option>
                                         <template x-for="opt in subconPartsOptions" :key="opt.key">
-                                            <option :value="opt.key" x-text="`${opt.part_no} | ${opt.part_name} (${opt.process_name}) => RM: ${opt.rm_part_no} / ${opt.uom || 'PCS'}`"></option>
+                                            <option :value="opt.key" x-text="partOptionLabel(opt)"></option>
                                         </template>
                                     </select>
                                     <input type="hidden" :name="`items[${index}][gci_part_id]`" x-model="row.gci_part_id">
@@ -156,6 +156,14 @@
                         target_qty: '',
                         warning_limit_qty: '',
                     });
+                },
+                partOptionLabel(opt) {
+                    const wipName = opt.part_name ? ` - ${opt.part_name}` : '';
+                    const rmName = opt.rm_part_name ? ` - ${opt.rm_part_name}` : '';
+                    const process = opt.process_name ? ` | ${opt.process_name}` : '';
+                    const uom = opt.uom || 'PCS';
+
+                    return `${opt.part_no}${wipName}${process} => RM: ${opt.rm_part_no}${rmName} / ${uom}`;
                 },
                 onPartChange(index) {
                     const row = this.rows[index];
