@@ -158,13 +158,22 @@
                     });
                 },
                 partOptionLabel(opt) {
-                    const fg = [opt.fg_part_no, opt.fg_part_name].filter(Boolean).join(' - ');
-                    const wipName = opt.part_name ? ` (${opt.part_name})` : '';
-                    const rmName = opt.rm_part_name ? ` (${opt.rm_part_name})` : '';
-                    const process = opt.process_name ? ` | ${opt.process_name}` : '';
+                    const itemName = opt.fg_part_name || opt.part_name || '-';
+                    const fgCode = opt.fg_part_no || opt.part_no || '-';
+                    const process = this.cleanProcessName(opt.process_name);
                     const uom = opt.uom || 'PCS';
 
-                    return `${fg || opt.fg_part_name || opt.part_name || opt.part_no}${process} => WIP: ${opt.part_no}${wipName} => RM: ${opt.rm_part_no}${rmName} / ${uom}`;
+                    return `${itemName} | Jadi: ${fgCode} | ${process} | RM: ${opt.rm_part_no || '-'} | ${uom}`;
+                },
+                cleanProcessName(value) {
+                    const text = String(value || 'SUBCON')
+                        .replace(/\s*\(SUBCON\)\s*/gi, '')
+                        .replace(/\s+FROM\s+TOLLING\s*/gi, '')
+                        .replace(/\s+FOR\s+TOLLING\s*/gi, '')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+
+                    return text || 'SUBCON';
                 },
                 onPartChange(index) {
                     const row = this.rows[index];
