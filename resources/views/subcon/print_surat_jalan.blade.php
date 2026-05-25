@@ -1,17 +1,9 @@
 @php
-    $line = $lines->first();
     $sentDate = $subconOrder->sent_date ?? now();
     $orderSeq = (int) substr((string) $subconOrder->order_no, -3);
     $preprintSjNo = sprintf('%03d/PM/SJ GCI/%d/%s', $orderSeq ?: (int) $subconOrder->id, (int) $sentDate->format('n'), $sentDate->format('Y'));
     $vendorName = strtoupper((string) ($subconOrder->vendor->vendor_name ?? '-'));
     $vendorAddress = preg_split('/\r\n|\r|\n/', trim((string) ($subconOrder->vendor->address ?? ''))) ?: [];
-    $qty = (float) ($line['qty'] ?? 0);
-    $weight = (float) ($line['weight_kgm'] ?? 0);
-    $netWeight = (float) ($line['net_weight'] ?? 0);
-    $boxQty = $line['box_qty'] ?? null;
-    $uom = $line['uom'] ?? 'Pcs';
-    $partText = trim((string) ($line['part_name'] ?? '-'));
-    $partNo = (string) ($line['part_no'] ?? '-');
     $contractNo = (string) ($subconOrder->contract_no ?? '-');
 @endphp
 
@@ -107,20 +99,21 @@
             line-height: 1.35;
         }
 
+        .line-field {
+            font-size: 10.5pt;
+        }
+
         .qty {
-            top: 68mm;
             left: 19mm;
             width: 20mm;
             text-align: right;
         }
 
         .uom {
-            top: 68mm;
             left: 43mm;
         }
 
         .part-name {
-            top: 68mm;
             left: 55mm;
             width: 80mm;
             overflow: hidden;
@@ -128,28 +121,25 @@
         }
 
         .part-no {
-            top: 68mm;
             left: 124mm;
             width: 38mm;
             text-align: left;
         }
 
         .weight {
-            top: 68mm;
             left: 163mm;
             width: 25mm;
             text-align: right;
         }
 
         .net-weight {
-            top: 68mm;
             left: 194mm;
             width: 34mm;
             text-align: left;
         }
 
         .contract {
-            top: 79mm;
+            top: 116mm;
             left: 170mm;
             width: 58mm;
             text-align: center;
@@ -190,17 +180,29 @@
             @endforelse
         </div>
 
-        <div class="field qty">{{ number_format($qty, 0) }}</div>
-        <div class="field uom">{{ ucfirst(strtolower($uom)) }}</div>
-        <div class="field part-name">{{ $partText }}</div>
-        <div class="field part-no">{{ $partNo }}</div>
-        <div class="field weight">{{ number_format($weight, 3) }} Kg</div>
-        <div class="field net-weight">
-            {{ number_format($netWeight, 3) }} kg/pcs
-            @if ($boxQty)
-                ({{ number_format($boxQty, 0) }} Box)
-            @endif
-        </div>
+        @foreach ($lines->take(6) as $idx => $line)
+            @php
+                $top = 68 + ($idx * 8);
+                $qty = (float) ($line['qty'] ?? 0);
+                $weight = (float) ($line['weight_kgm'] ?? 0);
+                $netWeight = (float) ($line['net_weight'] ?? 0);
+                $boxQty = $line['box_qty'] ?? null;
+                $uom = $line['uom'] ?? 'Pcs';
+                $partText = trim((string) ($line['part_name'] ?? '-'));
+                $partNo = (string) ($line['part_no'] ?? '-');
+            @endphp
+            <div class="field line-field qty" style="top: {{ $top }}mm">{{ number_format($qty, 0) }}</div>
+            <div class="field line-field uom" style="top: {{ $top }}mm">{{ ucfirst(strtolower($uom)) }}</div>
+            <div class="field line-field part-name" style="top: {{ $top }}mm">{{ $partText }}</div>
+            <div class="field line-field part-no" style="top: {{ $top }}mm">{{ $partNo }}</div>
+            <div class="field line-field weight" style="top: {{ $top }}mm">{{ number_format($weight, 3) }} Kg</div>
+            <div class="field line-field net-weight" style="top: {{ $top }}mm">
+                {{ number_format($netWeight, 3) }} kg/pcs
+                @if ($boxQty)
+                    ({{ number_format($boxQty, 0) }} Box)
+                @endif
+            </div>
+        @endforeach
         <div class="field contract">{{ $contractNo }}</div>
     </div>
 </body>

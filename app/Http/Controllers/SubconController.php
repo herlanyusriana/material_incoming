@@ -413,7 +413,8 @@ class SubconController extends Controller
 
     public function printSuratJalan(SubconOrder $subconOrder)
     {
-        $payload = $this->buildPrintPayload($subconOrder);
+        $orders = $this->suratJalanGroupQuery($subconOrder)->get();
+        $payload = $this->buildPrintPayloadForOrders($orders, $subconOrder);
 
         return view('subcon.print_surat_jalan', $payload);
     }
@@ -921,65 +922,91 @@ class SubconController extends Controller
 
     private function buildPrintPayload(SubconOrder $subconOrder): array
     {
-        $subconOrder->loadMissing(['vendor', 'rmPart.standardPacking', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom']);
+        return $this->buildPrintPayloadForOrders(collect([$subconOrder]), $subconOrder);
+    }
 
-        $pricing = PricingMaster::resolveCurrentPrice(
-            (int) ($subconOrder->rm_gci_part_id ?? 0),
-            'subcon_price',
-            ['vendor_id' => $subconOrder->vendor_id],
-            $subconOrder->sent_date
-        ) ?? PricingMaster::resolveCurrentPrice(
-            (int) ($subconOrder->rm_gci_part_id ?? 0),
-            'purchase_price',
-            ['vendor_id' => $subconOrder->vendor_id],
-            $subconOrder->sent_date
-        );
+    private function buildPrintPayloadForOrders($orders, ?SubconOrder $primaryOrder = null): array
+    {
+        $orders = collect($orders)->filter()->values();
 
-        $unitPrice = round((float) ($pricing?->price ?? 0), 3);
-        $qty = round((float) $subconOrder->qty_sent, 4);
-        
-        // Use stored manual weight if available, otherwise fallback to theoretical calculation
-        $weightKgm = (float)($subconOrder->weight_kgm ?? 0) > 0 
-            ? (float)$subconOrder->weight_kgm 
-            : round($qty * (float) ($subconOrder->rmPart->net_weight ?? 0), 4);
-        
-        $weightKgm = round($weightKgm, 4);
-        $grossWeightKgm = round($qty * (float) ($subconOrder->rmPart->gross_weight ?? 0), 4);
-        if ($grossWeightKgm <= 0) {
-            $grossWeightKgm = $weightKgm;
+        if ($orders->isEmpty() && $primaryOrder) {
+            $orders = collect([$primaryOrder]);
         }
 
-        $lines = collect([[
-            'no' => 1,
-            'part_no' => (string) ($subconOrder->rmPart->part_no ?? '-'),
-            'part_name' => (string) ($subconOrder->rmPart->part_name ?? '-'),
-            'description' => 'RM part sent to subcon vendor. Return as WIP: '
-                . (string) ($subconOrder->gciPart->part_no ?? '-')
-                . ' - '
-                . (string) ($subconOrder->gciPart->part_name ?? '-'),
-            'uom' => $this->resolveSubconUom($subconOrder->bomItem, $subconOrder->rmPart, $subconOrder->gciPart),
-            'qty' => $qty,
-            'weight_kgm' => $weightKgm,
-            'gross_weight_kgm' => $grossWeightKgm,
-            'net_weight' => round((float) ($subconOrder->rmPart->net_weight ?? 0), 4),
-            'box_qty' => $this->resolveBoxQty($qty, (float) ($subconOrder->rmPart?->standardPacking?->packing_qty ?? 0)),
-            'packing_uom' => $subconOrder->rmPart?->standardPacking?->kemasan ?: 'Box',
-            'unit_price' => $unitPrice,
-            'amount' => round($qty * $unitPrice, 2),
-        ]]);
+        $orders->each(fn (SubconOrder $order) => $order->loadMissing(['vendor', 'rmPart.standardPacking', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom']));
+        $subconOrder = $primaryOrder ?? $orders->first();
+
+        $currency = 'IDR';
+        $lines = $orders->map(function (SubconOrder $order, int $index) use (&$currency) {
+            $pricing = PricingMaster::resolveCurrentPrice(
+                (int) ($order->rm_gci_part_id ?? 0),
+                'subcon_price',
+                ['vendor_id' => $order->vendor_id],
+                $order->sent_date
+            ) ?? PricingMaster::resolveCurrentPrice(
+                (int) ($order->rm_gci_part_id ?? 0),
+                'purchase_price',
+                ['vendor_id' => $order->vendor_id],
+                $order->sent_date
+            );
+
+            $currency = $pricing?->currency ?? $currency;
+            $unitPrice = round((float) ($pricing?->price ?? 0), 3);
+            $qty = round((float) $order->qty_sent, 4);
+            $weightKgm = (float)($order->weight_kgm ?? 0) > 0
+                ? (float)$order->weight_kgm
+                : round($qty * (float) ($order->rmPart->net_weight ?? 0), 4);
+            $weightKgm = round($weightKgm, 4);
+            $grossWeightKgm = round($qty * (float) ($order->rmPart->gross_weight ?? 0), 4);
+            if ($grossWeightKgm <= 0) {
+                $grossWeightKgm = $weightKgm;
+            }
+
+            return [
+                'no' => $index + 1,
+                'order_no' => (string) ($order->order_no ?? '-'),
+                'part_no' => (string) ($order->rmPart->part_no ?? '-'),
+                'part_name' => (string) ($order->rmPart->part_name ?? '-'),
+                'description' => 'RM part sent to subcon vendor. Return as WIP: '
+                    . (string) ($order->gciPart->part_no ?? '-')
+                    . ' - '
+                    . (string) ($order->gciPart->part_name ?? '-'),
+                'uom' => $this->resolveSubconUom($order->bomItem, $order->rmPart, $order->gciPart),
+                'qty' => $qty,
+                'weight_kgm' => $weightKgm,
+                'gross_weight_kgm' => $grossWeightKgm,
+                'net_weight' => round((float) ($order->rmPart->net_weight ?? 0), 4),
+                'box_qty' => $this->resolveBoxQty($qty, (float) ($order->rmPart?->standardPacking?->packing_qty ?? 0)),
+                'packing_uom' => $order->rmPart?->standardPacking?->kemasan ?: 'Box',
+                'unit_price' => $unitPrice,
+                'amount' => round($qty * $unitPrice, 2),
+            ];
+        })->values();
 
         return [
             'subconOrder' => $subconOrder,
+            'orders' => $orders,
             'lines' => $lines,
             'sjNo' => 'SJ-SC-' . $subconOrder->order_no,
             'packingListNo' => 'PL-SC-' . $subconOrder->order_no,
             'invoiceNo' => 'INV-SC-' . $subconOrder->order_no,
-            'currency' => $pricing?->currency ?? 'IDR',
+            'currency' => $currency,
             'totalQty' => round((float) $lines->sum('qty'), 4),
             'totalWeight' => round((float) $lines->sum('weight_kgm'), 4),
             'totalGrossWeight' => round((float) $lines->sum('gross_weight_kgm'), 4),
             'totalAmount' => round((float) $lines->sum('amount'), 2),
         ];
+    }
+
+    private function suratJalanGroupQuery(SubconOrder $subconOrder)
+    {
+        return SubconOrder::query()
+            ->where('contract_no', $subconOrder->contract_no)
+            ->where('vendor_id', $subconOrder->vendor_id)
+            ->when($subconOrder->sent_date, fn ($query) => $query->whereDate('sent_date', $subconOrder->sent_date))
+            ->whereIn('status', ['sent', 'partial', 'completed'])
+            ->with(['vendor', 'rmPart.standardPacking', 'gciPart', 'creator', 'bomItem.consumptionUom', 'bomItem.wipUom'])
+            ->orderBy('order_no');
     }
 
     private function resolveBoxQty(float $qty, float $packingQty): ?int
