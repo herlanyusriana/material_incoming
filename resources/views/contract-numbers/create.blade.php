@@ -45,7 +45,7 @@
                     <div class="lg:col-span-4">
                         <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi Kontrak</label>
                         @php $description = old('description'); @endphp
-                        <select name="description" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                        <select name="description" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="description" @change="syncRowsWithDescription()">
                             <option value="">Pilih deskripsi</option>
                             <option value="Hardening" @selected($description === 'Hardening')>Hardening</option>
                             <option value="Plating" @selected($description === 'Plating')>Plating</option>
@@ -86,7 +86,7 @@
                                     <label class="block text-[10px] font-bold uppercase text-slate-500">Part Mapping</label>
                                     <select class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="row.selected_part_key" @change="onPartChange(index)" required>
                                         <option value="">Pilih WIP - RM...</option>
-                                        <template x-for="opt in subconPartsOptions" :key="opt.key">
+                                        <template x-for="opt in filteredSubconPartsOptions" :key="opt.key">
                                             <option :value="opt.key" x-text="partOptionLabel(opt)"></option>
                                         </template>
                                     </select>
@@ -137,7 +137,17 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('contractCreate', () => ({
                 subconPartsOptions: @json($subconPartsJson ?? []),
+                description: @json(old('description', '')),
                 rows: [],
+                get filteredSubconPartsOptions() {
+                    const selectedProcess = this.cleanProcessName(this.description);
+
+                    if (!selectedProcess || !['HARDENING', 'PLATING'].includes(selectedProcess.toUpperCase())) {
+                        return this.subconPartsOptions;
+                    }
+
+                    return this.subconPartsOptions.filter(opt => this.cleanProcessName(opt.process_name).toUpperCase().includes(selectedProcess.toUpperCase()));
+                },
                 init() {
                     this.addRow();
                 },
@@ -171,6 +181,17 @@
                         .trim();
 
                     return text || 'SUBCON';
+                },
+                syncRowsWithDescription() {
+                    this.rows.forEach((row, index) => {
+                        if (!row.selected_part_key) return;
+
+                        const stillAvailable = this.filteredSubconPartsOptions.some(opt => opt.key === row.selected_part_key);
+                        if (!stillAvailable) {
+                            row.selected_part_key = '';
+                            this.onPartChange(index);
+                        }
+                    });
                 },
                 onPartChange(index) {
                     const row = this.rows[index];

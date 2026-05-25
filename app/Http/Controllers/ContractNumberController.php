@@ -235,6 +235,8 @@ class ContractNumberController extends Controller
         $contractNumber->items()->delete();
         foreach ($items as $item) {
             if (!empty($item['gci_part_id']) && !empty($item['rm_gci_part_id'])) {
+                $this->ensureItemMatchesContractDescription($contractNumber, $item);
+
                 $contractNumber->items()->create([
                     'gci_part_id' => $item['gci_part_id'],
                     'rm_gci_part_id' => $item['rm_gci_part_id'],
@@ -270,6 +272,34 @@ class ContractNumberController extends Controller
             'items.*.target_qty' => ['required_with:items', 'integer', 'min:0'],
             'items.*.warning_limit_qty' => ['nullable', 'integer', 'min:0'],
         ]);
+    }
+
+    private function ensureItemMatchesContractDescription(ContractNumber $contractNumber, array $item): void
+    {
+        $description = $this->normalizeProcessName($contractNumber->description);
+
+        if (!in_array($description, ['HARDENING', 'PLATING'], true)) {
+            return;
+        }
+
+        $process = $this->normalizeProcessName($item['process_type'] ?? '');
+
+        if (!str_contains($process, $description)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'items' => "Part mapping harus proses {$description} sesuai Deskripsi Kontrak.",
+            ]);
+        }
+    }
+
+    private function normalizeProcessName(?string $value): string
+    {
+        $text = strtoupper(trim((string) $value));
+        $text = preg_replace('/\s*\(SUBCON\)\s*/i', ' ', $text);
+        $text = preg_replace('/\s+FROM\s+TOLLING\s*/i', ' ', $text);
+        $text = preg_replace('/\s+FOR\s+TOLLING\s*/i', ' ', $text);
+        $text = preg_replace('/\s+/', ' ', (string) $text);
+
+        return trim((string) $text);
     }
 
     private function getSubconPartOptions()
