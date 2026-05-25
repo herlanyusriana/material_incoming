@@ -158,12 +158,13 @@
                     });
                 },
                 partOptionLabel(opt) {
-                    const wipName = opt.part_name ? ` - ${opt.part_name}` : '';
-                    const rmName = opt.rm_part_name ? ` - ${opt.rm_part_name}` : '';
+                    const fg = [opt.fg_part_no, opt.fg_part_name].filter(Boolean).join(' - ');
+                    const wipName = opt.part_name ? ` (${opt.part_name})` : '';
+                    const rmName = opt.rm_part_name ? ` (${opt.rm_part_name})` : '';
                     const process = opt.process_name ? ` | ${opt.process_name}` : '';
                     const uom = opt.uom || 'PCS';
 
-                    return `${opt.part_no}${wipName}${process} => RM: ${opt.rm_part_no}${rmName} / ${uom}`;
+                    return `${fg || opt.fg_part_name || opt.part_name || opt.part_no}${process} => WIP: ${opt.part_no}${wipName} => RM: ${opt.rm_part_no}${rmName} / ${uom}`;
                 },
                 onPartChange(index) {
                     const row = this.rows[index];
