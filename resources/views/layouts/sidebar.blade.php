@@ -626,7 +626,7 @@
 
             @can('manage_subcon')
                 @php
-                    $subconActive = request()->routeIs('subcon.*') || request()->routeIs('contract-numbers.*');
+                    $subconActive = request()->routeIs('subcon.*') || request()->routeIs('contract-numbers.*') || request()->routeIs('subcounts.*');
                 @endphp
                 <div>
                     <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Subcon</div>
@@ -673,6 +673,10 @@
                                 <a href="{{ route('subcon.traceability-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), $subInactive => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))]) @click="mobileSidebarOpen = false">
                                     <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])></span>
                                     <span class="flex-1">Subcon Traceability</span>
+                                </a>
+                                <a href="{{ route('subcounts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcounts.*'), $subInactive => !request()->routeIs('subcounts.*')]) @click="mobileSidebarOpen = false">
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcounts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcounts.*')])></span>
+                                    <span class="flex-1">Subcount Photos</span>
                                 </a>
                             </div>
                         </div>
@@ -1434,7 +1438,7 @@
 
         @can('manage_subcon')
             @php
-                $subconActive = request()->routeIs('subcon.*') || request()->routeIs('contract-numbers.*');
+                $subconActive = request()->routeIs('subcon.*') || request()->routeIs('contract-numbers.*') || request()->routeIs('subcounts.*');
             @endphp
             <div>
                 <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
@@ -1486,6 +1490,10 @@
                             <a href="{{ route('subcon.traceability-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), $subInactive => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])>
                                 <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])></span>
                                 <span class="flex-1">Subcon Traceability</span>
+                            </a>
+                            <a href="{{ route('subcounts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcounts.*'), $subInactive => !request()->routeIs('subcounts.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcounts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcounts.*')])></span>
+                                <span class="flex-1">Subcount Photos</span>
                             </a>
                         </div>
                     </div>

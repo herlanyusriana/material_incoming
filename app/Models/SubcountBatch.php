@@ -36,6 +36,11 @@ class SubcountBatch extends Model
         return $this->hasMany(SubcountPackagingRecord::class);
     }
 
+    public function latestRecord()
+    {
+        return $this->hasOne(SubcountPackagingRecord::class)->latestOfMany();
+    }
+
     public function subconOrder()
     {
         return $this->belongsTo(SubconOrder::class);
