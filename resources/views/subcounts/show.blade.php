@@ -78,16 +78,10 @@
 
                         <div class="mt-4 grid gap-4 md:grid-cols-2">
                             <figure class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                                @if ($record->packaging_photo_path)
-                                    <img src="{{ Storage::disk('public')->url($record->packaging_photo_path) }}" alt="Packaging kosong" class="aspect-[4/3] w-full object-cover">
-                                @endif
-                                <figcaption class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Foto realtime packaging kosong</figcaption>
-                            </figure>
-                            <figure class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                                 @if ($record->gross_photo_path)
-                                    <img src="{{ Storage::disk('public')->url($record->gross_photo_path) }}" alt="Barang dan packaging" class="aspect-[4/3] w-full object-cover">
+                                    <img src="{{ Storage::disk('public')->url($record->gross_photo_path) }}" alt="Foto brutto" class="aspect-[4/3] w-full object-cover">
                                 @endif
-                                <figcaption class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Foto realtime barang + packaging</figcaption>
+                                <figcaption class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Foto realtime brutto</figcaption>
                             </figure>
                         </div>
                     </div>

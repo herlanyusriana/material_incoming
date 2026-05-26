@@ -76,15 +76,11 @@
                                 @endphp
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-4 py-3">
-                                        <div class="flex gap-2">
-                                            @foreach ([$latestRecord?->packaging_photo_path, $latestRecord?->gross_photo_path] as $photoPath)
-                                                @if ($photoPath)
-                                                    <img src="{{ Storage::disk('public')->url($photoPath) }}" alt="Foto timbang" class="h-14 w-14 rounded-xl border border-slate-200 object-cover">
-                                                @else
-                                                    <div class="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-300">-</div>
-                                                @endif
-                                            @endforeach
-                                        </div>
+                                        @if ($latestRecord?->gross_photo_path)
+                                            <img src="{{ Storage::disk('public')->url($latestRecord->gross_photo_path) }}" alt="Foto brutto" class="h-14 w-14 rounded-xl border border-slate-200 object-cover">
+                                        @else
+                                            <div class="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-300">-</div>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="font-mono font-bold text-slate-900">{{ $subcount->subcon_order_no ?? $subcount->subconOrder?->order_no ?? '-' }}</div>

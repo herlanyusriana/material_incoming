@@ -116,7 +116,7 @@ class SubcountApiController extends Controller
             'records.*.gross_weight_kg' => ['required', 'numeric'],
             'records.*.net_item_weight_kg' => ['required', 'numeric'],
             'records.*.description' => ['nullable', 'string'],
-            'records.*.packaging_photo.base64' => ['required', 'string'],
+            'records.*.packaging_photo.base64' => ['nullable', 'string'],
             'records.*.packaging_photo.file_name' => ['nullable', 'string', 'max:255'],
             'records.*.packaging_photo.mime_type' => ['nullable', 'string', 'max:100'],
             'records.*.gross_photo.base64' => ['required', 'string'],
@@ -148,12 +148,15 @@ class SubcountApiController extends Controller
 
             foreach ($validated['records'] as $index => $record) {
                 $recordId = $record['id'] ?? (string) ($index + 1);
-                $packagingPhotoPath = $this->storeBase64Photo(
-                    $record['packaging_photo'],
-                    $validated['subcount_no'],
-                    $recordId,
-                    'packaging'
-                );
+                $packagingPhotoPath = null;
+                if (!empty($record['packaging_photo']['base64'])) {
+                    $packagingPhotoPath = $this->storeBase64Photo(
+                        $record['packaging_photo'],
+                        $validated['subcount_no'],
+                        $recordId,
+                        'packaging'
+                    );
+                }
                 $grossPhotoPath = $this->storeBase64Photo(
                     $record['gross_photo'],
                     $validated['subcount_no'],
