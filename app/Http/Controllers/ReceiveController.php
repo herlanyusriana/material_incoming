@@ -1247,4 +1247,73 @@ class ReceiveController extends Controller
             ->route('receives.completed.invoice', $arrival)
             ->with('success', 'Receive berhasil diupdate.');
     }
+
+    public function destroy(Receive $receive)
+    {
+        $receive->load(['arrivalItem.arrival', 'arrivalItem.part']);
+        $arrivalItem = $receive->arrivalItem;
+        $arrival = $arrivalItem->arrival;
+        $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
+
+        $locationCode = is_string($receive->location_code) ? strtoupper(trim((string) $receive->location_code)) : '';
+        if ($locationCode === '') {
+            $locationCode = null;
+        }
+
+        $contribution = $receive->qc_status === 'pass'
+            ? ($goodsUnit === 'COIL'
+                ? (float) ($receive->net_weight ?? $receive->weight ?? $receive->qty ?? 0)
+                : (float) ($receive->qty ?? 0))
+            : 0.0;
+
+        DB::transaction(function () use ($receive, $arrivalItem, $arrival, $locationCode, $contribution) {
+            $partId = $this->resolveVendorPartId($arrivalItem);
+            $gciPartId = $this->resolveGciPartId($arrivalItem);
+
+            if ($partId && $contribution > 0) {
+                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
+                if (!$inventory || (float) $inventory->on_hand < $contribution) {
+                    throw new HttpResponseException(back()->with('error', 'Receive tidak bisa dihapus karena stok inventory tidak cukup untuk rollback.'));
+                }
+
+                if ($locationCode) {
+                    LocationInventory::updateStock(
+                        $partId,
+                        $locationCode,
+                        -$contribution,
+                        null,
+                        null,
+                        $gciPartId,
+                        'RECEIVE_DELETE',
+                        null,
+                        [
+                            'source_receive_id' => $receive->id,
+                            'source_arrival_id' => $arrivalItem->arrival_id,
+                            'source_invoice_no' => $receive->invoice_no ?: $arrival?->invoice_no,
+                            'source_tag' => $receive->tag,
+                        ]
+                    );
+                }
+
+                $inventory->update([
+                    'on_hand' => max(0, (float) $inventory->on_hand - $contribution),
+                    'on_order' => (float) $inventory->on_order + $contribution,
+                    'as_of_date' => now()->toDateString(),
+                ]);
+            }
+
+            $receive->delete();
+        });
+
+        $this->logActivity('DELETE Receive', "receive_id:{$receive->id}", [
+            'tag' => $receive->tag,
+            'qty' => $receive->qty,
+            'qc_status' => $receive->qc_status,
+            'inventory_delta' => -$contribution,
+        ]);
+
+        return redirect()
+            ->route('receives.completed.invoice', $arrival)
+            ->with('success', "Receive {$receive->tag} berhasil dihapus.");
+    }
 }

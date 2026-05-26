@@ -136,6 +136,11 @@
                                         <div class="flex items-center gap-3">
                                             <a href="{{ route('receives.label', $receive) }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium">Print label</a>
                                             <a href="{{ route('receives.edit', $receive) }}" class="text-slate-700 hover:text-slate-900 font-medium">Edit</a>
+                                            <form method="POST" action="{{ route('receives.destroy', $receive) }}" class="inline" onsubmit="return confirm('Hapus receive {{ $receive->tag }}? Stok inventory akan dikurangi kembali.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
