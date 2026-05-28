@@ -11,7 +11,7 @@
                         <p class="mt-1 text-sm text-slate-500">{{ $subcount->title }}</p>
                     </div>
                     <div class="rounded-xl bg-blue-50 px-4 py-3 text-right">
-                        <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Total Net</div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Total Netto Web</div>
                         <div class="text-2xl font-black text-blue-800">{{ number_format((float) $subcount->total_net_weight_kg, 3) }} kg</div>
                     </div>
                 </div>

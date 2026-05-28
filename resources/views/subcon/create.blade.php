@@ -156,17 +156,17 @@
                                     </div>
 
                                     <div class="space-y-1">
-                                        <label class="block text-[10px] font-bold uppercase text-slate-500">Weight (KGM) <span class="text-red-500">*</span></label>
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">Netto (KGM) <span class="text-red-500">*</span></label>
                                         <input type="number"
                                             step="0.0001"
                                             min="0"
                                             :name="`items[${index}][weight_kgm]`"
                                             x-model="row.weight_kgm"
                                             class="w-full rounded-lg border-emerald-300 bg-emerald-50/30 text-sm font-black focus:border-emerald-600 focus:ring-emerald-600 text-emerald-900"
-                                            placeholder="Manual KGM"
+                                            placeholder="Manual Netto"
                                             required>
                                         <div class="mt-1 text-[10px] text-slate-400">
-                                            Theoretical: <span x-text="parseFloat(parseFloat(row.qty_sent || 0) * parseFloat(row.rm_net_weight)).toFixed(2)"></span> kg
+                                            Netto theoretical: <span x-text="parseFloat(parseFloat(row.qty_sent || 0) * parseFloat(row.rm_net_weight)).toFixed(2)"></span> kg
                                         </div>
                                     </div>
                                 </div>
