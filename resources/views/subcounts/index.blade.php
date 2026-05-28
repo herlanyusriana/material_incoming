@@ -25,7 +25,7 @@
                     <div class="mt-1 text-2xl font-black text-slate-900">{{ number_format($summary['records']) }}</div>
                 </div>
                 <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
-                    <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Total Net</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Total Netto Web</div>
                     <div class="mt-1 text-2xl font-black text-blue-800">{{ number_format($summary['net'], 3) }} kg</div>
                 </div>
             </div>
@@ -64,7 +64,7 @@
                                 <th class="px-4 py-3 text-left font-bold text-slate-700">Part</th>
                                 <th class="px-4 py-3 text-left font-bold text-slate-700">Operator</th>
                                 <th class="px-4 py-3 text-right font-bold text-slate-700">Timbang</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Net Kg</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">Netto Kg</th>
                                 <th class="px-4 py-3 text-center font-bold text-slate-700">Received</th>
                                 <th class="px-4 py-3 text-center font-bold text-slate-700">Action</th>
                             </tr>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SubcountBatch;
+use App\Models\SubcountPackagingRecord;
 use Illuminate\Http\Request;
 
 class SubcountController extends Controller
@@ -53,5 +54,29 @@ class SubcountController extends Controller
         $subcount->load(['records', 'subconOrder.vendor', 'subconOrder.rmPart', 'subconOrder.gciPart']);
 
         return view('subcounts.show', compact('subcount'));
+    }
+
+    public function updateRecordNetto(Request $request, SubcountPackagingRecord $record)
+    {
+        $validated = $request->validate([
+            'net_item_weight_kg' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $netto = (float) $validated['net_item_weight_kg'];
+        $brutto = (float) $record->gross_weight_kg;
+
+        if ($netto >= $brutto) {
+            return back()->withErrors([
+                'net_item_weight_kg' => 'Netto harus lebih kecil dari brutto. Timbang ulang jika netto lebih besar atau sama.',
+            ]);
+        }
+
+        $record->update(['net_item_weight_kg' => $netto]);
+        $batch = $record->batch;
+        $batch?->update([
+            'total_net_weight_kg' => $batch->records()->sum('net_item_weight_kg'),
+        ]);
+
+        return back()->with('success', 'Netto berhasil disimpan.');
     }
 }

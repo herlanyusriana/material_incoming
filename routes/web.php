@@ -66,6 +66,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/subcounts', [SubcountController::class, 'index'])->name('subcounts.index');
     Route::get('/subcounts/{subcount}', [SubcountController::class, 'show'])->name('subcounts.show');
+    Route::put('/subcounts/records/{record}/netto', [SubcountController::class, 'updateRecordNetto'])->name('subcounts.records.netto');
 
     // Traceability suggest endpoints (FIFO)
     Route::get('/api/suggest-arrivals/{gciPartId}', function (int $gciPartId) {

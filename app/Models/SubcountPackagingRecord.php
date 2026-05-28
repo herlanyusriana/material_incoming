@@ -15,6 +15,7 @@ class SubcountPackagingRecord extends Model
         'created_at_mobile',
         'packaging_id',
         'packaging_type',
+        'packaging_qty',
         'packaging_weight_kg',
         'gross_weight_kg',
         'net_item_weight_kg',
@@ -25,6 +26,7 @@ class SubcountPackagingRecord extends Model
 
     protected $casts = [
         'created_at_mobile' => 'datetime',
+        'packaging_qty' => 'integer',
         'packaging_weight_kg' => 'decimal:4',
         'gross_weight_kg' => 'decimal:4',
         'net_item_weight_kg' => 'decimal:4',
