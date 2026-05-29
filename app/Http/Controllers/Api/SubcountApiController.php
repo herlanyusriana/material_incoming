@@ -50,6 +50,25 @@ class SubcountApiController extends Controller
                 $outstanding = max(0, (int) $order->qty_sent - (int) $order->qty_received - (int) $order->qty_rejected);
                 $rmPart = $order->rmPart;
                 $wipPart = $order->gciPart;
+                $uom = strtoupper((string) (
+                    $order->bomItem?->wipUom?->code
+                    ?? $order->bomItem?->wip_uom
+                    ?? $order->bomItem?->consumptionUom?->code
+                    ?? $order->bomItem?->consumption_uom
+                    ?? $wipPart?->uom
+                    ?? $rmPart?->uom
+                    ?? 'PCS'
+                ));
+                $partInfo = trim(implode(' / ', array_filter([
+                    $rmPart?->part_no,
+                    $rmPart?->part_name,
+                    $wipPart?->part_no,
+                    $wipPart?->part_name,
+                ])));
+                $title = trim(implode(' - ', array_filter([
+                    $order->order_no,
+                    $order->vendor?->vendor_name,
+                ])));
 
                 return [
                     'id' => (int) $order->id,
@@ -66,23 +85,17 @@ class SubcountApiController extends Controller
                     'qty_rejected' => (int) $order->qty_rejected,
                     'qty_outstanding' => $outstanding,
                     'weight_kgm' => (float) ($order->weight_kgm ?? 0),
-                    'uom' => strtoupper((string) ($order->bomItem?->wipUom?->uom_code
-                        ?? $order->bomItem?->consumptionUom?->uom_code
-                        ?? 'PCS')),
+                    'uom' => $uom !== '' ? $uom : 'PCS',
+                    'part_id' => $wipPart?->id,
+                    'part_no' => $wipPart?->part_no,
+                    'part_name' => $wipPart?->part_name,
                     'rm_part_no' => $rmPart?->part_no,
                     'rm_part_name' => $rmPart?->part_name,
                     'wip_part_no' => $wipPart?->part_no,
                     'wip_part_name' => $wipPart?->part_name,
-                    'title' => trim(implode(' - ', array_filter([
-                        $order->order_no,
-                        $order->vendor?->vendor_name,
-                    ]))),
-                    'part_info' => trim(implode(' / ', array_filter([
-                        $rmPart?->part_no,
-                        $rmPart?->part_name,
-                        $wipPart?->part_no,
-                        $wipPart?->part_name,
-                    ]))),
+                    'title' => $title,
+                    'label' => trim($title . ' | ' . $partInfo, " |"),
+                    'part_info' => $partInfo,
                     'description' => $order->notes,
                     'subcount_upload_count' => (int) $order->subcount_batches_count,
                 ];

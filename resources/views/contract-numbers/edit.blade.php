@@ -152,7 +152,9 @@
                         return this.subconPartsOptions;
                     }
 
-                    return this.subconPartsOptions.filter(opt => this.cleanProcessName(opt.process_name).toUpperCase().includes(selectedProcess.toUpperCase()));
+                    const filtered = this.subconPartsOptions.filter(opt => this.cleanProcessName(opt.process_name).toUpperCase().includes(selectedProcess.toUpperCase()));
+
+                    return filtered.length > 0 ? filtered : this.subconPartsOptions;
                 },
                 addRow() {
                     this.rows.push({
@@ -180,6 +182,7 @@
                         .replace(/\s*\(SUBCON\)\s*/gi, '')
                         .replace(/\s+FROM\s+TOLLING\s*/gi, '')
                         .replace(/\s+FOR\s+TOLLING\s*/gi, '')
+                        .replace(/PLATTING|PLATED|PLATEING/gi, 'PLATING')
                         .replace(/\s+/g, ' ')
                         .trim();
 

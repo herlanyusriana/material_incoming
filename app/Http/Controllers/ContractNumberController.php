@@ -297,6 +297,7 @@ class ContractNumberController extends Controller
         $text = preg_replace('/\s*\(SUBCON\)\s*/i', ' ', $text);
         $text = preg_replace('/\s+FROM\s+TOLLING\s*/i', ' ', $text);
         $text = preg_replace('/\s+FOR\s+TOLLING\s*/i', ' ', $text);
+        $text = str_replace(['PLATTING', 'PLATED', 'PLATEING'], 'PLATING', (string) $text);
         $text = preg_replace('/\s+/', ' ', (string) $text);
 
         return trim((string) $text);
@@ -305,7 +306,7 @@ class ContractNumberController extends Controller
     private function getSubconPartOptions()
     {
         $today = now()->toDateString();
-        return \App\Models\BomItem::query()
+        $query = \App\Models\BomItem::query()
             ->when(
                 Schema::hasColumn('bom_items', 'special'),
                 fn ($query) => $query->where('special', 'T'),
@@ -321,8 +322,38 @@ class ContractNumberController extends Controller
                             ->orWhereDate('end_date', '>=', $today);
                     });
             })
-            ->with(['wipPart', 'componentPart', 'bom.part', 'consumptionUom', 'wipUom'])
-            ->get()
+            ->with(['wipPart', 'componentPart', 'bom.part', 'consumptionUom', 'wipUom']);
+
+        $items = $query->get();
+
+        if ($items->isEmpty()) {
+            $items = \App\Models\BomItem::query()
+                ->when(
+                    Schema::hasColumn('bom_items', 'special'),
+                    fn ($fallbackQuery) => $fallbackQuery->where('special', 'T'),
+                    fn ($fallbackQuery) => $fallbackQuery->whereRaw('1 = 0')
+                )
+                ->whereNotNull('wip_part_id')
+                ->whereNotNull('component_part_id')
+                ->whereHas('bom', fn ($bomQuery) => $bomQuery->where('status', 'active'))
+                ->with(['wipPart', 'componentPart', 'bom.part', 'consumptionUom', 'wipUom'])
+                ->get();
+        }
+
+        if ($items->isEmpty()) {
+            $items = \App\Models\BomItem::query()
+                ->whereNotNull('wip_part_id')
+                ->whereNotNull('component_part_id')
+                ->where(function ($processQuery) {
+                    $processQuery->where('process_name', 'like', '%HARDEN%')
+                        ->orWhere('process_name', 'like', '%PLAT%');
+                })
+                ->whereHas('bom', fn ($bomQuery) => $bomQuery->where('status', 'active'))
+                ->with(['wipPart', 'componentPart', 'bom.part', 'consumptionUom', 'wipUom'])
+                ->get();
+        }
+
+        return $items
             ->map(function ($item) {
                 return [
                     'id' => $item->wip_part_id,
