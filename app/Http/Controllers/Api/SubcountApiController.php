@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\GciPart;
 use App\Models\SubconOrder;
 use App\Models\SubcountBatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class SubcountApiController extends Controller
 {
@@ -99,7 +101,22 @@ class SubcountApiController extends Controller
                     'description' => $order->notes,
                     'subcount_upload_count' => (int) $order->subcount_batches_count,
                 ];
-            });
+            })
+            ->values();
+
+        $manualEntries = $this->manualWhToSendEntries($request);
+        if ($manualEntries->isNotEmpty()) {
+            $existingPartNos = $orders
+                ->pluck('part_no')
+                ->filter()
+                ->map(fn ($partNo) => strtoupper((string) $partNo))
+                ->all();
+
+            $orders = $manualEntries
+                ->reject(fn ($entry) => in_array(strtoupper((string) ($entry['part_no'] ?? '')), $existingPartNos, true))
+                ->concat($orders)
+                ->values();
+        }
 
         return response()->json([
             'ok' => true,
@@ -111,7 +128,7 @@ class SubcountApiController extends Controller
     {
         $validated = $request->validate([
             'id' => ['nullable', 'string', 'max:100'],
-            'subcon_order_id' => ['nullable', 'integer', 'exists:subcon_orders,id'],
+            'subcon_order_id' => ['nullable', 'integer'],
             'subcon_order_no' => ['nullable', 'string', 'max:100'],
             'subcount_no' => ['required', 'string', 'max:100'],
             'created_at' => ['nullable', 'date'],
@@ -137,6 +154,18 @@ class SubcountApiController extends Controller
             'records.*.gross_photo.file_name' => ['nullable', 'string', 'max:255'],
             'records.*.gross_photo.mime_type' => ['nullable', 'string', 'max:100'],
         ]);
+
+        if (!empty($validated['subcon_order_id']) && (int) $validated['subcon_order_id'] > 0) {
+            $subconOrderExists = SubconOrder::query()
+                ->whereKey((int) $validated['subcon_order_id'])
+                ->exists();
+
+            if (!$subconOrderExists) {
+                throw ValidationException::withMessages([
+                    'subcon_order_id' => 'The selected subcon order id is invalid.',
+                ]);
+            }
+        }
 
         $batch = DB::transaction(function () use ($validated, $request) {
             $subconOrder = $this->resolveSubconOrder($validated);
@@ -215,6 +244,89 @@ class SubcountApiController extends Controller
         }
 
         return null;
+    }
+
+    private function manualWhToSendEntries(Request $request)
+    {
+        $entries = collect(config('subcount.manual_wh_to_send_entries', []));
+        if ($entries->isEmpty()) {
+            return collect();
+        }
+
+        $partNos = $entries
+            ->pluck('part_no')
+            ->filter()
+            ->map(fn ($partNo) => strtoupper((string) $partNo))
+            ->values();
+
+        $parts = GciPart::query()
+            ->whereIn('part_no', $partNos)
+            ->get(['id', 'part_no', 'part_name'])
+            ->keyBy(fn (GciPart $part) => strtoupper((string) $part->part_no));
+
+        $search = $request->filled('q')
+            ? strtolower(trim((string) $request->query('q')))
+            : null;
+
+        return $entries
+            ->map(function (array $entry) use ($parts) {
+                $partNo = strtoupper((string) ($entry['part_no'] ?? ''));
+                $part = $parts->get($partNo);
+                $partName = $part?->part_name ?: ($entry['part_name'] ?? null);
+                $documentNo = $entry['document_no'] ?? null;
+                $title = trim(implode(' - ', array_filter([
+                    $documentNo ?: 'Manual Subcount',
+                    $partNo,
+                ])));
+                $partInfo = trim(implode(' / ', array_filter([
+                    $partNo,
+                    $partName,
+                ])));
+
+                return [
+                    'id' => -abs((int) ($part?->id ?? crc32($partNo))),
+                    'order_no' => null,
+                    'contract_no' => $documentNo,
+                    'vendor_name' => null,
+                    'sent_date' => null,
+                    'expected_return_date' => null,
+                    'status' => 'sent',
+                    'process_type' => $entry['process_type'] ?? 'PG',
+                    'send_location_code' => null,
+                    'qty_sent' => (int) ($entry['qty_outstanding'] ?? 0),
+                    'qty_received' => 0,
+                    'qty_rejected' => 0,
+                    'qty_outstanding' => (int) ($entry['qty_outstanding'] ?? 0),
+                    'weight_kgm' => 0,
+                    'uom' => strtoupper((string) ($entry['uom'] ?? 'PCE')),
+                    'part_id' => $part?->id,
+                    'part_no' => $partNo,
+                    'part_name' => $partName,
+                    'rm_part_no' => null,
+                    'rm_part_name' => null,
+                    'wip_part_no' => $partNo,
+                    'wip_part_name' => $partName,
+                    'title' => $title,
+                    'label' => trim($title . ' | ' . $partInfo, " |"),
+                    'part_info' => $partInfo,
+                    'description' => 'Manual subcount dari dokumen barang dikirim.',
+                    'subcount_upload_count' => 0,
+                ];
+            })
+            ->filter(function (array $entry) use ($search) {
+                if ($search === null || $search === '') {
+                    return true;
+                }
+
+                return str_contains(strtolower(implode(' ', array_filter([
+                    $entry['contract_no'] ?? null,
+                    $entry['part_no'] ?? null,
+                    $entry['part_name'] ?? null,
+                    $entry['title'] ?? null,
+                    $entry['label'] ?? null,
+                ]))), $search);
+            })
+            ->values();
     }
 
     private function storeBase64Photo(array $photo, string $subcountNo, string $recordId, string $kind): string
