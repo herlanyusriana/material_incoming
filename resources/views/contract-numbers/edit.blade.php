@@ -186,7 +186,7 @@
                         .replace(/\s+/g, ' ')
                         .trim();
 
-                    return text || 'SUBCON';
+                    return text === 'PG' ? 'PLATING' : (text || 'SUBCON');
                 },
                 syncRowsWithDescription() {
                     this.rows.forEach((row, index) => {

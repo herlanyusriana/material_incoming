@@ -298,6 +298,9 @@ class ContractNumberController extends Controller
         $text = preg_replace('/\s+FROM\s+TOLLING\s*/i', ' ', $text);
         $text = preg_replace('/\s+FOR\s+TOLLING\s*/i', ' ', $text);
         $text = str_replace(['PLATTING', 'PLATED', 'PLATEING'], 'PLATING', (string) $text);
+        if ($text === 'PG') {
+            $text = 'PLATING';
+        }
         $text = preg_replace('/\s+/', ' ', (string) $text);
 
         return trim((string) $text);
