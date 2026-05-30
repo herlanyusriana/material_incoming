@@ -282,7 +282,9 @@ class LocalPoController extends Controller
                     // Defaults/Unused in form
                     'qty_bundle' => 0,
                     'unit_bundle' => 'PALLET',
+                    'weight_nett' => 0,
                     'unit_weight' => 'KGM',
+                    'weight_gross' => 0,
                 ];
 
                 if ($itemId) {
