@@ -130,8 +130,10 @@ return new class extends Migration {
         // Boolean comparison differs: PG uses `= true`, MySQL uses `= 1`
         $boolCheck = ($driver === 'pgsql') ? 'gpv.quality_inspection = true' : 'gpv.quality_inspection = 1';
 
+        $security = $driver === 'mysql' ? 'SQL SECURITY INVOKER ' : '';
+
         DB::statement("
-            CREATE SQL SECURITY INVOKER VIEW parts AS
+            CREATE {$security}VIEW parts AS
             SELECT
                 gpv.id,
                 gpv.gci_part_id,
