@@ -142,31 +142,31 @@
 
                 <!-- Table -->
                 <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="min-w-[1380px] w-full table-fixed text-sm divide-y divide-slate-200">
+                    <table class="min-w-[1680px] w-full table-fixed text-sm divide-y divide-slate-200">
                         <colgroup>
-                            <col class="w-[14%]">
-                            <col class="w-[15%]">
-                            <col class="w-[6%]">
-                            <col class="w-[22%]">
-                            <col class="w-[9%]">
-                            <col class="w-[9%]">
-                            <col class="w-[9%]">
-                            <col class="w-[5%]">
-                            <col class="w-[7%]">
-                            <col class="w-[6%]">
+                            <col class="w-[190px]">
+                            <col class="w-[260px]">
+                            <col class="w-[80px]">
+                            <col class="w-[360px]">
+                            <col class="w-[140px]">
+                            <col class="w-[140px]">
+                            <col class="w-[140px]">
+                            <col class="w-[80px]">
+                            <col class="w-[150px]">
+                            <col class="w-[130px]">
                         </colgroup>
                         <thead class="bg-slate-100">
                             <tr>
-                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Part No</th>
-                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Name / Model</th>
-                                <th class="px-3 py-3 text-center font-black text-slate-600 uppercase tracking-wider text-xs">Class</th>
-                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Receipt</th>
-                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Hand</th>
-                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">On Order</th>
-                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">Available</th>
-                                <th class="px-3 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs">Loc</th>
-                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">Default Loc</th>
-                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs">As Of</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">Part No</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">Name / Model</th>
+                                <th class="px-3 py-3 text-center font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">Class</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">Receipt</th>
+                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">On Hand</th>
+                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">On Order</th>
+                                <th class="px-4 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">Available</th>
+                                <th class="px-3 py-3 text-right font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">Loc</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">Default Loc</th>
+                                <th class="px-4 py-3 text-left font-black text-slate-600 uppercase tracking-wider text-xs whitespace-nowrap">As Of</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -177,15 +177,15 @@
                                     $invoiceNo = $inv->latest_receive_invoice_no ?: ($inv->latest_source_invoice_no ?? null);
                                 @endphp
                                 <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-4 py-4 align-top">
+                                    <td class="px-4 py-4 align-middle">
                                         <div class="font-bold font-mono text-indigo-700 truncate" title="{{ $p?->part_no ?? '-' }}">{{ $p?->part_no ?? '-' }}</div>
-                                        <div class="text-xs text-slate-400 leading-5 line-clamp-2">{{ $p?->customers->pluck('name')->implode(', ') ?: '' }}</div>
+                                        <div class="text-xs text-slate-400 leading-5 truncate" title="{{ $p?->customers->pluck('name')->implode(', ') ?: '' }}">{{ $p?->customers->pluck('name')->implode(', ') ?: '' }}</div>
                                     </td>
-                                    <td class="px-4 py-4 align-top">
-                                        <div class="font-semibold text-slate-900 leading-5 line-clamp-2" title="{{ $p?->part_name ?? '-' }}">{{ $p?->part_name ?? '-' }}</div>
+                                    <td class="px-4 py-4 align-middle">
+                                        <div class="font-semibold text-slate-900 leading-5 truncate" title="{{ $p?->part_name ?? '-' }}">{{ $p?->part_name ?? '-' }}</div>
                                         <div class="text-xs text-slate-500 mt-1 truncate" title="{{ $p?->model ?? '-' }}">{{ $p?->model ?? '-' }}</div>
                                     </td>
-                                    <td class="px-3 py-4 text-center align-top">
+                                    <td class="px-3 py-4 text-center align-middle">
                                         <span @class([
                                             'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-black tracking-wider',
                                             'bg-emerald-100 text-emerald-700' => $p?->classification === 'RM',
@@ -195,25 +195,25 @@
                                             {{ $p?->classification ?? '-' }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-4 align-top">
-                                        <div class="space-y-1.5">
-                                            <div class="font-mono text-xs text-slate-800 break-all" title="{{ $batchNo ?: 'No batch' }}">{{ $batchNo ?: '-' }}</div>
+                                    <td class="px-4 py-4 align-middle">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <div class="min-w-[130px] max-w-[150px] truncate font-mono text-xs text-slate-800" title="{{ $batchNo ?: 'No batch' }}">{{ $batchNo ?: '-' }}</div>
                                             @if($invoiceNo)
-                                                <div class="inline-flex max-w-full rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold leading-4 text-blue-700">
-                                                    <span class="break-all" title="{{ $invoiceNo }}">INV: {{ $invoiceNo }}</span>
+                                                <div class="inline-flex min-w-0 max-w-[190px] rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold leading-4 text-blue-700">
+                                                    <span class="truncate" title="{{ $invoiceNo }}">INV: {{ $invoiceNo }}</span>
                                                 </div>
                                             @else
-                                                <div class="text-[11px] text-slate-400">No invoice</div>
+                                                <div class="text-[11px] text-slate-400 whitespace-nowrap">No invoice</div>
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="px-4 py-4 text-right align-top">
+                                    <td class="px-4 py-4 text-right align-middle">
                                         <span class="font-mono font-bold tabular-nums text-slate-900">{{ formatNumber((float) ($inv->on_hand ?? 0)) }}</span>
                                     </td>
-                                    <td class="px-4 py-4 text-right align-top">
+                                    <td class="px-4 py-4 text-right align-middle">
                                         <span class="font-mono tabular-nums text-slate-500">{{ formatNumber((float) ($inv->on_order ?? 0)) }}</span>
                                     </td>
-                                    <td class="px-4 py-4 text-right align-top">
+                                    <td class="px-4 py-4 text-right align-middle">
                                         @php($availableQty = (float) ($inv->available_qty ?? 0))
                                         <span @class([
                                             'font-mono font-bold tabular-nums',
@@ -221,10 +221,10 @@
                                             'text-slate-900' => $availableQty >= 0,
                                         ])>{{ formatNumber($availableQty) }}</span>
                                     </td>
-                                    <td class="px-3 py-4 text-right align-top">
+                                    <td class="px-3 py-4 text-right align-middle">
                                         <span class="font-mono tabular-nums text-slate-500">{{ number_format((int) ($inv->location_count ?? 0)) }}</span>
                                     </td>
-                                    <td class="px-4 py-4 align-top">
+                                    <td class="px-4 py-4 align-middle">
                                         <select data-part-id="{{ $p?->id }}" onchange="saveLocation(this)"
                                             class="w-full min-w-0 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-indigo-400">
                                             <option value="">—</option>
@@ -233,7 +233,7 @@
                                             @endforeach
                                         </select>
                                     </td>
-                                    <td class="px-4 py-4 align-top text-slate-500 text-xs font-medium whitespace-nowrap">
+                                    <td class="px-4 py-4 align-middle text-slate-500 text-xs font-medium whitespace-nowrap">
                                         {{ $inv->as_of_date ? \Carbon\Carbon::parse($inv->as_of_date)->format('d M Y') : '-' }}
                                     </td>
                                 </tr>

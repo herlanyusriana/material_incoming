@@ -131,7 +131,7 @@ return new class extends Migration {
         $boolCheck = ($driver === 'pgsql') ? 'gpv.quality_inspection = true' : 'gpv.quality_inspection = 1';
 
         DB::statement("
-            CREATE VIEW parts AS
+            CREATE SQL SECURITY INVOKER VIEW parts AS
             SELECT
                 gpv.id,
                 gpv.gci_part_id,

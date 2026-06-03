@@ -51,28 +51,6 @@ class PartController extends Controller
             });
     }
 
-    private function activeBomIncomingVendorPartIds(mixed $asOfDate = null): array
-    {
-        $mainIds = BomItem::query()
-            ->whereNotNull('incoming_part_id')
-            ->whereHas('bom', function ($q) use ($asOfDate) {
-                $this->activeBomScope($q, $asOfDate);
-            })
-            ->pluck('incoming_part_id')
-            ->all();
-
-        $substituteIds = BomItemSubstitute::query()
-            ->where('status', 'active')
-            ->whereNotNull('incoming_part_id')
-            ->whereHas('bomItem.bom', function ($q) use ($asOfDate) {
-                $this->activeBomScope($q, $asOfDate);
-            })
-            ->pluck('incoming_part_id')
-            ->all();
-
-        return array_values(array_unique(array_map('intval', array_merge($mainIds, $substituteIds))));
-    }
-
     private function autoLinkVendorPartToActiveBoms(GciPart $part, GciPartVendor $vendorPart, mixed $asOfDate = null): array
     {
         $activeVendorPartIds = GciPartVendor::query()
@@ -253,7 +231,10 @@ class PartController extends Controller
                         $inner->orWhereHas('vendorLinks', function ($vq) use ($search) {
                             $vq->where('vendor_part_no', 'like', "%{$search}%")
                                 ->orWhere('vendor_part_name', 'like', "%{$search}%")
-                                ->orWhere('register_no', 'like', "%{$search}%");
+                                ->orWhere('register_no', 'like', "%{$search}%")
+                                ->orWhereHas('vendor', function ($vendorQuery) use ($search) {
+                                    $vendorQuery->where('vendor_name', 'like', "%{$search}%");
+                                });
                         });
                     }
                 });
@@ -691,34 +672,10 @@ class PartController extends Controller
             $limit = 500;
         }
 
-        $eligibleIncomingIds = $this->activeBomIncomingVendorPartIds($asOfDate);
-
-        if (empty($eligibleIncomingIds)) {
-            if ($mode === 'names') {
-                return response()->json([
-                    'names' => [],
-                    'total' => 0,
-                    'limit' => $limit,
-                    'truncated' => false,
-                ]);
-            }
-
-            if ($request->boolean('meta')) {
-                return response()->json([
-                    'parts' => [],
-                    'total' => 0,
-                    'limit' => $limit,
-                    'truncated' => false,
-                ]);
-            }
-
-            return response()->json([]);
-        }
-
         if ($mode === 'names') {
             $base = Part::query()
                 ->where('vendor_id', $vendor->id)
-                ->whereIn('id', $eligibleIncomingIds)
+                ->where('status', 'active')
                 ->whereNotNull('part_name_vendor')
                 ->whereRaw("TRIM(part_name_vendor) <> ''")
                 ->when($q !== '', function ($qr) use ($q) {
@@ -742,7 +699,6 @@ class PartController extends Controller
         $base = Part::query()
             ->where('vendor_id', $vendor->id)
             ->where('status', 'active')
-            ->whereIn('id', $eligibleIncomingIds)
             ->when($groupTitle !== '', function ($qr) use ($groupTitle) {
                 $qr->whereRaw('UPPER(TRIM(part_name_vendor)) = UPPER(?)', [$groupTitle]);
             })

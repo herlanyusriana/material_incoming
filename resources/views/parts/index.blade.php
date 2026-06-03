@@ -110,7 +110,7 @@
                         @endif
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
-                            <input name="q" value="{{ $search ?? '' }}" class="rounded-xl border-slate-200 pl-10 text-sm" placeholder="Search part...">
+                            <input name="q" value="{{ $search ?? '' }}" class="rounded-xl border-slate-200 pl-10 text-sm" placeholder="Search part / vendor...">
                         </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold">Filter</button>
                     </form>
