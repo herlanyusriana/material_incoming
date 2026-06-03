@@ -391,7 +391,20 @@
         const existingItems = @json(old('items', []));
         const refreshBtnLabel = refreshPartsBtn?.querySelector('[data-label]');
         const refreshBtnDefaultText = refreshBtnLabel?.textContent || 'Sync Part Catalog';
-        let lastVendorQuery = String(vendorInput?.value ?? '').toLowerCase().trim();
+        const normalizeSearchText = (value) => String(value || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim()
+            .replace(/\s+/g, ' ');
+        const searchMatches = (haystack, needle) => {
+            const normalizedNeedle = normalizeSearchText(needle);
+            if (!normalizedNeedle) return true;
+            const normalizedHaystack = normalizeSearchText(haystack);
+            return normalizedNeedle
+                .split(' ')
+                .every((term) => normalizedHaystack.includes(term));
+        };
+        let lastVendorQuery = normalizeSearchText(vendorInput?.value);
 
         const existingContainers = @json(old('containers', []));
         const legacyContainerNumbers = @json(old('container_numbers'));
@@ -522,9 +535,9 @@
 
         function resolveVendorIdFromTypedName() {
             if (vendorIdInput.value) return vendorIdInput.value;
-            const typed = String(vendorInput?.value || '').trim().toLowerCase();
+            const typed = normalizeSearchText(vendorInput?.value);
             if (!typed) return '';
-            const exact = vendorsData.find(v => String(v.name || '').trim().toLowerCase() === typed);
+            const exact = vendorsData.find(v => normalizeSearchText(v.name) === typed);
             if (!exact) return '';
             vendorIdInput.value = String(exact.id);
             return vendorIdInput.value;
@@ -634,20 +647,21 @@
         }
 
         vendorInput.addEventListener('input', function () {
-            const query = this.value.toLowerCase().trim();
+            const query = normalizeSearchText(this.value);
 
             const renderSuggestions = (list, q) => {
                 suggestionsBox.innerHTML = list.map(v => {
                     const name = v.name;
                     const lowerName = name.toLowerCase();
-                    const index = q ? lowerName.indexOf(q) : -1;
+                    const rawQuery = String(vendorInput?.value || '').toLowerCase().trim();
+                    const index = rawQuery ? lowerName.indexOf(rawQuery) : -1;
                     let highlighted = name;
-                    if (index !== -1 && q) {
+                    if (index !== -1 && rawQuery) {
                         highlighted = name.substring(0, index)
                             + '<span class="font-semibold text-blue-600">'
-                            + name.substring(index, index + q.length)
+                            + name.substring(index, index + rawQuery.length)
                             + '</span>'
-                            + name.substring(index + q.length);
+                            + name.substring(index + rawQuery.length);
                     }
                     return `<div class="px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors" data-id="${v.id}" data-name="${name}">
                         ${highlighted}
@@ -669,7 +683,7 @@
                 return;
             }
 
-            const matches = vendorsData.filter(v => v.name.toLowerCase().includes(query));
+            const matches = vendorsData.filter(v => searchMatches(v.name, query));
             if (matches.length > 0) {
                 renderSuggestions(matches, query);
                 suggestionsBox.classList.remove('hidden');
@@ -720,9 +734,9 @@
 
         vendorInput.addEventListener('blur', async function () {
             if (vendorIdInput.value) return;
-            const typed = this.value.toLowerCase().trim();
+            const typed = normalizeSearchText(this.value);
             if (!typed) return;
-            const exactMatches = vendorsData.filter(v => v.name.toLowerCase().trim() === typed);
+            const exactMatches = vendorsData.filter(v => normalizeSearchText(v.name) === typed);
             if (exactMatches.length !== 1) return;
             const match = exactMatches[0];
             vendorIdInput.value = match.id;

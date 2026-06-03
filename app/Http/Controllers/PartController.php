@@ -222,19 +222,27 @@ class PartController extends Controller
             ->when($policyConfirmation === 'confirmed', fn($q) => $q->whereNotNull('policy_confirmed_at'))
             ->when($policyConfirmation === 'unconfirmed', fn($q) => $q->whereNull('policy_confirmed_at'))
             ->when($search, function ($query, $search) use ($classification) {
-                $query->where(function ($inner) use ($search, $classification) {
-                    $inner->where('part_no', 'like', "%{$search}%")
-                        ->orWhere('part_name', 'like', "%{$search}%")
-                        ->orWhere('model', 'like', "%{$search}%");
+                $terms = collect(preg_split('/\s+/', trim((string) $search)) ?: [])
+                    ->filter()
+                    ->values();
 
-                    if ($classification === 'RM') {
-                        $inner->orWhereHas('vendorLinks', function ($vq) use ($search) {
-                            $vq->where('vendor_part_no', 'like', "%{$search}%")
-                                ->orWhere('vendor_part_name', 'like', "%{$search}%")
-                                ->orWhere('register_no', 'like', "%{$search}%")
-                                ->orWhereHas('vendor', function ($vendorQuery) use ($search) {
-                                    $vendorQuery->where('vendor_name', 'like', "%{$search}%");
+                $query->where(function ($outer) use ($terms, $classification) {
+                    foreach ($terms as $term) {
+                        $outer->where(function ($inner) use ($term, $classification) {
+                            $inner->where('part_no', 'like', "%{$term}%")
+                                ->orWhere('part_name', 'like', "%{$term}%")
+                                ->orWhere('model', 'like', "%{$term}%");
+
+                            if ($classification === 'RM') {
+                                $inner->orWhereHas('vendorLinks', function ($vq) use ($term) {
+                                    $vq->where('vendor_part_no', 'like', "%{$term}%")
+                                        ->orWhere('vendor_part_name', 'like', "%{$term}%")
+                                        ->orWhere('register_no', 'like', "%{$term}%")
+                                        ->orWhereHas('vendor', function ($vendorQuery) use ($term) {
+                                            $vendorQuery->where('vendor_name', 'like', "%{$term}%");
+                                        });
                                 });
+                            }
                         });
                     }
                 });

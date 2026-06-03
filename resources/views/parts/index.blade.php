@@ -647,7 +647,7 @@
                                 <input type="text" x-model="vendorSearch" placeholder="Search vendor..." class="w-full text-sm rounded-lg border-slate-200 px-2 py-1">
                             </div>
                             @foreach($vendors as $v)
-                                <label class="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm" x-show="!vendorSearch || '{{ strtolower($v->vendor_name) }}'.includes(vendorSearch.toLowerCase())">
+                                <label class="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm" x-show="vendorMatches(@js($v->vendor_name), vendorSearch)">
                                     <input type="checkbox" name="vendor_ids[]" value="{{ $v->id }}" class="rounded border-slate-300 text-indigo-600 mr-2" :checked="partForm.vendor_ids.includes({{ $v->id }})">
                                     <span class="text-slate-700">{{ $v->vendor_name }}</span>
                                 </label>
@@ -1060,6 +1060,19 @@
                         }
 
                         this.selectedPartIds = selected.filter(id => !this.visiblePartIds.includes(String(id)));
+                    },
+                    normalizeSearchText(value) {
+                        return String(value || '')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, ' ')
+                            .trim()
+                            .replace(/\s+/g, ' ');
+                    },
+                    vendorMatches(name, search) {
+                        const needle = this.normalizeSearchText(search);
+                        if (!needle) return true;
+                        const haystack = this.normalizeSearchText(name);
+                        return needle.split(' ').every(term => haystack.includes(term));
                     },
 
                     openCreatePart() {

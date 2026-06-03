@@ -27,13 +27,21 @@ class VendorController extends Controller
 
         $vendors = Vendor::query()
             ->when($search, function ($query, $search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('vendor_name', 'like', "%{$search}%")
-                        ->orWhere('country_code', 'like', "%{$search}%")
-                        ->orWhere('contact_person', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%");
+                $terms = collect(preg_split('/\s+/', trim((string) $search)) ?: [])
+                    ->filter()
+                    ->values();
+
+                $query->where(function ($outer) use ($terms) {
+                    foreach ($terms as $term) {
+                        $outer->where(function ($inner) use ($term) {
+                            $inner->where('vendor_name', 'like', "%{$term}%")
+                                ->orWhere('country_code', 'like', "%{$term}%")
+                                ->orWhere('contact_person', 'like', "%{$term}%")
+                                ->orWhere('email', 'like', "%{$term}%")
+                                ->orWhere('phone', 'like', "%{$term}%")
+                                ->orWhere('address', 'like', "%{$term}%");
+                        });
+                    }
                 });
             })
             ->when($status, fn($query) => $query->where('status', $status))
