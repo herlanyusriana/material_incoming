@@ -146,15 +146,7 @@
                 description: @json(old('description', $contract->description)),
                 rows: @json($editItemsJson ?? []),
                 get filteredSubconPartsOptions() {
-                    const selectedProcess = this.cleanProcessName(this.description);
-
-                    if (!selectedProcess || !['HARDENING', 'PLATING'].includes(selectedProcess.toUpperCase())) {
-                        return this.subconPartsOptions;
-                    }
-
-                    const filtered = this.subconPartsOptions.filter(opt => this.cleanProcessName(opt.process_name).toUpperCase().includes(selectedProcess.toUpperCase()));
-
-                    return filtered.length > 0 ? filtered : this.subconPartsOptions;
+                    return this.subconPartsOptions;
                 },
                 addRow() {
                     this.rows.push({

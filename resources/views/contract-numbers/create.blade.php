@@ -140,15 +140,7 @@
                 description: @json(old('description', '')),
                 rows: [],
                 get filteredSubconPartsOptions() {
-                    const selectedProcess = this.cleanProcessName(this.description);
-
-                    if (!selectedProcess || !['HARDENING', 'PLATING'].includes(selectedProcess.toUpperCase())) {
-                        return this.subconPartsOptions;
-                    }
-
-                    const filtered = this.subconPartsOptions.filter(opt => this.cleanProcessName(opt.process_name).toUpperCase().includes(selectedProcess.toUpperCase()));
-
-                    return filtered.length > 0 ? filtered : this.subconPartsOptions;
+                    return this.subconPartsOptions;
                 },
                 init() {
                     this.addRow();
