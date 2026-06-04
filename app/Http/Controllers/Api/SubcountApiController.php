@@ -8,6 +8,7 @@ use App\Models\SubconOrder;
 use App\Models\SubcountBatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -248,32 +249,37 @@ class SubcountApiController extends Controller
 
     private function manualWhToSendEntries(Request $request)
     {
-        $entries = collect(config('subcount.manual_wh_to_send_entries', []));
-        if ($entries->isEmpty()) {
+        if (!Schema::hasColumn('gci_parts', 'subcount_enabled')) {
             return collect();
         }
 
-        $partNos = $entries
-            ->pluck('part_no')
-            ->filter()
-            ->map(fn ($partNo) => strtoupper((string) $partNo))
-            ->values();
-
         $parts = GciPart::query()
-            ->whereIn('part_no', $partNos)
-            ->get(['id', 'part_no', 'part_name'])
-            ->keyBy(fn (GciPart $part) => strtoupper((string) $part->part_no));
+            ->where('subcount_enabled', true)
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get([
+                'id',
+                'part_no',
+                'part_name',
+                'subcount_document_no',
+                'subcount_qty',
+                'subcount_uom',
+                'subcount_process_type',
+            ]);
+
+        if ($parts->isEmpty()) {
+            return collect();
+        }
 
         $search = $request->filled('q')
             ? strtolower(trim((string) $request->query('q')))
             : null;
 
-        return $entries
-            ->map(function (array $entry) use ($parts) {
-                $partNo = strtoupper((string) ($entry['part_no'] ?? ''));
-                $part = $parts->get($partNo);
-                $partName = $part?->part_name ?: ($entry['part_name'] ?? null);
-                $documentNo = $entry['document_no'] ?? null;
+        return $parts
+            ->map(function (GciPart $part) {
+                $partNo = strtoupper((string) $part->part_no);
+                $partName = $part->part_name;
+                $documentNo = $part->subcount_document_no;
                 $title = trim(implode(' - ', array_filter([
                     $documentNo ?: 'Manual Subcount',
                     $partNo,
@@ -284,22 +290,22 @@ class SubcountApiController extends Controller
                 ])));
 
                 return [
-                    'id' => -abs((int) ($part?->id ?? crc32($partNo))),
+                    'id' => -abs((int) $part->id),
                     'order_no' => null,
                     'contract_no' => $documentNo,
                     'vendor_name' => null,
                     'sent_date' => null,
                     'expected_return_date' => null,
                     'status' => 'sent',
-                    'process_type' => $entry['process_type'] ?? 'PG',
+                    'process_type' => $part->subcount_process_type ?? 'PG',
                     'send_location_code' => null,
-                    'qty_sent' => (int) ($entry['qty_outstanding'] ?? 0),
+                    'qty_sent' => (int) ($part->subcount_qty ?? 0),
                     'qty_received' => 0,
                     'qty_rejected' => 0,
-                    'qty_outstanding' => (int) ($entry['qty_outstanding'] ?? 0),
+                    'qty_outstanding' => (int) ($part->subcount_qty ?? 0),
                     'weight_kgm' => 0,
-                    'uom' => strtoupper((string) ($entry['uom'] ?? 'PCE')),
-                    'part_id' => $part?->id,
+                    'uom' => strtoupper((string) ($part->subcount_uom ?? 'PCE')),
+                    'part_id' => $part->id,
                     'part_no' => $partNo,
                     'part_name' => $partName,
                     'rm_part_no' => null,

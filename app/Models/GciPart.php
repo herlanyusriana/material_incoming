@@ -25,12 +25,19 @@ class GciPart extends Model
         'default_location',
         'is_backflush',
         'consumption_policy',
+        'subcount_enabled',
+        'subcount_document_no',
+        'subcount_qty',
+        'subcount_uom',
+        'subcount_process_type',
         'policy_confirmed_at',
         'policy_confirmed_by',
     ];
 
     protected $casts = [
         'is_backflush' => 'boolean',
+        'subcount_enabled' => 'boolean',
+        'subcount_qty' => 'integer',
         'policy_confirmed_at' => 'datetime',
     ];
 

@@ -369,17 +369,19 @@ class SubconController extends Controller
 
                     $order = SubconOrder::create($payload);
 
-                    LocationInventory::consumeStock(
-                        null,
-                        $resolvedSendLocation,
-                        (float) $qtySent,
-                        null,
-                        (int) $item['rm_gci_part_id'],
-                        'SUBCON_SEND',
-                        $order->order_no,
-                        [],
-                        (float) ($item['weight_kgm'] ?? 0)
-                    );
+                    if ($resolvedSendLocation !== 'WIP-BYPASS') {
+                        LocationInventory::consumeStock(
+                            null,
+                            $resolvedSendLocation,
+                            (float) $qtySent,
+                            null,
+                            (int) $item['rm_gci_part_id'],
+                            'SUBCON_SEND',
+                            $order->order_no,
+                            [],
+                            (float) ($item['weight_kgm'] ?? 0)
+                        );
+                    }
 
                     $createdOrders[] = $order->order_no;
                 }
@@ -906,6 +908,7 @@ class SubconController extends Controller
                     'wip_net_weight' => (float) ($item->wipPart->net_weight ?? 0),
                 ];
             })
+            ->concat($this->manualSubconPartOptions())
             ->filter(fn ($item) => !empty($item['id']) && !empty($item['part_no']))
             ->unique(fn ($item) => implode('|', [
                 $item['id'] ?? '',
@@ -917,6 +920,39 @@ class SubconController extends Controller
                 ['process_name', 'asc'],
                 ['rm_part_no', 'asc'],
             ])
+            ->values();
+    }
+
+    private function manualSubconPartOptions()
+    {
+        if (!Schema::hasColumn('gci_parts', 'subcount_enabled')) {
+            return collect();
+        }
+
+        $parts = GciPart::query()
+            ->where('subcount_enabled', true)
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get(['id', 'part_no', 'part_name', 'net_weight', 'subcount_uom', 'subcount_process_type']);
+
+        return $parts
+            ->map(function (GciPart $part) {
+                return [
+                    'id' => $part->id,
+                    'part_no' => $part->part_no,
+                    'part_name' => $part->part_name ?: '',
+                    'rm_part_id' => $part->id,
+                    'rm_part_no' => $part->part_no,
+                    'rm_part_name' => $part->part_name ?: '',
+                    'process_name' => $part->subcount_process_type ?? 'PG',
+                    'fg_part_no' => $part->part_no,
+                    'fg_part_name' => $part->part_name ?: '',
+                    'bom_item_id' => null,
+                    'uom' => strtoupper((string) ($part->subcount_uom ?? 'PCE')),
+                    'rm_net_weight' => (float) ($part->net_weight ?? 0),
+                    'wip_net_weight' => (float) ($part->net_weight ?? 0),
+                ];
+            })
             ->values();
     }
 

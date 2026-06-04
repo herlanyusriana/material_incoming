@@ -445,6 +445,11 @@ class PartController extends Controller
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
+            'subcount_enabled' => ['nullable', 'boolean'],
+            'subcount_document_no' => ['nullable', 'string', 'max:100'],
+            'subcount_qty' => ['nullable', 'integer', 'min:0'],
+            'subcount_uom' => ['nullable', 'string', 'max:20'],
+            'subcount_process_type' => ['nullable', 'string', 'max:50'],
         ]);
 
         $vendorIds = $data['vendor_ids'] ?? [];
@@ -457,6 +462,7 @@ class PartController extends Controller
         $data['is_backflush'] = $data['consumption_policy'] !== 'direct_issue';
         $data['policy_confirmed_at'] = now();
         $data['policy_confirmed_by'] = auth()->id();
+        $this->normalizeSubcountData($data, $request);
 
         try {
             $gciPart = GciPart::create($data);
@@ -497,6 +503,11 @@ class PartController extends Controller
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
+            'subcount_enabled' => ['nullable', 'boolean'],
+            'subcount_document_no' => ['nullable', 'string', 'max:100'],
+            'subcount_qty' => ['nullable', 'integer', 'min:0'],
+            'subcount_uom' => ['nullable', 'string', 'max:20'],
+            'subcount_process_type' => ['nullable', 'string', 'max:50'],
         ]);
 
         $vendorIds = $data['vendor_ids'] ?? [];
@@ -509,6 +520,7 @@ class PartController extends Controller
         $data['is_backflush'] = $data['consumption_policy'] !== 'direct_issue';
         $data['policy_confirmed_at'] = now();
         $data['policy_confirmed_by'] = auth()->id();
+        $this->normalizeSubcountData($data, $request);
 
         try {
             $part->update($data);
@@ -533,6 +545,25 @@ class PartController extends Controller
         }
 
         return redirect()->route('parts.index')->with('status', 'Part updated.');
+    }
+
+    private function normalizeSubcountData(array &$data, Request $request): void
+    {
+        $enabled = $request->boolean('subcount_enabled');
+        $data['subcount_enabled'] = $enabled;
+        $data['subcount_document_no'] = $enabled ? trim((string) ($data['subcount_document_no'] ?? '')) : null;
+        $data['subcount_document_no'] = $data['subcount_document_no'] !== '' ? $data['subcount_document_no'] : null;
+        $data['subcount_qty'] = $enabled ? (int) ($data['subcount_qty'] ?? 0) : null;
+        $data['subcount_uom'] = $enabled ? strtoupper(trim((string) ($data['subcount_uom'] ?? 'PCE'))) : 'PCE';
+        $data['subcount_process_type'] = $enabled ? strtoupper(trim((string) ($data['subcount_process_type'] ?? 'PG'))) : 'PG';
+
+        if ($data['subcount_uom'] === '') {
+            $data['subcount_uom'] = 'PCE';
+        }
+
+        if ($data['subcount_process_type'] === '') {
+            $data['subcount_process_type'] = 'PG';
+        }
     }
 
     public function bulkUpdatePolicy(Request $request)

@@ -353,6 +353,7 @@ class ContractNumberController extends Controller
                     'uom' => $this->resolveSubconUom($item, $item->componentPart, $item->wipPart),
                 ];
             })
+            ->concat($this->manualSubconPartOptions())
             ->filter(fn ($item) => !empty($item['id']) && !empty($item['part_no']))
             ->unique(fn ($item) => implode('|', [
                 $item['id'] ?? '',
@@ -365,6 +366,37 @@ class ContractNumberController extends Controller
                 ['part_no', 'asc'],
                 ['process_name', 'asc'],
             ])
+            ->values();
+    }
+
+    private function manualSubconPartOptions()
+    {
+        if (!Schema::hasColumn('gci_parts', 'subcount_enabled')) {
+            return collect();
+        }
+
+        $parts = GciPart::query()
+            ->where('subcount_enabled', true)
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get(['id', 'part_no', 'part_name', 'subcount_uom', 'subcount_process_type']);
+
+        return $parts
+            ->map(function (GciPart $part) {
+                return [
+                    'id' => $part->id,
+                    'part_no' => $part->part_no,
+                    'part_name' => $part->part_name ?: '',
+                    'rm_part_id' => $part->id,
+                    'rm_part_no' => $part->part_no,
+                    'rm_part_name' => $part->part_name ?: '',
+                    'fg_part_no' => $part->part_no,
+                    'fg_part_name' => $part->part_name ?: '',
+                    'process_name' => $part->subcount_process_type ?? 'PG',
+                    'bom_item_id' => null,
+                    'uom' => strtoupper((string) ($part->subcount_uom ?? 'PCE')),
+                ];
+            })
             ->values();
     }
 

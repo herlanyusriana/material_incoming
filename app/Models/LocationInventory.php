@@ -248,6 +248,10 @@ class LocationInventory extends Model
             $batchNo = null;
         }
 
+        if ($locationCode === 'WIP-BYPASS') {
+            return;
+        }
+
         if (!$gciPartId && $partId) {
             $part = Part::find($partId);
             if ($part && $part->gci_part_id) {
