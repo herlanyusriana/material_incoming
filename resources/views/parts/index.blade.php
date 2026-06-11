@@ -119,6 +119,7 @@
                         <div class="flex items-center gap-2">
                             <a href="{{ route('parts.export', ['classification' => $activeTab]) }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold">Export</a>
                             <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold" @click="importOpen=true">Import</button>
+                            <button type="button" class="px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold" @click="openCreateSubcountPart()">+ Part Subcount</button>
                             <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold" @click="openCreatePart()">+ Add Part</button>
                         </div>
                     @else
@@ -214,7 +215,14 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
-                                        <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-slate-700">
+                                            <div>{{ $p->part_name ?? '-' }}</div>
+                                            @if($p->subcount_enabled)
+                                                <div class="mt-1 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                                    SUBCOUNT {{ number_format((int) ($p->subcount_qty ?? 0)) }} {{ $p->subcount_uom ?: 'PCE' }}
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3 text-slate-700">
                                             @php
                                                 $vendorNames = $p->vendorLinks
@@ -377,7 +385,14 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 font-semibold text-slate-900">{{ $p->part_no }}</td>
-                                        <td class="px-4 py-3 text-slate-700">{{ $p->part_name ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-slate-700">
+                                            <div>{{ $p->part_name ?? '-' }}</div>
+                                            @if($p->subcount_enabled)
+                                                <div class="mt-1 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                                    SUBCOUNT {{ number_format((int) ($p->subcount_qty ?? 0)) }} {{ $p->subcount_uom ?: 'PCE' }}
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3 text-slate-700">{{ $p->model ?? '-' }}</td>
                                         <td class="px-4 py-3">
                                             @php
@@ -1117,6 +1132,13 @@
                         this.subForm = { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' };
                         this.subFgOptions = [];
                         this.partModal = true;
+                    },
+                    openCreateSubcountPart() {
+                        this.openCreatePart();
+                        this.partForm.classification = 'WIP';
+                        this.partForm.subcount_enabled = true;
+                        this.partForm.subcount_uom = 'PCE';
+                        this.partForm.subcount_process_type = 'PG';
                     },
                     openEditPart(p) {
                         this.partMode = 'edit';
