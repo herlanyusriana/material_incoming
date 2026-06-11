@@ -446,8 +446,6 @@ class PartController extends Controller
             'vendor_ids.*' => ['exists:vendors,id'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
-            'subcount_document_no' => ['nullable', 'string', 'max:100'],
-            'subcount_qty' => ['nullable', 'integer', 'min:0'],
             'subcount_uom' => ['nullable', 'string', 'max:20'],
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
         ]);
@@ -504,8 +502,6 @@ class PartController extends Controller
             'vendor_ids.*' => ['exists:vendors,id'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
-            'subcount_document_no' => ['nullable', 'string', 'max:100'],
-            'subcount_qty' => ['nullable', 'integer', 'min:0'],
             'subcount_uom' => ['nullable', 'string', 'max:20'],
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
         ]);
@@ -551,9 +547,6 @@ class PartController extends Controller
     {
         $enabled = $request->boolean('subcount_enabled');
         $data['subcount_enabled'] = $enabled;
-        $data['subcount_document_no'] = $enabled ? trim((string) ($data['subcount_document_no'] ?? '')) : null;
-        $data['subcount_document_no'] = $data['subcount_document_no'] !== '' ? $data['subcount_document_no'] : null;
-        $data['subcount_qty'] = $enabled ? (int) ($data['subcount_qty'] ?? 0) : null;
         $data['subcount_uom'] = $enabled ? strtoupper(trim((string) ($data['subcount_uom'] ?? 'PCE'))) : 'PCE';
         $data['subcount_process_type'] = $enabled ? strtoupper(trim((string) ($data['subcount_process_type'] ?? 'PG'))) : 'PG';
 

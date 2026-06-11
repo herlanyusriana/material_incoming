@@ -13,14 +13,8 @@ return new class extends Migration
             if (!Schema::hasColumn('gci_parts', 'subcount_enabled')) {
                 $table->boolean('subcount_enabled')->default(false)->after('consumption_policy');
             }
-            if (!Schema::hasColumn('gci_parts', 'subcount_document_no')) {
-                $table->string('subcount_document_no', 100)->nullable()->after('subcount_enabled');
-            }
-            if (!Schema::hasColumn('gci_parts', 'subcount_qty')) {
-                $table->unsignedInteger('subcount_qty')->nullable()->after('subcount_document_no');
-            }
             if (!Schema::hasColumn('gci_parts', 'subcount_uom')) {
-                $table->string('subcount_uom', 20)->default('PCE')->after('subcount_qty');
+                $table->string('subcount_uom', 20)->default('PCE')->after('subcount_enabled');
             }
             if (!Schema::hasColumn('gci_parts', 'subcount_process_type')) {
                 $table->string('subcount_process_type', 50)->default('PG')->after('subcount_uom');
@@ -31,8 +25,6 @@ return new class extends Migration
             ->where('part_no', 'MAZ65643601-PG')
             ->update([
                 'subcount_enabled' => true,
-                'subcount_document_no' => '--[2025-06-23',
-                'subcount_qty' => 10000,
                 'subcount_uom' => 'PCE',
                 'subcount_process_type' => 'PG',
             ]);
@@ -41,8 +33,6 @@ return new class extends Migration
             ->where('part_no', 'MFA62123401-PG')
             ->update([
                 'subcount_enabled' => true,
-                'subcount_document_no' => '--[2025-11-20',
-                'subcount_qty' => 20000,
                 'subcount_uom' => 'PCE',
                 'subcount_process_type' => 'PG',
             ]);
@@ -54,8 +44,6 @@ return new class extends Migration
             foreach ([
                 'subcount_process_type',
                 'subcount_uom',
-                'subcount_qty',
-                'subcount_document_no',
                 'subcount_enabled',
             ] as $column) {
                 if (Schema::hasColumn('gci_parts', $column)) {

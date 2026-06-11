@@ -219,7 +219,7 @@
                                             <div>{{ $p->part_name ?? '-' }}</div>
                                             @if($p->subcount_enabled)
                                                 <div class="mt-1 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                                                    SUBCOUNT {{ number_format((int) ($p->subcount_qty ?? 0)) }} {{ $p->subcount_uom ?: 'PCE' }}
+                                                    SUBCOUNT {{ $p->subcount_process_type ?: 'PG' }}
                                                 </div>
                                             @endif
                                         </td>
@@ -389,7 +389,7 @@
                                             <div>{{ $p->part_name ?? '-' }}</div>
                                             @if($p->subcount_enabled)
                                                 <div class="mt-1 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                                                    SUBCOUNT {{ number_format((int) ($p->subcount_qty ?? 0)) }} {{ $p->subcount_uom ?: 'PCE' }}
+                                                    SUBCOUNT {{ $p->subcount_process_type ?: 'PG' }}
                                                 </div>
                                             @endif
                                         </td>
@@ -754,7 +754,7 @@
                         <div class="flex items-center justify-between gap-3">
                             <div>
                                 <div class="text-sm font-semibold text-blue-800">Management Subcount</div>
-                                <div class="text-xs text-blue-700/80">Aktifkan supaya part muncul di Contract Subcount, WH Send, dan APK subcount.</div>
+                                <div class="text-xs text-blue-700/80">Aktifkan supaya part muncul sebagai pilihan mapping di Contract Number dan WH Send.</div>
                             </div>
                             <label class="inline-flex items-center gap-2 text-sm font-semibold text-blue-800">
                                 <input type="hidden" name="subcount_enabled" value="0">
@@ -762,15 +762,7 @@
                                 Aktif
                             </label>
                         </div>
-                        <div class="grid grid-cols-4 gap-3" x-show="partForm.subcount_enabled" x-cloak>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-700">Dokumen Asal</label>
-                                <input name="subcount_document_no" class="mt-1 w-full rounded-lg border-slate-200 text-sm" placeholder="--[2025-06-23" x-model="partForm.subcount_document_no">
-                            </div>
-                            <div>
-                                <label class="text-xs font-semibold text-slate-700">Qty</label>
-                                <input type="number" min="0" name="subcount_qty" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="partForm.subcount_qty">
-                            </div>
+                        <div class="grid grid-cols-2 gap-3" x-show="partForm.subcount_enabled" x-cloak>
                             <div>
                                 <label class="text-xs font-semibold text-slate-700">UOM</label>
                                 <input name="subcount_uom" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="partForm.subcount_uom">
@@ -1072,7 +1064,7 @@
                     partAction: @js(route('parts.store')),
                     subsOpen: false,
                     vendorSearch: '',
-                    partForm: { id: null, customer_ids: [], part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_document_no: '', subcount_qty: '', subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] },
+                    partForm: { id: null, customer_ids: [], part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] },
                     subEditId: null,
                     subFormAction: '',
                     subForm: { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },
@@ -1126,7 +1118,7 @@
                         this.partAction = @js(route('parts.store'));
                         this.subsOpen = false;
                         this.vendorSearch = '';
-                        this.partForm = { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_document_no: '', subcount_qty: '', subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] };
+                        this.partForm = { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] };
                         this.subEditId = null;
                         this.subFormAction = '';
                         this.subForm = { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' };
@@ -1166,8 +1158,6 @@
                             status: p.status,
                             consumption_policy: p.consumption_policy || ((p.is_backflush !== false && p.is_backflush !== 0) ? 'backflush_return' : 'direct_issue'),
                             subcount_enabled: !!p.subcount_enabled,
-                            subcount_document_no: p.subcount_document_no || '',
-                            subcount_qty: p.subcount_qty || '',
                             subcount_uom: p.subcount_uom || 'PCE',
                             subcount_process_type: p.subcount_process_type || 'PG',
                             vendor_ids: linkedVendors,
