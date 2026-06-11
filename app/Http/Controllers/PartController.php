@@ -744,7 +744,43 @@ class PartController extends Controller
             return back()->with('error', 'Cannot delete part with vendor links. Remove vendor parts first.');
         }
 
-        $part->delete();
+        try {
+            DB::transaction(function () use ($part) {
+                $subcountMappingQuery = BomItem::query()
+                    ->where('wip_part_id', $part->id)
+                    ->when(
+                        \Illuminate\Support\Facades\Schema::hasColumn('bom_items', 'special'),
+                        fn ($query) => $query->where('special', 'T')
+                    );
+
+                $subcountMappingIds = (clone $subcountMappingQuery)->pluck('id');
+
+                if ($subcountMappingIds->isNotEmpty()) {
+                    \App\Models\ContractNumberItem::query()
+                        ->whereIn('bom_item_id', $subcountMappingIds)
+                        ->update(['bom_item_id' => null]);
+
+                    \App\Models\SubconOrder::query()
+                        ->whereIn('bom_item_id', $subcountMappingIds)
+                        ->update(['bom_item_id' => null]);
+
+                    (clone $subcountMappingQuery)->delete();
+                }
+
+                $blockedAsWip = BomItem::query()->where('wip_part_id', $part->id)->exists();
+                $blockedAsComponent = BomItem::query()->where('component_part_id', $part->id)->exists();
+
+                if ($blockedAsWip || $blockedAsComponent) {
+                    throw new \RuntimeException('Part masih dipakai di BOM. Hapus/update BOM terkait dulu sebelum delete part.');
+                }
+
+                $part->delete();
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (QueryException $e) {
+            return back()->with('error', 'Part masih dipakai oleh data lain, jadi belum bisa dihapus.');
+        }
 
         return redirect()->route('parts.index')->with('status', 'Part deleted.');
     }
