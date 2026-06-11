@@ -84,12 +84,20 @@
                             <div class="grid grid-cols-12 gap-3 rounded-xl border border-slate-200 bg-white p-3">
                                 <div class="col-span-12 lg:col-span-7">
                                     <label class="block text-[10px] font-bold uppercase text-slate-500">Part Mapping</label>
-                                    <select class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="row.selected_part_key" @change="onPartChange(index)" required>
-                                        <option value="">Pilih WIP - RM...</option>
-                                        <template x-for="opt in filteredSubconPartsOptions" :key="opt.key">
-                                            <option :value="opt.key" x-text="partOptionLabel(opt)"></option>
+                                    <input
+                                        type="text"
+                                        class="mt-1 w-full rounded-lg border-slate-300 text-sm"
+                                        :list="`subcon-part-options-${index}`"
+                                        x-model="row.part_search"
+                                        @input.debounce.150ms="onPartSearch(index)"
+                                        @change="onPartSearch(index)"
+                                        placeholder="Ketik part / nama / RM..."
+                                        required>
+                                    <datalist :id="`subcon-part-options-${index}`">
+                                        <template x-for="opt in filteredSubconPartsOptions(row.part_search)" :key="opt.key">
+                                            <option :value="partOptionLabel(opt)"></option>
                                         </template>
-                                    </select>
+                                    </datalist>
                                     <input type="hidden" :name="`items[${index}][gci_part_id]`" x-model="row.gci_part_id">
                                     <input type="hidden" :name="`items[${index}][rm_gci_part_id]`" x-model="row.rm_gci_part_id">
                                     <input type="hidden" :name="`items[${index}][process_type]`" x-model="row.process_type">
@@ -139,8 +147,28 @@
                 subconPartsOptions: @json($subconPartsJson ?? []),
                 description: @json(old('description', '')),
                 rows: [],
-                get filteredSubconPartsOptions() {
-                    return this.subconPartsOptions;
+                filteredSubconPartsOptions(search = '') {
+                    const needle = this.normalizeSearchText(search);
+                    if (!needle) {
+                        return this.subconPartsOptions.slice(0, 50);
+                    }
+
+                    const terms = needle.split(' ');
+                    return this.subconPartsOptions
+                        .filter(opt => {
+                            const haystack = this.normalizeSearchText([
+                                opt.part_no,
+                                opt.part_name,
+                                opt.fg_part_no,
+                                opt.fg_part_name,
+                                opt.rm_part_no,
+                                opt.rm_part_name,
+                                opt.process_name,
+                            ].join(' '));
+
+                            return terms.every(term => haystack.includes(term));
+                        })
+                        .slice(0, 50);
                 },
                 init() {
                     this.addRow();
@@ -149,6 +177,7 @@
                     this.rows.push({
                         id: Date.now() + Math.random(),
                         selected_part_key: '',
+                        part_search: '',
                         gci_part_id: '',
                         rm_gci_part_id: '',
                         process_type: '',
@@ -166,6 +195,13 @@
 
                     return `${itemName} | Jadi: ${fgCode} | ${process} | RM: ${opt.rm_part_no || '-'} | ${uom}`;
                 },
+                normalizeSearchText(value) {
+                    return String(value || '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, ' ')
+                        .trim()
+                        .replace(/\s+/g, ' ');
+                },
                 cleanProcessName(value) {
                     const text = String(value || 'SUBCON')
                         .replace(/\s*\(SUBCON\)\s*/gi, '')
@@ -181,16 +217,27 @@
                     this.rows.forEach((row, index) => {
                         if (!row.selected_part_key) return;
 
-                        const stillAvailable = this.filteredSubconPartsOptions.some(opt => opt.key === row.selected_part_key);
+                        const stillAvailable = this.subconPartsOptions.some(opt => opt.key === row.selected_part_key);
                         if (!stillAvailable) {
                             row.selected_part_key = '';
+                            row.part_search = '';
                             this.onPartChange(index);
                         }
                     });
                 },
+                onPartSearch(index) {
+                    const row = this.rows[index];
+                    const selected = this.subconPartsOptions.find(opt => this.partOptionLabel(opt) === row.part_search);
+                    row.selected_part_key = selected ? selected.key : '';
+                    this.applySelectedPart(row, selected);
+                },
                 onPartChange(index) {
                     const row = this.rows[index];
                     const selected = this.subconPartsOptions.find(opt => opt.key === row.selected_part_key);
+                    row.part_search = selected ? this.partOptionLabel(selected) : '';
+                    this.applySelectedPart(row, selected);
+                },
+                applySelectedPart(row, selected) {
                     if (selected) {
                         row.gci_part_id = selected.id;
                         row.rm_gci_part_id = selected.rm_part_id;
