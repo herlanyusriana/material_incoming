@@ -767,9 +767,9 @@
                                 <label class="text-xs font-semibold text-slate-700">FG / Jadi Parent</label>
                                 <select name="subcount_fg_part_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="partForm.subcount_fg_part_id">
                                     <option value="">Pakai part ini sebagai parent</option>
-                                    @foreach(($subcountParentParts ?? collect()) as $parentPart)
-                                        <option value="{{ $parentPart->id }}">{{ $parentPart->part_no }} - {{ $parentPart->part_name }} ({{ $parentPart->classification }})</option>
-                                    @endforeach
+                                    <template x-for="parentPart in filteredSubcountParentOptions" :key="parentPart.id">
+                                        <option :value="String(parentPart.id)" x-text="`${parentPart.part_no} - ${parentPart.part_name || ''} (${parentPart.classification})`"></option>
+                                    </template>
                                 </select>
                                 <p class="mt-1 text-[11px] text-blue-700/80">Ini akan menjadi BOM parent/Jadi. Part subcount ini masuk sebagai WIP hasil vendor.</p>
                             </div>
@@ -777,9 +777,9 @@
                                 <label class="text-xs font-semibold text-slate-700">RM / Asal Part</label>
                                 <select name="subcount_rm_part_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="partForm.subcount_rm_part_id">
                                     <option value="">Pakai part ini sendiri</option>
-                                    @foreach(($subcountSourceParts ?? collect()) as $sourcePart)
-                                        <option value="{{ $sourcePart->id }}">{{ $sourcePart->part_no }} - {{ $sourcePart->part_name }} ({{ $sourcePart->classification }})</option>
-                                    @endforeach
+                                    <template x-for="sourcePart in filteredSubcountSourceOptions" :key="sourcePart.id">
+                                        <option :value="String(sourcePart.id)" x-text="`${sourcePart.part_no} - ${sourcePart.part_name || ''} (${sourcePart.classification})`"></option>
+                                    </template>
                                 </select>
                                 <p class="mt-1 text-[11px] text-blue-700/80">Dipakai untuk auto-create BOM line special T agar part langsung muncul di Contract Number.</p>
                             </div>
@@ -1076,6 +1076,8 @@
                     subImportOpen: false,
                     activeTab: @js($activeTab),
                     visiblePartIds: @js(($activeTab !== 'SUB' && isset($parts)) ? $parts->pluck('id')->map(fn($id) => (string) $id)->values()->all() : []),
+                    subcountParentOptions: @js(($subcountParentParts ?? collect())->values()->map(fn($p) => ['id' => (string) $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'classification' => $p->classification])->all()),
+                    subcountSourceOptions: @js(($subcountSourceParts ?? collect())->values()->map(fn($p) => ['id' => (string) $p->id, 'part_no' => $p->part_no, 'part_name' => $p->part_name, 'classification' => $p->classification])->all()),
                     selectedPartIds: [],
 
                     // GCI Part modal
@@ -1131,6 +1133,33 @@
                         if (!needle) return true;
                         const haystack = this.normalizeSearchText(name);
                         return needle.split(' ').every(term => haystack.includes(term));
+                    },
+                    normalizedPartCode(value) {
+                        return String(value || '')
+                            .toUpperCase()
+                            .trim()
+                            .replace(/\s+/g, '')
+                            .replace(/-(PLATING|HARDENING|HARDEN|SUBCON|PG)$/i, '')
+                            .replace(/-WIP\d*$/i, '');
+                    },
+                    subcountOptionMatches(option, selectedId = '') {
+                        if (selectedId && String(option.id) === String(selectedId)) return true;
+
+                        const base = this.normalizedPartCode(this.partForm.part_no);
+                        if (base.length < 4) return false;
+
+                        const candidate = this.normalizedPartCode(option.part_no);
+                        return candidate.includes(base) || base.includes(candidate);
+                    },
+                    get filteredSubcountParentOptions() {
+                        return this.subcountParentOptions
+                            .filter(option => this.subcountOptionMatches(option, this.partForm.subcount_fg_part_id))
+                            .slice(0, 50);
+                    },
+                    get filteredSubcountSourceOptions() {
+                        return this.subcountSourceOptions
+                            .filter(option => this.subcountOptionMatches(option, this.partForm.subcount_rm_part_id))
+                            .slice(0, 50);
                     },
 
                     openCreatePart() {
