@@ -278,6 +278,10 @@ class PartController extends Controller
             ->where('status', 'active')
             ->orderBy('part_no')
             ->get(['id', 'part_no', 'part_name', 'classification']);
+        $subcountParentParts = GciPart::whereIn('classification', ['FG', 'WIP'])
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get(['id', 'part_no', 'part_name', 'classification']);
         $rmFgMap = [];
         $fgPartsWithBom = collect();
 
@@ -341,24 +345,34 @@ class PartController extends Controller
         }
 
         $subcountBomMap = [];
+        $subcountBomParentMap = [];
         if ($parts->isNotEmpty()) {
             $partIds = $parts->pluck('id')->map(fn ($id) => (int) $id)->all();
-            $subcountBomMap = BomItem::query()
+            $subcountBomItems = BomItem::query()
                 ->whereIn('wip_part_id', $partIds)
                 ->whereNotNull('component_part_id')
                 ->when(\Illuminate\Support\Facades\Schema::hasColumn('bom_items', 'special'), fn ($q) => $q->where('special', 'T'))
+                ->with('bom:id,part_id')
                 ->orderByDesc('id')
-                ->get(['wip_part_id', 'component_part_id'])
+                ->get(['id', 'bom_id', 'wip_part_id', 'component_part_id']);
+
+            $subcountBomMap = $subcountBomItems
                 ->unique('wip_part_id')
                 ->mapWithKeys(fn ($item) => [(int) $item->wip_part_id => (int) $item->component_part_id])
                 ->all();
+            $subcountBomParentMap = $subcountBomItems
+                ->unique('wip_part_id')
+                ->mapWithKeys(fn ($item) => [(int) $item->wip_part_id => (int) ($item->bom?->part_id ?? 0)])
+                ->filter()
+                ->all();
 
-            $parts->getCollection()->each(function (GciPart $part) use ($subcountBomMap) {
+            $parts->getCollection()->each(function (GciPart $part) use ($subcountBomMap, $subcountBomParentMap) {
                 $part->setAttribute('subcount_rm_part_id', $subcountBomMap[(int) $part->id] ?? null);
+                $part->setAttribute('subcount_fg_part_id', $subcountBomParentMap[(int) $part->id] ?? null);
             });
         }
 
-        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'vendorId', 'vendorPartName', 'consumptionPolicy', 'policyConfirmation', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'subcountSourceParts', 'rmFgMap', 'fgPartsWithBom'));
+        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'vendorId', 'vendorPartName', 'consumptionPolicy', 'policyConfirmation', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'subcountSourceParts', 'subcountParentParts', 'rmFgMap', 'fgPartsWithBom'));
     }
 
     public function export(Request $request)
@@ -467,6 +481,7 @@ class PartController extends Controller
             'vendor_ids.*' => ['exists:vendors,id'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
+            'subcount_fg_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
             'subcount_uom' => ['nullable', 'string', 'max:20'],
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
             'subcount_rm_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
@@ -526,6 +541,7 @@ class PartController extends Controller
             'vendor_ids.*' => ['exists:vendors,id'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
+            'subcount_fg_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
             'subcount_uom' => ['nullable', 'string', 'max:20'],
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
             'subcount_rm_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
@@ -607,11 +623,32 @@ class PartController extends Controller
             return;
         }
 
+        $parentPartId = (int) ($request->input('subcount_fg_part_id') ?: 0);
+        if ($parentPartId <= 0) {
+            $parentPartId = (int) (BomItem::query()
+                ->where('wip_part_id', $part->id)
+                ->whereHas('bom')
+                ->when(\Illuminate\Support\Facades\Schema::hasColumn('bom_items', 'special'), fn ($q) => $q->where('special', 'T'))
+                ->latest('id')
+                ->with('bom:id,part_id')
+                ->get()
+                ->pluck('bom.part_id')
+                ->filter()
+                ->first() ?: $part->id);
+        }
+
+        $parentPart = GciPart::query()
+            ->whereIn('classification', ['FG', 'WIP'])
+            ->find($parentPartId);
+        if (!$parentPart) {
+            $parentPart = $part;
+        }
+
         $uom = strtoupper(trim((string) ($part->subcount_uom ?: 'PCE'))) ?: 'PCE';
         $process = strtoupper(trim((string) ($part->subcount_process_type ?: 'PG'))) ?: 'PG';
 
         $bom = Bom::query()->firstOrCreate(
-            ['part_id' => $part->id],
+            ['part_id' => $parentPart->id],
             [
                 'revision' => 'A',
                 'effective_date' => now()->toDateString(),
@@ -626,12 +663,22 @@ class PartController extends Controller
             ]);
         }
 
-        $bomItem = BomItem::query()->firstOrNew([
-            'bom_id' => $bom->id,
-            'wip_part_id' => $part->id,
-            'component_part_id' => $rmPart->id,
-            'process_name' => $process,
-        ]);
+        $bomItem = BomItem::query()
+            ->where('wip_part_id', $part->id)
+            ->where('component_part_id', $rmPart->id)
+            ->where('process_name', $process)
+            ->when(\Illuminate\Support\Facades\Schema::hasColumn('bom_items', 'special'), fn ($q) => $q->where('special', 'T'))
+            ->first();
+
+        if (!$bomItem) {
+            $bomItem = new BomItem([
+                'wip_part_id' => $part->id,
+                'component_part_id' => $rmPart->id,
+                'process_name' => $process,
+            ]);
+        }
+
+        $bomItem->bom_id = $bom->id;
 
         if (!$bomItem->exists) {
             $bomItem->line_no = (int) (BomItem::query()->where('bom_id', $bom->id)->max('line_no') ?? 0) + 1;
