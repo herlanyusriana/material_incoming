@@ -394,8 +394,17 @@ class SubconController extends Controller
                 'error' => $e->getMessage(),
                 'input' => $request->except('_token'),
             ]);
-            return back()->withInput()->with('error', 'Gagal membuat order: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal membuat order: ' . $this->humanizeStockMessage($e->getMessage()));
         }
+    }
+
+    private function humanizeStockMessage(string $message): string
+    {
+        return str_replace(
+            ['WIP-BYPASS', 'Not enough stock at'],
+            ['Tanpa Potong Stok', 'Stok tidak cukup di'],
+            $message
+        );
     }
 
     public function show(SubconOrder $subconOrder)

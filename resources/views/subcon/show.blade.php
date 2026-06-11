@@ -181,13 +181,13 @@
                             <label class="block text-sm font-bold text-slate-700 mb-1">WH Receive Good Location</label>
                             <input type="text" name="receive_location_code" value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                            <div class="mt-1 text-xs text-slate-500">Opsional. Default: Bypass constraint lokasi.</div>
+                            <div class="mt-1 text-xs text-slate-500">Opsional. Kosongkan kalau tidak perlu catat stok ke lokasi.</div>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">WH Reject Location</label>
                             <input type="text" name="reject_location_code" value="{{ old('reject_location_code') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                            <div class="mt-1 text-xs text-slate-500">Opsional. Default: Bypass constraint lokasi.</div>
+                            <div class="mt-1 text-xs text-slate-500">Opsional. Kosongkan untuk pakai lokasi reject default.</div>
                         </div>
                     </div>
                     <div>
@@ -237,7 +237,7 @@
                                     <div class="text-[10px] text-red-400">({{ number_format($rec->weight_rejected_kgm, 2) }} kg)</div>
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">
-                                    <div class="font-semibold">{{ $rec->receive_location_code ?? '-' }}</div>
+                                    <div class="font-semibold">{{ ($rec->receive_location_code ?? '') === 'WIP-BYPASS' ? 'Tanpa Catat Lokasi Stok' : ($rec->receive_location_code ?? '-') }}</div>
                                     <div class="text-xs text-slate-400">{{ $rec->posted_to_wh_at?->format('d/m/Y H:i') ?? '-' }}</div>
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">
@@ -374,7 +374,7 @@
                                         {{ $move->transaction_type ?? '-' }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-slate-700">{{ $move->location_code ?? '-' }}</td>
+                                <td class="px-4 py-3 text-slate-700">{{ ($move->location_code ?? '') === 'WIP-BYPASS' ? 'Tanpa Potong Stok' : ($move->location_code ?? '-') }}</td>
                                 <td class="px-4 py-3 text-right font-mono {{ (float) $move->qty_change < 0 ? 'text-red-600' : 'text-emerald-700' }}">
                                     {{ number_format((float) $move->qty_change, 4) }} <span class="text-[10px]">{{ $subconUom }}</span>
                                     @if ($move->weight_kgm !== null)

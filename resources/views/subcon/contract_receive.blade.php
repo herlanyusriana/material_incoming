@@ -33,12 +33,14 @@
                     <div>
                         <label class="mb-1 block text-sm font-bold text-slate-700">WH Good Location</label>
                         <input type="text" name="receive_location_code" value="{{ old('receive_location_code') }}"
-                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="Kosongkan kalau tidak perlu catat stok ke lokasi">
                     </div>
                     <div>
                         <label class="mb-1 block text-sm font-bold text-slate-700">WH Reject Location</label>
                         <input type="text" name="reject_location_code" value="{{ old('reject_location_code') }}"
-                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="Kosongkan untuk lokasi reject default">
                     </div>
                     <div>
                         <label class="mb-1 block text-sm font-bold text-slate-700">Upload SJ</label>

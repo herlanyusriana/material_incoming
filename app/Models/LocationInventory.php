@@ -31,6 +31,13 @@ class LocationInventory extends Model
         'last_counted_at' => 'datetime',
     ];
 
+    private static function displayLocationCode(string $locationCode): string
+    {
+        return strtoupper(trim($locationCode)) === 'WIP-BYPASS'
+            ? 'Tanpa Potong Stok'
+            : $locationCode;
+    }
+
     protected static function booted(): void
     {
         static::saved(function (LocationInventory $locationInventory) {
@@ -327,7 +334,8 @@ class LocationInventory extends Model
         }
 
         if ($remaining > 0.0001) {
-            throw new \Exception("Not enough stock at {$locationCode}. Need {$qty}, remaining {$remaining}.");
+            $displayLocation = self::displayLocationCode($locationCode);
+            throw new \Exception("Stok tidak cukup di {$displayLocation}. Butuh {$qty}, sisa kurang {$remaining}.");
         }
     }
 
