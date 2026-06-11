@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomItemSubstitute;
 use Illuminate\Database\QueryException;
@@ -269,7 +270,14 @@ class PartController extends Controller
         // Substitute detail maps for RM modal
         $partSubstitutesMap = [];
         $partAsSubstituteMap = [];
-        $rmParts = collect();
+        $rmParts = GciPart::where('classification', 'RM')
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get(['id', 'part_no', 'part_name']);
+        $subcountSourceParts = GciPart::whereIn('classification', ['RM', 'WIP'])
+            ->where('status', 'active')
+            ->orderBy('part_no')
+            ->get(['id', 'part_no', 'part_name', 'classification']);
         $rmFgMap = [];
         $fgPartsWithBom = collect();
 
@@ -326,18 +334,31 @@ class PartController extends Controller
                 $rmFgMap[$pid] = array_values(array_unique($fgIds));
             }
 
-            $rmParts = GciPart::where('classification', 'RM')
-                ->where('status', 'active')
-                ->orderBy('part_no')
-                ->get(['id', 'part_no', 'part_name']);
-
             $fgPartsWithBom = GciPart::where('classification', 'FG')
                 ->whereHas('bom')
                 ->orderBy('part_no')
                 ->get(['id', 'part_no', 'part_name']);
         }
 
-        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'vendorId', 'vendorPartName', 'consumptionPolicy', 'policyConfirmation', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'rmFgMap', 'fgPartsWithBom'));
+        $subcountBomMap = [];
+        if ($parts->isNotEmpty()) {
+            $partIds = $parts->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $subcountBomMap = BomItem::query()
+                ->whereIn('wip_part_id', $partIds)
+                ->whereNotNull('component_part_id')
+                ->when(\Illuminate\Support\Facades\Schema::hasColumn('bom_items', 'special'), fn ($q) => $q->where('special', 'T'))
+                ->orderByDesc('id')
+                ->get(['wip_part_id', 'component_part_id'])
+                ->unique('wip_part_id')
+                ->mapWithKeys(fn ($item) => [(int) $item->wip_part_id => (int) $item->component_part_id])
+                ->all();
+
+            $parts->getCollection()->each(function (GciPart $part) use ($subcountBomMap) {
+                $part->setAttribute('subcount_rm_part_id', $subcountBomMap[(int) $part->id] ?? null);
+            });
+        }
+
+        return view('parts.index', compact('parts', 'vendors', 'customers', 'classification', 'status', 'search', 'vendorId', 'vendorPartName', 'consumptionPolicy', 'policyConfirmation', 'partVendorMap', 'partSubstitutesMap', 'partAsSubstituteMap', 'rmParts', 'subcountSourceParts', 'rmFgMap', 'fgPartsWithBom'));
     }
 
     public function export(Request $request)
@@ -448,6 +469,7 @@ class PartController extends Controller
             'subcount_enabled' => ['nullable', 'boolean'],
             'subcount_uom' => ['nullable', 'string', 'max:20'],
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
+            'subcount_rm_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
         ]);
 
         $vendorIds = $data['vendor_ids'] ?? [];
@@ -472,6 +494,8 @@ class PartController extends Controller
             if ($data['classification'] === 'RM' && !empty($vendorIds)) {
                 $gciPart->vendors()->syncWithoutDetaching($vendorIds);
             }
+
+            $this->syncSubcountBomMapping($gciPart, $request);
         } catch (QueryException $e) {
             $msg = strtolower((string) $e->getMessage());
             if (str_contains($msg, 'gci_parts_part_no_unique') || str_contains($msg, 'duplicate')) {
@@ -504,6 +528,7 @@ class PartController extends Controller
             'subcount_enabled' => ['nullable', 'boolean'],
             'subcount_uom' => ['nullable', 'string', 'max:20'],
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
+            'subcount_rm_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
         ]);
 
         $vendorIds = $data['vendor_ids'] ?? [];
@@ -528,6 +553,8 @@ class PartController extends Controller
             if ($data['classification'] === 'RM') {
                 $part->vendors()->sync($vendorIds);
             }
+
+            $this->syncSubcountBomMapping($part->fresh(), $request);
         } catch (QueryException $e) {
             $msg = strtolower((string) $e->getMessage());
             if (str_contains($msg, 'gci_parts_part_no_unique') || str_contains($msg, 'duplicate')) {
@@ -557,6 +584,75 @@ class PartController extends Controller
         if ($data['subcount_process_type'] === '') {
             $data['subcount_process_type'] = 'PG';
         }
+    }
+
+    private function syncSubcountBomMapping(GciPart $part, Request $request): void
+    {
+        if (!$request->boolean('subcount_enabled') || !in_array($part->classification, ['FG', 'WIP'], true)) {
+            return;
+        }
+
+        $rmPartId = (int) ($request->input('subcount_rm_part_id') ?: 0);
+        if ($rmPartId <= 0) {
+            $rmPartId = (int) (BomItem::query()
+                ->where('wip_part_id', $part->id)
+                ->whereNotNull('component_part_id')
+                ->when(\Illuminate\Support\Facades\Schema::hasColumn('bom_items', 'special'), fn ($q) => $q->where('special', 'T'))
+                ->latest('id')
+                ->value('component_part_id') ?: $part->id);
+        }
+
+        $rmPart = GciPart::query()->find($rmPartId);
+        if (!$rmPart) {
+            return;
+        }
+
+        $uom = strtoupper(trim((string) ($part->subcount_uom ?: 'PCE'))) ?: 'PCE';
+        $process = strtoupper(trim((string) ($part->subcount_process_type ?: 'PG'))) ?: 'PG';
+
+        $bom = Bom::query()->firstOrCreate(
+            ['part_id' => $part->id],
+            [
+                'revision' => 'A',
+                'effective_date' => now()->toDateString(),
+                'status' => 'active',
+            ]
+        );
+
+        if ($bom->status !== 'active') {
+            $bom->update([
+                'status' => 'active',
+                'effective_date' => $bom->effective_date ?: now()->toDateString(),
+            ]);
+        }
+
+        $bomItem = BomItem::query()->firstOrNew([
+            'bom_id' => $bom->id,
+            'wip_part_id' => $part->id,
+            'component_part_id' => $rmPart->id,
+            'process_name' => $process,
+        ]);
+
+        if (!$bomItem->exists) {
+            $bomItem->line_no = (int) (BomItem::query()->where('bom_id', $bom->id)->max('line_no') ?? 0) + 1;
+        }
+
+        $bomItem->fill([
+            'component_part_no' => $rmPart->part_no,
+            'usage_qty' => 1,
+            'consumption_uom' => $uom,
+            'wip_part_no' => $part->part_no,
+            'wip_qty' => 1,
+            'wip_uom' => $uom,
+            'wip_part_name' => $part->part_name,
+            'material_size' => $rmPart->size,
+            'material_name' => $rmPart->part_name,
+            'special' => 'T',
+            'make_or_buy' => 'make',
+            'scrap_factor' => 0,
+            'yield_factor' => 1,
+        ]);
+        $bomItem->save();
     }
 
     public function bulkUpdatePolicy(Request $request)

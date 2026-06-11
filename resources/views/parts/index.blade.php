@@ -763,6 +763,16 @@
                             </label>
                         </div>
                         <div class="grid grid-cols-2 gap-3" x-show="partForm.subcount_enabled" x-cloak>
+                            <div class="col-span-2">
+                                <label class="text-xs font-semibold text-slate-700">RM / Asal Part</label>
+                                <select name="subcount_rm_part_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="partForm.subcount_rm_part_id">
+                                    <option value="">Pakai part ini sendiri</option>
+                                    @foreach(($subcountSourceParts ?? collect()) as $sourcePart)
+                                        <option value="{{ $sourcePart->id }}">{{ $sourcePart->part_no }} - {{ $sourcePart->part_name }} ({{ $sourcePart->classification }})</option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-1 text-[11px] text-blue-700/80">Dipakai untuk auto-create BOM line special T agar part langsung muncul di Contract Number.</p>
+                            </div>
                             <div>
                                 <label class="text-xs font-semibold text-slate-700">UOM</label>
                                 <input name="subcount_uom" class="mt-1 w-full rounded-lg border-slate-200 text-sm" x-model="partForm.subcount_uom">
@@ -1064,7 +1074,7 @@
                     partAction: @js(route('parts.store')),
                     subsOpen: false,
                     vendorSearch: '',
-                    partForm: { id: null, customer_ids: [], part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] },
+                    partForm: { id: null, customer_ids: [], part_no: '', part_name: '', size: '', model: '', classification: @js($activeTab), status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_rm_part_id: '', subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] },
                     subEditId: null,
                     subFormAction: '',
                     subForm: { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' },
@@ -1118,7 +1128,7 @@
                         this.partAction = @js(route('parts.store'));
                         this.subsOpen = false;
                         this.vendorSearch = '';
-                        this.partForm = { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] };
+                        this.partForm = { id: null, customer_id: '', part_no: '', part_name: '', size: '', model: '', classification: this.activeTab, status: 'active', consumption_policy: 'backflush_return', subcount_enabled: false, subcount_rm_part_id: '', subcount_uom: 'PCE', subcount_process_type: 'PG', vendor_ids: [], substitutes_for: [], as_substitute: [] };
                         this.subEditId = null;
                         this.subFormAction = '';
                         this.subForm = { fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' };
@@ -1129,6 +1139,7 @@
                         this.openCreatePart();
                         this.partForm.classification = 'WIP';
                         this.partForm.subcount_enabled = true;
+                        this.partForm.subcount_rm_part_id = '';
                         this.partForm.subcount_uom = 'PCE';
                         this.partForm.subcount_process_type = 'PG';
                     },
@@ -1158,6 +1169,7 @@
                             status: p.status,
                             consumption_policy: p.consumption_policy || ((p.is_backflush !== false && p.is_backflush !== 0) ? 'backflush_return' : 'direct_issue'),
                             subcount_enabled: !!p.subcount_enabled,
+                            subcount_rm_part_id: p.subcount_rm_part_id ? String(p.subcount_rm_part_id) : '',
                             subcount_uom: p.subcount_uom || 'PCE',
                             subcount_process_type: p.subcount_process_type || 'PG',
                             vendor_ids: linkedVendors,
