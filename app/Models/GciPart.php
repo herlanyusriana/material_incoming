@@ -15,6 +15,7 @@ class GciPart extends Model
     protected $fillable = [
         'part_no',
         'barcode',
+        'customer_id',
         'part_name',
         'size',
         'model',
@@ -30,6 +31,8 @@ class GciPart extends Model
         'subcount_process_type',
         'policy_confirmed_at',
         'policy_confirmed_by',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
