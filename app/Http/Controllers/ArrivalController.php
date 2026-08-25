@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Arrival;
-use App\Models\ArrivalContainer;
-use App\Models\ArrivalItem;
-use App\Models\GciPartVendor;
-use App\Models\Inventory;
-use App\Models\Part;
-use App\Models\Vendor;
+use App\Models\NewSchema\Incoming\IncomingArrival as Arrival;
+use App\Models\NewSchema\Incoming\IncomingArrivalContainer as ArrivalContainer;
+use App\Models\NewSchema\Incoming\IncomingArrivalItem as ArrivalItem;
+use App\Models\NewSchema\Core\VendorPart;
+use App\Models\NewSchema\Core\Vendor;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\Snappy\Facades\SnappyPdf;
 use Illuminate\Http\Request;
@@ -36,21 +34,8 @@ class ArrivalController extends Controller
 
     private function adjustIncomingOnOrder(int $partId, float $qtyChange, ?string $asOfDate = null): void
     {
-        if ($partId <= 0 || abs($qtyChange) < 0.0001) {
-            return;
-        }
-
-        $inventory = Inventory::query()->lockForUpdate()->firstOrCreate(
-            ['part_id' => $partId],
-            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => $asOfDate ?: now()->toDateString()]
-        );
-
-        $nextOnOrder = max(0, (float) $inventory->on_order + $qtyChange);
-
-        $inventory->update([
-            'on_order' => $nextOnOrder,
-            'as_of_date' => $asOfDate ?: now()->toDateString(),
-        ]);
+        // On-order tracking is now derived from incoming_arrival_items vs incoming_receives
+        // (qty_goods - received qty), so there is no separate counter table to maintain.
     }
 
     private function toCents(mixed $value): int
@@ -174,13 +159,11 @@ class ArrivalController extends Controller
     {
         $codes = collect($items)
             ->map(function ($item) {
-                // 1. Try to get from the Part model if possible
                 $hsCodeModel = null;
                 if ($item instanceof ArrivalItem) {
-                    $hsCodeModel = $item->part?->hs_code;
+                    $hsCodeModel = $item->vendorPart?->hs_code;
                 } elseif (is_array($item) && !empty($item['part_id'])) {
-                    $hsCodeModel = GciPartVendor::find($item['part_id'])?->hs_code
-                        ?? Part::find($item['part_id'])?->hs_code;
+                    $hsCodeModel = VendorPart::find($item['part_id'])?->hs_code;
                 }
 
                 return $hsCodeModel ? strtoupper(trim((string) $hsCodeModel)) : null;
@@ -218,7 +201,7 @@ class ArrivalController extends Controller
     private function filterArrivalColumns(array $data): array
     {
         return collect($data)
-            ->filter(fn($value, $key) => Schema::hasColumn('arrivals', (string) $key))
+            ->filter(fn($value, $key) => Schema::hasColumn('incoming_arrivals', (string) $key))
             ->all();
     }
 
@@ -276,8 +259,8 @@ class ArrivalController extends Controller
             ->where('vendor_type', '!=', 'local')
             ->orderBy('vendor_name')
             ->get();
-        $parts = Part::with('vendor')->where('status', 'active')->get();
-        $truckings = \App\Models\Trucking::where('status', 'active')->orderBy('company_name')->get();
+        $parts = VendorPart::with('vendor')->where('status', 'active')->get();
+        $truckings = \App\Models\NewSchema\Outgoing\TruckingCompany::where('status', 'active')->orderBy('company_name')->get();
 
         return view('arrivals.create', compact('vendors', 'parts', 'truckings'));
     }
@@ -306,7 +289,7 @@ class ArrivalController extends Controller
         ]);
 
         $validated = $request->validate([
-            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')],
+            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('incoming_arrivals', 'invoice_no')],
             'invoice_date' => ['required', 'date'],
             'vendor_id' => ['required', 'exists:vendors,id'],
             'vendor_name' => ['nullable', 'string'], // Allow vendor_name but not required
@@ -334,7 +317,7 @@ class ArrivalController extends Controller
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.material_group' => ['nullable', 'string', 'max:255'],
-            'items.*.part_id' => ['required', 'exists:gci_part_vendor,id'],
+            'items.*.part_id' => ['required', 'exists:vendor_parts,id'],
             'items.*.size' => ['nullable', 'string', 'max:100'],
             'items.*.qty_bundle' => ['nullable', 'integer', 'min:0'],
             'items.*.unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX', 'BAG', 'ROLL', 'PACKAGES'])],
@@ -430,7 +413,7 @@ class ArrivalController extends Controller
 
             $arrival = Arrival::create($this->filterArrivalColumns($arrivalData));
 
-            if ($normalizedContainers->isNotEmpty() && Schema::hasTable('arrival_containers')) {
+            if ($normalizedContainers->isNotEmpty()) {
                 $arrival->containers()->createMany($normalizedContainers->all());
             }
 
@@ -440,7 +423,7 @@ class ArrivalController extends Controller
                     continue;
                 }
 
-                $vendorPart = GciPartVendor::find($item['part_id']);
+                $vendorPart = VendorPart::find($item['part_id']);
                 if ($vendorPart && (int) $vendorPart->vendor_id !== (int) $vendorId) {
                     throw ValidationException::withMessages([
                         "items.{$index}.part_id" => "Part {$vendorPart->vendor_part_no} does not belong to the selected vendor.",
@@ -453,9 +436,7 @@ class ArrivalController extends Controller
                 }
 
                 $arrivalItem = $arrival->items()->create([
-                    // Backward compatibility: keep legacy part_id filled with vendor-part id.
-                    'part_id' => $item['part_id'],
-                    'gci_part_vendor_id' => $item['part_id'],
+                    'vendor_part_id' => $item['part_id'],
                     'gci_part_id' => $vendorPart?->gci_part_id,
                     'material_group' => $item['material_group'] ?? null,
                     'size' => $item['size'] ?? null,
@@ -489,7 +470,7 @@ class ArrivalController extends Controller
                 ]);
 
                 $this->adjustIncomingOnOrder(
-                    (int) $arrivalItem->part_id,
+                    (int) $arrivalItem->vendor_part_id,
                     $this->getIncomingOrderQty($arrivalItem->unit_goods, $arrivalItem->qty_goods, $arrivalItem->weight_nett),
                     $validated['invoice_date'] ?? null
                 );
@@ -538,7 +519,7 @@ class ArrivalController extends Controller
         DB::transaction(function () use ($arrival) {
             foreach ($arrival->items as $item) {
                 $this->adjustIncomingOnOrder(
-                    (int) ($item->part_id ?? 0),
+                    (int) ($item->vendor_part_id ?? 0),
                     -$this->getIncomingOrderQty($item->unit_goods, $item->qty_goods, $item->weight_nett),
                     optional($arrival->invoice_date)->toDateString()
                 );
@@ -589,7 +570,7 @@ class ArrivalController extends Controller
         ]);
 
         $data = $request->validate([
-            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('arrivals', 'invoice_no')->ignore($departure->id)],
+            'invoice_no' => ['required', 'string', 'max:255', Rule::unique('incoming_arrivals', 'invoice_no')->ignore($departure->id)],
             'invoice_date' => ['required', 'date'],
             'etd' => ['nullable', 'date'],
             'eta' => ['nullable', 'date'],
@@ -679,7 +660,7 @@ class ArrivalController extends Controller
                 Storage::disk('public')->delete($oldBillFile);
             }
 
-            if (Schema::hasTable('arrival_containers')) {
+            if (Schema::hasTable('incoming_arrival_containers')) {
                 $departure->containers()->delete();
                 if ($normalizedContainers->isNotEmpty()) {
                     $departure->containers()->createMany($normalizedContainers->all());
@@ -752,10 +733,10 @@ class ArrivalController extends Controller
         $arrival = $departure;
         $arrival->loadMissing(['vendor', 'items.receives']);
 
-        $parts = Part::query()
+        $parts = VendorPart::query()
             ->where('vendor_id', $arrival->vendor_id)
             ->where('status', 'active')
-            ->orderBy('part_no')
+            ->orderBy('vendor_part_no')
             ->get();
 
         $item = new ArrivalItem();
@@ -778,7 +759,7 @@ class ArrivalController extends Controller
 
         $data = $request->validate([
             'material_group' => ['nullable', 'string', 'max:255'],
-            'part_id' => ['required', 'exists:gci_part_vendor,id'],
+            'part_id' => ['required', 'exists:vendor_parts,id'],
             'size' => ['nullable', 'string', 'max:100'],
             'unit_bundle' => ['nullable', 'string', 'max:20', Rule::in(['BUNDLE', 'PALLET', 'BOX', 'BAG', 'ROLL', 'PACKAGES'])],
             'qty_bundle' => ['nullable', 'integer', 'min:0'],
@@ -791,7 +772,7 @@ class ArrivalController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $vendorPart = GciPartVendor::find($data['part_id']);
+        $vendorPart = VendorPart::find($data['part_id']);
         if ($vendorPart && (int) $vendorPart->vendor_id !== (int) $arrival->vendor_id) {
             throw ValidationException::withMessages([
                 'part_id' => "Part {$vendorPart->vendor_part_no} does not belong to the selected vendor.",
@@ -828,9 +809,7 @@ class ArrivalController extends Controller
         $price = $this->formatMilli($priceMilli);
 
         $arrivalItem = $arrival->items()->create([
-            // Backward compatibility: keep legacy part_id filled with vendor-part id.
-            'part_id' => $data['part_id'],
-            'gci_part_vendor_id' => $data['part_id'],
+            'vendor_part_id' => $data['part_id'],
             'gci_part_id' => $vendorPart?->gci_part_id,
             'material_group' => $data['material_group'] ?? null,
             'size' => $data['size'] ?? null,
@@ -937,7 +916,7 @@ class ArrivalController extends Controller
 
             $afterQty = $this->getIncomingOrderQty($arrivalItem->unit_goods, $arrivalItem->qty_goods, $arrivalItem->weight_nett);
             $this->adjustIncomingOnOrder(
-                (int) ($arrivalItem->part_id ?? 0),
+                (int) ($arrivalItem->vendor_part_id ?? 0),
                 $afterQty - $beforeQty,
                 optional($arrivalItem->arrival?->invoice_date)->toDateString()
             );
