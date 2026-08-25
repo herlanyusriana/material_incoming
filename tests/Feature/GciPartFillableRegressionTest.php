@@ -48,8 +48,8 @@ class GciPartFillableRegressionTest extends TestCase
         $this->assertSame('MODEL-X', $fresh->model);
         $this->assertSame('WH-A', $fresh->default_location);
         $this->assertSame('per_unit', $fresh->consumption_policy);
-        $this->assertSame(1, $fresh->is_backflush);
-        $this->assertSame(1, $fresh->subcount_enabled);
+        $this->assertSame(true, $fresh->is_backflush);
+        $this->assertSame(true, $fresh->subcount_enabled);
         $this->assertSame('PCE', $fresh->subcount_uom);
         $this->assertSame('PG', $fresh->subcount_process_type);
         $this->assertNotNull($fresh->policy_confirmed_at);

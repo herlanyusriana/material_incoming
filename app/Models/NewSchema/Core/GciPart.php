@@ -32,6 +32,9 @@ class GciPart extends BaseModel
 
     protected $casts = [
         'classification' => 'string',
+        'is_backflush' => 'boolean',
+        'subcount_enabled' => 'boolean',
+        'policy_confirmed_at' => 'datetime',
     ];
 
     public function vendors(): BelongsToMany
