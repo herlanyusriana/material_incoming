@@ -5,6 +5,7 @@ namespace App\Models\NewSchema\Core;
 use App\Models\NewSchema\BaseModel;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GciPart extends BaseModel
 {
@@ -93,6 +94,38 @@ class GciPart extends BaseModel
     public function outgoingDeliveryNoteItems(): HasMany
     {
         return $this->hasMany(OutgoingDeliveryNoteItem::class);
+    }
+
+    // ── BOM / Planning relationships (point to legacy models) ──
+
+    public function bom(): HasOne
+    {
+        return $this->hasOne(\App\Models\Bom::class, 'part_id');
+    }
+
+    public function boms(): HasMany
+    {
+        return $this->hasMany(\App\Models\Bom::class, 'part_id');
+    }
+
+    public function forecasts(): HasMany
+    {
+        return $this->hasMany(\App\Models\Forecast::class, 'part_id');
+    }
+
+    public function mps(): HasMany
+    {
+        return $this->hasMany(\App\Models\Mps::class, 'part_id');
+    }
+
+    public function standardPacking(): HasOne
+    {
+        return $this->hasOne(\App\Models\StandardPacking::class, 'gci_part_id');
+    }
+
+    public function componentUsages(): HasMany
+    {
+        return $this->hasMany(\App\Models\BomItem::class, 'component_part_id');
     }
 
     public function scopeActive($query)
