@@ -1,6 +1,4 @@
 <x-app-layout>
-    <x-slot name="header">Role Management</x-slot>
-
     @php
         $permissionGroups = [
             'Dashboard' => ['view_dashboard'],
@@ -33,131 +31,250 @@
         ];
     @endphp
 
-    <div class="space-y-5">
-        @if (session('success'))
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{{ session('success') }}</div>
-        @endif
-        @if (session('error'))
-            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ session('error') }}</div>
-        @endif
-        @if ($errors->any())
-            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                <div class="font-bold">Cek lagi inputnya:</div>
-                <ul class="mt-1 list-disc space-y-0.5 pl-5">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-                <h1 class="text-2xl font-black text-slate-900">Roles</h1>
-                <p class="mt-1 text-sm text-slate-500">Atur akses berdasarkan pekerjaan. Fokusnya: siapa boleh buka modul apa.</p>
-            </div>
-            <a href="{{ route('admin.users.index') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                Kelola User
+    <x-page-header
+        title="Role Management"
+        subtitle="Atur akses berdasarkan pekerjaan. Fokusnya: siapa boleh buka modul apa."
+        :breadcrumbs="[
+            ['label' => 'Admin', 'url' => '#'],
+            ['label' => 'Role Management']
+        ]"
+    >
+        <x-slot name="actions">
+            <button type="button" @click="$dispatch('open-modal', 'create-role')" class="gci-btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span>Tambah Role</span>
+            </button>
+            <a href="{{ route('admin.users.index') }}" class="gci-btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                </svg>
+                <span>Kelola User</span>
             </a>
+        </x-slot>
+    </x-page-header>
+
+    {{-- Notifications --}}
+    @if (session('success'))
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 animate-fade-in-up">
+            {{ session('success') }}
         </div>
-
-        <div class="grid gap-5 xl:grid-cols-[360px_1fr]">
-            <div class="space-y-5">
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h2 class="text-base font-black text-slate-900">Tambah Role</h2>
-                    <p class="mt-1 text-xs text-slate-500">Buat role baru, lalu centang aksesnya di panel kanan.</p>
-                    <form action="{{ route('admin.roles.store') }}" method="POST" class="mt-4 space-y-3">
-                        @csrf
-                        <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Role Key</label>
-                            <input type="text" name="name" value="{{ old('name') }}" placeholder="quality" required class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Nama Tampilan</label>
-                            <input type="text" name="display_name" value="{{ old('display_name') }}" placeholder="Quality" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Catatan</label>
-                            <input type="text" name="description" value="{{ old('description') }}" placeholder="Akses inspection dan laporan QC" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        </div>
-                        <button class="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-black text-white hover:bg-indigo-700">Tambah Role</button>
-                    </form>
-                </div>
-
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h2 class="text-base font-black text-slate-900">Daftar Role</h2>
-                    <div class="mt-4 space-y-2">
-                        @foreach ($roles as $role)
-                            @php
-                                $fullAccess = in_array('*', $role['permissions'], true);
-                                $count = $fullAccess ? count($definedPermissions) : count(array_intersect($role['permissions'], $definedPermissions));
-                            @endphp
-                            <a href="#role-{{ $role['name'] }}" class="block rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div>
-                                        <div class="font-black text-slate-900">{{ $role['display_name'] ?? strtoupper($role['name']) }}</div>
-                                        <div class="mt-0.5 text-xs text-slate-500">{{ $role['description'] ?: 'Tidak ada catatan' }}</div>
-                                    </div>
-                                    <div class="text-right text-xs font-bold text-slate-500">
-                                        {{ $role['user_count'] }} user
-                                        <div>{{ $fullAccess ? 'Full' : $count . '/' . count($definedPermissions) }}</div>
-                                    </div>
-                                </div>
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-5">
-                @foreach ($roles as $role)
-                    @php($isAdmin = $role['name'] === 'admin')
-                    @php($isFullAccess = in_array('*', $role['permissions'], true))
-                    <form id="role-{{ $role['name'] }}" action="{{ route('admin.roles.update', $role['name']) }}" method="POST" class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        @csrf
-                        @method('PUT')
-                        <div class="flex flex-col gap-3 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <h2 class="text-lg font-black text-slate-900">{{ $role['display_name'] ?? strtoupper($role['name']) }}</h2>
-                                    @if ($isAdmin)
-                                        <span class="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700">FULL ACCESS</span>
-                                    @endif
-                                </div>
-                                <p class="mt-1 text-sm text-slate-500">{{ $role['description'] ?: 'Custom role' }} · {{ $role['user_count'] }} user</p>
-                            </div>
-                            @if (!$isAdmin)
-                                <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-black text-white hover:bg-slate-800">Save Permission</button>
-                            @endif
-                        </div>
-
-                        @if ($isAdmin)
-                            <div class="p-5 text-sm text-slate-600">Admin selalu punya semua akses. Role ini sengaja tidak bisa diubah dari halaman ini.</div>
-                        @else
-                            <div class="grid gap-4 p-5 lg:grid-cols-2">
-                                @foreach ($permissionGroups as $groupName => $permissions)
-                                    <div class="rounded-xl border border-slate-200 p-4">
-                                        <div class="mb-3 text-xs font-black uppercase tracking-wider text-slate-500">{{ $groupName }}</div>
-                                        <div class="grid gap-2">
-                                            @foreach ($permissions as $permission)
-                                                @php($checked = in_array($permission, $role['permissions'], true) || $isFullAccess)
-                                                <label @class([
-                                                    'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm',
-                                                    'border-emerald-200 bg-emerald-50 text-emerald-900' => $checked,
-                                                    'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' => !$checked,
-                                                ])>
-                                                    <input type="checkbox" name="permissions[]" value="{{ $permission }}" @checked($checked) class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                                    <span class="font-semibold">{{ $permissionLabels[$permission] ?? $permission }}</span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </form>
+    @endif
+    @if (session('error'))
+        <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 animate-fade-in-up">
+            {{ session('error') }}
+        </div>
+    @endif
+    @if (isset($errors) && $errors->any())
+        <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-fade-in-up">
+            <div class="font-bold">Cek lagi inputnya:</div>
+            <ul class="mt-1 list-disc space-y-0.5 pl-5">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
                 @endforeach
-            </div>
+            </ul>
+        </div>
+    @endif
+
+    {{-- Stats summary --}}
+    <div class="grid gap-4 sm:grid-cols-3 mb-6">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Total Role</div>
+            <div class="mt-2 text-3xl font-black text-slate-900">{{ count($roles) }}</div>
+            <div class="text-xs text-slate-400 mt-1">Role terdaftar</div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">System Role</div>
+            <div class="mt-2 text-3xl font-black text-slate-900">{{ collect($roles)->where('is_system', true)->count() }}</div>
+            <div class="text-xs text-slate-400 mt-1">Bawaan aplikasi</div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Custom Role</div>
+            <div class="mt-2 text-3xl font-black text-slate-900">{{ collect($roles)->where('is_system', false)->count() }}</div>
+            <div class="text-xs text-slate-400 mt-1">Dibuat pengguna</div>
         </div>
     </div>
+
+    {{-- Role cards --}}
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @foreach ($roles as $role)
+            @php
+                $isAdmin = $role['name'] === 'admin';
+                $isFullAccess = in_array('*', $role['permissions'], true);
+                $fullAccess = $isFullAccess;
+                $count = $fullAccess ? count($definedPermissions) : count(array_intersect($role['permissions'], $definedPermissions));
+                $roleColors = [
+                    'admin' => ['bg' => 'from-rose-500 to-rose-600', 'badge' => 'bg-rose-100 text-rose-700'],
+                    'super-admin' => ['bg' => 'from-rose-500 to-rose-600', 'badge' => 'bg-rose-100 text-rose-700'],
+                    'quality' => ['bg' => 'from-amber-500 to-amber-600', 'badge' => 'bg-amber-100 text-amber-700'],
+                    'production' => ['bg' => 'from-sky-500 to-sky-600', 'badge' => 'bg-sky-100 text-sky-700'],
+                    'warehouse' => ['bg' => 'from-emerald-500 to-emerald-600', 'badge' => 'bg-emerald-100 text-emerald-700'],
+                    'planning' => ['bg' => 'from-violet-500 to-violet-600', 'badge' => 'bg-violet-100 text-violet-700'],
+                ];
+                $c = $roleColors[$role['name']] ?? ['bg' => 'from-indigo-500 to-indigo-600', 'badge' => 'bg-indigo-100 text-indigo-700'];
+            @endphp
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden flex flex-col">
+                {{-- Card header --}}
+                <div class="p-5 border-b border-slate-100">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 bg-gradient-to-br {{ $c['bg'] }} rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-base font-black text-slate-900 truncate">{{ $role['display_name'] ?? strtoupper($role['name']) }}</h2>
+                                </div>
+                                <div class="text-xs text-slate-500 truncate">{{ $role['name'] }}</div>
+                            </div>
+                        </div>
+                        @if ($isAdmin)
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $c['badge'] }} shrink-0">FULL ACCESS</span>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Card body --}}
+                <div class="p-5 flex-1">
+                    <p class="text-sm text-slate-600 min-h-[2.5rem]">{{ $role['description'] ?: 'Tidak ada catatan untuk role ini.' }}</p>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                            </svg>
+                            <span class="font-semibold">{{ $role['user_count'] }} user</span>
+                        </div>
+                        <div class="text-xs font-bold text-slate-500">
+                            @if ($isFullAccess)
+                                <span class="inline-flex items-center gap-1 text-emerald-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    Full Access
+                                </span>
+                            @else
+                                {{ $count }}/{{ count($definedPermissions) }} permission
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Card footer --}}
+                <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+                    @if ($isAdmin)
+                        <div class="text-xs text-slate-400 text-center py-1">Admin selalu punya semua akses</div>
+                    @else
+                        <button
+                            type="button"
+                            @click="$dispatch('open-modal', 'edit-role-{{ $role['name'] }}')"
+                            class="w-full gci-btn-primary gci-btn-sm"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                            </svg>
+                            Edit Permission
+                        </button>
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    {{-- Create Role Modal --}}
+    <x-modal name="create-role" maxWidth="md">
+        <form action="{{ route('admin.roles.store') }}" method="POST">
+            @csrf
+            <div class="p-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900">Tambah Role Baru</h2>
+                        <p class="mt-1 text-sm text-slate-500">Buat role baru, lalu atur aksesnya di panel permission.</p>
+                    </div>
+                    <button type="button" @click="$dispatch('close-modal', 'create-role')" class="text-slate-400 hover:text-slate-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-6 pb-6 space-y-4">
+                <div>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Role Key</label>
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="quality" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                    <p class="mt-1 text-xs text-slate-400">Huruf kecil, tanpa spasi. Contoh: quality, supervisor, checker.</p>
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Nama Tampilan</label>
+                    <input type="text" name="display_name" value="{{ old('display_name') }}" placeholder="Quality" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi</label>
+                    <input type="text" name="description" value="{{ old('description') }}" placeholder="Akses inspection dan laporan QC" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-lg">
+                <button type="button" @click="$dispatch('close-modal', 'create-role')" class="gci-btn-secondary gci-btn-sm">Batal</button>
+                <button type="submit" class="gci-btn-primary gci-btn-sm">Tambah Role</button>
+            </div>
+        </form>
+    </x-modal>
+
+    {{-- Edit Permission Modals --}}
+    @foreach ($roles as $role)
+        @if ($role['name'] !== 'admin')
+            <x-modal name="edit-role-{{ $role['name'] }}" maxWidth="2xl">
+                <form action="{{ route('admin.roles.update', $role['name']) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h2 class="text-lg font-black text-slate-900">Edit Permission — {{ $role['display_name'] ?? strtoupper($role['name']) }}</h2>
+                                <p class="mt-1 text-sm text-slate-500">Centang modul yang boleh diakses role ini.</p>
+                            </div>
+                            <button type="button" @click="$dispatch('close-modal', 'edit-role-{{ $role['name'] }}')" class="text-slate-400 hover:text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="px-6 pb-6">
+                        @php($isFullAccess = in_array('*', $role['permissions'], true))
+                        <div class="grid gap-4 lg:grid-cols-2 max-h-[50vh] overflow-y-auto pr-1">
+                            @foreach ($permissionGroups as $groupName => $permissions)
+                                <div class="rounded-xl border border-slate-200 p-4">
+                                    <div class="mb-3 text-xs font-black uppercase tracking-wider text-slate-500">{{ $groupName }}</div>
+                                    <div class="grid gap-2">
+                                        @foreach ($permissions as $permission)
+                                            @php($checked = in_array($permission, $role['permissions'], true) || $isFullAccess)
+                                            <label @class([
+                                                'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm',
+                                                'border-emerald-200 bg-emerald-50 text-emerald-900' => $checked,
+                                                'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' => !$checked,
+                                            ])>
+                                                <input type="checkbox" name="permissions[]" value="{{ $permission }}" @checked($checked) class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                                <span class="font-semibold">{{ $permissionLabels[$permission] ?? $permission }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-lg">
+                        <button type="button" @click="$dispatch('close-modal', 'edit-role-{{ $role['name'] }}')" class="gci-btn-secondary gci-btn-sm">Batal</button>
+                        <button type="submit" class="gci-btn-primary gci-btn-sm">Simpan Permission</button>
+                    </div>
+                </form>
+            </x-modal>
+        @endif
+    @endforeach
 </x-app-layout>
