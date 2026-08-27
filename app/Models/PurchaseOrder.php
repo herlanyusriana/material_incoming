@@ -29,11 +29,6 @@ class PurchaseOrder extends Model
         'expected_delivery_date' => 'date',
     ];
 
-    protected $casts = [
-        'approved_at' => 'datetime',
-        'released_at' => 'datetime',
-    ];
-
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
