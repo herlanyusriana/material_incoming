@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\GciPart;
+use App\Models\NewSchema\Core\GciPart;
 use App\Models\StockAtCustomer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;

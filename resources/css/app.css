@@ -3,3 +3,200 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS — GCI Smart Application System
+   ═══════════════════════════════════════════════════ */
+:root {
+    --color-primary: 79 70 229;       /* indigo-600 */
+    --color-primary-light: 238 242 255; /* indigo-50 */
+    --color-success: 16 185 129;       /* emerald-500 */
+    --color-warning: 245 158 11;       /* amber-500 */
+    --color-danger: 239 68 68;         /* red-500 */
+    --radius-card: 1rem;               /* rounded-2xl */
+    --radius-btn: 0.75rem;             /* rounded-xl */
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-card-hover: 0 8px 25px rgb(0 0 0 / 0.06);
+    --transition-default: all 0.2s ease;
+}
+
+/* ═══════════════════════════════════════════════════
+   BASE LAYER — Scrollbar, Typography, Selection
+   ═══════════════════════════════════════════════════ */
+@layer base {
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Sidebar scrollbar */
+    #desktop-sidebar-nav::-webkit-scrollbar,
+    #mobile-sidebar-nav::-webkit-scrollbar {
+        width: 4px;
+    }
+    #desktop-sidebar-nav::-webkit-scrollbar-thumb,
+    #mobile-sidebar-nav::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 999px;
+    }
+
+    /* Selection color */
+    ::selection {
+        background: rgba(79, 70, 229, 0.15);
+        color: #1e293b;
+    }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Focus ring for accessibility */
+    *:focus-visible {
+        outline: 2px solid rgb(var(--color-primary));
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════
+   COMPONENT LAYER — Reusable patterns
+   ═══════════════════════════════════════════════════ */
+@layer components {
+    /* Card base */
+    .gci-card {
+        @apply bg-white border border-slate-200 rounded-2xl shadow-sm;
+    }
+    .gci-card-hover {
+        @apply gci-card transition-all duration-300;
+    }
+    .gci-card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-card-hover);
+    }
+
+    /* Button variants */
+    .gci-btn {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 shadow-sm focus:ring-2 focus:ring-offset-1;
+    }
+    .gci-btn-primary {
+        @apply gci-btn bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+    }
+    .gci-btn-secondary {
+        @apply gci-btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-300;
+    }
+    .gci-btn-danger {
+        @apply gci-btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    }
+    .gci-btn-success {
+        @apply gci-btn bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500;
+    }
+    .gci-btn-sm {
+        @apply px-3 py-2 text-xs;
+    }
+    .gci-btn-icon {
+        @apply inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors;
+    }
+
+    /* Table */
+    .gci-table {
+        @apply min-w-full divide-y divide-slate-200 text-sm;
+    }
+    .gci-table thead {
+        @apply bg-gradient-to-r from-slate-50 to-slate-100;
+    }
+    .gci-table th {
+        @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600;
+    }
+    .gci-table tbody {
+        @apply divide-y divide-slate-100 bg-white;
+    }
+    .gci-table tbody tr {
+        @apply hover:bg-slate-50/70 transition-colors;
+    }
+    .gci-table td {
+        @apply px-4 py-3.5 text-slate-700;
+    }
+
+    /* Badge/Status */
+    .gci-badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold;
+    }
+    .gci-badge-success { @apply gci-badge bg-emerald-100 text-emerald-700; }
+    .gci-badge-warning { @apply gci-badge bg-amber-100 text-amber-700; }
+    .gci-badge-danger  { @apply gci-badge bg-red-100 text-red-700; }
+    .gci-badge-info    { @apply gci-badge bg-indigo-100 text-indigo-700; }
+    .gci-badge-neutral { @apply gci-badge bg-slate-100 text-slate-600; }
+
+    /* Form inputs */
+    .gci-input {
+        @apply block w-full rounded-xl border-slate-200 text-sm shadow-sm placeholder-slate-400
+               focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors;
+    }
+    .gci-label {
+        @apply block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5;
+    }
+    .gci-form-group {
+        @apply space-y-1.5;
+    }
+
+    /* Empty state */
+    .gci-empty {
+        @apply flex flex-col items-center justify-center py-16 text-center;
+    }
+    .gci-empty-icon {
+        @apply w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4;
+    }
+    .gci-empty-title {
+        @apply text-sm font-semibold text-slate-700 mb-1;
+    }
+    .gci-empty-text {
+        @apply text-xs text-slate-500;
+    }
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATION UTILITIES
+   ═══════════════════════════════════════════════════ */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out both;
+}
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out both;
+}
+
+/* Staggered animation delays */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.10s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.20s; }
+.delay-5 { animation-delay: 0.25s; }
+
+/* ═══════════════════════════════════════════════════
+   PRINT STYLES
+   ═══════════════════════════════════════════════════ */
+@media print {
+    aside, header, nav, .no-print { display: none !important; }
+    main { margin: 0 !important; padding: 0 !important; }
+    .gci-card { border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
+}

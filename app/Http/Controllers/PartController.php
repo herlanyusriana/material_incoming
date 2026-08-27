@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Part;
-use App\Models\GciPart;
-use App\Models\GciPartVendor;
 use App\Models\Vendor;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\VendorPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Exports\PartsExport;
 use App\Imports\PartsImport;
 use Illuminate\Http\Request;
@@ -52,9 +52,9 @@ class PartController extends Controller
             });
     }
 
-    private function autoLinkVendorPartToActiveBoms(GciPart $part, GciPartVendor $vendorPart, mixed $asOfDate = null): array
+    private function autoLinkVendorPartToActiveBoms(GciPart $part, VendorPart $vendorPart, mixed $asOfDate = null): array
     {
-        $activeVendorPartIds = GciPartVendor::query()
+        $activeVendorPartIds = VendorPart::query()
             ->where('gci_part_id', $part->id)
             ->where('status', 'active')
             ->pluck('id')
@@ -117,32 +117,31 @@ class PartController extends Controller
         $query = GciPart::query()
             ->select(['id', 'part_no', 'part_name', 'classification'])
             ->when($inStock, function ($qr) {
-                // Check stock in location_inventory using gci_part_id
-                $qr->whereHas('locationInventory', fn($q) => $q->where('qty_on_hand', '>', 0));
+                $qr->whereHas('inventoryLocationStock', fn($q) => $q->where('qty_on_hand', '>', 0));
             })
             ->where(function ($qr) use ($q) {
                 $qr->where('part_no', 'like', '%' . $q . '%')
                     ->orWhere('part_name', 'like', '%' . $q . '%')
-                    ->orWhereHas('vendorLinks', function ($vq) use ($q) {
+                    ->orWhereHas('vendorParts', function ($vq) use ($q) {
                         $vq->where('vendor_part_no', 'like', '%' . $q . '%')
                             ->orWhere('vendor_part_name', 'like', '%' . $q . '%')
                             ->orWhere('register_no', 'like', '%' . $q . '%');
                     });
             })
-            ->with(['vendorLinks' => function ($vq) {
+            ->with(['vendorParts' => function ($vq) {
                 $vq->select(['gci_part_id', 'vendor_part_no', 'vendor_part_name', 'register_no'])->limit(1);
             }])
             ->orderBy('part_no')
             ->limit($limit);
 
         $results = $query->get()->map(function ($part) {
-            $vl = $part->vendorLinks->first();
+            $vl = $part->vendorParts->first();
             return [
                 'id' => $part->id, // GCI Part ID
                 'part_no' => $part->part_no,
                 'part_name_gci' => $part->part_name,
                 'part_name_vendor' => $vl ? $vl->vendor_part_name : null,
-                'register_no' => $vl ? $vl->register_no : null,
+                'register_no' => $vl ? ($vl->register_no ?: $vl->vendor_part_no) : null,
                 'classification' => $part->classification,
             ];
         });
@@ -203,7 +202,7 @@ class PartController extends Controller
         // Classification-specific eager loading
         $eagerLoads = ['customers'];
         if ($classification === 'RM') {
-            $eagerLoads[] = 'vendorLinks.vendor';
+            $eagerLoads[] = 'vendorParts.vendor';
         } elseif ($classification === 'FG') {
             $eagerLoads[] = 'customerPartUsages.customerPart.customer';
         }
@@ -212,10 +211,10 @@ class PartController extends Controller
             ->where('classification', strtoupper($classification))
             ->when($status, fn($q) => $q->where('status', $status))
             ->when($classification === 'RM' && $vendorId > 0, function ($query) use ($vendorId) {
-                $query->whereHas('vendorLinks', fn($vq) => $vq->where('vendor_id', $vendorId));
+                $query->whereHas('vendorParts', fn($vq) => $vq->where('vendor_id', $vendorId));
             })
             ->when($classification === 'RM' && $vendorPartName !== '', function ($query) use ($vendorPartName) {
-                $query->whereHas('vendorLinks', function ($vq) use ($vendorPartName) {
+                $query->whereHas('vendorParts', function ($vq) use ($vendorPartName) {
                     $vq->where('vendor_part_name', 'like', "%{$vendorPartName}%");
                 });
             })
@@ -235,7 +234,7 @@ class PartController extends Controller
                                 ->orWhere('model', 'like', "%{$term}%");
 
                             if ($classification === 'RM') {
-                                $inner->orWhereHas('vendorLinks', function ($vq) use ($term) {
+                                $inner->orWhereHas('vendorParts', function ($vq) use ($term) {
                                     $vq->where('vendor_part_no', 'like', "%{$term}%")
                                         ->orWhere('vendor_part_name', 'like', "%{$term}%")
                                         ->orWhere('register_no', 'like', "%{$term}%")
@@ -259,10 +258,11 @@ class PartController extends Controller
         $partVendorMap = [];
         $partIds = $parts->pluck('id')->toArray();
         if (!empty($partIds)) {
-            $vendorLinks = DB::table('gci_part_vendor')
+            $vendorParts = DB::table('vendor_parts')
                 ->whereIn('gci_part_id', $partIds)
+                ->whereNull('deleted_at')
                 ->get(['gci_part_id', 'vendor_id']);
-            foreach ($vendorLinks as $vl) {
+            foreach ($vendorParts as $vl) {
                 $partVendorMap[$vl->gci_part_id][] = $vl->vendor_id;
             }
         }
@@ -507,7 +507,7 @@ class PartController extends Controller
             }
 
             if ($data['classification'] === 'RM' && !empty($vendorIds)) {
-                $gciPart->vendors()->syncWithoutDetaching($vendorIds);
+                $this->syncVendorParts($gciPart, $vendorIds);
             }
 
             $this->syncSubcountBomMapping($gciPart, $request);
@@ -567,7 +567,7 @@ class PartController extends Controller
             }
 
             if ($data['classification'] === 'RM') {
-                $part->vendors()->sync($vendorIds);
+                $this->syncVendorParts($part->fresh(), $vendorIds);
             }
 
             $this->syncSubcountBomMapping($part->fresh(), $request);
@@ -584,6 +584,41 @@ class PartController extends Controller
         }
 
         return redirect()->route('parts.index')->with('status', 'Part updated.');
+    }
+
+    private function syncVendorParts(GciPart $part, array $vendorIds): void
+    {
+        $vendorIds = collect($vendorIds)->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
+
+        $existing = VendorPart::query()
+            ->where('gci_part_id', $part->id)
+            ->get()
+            ->keyBy('vendor_id');
+
+        $wanted = array_flip($vendorIds);
+
+        foreach ($existing as $vendorId => $vendorPart) {
+            if (!isset($wanted[$vendorId])) {
+                $vendorPart->delete();
+            } else {
+                if ($vendorPart->status !== 'active') {
+                    $vendorPart->update(['status' => 'active']);
+                }
+                unset($wanted[$vendorId]);
+            }
+        }
+
+        foreach (array_keys($wanted) as $vendorId) {
+            VendorPart::create([
+                'gci_part_id' => $part->id,
+                'vendor_id' => $vendorId,
+                'vendor_part_no' => $part->part_no,
+                'vendor_part_name' => $part->part_name,
+                'price' => 0,
+                'status' => 'active',
+                'created_by' => auth()->id(),
+            ]);
+        }
     }
 
     private function normalizeSubcountData(array &$data, Request $request): void
@@ -740,7 +775,7 @@ class PartController extends Controller
 
     public function destroy(GciPart $part)
     {
-        if ($part->vendorLinks()->count() > 0) {
+        if ($part->vendorParts()->count() > 0) {
             return back()->with('error', 'Cannot delete part with vendor links. Remove vendor parts first.');
         }
 
@@ -805,7 +840,7 @@ class PartController extends Controller
         $data['price'] = 0;
         $data['quality_inspection'] = ($data['quality_inspection'] ?? null) === 'YES';
 
-        $vendorPart = GciPartVendor::create($data);
+        $vendorPart = VendorPart::create($data);
         $syncResult = $this->autoLinkVendorPartToActiveBoms($part, $vendorPart);
 
         $message = 'Vendor part added.';
@@ -821,7 +856,7 @@ class PartController extends Controller
         return redirect()->route('parts.index')->with('status', $message);
     }
 
-    public function updateVendorPart(Request $request, GciPartVendor $vendorPart)
+    public function updateVendorPart(Request $request, VendorPart $vendorPart)
     {
         $data = $request->validate([
             'vendor_id' => ['required', 'exists:vendors,id'],
@@ -842,7 +877,7 @@ class PartController extends Controller
         return redirect()->route('parts.index')->with('status', 'Vendor part updated.');
     }
 
-    public function destroyVendorPart(GciPartVendor $vendorPart)
+    public function destroyVendorPart(VendorPart $vendorPart)
     {
         $vendorPart->delete();
 
@@ -851,7 +886,7 @@ class PartController extends Controller
 
     public function vendorPartNames(Vendor $vendor)
     {
-        $names = GciPartVendor::query()
+        $names = VendorPart::query()
             ->where('vendor_id', $vendor->id)
             ->whereNotNull('vendor_part_name')
             ->whereRaw("TRIM(vendor_part_name) <> ''")
@@ -874,7 +909,6 @@ class PartController extends Controller
         $mode = strtolower(trim((string) $request->query('mode', 'parts')));
         $q = trim((string) $request->query('q', ''));
         $groupTitle = trim((string) $request->query('group_title', ''));
-        $asOfDate = $request->query('as_of_date', now()->toDateString());
         $limit = (int) $request->query('limit', 200);
         if ($limit < 10) {
             $limit = 10;
@@ -884,20 +918,20 @@ class PartController extends Controller
         }
 
         if ($mode === 'names') {
-            $base = Part::query()
+            $base = VendorPart::query()
                 ->where('vendor_id', $vendor->id)
                 ->where('status', 'active')
-                ->whereNotNull('part_name_vendor')
-                ->whereRaw("TRIM(part_name_vendor) <> ''")
+                ->whereNotNull('vendor_part_name')
+                ->whereRaw("TRIM(vendor_part_name) <> ''")
                 ->when($q !== '', function ($qr) use ($q) {
-                    $qr->where('part_name_vendor', 'like', '%' . $q . '%');
+                    $qr->where('vendor_part_name', 'like', '%' . $q . '%');
                 })
-                ->select(DB::raw('TRIM(part_name_vendor) as part_name_vendor'))
+                ->select(DB::raw('TRIM(vendor_part_name) as vendor_part_name'))
                 ->distinct()
-                ->orderBy(DB::raw('TRIM(part_name_vendor)'));
+                ->orderBy(DB::raw('TRIM(vendor_part_name)'));
 
             $total = (clone $base)->count();
-            $names = (clone $base)->limit($limit)->pluck('part_name_vendor')->all();
+            $names = (clone $base)->limit($limit)->pluck('vendor_part_name')->all();
 
             return response()->json([
                 'names' => $names,
@@ -907,22 +941,30 @@ class PartController extends Controller
             ]);
         }
 
-        $base = Part::query()
-            ->where('vendor_id', $vendor->id)
-            ->where('status', 'active')
+        $base = VendorPart::query()
+            ->where('vendor_parts.vendor_id', $vendor->id)
+            ->where('vendor_parts.status', 'active')
+            ->join('gci_parts', 'vendor_parts.gci_part_id', '=', 'gci_parts.id')
             ->when($groupTitle !== '', function ($qr) use ($groupTitle) {
-                $qr->whereRaw('UPPER(TRIM(part_name_vendor)) = UPPER(?)', [$groupTitle]);
+                $qr->whereRaw('UPPER(TRIM(vendor_parts.vendor_part_name)) = UPPER(?)', [$groupTitle]);
             })
             ->when($q !== '', function ($qr) use ($q) {
                 $qr->where(function ($inner) use ($q) {
-                    $inner->where('part_no', 'like', '%' . $q . '%')
-                        ->orWhere('register_no', 'like', '%' . $q . '%')
-                        ->orWhere('part_name_vendor', 'like', '%' . $q . '%')
-                        ->orWhere('part_name_gci', 'like', '%' . $q . '%');
+                    $inner->where('gci_parts.part_no', 'like', '%' . $q . '%')
+                        ->orWhere('vendor_parts.register_no', 'like', '%' . $q . '%')
+                        ->orWhere('vendor_parts.vendor_part_name', 'like', '%' . $q . '%')
+                        ->orWhere('gci_parts.part_name', 'like', '%' . $q . '%');
                 });
             })
-            ->orderBy('part_no')
-            ->select(['id', 'part_no', 'register_no', 'part_name_vendor', 'part_name_gci', 'uom']);
+            ->orderBy('gci_parts.part_no')
+            ->select([
+                'vendor_parts.id as id',
+                'gci_parts.part_no',
+                'vendor_parts.register_no',
+                'vendor_parts.vendor_part_name',
+                'gci_parts.part_name as part_name_gci',
+                'vendor_parts.uom',
+            ]);
 
         $total = (clone $base)->count();
         $parts = (clone $base)->limit($limit)->get();

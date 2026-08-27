@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Purchasing;
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestItem;
-use App\Models\GciPart;
 use App\Models\MrpPurchasePlan;
-use App\Models\Part;
-use App\Models\GciPartVendor;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\VendorPart;
 use App\Models\PricingMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,11 +27,11 @@ class PurchaseRequestController extends Controller
     public function create()
     {
         $parts = GciPart::where('classification', 'RM')
-            ->whereHas('vendorLinks')
+            ->whereHas('vendorParts')
             ->get();
 
         $vendors = \App\Models\Vendor::all();
-        $vendorLinks = GciPartVendor::whereNotNull('vendor_id')->get();
+        $vendorLinks = VendorPart::whereNotNull('vendor_id')->get();
         $vendorPartMap = [];
         foreach ($vendorLinks as $vl) {
             $vendorPartMap[$vl->gci_part_id][$vl->vendor_id] = [

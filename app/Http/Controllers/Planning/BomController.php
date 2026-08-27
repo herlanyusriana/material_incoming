@@ -13,9 +13,8 @@ use App\Imports\BomSubstituteMappingImport;
 use App\Models\CustomerPart;
 use App\Models\CustomerPartComponent;
 use App\Exports\BomSubstitutesExport;
-use App\Models\GciPart;
-use App\Models\GciPartVendor;
-use App\Models\Part;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\VendorPart;
 use App\Models\Machine;
 use App\Models\Uom;
 use Illuminate\Http\Request;
@@ -34,7 +33,7 @@ class BomController extends Controller
 
     private function autoSyncIncomingPartMappings(): array
     {
-        $vendorPartIdsByGciPart = GciPartVendor::query()
+        $vendorPartIdsByGciPart = VendorPart::query()
             ->where('status', 'active')
             ->whereNotNull('gci_part_id')
             ->orderBy('id')
@@ -117,9 +116,21 @@ class BomController extends Controller
             ->get();
 
         // Incoming parts (vendor parts) for linking RM in BOM
-        $incomingParts = Part::query()
+        $incomingParts = VendorPart::query()
             ->with('vendor')
-            ->orderBy('part_no')
+            ->join('gci_parts', 'vendor_parts.gci_part_id', '=', 'gci_parts.id')
+            ->orderBy('gci_parts.part_no')
+            ->select([
+                'vendor_parts.id',
+                'vendor_parts.gci_part_id',
+                'vendor_parts.vendor_id',
+                'vendor_parts.vendor_part_no',
+                'vendor_parts.vendor_part_name',
+                'gci_parts.part_no',
+                'gci_parts.part_name',
+                'vendor_parts.uom',
+                'vendor_parts.status',
+            ])
             ->get();
 
         $uoms = Uom::query()
@@ -536,7 +547,7 @@ class BomController extends Controller
             'bom_item_id' => ['nullable', 'integer'],
             'component_part_id' => ['nullable', Rule::exists('gci_parts', 'id')],
             'component_part_no' => ['nullable', 'string', 'max:100'],
-            'incoming_part_id' => ['nullable', Rule::exists('parts', 'id')],
+            'incoming_part_id' => ['nullable', Rule::exists('vendor_parts', 'id')],
             'make_or_buy' => ['nullable', Rule::in(['make', 'buy', 'free_issue'])],
             'consumption_policy_override' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'usage_qty' => ['required', 'numeric', 'min:0'],
@@ -703,7 +714,7 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'substitute_part_id' => ['required', Rule::exists('gci_parts', 'id')],
-            'incoming_part_id' => ['nullable', Rule::exists('parts', 'id')],
+            'incoming_part_id' => ['nullable', Rule::exists('vendor_parts', 'id')],
             'ratio' => ['nullable', 'numeric', 'min:0.0001'],
             'priority' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
@@ -734,7 +745,7 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'substitute_part_id' => ['required', Rule::exists('gci_parts', 'id')],
-            'incoming_part_id' => ['nullable', Rule::exists('parts', 'id')],
+            'incoming_part_id' => ['nullable', Rule::exists('vendor_parts', 'id')],
             'ratio' => ['nullable', 'numeric', 'min:0.0001'],
             'priority' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],

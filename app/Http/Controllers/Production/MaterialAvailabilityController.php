@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionOrder;
 use App\Models\Bom;
-use App\Models\GciInventory;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Illuminate\Http\Request;
 
 class MaterialAvailabilityController extends Controller
@@ -59,14 +59,14 @@ class MaterialAvailabilityController extends Controller
             $requiredQty = $item->usage_qty * $order->qty_planned;
             
             // Get stock from primary part
-            $primaryStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
-            
+            $primaryStock = InventoryLocationStock::where('gci_part_id', $item->component_part_id)->sum('qty_on_hand');
+
             // Get stock from substitute parts
             $substituteStock = 0;
             $substituteDetails = [];
             if ($item->substitutes && $item->substitutes->count() > 0) {
                 foreach ($item->substitutes as $substitute) {
-                    $subStock = GciInventory::where('gci_part_id', $substitute->substitute_part_id)->sum('on_hand');
+                    $subStock = InventoryLocationStock::where('gci_part_id', $substitute->substitute_part_id)->sum('qty_on_hand');
                     $substituteStock += $subStock;
                     if ($subStock > 0) {
                         $substituteDetails[] = [
@@ -150,14 +150,14 @@ class MaterialAvailabilityController extends Controller
                 $requiredQty = $item->usage_qty * $order->qty_planned;
                 
                 // Get stock from primary part
-                $primaryStock = GciInventory::where('gci_part_id', $item->component_part_id)->sum('on_hand');
-                
+                $primaryStock = InventoryLocationStock::where('gci_part_id', $item->component_part_id)->sum('qty_on_hand');
+
                 // Get stock from substitute parts
                 $substituteStock = 0;
                 $substituteDetails = [];
                 if ($item->substitutes && $item->substitutes->count() > 0) {
                     foreach ($item->substitutes as $substitute) {
-                        $subStock = GciInventory::where('gci_part_id', $substitute->substitute_part_id)->sum('on_hand');
+                        $subStock = InventoryLocationStock::where('gci_part_id', $substitute->substitute_part_id)->sum('qty_on_hand');
                         $substituteStock += $subStock;
                         if ($subStock > 0) {
                             $substituteDetails[] = [

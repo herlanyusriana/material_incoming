@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Arrival;
-use App\Models\ArrivalContainer;
-use App\Models\ArrivalContainerInspection;
+use App\Models\NewSchema\Incoming\IncomingArrival as Arrival;
+use App\Models\NewSchema\Incoming\IncomingArrivalContainer as ArrivalContainer;
+use App\Models\NewSchema\Incoming\IncomingArrivalContainerInspection as ArrivalContainerInspection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -85,6 +85,7 @@ class ContainerInspectionController extends Controller
             'issues_inside' => $validated['issues_inside'] ?? [],
             'issues_seal' => $validated['issues_seal'] ?? [],
             'inspected_by' => $request->user()?->id,
+            'inspected_at' => now(),
         ]);
 
         $dir = "inspections/arrival-{$container->arrival_id}/container-{$container->id}";

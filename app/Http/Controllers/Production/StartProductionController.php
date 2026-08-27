@@ -15,7 +15,7 @@ class StartProductionController extends Controller
      * for WH RM supply while operators are training / WH discipline is being fixed.
      * Set to false to restore the normal material gate.
      */
-    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = true;
+    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = false;
 
     private function bypassMaterialGateForWoStart(): bool
     {

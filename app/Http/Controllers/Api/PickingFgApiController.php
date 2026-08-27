@@ -7,8 +7,8 @@ use App\Models\DnItem;
 use App\Models\DeliveryNote;
 use App\Models\DeliveryOrder;
 use App\Models\OutgoingPickingFg;
-use App\Models\GciPart;
-use App\Models\LocationInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +44,7 @@ class PickingFgApiController extends Controller
             'date' => $date,
             'last_updated' => $lastUpdated?->toIso8601String(),
             'data' => $picks->map(function ($p) use ($doCompletedMap) {
-                $stockLocations = LocationInventory::where('gci_part_id', $p->gci_part_id)
+                $stockLocations = InventoryLocationStock::where('gci_part_id', $p->gci_part_id)
                     ->where('qty_on_hand', '>', 0)
                     ->orderByDesc('qty_on_hand')
                     ->limit(5)
@@ -146,7 +146,7 @@ class PickingFgApiController extends Controller
             ], 404);
         }
 
-        $stockLocations = LocationInventory::where('gci_part_id', $part->id)
+        $stockLocations = InventoryLocationStock::where('gci_part_id', $part->id)
             ->where('qty_on_hand', '>', 0)
             ->orderByDesc('qty_on_hand')
             ->limit(5)
@@ -273,7 +273,7 @@ class PickingFgApiController extends Controller
         }
 
         $items = $picks->map(function ($p) {
-            $stockLocations = LocationInventory::where('gci_part_id', $p->gci_part_id)
+            $stockLocations = InventoryLocationStock::where('gci_part_id', $p->gci_part_id)
                 ->where('qty_on_hand', '>', 0)
                 ->orderByDesc('qty_on_hand')
                 ->get()
@@ -371,7 +371,7 @@ class PickingFgApiController extends Controller
 
         // Find which parts have stock at this location
         $gciPartIds = $picks->pluck('gci_part_id')->unique()->toArray();
-        $stockAtLocation = LocationInventory::where('location_code', $locationCode)
+        $stockAtLocation = InventoryLocationStock::where('location_code', $locationCode)
             ->whereIn('gci_part_id', $gciPartIds)
             ->where('qty_on_hand', '>', 0)
             ->get()
@@ -469,14 +469,14 @@ class PickingFgApiController extends Controller
         }
 
         // Check stock at scanned location
-        $stock = LocationInventory::where('gci_part_id', $part->id)
+        $stock = InventoryLocationStock::where('gci_part_id', $part->id)
             ->where('location_code', $locationCode)
             ->where('qty_on_hand', '>', 0)
             ->first();
 
         if (!$stock) {
             // Get alternative locations where this part has stock
-            $altLocations = LocationInventory::where('gci_part_id', $part->id)
+            $altLocations = InventoryLocationStock::where('gci_part_id', $part->id)
                 ->where('qty_on_hand', '>', 0)
                 ->orderByDesc('qty_on_hand')
                 ->limit(5)
@@ -554,7 +554,7 @@ class PickingFgApiController extends Controller
         $locationCode = $this->parseLocationCode($request->location);
 
         // Validate stock exists at this location
-        $stockCheck = LocationInventory::where('gci_part_id', $part->id)
+        $stockCheck = InventoryLocationStock::where('gci_part_id', $part->id)
             ->where('location_code', $locationCode)
             ->where('qty_on_hand', '>', 0)
             ->first();
@@ -600,14 +600,13 @@ class PickingFgApiController extends Controller
 
             // Decrement warehouse stock (FIFO across batches at location)
             $batchNo = request('batch_no') ? strtoupper(trim(request('batch_no'))) : null;
-            LocationInventory::consumeStock(
-                null,
-                $locationCode,
-                $appliedQty,
-                $batchNo,
-                $part->id,
-                'PICKING',
-                'DO#' . ($pick->deliveryOrder?->do_no ?? 'N/A')
+            InventoryLocationStock::consumeStock(
+                gciPartId: $part->id,
+                locationCode: $locationCode,
+                qty: $appliedQty,
+                batchNo: $batchNo,
+                transactionType: 'PICKING',
+                sourceReference: 'DO#' . ($pick->deliveryOrder?->do_no ?? 'N/A')
             );
 
             $doCompleted = false;

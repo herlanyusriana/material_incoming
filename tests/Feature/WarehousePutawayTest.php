@@ -2,18 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Models\Arrival;
-use App\Models\ArrivalItem;
-use App\Models\LocationInventory;
-use App\Models\Part;
-use App\Models\Receive;
+use App\Models\NewSchema\Core\WarehouseLocation;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\User;
-use App\Models\WarehouseLocation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesNewSchemaData;
 use Tests\TestCase;
 
 class WarehousePutawayTest extends TestCase
 {
+    use CreatesNewSchemaData;
     use RefreshDatabase;
 
     public function test_putaway_queue_requires_authentication(): void
@@ -30,41 +28,16 @@ class WarehousePutawayTest extends TestCase
             'status' => 'ACTIVE',
         ]);
 
-        $part = Part::create([
-            'part_no' => 'RM-001',
-            'status' => 'active',
-        ]);
-
-        $arrival = Arrival::create([
-            'arrival_no' => 'ARR-2026-9999',
-        ]);
-
-        $arrivalItem = ArrivalItem::create([
-            'arrival_id' => $arrival->id,
-            'part_id' => $part->id,
-            'qty_goods' => 10,
-            'unit_goods' => 'PCS',
-        ]);
-
-        $receive = Receive::create([
-            'arrival_item_id' => $arrivalItem->id,
-            'tag' => 'TAG-1',
-            'qty' => 10,
-            'ata_date' => now(),
-            'qc_status' => 'pass',
-            'qty_unit' => 'PCS',
-            'location_code' => null,
-        ]);
+        [$receive, $gciPart] = $this->makeIncomingChain('pass', 'TAG-1', qty: 10);
 
         $this->actingAs($user)
             ->post(route('warehouse.putaway.store', $receive), ['location_code' => 'A-01'])
             ->assertSessionHas('success');
 
-        $receive->refresh();
-        $this->assertSame('A-01', $receive->location_code);
+        $this->assertSame('A-01', $receive->fresh()->location_code);
 
-        $loc = LocationInventory::query()
-            ->where('part_id', $part->id)
+        $loc = InventoryLocationStock::query()
+            ->where('gci_part_id', $gciPart->id)
             ->where('location_code', 'A-01')
             ->first();
 
@@ -81,40 +54,8 @@ class WarehousePutawayTest extends TestCase
             'status' => 'ACTIVE',
         ]);
 
-        $part = Part::create([
-            'part_no' => 'RM-002',
-            'status' => 'active',
-        ]);
-
-        $arrival = Arrival::create([
-            'arrival_no' => 'ARR-2026-9998',
-        ]);
-
-        $arrivalItem = ArrivalItem::create([
-            'arrival_id' => $arrival->id,
-            'part_id' => $part->id,
-            'qty_goods' => 30,
-            'unit_goods' => 'PCS',
-        ]);
-
-        $r1 = Receive::create([
-            'arrival_item_id' => $arrivalItem->id,
-            'tag' => 'TAG-A',
-            'qty' => 10,
-            'ata_date' => now(),
-            'qc_status' => 'pass',
-            'qty_unit' => 'PCS',
-            'location_code' => null,
-        ]);
-        $r2 = Receive::create([
-            'arrival_item_id' => $arrivalItem->id,
-            'tag' => 'TAG-B',
-            'qty' => 20,
-            'ata_date' => now(),
-            'qc_status' => 'pass',
-            'qty_unit' => 'PCS',
-            'location_code' => null,
-        ]);
+        [$r1, $gciPart, $vendorPart, $arrivalItem] = $this->makeIncomingChain('pass', 'TAG-A', qty: 10);
+        $r2 = $this->makeNewReceive($arrivalItem->id, 'pass', qty: 20, tag: 'TAG-B');
 
         $this->actingAs($user)
             ->post(route('warehouse.putaway.bulk'), [
@@ -126,8 +67,8 @@ class WarehousePutawayTest extends TestCase
         $this->assertSame('A-02', $r1->fresh()->location_code);
         $this->assertSame('A-02', $r2->fresh()->location_code);
 
-        $loc = LocationInventory::query()
-            ->where('part_id', $part->id)
+        $loc = InventoryLocationStock::query()
+            ->where('gci_part_id', $gciPart->id)
             ->where('location_code', 'A-02')
             ->first();
 

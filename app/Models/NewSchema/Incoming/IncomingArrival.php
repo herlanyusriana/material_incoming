@@ -130,12 +130,12 @@ class IncomingArrival extends BaseModel
 
     public function containers(): HasMany
     {
-        return $this->hasMany(IncomingArrivalContainer::class);
+        return $this->hasMany(IncomingArrivalContainer::class, 'arrival_id');
     }
 
     public function inspections(): HasMany
     {
-        return $this->hasMany(IncomingArrivalInspection::class);
+        return $this->hasMany(IncomingArrivalInspection::class, 'arrival_id');
     }
 
     /**
@@ -143,7 +143,7 @@ class IncomingArrival extends BaseModel
      */
     public function inspection(): HasOne
     {
-        return $this->hasOne(IncomingArrivalInspection::class);
+        return $this->hasOne(IncomingArrivalInspection::class, 'arrival_id');
     }
 
     public function receives(): HasMany

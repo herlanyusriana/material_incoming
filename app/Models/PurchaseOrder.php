@@ -19,7 +19,14 @@ class PurchaseOrder extends Model
         'approved_by',
         'released_at',
         'released_by',
+        'expected_delivery_date',
         'notes',
+    ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
+        'released_at' => 'datetime',
+        'expected_delivery_date' => 'date',
     ];
 
     protected $casts = [
@@ -45,5 +52,10 @@ class PurchaseOrder extends Model
     public function items()
     {
         return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function incomingArrival()
+    {
+        return $this->hasOne(\App\Models\NewSchema\Incoming\IncomingArrival::class, 'po_no', 'po_number');
     }
 }

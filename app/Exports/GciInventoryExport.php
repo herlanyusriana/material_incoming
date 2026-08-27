@@ -2,8 +2,8 @@
 
 namespace App\Exports;
 
-use App\Models\GciInventory;
-use App\Models\LocationInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -21,48 +21,38 @@ class GciInventoryExport implements FromArray, WithHeadings, WithStyles, WithCol
 
     public function array(): array
     {
-        $query = GciInventory::query()
-            ->with('part')
-            ->when($this->classification !== '', fn($q) => $q->whereHas('part', fn($qp) => $qp->where('classification', $this->classification)))
-            ->when(in_array($this->status, ['active', 'inactive'], true), fn($q) => $q->whereHas('part', fn($qp) => $qp->where('status', $this->status)))
+        $query = GciPart::query()
+            ->when($this->classification !== '', fn($q) => $q->where('classification', $this->classification))
+            ->when(in_array($this->status, ['active', 'inactive'], true), fn($q) => $q->where('status', $this->status))
             ->when($this->search !== '', function ($q) {
                 $s = strtoupper($this->search);
-                $q->whereHas('part', function ($qp) use ($s) {
+                $q->where(function ($qp) use ($s) {
                     $qp->where('part_no', 'like', '%' . $s . '%')
                         ->orWhere('part_name', 'like', '%' . $s . '%')
                         ->orWhere('model', 'like', '%' . $s . '%');
                 });
             })
-            ->orderByDesc('on_hand')
-            ->orderBy('gci_part_id');
+            ->orderBy('part_no');
 
         $rows = [];
-        foreach ($query->get() as $inv) {
-            $part = $inv->part;
-            if (!$part) {
-                continue;
-            }
-
-            // Get all location records for this part
-            $locRecords = LocationInventory::where('gci_part_id', $inv->gci_part_id)
+        foreach ($query->get() as $part) {
+            $locRecords = InventoryLocationStock::where('gci_part_id', $part->id)
                 ->where('qty_on_hand', '>', 0)
                 ->orderByDesc('qty_on_hand')
                 ->get();
 
             if ($locRecords->isEmpty()) {
-                // No location stock — export one row with default_location (can be filled in by user)
                 $rows[] = [
                     $part->part_no,
                     $part->part_name,
                     $part->model ?? '',
                     strtoupper($part->classification ?? ''),
                     $part->default_location ?? '',
-                    '',  // location_code — user fills this in
-                    (float) ($inv->on_hand ?? 0),
+                    '',  // location_code
+                    0.0,
                     '',  // batch_no
                 ];
             } else {
-                // One row per location — directly re-importable
                 foreach ($locRecords as $loc) {
                     $rows[] = [
                         $part->part_no,

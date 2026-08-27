@@ -11,6 +11,15 @@ return new class extends Migration {
     public function up(): void
     {
         // Create parts table
+        // A lingering `parts` VIEW (created later by replace_parts_table_with_view)
+        // is NOT dropped by `migrate:fresh` (which only removes base tables). If
+        // left in place it collides with this CREATE TABLE. Drop defensively —
+        // only when `parts` is actually a VIEW (never a real table).
+        if (\Illuminate\Support\Facades\DB::selectOne(
+            "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'parts' AND TABLE_TYPE = 'VIEW'"
+        )) {
+            \Illuminate\Support\Facades\DB::statement('DROP VIEW IF EXISTS parts');
+        }
         if (!Schema::hasTable('parts')) {
             Schema::create('parts', function (Blueprint $table) {
                 $table->id();

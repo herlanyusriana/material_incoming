@@ -2,45 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Arrival;
-use App\Models\ArrivalItem;
-use App\Models\DeliveryNote;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Incoming\IncomingArrival;
+use App\Models\NewSchema\Incoming\IncomingArrivalItem;
+use App\Models\NewSchema\Incoming\IncomingReceive;
+use App\Models\NewSchema\Inventory\InventoryStockOpnameItem;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryNote;
+use App\Models\NewSchema\Production\ProductionOrder;
 use App\Models\PricingMaster;
-use App\Models\ProductionOrder;
-use App\Models\Receive;
-use App\Models\StockOpnameItem;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
         // ── Incoming Material Data ──
-        $departures = Arrival::with(['vendor', 'creator', 'items.receives'])
+        $departures = IncomingArrival::with(['vendor', 'creator', 'items.receives'])
             ->latest()
             ->paginate(10);
 
         $incomingSummary = [
-            'total_departures' => Arrival::count(),
-            'total_receives' => Receive::count(),
-            'pending_items' => ArrivalItem::whereHas('arrival')
+            'total_departures' => IncomingArrival::count(),
+            'total_receives' => IncomingReceive::count(),
+            'pending_items' => IncomingArrivalItem::whereHas('arrival')
                 ->where('qty_goods', '>', 0)
                 ->get()
                 ->filter(function ($item) {
                     $totalReceived = $item->receives->sum('qty');
-                    return ($item->qty_goods - $totalReceived) > 0;
+                    return ((float) $item->qty_goods - (float) $totalReceived) > 0;
                 })
                 ->count(),
-            'today_receives' => Receive::whereDate('created_at', now())->count(),
+            'today_receives' => IncomingReceive::whereDate('created_at', now())->count(),
         ];
 
-        $recentReceives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+        $recentReceives = IncomingReceive::with(['arrivalItem.gciPart', 'arrivalItem.arrival.vendor'])
             ->latest()
             ->limit(5)
             ->get();
 
-        $statusCounts = Receive::select('qc_status', \Illuminate\Support\Facades\DB::raw('count(*) as total'))
+        $statusCounts = IncomingReceive::select('qc_status', DB::raw('count(*) as total'))
             ->groupBy('qc_status')
             ->pluck('total', 'qc_status');
 
@@ -52,7 +54,7 @@ class DashboardController extends Controller
         $to = Carbon::parse($dateTo)->endOfDay();
 
         $orders = ProductionOrder::query()
-            ->with(['machine', 'part', 'downtimes'])
+            ->with(['machine', 'gciPart', 'downtimes'])
             ->whereBetween('plan_date', [$from->toDateString(), $to->toDateString()])
             ->where('status', '!=', 'cancelled')
             ->get();
@@ -103,19 +105,19 @@ class DashboardController extends Controller
         $oee = round(($availability / 100) * ($performance / 100) * ($quality / 100) * 100, 2);
         $lossTimeMinutes = max(0, round($capacityMinutes - $operatingMinutes, 2));
 
-        $inventoryCounts = StockOpnameItem::query()
-            ->whereHas('session', function ($query) use ($from, $to) {
-                $query->whereBetween('start_date', [$from, $to]);
+        $inventoryCounts = InventoryStockOpnameItem::query()
+            ->whereHas('opnameSession', function ($query) use ($from, $to) {
+                $query->whereBetween('opname_date', [$from->toDateString(), $to->toDateString()]);
             })
             ->get();
 
         $inventoryDifferenceQty = (float) $inventoryCounts->sum(function ($item) {
-            return abs((float) ($item->counted_qty ?? 0) - (float) ($item->system_qty ?? 0));
+            return abs((float) ($item->actual_qty ?? 0) - (float) ($item->system_qty ?? 0));
         });
         $inventoryBaseQty = (float) $inventoryCounts->sum(function ($item) {
             return abs((float) ($item->system_qty ?? 0));
         });
-        $inventoryAccuracy = $this->safePercent($inventoryDifferenceQty, $inventoryBaseQty);
+        $inventoryAccuracy = $this->safePercent($inventoryBaseQty, $inventoryBaseQty + $inventoryDifferenceQty);
 
         $shortageRmMinutes = round((float) $orders->sum(function ($order) {
             if (!$order->material_requested_at || !$order->material_issued_at) {
@@ -126,20 +128,13 @@ class DashboardController extends Controller
             return max(0, $requestedAt->diffInMinutes($issuedAt, false));
         }), 2);
 
-        $deliveryNotes = DeliveryNote::query()
-            ->with(['items.part'])
+        $deliveryNotes = OutgoingDeliveryNote::query()
+            ->with(['items.gciPart'])
             ->whereBetween('delivery_date', [$from->toDateString(), $to->toDateString()])
-            ->where('status', 'shipped')
+            ->where('status', 'delivered')
             ->get();
 
-        $deliveryShortageMinutes = round((float) $deliveryNotes->sum(function ($deliveryNote) {
-            if (!$deliveryNote->shipped_at || !$deliveryNote->delivery_date) {
-                return 0;
-            }
-            $targetAt = Carbon::parse($deliveryNote->delivery_date)->endOfDay();
-            $shippedAt = Carbon::parse($deliveryNote->shipped_at);
-            return max(0, $targetAt->diffInMinutes($shippedAt, false));
-        }), 2);
+        $deliveryShortageMinutes = 0.0;
 
         $transportDefectCost = 0.0;
 

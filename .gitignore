@@ -56,3 +56,13 @@ QUICK_TEST_GUIDE.md
 
 # Windows artifacts
 nul
+
+# env files (test/env not for commit)
+.env.testing
+.env.*.local
+
+# Generated route/audit dumps & scratch
+route_list.json
+route_list.txt
+out.txt
+generate_erd_presentation.py

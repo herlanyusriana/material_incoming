@@ -95,20 +95,23 @@ class Arrival extends Model
 
     public static function generateArrivalNo(): string
     {
-        $year = Carbon::now()->year;
-        $lastArrival = self::whereYear('created_at', $year)
-            ->orderByDesc('id')
-            ->first();
+        return \Illuminate\Support\Facades\DB::transaction(function () {
+            $year = Carbon::now()->year;
+            $lastArrival = self::whereYear('created_at', $year)
+                ->lockForUpdate()
+                ->orderByDesc('id')
+                ->first();
 
-        $lastSequence = 0;
-        if ($lastArrival) {
-            $parts = explode('-', $lastArrival->arrival_no);
-            $lastSequence = (int) ($parts[2] ?? 0);
-        }
+            $lastSequence = 0;
+            if ($lastArrival) {
+                $parts = explode('-', $lastArrival->arrival_no);
+                $lastSequence = (int) ($parts[2] ?? 0);
+            }
 
-        $next = str_pad((string) ($lastSequence + 1), 4, '0', STR_PAD_LEFT);
+            $next = str_pad((string) ($lastSequence + 1), 4, '0', STR_PAD_LEFT);
 
-        return 'ARR-' . $year . '-' . $next;
+            return 'ARR-' . $year . '-' . $next;
+        });
     }
 
     /**

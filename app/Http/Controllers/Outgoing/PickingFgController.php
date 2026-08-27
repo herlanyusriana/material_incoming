@@ -7,6 +7,7 @@ use App\Models\OutgoingPickingFg;
 use App\Models\DeliveryOrder;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
+use App\Models\LocationInventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

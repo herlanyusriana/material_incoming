@@ -2,170 +2,81 @@
 
 namespace Tests\Feature;
 
-use App\Models\GciInventory;
-use App\Models\GciPart;
-use App\Models\Inventory;
-use App\Models\LocationInventory;
-use App\Models\Part;
-use App\Models\Vendor;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Inventory\InventoryStockMovement;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesNewSchemaData;
 use Tests\TestCase;
 
+/**
+ * The legacy location_inventory -> inventory sync was removed when the schema
+ * was migrated to the NewSchema inventory model. Stock now lives in
+ * inventory_location_stock (keyed by gci_part_id + location_code) and every
+ * change is logged in inventory_stock_movements. These tests cover that path.
+ */
 class InventorySyncTest extends TestCase
 {
+    use CreatesNewSchemaData;
     use RefreshDatabase;
 
-    private function createVendor(): Vendor
+    public function test_location_inventory_syncs_to_inventory_on_create(): void
     {
-        return Vendor::create([
-            'vendor_name' => 'Test Vendor',
-            'vendor_type' => 'import',
-        ]);
+        $user = User::factory()->create();
+        $gciPart = $this->makeNewGciPart();
+
+        InventoryLocationStock::updateStock($gciPart->id, 'A-01', 100.0, tag: 'TAG-1', createdBy: $user->id);
+
+        $this->assertSame(100.0, InventoryLocationStock::getStockByLocation($gciPart->id, 'A-01'));
+        $this->assertSame(1, InventoryStockMovement::where('gci_part_id', $gciPart->id)->count());
     }
 
-    private function createPart(int $vendorId, ?int $gciPartId = null): Part
+    public function test_location_inventory_syncs_to_inventory_on_update(): void
     {
-        return Part::create([
-            'vendor_id' => $vendorId,
-            'part_no' => 'TEST-' . rand(1000, 9999),
-            'part_name_vendor' => 'Test Part',
-            'status' => 'active',
-            'gci_part_id' => $gciPartId,
-        ]);
+        $user = User::factory()->create();
+        $gciPart = $this->makeNewGciPart();
+
+        InventoryLocationStock::updateStock($gciPart->id, 'A-01', 100.0, tag: 'TAG-1', createdBy: $user->id);
+        InventoryLocationStock::updateStock($gciPart->id, 'A-01', 50.0, tag: 'TAG-2', createdBy: $user->id);
+
+        $this->assertSame(150.0, InventoryLocationStock::getStockByLocation($gciPart->id, 'A-01'));
     }
 
-    private function createGciPart(): GciPart
+    public function test_location_inventory_syncs_multiple_locations_to_summary(): void
     {
-        return GciPart::create([
-            'part_no' => 'GCI-' . rand(1000, 9999),
-            'part_name' => 'GCI Test Part',
-            'classification' => 'RM',
-            'status' => 'active',
-        ]);
+        $user = User::factory()->create();
+        $gciPart = $this->makeNewGciPart();
+
+        InventoryLocationStock::updateStock($gciPart->id, 'A-01', 100.0, tag: 'TAG-1', createdBy: $user->id);
+        InventoryLocationStock::updateStock($gciPart->id, 'B-02', 50.0, tag: 'TAG-2', createdBy: $user->id);
+        InventoryLocationStock::updateStock($gciPart->id, 'C-03', 25.0, tag: 'TAG-3', createdBy: $user->id);
+
+        $this->assertSame(100.0, InventoryLocationStock::getStockByLocation($gciPart->id, 'A-01'));
+        $this->assertSame(50.0, InventoryLocationStock::getStockByLocation($gciPart->id, 'B-02'));
+        $this->assertSame(25.0, InventoryLocationStock::getStockByLocation($gciPart->id, 'C-03'));
     }
 
-    public function test_location_inventory_syncs_to_inventory_on_create()
+    public function test_location_inventory_syncs_to_gci_inventory(): void
     {
-        // Arrange: Create vendor and part
-        $vendor = $this->createVendor();
-        $part = $this->createPart($vendor->id);
+        $user = User::factory()->create();
+        $gciPart = $this->makeNewGciPart();
 
-        // Act: Create location inventory
-        $locationInventory = LocationInventory::create([
-            'part_id' => $part->id,
-            'gci_part_id' => null,
-            'location_code' => 'A-01',
-            'qty_on_hand' => 100,
-        ]);
+        InventoryLocationStock::updateStock($gciPart->id, 'A-01', 200.0, tag: 'TAG-1', createdBy: $user->id, sourceReference: 'REF-1');
 
-        // Assert: Inventory summary should be auto-created
-        $inventory = Inventory::where('part_id', $part->id)->first();
-        $this->assertNotNull($inventory);
-        $this->assertEquals(100, $inventory->on_hand);
+        $this->assertSame(200.0, InventoryLocationStock::getStockByLocation($gciPart->id, 'A-01'));
+        $movement = InventoryStockMovement::where('gci_part_id', $gciPart->id)->first();
+        $this->assertNotNull($movement);
+        $this->assertNotNull($movement->part_no);
     }
 
-    public function test_location_inventory_syncs_to_inventory_on_update()
+    public function test_location_inventory_sync_on_delete(): void
     {
-        // Arrange
-        $vendor = $this->createVendor();
-        $part = $this->createPart($vendor->id);
+        $user = User::factory()->create();
+        $gciPart = $this->makeNewGciPart();
 
-        $locationInventory = LocationInventory::create([
-            'part_id' => $part->id,
-            'location_code' => 'A-01',
-            'qty_on_hand' => 100,
-        ]);
+        InventoryLocationStock::updateStock($gciPart->id, 'A-01', 100.0, tag: 'TAG-1', createdBy: $user->id);
+        InventoryLocationStock::updateStock($gciPart->id, 'A-01', -50.0, tag: 'TAG-2', createdBy: $user->id);
 
-        // Act: Update quantity
-        $locationInventory->update(['qty_on_hand' => 150]);
-
-        // Assert
-        $inventory = Inventory::where('part_id', $part->id)->first();
-        $this->assertEquals(150, $inventory->on_hand);
-    }
-
-    public function test_location_inventory_syncs_multiple_locations_to_summary()
-    {
-        // Arrange
-        $vendor = $this->createVendor();
-        $part = $this->createPart($vendor->id);
-
-        // Act: Create stock in multiple locations
-        LocationInventory::create([
-            'part_id' => $part->id,
-            'location_code' => 'A-01',
-            'qty_on_hand' => 100,
-        ]);
-
-        LocationInventory::create([
-            'part_id' => $part->id,
-            'location_code' => 'B-02',
-            'qty_on_hand' => 50,
-        ]);
-
-        LocationInventory::create([
-            'part_id' => $part->id,
-            'location_code' => 'C-03',
-            'qty_on_hand' => 25,
-        ]);
-
-        // Assert: Total should be summed
-        $inventory = Inventory::where('part_id', $part->id)->first();
-        $this->assertEquals(175, $inventory->on_hand);
-    }
-
-    public function test_location_inventory_syncs_to_gci_inventory()
-    {
-        // Arrange
-        $gciPart = $this->createGciPart();
-        $vendor = $this->createVendor();
-        $part = $this->createPart($vendor->id, $gciPart->id);
-
-        // Act: Create location inventory with gci_part_id
-        LocationInventory::create([
-            'part_id' => $part->id,
-            'gci_part_id' => $gciPart->id,
-            'location_code' => 'A-01',
-            'qty_on_hand' => 200,
-        ]);
-
-        // Assert: Both summaries should exist
-        $inventory = Inventory::where('part_id', $part->id)->first();
-        $gciInventory = GciInventory::where('gci_part_id', $gciPart->id)->first();
-
-        $this->assertNotNull($inventory);
-        $this->assertNotNull($gciInventory);
-        $this->assertEquals(200, $inventory->on_hand);
-        $this->assertEquals(200, $gciInventory->on_hand);
-    }
-
-    public function test_location_inventory_sync_on_delete()
-    {
-        // Arrange
-        $vendor = $this->createVendor();
-        $part = $this->createPart($vendor->id);
-
-        $loc1 = LocationInventory::create([
-            'part_id' => $part->id,
-            'location_code' => 'A-01',
-            'qty_on_hand' => 100,
-        ]);
-
-        $loc2 = LocationInventory::create([
-            'part_id' => $part->id,
-            'location_code' => 'B-02',
-            'qty_on_hand' => 50,
-        ]);
-
-        // Verify initial state
-        $inventory = Inventory::where('part_id', $part->id)->first();
-        $this->assertEquals(150, $inventory->on_hand);
-
-        // Act: Delete one location
-        $loc1->delete();
-
-        // Assert: Summary should be updated
-        $inventory->refresh();
-        $this->assertEquals(50, $inventory->on_hand);
+        $this->assertSame(50.0, InventoryLocationStock::getStockByLocation($gciPart->id, 'A-01'));
     }
 }

@@ -9,7 +9,10 @@ class Inventory extends Model
 {
     use HasFactory;
 
+    protected $table = 'inventories';
+
     protected $fillable = [
+        'gci_part_id',
         'part_id',
         'on_hand',
         'on_order',
@@ -22,6 +25,11 @@ class Inventory extends Model
 
     public function part()
     {
-        return $this->belongsTo(Part::class);
+        return $this->belongsTo(Part::class, 'part_id');
+    }
+
+    public function gciPart()
+    {
+        return $this->belongsTo(\App\Models\NewSchema\Core\GciPart::class, 'gci_part_id');
     }
 }

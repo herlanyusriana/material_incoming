@@ -23,7 +23,7 @@ class Customer extends Model
 
     public function gciParts()
     {
-        return $this->belongsToMany(GciPart::class);
+        return $this->belongsToMany(\App\Models\NewSchema\Core\GciPart::class);
     }
 
     public function stockAtCustomers()

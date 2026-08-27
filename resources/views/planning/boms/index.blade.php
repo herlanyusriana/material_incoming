@@ -46,13 +46,11 @@
                         opacity: 0;
                         transform: translateY(-8px);
                     }
-
                     to {
                         opacity: 1;
                         transform: translateY(0);
                     }
                 }
-
                 .animate-fade-in {
                     animation: fade-in 0.4s ease-out;
                 }
@@ -60,76 +58,90 @@
                 .bom-table {
                     border-collapse: separate;
                     border-spacing: 0;
+                    width: 100%;
+                    min-width: 900px;
                 }
 
                 .bom-table th,
                 .bom-table td {
                     border-bottom: 1px solid #e2e8f0;
-                    border-right: 1px solid #f1f5f9;
+                    padding: 6px 8px;
+                    vertical-align: middle;
                 }
-
                 .bom-table th {
                     background: #f8fafc;
-                    color: #64748b;
+                    color: #475569;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
                     position: sticky;
                     top: 0;
                     z-index: 20;
+                    border-bottom: 2px solid #e2e8f0;
                 }
-
-                /* Sticky left columns */
-                .sticky-col-1 {
+                /* Sticky columns — only 2 left + 1 right */
+                .sticky-col-no {
                     position: sticky;
                     left: 0;
                     z-index: 30;
                     background: inherit;
+                    min-width: 40px;
+                    max-width: 40px;
                 }
-
-                .sticky-col-2 {
+                .sticky-col-fg {
                     position: sticky;
-                    left: 48px;
+                    left: 40px;
                     z-index: 30;
                     background: inherit;
+                    min-width: 200px;
+                    max-width: 280px;
                 }
-
-                .sticky-col-3 {
+                .sticky-col-actions {
                     position: sticky;
-                    left: 248px;
+                    right: 0;
                     z-index: 30;
                     background: inherit;
+                    min-width: 100px;
+                    max-width: 120px;
                 }
-
-                .sticky-col-4 {
-                    position: sticky;
-                    left: 348px;
-                    z-index: 30;
-                    background: inherit;
-                }
-
                 .th-sticky {
                     z-index: 40 !important;
                     background: #f8fafc !important;
                 }
-
-                .parent-row {
-                    background: #ffffff;
-                    border-left: 3px solid #6366f1;
+                .th-sticky-actions {
+                    z-index: 40 !important;
+                    background: #f8fafc !important;
+                    border-left: 1px solid #e2e8f0;
                 }
 
+                .parent-row {
+                    background: #fafbff;
+                    border-left: 4px solid #6366f1;
+                    font-weight: 600;
+                }
                 .parent-row:hover {
-                    background: #f8fafc;
+                    background: #f1f4ff;
+                }
+                .parent-row td {
+                    padding-top: 10px;
+                    padding-bottom: 10px;
                 }
 
                 .child-row {
-                    background-color: #ffffff;
+                    background: #ffffff;
                     border-left: 3px solid transparent;
+                    font-size: 13px;
                 }
-
                 .child-row:hover {
-                    background-color: #f8fafc;
+                    background: #f8fafc;
                     border-left-color: #a5b4fc;
                 }
+                .child-row td {
+                    padding-top: 5px;
+                    padding-bottom: 5px;
+                }
 
-                /* Action buttons */
                 .action-btn {
                     width: 28px;
                     height: 28px;
@@ -143,22 +155,93 @@
                     cursor: pointer;
                     transition: background 0.1s ease;
                 }
-
                 .action-btn:hover {
-                    background: #f8fafc;
+                    background: #f1f5f9;
                 }
 
-                /* Responsive: on small screens let sticky columns flow normally */
-                @media (max-width: 768px) {
-
-                    .sticky-col-1,
-                    .sticky-col-2,
-                    .sticky-col-3,
-                    .sticky-col-4,
-                    .th-sticky {
-                        position: static !important;
-                        z-index: auto !important;
+                /* Responsive: tablet & mobile */
+                @media (max-width: 1024px) {
+                    .bom-table {
+                        min-width: 700px;
                     }
+                    .hide-tablet {
+                        display: none !important;
+                    }
+                    .sticky-col-fg {
+                        min-width: 150px;
+                        max-width: 200px;
+                    }
+                }
+                @media (max-width: 768px) {
+                    .bom-table {
+                        min-width: 500px;
+                        font-size: 12px;
+                    }
+                    .hide-mobile {
+                        display: none !important;
+                    }
+                    .sticky-col-no {
+                        min-width: 32px;
+                        max-width: 32px;
+                    }
+                    .sticky-col-fg {
+                        min-width: 120px;
+                        max-width: 160px;
+                    }
+                    .sticky-col-actions {
+                        min-width: 80px;
+                        max-width: 90px;
+                    }
+                    .parent-row td {
+                        padding-top: 6px;
+                        padding-bottom: 6px;
+                    }
+                    .child-row td {
+                        padding-top: 3px;
+                        padding-bottom: 3px;
+                    }
+                    .action-btn {
+                        width: 24px;
+                        height: 24px;
+                        font-size: 10px;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .bom-table {
+                        min-width: 380px;
+                        font-size: 11px;
+                    }
+                    .hide-phone {
+                        display: none !important;
+                    }
+                    .sticky-col-fg {
+                        min-width: 90px;
+                        max-width: 130px;
+                    }
+                    .sticky-col-actions {
+                        min-width: 70px;
+                        max-width: 80px;
+                    }
+                }
+
+                /* Utility: truncate long text */
+                .truncate-cell {
+                    max-width: 120px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    display: inline-block;
+                    vertical-align: middle;
+                }
+                .truncate-cell-sm {
+                    max-width: 80px;
+                }
+                .font-mono-compact {
+                    font-family: ui-monospace, SFMono-Regular, monospace;
+                    font-size: 0.85em;
+                }
+                [x-cloak] {
+                    display: none !important;
                 }
             </style>
 
@@ -285,29 +368,18 @@
                     <table class="bom-table min-w-[2000px] w-full text-sm">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                <th class="px-2 py-3 text-left font-bold sticky-col-1 th-sticky w-12">No</th>
-                                <th class="px-2 py-3 text-left font-bold sticky-col-2 th-sticky w-48">FG Name</th>
-                                <th class="px-2 py-3 text-left font-bold sticky-col-3 th-sticky w-24">FG Model</th>
-                                <th class="px-2 py-3 text-left font-bold sticky-col-4 th-sticky w-48">FG Part No.</th>
-                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Process Name</th>
-                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Machine</th>
-                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">WIP Part No.</th>
-                                <th class="px-2 py-3 text-right font-bold whitespace-nowrap">Qty.</th>
-                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">UOM</th>
-                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">WIP Part Name</th>
-                                <th class="px-2 py-3 text-left font-bold whitespace-nowrap">Material Size</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Material Spec</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Material Name</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Special</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">RM Part No.</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Incoming Part</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Make/Buy</th>
-                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap">Consump.</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">UOM_RM</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Policy</th>
-                                <th
-                                    class="px-2 py-2 text-center font-bold sticky right-0 bg-slate-50 z-20 border-l border-slate-200">
-                                    Actions</th>
+                                <th class="px-2 py-2 text-center font-bold sticky-col-no th-sticky w-10">#</th>
+                                <th class="px-2 py-2 text-left font-bold sticky-col-fg th-sticky min-w-[200px]">FG Part</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Process</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">Machine</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">WIP Part</th>
+                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap hide-tablet">Qty WIP</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">UOM WIP</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">RM Part</th>
+                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap">Qty</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">UOM</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">Policy</th>
+                                <th class="px-2 py-2 text-center font-bold sticky-col-actions th-sticky-actions min-w-[100px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -322,32 +394,29 @@
 
                                 {{-- Parent / header row --}}
                                 <tr class="parent-row">
-                                    <td class="px-2 py-3 text-center text-slate-300 sticky-col-1">—</td>
-                                    <td class="px-2 py-3 font-bold text-slate-900 whitespace-nowrap sticky-col-2">
-                                        {{ $fgName }}
-                                    </td>
-                                    <td class="px-2 py-3 text-slate-600 whitespace-nowrap sticky-col-3 text-xs">
-                                        {{ $fgModel }}
-                                    </td>
-                                    <td class="px-2 py-3 whitespace-nowrap sticky-col-4">
+                                    <td class="px-2 py-3 text-center text-slate-400 sticky-col-no">—</td>
+                                    <td class="px-2 py-3 sticky-col-fg">
                                         <div class="flex items-center gap-2">
                                             <button type="button"
-                                                class="inline-flex items-center justify-center w-5 h-5 rounded border border-slate-300 bg-white text-slate-700 shadow-sm"
+                                                class="inline-flex items-center justify-center w-5 h-5 rounded border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
                                                 @click="toggle({{ $bomId }})">
                                                 <span x-text="expanded[{{ $bomId }}] ? '▾' : '▸'"
                                                     class="text-[10px] font-bold"></span>
                                             </button>
-                                            <span
-                                                class="font-mono text-[11px] font-black text-indigo-700">{{ $fgNo }}</span>
+                                            <span class="font-mono text-[12px] font-black text-indigo-700">{{ $fgNo }}</span>
                                             @if(isset($bom->revision))
                                                 <span
                                                     class="px-1.5 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white uppercase">REV
                                                     {{ $bom->revision }}</span>
                                             @endif
+                                            <span class="text-xs text-slate-500 font-medium">{{ $fgName }}</span>
+                                            @if($fgModel)
+                                                <span class="text-[10px] text-slate-400 font-mono">({{ $fgModel }})</span>
+                                            @endif
                                         </div>
                                     </td>
-                                    <td class="px-2 py-3 bg-slate-50/30" colspan="15">
-                                        <div class="flex items-center gap-2">
+                                    <td class="px-2 py-3" colspan="9">
+                                        <div class="flex items-center gap-3">
                                             <span
                                                 class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700' }}">
                                                 {{ strtoupper($bom->status) }}
@@ -355,10 +424,14 @@
                                             <span
                                                 class="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">FG
                                                 Master Header</span>
+                                            <span class="text-[10px] text-slate-300">·</span>
+                                            <span class="text-[10px] text-slate-500">
+                                                {{ $items->count() }} line{{ $items->count() !== 1 ? 's' : '' }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td
-                                        class="px-2 py-3 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
+                                        class="px-2 py-3 text-center whitespace-nowrap sticky-col-actions bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
                                         <div class="flex items-center justify-center gap-1">
                                             <form action="{{ route('planning.boms.update', $bom) }}" method="POST"
                                                 class="inline"
@@ -398,69 +471,29 @@
                                         $subCount = $substitutes->count();
                                     @endphp
                                     <tr class="child-row group" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td class="px-2 py-1.5 text-slate-500 font-bold text-center text-xs sticky-col-1">
+                                        <td class="px-2 py-1.5 text-slate-500 font-bold text-center text-xs sticky-col-no">
                                             {{ $lineNo }}
                                         </td>
-                                        <td class="px-2 py-1.5 text-slate-300 sticky-col-2" colspan="2">&nbsp;</td>
-                                        <td class="px-2 py-1.5 text-slate-300 sticky-col-4">&nbsp;</td>
+                                        <td class="px-2 py-1.5 text-slate-300 sticky-col-fg"></td>
                                         <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600 font-medium">
                                             {{ $item->process_name ?? '' }}
                                         </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600">
+                                        <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600 hide-tablet">
                                             {{ $item->machine->name ?? '' }}
                                         </td>
                                         <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">
                                             {{ $wipNo }}
                                         </td>
                                         <td
-                                            class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-indigo-700 bg-indigo-50/20">
+                                            class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-indigo-700 bg-indigo-50/20 hide-tablet">
                                             {{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}
                                         </td>
                                         <td
-                                            class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">
+                                            class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase hide-tablet">
                                             {{ $item->wipUom?->code ?? ($item->wip_uom ?? '') }}
-                                        </td>
-                                        <td class="px-2 py-1.5 text-xs text-slate-600 max-w-[200px] truncate"
-                                            title="{{ $wipName }}">
-                                            {{ $wipName }}
-                                        </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">
-                                            {{ $item->material_size ?? '' }}
-                                        </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">
-                                            {{ $item->material_spec ?? '' }}
-                                        </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-600">
-                                            {{ $item->material_name ?? '' }}
-                                        </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] text-slate-500 italic">
-                                            {{ $item->special ?? '' }}
                                         </td>
                                         <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">
                                             {{ $rmNo }}
-                                        </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-xs">
-                                            @if($item->incomingPart)
-                                                <div class="font-mono-compact font-bold text-teal-700">
-                                                    {{ $item->incomingPart->part_no }}
-                                                </div>
-                                                <div class="text-[10px] text-slate-500 truncate max-w-[150px]"
-                                                    title="{{ $item->incomingPart->vendor?->name ?? '' }}">
-                                                    {{ $item->incomingPart->part_name_gci ?: ($item->incomingPart->part_name_vendor ?? '') }}
-                                                    @if($item->incomingPart->vendor)
-                                                        <span class="text-slate-400">· {{ $item->incomingPart->vendor->name }}</span>
-                                                    @endif
-                                                </div>
-                                            @else
-                                                <span class="text-slate-300">—</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-2 py-1.5 text-center whitespace-nowrap">
-                                            @php $mob = strtolower((string) ($item->make_or_buy ?? 'buy')); @endphp
-                                            <span
-                                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black {{ $mob === 'make' ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800' }} border {{ $mob === 'make' ? 'border-indigo-200' : 'border-amber-200' }}">
-                                                {{ strtoupper($mob) }}
-                                            </span>
                                         </td>
                                         <td
                                             class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-emerald-700 bg-emerald-50/20">
@@ -470,7 +503,7 @@
                                             class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">
                                             {{ $item->consumptionUom?->code ?? ($item->consumption_uom ?? '') }}
                                         </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px]">
+                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] hide-tablet">
                                             @php
                                                 $policy = $item->consumption_policy_override ?: ($item->componentPart?->consumption_policy ?: (($item->componentPart?->is_backflush ?? true) ? 'backflush_return' : 'direct_issue'));
                                                 $policyLabels = [
@@ -485,7 +518,7 @@
                                             </span>
                                         </td>
                                         <td
-                                            class="px-2 py-1.5 text-center whitespace-nowrap sticky right-0 bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
+                                            class="px-2 py-1.5 text-center whitespace-nowrap sticky-col-actions bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
                                             <div class="flex items-center justify-center gap-1">
                                                 <button type="button"
                                                     class="relative h-7 px-2 rounded-lg border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-orange-700 flex items-center justify-center text-[10px] gap-1 font-semibold transition-all"
@@ -869,66 +902,78 @@
             {{-- Line modal --}}
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
                 x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
-                <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200/60">
-                    <div
-                        class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white">
+                <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200/60 max-h-[95vh] flex flex-col">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50/80 flex-shrink-0">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </div>
-                            <div class="text-sm font-semibold text-slate-900"
-                                x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-900"
+                                    x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
+                                <div class="text-[10px] text-slate-500 font-medium" x-text="lineForm.fg_label"></div>
+                            </div>
                         </div>
-                        <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
+                        <button type="button" class="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors"
                             @click="closeLineModal()">✕</button>
                     </div>
 
-                    <form :action="lineForm.action" method="POST" class="px-5 py-4 space-y-5 max-h-[80vh] overflow-y-auto">
+                    <form :action="lineForm.action" method="POST" class="px-4 py-3 space-y-3 overflow-y-auto flex-1">
                         @csrf
                         <template x-if="lineForm.bom_item_id">
                             <input type="hidden" name="bom_item_id" :value="lineForm.bom_item_id">
                         </template>
 
-                        <div class="text-sm text-slate-700">
-                            <div class="font-semibold" x-text="lineForm.fg_label"></div>
-                        </div>
+                        {{-- ═══ Main: RM Component ═══ --}}
+                        <div class="bg-indigo-50/30 rounded-lg border border-indigo-100 p-3 space-y-2">
+                            <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Komponen RM</div>
 
-                        {{-- ═══ Component (RM) ═══ --}}
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2 pb-1 border-b border-indigo-100">
-                                <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Component (RM)</span>
+                            <div>
+                                <label class="text-[10px] font-semibold text-slate-700">RM Part <span class="text-red-500">*</span></label>
+                                <template x-if="lineForm.mode === 'edit'">
+                                    <div>
+                                        <input type="hidden" name="component_part_id" :value="lineForm.component_part_id">
+                                        <div class="mt-0.5 w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800"
+                                            x-text="lineForm.component_part_label || '-'"></div>
+                                    </div>
+                                </template>
+                                <template x-if="lineForm.mode !== 'edit'">
+                                    <select name="component_part_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                        x-model="lineForm.component_part_id" required>
+                                        <option value="">-- Pilih RM Part --</option>
+                                        @foreach (($rmParts ?? []) as $c)
+                                            <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
+                                        @endforeach
+                                    </select>
+                                </template>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div class="md:col-span-3">
-                                    <label class="text-xs font-semibold text-slate-600">RM Part <span class="text-red-500">*</span></label>
-                                    <template x-if="lineForm.mode === 'edit'">
-                                        <div>
-                                            <input type="hidden" name="component_part_id" :value="lineForm.component_part_id">
-                                            <div class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-                                                x-text="lineForm.component_part_label || '-'"></div>
-                                        </div>
-                                    </template>
-                                    <template x-if="lineForm.mode !== 'edit'">
-                                        <select name="component_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                            x-model="lineForm.component_part_id" required>
-                                            <option value="">-- Pilih RM Part --</option>
-                                            @foreach (($rmParts ?? []) as $c)
-                                                <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
-                                            @endforeach
-                                        </select>
-                                    </template>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-semibold text-slate-700">Qty <span class="text-red-500">*</span></label>
+                                    <input type="number" step="any" min="0" name="usage_qty"
+                                        class="mt-0.5 w-full rounded border-slate-200 text-xs" required
+                                        x-model="lineForm.usage_qty">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-semibold text-slate-700">UOM</label>
+                                    <select name="consumption_uom_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                        x-model="lineForm.consumption_uom_id">
+                                        <option value="">-</option>
+                                        @foreach(($uoms ?? []) as $uom)
+                                            <option value="{{ optional($uom)->id }}">{{ optional($uom)->code }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Make / Buy</label>
-                                    <select name="make_or_buy" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                    <label class="text-[10px] font-semibold text-slate-700">Make / Buy</label>
+                                    <select name="make_or_buy" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                         x-model="lineForm.make_or_buy">
                                         <option value="buy">BUY</option>
                                         <option value="make">MAKE</option>
@@ -936,143 +981,145 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Policy Override</label>
-                                    <select name="consumption_policy_override" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
+                                    <label class="text-[10px] font-semibold text-slate-700">Policy Override</label>
+                                    <select name="consumption_policy_override" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                         x-model="lineForm.consumption_policy_override">
-                                        <option value="">Ikuti Master Part</option>
+                                        <option value="">Default</option>
                                         <option value="direct_issue">Pakai Habis</option>
                                         <option value="backflush_return">Balik Sisa</option>
-                                        <option value="backflush_line_stock">Simpan di Line</option>
+                                        <option value="backflush_line_stock">Line Stock</option>
                                     </select>
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Consumption <span class="text-red-500">*</span></label>
-                                    <input type="number" step="any" min="0" name="usage_qty"
-                                        class="mt-1 w-full rounded-xl border-slate-200 text-sm" required
-                                        x-model="lineForm.usage_qty">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">UOM</label>
-                                    <select name="consumption_uom_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.consumption_uom_id">
-                                        <option value="">-</option>
-                                        @foreach(($uoms ?? []) as $uom)
-                                            <option value="{{ optional($uom)->id }}">{{ optional($uom)->code }} - {{ optional($uom)->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Material Spec</label>
-                                    <input type="text" name="material_spec" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.material_spec" placeholder="e.g. SPCC, SUS304">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Material Size</label>
-                                    <input type="text" name="material_size" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.material_size" placeholder="e.g. 0.7 x 530 x C">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Material Name</label>
-                                    <input type="text" name="material_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.material_name">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Special</label>
-                                    <input type="text" name="special" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.special">
                                 </div>
                             </div>
                         </div>
 
-                        {{-- ═══ Process & WIP ═══ --}}
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2 pb-1 border-b border-emerald-100">
-                                <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">Process & WIP</span>
-                            </div>
+                        {{-- ═══ Advanced Options (collapsible) ═══ --}}
+                        <div class="border border-slate-200 rounded-lg overflow-hidden">
+                            <button type="button"
+                                class="w-full flex items-center justify-between px-3 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors text-left"
+                                @click="lineForm.showAdvanced = !lineForm.showAdvanced">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Advanced Options</span>
+                                    <span class="text-[9px] text-slate-400 font-medium" x-show="!lineForm.showAdvanced">(klik untuk buka)</span>
+                                    <span class="text-[9px] text-slate-400 font-medium" x-show="lineForm.showAdvanced">(klik untuk tutup)</span>
+                                </div>
+                                <span class="text-slate-500 font-bold text-xs" x-text="lineForm.showAdvanced ? '▾' : '▸'"></span>
+                            </button>
 
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Line No</label>
-                                    <input type="number" min="1" name="line_no"
-                                        class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="lineForm.line_no">
+                            <div x-show="lineForm.showAdvanced" x-cloak class="p-3 space-y-2 bg-white">
+                                {{-- Material --}}
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Material</div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">Size</label>
+                                        <input type="text" name="material_size" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.material_size" placeholder="0.7 x 530 x C">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">Spec</label>
+                                        <input type="text" name="material_spec" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.material_spec" placeholder="SPCC, SUS304">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">Name</label>
+                                        <input type="text" name="material_name" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.material_name">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">Special</label>
+                                        <input type="text" name="special" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.special">
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Process Name</label>
-                                    <input type="text" name="process_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.process_name">
+
+                                <hr class="border-slate-100 my-1">
+
+                                {{-- Process & WIP --}}
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Process &amp; WIP</div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">Line No</label>
+                                        <input type="number" min="1" name="line_no"
+                                            class="mt-0.5 w-full rounded border-slate-200 text-xs" x-model="lineForm.line_no">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">Process Name</label>
+                                        <input type="text" name="process_name" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.process_name">
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">Machine</label>
-                                    <select name="machine_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.machine_id">
-                                        <option value="">-</option>
-                                        @foreach ($machines as $machine)
-                                            <option value="{{ $machine->id }}">{{ $machine->code }} - {{ $machine->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP Part</label>
-                                    <template x-if="lineForm.mode === 'edit'">
-                                        <div>
-                                            <input type="hidden" name="wip_part_id" :value="lineForm.wip_part_id">
-                                            <div class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-                                                x-text="lineForm.wip_part_label || '-'"></div>
-                                        </div>
-                                    </template>
-                                    <template x-if="lineForm.mode !== 'edit'">
-                                        <select name="wip_part_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                            x-model="lineForm.wip_part_id">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">Machine</label>
+                                        <select name="machine_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.machine_id">
                                             <option value="">-</option>
-                                            @foreach(($wipParts ?? []) as $p)
-                                                <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} — {{ optional($p)->part_name ?? '-' }}</option>
+                                            @foreach ($machines as $machine)
+                                                <option value="{{ $machine->id }}">{{ $machine->code }} - {{ $machine->name }}</option>
                                             @endforeach
                                         </select>
-                                    </template>
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">WIP Part</label>
+                                        <template x-if="lineForm.mode === 'edit'">
+                                            <div>
+                                                <input type="hidden" name="wip_part_id" :value="lineForm.wip_part_id">
+                                                <div class="mt-0.5 w-full rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 truncate"
+                                                    x-text="lineForm.wip_part_label || '-'"></div>
+                                            </div>
+                                        </template>
+                                        <template x-if="lineForm.mode !== 'edit'">
+                                            <select name="wip_part_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                                x-model="lineForm.wip_part_id">
+                                                <option value="">-</option>
+                                                @foreach(($wipParts ?? []) as $p)
+                                                    <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} — {{ optional($p)->part_name ?? '-' }}</option>
+                                                @endforeach
+                                            </select>
+                                        </template>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP Qty</label>
-                                    <input type="number" step="any" min="0" name="wip_qty"
-                                        class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.wip_qty">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">WIP Qty</label>
+                                        <input type="number" step="any" min="0" name="wip_qty"
+                                            class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.wip_qty">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">WIP UOM</label>
+                                        <select name="wip_uom_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.wip_uom_id">
+                                            <option value="">-</option>
+                                            @foreach (($uoms ?? []) as $uom)
+                                                <option value="{{ $uom->id }}">{{ $uom->code }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP UOM</label>
-                                    <select name="wip_uom_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.wip_uom_id">
-                                        <option value="">-</option>
-                                        @foreach (($uoms ?? []) as $uom)
-                                            <option value="{{ $uom->id }}">{{ $uom->code }}{{ $uom->name ? ' - ' . $uom->name : '' }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">WIP UOM Legacy</label>
+                                        <input type="text" name="wip_uom" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.wip_uom" placeholder="Legacy UOM">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-semibold text-slate-600">WIP Part Name</label>
+                                        <input type="text" name="wip_part_name" class="mt-0.5 w-full rounded border-slate-200 text-xs"
+                                            x-model="lineForm.wip_part_name" placeholder="Editable WIP name">
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP UOM Legacy</label>
-                                    <input type="text" name="wip_uom" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.wip_uom" placeholder="Optional legacy UOM">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-xs font-semibold text-slate-600">WIP Part Name</label>
-                                    <input type="text" name="wip_part_name" class="mt-1 w-full rounded-xl border-slate-200 text-sm"
-                                        x-model="lineForm.wip_part_name" placeholder="Editable WIP part name">
-                                </div>
+                                {{-- Hidden fields untuk scrap_factor & yield_factor --}}
+                                <input type="hidden" name="scrap_factor" :value="lineForm.scrap_factor">
+                                <input type="hidden" name="yield_factor" :value="lineForm.yield_factor">
                             </div>
                         </div>
 
-                        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                            <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm"
-                                @click="closeLineModal()">Cancel</button>
+                        <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 flex-shrink-0">
+                            <button type="button" class="px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors"
+                                @click="closeLineModal()">Batal</button>
                             <button type="submit"
-                                class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm">Save</button>
+                                class="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors shadow-sm">Simpan</button>
                         </div>
                     </form>
                 </div>
@@ -1144,6 +1191,7 @@
                             scrap_factor: 0,
                             yield_factor: 1,
                             wip_part_label: '',
+                            showAdvanced: false,
                         },
                         openCreate() { this.modalOpen = true; },
                         closeCreate() { this.modalOpen = false; },

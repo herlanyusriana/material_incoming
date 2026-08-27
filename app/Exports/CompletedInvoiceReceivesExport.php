@@ -2,8 +2,8 @@
 
 namespace App\Exports;
 
-use App\Models\Arrival;
-use App\Models\Receive;
+use App\Models\NewSchema\Incoming\IncomingArrival;
+use App\Models\NewSchema\Incoming\IncomingReceive;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
@@ -14,7 +14,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
-    private Arrival $arrival;
+    private IncomingArrival $arrival;
     /** @var \Illuminate\Support\Collection<int, float> */
     private Collection $receivedTotalsByItemId;
     /** @var \Illuminate\Support\Collection<int, float> */
@@ -34,20 +34,20 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
         return null;
     }
 
-    public function __construct(Arrival $arrival)
+    public function __construct(IncomingArrival $arrival)
     {
         $this->arrival = $arrival;
-        $this->arrival->loadMissing(['vendor', 'items.receives', 'items.part']);
+        $this->arrival->loadMissing(['vendor', 'incomingArrivalItems.incomingReceives', 'incomingArrivalItems.gciPart']);
 
-        $this->receivedTotalsByItemId = $this->arrival->items
+        $this->receivedTotalsByItemId = $this->arrival->incomingArrivalItems
             ->mapWithKeys(function ($item) {
-                $total = (float) $item->receives->sum('qty');
+                $total = (float) $item->incomingReceives->sum('qty');
                 return [$item->id => $total];
             });
 
-        $this->receivedWeightsByItemId = $this->arrival->items
+        $this->receivedWeightsByItemId = $this->arrival->incomingArrivalItems
             ->mapWithKeys(function ($item) {
-                $total = (float) $item->receives->sum(function ($receive) {
+                $total = (float) $item->incomingReceives->sum(function ($receive) {
                     return (float) ($receive->net_weight ?? $receive->weight ?? 0);
                 });
 
@@ -57,15 +57,15 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
 
     public function collection()
     {
-        return Receive::query()
-            ->select('receives.*')
-            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
-            ->join('parts', 'arrival_items.part_id', '=', 'parts.id')
-            ->with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
-            ->where('arrival_items.arrival_id', $this->arrival->id)
-            ->orderBy('parts.part_no', 'asc')
-            ->orderByRaw('LENGTH(receives.tag) ASC')
-            ->orderBy('receives.tag', 'asc')
+        return IncomingReceive::query()
+            ->select('incoming_receives.*')
+            ->join('incoming_arrival_items', 'incoming_receives.incoming_arrival_item_id', '=', 'incoming_arrival_items.id')
+            ->join('gci_parts', 'incoming_arrival_items.gci_part_id', '=', 'gci_parts.id')
+            ->with(['incomingArrivalItem.gciPart', 'incomingArrivalItem.incomingArrival.vendor'])
+            ->where('incoming_arrival_items.incoming_arrival_id', $this->arrival->id)
+            ->orderBy('gci_parts.part_no', 'asc')
+            ->orderByRaw('LENGTH(incoming_receives.tag) ASC')
+            ->orderBy('incoming_receives.tag', 'asc')
             ->get();
     }
 
@@ -106,9 +106,9 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
 
     public function map($receive): array
     {
-        $arrival = $receive->arrivalItem?->arrival;
-        $item = $receive->arrivalItem;
-        $part = $item?->part;
+        $arrival = $receive->incomingArrivalItem?->incomingArrival;
+        $item = $receive->incomingArrivalItem;
+        $part = $item?->gciPart;
 
         $plannedQty = (float) ($item?->qty_goods ?? 0);
         $plannedWeight = (float) ($item?->weight_nett ?? 0);
@@ -130,7 +130,7 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
             $receive->jo_po_number ?? '',
             $receive->location_code ?? '',
             $part?->part_no ?? '',
-            $part?->part_name_vendor ?? '',
+            $item?->vendor_part_name ?? '',
             $item?->material_group ?? '',
             $item?->size ?? '',
             $plannedQty ?: 0,

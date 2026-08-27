@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
-use App\Models\Part;
+use App\Models\NewSchema\Core\GciPart;
 use App\Models\ProductionMaterialRequest;
 use App\Models\ProductionOrder;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class MaterialRequestController extends Controller
 {
@@ -67,14 +69,9 @@ class MaterialRequestController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $parts = Part::query()
-            ->leftJoin('inventories', 'inventories.part_id', '=', 'parts.id')
-            ->select(
-                'parts.*',
-                DB::raw('COALESCE(inventories.on_hand, 0) as stock_on_hand'),
-                DB::raw('COALESCE(inventories.on_order, 0) as stock_on_order')
-            )
-            ->orderBy('parts.part_no')
+        $parts = GciPart::query()
+            ->withSum('inventoryLocationStock as stock_on_hand', 'qty_on_hand')
+            ->orderBy('part_no')
             ->get();
 
         return view('production.material-request.create', compact('orders', 'parts', 'selectedOrderId'));
@@ -88,7 +85,7 @@ class MaterialRequestController extends Controller
             'reason' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.part_id' => ['required', 'integer'],
+            'items.*.part_id' => ['required', 'integer', Rule::exists('gci_parts', 'id')],
             'items.*.qty_requested' => ['required', 'numeric', 'gt:0'],
             'items.*.notes' => ['nullable', 'string', 'max:255'],
         ]);
@@ -100,14 +97,9 @@ class MaterialRequestController extends Controller
             ->unique()
             ->values();
 
-        $parts = Part::query()
-            ->leftJoin('inventories', 'inventories.part_id', '=', 'parts.id')
-            ->select(
-                'parts.*',
-                DB::raw('COALESCE(inventories.on_hand, 0) as stock_on_hand'),
-                DB::raw('COALESCE(inventories.on_order, 0) as stock_on_order')
-            )
-            ->whereIn('parts.id', $partIds)
+        $parts = GciPart::query()
+            ->withSum('inventoryLocationStock as stock_on_hand', 'qty_on_hand')
+            ->whereIn('gci_parts.id', $partIds)
             ->get()
             ->keyBy('id');
 

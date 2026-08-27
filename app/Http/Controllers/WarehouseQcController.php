@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Receive;
+use App\Models\NewSchema\Incoming\IncomingReceive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -26,16 +26,16 @@ class WarehouseQcController extends Controller
             $status = '';
         }
 
-        $query = Receive::query()
-            ->with(['arrivalItem.part', 'arrivalItem.arrival.vendor', 'qcUpdater'])
+        $query = IncomingReceive::query()
+            ->with(['incomingArrivalItem.gciPart', 'incomingArrivalItem.incomingArrival.vendor', 'qcUpdater'])
             ->whereIn(DB::raw('LOWER(qc_status)'), $allowed)
             ->when($status !== '', fn ($q) => $q->whereRaw('LOWER(qc_status) = ?', [$status]))
             ->when($search !== '', function ($q) use ($search) {
                 $s = strtoupper($search);
                 $q->where(function ($qq) use ($s) {
                     $qq->where('tag', 'like', '%' . $s . '%')
-                        ->orWhereHas('arrivalItem.arrival', fn ($qa) => $qa->where('arrival_no', 'like', '%' . $s . '%'))
-                        ->orWhereHas('arrivalItem.part', fn ($qp) => $qp->where('part_no', 'like', '%' . $s . '%'));
+                        ->orWhereHas('incomingArrivalItem.incomingArrival', fn ($qa) => $qa->where('arrival_no', 'like', '%' . $s . '%'))
+                        ->orWhereHas('incomingArrivalItem.gciPart', fn ($qp) => $qp->where('part_no', 'like', '%' . $s . '%'));
                 });
             })
             ->latest();
@@ -45,7 +45,7 @@ class WarehouseQcController extends Controller
         return view('warehouse.qc.index', compact('rows', 'search', 'status', 'perPage'));
     }
 
-    public function update(Request $request, Receive $receive)
+    public function update(Request $request, IncomingReceive $receive)
     {
         $validated = $request->validate([
             'qc_status' => ['required', 'string', Rule::in(['pass', 'hold', 'reject'])],

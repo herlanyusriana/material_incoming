@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use App\Models\Bom;
-use App\Models\GciInventory;
-use App\Models\LocationInventory;
-use App\Models\ProductionOrder;
-use App\Models\Receive;
+use App\Models\NewSchema\Incoming\IncomingReceive;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Production\ProductionOrder;
+use App\Models\NewSchema\Production\ProductionOrderReservedMaterial;
+use Illuminate\Support\Facades\Auth;
 
 class ProductionMaterialRequestService
 {
@@ -59,7 +60,7 @@ class ProductionMaterialRequestService
 
     public function buildLines(ProductionOrder $order): array
     {
-        $order->loadMissing(['part']);
+        $order->loadMissing(['gciPart']);
 
         $bom = Bom::activeVersion($order->gci_part_id, $order->plan_date);
         if (!$bom) {
@@ -69,9 +70,9 @@ class ProductionMaterialRequestService
         $bomItems = $bom->items()
             ->with([
                 'componentPart',
-                'incomingPart',
-                'substitutes.part',
-                'substitutes.incomingPart',
+                'incomingPart.gciPart',
+                'substitutes.gciPart',
+                'substitutes.incomingPart.gciPart',
             ])
             ->get();
 
@@ -92,16 +93,24 @@ class ProductionMaterialRequestService
 
             $candidateParts = collect();
             if ($item->incomingPart) {
-                $partNo = $this->cleanText($item->incomingPart->part_no, $item->componentPart?->part_no, $item->component_part_no);
+                $gciPartId = (int) ($item->incomingPart->gci_part_id
+                    ?? $item->incomingPart->gciPart?->id
+                    ?? $item->component_part_id
+                    ?? 0);
+                $partNo = $this->cleanText(
+                    $item->incomingPart->vendor_part_no,
+                    $item->incomingPart->gciPart?->part_no,
+                    $item->componentPart?->part_no,
+                    $item->component_part_no
+                );
                 $candidateParts->push([
                     'type' => 'primary',
-                    'part_id' => (int) $item->incomingPart->id,
-                    'gci_part_id' => (int) ($item->incomingPart->gci_part_id ?? $item->component_part_id ?? 0),
+                    'vendor_part_id' => (int) $item->incomingPart->id,
+                    'gci_part_id' => $gciPartId,
                     'part_no' => $partNo,
                     'part_name' => $this->cleanText(
-                        $item->incomingPart->part_name_gci,
-                        $item->incomingPart->part_name_vendor,
-                        $item->incomingPart->part_name,
+                        $item->incomingPart->vendor_part_name,
+                        $item->incomingPart->gciPart?->part_name,
                         $item->componentPart?->part_name,
                         $partNo
                     ),
@@ -109,37 +118,42 @@ class ProductionMaterialRequestService
             }
 
             foreach (($item->substitutes ?? collect()) as $substitute) {
-                if (!$substitute->incomingPart && !$substitute->part) {
+                if (!$substitute->incomingPart && !$substitute->gciPart) {
                     continue;
                 }
 
+                $gciPartId = (int) ($substitute->incomingPart?->gci_part_id
+                    ?? $substitute->incomingPart?->gciPart?->id
+                    ?? $substitute->substitute_part_id
+                    ?? $substitute->gciPart?->id
+                    ?? 0);
                 $partNo = $this->cleanText(
-                    $substitute->incomingPart?->part_no,
-                    $substitute->part?->part_no,
+                    $substitute->incomingPart?->vendor_part_no,
+                    $substitute->incomingPart?->gciPart?->part_no,
+                    $substitute->gciPart?->part_no,
                     $substitute->substitute_part_no
                 );
                 $candidateParts->push([
                     'type' => 'substitute',
-                    'part_id' => (int) ($substitute->incomingPart?->id ?? 0),
-                    'gci_part_id' => (int) ($substitute->incomingPart?->gci_part_id ?? $substitute->substitute_part_id ?? 0),
+                    'vendor_part_id' => (int) ($substitute->incomingPart?->id ?? 0),
+                    'gci_part_id' => $gciPartId,
                     'part_no' => $partNo,
                     'part_name' => $this->cleanText(
-                        $substitute->incomingPart?->part_name_gci,
-                        $substitute->incomingPart?->part_name_vendor,
-                        $substitute->incomingPart?->part_name,
-                        $substitute->part?->part_name,
+                        $substitute->incomingPart?->vendor_part_name,
+                        $substitute->incomingPart?->gciPart?->part_name,
+                        $substitute->gciPart?->part_name,
                         $partNo
                     ),
                 ]);
             }
 
             $candidateParts = $candidateParts
-                ->filter(fn($part) => !empty($part['part_id']) || !empty($part['gci_part_id']) || trim((string) ($part['part_no'] ?? '')) !== '')
-                ->unique(fn($part) => ($part['part_id'] ?? 0) . '|' . ($part['gci_part_id'] ?? 0) . '|' . strtoupper((string) ($part['part_no'] ?? '')))
+                ->filter(fn($part) => !empty($part['gci_part_id']) || !empty($part['vendor_part_id']) || trim((string) ($part['part_no'] ?? '')) !== '')
+                ->unique(fn($part) => ($part['vendor_part_id'] ?? 0) . '|' . ($part['gci_part_id'] ?? 0) . '|' . strtoupper((string) ($part['part_no'] ?? '')))
                 ->values();
             $scanOptions = $candidateParts->map(fn($part) => [
                 'source_type' => $part['type'],
-                'part_id' => (int) ($part['part_id'] ?? 0),
+                'vendor_part_id' => (int) ($part['vendor_part_id'] ?? 0),
                 'gci_part_id' => (int) ($part['gci_part_id'] ?? 0),
                 'part_no' => $this->cleanText($part['part_no'] ?? ''),
                 'part_name' => $this->cleanText($part['part_name'] ?? '', $part['part_no'] ?? ''),
@@ -169,14 +183,15 @@ class ProductionMaterialRequestService
             $allocations = [];
 
             foreach ($candidateParts as $candidate) {
-                if ($remaining <= 0) {
+                if ($remaining <= 0 || empty($candidate['gci_part_id'])) {
                     break;
                 }
 
-                $stocks = LocationInventory::query()
-                    ->where('part_id', $candidate['part_id'])
+                $stocks = InventoryLocationStock::query()
+                    ->where('gci_part_id', $candidate['gci_part_id'])
                     ->where('qty_on_hand', '>', 0)
-                    ->orderByWarehouseFifo()
+                    ->orderBy('production_date')
+                    ->orderBy('created_at')
                     ->get();
 
                 foreach ($stocks as $stock) {
@@ -192,10 +207,10 @@ class ProductionMaterialRequestService
                     $pickedQty = min($available, $remaining);
                     $remaining = round($remaining - $pickedQty, 4);
 
-                    $allocations[] = [
+                    $allocation = [
                         'source_type' => $candidate['type'],
-                        'part_id' => $candidate['part_id'],
-                        'gci_part_id' => (int) ($candidate['gci_part_id'] ?? 0),
+                        'vendor_part_id' => (int) ($candidate['vendor_part_id'] ?? 0),
+                        'gci_part_id' => (int) $candidate['gci_part_id'],
                         'part_no' => $candidate['part_no'],
                         'part_name' => $candidate['part_name'],
                         'location_code' => (string) $stock->location_code,
@@ -205,17 +220,12 @@ class ProductionMaterialRequestService
                     ];
 
                     $traceability = $this->resolveIncomingTraceability(
-                        $candidate['part_id'],
+                        (int) $candidate['gci_part_id'],
                         (string) $stock->location_code,
                         (string) ($stock->batch_no ?? '')
                     );
 
-                    if (!empty($traceability)) {
-                        $allocations[array_key_last($allocations)] = array_merge(
-                            $allocations[array_key_last($allocations)],
-                            $traceability
-                        );
-                    }
+                    $allocations[] = array_merge($allocation, $traceability);
                 }
             }
 
@@ -248,23 +258,6 @@ class ProductionMaterialRequestService
             return [];
         }
 
-        $payload = [
-            'material_request_lines' => $requestLines,
-            'material_requested_at' => now(),
-            'material_requested_by' => $userId,
-        ];
-
-        if ($resetIssueState) {
-            $payload = array_merge($payload, [
-                'material_issue_lines' => null,
-                'material_handed_over_at' => null,
-                'material_handed_over_by' => null,
-                'material_handover_notes' => null,
-            ]);
-        }
-
-        $order->update($payload);
-
         $this->syncReservedMaterialsFromRequestLines($order, $requestLines);
         $this->syncOrderStatusFromMaterialRequest($order, $requestLines);
 
@@ -287,25 +280,14 @@ class ProductionMaterialRequestService
 
     private function releaseReservedMaterials(ProductionOrder $order): void
     {
-        $reserved = collect($order->reserved_materials ?? []);
-        if ($reserved->isEmpty()) {
-            return;
-        }
-
-        foreach ($reserved as $mat) {
-            $partId = (int) ($mat['gci_part_id'] ?? 0);
-            $qty = (float) ($mat['qty'] ?? 0);
-            if ($partId <= 0 || $qty <= 0) {
-                continue;
-            }
-
-            $inventory = GciInventory::query()->where('gci_part_id', $partId)->first();
-            if ($inventory) {
-                $inventory->release($qty);
-            }
-        }
-
-        $order->update(['reserved_materials' => null]);
+        ProductionOrderReservedMaterial::query()
+            ->where('production_order_id', $order->id)
+            ->whereNull('consumed_at')
+            ->get()
+            ->each(function (ProductionOrderReservedMaterial $reserved) {
+                $reserved->consumed_at = now();
+                $reserved->saveQuietly();
+            });
     }
 
     private function syncReservedMaterialsFromRequestLines(ProductionOrder $order, array $requestLines): void
@@ -316,8 +298,6 @@ class ProductionMaterialRequestService
         if ($hasShortage) {
             return;
         }
-
-        $reservedMaterials = [];
 
         foreach ($requestLines as $line) {
             $makeOrBuy = strtoupper(trim((string) ($line['make_or_buy'] ?? 'BUY')));
@@ -332,20 +312,15 @@ class ProductionMaterialRequestService
                 continue;
             }
 
-            $inventory = GciInventory::firstOrCreate(
-                ['gci_part_id' => $partId],
-                ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-            );
-            $inventory->reserve($requiredQty);
-
-            $reservedMaterials[] = [
+            ProductionOrderReservedMaterial::create([
+                'production_order_id' => $order->id,
                 'gci_part_id' => $partId,
-                'part_no' => (string) ($line['component_part_no'] ?? '-'),
-                'qty' => $requiredQty,
-            ];
+                'qty_reserved' => $requiredQty,
+                'qty_consumed' => 0,
+                'reserved_at' => now(),
+                'reserved_by' => Auth::check() ? Auth::id() : null,
+            ]);
         }
-
-        $order->update(['reserved_materials' => $reservedMaterials]);
     }
 
     private function syncOrderStatusFromMaterialRequest(ProductionOrder $order, array $requestLines): void
@@ -369,21 +344,21 @@ class ProductionMaterialRequestService
         ]);
     }
 
-    private function resolveIncomingTraceability(int $partId, string $locationCode, string $batchNo): array
+    private function resolveIncomingTraceability(int $gciPartId, string $locationCode, string $batchNo): array
     {
         $locationCode = strtoupper(trim($locationCode));
         $batchNo = strtoupper(trim($batchNo));
 
-        if ($partId <= 0 || $locationCode === '' || $batchNo === '') {
+        if ($gciPartId <= 0 || $locationCode === '' || $batchNo === '') {
             return [];
         }
 
-        $receive = Receive::query()
-            ->with('arrivalItem:id,arrival_id,part_id')
+        $receive = IncomingReceive::query()
+            ->with('arrivalItem:id,arrival_id,gci_part_id')
             ->where('tag', $batchNo)
             ->where('location_code', $locationCode)
-            ->whereHas('arrivalItem', function ($query) use ($partId) {
-                $query->where('part_id', $partId);
+            ->whereHas('arrivalItem', function ($query) use ($gciPartId) {
+                $query->where('gci_part_id', $gciPartId);
             })
             ->latest('id')
             ->first();
@@ -396,8 +371,8 @@ class ProductionMaterialRequestService
             'receive_id' => (int) $receive->id,
             'arrival_id' => (int) ($receive->arrivalItem->arrival_id ?? 0),
             'arrival_item_id' => (int) ($receive->arrival_item_id ?? 0),
-            'received_qty' => (float) ($receive->qty_received ?? 0),
-            'received_at' => optional($receive->received_at)->toDateTimeString(),
+            'received_qty' => (float) ($receive->qty ?? 0),
+            'received_at' => optional($receive->ata_date)->toDateTimeString(),
         ];
     }
 }

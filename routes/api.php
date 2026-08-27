@@ -9,34 +9,35 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
-Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'sync']);
-Route::get('/subcounts/wh-to-send', [SubcountApiController::class, 'whToSend']);
-Route::post('/subcounts', [SubcountApiController::class, 'store']);
-Route::get('/production-gci/machines', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machines']);
-Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrders']);
-Route::get('/production-gci/machines/{id}/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineWorkOrders']);
-Route::get('/production-gci/machines/{id}/operator-board', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineOperatorBoard']);
-Route::get('/production-gci/parts', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'parts']);
-Route::get('/production-gci/wo/{id}/material-status', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialStatus']);
-Route::get('/production-gci/wo/{id}/material-issue-history', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialIssueHistory']);
-Route::get('/production-gci/wo/{id}/routing', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrderRouting']);
-Route::post('/production-gci/wo/{id}/start', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startWo']);
-Route::post('/production-gci/wo/{id}/pause', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'pauseWo']);
-Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'resumeWo']);
-Route::post('/production-gci/wo/{id}/handover-process', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'handoverProcess']);
-Route::post('/production-gci/wo/{id}/finish', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'finishWo']);
-Route::post('/production-gci/wo/{id}/cancel', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'cancelWo']);
-Route::get('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'getHourlyReports']);
-Route::post('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'saveHourlyReport']);
-Route::post('/production-gci/wo/{id}/increment-production', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'incrementProduction']);
-Route::get('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineDowntimes']);
-Route::post('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startMachineDowntime']);
-Route::post('/production-gci/downtimes/{id}/stop', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'stopMachineDowntime']);
-Route::post('/production-gci/qdc-session', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'storeQdcSession']);
-Route::get('/production-gci/machines/{id}/qdc-sessions', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineQdcSessions']);
-Route::get('/production-gci/wo-monitoring', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'woMonitoringData']);
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    // Production & Subcount API — moved inside auth for security
+    Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'sync']);
+    Route::get('/subcounts/wh-to-send', [SubcountApiController::class, 'whToSend']);
+    Route::post('/subcounts', [SubcountApiController::class, 'store']);
+    Route::get('/production-gci/machines', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machines']);
+    Route::get('/production-gci/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrders']);
+    Route::get('/production-gci/machines/{id}/work-orders', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineWorkOrders']);
+    Route::get('/production-gci/machines/{id}/operator-board', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineOperatorBoard']);
+    Route::get('/production-gci/parts', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'parts']);
+    Route::get('/production-gci/wo/{id}/material-status', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialStatus']);
+    Route::get('/production-gci/wo/{id}/material-issue-history', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'materialIssueHistory']);
+    Route::get('/production-gci/wo/{id}/routing', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'workOrderRouting']);
+    Route::post('/production-gci/wo/{id}/start', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startWo']);
+    Route::post('/production-gci/wo/{id}/pause', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'pauseWo']);
+    Route::post('/production-gci/wo/{id}/resume', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'resumeWo']);
+    Route::post('/production-gci/wo/{id}/handover-process', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'handoverProcess']);
+    Route::post('/production-gci/wo/{id}/finish', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'finishWo']);
+    Route::post('/production-gci/wo/{id}/cancel', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'cancelWo']);
+    Route::get('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'getHourlyReports']);
+    Route::post('/production-gci/wo/{id}/hourly', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'saveHourlyReport']);
+    Route::post('/production-gci/wo/{id}/increment-production', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'incrementProduction']);
+    Route::get('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineDowntimes']);
+    Route::post('/production-gci/machines/{id}/downtimes', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'startMachineDowntime']);
+    Route::post('/production-gci/downtimes/{id}/stop', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'stopMachineDowntime']);
+    Route::post('/production-gci/qdc-session', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'storeQdcSession']);
+    Route::get('/production-gci/machines/{id}/qdc-sessions', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'machineQdcSessions']);
 
-Route::middleware('auth:sanctum')->group(function () {
+    // Auth logout
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     Route::get('/arrivals/pending-inspection', [InspectionController::class, 'pending']);

@@ -19,18 +19,25 @@ return [
             'view_dashboard',
             'view_planning',
             'view_production',
+            'view_incoming',
             'create_production_entry', // Example: Scanning incoming materials
             'manage_incoming',
+            'manage_subcounts',
         ],
         'ppic' => [
             'view_dashboard',
             'manage_planning',
             'view_production',
+            'view_logistics',
             'manage_subcon',
         ],
         'warehouse' => [
             'view_dashboard',
+            'view_incoming',
+            'view_logistics',
             'manage_incoming',
+            'manage_warehouse',
+            'manage_subcounts',
         ],
         'purchasing' => [
             'view_dashboard',
@@ -71,7 +78,13 @@ return [
         'manage_kanban_update',
 
         // Material Incoming / Warehouse
+        'view_incoming',       // View incoming material dashboard
         'manage_incoming',     // Scan arrival, print QR
+        'manage_warehouse',    // Warehouse operations (QC, putaway, transfer, return, adjustment)
+        'manage_subcounts',    // Manage subcounts
+
+        // Logistics
+        'view_logistics',      // View logistics dashboard
 
         // Purchasing
         'manage_purchasing',

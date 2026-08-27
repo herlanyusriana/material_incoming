@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Bom;
 use App\Models\CustomerPartComponent;
 use App\Models\Forecast;
-use App\Models\GciInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\MrpProductionPlan;
 use App\Models\MrpPurchasePlan;
 use App\Models\MrpRun;
@@ -349,8 +350,11 @@ class MrpController extends Controller
         $hasPurchaseParts = array_fill_keys(array_map('intval', array_keys($purchaseByPartMonth)), true);
         $hasProductionParts = array_fill_keys(array_map('intval', array_keys($productionByPartMonth)), true);
 
-        $parts = \App\Models\GciPart::whereIn('id', $partIds)->get()->keyBy('id');
-        $inventories = GciInventory::whereIn('gci_part_id', $partIds)->get()->keyBy('gci_part_id');
+        $parts = GciPart::whereIn('id', $partIds)->get()->keyBy('id');
+        $inventories = InventoryLocationStock::query()
+            ->whereIn('gci_part_id', $partIds)
+            ->groupBy('gci_part_id')
+            ->pluck(DB::raw('SUM(qty_on_hand)'), 'gci_part_id');
 
         // Customer Part Mapping (LINE / CASE) for each GCI part.
         $mappingByPartId = [];
@@ -386,6 +390,9 @@ class MrpController extends Controller
             }
         }
 
+        // Instantiate service once before loop to avoid N+1 performance issue
+        $incomingService = new MrpIncomingIntegrationService();
+
         foreach ($partIds as $partId) {
             $part = $parts[$partId] ?? null;
             if (!$part)
@@ -394,8 +401,7 @@ class MrpController extends Controller
             $hasPurchase = isset($hasPurchaseParts[(int) $partId]);
             $hasProduction = isset($hasProductionParts[(int) $partId]);
 
-            $inv = $inventories[$partId] ?? null;
-            $startStock = $inv ? $inv->on_hand : 0;
+            $startStock = (float) ($inventories[$partId] ?? 0);
 
             $monthlyDemand = [];
             $monthlyPlanned = [];
@@ -411,7 +417,6 @@ class MrpController extends Controller
             $plannedOrderTotal = array_sum($monthlyPlanned);
 
             // Calculate incoming quantities from actual received materials
-            $incomingService = new MrpIncomingIntegrationService();
             $incomingTotal = $incomingService->getTotalIncomingForPart($partId, $startKey, $endKey);
 
             $endStock = (float) $startStock + $incomingTotal - (float) $demandTotal;
@@ -888,15 +893,16 @@ class MrpController extends Controller
             );
         }
 
+        // Instantiate service once before loop to avoid N+1 performance issue
+        $incomingService = new MrpIncomingIntegrationService();
+
         foreach ($requirements as $partId => $requiredQty) {
-            $inventory = GciInventory::query()->where('gci_part_id', $partId)->first();
-            $onHand = (float) ($inventory->on_hand ?? 0);
-            $onOrder = (float) ($inventory->on_order ?? 0);
+            $onHand = (float) InventoryLocationStock::where('gci_part_id', $partId)->sum('qty_on_hand');
+            $onOrder = 0; // on_order is derived in the new schema, not stored
 
             // Calculate incoming quantities for this period
-            $incomingService = new MrpIncomingIntegrationService();
             $incomingTotal = $incomingService->getTotalIncomingForPart($partId, $startDate->format('Y-m-d'), $dates[count($dates) - 1]);
-            
+
             // Adjust on-hand with incoming stock
             $adjustedOnHand = $onHand + $incomingTotal;
 

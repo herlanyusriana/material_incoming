@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ProductionPlanningSession;
 use App\Models\ProductionPlanningLine;
 use App\Models\ProductionOrder;
-use App\Models\GciPart;
-use App\Models\GciInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\OutgoingDailyPlan;
@@ -743,9 +743,9 @@ class ProductionPlanningController extends Controller
      */
     private function getFgStockGci(): array
     {
-        return \App\Models\LocationInventory::query()
+        return InventoryLocationStock::query()
             ->whereNotNull('gci_part_id')
-            ->select('gci_part_id', \Illuminate\Support\Facades\DB::raw('SUM(qty_on_hand) as total_on_hand'))
+            ->select('gci_part_id', DB::raw('SUM(qty_on_hand) as total_on_hand'))
             ->groupBy('gci_part_id')
             ->pluck('total_on_hand', 'gci_part_id')
             ->toArray();

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Arrival;
-use App\Models\ArrivalInspection;
+use App\Models\NewSchema\Incoming\IncomingArrival as Arrival;
+use App\Models\NewSchema\Incoming\IncomingArrivalInspection as ArrivalInspection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -90,6 +90,7 @@ class InspectionController extends Controller
             'issues_inside' => $validated['issues_inside'] ?? [],
             'issues_seal' => $validated['issues_seal'] ?? [],
             'inspected_by' => $request->user()?->id,
+            'inspected_at' => now(),
         ]);
 
         $dir = "inspections/{$arrival->id}";
@@ -132,8 +133,8 @@ class InspectionController extends Controller
                 : [],
             'container_numbers' => $arrival->container_numbers,
             'seal_code' => $arrival->seal_code,
-            'ETD' => optional($arrival->ETD)->format('Y-m-d'),
-            'ETA' => optional($arrival->ETA)->format('Y-m-d'),
+            'ETD' => optional($arrival->etd)->format('Y-m-d'),
+            'ETA' => optional($arrival->eta)->format('Y-m-d'),
         ];
     }
 

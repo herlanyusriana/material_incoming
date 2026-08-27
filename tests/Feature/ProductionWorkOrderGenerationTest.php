@@ -66,6 +66,8 @@ class ProductionWorkOrderGenerationTest extends TestCase
 
     public function test_generate_manual_work_order_creates_snapshots_and_history(): void
     {
+        $this->markTestSkipped('Legacy work-order generation removed: work_orders/work_order_bom_snapshots/work_order_requirement_snapshots/work_order_histories tables no longer exist. Feature replaced by production planning session flow.');
+
         $resp = $this->post(route('production.work-orders.generate'), [
             'source_type' => 'manual',
             'fg_part_id' => $this->fg->id,
@@ -99,6 +101,8 @@ class ProductionWorkOrderGenerationTest extends TestCase
 
     public function test_generate_from_mrp_autofill_and_freeze_snapshot(): void
     {
+        $this->markTestSkipped('Legacy work-order generation removed: tables no longer exist. Replaced by production planning session flow.');
+
         $mrpRun = MrpRun::create([
             'period' => now()->format('Y-m'),
             'status' => 'completed',
@@ -134,6 +138,8 @@ class ProductionWorkOrderGenerationTest extends TestCase
 
     public function test_generate_from_outgoing_daily_autofill_is_valid(): void
     {
+        $this->markTestSkipped('Legacy work-order generation removed: tables no longer exist. Replaced by production planning session flow.');
+
         $plan = OutgoingDailyPlan::create([
             'date_from' => now()->toDateString(),
             'date_to' => now()->toDateString(),

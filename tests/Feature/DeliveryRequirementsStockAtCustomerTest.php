@@ -71,10 +71,10 @@ class DeliveryRequirementsStockAtCustomerTest extends TestCase
         ]));
 
         $resp->assertOk();
-        $requirements = collect($resp->viewData('requirements'));
-        $this->assertNotEmpty($requirements->all());
+        $requirements = $resp->viewData('requirements');
+        $this->assertNotEmpty($requirements->getCollection()->all());
 
-        $req = $requirements->first(fn($r) => (string) ($r->gci_part?->part_no ?? '') === 'FG-001' || (string) ($r->customer_part_no ?? '') === 'FG-001');
+        $req = $requirements->getCollection()->first(fn($r) => (string) ($r->gci_part?->part_no ?? '') === 'FG-001' || (string) ($r->customer_part_no ?? '') === 'FG-001');
         $this->assertNotNull($req);
         $this->assertSame(100.0, (float) ($req->gross_qty ?? 0));
         $this->assertSame(30.0, (float) ($req->stock_at_customer ?? 0));

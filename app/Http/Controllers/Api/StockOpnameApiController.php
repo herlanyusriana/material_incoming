@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\StockOpnameSession;
 use App\Models\StockOpnameItem;
-use App\Models\GciPart;
 use App\Models\WarehouseLocation;
 use App\Exports\StockOpnameExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -44,15 +46,15 @@ class StockOpnameApiController extends Controller
             $invoice = trim($parts[0]);
             $tag = trim($parts[1]);
 
-            $receive = \App\Models\Receive::with('arrivalItem.part')
+            $receive = Receive::with('arrivalItem.gciPart')
                 ->where('tag', $tag)
                 ->whereHas('arrivalItem.arrival', fn($q) => $q->where('invoice_no', $invoice))
                 ->latest()
                 ->first();
 
-            if ($receive && $receive->arrivalItem && $receive->arrivalItem->part) {
-                // Return the Part associated with this Tag
-                $part = GciPart::where('part_no', $receive->arrivalItem->part->part_no)->first();
+            if ($receive && $receive->arrivalItem && $receive->arrivalItem->gciPart) {
+                // Return the GCI Part associated with this Tag
+                $part = $receive->arrivalItem->gciPart;
             }
         }
 
@@ -65,10 +67,9 @@ class StockOpnameApiController extends Controller
                 $barcode = $decoded['part_no'];
             } elseif (isset($decoded['tag'])) {
                 // If they scanned a tag, find the part associated with that tag
-                $receive = \App\Models\Receive::with('arrivalItem.part')->where('tag', $decoded['tag'])->first();
-                if ($receive && $receive->arrivalItem && $receive->arrivalItem->part) {
-                    // Try to find matching GciPart by part_no
-                    $part = GciPart::where('part_no', $receive->arrivalItem->part->part_no)->first();
+                $receive = Receive::with('arrivalItem.gciPart')->where('tag', $decoded['tag'])->first();
+                if ($receive && $receive->arrivalItem && $receive->arrivalItem->gciPart) {
+                    $part = $receive->arrivalItem->gciPart;
                 }
             } elseif (isset($decoded['barcode'])) {
                 $barcode = $decoded['barcode'];
@@ -163,7 +164,7 @@ class StockOpnameApiController extends Controller
         // --- Blind Count Logic ---
         $systemQty = 0;
         if ($request->gci_part_id) {
-            $query = \App\Models\LocationInventory::where('gci_part_id', $request->gci_part_id)
+            $query = InventoryLocationStock::where('gci_part_id', $request->gci_part_id)
                 ->where('location_code', strtoupper($request->location_code));
 
             if ($request->batch) {

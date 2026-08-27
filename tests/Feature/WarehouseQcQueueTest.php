@@ -2,16 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Models\Arrival;
-use App\Models\ArrivalItem;
-use App\Models\Part;
-use App\Models\Receive;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesNewSchemaData;
 use Tests\TestCase;
 
 class WarehouseQcQueueTest extends TestCase
 {
+    use CreatesNewSchemaData;
     use RefreshDatabase;
 
     public function test_qc_queue_requires_authentication(): void
@@ -23,29 +21,7 @@ class WarehouseQcQueueTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $part = Part::create([
-            'part_no' => 'RM-010',
-            'status' => 'active',
-        ]);
-
-        $arrival = Arrival::create([
-            'arrival_no' => 'ARR-2026-9000',
-        ]);
-
-        $arrivalItem = ArrivalItem::create([
-            'arrival_id' => $arrival->id,
-            'part_id' => $part->id,
-            'qty_goods' => 1,
-            'unit_goods' => 'PCS',
-        ]);
-
-        $receive = Receive::create([
-            'arrival_item_id' => $arrivalItem->id,
-            'tag' => 'TAG-QC',
-            'qty' => 1,
-            'ata_date' => now(),
-            'qc_status' => 'hold',
-        ]);
+        [$receive, $gciPart, $vendorPart, $arrivalItem] = $this->makeIncomingChain('hold', 'TAG-QC');
 
         $this->actingAs($user)
             ->get(route('warehouse.qc.index'))
@@ -66,4 +42,3 @@ class WarehouseQcQueueTest extends TestCase
         $this->assertSame($user->id, $receive->qc_updated_by);
     }
 }
-

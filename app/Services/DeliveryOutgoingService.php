@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\DeliveryOrder;
-use App\Models\DeliveryNote;
-use App\Models\DeliveryItem;
-use App\Models\Customer;
-use App\Models\Trucking;
-use App\Models\GciPart;
+use App\Models\NewSchema\Core\Customer;
+use App\Models\NewSchema\Outgoing\Driver;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryNote;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryNoteItem;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryOrder;
+use App\Models\NewSchema\Outgoing\Truck;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -15,9 +15,9 @@ class DeliveryOutgoingService
 {
     public function getReadyForDeliveryOrders(?int $customerId = null, ?string $status = null): \Illuminate\Support\Collection
     {
-        $query = DeliveryOrder::with(['customer', 'items.part'])
-            ->where('status', 'completed')
-            ->whereDoesntHave('deliveryItems', function ($q) {
+        $query = OutgoingDeliveryOrder::with(['customer', 'items.gciPart'])
+            ->where('status', 'confirmed')
+            ->whereDoesntHave('deliveryNoteItems', function ($q) {
                 $q->whereHas('deliveryNote', function ($dnQuery) {
                     $dnQuery->where('status', '!=', 'cancelled');
                 });
@@ -34,12 +34,12 @@ class DeliveryOutgoingService
         return $query->get();
     }
 
-    public function createDeliveryNote(array $deliveryOrderIds, int $customerId, ?int $truckId = null, ?int $driverId = null, array $options = []): DeliveryNote
+    public function createDeliveryNote(array $deliveryOrderIds, int $customerId, ?int $truckId = null, ?int $driverId = null, array $options = []): OutgoingDeliveryNote
     {
-        $deliveryOrders = DeliveryOrder::with(['items.part', 'customer'])
+        $deliveryOrders = OutgoingDeliveryOrder::with(['items.gciPart', 'customer'])
             ->whereIn('id', $deliveryOrderIds)
             ->where('customer_id', $customerId)
-            ->where('status', 'completed')
+            ->where('status', 'confirmed')
             ->get();
 
         if ($deliveryOrders->isEmpty()) {
@@ -56,27 +56,48 @@ class DeliveryOutgoingService
         try {
             $deliveryNo = $this->generateDeliveryNoteNumber();
 
-            $deliveryNote = DeliveryNote::create([
-                'delivery_no' => $deliveryNo,
+            $deliveryNote = OutgoingDeliveryNote::create([
+                'dn_no' => $deliveryNo,
+                'transaction_no' => $deliveryNo,
                 'customer_id' => $customerId,
                 'truck_id' => $truckId,
                 'driver_id' => $driverId,
-                'status' => 'prepared',
+                'status' => 'draft',
                 'notes' => $options['notes'] ?? null,
-                'delivery_date' => $options['delivery_date'] ?? null,
+                'delivery_date' => $options['delivery_date'] ?? now()->toDateString(),
+                'planned_delivery_date' => $options['delivery_date'] ?? now()->toDateString(),
                 'created_by' => $options['created_by'] ?? null,
             ]);
 
             foreach ($deliveryOrders as $do) {
                 foreach ($do->items as $item) {
-                    DeliveryItem::create([
+                    $remaining = round((float) $item->qty_ordered - (float) $item->qty_delivered, 4);
+                    if ($remaining <= 0) {
+                        continue;
+                    }
+
+                    OutgoingDeliveryNoteItem::create([
                         'delivery_note_id' => $deliveryNote->id,
-                        'delivery_order_id' => $do->id,
-                        'part_id' => $item->part_id,
-                        'quantity' => $item->quantity,
+                        'gci_part_id' => $item->gci_part_id,
+                        'qty_delivered' => $remaining,
                         'unit' => $item->unit,
+                        'sales_order_item_id' => null,
+                        'picking_fg_id' => null,
+                        'batch_no' => null,
+                        'from_location_code' => null,
+                        'unit_price' => $item->unit_price,
+                        'total_price' => $item->unit_price !== null ? round((float) $item->unit_price * $remaining, 4) : null,
                         'notes' => $item->notes ?? null,
                     ]);
+
+                    $item->qty_delivered = round((float) $item->qty_delivered + $remaining, 4);
+                    $item->save();
+                }
+
+                $allDelivered = $do->items->every(fn ($item) => (float) $item->qty_delivered >= (float) $item->qty_ordered);
+                if ($allDelivered) {
+                    $do->status = 'delivered';
+                    $do->save();
                 }
             }
 
@@ -84,31 +105,31 @@ class DeliveryOutgoingService
 
             return $deliveryNote->fresh();
         } catch (\Exception $e) {
-            DB::rollback();
+            DB::rollBack();
             throw $e;
         }
     }
 
     public function getDeliveriesGroupedByCustomer(?string $status = null, ?string $dateFrom = null, ?string $dateTo = null): array
     {
-        $query = DeliveryNote::with(['customer', 'items.deliveryOrder', 'items.part', 'truck'])
-            ->join('customers', 'delivery_notes.customer_id', '=', 'customers.id');
+        $query = OutgoingDeliveryNote::with(['customer', 'deliveryOrders', 'items.gciPart', 'truck'])
+            ->join('customers', 'outgoing_delivery_notes.customer_id', '=', 'customers.id');
 
         if ($status) {
-            $query->where('delivery_notes.status', $status);
+            $query->where('outgoing_delivery_notes.status', $status);
         }
 
         if ($dateFrom) {
-            $query->where('delivery_notes.delivery_date', '>=', $dateFrom);
+            $query->where('outgoing_delivery_notes.delivery_date', '>=', $dateFrom);
         }
 
         if ($dateTo) {
-            $query->where('delivery_notes.delivery_date', '<=', $dateTo);
+            $query->where('outgoing_delivery_notes.delivery_date', '<=', $dateTo);
         }
 
-        $deliveries = $query->select('delivery_notes.*', 'customers.name as customer_name')
-            ->orderBy('customers.name')
-            ->orderBy('delivery_notes.delivery_date', 'desc')
+        $deliveries = $query->select('outgoing_delivery_notes.*', 'customers.customer_name as customer_name')
+            ->orderBy('customers.customer_name')
+            ->orderBy('outgoing_delivery_notes.delivery_date', 'desc')
             ->get();
 
         $grouped = [];
@@ -126,23 +147,23 @@ class DeliveryOutgoingService
         return $grouped;
     }
 
-    public function assignToTruck(int $deliveryNoteId, int $truckId, array $options = []): DeliveryNote
+    public function assignToTruck(int $deliveryNoteId, int $truckId, array $options = []): OutgoingDeliveryNote
     {
-        $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-        $truck = Trucking::findOrFail($truckId);
+        $deliveryNote = OutgoingDeliveryNote::findOrFail($deliveryNoteId);
+        $truck = Truck::findOrFail($truckId);
 
         $deliveryNote->update([
             'truck_id' => $truckId,
-            'assigned_at' => now(),
-            'status' => $options['status'] ?? 'assigned',
+            'status' => $options['status'] ?? 'loaded',
         ]);
 
         return $deliveryNote->fresh();
     }
 
-    public function assignToDriver(int $deliveryNoteId, int $driverId, array $options = []): DeliveryNote
+    public function assignToDriver(int $deliveryNoteId, int $driverId, array $options = []): OutgoingDeliveryNote
     {
-        $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
+        $deliveryNote = OutgoingDeliveryNote::findOrFail($deliveryNoteId);
+        $driver = Driver::findOrFail($driverId);
 
         $deliveryNote->update([
             'driver_id' => $driverId,
@@ -155,32 +176,31 @@ class DeliveryOutgoingService
     private function generateDeliveryNoteNumber(): string
     {
         $year = Carbon::now()->year;
-        $lastDelivery = DeliveryNote::whereYear('created_at', $year)
+        $lastDelivery = OutgoingDeliveryNote::whereYear('created_at', $year)
             ->orderByDesc('id')
             ->first();
 
         $lastSequence = 0;
         if ($lastDelivery) {
             $parts = explode('-', $lastDelivery->dn_no);
-            $lastSequence = (int)($parts[2] ?? 0);
+            $lastSequence = (int) ($parts[2] ?? 0);
         }
 
-        $next = str_pad((string)($lastSequence + 1), 4, '0', STR_PAD_LEFT);
+        $next = str_pad((string) ($lastSequence + 1), 4, '0', STR_PAD_LEFT);
 
         return 'DN-' . $year . '-' . $next;
     }
 
-    public function updateDeliveryStatus(int $deliveryNoteId, string $status, array $options = []): DeliveryNote
+    public function updateDeliveryStatus(int $deliveryNoteId, string $status, array $options = []): OutgoingDeliveryNote
     {
-        $validStatuses = ['prepared', 'assigned', 'in_transit', 'delivered', 'cancelled'];
-        if (!in_array($status, $validStatuses)) {
+        $validStatuses = ['draft', 'picked', 'loaded', 'in_transit', 'delivered', 'cancelled'];
+        if (!in_array($status, $validStatuses, true)) {
             throw new \Exception('Invalid delivery status: ' . $status);
         }
 
-        $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
+        $deliveryNote = OutgoingDeliveryNote::findOrFail($deliveryNoteId);
         $deliveryNote->update([
             'status' => $status,
-            'delivered_at' => $status === 'delivered' ? now() : $deliveryNote->delivered_at,
         ]);
 
         return $deliveryNote->fresh();
@@ -188,7 +208,8 @@ class DeliveryOutgoingService
 
     public function getDeliveryStats(?string $dateFrom = null, ?string $dateTo = null): array
     {
-        $query = DeliveryNote::selectRaw('status, COUNT(*) as count, SUM(total_value) as total_value')
+        $query = OutgoingDeliveryNote::query()
+            ->selectRaw('status, COUNT(*) as count')
             ->groupBy('status');
 
         if ($dateFrom) {
@@ -204,7 +225,6 @@ class DeliveryOutgoingService
         return [
             'total_deliveries' => $stats->sum('count'),
             'by_status' => $stats,
-            'total_value' => $stats->sum('total_value'),
         ];
     }
 }

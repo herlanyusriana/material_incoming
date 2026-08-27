@@ -8,14 +8,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-use App\Models\Receive;
-use App\Models\ArrivalItem;
-use App\Models\Arrival;
-use App\Models\GciPartVendor;
-use App\Models\Inventory;
-use App\Models\Part;
-use App\Models\LocationInventory;
-use App\Models\WarehouseLocation;
+use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
+use App\Models\NewSchema\Incoming\IncomingArrivalItem as ArrivalItem;
+use App\Models\NewSchema\Incoming\IncomingArrival as Arrival;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\VendorPart;
+use App\Models\NewSchema\Core\WarehouseLocation;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Exports\CompletedInvoiceReceivesExport;
 use App\Exports\ImportDocumentRecapExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -23,160 +22,52 @@ use App\Support\QrSvg;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use App\Traits\LogsActivity;
+use App\Services\ReceiveMaterialService;
 
 class ReceiveController extends Controller
 {
     use LogsActivity;
 
+    protected ReceiveMaterialService $receiveService;
+
+    public function __construct(ReceiveMaterialService $receiveService)
+    {
+        $this->receiveService = $receiveService;
+    }
+
     private function resolveVendorPartId(ArrivalItem $arrivalItem): int
     {
-        return (int) ($arrivalItem->gci_part_vendor_id ?: $arrivalItem->part_id ?: 0);
+        return $this->receiveService->resolveVendorPartId($arrivalItem);
     }
 
     private function resolveGciPartId(ArrivalItem $arrivalItem): ?int
     {
-        if (!empty($arrivalItem->gci_part_id)) {
-            return (int) $arrivalItem->gci_part_id;
-        }
-
-        if (!empty($arrivalItem->gciPart?->id)) {
-            return (int) $arrivalItem->gciPart->id;
-        }
-
-        if (!empty($arrivalItem->part?->gci_part_id)) {
-            return (int) $arrivalItem->part->gci_part_id;
-        }
-
-        if (!empty($arrivalItem->part?->gciPart?->id)) {
-            return (int) $arrivalItem->part->gciPart->id;
-        }
-
-        $vendorPartId = $this->resolveVendorPartId($arrivalItem);
-        if ($vendorPartId <= 0) {
-            return null;
-        }
-
-        $gciPartId = GciPartVendor::query()->whereKey($vendorPartId)->value('gci_part_id');
-        if (!empty($gciPartId)) {
-            return (int) $gciPartId;
-        }
-
-        $partViewGciPartId = Part::query()->whereKey($vendorPartId)->value('gci_part_id');
-        return !empty($partViewGciPartId) ? (int) $partViewGciPartId : null;
+        return $this->receiveService->resolveGciPartId($arrivalItem);
     }
 
     private function ensurePutawayGciPartId(ArrivalItem $arrivalItem, string $errorKey = 'tags'): int
     {
-        $gciPartId = (int) ($this->resolveGciPartId($arrivalItem) ?? 0);
-        if ($gciPartId > 0) {
-            return $gciPartId;
-        }
-
-        $partNo = $arrivalItem->part?->part_no
-            ?: $arrivalItem->gciPartVendor?->vendor_part_no
-            ?: ('ITEM-' . $arrivalItem->id);
-
-        throw new HttpResponseException(
-            back()->withInput()->withErrors([
-                $errorKey => "Part {$partNo} belum terhubung ke GCI Part / Part Master, jadi putaway belum bisa diproses.",
-            ])
-        );
+        return $this->receiveService->ensurePutawayGciPartId($arrivalItem, $errorKey);
     }
 
     private function normalizeTag(?string $tag): ?string
     {
-        $tag = is_string($tag) ? strtoupper(trim($tag)) : null;
-        return ($tag === null || $tag === '') ? null : $tag;
+        return $this->receiveService->normalizeTag($tag);
     }
 
     private function resolveReceiveTag(?string $tag, ?int $receiveId = null, $receivedAt = null): ?string
     {
-        $normalized = $this->normalizeTag($tag);
-        if ($normalized !== null) {
-            return $normalized;
-        }
-
-        if ($receiveId) {
-            return Receive::generateSystemTag(
-                $receiveId,
-                $receivedAt ? Carbon::parse($receivedAt) : null
-            );
-        }
-
-        return null;
+        return $this->receiveService->resolveReceiveTag($tag, $receiveId, $receivedAt);
     }
 
     private function hasPendingReceives(Arrival $arrival): bool
     {
-        $arrival->loadMissing(['items.receives', 'containers.inspection']);
-
-        $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
-
-        // Require container inspections (when containers exist)
-        if (!$isLocal && $arrival->containers && $arrival->containers->isNotEmpty()) {
-            $hasMissingInspection = $arrival->containers->contains(fn($c) => !$c->inspection);
-            if ($hasMissingInspection) {
-                return true;
-            }
-        }
-
-        // Require TAG filled for all receive rows (non-local only).
-        if (!$isLocal) {
-            $hasMissingTag = $arrival->items
-                ->flatMap(fn($i) => $i->receives ?? collect())
-                ->contains(fn($r) => !is_string($r->tag) || trim($r->tag) === '');
-            if ($hasMissingTag) {
-                return true;
-            }
-        }
-
-        foreach ($arrival->items as $item) {
-            $received = $item->receives->sum('qty');
-            if (($item->qty_goods - $received) > 0) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->receiveService->hasPendingReceives($arrival);
     }
 
     private function ensureTagsUniqueForArrivalItem(ArrivalItem $arrivalItem, array $tags, string $errorKey = 'tags', ?int $ignoreReceiveId = null): void
     {
-        $incomingTags = collect($tags)
-            ->pluck('tag')
-            ->filter(fn($tag) => is_string($tag) && trim($tag) !== '')
-            ->map(fn($tag) => strtoupper(trim($tag)))
-            ->values();
-
-        if ($incomingTags->isEmpty()) {
-            return;
-        }
-
-        $duplicatesInRequest = $incomingTags
-            ->countBy()
-            ->filter(fn($count) => $count > 1)
-            ->keys()
-            ->values();
-
-        if ($duplicatesInRequest->isNotEmpty()) {
-            throw new HttpResponseException(back()->withInput()->withErrors([
-                $errorKey => 'Ada TAG duplikat di input: ' . $duplicatesInRequest->implode(', '),
-            ]));
-        }
-
-        $existingTags = $arrivalItem->receives()
-            ->whereIn('tag', $incomingTags->all())
-            ->when($ignoreReceiveId, fn($q) => $q->where('id', '!=', $ignoreReceiveId))
-            ->pluck('tag')
-            ->map(fn($tag) => strtoupper(trim((string) $tag)))
-            ->unique()
-            ->values();
-
-        if ($existingTags->isNotEmpty()) {
-            throw new HttpResponseException(back()->withInput()->withErrors([
-                $errorKey => 'TAG sudah pernah diinput untuk item ini: ' . $existingTags->implode(', '),
-            ]));
-        }
+        $this->receiveService->ensureTagsUniqueForArrivalItem($arrivalItem, $tags, $errorKey, $ignoreReceiveId);
     }
 
     // Note:
@@ -185,22 +76,7 @@ class ReceiveController extends Controller
 
     private function ensureCompletedArrivalTransactionNo(Arrival $arrival): void
     {
-        if (!empty($arrival->transaction_no) || $this->hasPendingReceives($arrival)) {
-            return;
-        }
-
-        $receiveDate = Receive::query()
-            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
-            ->where('arrival_items.arrival_id', $arrival->id)
-            ->selectRaw('MAX(COALESCE(receives.ata_date, receives.created_at)) as receive_at')
-            ->value('receive_at');
-
-        $transactionDate = $receiveDate
-            ? Carbon::parse((string) $receiveDate)->toDateString()
-            : ($arrival->invoice_date ? Carbon::parse((string) $arrival->invoice_date)->toDateString() : now()->toDateString());
-
-        $arrival->transaction_no = Arrival::generateTransactionNo($transactionDate);
-        $arrival->save();
+        $this->receiveService->ensureCompletedArrivalTransactionNo($arrival);
     }
 
     public function index()
@@ -234,7 +110,7 @@ class ReceiveController extends Controller
         $flow = strtolower(trim((string) request()->query('flow', '')));
 
         // Show completed receives grouped by invoice/departure
-        $arrivals = Arrival::query()
+        $arrivals = Arrival::query()->from('incoming_arrivals as arrivals')
             ->select([
                 'arrivals.id',
                 'arrivals.arrival_no',
@@ -248,8 +124,8 @@ class ReceiveController extends Controller
                 DB::raw("SUM(CASE WHEN receives.qc_status = 'pass' THEN 1 ELSE 0 END) as pass_count"),
                 DB::raw("SUM(CASE WHEN receives.qc_status IN ('reject','fail') THEN 1 ELSE 0 END) as fail_count"),
             ])
-            ->join('arrival_items', 'arrival_items.arrival_id', '=', 'arrivals.id')
-            ->join('receives', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->join('incoming_arrival_items as arrival_items', 'arrival_items.arrival_id', '=', 'arrivals.id')
+            ->join('incoming_receives as receives', 'receives.arrival_item_id', '=', 'arrival_items.id')
             ->join('vendors', 'vendors.id', '=', 'arrivals.vendor_id')
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($builder) use ($q) {
@@ -282,8 +158,8 @@ class ReceiveController extends Controller
             DB::raw('COUNT(receives.id) as total_receives'),
             DB::raw('SUM(receives.qty) as total_qty')
         )
-            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
-            ->join('arrivals', 'arrival_items.arrival_id', '=', 'arrivals.id')
+            ->join('incoming_arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->join('incoming_arrivals as arrivals', 'arrival_items.arrival_id', '=', 'arrivals.id')
             ->join('vendors', 'arrivals.vendor_id', '=', 'vendors.id')
             ->groupBy('vendors.vendor_name')
             ->orderByDesc('total_receives')
@@ -366,7 +242,7 @@ class ReceiveController extends Controller
 
     private function buildImportDocumentsQuery(string $q = '', string $dateFrom = '', string $dateTo = '')
     {
-        return Arrival::query()
+        return Arrival::query()->from('incoming_arrivals as arrivals')
             ->select([
                 'arrivals.id',
                 'arrivals.transaction_no',
@@ -401,13 +277,11 @@ class ReceiveController extends Controller
         $arrival->load(['vendor', 'items.receives', 'containers.inspection']);
         $this->ensureCompletedArrivalTransactionNo($arrival);
 
-        $receives = Receive::query()
+        $receives = Receive::query()->from('incoming_receives as receives')
             ->select('receives.*')
-            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
-            ->leftJoin('gci_part_vendor as gpv', function ($join) {
-                $join->on('gpv.id', '=', DB::raw('COALESCE(arrival_items.gci_part_vendor_id, arrival_items.part_id)'));
-            })
-            ->with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+            ->join('incoming_arrival_items as arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
+            ->leftJoin('vendor_parts as gpv', 'gpv.id', '=', 'arrival_items.vendor_part_id')
+            ->with(['arrivalItem.vendorPart', 'arrivalItem.gciPart', 'arrivalItem.arrival.vendor'])
             ->where('arrival_items.arrival_id', $arrival->id)
             ->orderBy('gpv.vendor_part_no', 'asc')
             ->orderByRaw('LENGTH(receives.tag) ASC')
@@ -443,7 +317,7 @@ class ReceiveController extends Controller
 
     public function exportCompletedInvoice(Arrival $arrival)
     {
-        $arrival->load(['vendor', 'items.receives', 'items.part']);
+        $arrival->load(['vendor', 'items.receives', 'items.vendorPart', 'items.gciPart']);
 
         if ($this->hasPendingReceives($arrival)) {
             return back()->with('error', 'Invoice ini belum complete receive.');
@@ -457,7 +331,7 @@ class ReceiveController extends Controller
 
     public function create(ArrivalItem $arrivalItem)
     {
-        $arrivalItem->load(['part.vendor', 'arrival.vendor', 'arrival.containers.inspection', 'receives']);
+        $arrivalItem->load(['vendorPart.vendor', 'gciPart', 'arrival.vendor', 'arrival.containers.inspection', 'receives']);
 
         $totalReceived = $arrivalItem->receives->sum('qty');
         $remainingQty = max(0, $arrivalItem->qty_goods - $totalReceived);
@@ -471,7 +345,7 @@ class ReceiveController extends Controller
 
     public function createByInvoice(Arrival $arrival)
     {
-        $arrival->load(['vendor', 'containers.inspection', 'items.part', 'items.receives']);
+        $arrival->load(['vendor', 'containers.inspection', 'items.vendorPart', 'items.gciPart', 'items.receives']);
 
         $pendingItems = $arrival->items
             ->map(function ($item) {
@@ -549,7 +423,6 @@ class ReceiveController extends Controller
         if ($gciPartId === null && collect($validated['tags'])->contains(fn($tag) => !empty($tag['location_code'] ?? null))) {
             $gciPartId = $this->ensurePutawayGciPartId($arrivalItem, 'tags');
         }
-        $receiveQtyForInventory = 0;
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
             ? strtoupper(trim((string) $validated['truck_no']))
@@ -580,7 +453,7 @@ class ReceiveController extends Controller
         // }
         // -------------------------------
 
-        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $gciPartId, $receiveAt, $truckNo, &$receiveQtyForInventory) {
+        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $gciPartId, $receiveAt, $truckNo) {
             $locationAdds = []; // key: "locationCode|tag"
             foreach ($validated['tags'] as $tagData) {
                 if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
@@ -627,7 +500,6 @@ class ReceiveController extends Controller
 
                 if (($tagData['qc_status'] ?? 'pass') === 'pass') {
                     $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
-                    $receiveQtyForInventory += $addQty;
                     if ($locationCode) {
                         $key = $locationCode . '|' . ($tag ?? '');
                         $locationAdds[$key] = ($locationAdds[$key] ?? ['location' => $locationCode, 'tag' => $tag, 'qty' => 0]);
@@ -636,42 +508,25 @@ class ReceiveController extends Controller
                 }
             }
 
-            if ($receiveQtyForInventory > 0 && $partId) {
-                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
-                if ($inventory) {
-                    $inventory->update([
-                        'on_hand' => (float) $inventory->on_hand + $receiveQtyForInventory,
-                        'on_order' => max(0, (float) $inventory->on_order - $receiveQtyForInventory),
-                        'as_of_date' => $receiveAt->toDateString(),
-                    ]);
-                } else {
-                    Inventory::create([
-                        'part_id' => $partId,
-                        'on_hand' => $receiveQtyForInventory,
-                        'on_order' => 0,
-                        'as_of_date' => $receiveAt->toDateString(),
-                    ]);
-                }
-            }
 
             // Putaway: update stock per location+tag (pass only).
             if (!empty($locationAdds) && $partId) {
                 foreach ($locationAdds as $entry) {
                     if ($entry['qty'] > 0) {
-                        LocationInventory::updateStock(
-                            $partId,
+                        InventoryLocationStock::updateStock(
+                            $gciPartId,
                             $entry['location'],
                             (float) $entry['qty'],
-                            $entry['tag'],
                             null,
-                            $gciPartId,
+                            $entry['tag'],
                             'RECEIVE',
                             null,
-                            [
-                                'source_arrival_id' => $arrivalItem->arrival_id,
-                                'source_invoice_no' => $arrivalItem->arrival?->invoice_no,
-                                'source_tag' => $entry['tag'],
-                            ]
+                            null,
+                            $arrivalItem->arrival_id,
+                            $arrivalItem->arrival?->invoice_no,
+                            null,
+                            null,
+                            null
                         );
                     }
                 }
@@ -818,19 +673,18 @@ class ReceiveController extends Controller
                 return back()
                     ->withInput()
                     ->withErrors([
-                        "items.$itemId.tags" => "Total qty untuk item {$arrivalItem->part->part_no} ({$totalRequested}) melebihi sisa ({$remainingQty}).",
+                        "items.$itemId.tags" => "Total qty untuk item {$arrivalItem->vendorPart->vendor_part_no} ({$totalRequested}) melebihi sisa ({$remainingQty}).",
                     ]);
             }
         }
 
-        $inventoryAdds = [];
         $locationAdds = [];
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
             ? strtoupper(trim((string) $validated['truck_no']))
             : null;
 
-        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$inventoryAdds, &$locationAdds, $request, $validated) {
+        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$locationAdds, $request, $validated) {
             foreach ($itemsInput as $itemId => $itemData) {
                 $arrivalItem = $arrival->items->firstWhere('id', $itemId);
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
@@ -896,11 +750,10 @@ class ReceiveController extends Controller
                     }
 
                     if (($tagData['qc_status'] ?? 'pass') === 'pass') {
-                        $partId = $this->resolveVendorPartId($arrivalItem);
                         $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
-                        $inventoryAdds[$partId] = ($inventoryAdds[$partId] ?? 0) + $addQty;
                         if ($locationCode) {
                             $key = $locationCode . '|' . ($tag ?? '');
+                            $partId = $this->resolveVendorPartId($arrivalItem);
                             $locationAdds[$partId][$key] = ($locationAdds[$partId][$key] ?? ['location' => $locationCode, 'tag' => $tag, 'qty' => 0]);
                             $locationAdds[$partId][$key]['qty'] += $addQty;
                         }
@@ -908,26 +761,6 @@ class ReceiveController extends Controller
                 }
             }
 
-            foreach ($inventoryAdds as $partId => $qty) {
-                if ($qty <= 0 || !$partId) {
-                    continue;
-                }
-                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
-                if ($inventory) {
-                    $inventory->update([
-                        'on_hand' => (float) $inventory->on_hand + $qty,
-                        'on_order' => max(0, (float) $inventory->on_order - $qty),
-                        'as_of_date' => $receiveAt->toDateString(),
-                    ]);
-                } else {
-                    Inventory::create([
-                        'part_id' => $partId,
-                        'on_hand' => $qty,
-                        'on_order' => 0,
-                        'as_of_date' => $receiveAt->toDateString(),
-                    ]);
-                }
-            }
 
             // Putaway: update stock per location+tag (pass only).
             foreach ($locationAdds as $partId => $byLocation) {
@@ -937,20 +770,20 @@ class ReceiveController extends Controller
                 $gciPartId = $this->ensurePutawayGciPartId($arrivalItem, "items.$itemId.tags");
                 foreach ($byLocation as $entry) {
                     if ($entry['qty'] > 0) {
-                        LocationInventory::updateStock(
-                            (int) $partId,
+                        InventoryLocationStock::updateStock(
+                            $gciPartId,
                             $entry['location'],
                             (float) $entry['qty'],
-                            $entry['tag'],
                             null,
-                            $gciPartId,
+                            $entry['tag'],
                             'RECEIVE',
                             null,
-                            [
-                                'source_arrival_id' => $arrival->id,
-                                'source_invoice_no' => $arrival->invoice_no,
-                                'source_tag' => $entry['tag'],
-                            ]
+                            null,
+                            $arrival->id,
+                            $arrival->invoice_no,
+                            null,
+                            null,
+                            null
                         );
                     }
                 }
@@ -1001,15 +834,13 @@ class ReceiveController extends Controller
     public function printLabel(Receive $receive)
     {
         $receive->load([
-            'arrivalItem.part.gciPart',
+            'arrivalItem.vendorPart.gciPart',
             'arrivalItem.gciPart',
-            'arrivalItem.gciPartVendor',
-            'arrivalItem.vendorPart',
             'arrivalItem.arrival.vendor',
         ]);
         $arrivalItem = $receive->arrivalItem;
         $arrival = $arrivalItem?->arrival;
-        $part = $arrivalItem?->part;
+        $vendorPart = $arrivalItem?->vendorPart;
 
         $receivedAt = $receive->ata_date ?? now();
         $monthNumber = (int) $receivedAt->format('m');
@@ -1026,11 +857,11 @@ class ReceiveController extends Controller
         $payload = [
             'tag' => $resolvedTag,
             'receive_id' => (int) $receive->id,
-            'part_id' => (int) ($part?->id ?? 0),
-            'gci_part_id' => (int) ($part?->gci_part_id ?? 0),
-            'part_no' => (string) ($part?->part_no ?? ''),
-            'gci_part_no' => (string) ($part?->gciPart?->part_no ?? ''),
-            'part_name' => (string) ($part?->part_name_gci ?? $part?->part_name_vendor ?? ''),
+            'part_id' => (int) ($vendorPart?->id ?? 0),
+            'gci_part_id' => (int) ($vendorPart?->gci_part_id ?? 0),
+            'part_no' => (string) ($vendorPart?->vendor_part_no ?? ''),
+            'gci_part_no' => (string) ($vendorPart?->gciPart?->part_no ?? ''),
+            'part_name' => (string) ($vendorPart?->vendor_part_name ?? ''),
             'qty' => (float) $receive->qty,
             'qty_unit' => (string) ($receive->qty_unit ?? ''),
             'invoice' => (string) ($arrival?->invoice_no ?? '-'),
@@ -1048,7 +879,7 @@ class ReceiveController extends Controller
 
     public function edit(Receive $receive)
     {
-        $receive->load(['arrivalItem.part', 'arrivalItem.arrival.vendor']);
+        $receive->load(['arrivalItem.vendorPart', 'arrivalItem.gciPart', 'arrivalItem.arrival.vendor']);
 
         return view('receives.edit', [
             'receive' => $receive,
@@ -1059,7 +890,7 @@ class ReceiveController extends Controller
 
     public function update(Request $request, Receive $receive)
     {
-        $receive->load(['arrivalItem.arrival', 'arrivalItem.part']);
+        $receive->load(['arrivalItem.arrival', 'arrivalItem.vendorPart', 'arrivalItem.gciPart']);
         $arrivalItem = $receive->arrivalItem;
         $arrival = $arrivalItem->arrival;
         $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
@@ -1165,76 +996,41 @@ class ReceiveController extends Controller
             $gciPartId = $this->resolveGciPartId($arrivalItem);
             if ($partId) {
                 if ($oldLocationCode && $oldContribution > 0) {
-                    LocationInventory::updateStock(
-                        $partId,
+                    InventoryLocationStock::updateStock(
+                        $gciPartId,
                         $oldLocationCode,
                         -$oldContribution,
                         null,
-                        null,
-                        $gciPartId,
+                        $tag,
                         'RECEIVE',
                         null,
-                        [
-                            'source_receive_id' => $receive->id,
-                            'source_arrival_id' => $arrivalItem->arrival_id,
-                            'source_invoice_no' => $receive->invoice_no ?: $arrivalItem->arrival?->invoice_no,
-                            'source_tag' => $tag,
-                        ]
+                        $receive->id,
+                        $arrivalItem->arrival_id,
+                        $receive->invoice_no ?: $arrivalItem->arrival?->invoice_no,
+                        null,
+                        null,
+                        null
                     );
                 }
                 if ($locationCode && $newContribution > 0) {
-                    LocationInventory::updateStock(
-                        $partId,
+                    InventoryLocationStock::updateStock(
+                        $gciPartId,
                         $locationCode,
                         $newContribution,
                         null,
-                        null,
-                        $gciPartId,
+                        $tag,
                         'RECEIVE',
                         null,
-                        [
-                            'source_receive_id' => $receive->id,
-                            'source_arrival_id' => $arrivalItem->arrival_id,
-                            'source_invoice_no' => $validated['invoice_no'] ?? $arrivalItem->arrival?->invoice_no,
-                            'source_tag' => $tag,
-                        ]
+                        $receive->id,
+                        $arrivalItem->arrival_id,
+                        $validated['invoice_no'] ?? $arrivalItem->arrival?->invoice_no,
+                        null,
+                        null,
+                        null
                     );
                 }
             }
 
-            if ($delta == 0.0) {
-                return;
-            }
-
-            $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
-            if (!$inventory) {
-                if ($delta < 0) {
-                    throw new HttpResponseException(back()->withInput()->withErrors([
-                        'qty' => 'Inventory tidak ditemukan untuk part ini, tidak bisa mengurangi stok.',
-                    ]));
-                }
-                Inventory::create([
-                    'part_id' => $partId,
-                    'on_hand' => $delta,
-                    'on_order' => 0,
-                    'as_of_date' => $receiveAt->toDateString(),
-                ]);
-                return;
-            }
-
-            $newOnHand = (float) $inventory->on_hand + $delta;
-            if ($newOnHand < 0) {
-                throw new HttpResponseException(back()->withInput()->withErrors([
-                    'qty' => 'Perubahan qty menyebabkan inventory menjadi minus.',
-                ]));
-            }
-
-            $inventory->update([
-                'on_hand' => $newOnHand,
-                // Mirror receive adjustment to on_order (best-effort)
-                'on_order' => max(0, (float) $inventory->on_order - $delta),
-                'as_of_date' => $receiveAt->toDateString(),
-            ]);
         });
 
         $this->logActivity('UPDATE Receive', "receive_id:{$receive->id}", [
@@ -1250,7 +1046,7 @@ class ReceiveController extends Controller
 
     public function destroy(Receive $receive)
     {
-        $receive->load(['arrivalItem.arrival', 'arrivalItem.part']);
+        $receive->load(['arrivalItem.arrival', 'arrivalItem.vendorPart', 'arrivalItem.gciPart']);
         $arrivalItem = $receive->arrivalItem;
         $arrival = $arrivalItem->arrival;
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
@@ -1270,36 +1066,22 @@ class ReceiveController extends Controller
             $partId = $this->resolveVendorPartId($arrivalItem);
             $gciPartId = $this->resolveGciPartId($arrivalItem);
 
-            if ($partId && $contribution > 0) {
-                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
-                if (!$inventory || (float) $inventory->on_hand < $contribution) {
-                    throw new HttpResponseException(back()->with('error', 'Receive tidak bisa dihapus karena stok inventory tidak cukup untuk rollback.'));
-                }
-
-                if ($locationCode) {
-                    LocationInventory::updateStock(
-                        $partId,
-                        $locationCode,
-                        -$contribution,
-                        null,
-                        null,
-                        $gciPartId,
-                        'RECEIVE_DELETE',
-                        null,
-                        [
-                            'source_receive_id' => $receive->id,
-                            'source_arrival_id' => $arrivalItem->arrival_id,
-                            'source_invoice_no' => $receive->invoice_no ?: $arrival?->invoice_no,
-                            'source_tag' => $receive->tag,
-                        ]
-                    );
-                }
-
-                $inventory->update([
-                    'on_hand' => max(0, (float) $inventory->on_hand - $contribution),
-                    'on_order' => (float) $inventory->on_order + $contribution,
-                    'as_of_date' => now()->toDateString(),
-                ]);
+            if ($partId && $contribution > 0 && $locationCode) {
+                InventoryLocationStock::updateStock(
+                    $gciPartId,
+                    $locationCode,
+                    -$contribution,
+                    null,
+                    $receive->tag,
+                    'RECEIVE_DELETE',
+                    null,
+                    $receive->id,
+                    $arrivalItem->arrival_id,
+                    $receive->invoice_no ?: $arrival?->invoice_no,
+                    null,
+                    null,
+                    null
+                );
             }
 
             $receive->delete();

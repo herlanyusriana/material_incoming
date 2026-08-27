@@ -2,8 +2,8 @@
 
 namespace App\Imports;
 
-use App\Models\GciPart;
-use App\Models\LocationInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -62,7 +62,7 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
                 'part_no' => $partNo,
                 'part_name' => $partName,
                 'model' => $row['model'] ?? null,
-                'classification' => $row['classification'] ?? 'fg',
+                'classification' => $row['classification'] ?? 'FG',
                 'status' => 'active',
                 'default_location' => $row['default_location'] ?? $locationCode,
             ]);
@@ -72,9 +72,9 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
         $batchNo = $row['batch_no'] ?? $row['batch'] ?? null;
 
         // Get current stock at this exact location+batch combo
-        $current = LocationInventory::where('gci_part_id', $part->id)
+        $current = InventoryLocationStock::where('gci_part_id', $part->id)
             ->where('location_code', strtoupper(trim($locationCode)))
-            ->where('batch_no', $batchNo)
+            ->where('batch_no', $batchNo ?? '')
             ->first();
 
         $currentQty = $current ? (float) $current->qty_on_hand : 0;
@@ -86,7 +86,21 @@ class LocationInventoryImport implements ToModel, WithHeadingRow, WithValidation
             return null;
         }
 
-        LocationInventory::updateStock(null, $locationCode, $delta, $batchNo, null, $part->id, 'IMPORT', 'Excel import');
+        InventoryLocationStock::updateStock(
+            $part->id,
+            $locationCode,
+            $delta,
+            $batchNo,
+            null,
+            'IMPORT',
+            'Excel import',
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
 
         $this->imported++;
         return null;

@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Exports\ProductionOrdersExport;
 use App\Models\ProductionOrder;
 use App\Models\ProductionInspection;
-use App\Models\GciPart;
-use App\Models\GciInventory;
-use App\Models\LocationInventory;
-use App\Models\Receive;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\VendorPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
+use App\Models\NewSchema\Incoming\IncomingArrival as Arrival;
+use App\Models\NewSchema\Production\ProductionConsumedMaterial;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Machine;
@@ -52,7 +54,7 @@ class ProductionOrderController extends Controller
      * for WH RM supply while operators are training / WH discipline is being fixed.
      * Set to false to restore the normal material gate.
      */
-    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = true;
+    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = false;
 
     private function bypassMaterialGateForWoStart(): bool
     {
@@ -104,9 +106,10 @@ class ProductionOrderController extends Controller
         }
 
         // Check inventory
-        $stockMap = GciInventory::query()
+        $stockMap = InventoryLocationStock::query()
             ->whereIn('gci_part_id', array_keys($requirements))
-            ->pluck('on_hand', 'gci_part_id');
+            ->groupBy('gci_part_id')
+            ->pluck(DB::raw('SUM(qty_on_hand)'), 'gci_part_id');
 
         $allAvailable = true;
         foreach ($requirements as $partId => $needed) {
@@ -468,7 +471,7 @@ class ProductionOrderController extends Controller
             'qty_planned' => 'required|numeric|min:1',
             'production_order_number' => 'required|unique:production_orders,production_order_number',
             'arrival_ids' => 'nullable|array',
-            'arrival_ids.*' => 'integer|exists:arrivals,id',
+            'arrival_ids.*' => 'integer|exists:incoming_arrivals,id',
         ]);
 
         $order = ProductionOrder::create([
@@ -515,7 +518,7 @@ class ProductionOrderController extends Controller
             'qty_planned' => 'required|numeric|min:1',
             'production_order_number' => 'required|unique:production_orders,production_order_number,' . $order->id,
             'arrival_ids' => 'nullable|array',
-            'arrival_ids.*' => 'integer|exists:arrivals,id',
+            'arrival_ids.*' => 'integer|exists:incoming_arrivals,id',
         ]);
 
         $order->update([
@@ -598,9 +601,8 @@ class ProductionOrderController extends Controller
                 continue;
             }
 
-            // Get inventory (on_hand)
-            $inventory = GciInventory::where('gci_part_id', $part?->id)->first();
-            $onHand = $inventory ? (float) $inventory->on_hand : 0;
+            // Get inventory (on_hand) from location stock aggregate
+            $onHand = (float) InventoryLocationStock::where('gci_part_id', $part?->id)->sum('qty_on_hand');
 
             $isRmBuyItem = $this->isRmBuyRequirement($req);
             $sufficient = !$isRmBuyItem || $onHand >= $needed;
@@ -628,7 +630,8 @@ class ProductionOrderController extends Controller
         if ($allAvailable) {
             $this->releaseReservedMaterials($order);
 
-            // Reserve materials: move from on_hand to on_order
+            // Reserve materials: record intended allocations in reserved_materials
+            // (no separate on_order counter in new schema; stock stays in inventory_location_stock)
             $reservedMaterials = [];
             foreach ($requirements as $req) {
                 $makeOrBuy = strtolower($req['make_or_buy'] ?? 'buy');
@@ -646,12 +649,6 @@ class ProductionOrderController extends Controller
                     continue;
                 }
 
-                $inventory = GciInventory::firstOrCreate(
-                    ['gci_part_id' => $part->id],
-                    ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-                );
-                $inventory->reserve($needed);
-
                 $reservedMaterials[] = [
                     'gci_part_id' => $part->id,
                     'part_no' => $req['part_no'],
@@ -665,7 +662,7 @@ class ProductionOrderController extends Controller
                 'reserved_materials' => $reservedMaterials,
             ]);
 
-            return back()->with('success', 'Semua material tersedia & direservasi! WO status diperbarui ke RELEASED.')
+            return back()->with('success', 'Semua material tersedia & tercatat reserved. WO status diperbarui ke RELEASED.')
                          ->with('material_check', $results);
         } else {
             $this->releaseReservedMaterials($order);
@@ -770,21 +767,14 @@ class ProductionOrderController extends Controller
                         continue;
                     }
 
-                    LocationInventory::consumeStock(
+                    InventoryLocationStock::consumeStock(
                         $partId,
                         $locationCode,
                         $qty,
                         $batchNo !== '' ? $batchNo : null,
-                        null,
                         'PRODUCTION_ISSUE',
                         $sourceReference,
-                        [
-                            'source_receive_id' => $allocation['source_receive_id'] ?? null,
-                            'source_arrival_id' => $allocation['source_arrival_id'] ?? null,
-                            'source_invoice_no' => $allocation['source_invoice_no'] ?? null,
-                            'source_delivery_note_no' => $allocation['source_delivery_note_no'] ?? null,
-                            'source_tag' => $allocation['source_tag'] ?? ($batchNo !== '' ? $batchNo : null),
-                        ]
+                        Auth::id()
                     );
 
                     $issuedAllocations[] = array_merge($allocation, [
@@ -976,18 +966,7 @@ class ProductionOrderController extends Controller
                 'workflow_stage' => 'warehouse_supply',
             ]);
 
-            $fgInventory = GciInventory::firstOrCreate(
-                ['gci_part_id' => $order->gci_part_id],
-                ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-            );
-            $fgDelta = round($qtyGood - $previousQtyActual, 4);
-            if ($fgDelta > 0) {
-                $fgInventory->commitOrder($fgDelta);
-            } elseif ($fgDelta < 0) {
-                $fgInventory->releaseOrder(abs($fgDelta));
-            }
-
-            // Backflush components
+            // Backflush components with batch tracking
             $reserved = $order->reserved_materials;
 
             if (!empty($reserved)) {
@@ -1012,52 +991,83 @@ class ProductionOrderController extends Controller
                         $partId = $item->component_part_id;
                         $reservedQty = (float) ($reservedMap[$partId]['qty'] ?? 0);
 
-                        $compInv = GciInventory::firstOrCreate(
-                            ['gci_part_id' => $partId],
-                            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-                        );
+                        if ($consumedQty > 0 && $partId) {
+                            $locationCode = strtoupper(trim($item->componentPart?->default_location ?: 'PRODUCTION_FLOOR'));
 
-                        // Consume what was used from on_order
-                        $compInv->consume(min($consumedQty, $reservedQty));
+                            // Query available batches (FIFO)
+                            $stockRecords = InventoryLocationStock::where('gci_part_id', $partId)
+                                ->where('location_code', $locationCode)
+                                ->where('qty_on_hand', '>', 0)
+                                ->orderBy('batch_no')
+                                ->get();
 
-                        // Return excess reservation to on_hand (produced less than planned)
-                        $excess = $reservedQty - $consumedQty;
-                        if ($excess > 0) {
-                            $compInv->release($excess);
+                            $remainingToConsume = min($consumedQty, $reservedQty);
+
+                            foreach ($stockRecords as $stock) {
+                                if ($remainingToConsume <= 0) {
+                                    break;
+                                }
+
+                                $qtyFromBatch = min($remainingToConsume, $stock->qty_on_hand);
+
+                                // Consume with batch tracking
+                                InventoryLocationStock::consumeStock(
+                                    (int) $partId,
+                                    $locationCode,
+                                    $qtyFromBatch,
+                                    $stock->batch_no,
+                                    'PRODUCTION_BACKFLUSH',
+                                    'PROD#' . ($order->production_order_number ?: $order->id),
+                                    Auth::id()
+                                );
+
+                                // Find source receive/arrival for traceability
+                                $receive = Receive::where('tag', $stock->batch_no)
+                                    ->orWhere('batch_no', $stock->batch_no)
+                                    ->first();
+
+                                $arrivalId = null;
+                                $invoiceNo = null;
+                                if ($receive && $receive->arrivalItem) {
+                                    $arrivalId = $receive->arrivalItem->arrival_id;
+                                    $invoiceNo = $receive->arrivalItem->arrival->invoice_no ?? null;
+                                }
+
+                                // Get movement ID for this consumption
+                                $movementId = DB::table('inventory_stock_movements')
+                                    ->where('gci_part_id', $partId)
+                                    ->where('location_code', $locationCode)
+                                    ->where('batch_no', $stock->batch_no)
+                                    ->where('transaction_type', 'PRODUCTION_BACKFLUSH')
+                                    ->where('source_reference', 'PROD#' . ($order->production_order_number ?: $order->id))
+                                    ->latest('id')
+                                    ->value('id');
+
+                                // Record traceability
+                                ProductionConsumedMaterial::create([
+                                    'production_order_id' => $order->id,
+                                    'gci_part_id' => $partId,
+                                    'location_code' => $locationCode,
+                                    'batch_no' => $stock->batch_no,
+                                    'qty_consumed' => $qtyFromBatch,
+                                    'source_receive_id' => $receive->id ?? null,
+                                    'source_arrival_id' => $arrivalId,
+                                    'source_invoice_no' => $invoiceNo,
+                                    'inventory_stock_movement_id' => $movementId,
+                                    'consumed_at' => now(),
+                                    'consumed_by' => Auth::id(),
+                                ]);
+
+                                $remainingToConsume -= $qtyFromBatch;
+                            }
                         }
+
+                        // Excess reservation is no longer tracked in inventory_location_stock;
+                        // it is released from reserved_materials below.
                     }
                 }
 
                 $order->update(['reserved_materials' => null]);
-            } else {
-                // Legacy: no reservation, backflush directly from on_hand
-                $bom = Bom::where('part_id', $order->gci_part_id)->latest()->first();
-                if ($bom) {
-                    $bom->loadMissing('items.componentPart');
-                    foreach ($bom->items as $item) {
-                        $mob = strtolower((string) ($item->make_or_buy ?? 'buy'));
-                        if ($mob === 'free_issue') {
-                            continue;
-                        }
-
-                        $isBackflush = $item->componentPart->is_backflush ?? true;
-                        if (!$isBackflush) {
-                            continue;
-                        }
-
-                        $consumedQty = (float) ($item->net_required ?? $item->usage_qty ?? 0) * $qtyGood;
-                        if ($consumedQty <= 0) {
-                            continue;
-                        }
-
-                        $compInv = GciInventory::firstOrCreate(
-                            ['gci_part_id' => $item->component_part_id],
-                            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-                        );
-                        $compInv->decrement('on_hand', $consumedQty);
-                        $compInv->update(['as_of_date' => now()->toDateString()]);
-                    }
-                }
             }
 
             $order->update([
@@ -1104,21 +1114,20 @@ class ProductionOrderController extends Controller
         }
 
         DB::transaction(function () use ($order, $qtyGood, $targetLocation, $validated) {
-            $fgInventory = GciInventory::firstOrCreate(
-                ['gci_part_id' => $order->gci_part_id],
-                ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-            );
-            $fgInventory->consume($qtyGood);
-
-            LocationInventory::updateStock(
-                null,
+            InventoryLocationStock::updateStock(
+                (int) $order->gci_part_id,
                 $targetLocation,
                 $qtyGood,
                 null,
-                now()->toDateString(),
-                $order->gci_part_id,
+                null,
                 'PRODUCTION_OUTPUT',
-                'PROD#' . ($order->production_order_number ?: $order->id)
+                'PROD#' . ($order->production_order_number ?: $order->id),
+                null,
+                null,
+                null,
+                null,
+                null,
+                Auth::id()
             );
 
             $order->update([
@@ -1143,17 +1152,10 @@ class ProductionOrderController extends Controller
         }
 
         DB::transaction(function () use ($order) {
-            // Release reserved materials back to on_hand
-            $reserved = $order->reserved_materials;
-            if (!empty($reserved)) {
-                foreach ($reserved as $mat) {
-                    $compInv = GciInventory::where('gci_part_id', $mat['gci_part_id'])->first();
-                    if ($compInv) {
-                        $compInv->release((float) $mat['qty']);
-                    }
-                }
-                $order->update(['reserved_materials' => null]);
-            }
+            // In the new schema, reserved_materials is a JSON intent log only.
+            // Stock remains in inventory_location_stock until physically issued,
+            // so cancellation just clears the reservation record.
+            $order->update(['reserved_materials' => null]);
 
             $order->update([
                 'status' => 'cancelled',
@@ -1199,8 +1201,9 @@ class ProductionOrderController extends Controller
                 $candidateParts->push([
                     'type' => 'primary',
                     'part_id' => (int) $item->incomingPart->id,
-                    'part_no' => (string) ($item->incomingPart->part_no ?? '-'),
-                    'part_name' => (string) ($item->incomingPart->part_name ?? '-'),
+                    'gci_part_id' => (int) ($item->incomingPart->gci_part_id ?? 0),
+                    'part_no' => (string) ($item->incomingPart->vendor_part_no ?? $item->componentPart?->part_no ?? '-'),
+                    'part_name' => (string) ($item->incomingPart->vendor_part_name ?? $item->componentPart?->part_name ?? '-'),
                 ]);
             }
 
@@ -1212,8 +1215,9 @@ class ProductionOrderController extends Controller
                 $candidateParts->push([
                     'type' => 'substitute',
                     'part_id' => (int) $substitute->incomingPart->id,
-                    'part_no' => (string) ($substitute->incomingPart->part_no ?? $substitute->substitute_part_no ?? '-'),
-                    'part_name' => (string) ($substitute->incomingPart->part_name ?? $substitute->part?->part_name ?? '-'),
+                    'gci_part_id' => (int) ($substitute->incomingPart->gci_part_id ?? 0),
+                    'part_no' => (string) ($substitute->incomingPart->vendor_part_no ?? $substitute->substitute_part_no ?? '-'),
+                    'part_name' => (string) ($substitute->incomingPart->vendor_part_name ?? $substitute->part?->part_name ?? '-'),
                 ]);
             }
 
@@ -1245,8 +1249,13 @@ class ProductionOrderController extends Controller
                     break;
                 }
 
-                $stocks = LocationInventory::query()
-                    ->where('part_id', $candidate['part_id'])
+                $gciPartId = (int) ($candidate['gci_part_id'] ?? 0);
+                if ($gciPartId <= 0) {
+                    continue;
+                }
+
+                $stocks = InventoryLocationStock::query()
+                    ->where('gci_part_id', $gciPartId)
                     ->where('qty_on_hand', '>', 0)
                     ->orderByRaw('production_date IS NULL')
                     ->orderBy('production_date')
@@ -1312,24 +1321,8 @@ class ProductionOrderController extends Controller
 
     private function releaseReservedMaterials(ProductionOrder $order): void
     {
-        $reserved = collect($order->reserved_materials ?? []);
-        if ($reserved->isEmpty()) {
-            return;
-        }
-
-        foreach ($reserved as $mat) {
-            $partId = (int) ($mat['gci_part_id'] ?? 0);
-            $qty = (float) ($mat['qty'] ?? 0);
-            if ($partId <= 0 || $qty <= 0) {
-                continue;
-            }
-
-            $inventory = GciInventory::query()->where('gci_part_id', $partId)->first();
-            if ($inventory) {
-                $inventory->release($qty);
-            }
-        }
-
+        // In the new schema, reserved_materials is a JSON intent log only.
+        // Stock is not decremented until physical issue, so releasing just clears the record.
         $order->update(['reserved_materials' => null]);
     }
 
@@ -1352,12 +1345,7 @@ class ProductionOrderController extends Controller
                 continue;
             }
 
-            $inventory = GciInventory::firstOrCreate(
-                ['gci_part_id' => $partId],
-                ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-            );
-            $inventory->reserve($requiredQty);
-
+            // Reservation is stored as JSON intent; physical stock stays in inventory_location_stock.
             $reservedMaterials[] = [
                 'gci_part_id' => $partId,
                 'part_no' => (string) ($line['component_part_no'] ?? '-'),
@@ -1552,7 +1540,7 @@ class ProductionOrderController extends Controller
         if (strtolower($outputType) === 'wip') {
             $wipPartId = GciPart::where('part_no', $outputPartNo)->value('id');
             if ($wipPartId) {
-                $locationRows = LocationInventory::query()
+                $locationRows = InventoryLocationStock::query()
                     ->where('gci_part_id', $wipPartId)
                     ->where('qty_on_hand', '>', 0)
                     ->get(['location_code', 'qty_on_hand']);

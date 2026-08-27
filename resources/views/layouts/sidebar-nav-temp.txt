@@ -1,0 +1,788 @@
+<nav id="desktop-sidebar-nav" class="flex-1 min-h-0 overflow-y-auto px-4 pb-6 pt-6 space-y-6">
+        <div class="space-y-1">
+            <a href="{{ route('dashboard') }}" title="Dashboard" @class([$navLinkBase, $navActive => request()->routeIs('dashboard'), $navInactive => !request()->routeIs('dashboard')])
+                :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5V21h6v-6h6v6h6v-7.5L12 3 3 10.5" />
+                </svg>
+                <span x-show="!sidebarCollapsed" x-cloak>Dashboard</span>
+            </a>
+        </div>
+
+        @can('manage_planning')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Master Data</div>
+                <div class="space-y-1">
+                    <a x-show="sidebarCollapsed" x-cloak href="{{ route('vendors.index') }}" title="Vendor List"
+                        @class([$navLinkBase, $navActive => $vendorsActive, $navInactive => !$vendorsActive])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                    </a>
+
+                    <details x-show="!sidebarCollapsed" x-cloak class="group" {{ $vendorsActive ? 'open' : '' }}>
+                        <summary class="list-none cursor-pointer" title="Vendors"
+                            :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                            <div @class([$navLinkBase, $navActive => $vendorsActive, $navInactive => !$vendorsActive])
+                                :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M7.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                </svg>
+                                <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Vendor</span>
+                                <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                </svg>
+                            </div>
+                        </summary>
+                        <div class="mt-2">
+                            <div class="relative ml-4 pl-4 space-y-1">
+                                <div
+                                    class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                                </div>
+
+                                <a href="{{ route('vendors.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('vendors.create'), $subInactive => !request()->routeIs('vendors.create')])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('vendors.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('vendors.create')])></span>
+                                    <span class="flex-1">Create Vendor</span>
+                                </a>
+                                <a href="{{ route('vendors.index') }}" @class([
+                                    $subLinkBase,
+                                    $subActive => request()->routeIs('vendors.index') || request()->routeIs('vendors.edit'),
+                                    $subInactive => !(request()->routeIs('vendors.index') || request()->routeIs('vendors.edit')),
+                                ])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('vendors.index') || request()->routeIs('vendors.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('vendors.index') || request()->routeIs('vendors.edit'))])></span>
+                                    <span class="flex-1">Vendor List</span>
+                                </a>
+                            </div>
+                        </div>
+                    </details>
+
+                    <a href="{{ route('parts.index') }}" title="Parts Master" @class([$navLinkBase, $navActive => $partsActive, $navInactive => !$partsActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.29 7L12 12l8.71-5" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 22V12" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>Parts Master</span>
+                    </a>
+
+                    <details class="group" {{ request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*') ? 'open' : '' }} x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                        <summary class="list-none cursor-pointer" title="Pricing Master" :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                            <div @class([$navLinkBase, $navActive => request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*'), $navInactive => !(request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*'))]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" />
+                                </svg>
+                                <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Pricing Master</span>
+                                <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                </svg>
+                            </div>
+                        </summary>
+                        <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                            <div class="relative ml-4 pl-4 space-y-1">
+                                <div class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent"></div>
+                                <a href="{{ route('pricing.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('pricing.create'), $subInactive => !request()->routeIs('pricing.create')])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('pricing.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('pricing.create')])></span>
+                                    <span class="flex-1">Add New Price</span>
+                                </a>
+                                <a href="{{ route('pricing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('pricing.index'), $subInactive => !request()->routeIs('pricing.index')])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('pricing.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('pricing.index')])></span>
+                                    <span class="flex-1">Price List</span>
+                                </a>
+                                <a href="{{ route('contract-numbers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('contract-numbers.*'), $subInactive => !request()->routeIs('contract-numbers.*')])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('contract-numbers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('contract-numbers.*')])></span>
+                                    <span class="flex-1">Contract Numbers</span>
+                                </a>
+                            </div>
+                        </div>
+                    </details>
+
+                    <a href="{{ route('planning.boms.index') }}" title="BOM Master" @class([$navLinkBase, $navActive => $bomsActive, $navInactive => !$bomsActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-8 5h10a2 2 0 0 0 2-2V7.414a2 2 0 0 0-.586-1.414l-2.414-2.414A2 2 0 0 0 14.586 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>BOM Master</span>
+                    </a>
+
+                    <a href="{{ route('truckings.index') }}" title="Truckings" @class([$navLinkBase, $navActive => request()->routeIs('truckings.*'), $navInactive => !request()->routeIs('truckings.*')])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v10H3V7Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4l3 3v4h-7v-7Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>Truckings</span>
+                    </a>
+
+                    <a href="{{ route('machines.index') }}" title="Machines" @class([$navLinkBase, $navActive => request()->routeIs('machines.*'), $navInactive => !request()->routeIs('machines.*')])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>Machines</span>
+                    </a>
+                </div>
+            </div>
+        @endcan
+
+        @can('view_planning')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Planning</div>
+
+                <details class="group" {{ request()->routeIs('planning.*') ? 'open' : '' }}
+                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <summary class="list-none cursor-pointer" title="Planning"
+                        :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                        <div @class([$navLinkBase, $navActive => request()->routeIs('planning.*'), $navInactive => !request()->routeIs('planning.*')]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
+                            </svg>
+                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Planning</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                        <div class="relative ml-4 pl-4 space-y-1">
+                            <div
+                                class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                            </div>
+
+                            <a href="{{ route('planning.customers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customers.*'), $subInactive => !request()->routeIs('planning.customers.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customers.*')])></span>
+                                <span class="flex-1">Customers</span>
+                            </a>
+
+                            <a href="{{ route('planning.customer-parts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-parts.*'), $subInactive => !request()->routeIs('planning.customer-parts.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-parts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-parts.*')])></span>
+                                <span class="flex-1">Customer Part Mapping</span>
+                            </a>
+                            <a href="{{ route('planning.planning-imports.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.planning-imports.*'), $subInactive => !request()->routeIs('planning.planning-imports.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.planning-imports.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.planning-imports.*')])></span>
+                                <span class="flex-1">Customer Planning</span>
+                            </a>
+                            <a href="{{ route('planning.customer-pos.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.customer-pos.*'), $subInactive => !request()->routeIs('planning.customer-pos.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.customer-pos.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.customer-pos.*')])></span>
+                                <span class="flex-1">Customer PO</span>
+                            </a>
+                            <a href="{{ route('planning.forecasts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.forecasts.*'), $subInactive => !request()->routeIs('planning.forecasts.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.forecasts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.forecasts.*')])></span>
+                                <span class="flex-1">Forecast (Part GCI)</span>
+                            </a>
+                            <a href="{{ route('planning.mps.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mps.*'), $subInactive => !request()->routeIs('planning.mps.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mps.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mps.*')])></span>
+                                <span class="flex-1">MPS</span>
+                            </a>
+                            <a href="{{ route('planning.mrp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('planning.mrp.*'), $subInactive => !request()->routeIs('planning.mrp.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('planning.mrp.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('planning.mrp.*')])></span>
+                                <span class="flex-1">MRP</span>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        @endcan
+
+        @can('manage_purchasing')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Purchasing</div>
+
+                <details class="group" {{ $purchasingActive ? 'open' : '' }}
+                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <summary class="list-none cursor-pointer" title="Purchasing"
+                        :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                        <div @class([$navLinkBase, $navActive => $purchasingActive, $navInactive => !$purchasingActive])
+                            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Purchasing</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                        <div class="relative ml-4 pl-4 space-y-1">
+                            <div
+                                class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                            </div>
+
+                            <a href="{{ route('purchasing.purchase-requests.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('purchasing.purchase-requests.*'), $subInactive => !request()->routeIs('purchasing.purchase-requests.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('purchasing.purchase-requests.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('purchasing.purchase-requests.*')])></span>
+                                <span class="flex-1">Purchase Requests</span>
+                            </a>
+                            <a href="{{ route('purchasing.purchase-orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('purchasing.purchase-orders.*'), $subInactive => !request()->routeIs('purchasing.purchase-orders.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('purchasing.purchase-orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('purchasing.purchase-orders.*')])></span>
+                                <span class="flex-1">Purchase Orders</span>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        @endcan
+
+        @if($canAccessProductionSection)
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Production</div>
+
+                <details class="group" {{ $productionActive ? 'open' : '' }}
+                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <summary class="list-none cursor-pointer" title="Production"
+                        :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                        <div @class([$navLinkBase, $navActive => $productionActive, $navInactive => !$productionActive])
+                            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Production</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                        <div class="relative ml-4 pl-4 space-y-1">
+                            <div
+                                class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                            </div>
+
+                            {{-- Planning Section --}}
+                            <div class="pb-1">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Planning</div>
+                            </div>
+                            <a href="{{ route('production.planning.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.planning.index'), $subInactive => !request()->routeIs('production.planning.index')])>
+                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.planning.index'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.planning.index')])></span>
+                                <span class="flex-1">Production Planning</span>
+                            </a>
+                            {{-- Orders Section --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Orders</div>
+                            </div>
+                            @can('view_production')
+                                <a href="{{ route('production.orders.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.orders.*'), $subInactive => !request()->routeIs('production.orders.*')])>
+                                    <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('production.orders.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('production.orders.*')])></span>
+                                    <span class="flex-1">Production Orders</span>
+                                </a>
+                                <a href="{{ route('production.kanban-release.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.kanban-release.*'), $subInactive => !request()->routeIs('production.kanban-release.*')])>
+                                    <span @class([$subDotBase, 'bg-violet-600' => request()->routeIs('production.kanban-release.*'), 'bg-slate-300 group-hover:bg-violet-400' => !request()->routeIs('production.kanban-release.*')])></span>
+                                    <span class="flex-1">Release Kanban</span>
+                                </a>
+                            @endcan
+
+                            {{-- Material Control Section --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Material Control</div>
+                            </div>
+                            @can('view_production')
+                                <a href="{{ route('production.warehouse-supply.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.warehouse-supply.*'), $subInactive => !request()->routeIs('production.warehouse-supply.*')])>
+                                    <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('production.warehouse-supply.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.warehouse-supply.*')])></span>
+                                    <span class="flex-1">WH Supply to Production</span>
+                                </a>
+                                <a href="{{ route('production.production-supply-wh.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.production-supply-wh.*'), $subInactive => !request()->routeIs('production.production-supply-wh.*')])>
+                                    <span @class([$subDotBase, 'bg-cyan-600' => request()->routeIs('production.production-supply-wh.*'), 'bg-slate-300 group-hover:bg-cyan-400' => !request()->routeIs('production.production-supply-wh.*')])></span>
+                                    <span class="flex-1">Production Supply to WH</span>
+                                </a>
+                            @endcan
+
+                            {{-- Monitoring Section --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Monitoring Produksi</div>
+                            </div>
+                            <a href="{{ route('production.wo-monitoring.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.wo-monitoring.*'), $subInactive => !request()->routeIs('production.wo-monitoring.*')])>
+                                <span @class([$subDotBase, 'bg-emerald-500' => request()->routeIs('production.wo-monitoring.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('production.wo-monitoring.*')])></span>
+                                <span class="flex-1">Monitoring WO Produksi</span>
+                            </a>
+                            <a href="{{ route('production.board.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.board.*'), $subInactive => !request()->routeIs('production.board.*')])>
+                                <span @class([$subDotBase, 'bg-blue-600' => request()->routeIs('production.board.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.board.*')])></span>
+                                <span class="flex-1">Production Board</span>
+                            </a>
+                            <a href="{{ route('production.operator-kpi.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.operator-kpi.*'), $subInactive => !request()->routeIs('production.operator-kpi.*')])>
+                                <span @class([$subDotBase, 'bg-blue-500' => request()->routeIs('production.operator-kpi.*'), 'bg-slate-300 group-hover:bg-blue-400' => !request()->routeIs('production.operator-kpi.*')])></span>
+                                <span class="flex-1">Operator Performance</span>
+                            </a>
+                            <a href="{{ route('production.gci-dashboard.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.gci-dashboard.*'), $subInactive => !request()->routeIs('production.gci-dashboard.*')])>
+                                <span @class([$subDotBase, 'bg-purple-600' => request()->routeIs('production.gci-dashboard.*'), 'bg-slate-300 group-hover:bg-purple-400' => !request()->routeIs('production.gci-dashboard.*')])></span>
+                                <span class="flex-1">Work Order Logs (APK)</span>
+                            </a>
+
+                            {{-- Quality & Losses Section --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Quality & Losses</div>
+                            </div>
+                            @can('manage_final_inspection')
+                                <a href="{{ route('production.final-inspection.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.final-inspection.*') || request()->routeIs('production.qc-inspection.*') || request()->routeIs('production.in-process-inspection.*') || request()->routeIs('production.kanban-update.*'), $subInactive => !(request()->routeIs('production.final-inspection.*') || request()->routeIs('production.qc-inspection.*') || request()->routeIs('production.in-process-inspection.*') || request()->routeIs('production.kanban-update.*'))])>
+                                    <span @class([$subDotBase, 'bg-orange-600' => request()->routeIs('production.final-inspection.*') || request()->routeIs('production.qc-inspection.*') || request()->routeIs('production.in-process-inspection.*') || request()->routeIs('production.kanban-update.*'), 'bg-slate-300 group-hover:bg-orange-400' => !(request()->routeIs('production.final-inspection.*') || request()->routeIs('production.qc-inspection.*') || request()->routeIs('production.in-process-inspection.*') || request()->routeIs('production.kanban-update.*'))])></span>
+                                    <span class="flex-1">Inspection & Kanban Update</span>
+                                </a>
+                            @endcan
+                            <a href="{{ route('production.downtime-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.downtime-history.*'), $subInactive => !request()->routeIs('production.downtime-history.*')])>
+                                <span @class([$subDotBase, 'bg-red-600' => request()->routeIs('production.downtime-history.*'), 'bg-slate-300 group-hover:bg-red-400' => !request()->routeIs('production.downtime-history.*')])></span>
+                                <span class="flex-1">Downtime History</span>
+                            </a>
+                            <a href="{{ route('production.qdc-history.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('production.qdc-history.*'), $subInactive => !request()->routeIs('production.qdc-history.*')])>
+                                <span @class([$subDotBase, 'bg-amber-600' => request()->routeIs('production.qdc-history.*'), 'bg-slate-300 group-hover:bg-amber-400' => !request()->routeIs('production.qdc-history.*')])></span>
+                                <span class="flex-1">QDC History</span>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        @endif
+
+        @can('manage_incoming')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Incoming</div>
+
+                <details class="group" {{ $incomingModuleActive ? 'open' : '' }}
+                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <summary class="list-none cursor-pointer" title="Incoming Material"
+                        :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                        <div @class([$navLinkBase, $navActive => $incomingModuleActive, $navInactive => !$incomingModuleActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 7.5V6a2 2 0 0 1 2-2h5l2 2h6a2 2 0 0 1 2 2v9.5a2 2 0 0 1-2 2h-6l-2 2H5a2 2 0 0 1-2-2V7.5Z" />
+                            </svg>
+                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Incoming</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                        <div class="relative ml-4 pl-4 space-y-1">
+                            <div
+                                class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                            </div>
+                            <a href="{{ route('departures.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('departures.create'), $subInactive => !request()->routeIs('departures.create')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('departures.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('departures.create')])></span>
+                                <span class="flex-1">Create Departure</span>
+                            </a>
+                            <a href="{{ route('departures.index') }}" @class([
+                                $subLinkBase,
+                                $subActive => request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'),
+                                $subInactive => !(request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit')),
+                            ])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('departures.index') || request()->routeIs('departures.show') || request()->routeIs('departures.edit'))])></span>
+                                <span class="flex-1">Departure List</span>
+                            </a>
+                            <a href="{{ route('local-pos.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('local-pos.create'), $subInactive => !request()->routeIs('local-pos.create')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('local-pos.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('local-pos.create')])></span>
+                                <span class="flex-1">Create Local PO</span>
+                            </a>
+                            <a href="{{ route('local-pos.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('local-pos.index'), $subInactive => !request()->routeIs('local-pos.index')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('local-pos.index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('local-pos.index')])></span>
+                                <span class="flex-1">Local PO List</span>
+                            </a>
+                            <a href="{{ route('receives.index') }}" @class([
+                                $subLinkBase,
+                                $subActive => request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'),
+                                $subInactive => !(request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*')),
+                            ])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.invoice.*'))])></span>
+                                <span class="flex-1">Process Receives</span>
+                            </a>
+                            <a href="{{ route('receives.completed') }}" @class([
+                                $subLinkBase,
+                                $subActive => request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'),
+                                $subInactive => !(request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice')),
+                            ])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('receives.completed') || request()->routeIs('receives.completed.invoice'))])></span>
+                                <span class="flex-1">Completed Receives</span>
+                            </a>
+                            <a href="{{ route('receives.import-documents') }}" @class([$subLinkBase, $subActive => request()->routeIs('receives.import-documents*'), $subInactive => !request()->routeIs('receives.import-documents*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('receives.import-documents*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('receives.import-documents*')])></span>
+                                <span class="flex-1">Rekap AJU / PEN</span>
+                            </a>
+                            <a href="{{ route('delivery.outgoing.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('delivery.outgoing.*'), $subInactive => !request()->routeIs('delivery.outgoing.*')])>
+                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('delivery.outgoing.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('delivery.outgoing.*')])></span>
+                                <span class="flex-1">Delivery Outgoing</span>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        @endcan
+
+        @can('manage_outgoing')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Outgoing</div>
+
+                <details class="group" {{ $outgoingModuleActive ? 'open' : '' }}
+                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <summary class="list-none cursor-pointer" title="Outgoing"
+                        :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                        <div @class([$navLinkBase, $navActive => $outgoingModuleActive, $navInactive => !$outgoingModuleActive]) :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 7h14l4 4v10a2 2 0 0 1-2 2H3V7Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11h10M7 15h10M7 19h6" />
+                            </svg>
+                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Outgoing</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                        <div class="relative ml-4 pl-4 space-y-1">
+                            <div
+                                class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                            </div>
+                            {{-- Main Flow --}}
+                            <a href="{{ route('outgoing.customer-po.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.customer-po.*'), $subInactive => !request()->routeIs('outgoing.customer-po.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.customer-po.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.customer-po.*')])></span>
+                                <span class="flex-1">Customer PO</span>
+                            </a>
+                            <a href="{{ route('outgoing.daily-planning') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.daily-planning'), $subInactive => !request()->routeIs('outgoing.daily-planning')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.daily-planning'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.daily-planning')])></span>
+                                <span class="flex-1">Daily Planning</span>
+                            </a>
+                            <a href="{{ route('outgoing.delivery-requirements') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-requirements'), $subInactive => !request()->routeIs('outgoing.delivery-requirements')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-requirements'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-requirements')])></span>
+                                <span class="flex-1">Delivery Requirement</span>
+                            </a>
+                            <a href="{{ route('outgoing.delivery-plan') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-plan'), $subInactive => !request()->routeIs('outgoing.delivery-plan')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-plan'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-plan')])></span>
+                                <span class="flex-1">Delivery Planning</span>
+                            </a>
+                            <a href="{{ route('outgoing.picking-fg') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.picking-fg'), $subInactive => !request()->routeIs('outgoing.picking-fg')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.picking-fg'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.picking-fg')])></span>
+                                <span class="flex-1">Picking FG</span>
+                            </a>
+                            <a href="{{ route('outgoing.delivery-notes.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.delivery-notes.*'), $subInactive => !request()->routeIs('outgoing.delivery-notes.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.delivery-notes.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.delivery-notes.*')])></span>
+                                <span class="flex-1">Delivery</span>
+                            </a>
+
+                            {{-- OSP Flow --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">OSP
+                                    Process</div>
+                            </div>
+                            <a href="{{ route('outgoing.osp.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.osp.*'), $subInactive => !request()->routeIs('outgoing.osp.*')])>
+                                <span @class([$subDotBase, 'bg-emerald-600' => request()->routeIs('outgoing.osp.*'), 'bg-slate-300 group-hover:bg-emerald-400' => !request()->routeIs('outgoing.osp.*')])></span>
+                                <span class="flex-1">OSP Outgoing Docs</span>
+                            </a>
+
+                            {{-- Others --}}
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Others</div>
+                            </div>
+                            <a href="{{ route('outgoing.input-jig') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.input-jig*'), $subInactive => !request()->routeIs('outgoing.input-jig*')])>
+                                <span @class([$subDotBase, 'bg-yellow-500' => request()->routeIs('outgoing.input-jig*'), 'bg-slate-300 group-hover:bg-yellow-400' => !request()->routeIs('outgoing.input-jig*')])></span>
+                                <span class="flex-1">Jig</span>
+                            </a>
+                            <a href="{{ route('outgoing.standard-packings.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.standard-packings.*'), $subInactive => !request()->routeIs('outgoing.standard-packings.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.standard-packings.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.standard-packings.*')])></span>
+                                <span class="flex-1">Standard Packing</span>
+                            </a>
+                            <a href="{{ route('outgoing.stock-at-customers') }}" @class([$subLinkBase, $subActive => request()->routeIs('outgoing.stock-at-customers'), $subInactive => !request()->routeIs('outgoing.stock-at-customers')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('outgoing.stock-at-customers'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('outgoing.stock-at-customers')])></span>
+                                <span class="flex-1">Stock at Customer</span>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        @endcan
+
+        @can('manage_subcon')
+            @php
+                $subconActive = request()->routeIs('subcon.*') || request()->routeIs('contract-numbers.*') || request()->routeIs('subcounts.*');
+            @endphp
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Subcon</div>
+
+                <details class="group" {{ $subconActive ? 'open' : '' }}
+                    x-effect="if (sidebarCollapsed) $el.removeAttribute('open')">
+                    <summary class="list-none cursor-pointer" title="Subcon/Tolling"
+                        :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                        <div @class([$navLinkBase, $navActive => $subconActive, $navInactive => !$subconActive])
+                            :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15m0 0l3-3m-3 3l3 3" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12h15m0 0l-3-3m3 3l-3 3" />
+                            </svg>
+                            <span x-show="!sidebarCollapsed" x-cloak class="flex-1">Subcon/Tolling</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 group-open:text-indigo-600"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" x-show="!sidebarCollapsed" x-cloak>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </summary>
+
+                    <div class="mt-2" x-show="!sidebarCollapsed" x-cloak>
+                        <div class="relative ml-4 pl-4 space-y-1">
+                            <div
+                                class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent">
+                            </div>
+                            <div class="pb-1">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Operations</div>
+                            </div>
+                            <a href="{{ route('subcon.create') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.create'), $subInactive => !request()->routeIs('subcon.create')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.create'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.create')])></span>
+                                <span class="flex-1">WH Send to Vendor</span>
+                            </a>
+                            <a href="{{ route('subcon.receive-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.receive-index'), $subInactive => !request()->routeIs('subcon.receive-index')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.receive-index'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcon.receive-index')])></span>
+                                <span class="flex-1">WH Receive Subcon</span>
+                            </a>
+                            <a href="{{ route('contract-numbers.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('contract-numbers.*'), $subInactive => !request()->routeIs('contract-numbers.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('contract-numbers.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('contract-numbers.*')])></span>
+                                <span class="flex-1">Contract Numbers</span>
+                            </a>
+                            <div class="pt-2 mt-2 border-t border-slate-200">
+                                <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Monitoring</div>
+                            </div>
+                            <a href="{{ route('subcon.traceability-index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), $subInactive => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'), 'bg-slate-300 group-hover:bg-indigo-400' => !(request()->routeIs('subcon.traceability-index') || request()->routeIs('subcon.show'))])></span>
+                                <span class="flex-1">Subcon Traceability</span>
+                            </a>
+                            <a href="{{ route('subcounts.index') }}" @class([$subLinkBase, $subActive => request()->routeIs('subcounts.*'), $subInactive => !request()->routeIs('subcounts.*')])>
+                                <span @class([$subDotBase, 'bg-indigo-600' => request()->routeIs('subcounts.*'), 'bg-slate-300 group-hover:bg-indigo-400' => !request()->routeIs('subcounts.*')])></span>
+                                <span class="flex-1">Subcount Photos</span>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        @endcan
+
+        @can('manage_inventory')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Inventory</div>
+                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
+                    <a href="{{ route('inventory.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.index'), $navInactive => !request()->routeIs('inventory.index')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 6V4h10v2" />
+                        </svg>
+                        <span class="ml-3 flex-1">Inventory</span>
+                    </a>
+                    <a href="{{ route('inventory.receives') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.receives'), $navInactive => !request()->routeIs('inventory.receives')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+                        </svg>
+                        <span class="ml-3 flex-1">Inventory Receives</span>
+                    </a>
+                    {{-- GCI Inventory hidden --}}
+                </div>
+            </div>
+        @endcan
+
+        @can('manage_inventory')
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Warehouse</div>
+                <div class="space-y-1" x-show="!sidebarCollapsed" x-cloak>
+                    <div class="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Flow</div>
+                    <a href="{{ route('logistics.dashboard') }}" @class([$navLinkBase, $navActive => $logisticsActive, $navInactive => !$logisticsActive])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l3 8 4-16 3 8h5" />
+                        </svg>
+                        <span class="ml-3 flex-1">Logistics Dashboard</span>
+                    </a>
+                    <a href="{{ route('warehouse.labels.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.labels.*'), $navInactive => !request()->routeIs('warehouse.labels.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4z" />
+                        </svg>
+                        <span class="ml-3 flex-1">Barcode Labels</span>
+                    </a>
+                    <a href="{{ route('warehouse.qc.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.qc.*'), $navInactive => !request()->routeIs('warehouse.qc.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12h6m-6 4h3m2.25-12.75 1.5 1.5M6.75 4.5l1.5 1.5M6 2h12a2 2 0 0 1 2 2v18H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+                        </svg>
+                        <span class="ml-3 flex-1">QC Queue</span>
+                    </a>
+                    <a href="{{ route('warehouse.putaway.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.putaway.*'), $navInactive => !request()->routeIs('warehouse.putaway.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m9-9H3" />
+                        </svg>
+                        <span class="ml-3 flex-1">Putaway Queue</span>
+                    </a>
+                    <a href="{{ route('production.warehouse-supply.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('production.warehouse-supply.*'), $navInactive => !request()->routeIs('production.warehouse-supply.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h10M4 17h7" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14 14 3 3 5-5" />
+                        </svg>
+                        <span class="ml-3 flex-1">WH Supply to Production</span>
+                    </a>
+                    <a href="{{ route('inventory.locations.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('inventory.locations.*'), $navInactive => !request()->routeIs('inventory.locations.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                        </svg>
+                        <span class="ml-3 flex-1">Warehouse Locations</span>
+                    </a>
+                    <a href="{{ route('warehouse.trollies.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.trollies.*'), $navInactive => !request()->routeIs('warehouse.trollies.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span class="ml-3 flex-1">Trollies</span>
+                    </a>
+                    <a href="{{ route('warehouse.bin-transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.bin-transfers.*'), $navInactive => !request()->routeIs('warehouse.bin-transfers.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 11h10M7 15h10" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 19l-2-2 2-2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 15l2 2-2 2" />
+                        </svg>
+                        <span class="ml-3 flex-1">Bin to Bin</span>
+                    </a>
+                    <a href="{{ route('warehouse.batch-transfers.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.batch-transfers.*'), $navInactive => !request()->routeIs('warehouse.batch-transfers.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h10" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5h14v14H5z" />
+                        </svg>
+                        <span class="ml-3 flex-1">Batch to Batch</span>
+                    </a>
+                    <div class="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Stock Control</div>
+                    <a href="{{ route('warehouse.stock.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.*'), $navInactive => !request()->routeIs('warehouse.stock.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7v10M12 7v10M17 7v10" />
+                        </svg>
+                        <span class="ml-3 flex-1">Stock by Location</span>
+                    </a>
+                    <a href="{{ route('warehouse.stock-adjustments.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-adjustments.*'), $navInactive => !request()->routeIs('warehouse.stock-adjustments.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12h12" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 20h16" />
+                        </svg>
+                        <span class="ml-3 flex-1">Stock Adjustments</span>
+                    </a>
+                    <a href="{{ route('warehouse.stock-opname.index') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock-opname.*'), $navInactive => !request()->routeIs('warehouse.stock-opname.*')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <span class="ml-3 flex-1">Stock Opname</span>
+                    </a>
+                    <a href="{{ route('warehouse.stock.reconcile') }}" @class([$navLinkBase, $navActive => request()->routeIs('warehouse.stock.reconcile'), $navInactive => !request()->routeIs('warehouse.stock.reconcile')])>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 11h10M7 15h6" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 15l2 2-2 2" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 19l-2-2 2-2" />
+                        </svg>
+                        <span class="ml-3 flex-1">Reconcile Stock</span>
+                    </a>
+                </div>
+            </div>
+        @endcan
+
+        @if($isAdminUser)
+            <div>
+                <div class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                    x-show="!sidebarCollapsed" x-cloak>Admin</div>
+                <div class="space-y-1">
+                    <a href="{{ route('admin.users.index') }}" title="User Management"
+                        @class([$navLinkBase, $navActive => request()->routeIs('admin.users.*'), $navInactive => !request()->routeIs('admin.users.*')])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20v-4a3 3 0 0 1 6 0v4" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 7a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>User Management</span>
+                    </a>
+                    <a href="{{ route('admin.roles.index') }}" title="Role Management"
+                        @class([$navLinkBase, $navActive => request()->routeIs('admin.roles.*'), $navInactive => !request()->routeIs('admin.roles.*')])
+                        :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="{{ $navIconBase }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m-7-8h8a2 2 0 0 1 2 2v8H6v-8a2 2 0 0 1 2-2Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 8V6a4 4 0 1 1 8 0v2" />
+                        </svg>
+                        <span x-show="!sidebarCollapsed" x-cloak>Role Management</span>
+                    </a>
+                </div>
+            </div>
+        @endif
+    </nav>

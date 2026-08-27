@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\BinTransfer;
-use App\Models\GciPart;
 use App\Models\LocationInventory;
 use App\Models\LocationInventoryAdjustment;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Inventory\InventoryStockMovement;
 use App\Models\Part;
 use App\Models\WarehouseLocation;
 use App\Support\QrSvg;

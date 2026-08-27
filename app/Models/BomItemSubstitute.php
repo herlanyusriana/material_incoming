@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\NewSchema\Core\VendorPart;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -35,6 +36,6 @@ class BomItemSubstitute extends Model
      */
     public function incomingPart()
     {
-        return $this->belongsTo(Part::class, 'incoming_part_id');
+        return $this->belongsTo(VendorPart::class, 'incoming_part_id');
     }
 }

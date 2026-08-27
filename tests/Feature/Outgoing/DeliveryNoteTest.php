@@ -25,8 +25,8 @@ class DeliveryNoteTest extends TestCase
 
     public function test_can_create_delivery_note_with_truck_and_driver()
     {
-        $customer = Customer::factory()->create();
-        $part = GciPart::factory()->create();
+        $customer = Customer::create(['code' => 'CUST-001', 'name' => 'PT GCI Test', 'status' => 'active']);
+        $part = GciPart::create(['part_no' => 'GCI-TEST-01']);
         $truck = Truck::create(['plate_no' => 'B 1234 GCI', 'type' => 'Wingbox', 'status' => 'available']);
         $driver = Driver::create(['name' => 'John Doe', 'status' => 'available']);
 
@@ -52,13 +52,18 @@ class DeliveryNoteTest extends TestCase
 
     public function test_can_access_print_page()
     {
-        $dn = DeliveryNote::factory()->create();
+        $customer = Customer::create(['code' => 'CUST-002', 'name' => 'PT GCI Print', 'status' => 'active']);
+        $dn = DeliveryNote::create([
+            'customer_id' => $customer->id,
+            'delivery_date' => now()->toDateString(),
+            'status' => 'draft',
+        ]);
 
         $response = $this->actingAs($this->user)
             ->get(route('outgoing.delivery-notes.print', $dn));
 
         $response->assertStatus(200);
         $response->assertSee($dn->dn_no);
-        $response->assertSee('SURAT JALAN');
+        $response->assertSee('Surat Jalan');
     }
 }

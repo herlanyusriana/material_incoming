@@ -2,8 +2,8 @@
 
 namespace App\Exports;
 
-use App\Models\Arrival;
-use App\Models\ArrivalItem;
+use App\Models\NewSchema\Incoming\IncomingArrival;
+use App\Models\NewSchema\Incoming\IncomingArrivalItem;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -15,13 +15,13 @@ class LocalPoExport implements FromCollection, WithHeadings, WithMapping, WithSt
 {
     public function collection()
     {
-        return ArrivalItem::query()
-            ->with(['arrival.vendor', 'part', 'gciPart', 'receives'])
-            ->whereHas('arrival.vendor', fn($q) => $q->where('vendor_type', 'local'))
-            ->join('arrivals', 'arrivals.id', '=', 'arrival_items.arrival_id')
-            ->orderByDesc('arrivals.invoice_date')
-            ->orderBy('arrivals.invoice_no')
-            ->select('arrival_items.*')
+        return IncomingArrivalItem::query()
+            ->with(['incomingArrival.vendor', 'gciPart', 'incomingReceives'])
+            ->whereHas('incomingArrival.vendor', fn($q) => $q->where('vendor_type', 'local'))
+            ->join('incoming_arrivals', 'incoming_arrivals.id', '=', 'incoming_arrival_items.incoming_arrival_id')
+            ->orderByDesc('incoming_arrivals.invoice_date')
+            ->orderBy('incoming_arrivals.invoice_no')
+            ->select('incoming_arrival_items.*')
             ->get();
     }
 
@@ -46,17 +46,17 @@ class LocalPoExport implements FromCollection, WithHeadings, WithMapping, WithSt
 
     public function map($item): array
     {
-        $arrival = $item->arrival;
-        $part = $item->part;
-        $receivedQty = $item->receives->sum('qty');
+        $arrival = $item->incomingArrival;
+        $part = $item->gciPart;
+        $receivedQty = $item->incomingReceives->sum('qty');
         $remaining = max(0, (float) $item->qty_goods - (float) $receivedQty);
 
         return [
             $arrival?->invoice_no ?? '',
             $arrival?->invoice_date?->format('Y-m-d') ?? '',
             $arrival?->vendor?->vendor_name ?? '',
-            $part?->part_no ?? $item->gciPart?->part_no ?? '',
-            $part?->part_name_vendor ?? $item->gciPart?->part_name ?? '',
+            $part?->part_no ?? '',
+            $part?->part_name ?? '',
             $item->size ?? '',
             $item->qty_goods,
             $item->unit_goods ?? '',

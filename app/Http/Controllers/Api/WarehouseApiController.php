@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionOrder;
 use App\Models\Bom;
-use App\Models\GciPart;
-use App\Models\Receive;
-use App\Models\LocationInventory;
-use App\Models\GciInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Services\ProductionInventoryFlowService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -104,7 +103,7 @@ class WarehouseApiController extends Controller
             return 0.0;
         }
 
-        return round((float) LocationInventory::query()
+        return round((float) InventoryLocationStock::query()
             ->where('gci_part_id', $gciPartId)
             ->where('qty_on_hand', '>', 0)
             ->sum('qty_on_hand'), 4);
@@ -123,7 +122,7 @@ class WarehouseApiController extends Controller
         $remaining = $qty;
         $breakdown = [];
 
-        $stocks = LocationInventory::query()
+        $stocks = InventoryLocationStock::query()
             ->where('gci_part_id', $gciPartId)
             ->where('qty_on_hand', '>', 0)
             ->whereRaw('UPPER(TRIM(location_code)) <> ?', [strtoupper(trim($targetLocation))])
@@ -145,33 +144,31 @@ class WarehouseApiController extends Controller
 
             $sourceLocation = (string) $stock->location_code;
             $sourceBatch = (string) ($stock->batch_no ?? '');
-            $lineTrace = array_merge($traceability, [
-                'source_tag' => $sourceBatch,
-                'line_stock_qr' => true,
-                'line_stock_tag' => $targetTagNo,
-            ]);
 
-            LocationInventory::consumeStock(
-                $partId && $partId > 0 ? $partId : null,
+            InventoryLocationStock::consumeStock(
+                $gciPartId,
                 $sourceLocation,
                 $takeQty,
                 $sourceBatch,
-                $gciPartId,
                 'LINE_STOCK_QR_OUT',
                 $sourceReference,
-                $lineTrace
+                auth()->id()
             );
 
-            LocationInventory::updateStock(
-                $partId && $partId > 0 ? $partId : null,
+            InventoryLocationStock::updateStock(
+                $gciPartId,
                 $targetLocation,
                 $takeQty,
                 $targetTagNo,
                 null,
-                $gciPartId,
                 'LINE_STOCK_QR_IN',
                 $sourceReference,
-                $lineTrace
+                null,
+                null,
+                null,
+                null,
+                null,
+                auth()->id()
             );
 
             $breakdown[] = [
@@ -556,10 +553,10 @@ class WarehouseApiController extends Controller
         }
 
         $tagNo = strtoupper(trim($tagNo));
-        $locInv = LocationInventory::where('batch_no', $tagNo)
+        $locInv = InventoryLocationStock::where('batch_no', $tagNo)
             ->where('qty_on_hand', '>', 0)
             ->orderByRaw('CASE WHEN location_code = ? THEN 1 ELSE 0 END', [self::STAGING_LOCATION_CODE])
-            ->with('part', 'gciPart')
+            ->with('gciPart')
             ->first();
 
         if ($locInv) {
@@ -568,8 +565,8 @@ class WarehouseApiController extends Controller
                 'gci_part_id' => (int) ($locInv->gci_part_id ?? 0),
                 'part_id' => (int) ($locInv->part_id ?? 0),
                 'qty_available' => (float) $locInv->qty_on_hand,
-                'part_no' => (string) ($locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown'),
-                'part_name' => $this->cleanText($locInv->part?->part_name_gci, $locInv->part?->part_name_vendor, $locInv->gciPart?->part_name, $locInv->part?->part_no, $locInv->gciPart?->part_no),
+                'part_no' => (string) ($locInv->gciPart?->part_no ?? 'Unknown'),
+                'part_name' => $this->cleanText($locInv->gciPart?->part_name, $locInv->gciPart?->part_no),
                 'location_code' => (string) $locInv->location_code,
                 'source_location_code' => (string) $locInv->location_code,
                 'loc_inv' => $locInv,
@@ -578,7 +575,7 @@ class WarehouseApiController extends Controller
         }
 
         $receiveQuery = Receive::query()
-            ->with('arrivalItem.part', 'arrivalItem.gciPartVendor')
+            ->with('arrivalItem.vendorPart.gciPart')
             ->where(function ($query) use ($tagNo, $receiveId) {
                 $query->where('tag', $tagNo);
 
@@ -592,7 +589,7 @@ class WarehouseApiController extends Controller
             });
 
         if ($filterPartNo) {
-            $receiveQuery->whereHas('arrivalItem.part', fn ($query) => $query->where('part_no', $filterPartNo));
+            $receiveQuery->whereHas('arrivalItem.vendorPart.gciPart', fn ($query) => $query->where('part_no', $filterPartNo));
         }
 
         $receive = $receiveQuery->first();
@@ -601,17 +598,19 @@ class WarehouseApiController extends Controller
         }
 
         $arrItem = $receive->arrivalItem;
-        $partNo = $arrItem?->part?->part_no
-            ?? $arrItem?->gciPartVendor?->vendor_part_no
+        $vendorPart = $arrItem?->vendorPart;
+        $gciPart = $vendorPart?->gciPart;
+        $partNo = $gciPart?->part_no
+            ?? $vendorPart?->vendor_part_no
             ?? 'Unknown';
 
         return [
             'tag_no' => $tagNo,
-            'gci_part_id' => (int) ($arrItem?->part?->gci_part_id ?? $arrItem?->gciPartVendor?->gci_part_id ?? 0),
-            'part_id' => (int) ($arrItem?->part?->id ?? 0),
+            'gci_part_id' => (int) ($gciPart?->id ?? 0),
+            'part_id' => 0,
             'qty_available' => (float) ($receive->qty ?? 0),
             'part_no' => (string) $partNo,
-            'part_name' => $this->cleanText($arrItem?->part?->part_name_gci, $arrItem?->part?->part_name_vendor, $arrItem?->gciPart?->part_name, $partNo),
+            'part_name' => $this->cleanText($gciPart?->part_name, $vendorPart?->vendor_part_name, $partNo),
             'location_code' => null,
             'source_location_code' => strtoupper(trim((string) ($receive->location_code ?? ''))),
             'loc_inv' => null,
@@ -800,56 +799,67 @@ class WarehouseApiController extends Controller
                 ]);
                 $stagedToAa = true;
             } elseif ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
-                LocationInventory::consumeStock(
-                    (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                InventoryLocationStock::consumeStock(
+                    (int) $tag['gci_part_id'],
                     (string) $locInv->location_code,
                     $issueQty,
                     (string) $tag['tag_no'],
-                    (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
                     'PRODUCTION_STAGE_AA_OUT',
                     $sourceReference,
-                    array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                    auth()->id()
                 );
 
-                LocationInventory::updateStock(
-                    (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                InventoryLocationStock::updateStock(
+                    (int) $tag['gci_part_id'],
                     $stagingLocation,
                     $issueQty,
                     (string) $tag['tag_no'],
                     null,
-                    (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
                     'PRODUCTION_STAGE_AA_IN',
                     $sourceReference,
-                    array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    auth()->id()
                 );
 
                 $locationCode = $stagingLocation;
                 $stagedToAa = true;
             } elseif (!$locInv) {
                 if ($remainingTagQty > 0 && !empty($tag['source_location_code'])) {
-                    LocationInventory::updateStock(
-                        (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                    InventoryLocationStock::updateStock(
+                        (int) $tag['gci_part_id'],
                         (string) $tag['source_location_code'],
                         $remainingTagQty,
                         (string) $tag['tag_no'],
                         null,
-                        (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
                         'RECEIVE_PARTIAL_REMAINING_IN',
                         $sourceReference,
-                        array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        auth()->id()
                     );
                 }
 
-                LocationInventory::updateStock(
-                    (int) $tag['part_id'] > 0 ? (int) $tag['part_id'] : null,
+                InventoryLocationStock::updateStock(
+                    (int) $tag['gci_part_id'],
                     $stagingLocation,
                     $issueQty,
                     (string) $tag['tag_no'],
                     null,
-                    (int) $tag['gci_part_id'] > 0 ? (int) $tag['gci_part_id'] : null,
                     'PRODUCTION_STAGE_AA_IN',
                     $sourceReference,
-                    array_merge(['source_tag' => $tag['tag_no']], $traceability)
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    auth()->id()
                 );
 
                 $locationCode = $stagingLocation;
@@ -1290,22 +1300,22 @@ class WarehouseApiController extends Controller
                 'target_location_code' => $lineStock['location_code'],
             ];
         } else {
-            $locInv = LocationInventory::where('batch_no', $tagNo)
+            $locInv = InventoryLocationStock::where('batch_no', $tagNo)
             ->where('qty_on_hand', '>', 0)
             ->orderByRaw('CASE WHEN location_code = ? THEN 1 ELSE 0 END', [self::STAGING_LOCATION_CODE])
-            ->with('part', 'gciPart')
+            ->with('gciPart')
             ->first();
             if ($locInv) {
                 $gciPartId = $locInv->gci_part_id;
-                $partId = $locInv->part_id;
+                $partId = 0;
                 $qtyAvailable = $locInv->qty_on_hand;
-                $partNo = $locInv->part?->part_no ?? $locInv->gciPart?->part_no ?? 'Unknown';
-                $partName = $this->cleanText($locInv->part?->part_name_gci, $locInv->part?->part_name_vendor, $locInv->gciPart?->part_name, $partNo);
+                $partNo = $locInv->gciPart?->part_no ?? 'Unknown';
+                $partName = $this->cleanText($locInv->gciPart?->part_name, $partNo);
                 $locationCode = $locInv->location_code;
                 $sourceLocationCode = $locInv->location_code;
             } else {
                 $receiveQuery = Receive::query()
-                    ->with('arrivalItem.part', 'arrivalItem.gciPartVendor')
+                    ->with('arrivalItem.vendorPart.gciPart')
                     ->where(function ($query) use ($tagNo, $receiveId) {
                         $query->where('tag', $tagNo);
 
@@ -1318,17 +1328,19 @@ class WarehouseApiController extends Controller
                         }
                     });
                 if ($filterPartNo) {
-                    $receiveQuery->whereHas('arrivalItem.part', fn($query) => $query->where('part_no', $filterPartNo));
+                    $receiveQuery->whereHas('arrivalItem.vendorPart.gciPart', fn($query) => $query->where('part_no', $filterPartNo));
                 }
                 $receive = $receiveQuery->first();
                 if ($receive) {
                     $arrItem = $receive->arrivalItem;
-                    $partNo = $arrItem?->part?->part_no
-                        ?? $arrItem?->gciPartVendor?->vendor_part_no
+                    $vendorPart = $arrItem?->vendorPart;
+                    $gciPart = $vendorPart?->gciPart;
+                    $partNo = $gciPart?->part_no
+                        ?? $vendorPart?->vendor_part_no
                         ?? 'Unknown';
-                    $partName = $this->cleanText($arrItem?->part?->part_name_gci, $arrItem?->part?->part_name_vendor, $arrItem?->gciPart?->part_name, $partNo);
-                    $gciPartId = (int) ($arrItem?->part?->gci_part_id ?? $arrItem?->gciPartVendor?->gci_part_id ?? 0);
-                    $partId = (int) ($arrItem?->part?->id ?? 0);
+                    $partName = $this->cleanText($gciPart?->part_name, $vendorPart?->vendor_part_name, $partNo);
+                    $gciPartId = (int) ($gciPart?->id ?? 0);
+                    $partId = 0;
                     $qtyAvailable = (float) ($receive->qty ?? 0);
                     $sourceLocationCode = strtoupper(trim((string) ($receive->location_code ?? '')));
                     $traceability = [
@@ -1495,56 +1507,67 @@ class WarehouseApiController extends Controller
                 ]);
                 $stagedToAa = true;
             } elseif ($locInv && strtoupper(trim((string) $locInv->location_code)) !== $stagingLocation) {
-                LocationInventory::consumeStock(
-                    $partId > 0 ? $partId : null,
+                InventoryLocationStock::consumeStock(
+                    $gciPartId,
                     (string) $locInv->location_code,
                     $issueQty,
                     $tagNo,
-                    $gciPartId > 0 ? $gciPartId : null,
                     'PRODUCTION_STAGE_AA_OUT',
                     $sourceReference,
-                    array_merge(['source_tag' => $tagNo], $traceability)
+                    auth()->id()
                 );
 
-                LocationInventory::updateStock(
-                    $partId > 0 ? $partId : null,
+                InventoryLocationStock::updateStock(
+                    $gciPartId,
                     $stagingLocation,
                     $issueQty,
                     $tagNo,
                     null,
-                    $gciPartId > 0 ? $gciPartId : null,
                     'PRODUCTION_STAGE_AA_IN',
                     $sourceReference,
-                    array_merge(['source_tag' => $tagNo], $traceability)
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    auth()->id()
                 );
 
                 $locationCode = $stagingLocation;
                 $stagedToAa = true;
             } elseif (!$locInv) {
                 if ($remainingTagQty > 0 && !empty($sourceLocationCode)) {
-                    LocationInventory::updateStock(
-                        $partId > 0 ? $partId : null,
+                    InventoryLocationStock::updateStock(
+                        $gciPartId,
                         $sourceLocationCode,
                         $remainingTagQty,
                         $tagNo,
                         null,
-                        $gciPartId > 0 ? $gciPartId : null,
                         'RECEIVE_PARTIAL_REMAINING_IN',
                         $sourceReference,
-                        array_merge(['source_tag' => $tagNo], $traceability)
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        auth()->id()
                     );
                 }
 
-                LocationInventory::updateStock(
-                    $partId > 0 ? $partId : null,
+                InventoryLocationStock::updateStock(
+                    $gciPartId,
                     $stagingLocation,
                     $issueQty,
                     $tagNo,
                     null,
-                    $gciPartId > 0 ? $gciPartId : null,
                     'PRODUCTION_STAGE_AA_IN',
                     $sourceReference,
-                    array_merge(['source_tag' => $tagNo], $traceability)
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    auth()->id()
                 );
 
                 $locationCode = $stagingLocation;
@@ -1612,15 +1635,14 @@ class WarehouseApiController extends Controller
                 $sourceReference = 'PROD#' . ($order->production_order_number ?: $order->id);
 
                 if (($traceability['line_stock_qr'] ?? false) && !empty($traceability['source_breakdown']) && $qty > 0 && $tagNo !== '') {
-                    LocationInventory::consumeStock(
-                        $partId > 0 ? $partId : null,
+                    InventoryLocationStock::consumeStock(
+                        $gciPartId,
                         $locationCode,
                         $qty,
                         $tagNo,
-                        $gciPartId > 0 ? $gciPartId : null,
                         'LINE_STOCK_QR_CANCEL_OUT',
                         $sourceReference,
-                        array_merge(['source_tag' => $tagNo], $traceability)
+                        auth()->id()
                     );
 
                     foreach ($traceability['source_breakdown'] as $source) {
@@ -1630,16 +1652,20 @@ class WarehouseApiController extends Controller
                             continue;
                         }
 
-                        LocationInventory::updateStock(
-                            $partId > 0 ? $partId : null,
+                        InventoryLocationStock::updateStock(
+                            $gciPartId,
                             $sourceLocation,
                             $sourceQty,
                             (string) ($source['batch_no'] ?? ''),
                             null,
-                            $gciPartId > 0 ? $gciPartId : null,
                             'LINE_STOCK_QR_CANCEL_IN',
                             $sourceReference,
-                            array_merge(['source_tag' => $tagNo], $traceability)
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            auth()->id()
                         );
                     }
 
@@ -1647,28 +1673,31 @@ class WarehouseApiController extends Controller
                 }
 
                 if ($qty > 0 && $tagNo !== '') {
-                    LocationInventory::consumeStock(
-                        $partId > 0 ? $partId : null,
+                    InventoryLocationStock::consumeStock(
+                        $gciPartId,
                         self::STAGING_LOCATION_CODE,
                         $qty,
                         $tagNo,
-                        $gciPartId > 0 ? $gciPartId : null,
                         'PRODUCTION_STAGE_AA_CANCEL_OUT',
                         $sourceReference,
-                        array_merge(['source_tag' => $tagNo], $traceability)
+                        auth()->id()
                     );
 
                     if ($sourceLocationCode !== '') {
-                        LocationInventory::updateStock(
-                            $partId > 0 ? $partId : null,
+                        InventoryLocationStock::updateStock(
+                            $gciPartId,
                             $sourceLocationCode,
                             $qty,
                             $tagNo,
                             null,
-                            $gciPartId > 0 ? $gciPartId : null,
                             'PRODUCTION_STAGE_AA_CANCEL_IN',
                             $sourceReference,
-                            array_merge(['source_tag' => $tagNo], $traceability)
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            auth()->id()
                         );
                     }
                 }
@@ -1752,32 +1781,20 @@ class WarehouseApiController extends Controller
 
                 $isBackflush = (bool) ($tag['is_backflush'] ?? true);
 
-                if (!$isBackflush) {
-                    LocationInventory::consumeStock(
-                        $partId > 0 ? $partId : null,
+                if (!$isBackflush && $gciPartId > 0) {
+                    InventoryLocationStock::consumeStock(
+                        $gciPartId,
                         $locationCode,
                         $qty,
                         $tagNo,
-                        $gciPartId > 0 ? $gciPartId : null,
                         'PRODUCTION_ISSUE',
                         $sourceReference,
-                        array_merge([
-                            'source_tag' => $tagNo,
-                        ], $traceability)
-                    );
-                }
-
-                if ($gciPartId > 0 && !$isBackflush) {
-                    $inventory = GciInventory::firstOrCreate(
-                        ['gci_part_id' => $gciPartId],
-                        ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
+                        auth()->id()
                     );
 
                     $remainingReserved = (float) ($remainingReservedByGciPart[$gciPartId] ?? 0);
                     if ($remainingReserved > 0) {
-                        $consumeReserved = min($qty, $remainingReserved);
-                        $inventory->consume($consumeReserved);
-                        $remainingReservedByGciPart[$gciPartId] = max(0, $remainingReserved - $consumeReserved);
+                        $remainingReservedByGciPart[$gciPartId] = max(0, $remainingReserved - min($qty, $remainingReserved));
                     }
                 }
 

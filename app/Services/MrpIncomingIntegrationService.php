@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\GciPart;
-use App\Models\Part;
-use App\Models\ArrivalItem;
-use App\Models\Receive;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Incoming\IncomingArrival;
+use App\Models\NewSchema\Incoming\IncomingArrivalItem;
+use App\Models\NewSchema\Incoming\IncomingReceive;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -24,68 +24,48 @@ class MrpIncomingIntegrationService
     {
         $incomingData = [];
 
-        // Initialize the array
         foreach ($partIds as $partId) {
             $incomingData[$partId] = [];
         }
 
-        // Get incoming parts that correspond to the GCI parts
-        $gciParts = GciPart::whereIn('id', $partIds)->get();
-        
-        // Map GCI part numbers to their IDs
-        $gciPartNos = [];
-        foreach ($gciParts as $part) {
-            $gciPartNos[strtoupper(trim($part->part_no))] = $part->id;
-        }
-
-        // Get arrival items for parts that match our GCI parts
-        $arrivalItems = ArrivalItem::with(['arrival', 'part'])
-            ->join('parts', 'arrival_items.part_id', '=', 'parts.id')
-            ->join('arrivals', 'arrival_items.arrival_id', '=', 'arrivals.id')
-            ->whereIn(DB::raw('UPPER(TRIM(parts.part_no))'), array_keys($gciPartNos))
-            ->whereBetween('arrivals.invoice_date', [$startDate, $endDate])
-            ->select('arrival_items.*', 'parts.part_no', 'arrivals.invoice_date')
+        // Get arrival items directly by gci_part_id and invoice_date range
+        $arrivalItems = IncomingArrivalItem::query()
+            ->with('arrival:id,invoice_date')
+            ->whereIn('gci_part_id', $partIds)
+            ->whereHas('arrival', function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('invoice_date', [$startDate, $endDate]);
+            })
+            ->select('id', 'arrival_id', 'gci_part_id', 'qty_goods')
             ->get();
 
-        // Process arrival items
         foreach ($arrivalItems as $item) {
-            $partNo = strtoupper(trim($item->part_no));
-            $gciPartId = $gciPartNos[$partNo] ?? null;
-            
-            if ($gciPartId && isset($incomingData[$gciPartId])) {
-                $date = $item->arrival->invoice_date->format('Y-m-d');
-                
-                if (!isset($incomingData[$gciPartId][$date])) {
-                    $incomingData[$gciPartId][$date] = 0;
-                }
-                
-                $incomingData[$gciPartId][$date] += $item->qty_goods;
+            $gciPartId = (int) $item->gci_part_id;
+            if (!isset($incomingData[$gciPartId]) || !$item->arrival?->invoice_date) {
+                continue;
             }
+
+            $date = $item->arrival->invoice_date->format('Y-m-d');
+            $incomingData[$gciPartId][$date] = ($incomingData[$gciPartId][$date] ?? 0) + (float) $item->qty_goods;
         }
 
-        // Also include received quantities that might not be tied to a specific arrival
-        $receivedItems = Receive::with(['arrivalItem.part'])
-            ->join('arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
-            ->join('parts', 'arrival_items.part_id', '=', 'parts.id')
-            ->whereIn(DB::raw('UPPER(TRIM(parts.part_no))'), array_keys($gciPartNos))
-            ->whereBetween('receives.created_at', [$startDate, $endDate])
-            ->select('receives.*', 'parts.part_no', 'arrival_items.qty_goods')
+        // Also include received quantities by ata_date range
+        $receivedItems = IncomingReceive::query()
+            ->with('arrivalItem:id,gci_part_id')
+            ->whereHas('arrivalItem', function ($query) use ($partIds) {
+                $query->whereIn('gci_part_id', $partIds);
+            })
+            ->whereBetween('ata_date', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->select('id', 'arrival_item_id', 'qty', 'ata_date')
             ->get();
 
         foreach ($receivedItems as $receive) {
-            $partNo = strtoupper(trim($receive->arrivalItem->part->part_no));
-            $gciPartId = $gciPartNos[$partNo] ?? null;
-            
-            if ($gciPartId && isset($incomingData[$gciPartId])) {
-                $date = $receive->created_at->format('Y-m-d');
-                
-                if (!isset($incomingData[$gciPartId][$date])) {
-                    $incomingData[$gciPartId][$date] = 0;
-                }
-                
-                // Add the received quantity
-                $incomingData[$gciPartId][$date] += $receive->qty_received ?? 0;
+            $gciPartId = (int) ($receive->arrivalItem?->gci_part_id ?? 0);
+            if ($gciPartId <= 0 || !isset($incomingData[$gciPartId]) || !$receive->ata_date) {
+                continue;
             }
+
+            $date = $receive->ata_date->format('Y-m-d');
+            $incomingData[$gciPartId][$date] = ($incomingData[$gciPartId][$date] ?? 0) + (float) $receive->qty;
         }
 
         return $incomingData;

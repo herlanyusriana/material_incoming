@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\GciPart;
-use App\Models\Part;
+use App\Models\NewSchema\Core\VendorPart;
 
 class BomItem extends Model
 {
@@ -58,7 +58,7 @@ class BomItem extends Model
      */
     public function incomingPart()
     {
-        return $this->belongsTo(Part::class, 'incoming_part_id');
+        return $this->belongsTo(VendorPart::class, 'incoming_part_id');
     }
 
     public function substitutes()

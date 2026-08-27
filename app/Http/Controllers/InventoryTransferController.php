@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GciInventory;
-use App\Models\GciPart;
-use App\Models\Inventory;
 use App\Models\InventoryTransfer;
-use App\Models\Part;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryBinTransfer;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +20,7 @@ class InventoryTransferController extends Controller
      */
     public function index(Request $request)
     {
-        $transfers = InventoryTransfer::with(['part', 'gciPart', 'creator'])
+        $transfers = InventoryBinTransfer::with(['gciPart', 'createdBy'])
             ->orderBy('created_at', 'desc')
             ->paginate(50);
 
@@ -33,12 +32,10 @@ class InventoryTransferController extends Controller
      */
     public function create()
     {
-        // Get parts that have inventory
-        $parts = Part::whereHas('inventory', function ($q) {
-            $q->where('on_hand', '>', 0);
-        })->with('inventory')->get();
+        $parts = GciPart::whereHas('inventoryLocationStocks', function ($q) {
+            $q->where('qty_on_hand', '>', 0);
+        })->with('inventoryLocationStocks')->get();
 
-        // Get all GciParts for mapping
         $gciParts = GciPart::orderBy('part_no')->get();
 
         return view('inventory.transfers.create', compact('parts', 'gciParts'));
@@ -50,50 +47,69 @@ class InventoryTransferController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'part_id' => ['required', 'exists:parts,id'],
             'gci_part_id' => ['required', 'exists:gci_parts,id'],
+            'from_location_code' => ['required', 'string', 'max:50'],
+            'to_location_code' => ['required', 'string', 'max:50'],
             'qty' => ['required', 'numeric', 'min:0.0001'],
+            'batch_no' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         try {
             DB::transaction(function () use ($validated) {
-                $partId = $validated['part_id'];
-                $gciPartId = $validated['gci_part_id'];
+                $gciPartId = (int) $validated['gci_part_id'];
+                $fromLocation = strtoupper(trim($validated['from_location_code']));
+                $toLocation = strtoupper(trim($validated['to_location_code']));
                 $qty = (float) $validated['qty'];
+                $batchNo = (string) ($validated['batch_no'] ?? '');
 
-                // BLOCKADE: Validate part_no matches
-                $logisticsPart = Part::find($partId);
-                $productionPart = GciPart::find($gciPartId);
-                
-                if (!$logisticsPart || !$productionPart) {
-                    throw new \Exception('Part not found.');
-                }
-                
-                if (strtoupper(trim($logisticsPart->part_no)) !== strtoupper(trim($productionPart->part_no))) {
-                    throw new \Exception('Transfer blocked: Part numbers must match. Logistics: ' . $logisticsPart->part_no . ' ≠ Production: ' . $productionPart->part_no);
+                $available = InventoryLocationStock::getStockByLocation($gciPartId, $fromLocation, $batchNo);
+                if ($available < $qty) {
+                    throw new \Exception('Insufficient inventory at source location. Available: ' . $available);
                 }
 
-                // 1. Check source inventory
-                $sourceInv = Inventory::where('part_id', $partId)->lockForUpdate()->first();
-                if (!$sourceInv || $sourceInv->on_hand < $qty) {
-                    throw new \Exception('Insufficient inventory in logistics. Available: ' . ($sourceInv->on_hand ?? 0));
-                }
-
-                // 2. Decrement source
-                $sourceInv->decrement('on_hand', $qty);
-
-                // 3. Increment target
-                $targetInv = GciInventory::firstOrCreate(
-                    ['gci_part_id' => $gciPartId],
-                    ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()]
+                InventoryLocationStock::consumeStock(
+                    gciPartId: $gciPartId,
+                    locationCode: $fromLocation,
+                    qty: $qty,
+                    batchNo: $batchNo,
+                    transactionType: 'TRANSFER',
+                    sourceReference: 'BIN-TRANSFER',
+                    createdBy: Auth::id()
                 );
-                $targetInv->increment('on_hand', $qty);
-                $targetInv->update(['as_of_date' => now()]);
 
-                // 4. Log transfer
+                InventoryLocationStock::updateStock(
+                    gciPartId: $gciPartId,
+                    locationCode: $toLocation,
+                    qtyChange: $qty,
+                    batchNo: $batchNo,
+                    tag: null,
+                    transactionType: 'TRANSFER',
+                    sourceReference: 'BIN-TRANSFER',
+                    sourceReceiveId: null,
+                    sourceArrivalId: null,
+                    sourceInvoiceNo: null,
+                    sourceDeliveryNoteNo: null,
+                    weightKgm: null,
+                    createdBy: Auth::id()
+                );
+
+                InventoryBinTransfer::create([
+                    'transfer_no' => $this->generateTransferNo(),
+                    'gci_part_id' => $gciPartId,
+                    'from_location_code' => $fromLocation,
+                    'to_location_code' => $toLocation,
+                    'batch_no' => $batchNo,
+                    'qty_transferred' => $qty,
+                    'status' => 'completed',
+                    'transfer_type' => 'manual',
+                    'created_by' => Auth::id(),
+                    'completed_by' => Auth::id(),
+                    'completed_at' => now(),
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
                 InventoryTransfer::create([
-                    'part_id' => $partId,
                     'gci_part_id' => $gciPartId,
                     'qty' => $qty,
                     'transfer_type' => 'manual',
@@ -102,7 +118,7 @@ class InventoryTransferController extends Controller
                 ]);
             });
 
-            $this->logActivity('STORE InventoryTransfer', "part_id:{$validated['part_id']} -> gci_part_id:{$validated['gci_part_id']}", [
+            $this->logActivity('STORE InventoryTransfer', "gci_part_id:{$validated['gci_part_id']} -> {$validated['to_location_code']}", [
                 'qty' => $validated['qty'],
             ]);
 
@@ -111,7 +127,7 @@ class InventoryTransferController extends Controller
                 ->with('success', 'Inventory transferred successfully.');
         } catch (\Exception $e) {
             $this->logActivityError('STORE InventoryTransfer FAILED', $e->getMessage(), [
-                'part_id' => $validated['part_id'],
+                'gci_part_id' => $validated['gci_part_id'],
                 'qty' => $validated['qty'],
             ]);
             return back()
@@ -135,53 +151,66 @@ class InventoryTransferController extends Controller
 
         try {
             DB::transaction(function () use ($minQty, &$transferred, &$errors) {
-                // Find parts with matching part_no
-                $parts = Part::whereHas('inventory', function ($q) use ($minQty) {
-                    $q->where('on_hand', '>', $minQty);
-                })->with('inventory')->get();
+                $parts = GciPart::whereHas('inventoryLocationStocks', function ($q) use ($minQty) {
+                    $q->where('qty_on_hand', '>', $minQty);
+                })->with('inventoryLocationStocks')->get();
 
                 foreach ($parts as $part) {
-                    $gciPart = GciPart::where('part_no', $part->part_no)->first();
+                    foreach ($part->inventoryLocationStocks as $stock) {
+                        $qty = (float) $stock->qty_on_hand;
+                        if ($qty <= $minQty) {
+                            continue;
+                        }
 
-                    if (!$gciPart) {
-                        continue; // Skip if no matching GciPart
-                    }
+                        try {
+                            InventoryLocationStock::updateStock(
+                                gciPartId: (int) $part->id,
+                                locationCode: 'AA-BULK',
+                                qtyChange: $qty,
+                                batchNo: $stock->batch_no,
+                                tag: null,
+                                transactionType: 'AUTO_SYNC',
+                                sourceReference: 'AUTO-SYNC',
+                                sourceReceiveId: null,
+                                sourceArrivalId: null,
+                                sourceInvoiceNo: null,
+                                sourceDeliveryNoteNo: null,
+                                weightKgm: null,
+                                createdBy: Auth::id()
+                            );
 
-                    $qty = $part->inventory->on_hand;
-                    if ($qty <= $minQty) {
-                        continue;
-                    }
+                            InventoryBinTransfer::create([
+                                'transfer_no' => $this->generateTransferNo(),
+                                'gci_part_id' => $part->id,
+                                'from_location_code' => $stock->location_code,
+                                'to_location_code' => 'AA-BULK',
+                                'batch_no' => $stock->batch_no,
+                                'qty_transferred' => $qty,
+                                'status' => 'completed',
+                                'transfer_type' => 'auto',
+                                'created_by' => Auth::id(),
+                                'completed_by' => Auth::id(),
+                                'completed_at' => now(),
+                                'notes' => 'Auto-sync based on part_no matching',
+                            ]);
 
-                    try {
-                        // Decrement source
-                        $part->inventory->decrement('on_hand', $qty);
+                            InventoryTransfer::create([
+                                'gci_part_id' => $part->id,
+                                'qty' => $qty,
+                                'transfer_type' => 'auto',
+                                'created_by' => Auth::id(),
+                                'notes' => 'Auto-sync based on part_no matching',
+                            ]);
 
-                        // Increment target
-                        $targetInv = GciInventory::firstOrCreate(
-                            ['gci_part_id' => $gciPart->id],
-                            ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()]
-                        );
-                        $targetInv->increment('on_hand', $qty);
-                        $targetInv->update(['as_of_date' => now()]);
-
-                        // Log transfer
-                        InventoryTransfer::create([
-                            'part_id' => $part->id,
-                            'gci_part_id' => $gciPart->id,
-                            'qty' => $qty,
-                            'transfer_type' => 'auto',
-                            'created_by' => Auth::id(),
-                            'notes' => 'Auto-sync based on part_no matching',
-                        ]);
-
-                        $transferred++;
-                    } catch (\Exception $e) {
-                        $errors[] = "Failed to transfer {$part->part_no}: {$e->getMessage()}";
+                            $transferred++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to transfer {$part->part_no}: {$e->getMessage()}";
+                        }
                     }
                 }
             });
 
-            $message = "Auto-sync completed. Transferred {$transferred} parts.";
+            $message = "Auto-sync completed. Transferred {$transferred} location records.";
             if (!empty($errors)) {
                 $message .= ' Errors: ' . implode(', ', $errors);
             }
@@ -197,5 +226,12 @@ class InventoryTransferController extends Controller
             $this->logActivityError('AUTO-SYNC InventoryTransfer FAILED', $e->getMessage());
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+
+    private function generateTransferNo(): string
+    {
+        $date = now()->format('Ymd');
+        $last = InventoryBinTransfer::whereDate('created_at', today())->count();
+        return 'TRF-' . $date . '-' . str_pad((string) ($last + 1), 5, '0', STR_PAD_LEFT);
     }
 }

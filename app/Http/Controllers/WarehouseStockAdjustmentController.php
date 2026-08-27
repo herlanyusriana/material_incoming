@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GciPart;
-use App\Models\Inventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Inventory\InventoryStockMovement;
 use App\Models\LocationInventory;
-use App\Models\LocationInventoryAdjustment;
-use App\Models\Part;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;

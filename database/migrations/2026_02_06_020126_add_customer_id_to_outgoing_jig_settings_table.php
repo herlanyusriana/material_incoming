@@ -11,6 +11,9 @@ return new class extends Migration {
             // Drop old unique index referencing project_name
             $table->dropUnique(['line', 'project_name']);
 
+            // Drop single-column index first (MySQL auto-drops, SQLite needs explicit)
+            $table->dropIndex(['project_name']);
+
             // Drop column
             $table->dropColumn('project_name');
 

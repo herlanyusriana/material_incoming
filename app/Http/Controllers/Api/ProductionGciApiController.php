@@ -18,9 +18,8 @@ use App\Models\ProductionGciHourlyReport;
 use App\Models\ProductionGciDowntime;
 use App\Models\ProductionGciMaterialLot;
 use App\Models\Bom;
-use App\Models\GciPart;
-use App\Models\GciInventory;
-use App\Models\LocationInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\ContractNumberItem;
 use App\Models\SubconOrder;
 use App\Services\ProductionInventoryFlowService;
@@ -33,7 +32,7 @@ class ProductionGciApiController extends Controller
      * for WH RM supply while operators are training / WH discipline is being fixed.
      * Set to false to restore the normal material gate.
      */
-    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = true;
+    private const TEMP_ALLOW_START_WITHOUT_WH_SUPPLY = false;
 
     private const CLOSED_EXECUTION_STAGES = [
         'final_inspection',
@@ -593,24 +592,22 @@ class ProductionGciApiController extends Controller
                 $traceability = is_array($issueLine['traceability'] ?? null) ? $issueLine['traceability'] : [];
 
                 if ($consumeQty > 0 && $tagNo !== '' && $locationCode !== '' && ($partId > 0 || $gciPartId > 0)) {
-                    LocationInventory::consumeStock(
-                        $partId > 0 ? $partId : null,
-                        $locationCode,
-                        $consumeQty,
-                        $tagNo,
-                        $gciPartId > 0 ? $gciPartId : null,
-                        'PRODUCTION_BACKFLUSH',
-                        $sourceReference,
-                        array_merge(['source_tag' => $tagNo], $traceability)
-                    );
-                }
+                    $targetGciPartId = $gciPartId > 0 ? $gciPartId : null;
+                    if ($targetGciPartId === null && $partId > 0) {
+                        $targetGciPartId = GciPart::where('id', $partId)->value('id');
+                    }
 
-                if ($consumeQty > 0 && $gciPartId > 0) {
-                    $inventory = GciInventory::firstOrCreate(
-                        ['gci_part_id' => $gciPartId],
-                        ['on_hand' => 0, 'on_order' => 0, 'as_of_date' => now()->toDateString()]
-                    );
-                    $inventory->consume($consumeQty);
+                    if ($targetGciPartId) {
+                        InventoryLocationStock::consumeStock(
+                            (int) $targetGciPartId,
+                            $locationCode,
+                            $consumeQty,
+                            $tagNo,
+                            'PRODUCTION_BACKFLUSH',
+                            $sourceReference,
+                            auth()->id()
+                        );
+                    }
                 }
 
                 $issueLines[$index]['backflushed_qty'] = round($alreadyBackflushed + $consumeQty, 4);
@@ -745,7 +742,7 @@ class ProductionGciApiController extends Controller
 
             $part = $req['part'] ?? null;
             $needed = round((float) ($req['total_qty'] ?? 0), 4);
-            $onHand = (float) optional(GciInventory::query()->where('gci_part_id', $part?->id)->first())->on_hand;
+            $onHand = (float) InventoryLocationStock::where('gci_part_id', $part?->id)->sum('qty_on_hand');
 
             if ($onHand < $needed) {
                 return 'material_hold';
@@ -1053,7 +1050,7 @@ class ProductionGciApiController extends Controller
         $search = $request->query('search', '');
         $classification = $request->query('classification', 'RM');
 
-        $query = \App\Models\GciPart::where('status', 'active')
+        $query = GciPart::where('status', 'active')
             ->where('classification', $classification);
 
         if ($search) {
@@ -1841,7 +1838,7 @@ class ProductionGciApiController extends Controller
             return 0;
         }
 
-        return (float) LocationInventory::query()
+        return (float) InventoryLocationStock::query()
             ->where('gci_part_id', $part->id)
             ->sum('qty_on_hand');
     }
@@ -2711,21 +2708,14 @@ class ProductionGciApiController extends Controller
 
         $subconOrder = SubconOrder::create($payload);
 
-        LocationInventory::consumeStock(
-            null,
+        InventoryLocationStock::consumeStock(
+            (int) $rmPart->id,
             $sendLocation,
             $qtySent,
             null,
-            (int) $rmPart->id,
             'SUBCON_SEND',
             $subconOrder->order_no,
-            [
-                'production_order_id' => $order->id,
-                'production_order_number' => $order->production_order_number ?? $order->transaction_no,
-                'source_process_name' => $sourceProcess,
-                'target_process_name' => $targetProcess,
-            ],
-            (float) ($payload['weight_kgm'] ?? 0)
+            auth()->id()
         );
 
         return [
@@ -2839,12 +2829,7 @@ class ProductionGciApiController extends Controller
                 }
             }
 
-            // Create or add to FG inventory
-            $fgInventory = GciInventory::where('gci_part_id', $order->gci_part_id)->orderByDesc('id')->first();
-            if ($fgInventory) {
-                $fgInventory->on_hand += $finalActual;
-                $fgInventory->save();
-            }
+            // FG inventory is tracked in inventory_location_stock; physical supply is done via supplyFinishedGoodsToWarehouse.
         }
 
         $finishPayload = [
@@ -3038,21 +3023,20 @@ class ProductionGciApiController extends Controller
             $processContext['process_name'] ?? '-'
         );
 
-        LocationInventory::updateStock(
-            null,
+        InventoryLocationStock::updateStock(
+            (int) $wipPart->id,
             $locationCode,
             $qty,
             null,
-            now()->toDateString(),
-            (int) $wipPart->id,
+            null,
             'WIP_OUTPUT',
             $sourceReference,
-            [
-                'production_order_id' => $order->id,
-                'production_order_number' => $order->production_order_number,
-                'process_name' => $processContext['process_name'] ?? null,
-                'hourly_report_id' => $report?->id,
-            ]
+            null,
+            null,
+            null,
+            null,
+            null,
+            auth()->id()
         );
 
         return [
@@ -3115,21 +3099,14 @@ class ProductionGciApiController extends Controller
         );
 
         try {
-            LocationInventory::consumeStock(
-                null,
+            InventoryLocationStock::consumeStock(
+                (int) $previousPart->id,
                 'WIP-BYPASS',
                 $qty,
                 null,
-                (int) $previousPart->id,
                 'WIP_CONSUME',
                 $sourceReference,
-                [
-                    'production_order_id' => $order->id,
-                    'production_order_number' => $order->production_order_number,
-                    'from_wip_part_no' => $previousPartNo,
-                    'process_name' => $processName,
-                    'hourly_report_id' => $report?->id,
-                ]
+                auth()->id()
             );
         } catch (\Throwable $e) {
             Log::warning('Previous WIP consume skipped', [

@@ -45,19 +45,6 @@ class BomImportPreservesSubstitutesTest extends TestCase
             'status' => 'active',
         ]);
 
-        // Current migrations still keep bom_items.component_part_id FK to `parts` on sqlite.
-        // Insert a matching `parts` row so the FK passes in tests.
-        DB::table('parts')->insert([
-            'id' => $rm->id,
-            'part_no' => $rm->part_no,
-            'part_name_gci' => $rm->part_name,
-            'status' => 'active',
-            'uom' => 'PCS',
-            'quality_inspection' => 0,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
         $bomItem = BomItem::create([
             'bom_id' => $bom->id,
             'line_no' => 1,

@@ -13,7 +13,7 @@ class OutgoingDailyPlanningImportTest extends TestCase
 
         $rows = collect([
             collect(['No', 'LINE', 'PART NO', '2026-01-30 Seq', '2026-01-30 Qty']),
-            collect([1, 'NR1', '', 1, 10]),
+            collect([1, 'NR1', 'TP-9999', 1, 10]),
         ]);
 
         $import->collection($rows);

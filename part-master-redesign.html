@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part Master — Redesign UX v3</title>
+<style>
+  :root{--bg:#f4f6f9;--panel:#fff;--border:#e5e9f0;--border-2:#eef1f6;--text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
+    --primary:#4f46e5;--primary-hover:#4338ca;--primary-soft:#eef2ff;--primary-soft-2:#e0e7ff;
+    --emerald:#10b981;--emerald-soft:#ecfdf5;--emerald-txt:#047857;--rose:#f43f5e;--rose-soft:#fff1f2;--rose-txt:#be123c;
+    --amber:#f59e0b;--amber-soft:#fffbeb;--amber-txt:#b45309;--violet:#8b5cf6;--violet-soft:#f5f3ff;--violet-txt:#6d28d9;
+    --r-sm:8px;--r-md:10px;--r-lg:16px;--r-full:999px;--sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;--mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --shadow-sm:0 1px 2px rgba(15,23,42,.05);--shadow:0 1px 3px rgba(15,23,42,.08);--shadow-lg:0 12px 32px -8px rgba(15,23,42,.2)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  svg{display:block}button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}input,select{font-family:inherit;font-size:14px;color:var(--text)}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:7px}
+  .opbtn::after,.iconbtn::after,.pg::after,.xbtn::after{content:'';position:absolute;inset:-6px;border-radius:10px}
+  .opbtn,.iconbtn,.pg,.xbtn,.tab,.btn,.dtab{position:relative}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+
+  .shell{display:flex;min-height:100vh}
+  .sidebar{width:228px;flex-shrink:0;background:#0f172a;color:#94a3b8;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:10px;padding:20px 20px 16px;color:#fff;font-weight:700;font-size:17px}
+  .brand .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:grid;place-items:center;font-size:15px;font-weight:800;color:#fff}
+  .nav-label{padding:16px 20px 6px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#475569}
+  .nav a{display:flex;align-items:center;gap:11px;margin:2px 10px;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:500;color:#a7b4c7;text-decoration:none;transition:.15s}
+  .nav a:hover{background:rgba(255,255,255,.05);color:#e2e8f0}.nav a.active{background:rgba(99,102,241,.16);color:#fff;font-weight:600}
+  .nav a svg{width:18px;height:18px;color:#64748b}.nav a.active svg{color:#a5b4fc}
+  .sidebar .foot{margin-top:auto;padding:16px 20px;font-size:11.5px;color:#8294a8}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:20}
+  .crumb{font-size:13px;color:var(--text-2)}.crumb b{color:var(--text);font-weight:600}
+  .top-right{display:flex;align-items:center;gap:8px}.iconbtn{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;color:var(--text-2);transition:.15s}.iconbtn:hover{background:#f1f5f9;color:var(--text)}
+  .avatar{width:36px;height:36px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-size:12px;font-weight:700;color:#475569}
+
+  .content{padding:24px;max-width:1200px;margin:0 auto;width:100%}
+  .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:16px}
+  .page-head h1{font-size:22px;font-weight:800;letter-spacing:-.02em}.page-head p{color:var(--text-2);font-size:13.5px;margin-top:2px}
+  .actions{display:flex;align-items:center;gap:8px}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;font-size:13.5px;font-weight:600;transition:.15s;white-space:nowrap}
+  .btn svg{width:16px;height:16px}
+  .btn-ghost{background:#fff;border:1px solid var(--border);color:var(--text-2)}.btn-ghost:hover{border-color:#cbd5e1;background:#f8fafc;color:var(--text)}
+  .btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 12px -2px rgba(79,70,229,.4)}.btn-primary:hover{background:var(--primary-hover)}
+  .stack{display:flex;flex-direction:column;gap:16px}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;display:flex;align-items:flex-start;gap:12px;box-shadow:var(--shadow-sm)}
+  .stat .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex-shrink:0}.stat .ic svg{width:19px;height:19px}
+  .stat .num{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1}.stat .lbl{font-size:12px;color:var(--text-2);margin-top:2px}
+  .ic-indigo,.ic-emerald,.ic-rose,.ic-amber{background:#f1f5f9;color:#475569}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+  .tabs{display:flex;flex-wrap:wrap;gap:2px;padding:0 14px;border-bottom:1px solid var(--border-2)}
+  .tab{padding:13px 13px 11px;font-size:13.5px;font-weight:600;color:var(--text-2);border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:7px;margin-bottom:-1px;transition:.15s}
+  .tab:hover{color:var(--text)}.tab.active{color:var(--primary);border-color:var(--primary)}
+  .tab .cnt{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:var(--r-full);background:#f1f5f9;color:#64748b}.tab.active .cnt{background:var(--primary-soft);color:var(--primary)}
+
+  .toolbar{padding:14px}
+  .toolbar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .search{position:relative;flex:1;min-width:220px;max-width:400px}
+  .search .s-ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3);width:16px;height:16px}
+  .search input{width:100%;background:#f8fafc;border:1px solid var(--border);border-radius:11px;padding:8px 34px 8px 34px;outline:none;transition:.15s}
+  .search input:focus{background:#fff;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px}
+  thead th{position:sticky;top:0;background:#f8fafc;text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap;z-index:1}
+  thead th.r{text-align:right}thead th.c{text-align:center}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+  tbody tr.row{transition:background .12s}tbody tr.row:hover{background:#f8fafc}
+  td .cell{display:flex;align-items:center;gap:10px;min-width:0}
+  .typechip{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:9px;font-weight:800;flex-shrink:0}
+  .col-main{min-width:0}.col-main .no{font-family:var(--mono);font-weight:700;color:var(--text);font-size:13px;line-height:1.3;white-space:nowrap}
+  .col-main .nm{font-size:12px;color:var(--text-2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:var(--r-full);font-size:11.5px;font-weight:600}.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .b-active{background:var(--emerald-soft);color:var(--emerald-txt)}.b-inactive{background:#f1f5f9;color:#475569}
+  .count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 7px;border-radius:var(--r-full);font-size:11.5px;font-weight:700}
+  .cb-on{background:var(--text);color:#fff}.cb-off{background:#f1f5f9;color:var(--text-3)}
+  .rowops{display:flex;align-items:center;justify-content:flex-end;gap:2px}
+  .opbtn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--text-3);transition:.13s}.opbtn svg{width:15px;height:15px}
+  .opbtn:hover{background:#f1f5f9;color:var(--text)}.opbtn.edit:hover{background:var(--primary-soft);color:var(--primary)}.opbtn.vend:hover{background:var(--emerald-soft);color:var(--emerald-txt)}.opbtn.del:hover{background:var(--rose-soft);color:var(--rose-txt)}
+  .pagi{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px 16px;border-top:1px solid var(--border-2)}
+  .pagi .info{font-size:12.5px;color:var(--text-2)}.pager{display:flex;align-items:center;gap:3px}
+  .pg{min-width:30px;height:30px;padding:0 8px;border-radius:8px;display:grid;place-items:center;font-size:12.5px;font-weight:600;color:var(--text-2)}.pg:hover{background:#f1f5f9;color:var(--text)}.pg.cur{background:var(--text);color:#fff;font-weight:700}
+
+  /* ===== Quick-create modal ===== */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+  .overlay.show{display:flex}
+  .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);width:100%;max-width:520px;overflow:hidden}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+  .modal-head h2{font-size:16px;font-weight:700}.modal-head p{font-size:12px;color:var(--text-3);margin-top:1px}
+  .xbtn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--text-3)}.xbtn:hover{background:#f1f5f9;color:var(--text)}
+  .modal-body{padding:18px 20px}.lbl{display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px}.lbl .req{color:var(--rose)}
+  input.field{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:10px;outline:none;font-size:13.5px;transition:.15s}
+  input.field:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  .note{margin-top:12px;font-size:12px;color:var(--text-3);background:#f8fafc;border:1px solid var(--border);border-radius:9px;padding:8px 11px}
+  .modal-foot{display:flex;justify-content:flex-end;gap:9px;padding:14px 20px;border-top:1px solid var(--border)}
+  .btn-cancel{padding:8px 14px;border:1px solid var(--border);background:#fff;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--text-2)}.btn-cancel:hover{background:#f8fafc;color:var(--text)}
+  /* toast */
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none;z-index:60;box-shadow:var(--shadow-lg)}
+
+  /* ===== Slide-over detail panel ===== */
+  .drawer-wrap{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40;display:none}
+  .drawer-wrap.show{display:block}
+  .drawer{position:absolute;top:0;right:0;height:100%;width:440px;max-width:92vw;background:#fff;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;border-radius:16px 0 0 16px}
+  .drawer-wrap.show .drawer{transform:translateX(0)}
+  .drawer-head{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
+  .drawer-head h2{font-size:15px;font-weight:700}.drawer-head .sub{font-size:12px;color:var(--text-2);margin-top:2px}
+  .drawer-head .code{font-family:var(--mono);font-weight:700;color:var(--primary)}
+  .drawer-tabs{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--border-2)}
+  .dtab{flex:1;text-align:center;padding:11px 6px;font-size:12.5px;font-weight:600;color:var(--text-2);border-bottom:2px solid transparent;transition:.15s}
+  .dtab:hover{color:var(--text)}.dtab.active{color:var(--primary);border-color:var(--primary)}
+  .drawer-body{padding:16px 18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px}
+  .drawer-foot{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;border-top:1px solid var(--border)}
+  .sec-title{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:9px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid2 .full{grid-column:1/-1}
+  .pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:17px 12px}
+  .polcards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .polcard{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--border);border-radius:11px;padding:9px 10px;cursor:pointer;transition:.15s}.polcard:hover{border-color:#cbd5e1}
+  .polcard input{margin-top:2px;accent-color:var(--primary)}.polcard .t{font-size:12.5px;font-weight:600}.polcard .d{font-size:11px;color:var(--text-3);margin-top:1px}
+  /* vendor picker */
+  .vsearch{position:relative}.vsearch input{width:100%;padding:8px 11px 8px 33px;border:1px solid var(--border);border-radius:10px;outline:none;font-size:13px}
+  .vsearch input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}.vsearch svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text-3)}
+  .selected-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .s-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 10px;border-radius:var(--r-full);background:var(--primary-soft);color:var(--primary);font-size:12px;font-weight:600}
+  .s-chip .x{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;color:var(--primary)}.s-chip .x:hover{background:var(--primary-soft-2)}
+  .vlist{margin-top:9px;border:1px solid var(--border);border-radius:10px;max-height:150px;overflow-y:auto;display:flex;flex-direction:column}
+  .vitem{display:flex;align-items:center;gap:10px;padding:7px 11px;cursor:pointer}.vitem:hover{background:#f8fafc}.vitem+.vitem{border-top:1px solid var(--border-2)}
+  .vitem input{width:15px;height:15px;accent-color:var(--primary)}
+  /* linked vendor mini-table */
+  .linked{border:1px solid var(--border);border-radius:11px;overflow:hidden}
+  .linked .head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#f1f5f9;font-size:11px;font-weight:700;color:var(--text-2)}
+  .linked table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .linked td{padding:8px 12px;border-top:1px solid var(--border-2);color:var(--text-2)}
+  .linked .m{font-family:var(--mono);font-size:12px}.linked .ed{color:var(--primary);font-weight:600}
+  /* toggle */
+  .switch{position:relative;width:40px;height:22px;border-radius:var(--r-full);background:#cbd5e1;transition:.18s}.switch.on{background:var(--primary)}
+  .switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.18s}.switch.on .knob{left:20px}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid var(--border);border-radius:11px}
+  .toggle-row .t{font-size:13px;font-weight:600}
+  @media(max-width:900px){.sidebar{display:none}.stats{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.stats{grid-template-columns:1fr}.content{padding:16px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">G</span> GCI</div>
+    <div class="nav-label">Master Data</div>
+    <nav class="nav">
+      <a class="active" href="#"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>Part Master</a>
+      <a href="#"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11a4 4 0 10-8 0m8 0a4 4 0 01-8 0m-2 9a7 7 0 0112 0"/></svg>Vendor</a>
+      <a href="#"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2a4 4 0 00-8 0v2M9 6a3 3 0 116 0 3 3 0 01-6 0z"/></svg>Customer</a>
+      <a href="#"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V6a2 2 0 012-2h9M4 19h16V11m-4 8h-4m0-9h0a4 4 0 100 8h0a4 4 0 000-8z"/></svg>BOM</a>
+    </nav>
+    <div class="nav-label">Operasional</div>
+    <nav class="nav">
+      <a href="#"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M3 12h18M3 18h18"/></svg>Incoming</a>
+      <a href="#"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.6a1 1 0 01.7.3l5.4 5.4a1 1 0 01.3.7V19a2 2 0 01-2 2z"/></svg>Picking</a>
+      <a href="#"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8m0 0h-5m5 0v5"/></svg>Outgoing</a>
+    </nav>
+    <div class="foot">v1.69 ▪ ERP</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">Master Data <span style="color:#cbd5e1">/</span> <b>Part Master</b></div>
+      <div class="top-right"><button class="iconbtn"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="19" height="19"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5M6 18v1a2 2 0 002 2h0a2 2 0 002-2v-1"/></svg></button><div class="avatar">AD</div></div>
+    </header>
+    <main class="content">
+      <div class="page-head">
+        <div><h1>Part Master</h1><p>Kelola semua part — Raw Material, Finished Goods, WIP &amp; Substitute dalam satu tempat.</p></div>
+        <div class="actions">
+          <button class="btn btn-ghost"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7 9m0 0 5 5m0 0 5-5m-5 5V3"/></svg>Export</button>
+          <button class="btn btn-ghost"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7 15l5-5m0 0 5 5m-5-5V3"/></svg>Import</button>
+          <button class="btn btn-primary" onclick="openCreate()"><svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>Tambah Part</button>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="stats">
+          <div class="stat"><span class="ic ic-indigo"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg></span><div><div class="num">6.42K</div><div class="lbl">Total Part</div></div></div>
+          <div class="stat"><span class="ic ic-emerald"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span><div><div class="num">5.87K</div><div class="lbl">Active</div></div></div>
+          <div class="stat"><span class="ic ic-rose"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.36 6.64A9 9 0 115.64 6.64A9 9 0 0118.36 6.64z"/></svg></span><div><div class="num">548</div><div class="lbl">Inactive</div></div></div>
+          <div class="stat"><span class="ic ic-amber"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2 2 0 11-4 0 2 2 0 014 0zM12 12a2 2 0 11-4 0 2 2 0 014 0zM3 12a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span><div><div class="num">1.28K</div><div class="lbl">Vendor Terhubung</div></div></div>
+        </div>
+
+        <section class="card">
+          <div class="tabs" id="tabs"></div>
+          <div class="toolbar"><div class="toolbar-row">
+            <div class="search"><svg class="s-ic" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 17a6 6 0 100-12 6 6 0 000 12z"/></svg><input id="q" placeholder="Cari kode / nama / vendor..."></div>
+            <button class="btn btn-ghost" style="padding:8px 12px">Filter</button>
+            <button class="btn btn-ghost"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>Bulk</button>
+          </div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th style="width:44px"><input type="checkbox" style="accent-color:var(--primary)"></th><th>Part</th><th>Status</th><th>Material Policy</th><th>Vendor</th><th class="r">Aksi</th></tr></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagi"><div class="info">Menampilkan <b>1–8</b> dari <b>6.42K</b> part</div><div class="pager"><button class="pg">1</button><button class="pg">2</button><button class="pg">3</button><span style="color:var(--text-3)">…</span><button class="pg">12</button></div></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Quick create -->
+<div class="overlay" id="createOv">
+  <div class="modal">
+    <div class="modal-head"><div><h2>Tambah Part</h2><p>Cepat — hanya butuh info inti part.</p></div><button class="xbtn" onclick="closeCreate()"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="17" height="17"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg></button></div>
+    <div class="modal-body">
+      <div class="pgrid">
+        <div><label class="lbl">Kode Part <span class="req">*</span></label><input class="field" id="cno" placeholder="CN-4020" autofocus></div>
+        <div><label class="lbl">Tipe <span class="req">*</span></label><select class="field" id="ctype"><option value="RM">Raw Material</option><option value="FG">Finished Goods</option><option value="WIP">Work in Progress</option></select></div>
+        <div style="grid-column:1/-1"><label class="lbl">Nama Part</label><input class="field" id="cname" placeholder="Cold Rolled Steel Sheet 1.2mm"></div>
+      </div>
+      <div class="note">💡 Detail vendor, subcount, substitute &amp; kebijakan material bisa kamu tambahkan nanti dari tombol <b>Kelola</b> di baris part ini.</div>
+    </div>
+    <div class="modal-foot"><button class="btn-cancel" onclick="closeCreate()">Batal</button><button class="btn btn-primary" onclick="saveCreate()">Simpan Part</button></div>
+  </div>
+</div>
+
+<!-- Slide-over detail (Kelola/Edit) -->
+<div class="drawer-wrap" id="drawerWrap">
+  <div class="drawer">
+    <div class="drawer-head">
+      <div><h2>Kelola Part</h2><div class="sub" id="dtitle"></div></div>
+      <button class="xbtn" onclick="closeDrawer()"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="17" height="17"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="drawer-tabs">
+      <button class="dtab active" data-tab="info" onclick="dtab('info')">Info</button>
+      <button class="dtab" data-tab="vendor" onclick="dtab('vendor')">Vendor</button>
+      <button class="dtab" data-tab="sub" onclick="dtab('sub')">Subcount</button>
+      <button class="dtab" data-tab="policy" onclick="dtab('policy')">Policy</button>
+    </div>
+    <div class="drawer-body">
+      <!-- Info -->
+      <div id="tab-info">
+        <div class="sec-title">Informasi Part</div>
+        <div class="pgrid">
+          <div><label class="lbl">Kode Part <span class="req">*</span></label><input class="field" value="CN-4020"></div>
+          <div><label class="lbl">Tipe</label><input class="field" value="Raw Material" disabled style="background:#f1f5f9"></div>
+          <div style="grid-column:1/-1"><label class="lbl">Nama Part</label><input class="field" value="Cold Rolled Steel Sheet 1.2mm"></div>
+          <div><label class="lbl">Ukuran</label><input class="field" value="100 x 50 x 2 mm"></div>
+          <div><label class="lbl">Model</label><input class="field" placeholder="—"></div>
+          <div><label class="lbl">Status</label><select class="field"><option>Active</option><option>Inactive</option></select></div>
+        </div>
+      </div>
+      <!-- Vendor -->
+      <div id="tab-vendor" style="display:none">
+        <div class="sec-title">Vendor Terkait</div>
+        <div class="vsearch"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 17a6 6 0 100-12 6 6 0 000 12z"/></svg><input placeholder="Cari vendor..."></div>
+        <div class="selected-chips" id="selchips"></div>
+        <div class="vlist" id="vendlist"></div>
+        <div style="margin-top:16px"><div class="sec-title">Detail Vendor Terhubung</div>
+          <div class="linked"><div class="head">2 vendor <button style="font-size:12px;color:var(--primary);font-weight:600">+ Tambah Vendor</button></div>
+            <table><tr><td style="width:40%"><b>PT Sumber Steel</b></td><td class="m">SS-4020</td><td class="ed">Edit</td></tr><tr><td><b>CV Aksara Metal</b></td><td class="m">AM-4020X</td><td class="ed">Edit</td></tr></table>
+          </div>
+        </div>
+      </div>
+      <!-- Subcount -->
+      <div id="tab-sub" style="display:none">
+        <div class="sec-title">Subcount</div>
+        <div class="toggle-row"><div class="t">Aktifkan subcount</div><div class="switch" id="sw" onclick="toggleSw()"><span class="knob"></span></div></div>
+        <div class="pgrid" id="subfields" style="opacity:.45;cursor:not-allowed">
+          <div><label class="lbl">FG / Parent</label><select class="field" disabled><option>Part ini sebagai parent</option><option>FG-CAB-202 – Cabinet Body</option></select></div>
+          <div><label class="lbl">RM / Asal</label><select class="field" disabled><option>Part ini sendiri</option><option>CN-4020 – Cold Rolled 1.2mm</option></select></div>
+          <div><label class="lbl">UOM</label><input class="field" value="PCS" disabled></div>
+          <div><label class="lbl">Process</label><input class="field" placeholder="—" disabled></div>
+        </div>
+      </div>
+      <!-- Policy -->
+      <div id="tab-policy" style="display:none">
+        <div class="sec-title">Kebijakan Material</div>
+        <div class="polcards">
+          <label class="polcard"><input type="radio" name="pol" value="backflush_return" checked><div><div class="t">Balik Sisa</div><div class="d">Return ke gudang</div></div></label>
+          <label class="polcard"><input type="radio" name="pol" value="direct_issue"><div><div class="t">Pakai Habis</div><div class="d">Issue langsung</div></div></label>
+          <label class="polcard"><input type="radio" name="pol" value="backflush_line_stock"><div><div class="t">Simpan di Line</div><div class="d">Stock di line</div></div></label>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-foot"><button class="btn-cancel" onclick="closeDrawer()">Batal</button><button class="btn btn-primary" onclick="closeDrawer()">Simpan</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PARTS=[
+  {id:1,no:'CN-4020',name:'Cold Rolled Steel Sheet 1.2mm',type:'RM',status:'active',policy:'backflush_return',conf:true,vendors:2},
+  {id:2,no:'PL-8801',name:'HD Film Wrapping 250m',type:'RM',status:'active',policy:'direct_issue',conf:true,vendors:1},
+  {id:3,no:'NUT-500',name:'Pallet Kayu 120x100',type:'RM',status:'inactive',policy:'backflush_line_stock',conf:false,vendors:0},
+  {id:4,no:'FG-CAB-202',name:'Cabinet Body E-202',type:'FG',status:'active',policy:'backflush_return',conf:true,vendors:0},
+  {id:5,no:'FG-DR-015',name:'Door Panel 15mm',type:'FG',status:'active',policy:'direct_issue',conf:false,vendors:0},
+  {id:6,no:'WIP-FR-010',name:'Frame Assembly 10',type:'WIP',status:'active',policy:'backflush_return',conf:true,vendors:0},
+  {id:7,no:'SUB-STEEL-2B',name:'Substitute Steel 2B Finish',type:'SUB',status:'active',policy:'direct_issue',conf:true,vendors:0},
+  {id:8,no:'CN-4021',name:'Cold Rolled Steel Sheet 1.5mm',type:'RM',status:'active',policy:'backflush_return',conf:false,vendors:1},
+];
+const VENDORS=['PT Sumber Steel','CV Aksara Metal','PT Mitra Plastindo','CV Karya Baja'];
+let tab='RM',q='',vendSel=[];
+const $=id=>document.getElementById(id);
+const ic=(p)=>'<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="15" height="15">'+p+'</svg>';
+const IC={edit:'<path stroke-linecap="round" stroke-linejoin="round" d="M16.86 4.49a1.9 1.9 0 113 3L8 19l-4 1 1-4L16.86 4.49z"/>',vend:'<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2a4 4 0 00-8 0v2M9 6a3 3 0 116 0 3 3 0 01-6 0z"/>',del:'<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.87 12.14A2 2 0 0116.14 21H7.86a2 2 0 01-1.99-1.86L5 7m5 4v6m4-6v6M10 4h4M9 4V2h6v2"/>'};
+const TYPECS={RM:'background:#f1f5f9;color:#475569',FG:'background:#f1f5f9;color:#475569',WIP:'background:#f1f5f9;color:#475569',SUB:'background:#f1f5f9;color:#475569'};
+const POL={backflush_return:['Balik Sisa','#f1f5f9','#475569'],direct_issue:['Pakai Habis','#f1f5f9','#475569'],backflush_line_stock:['Simpan di Line','#f1f5f9','#475569']};
+let currentId=1;
+
+function renderTabs(){
+  const T=[['RM','Raw Material','4.1K'],['FG','Finished Goods','1.9K'],['WIP','WIP','260'],['SUB','Substitute','180']];
+  $('tabs').innerHTML=T.map(t=>'<button class="tab '+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';renderTabs();renderTable()">'+t[1]+'<span class="cnt">'+t[2]+'</span></button>').join('');
+}
+function renderTable(){
+  const d=PARTS.filter(p=>p.type===tab&&(!q||(p.no+p.name).toLowerCase().includes(q)));
+  $('tbody').innerHTML=d.map(p=>{const pl=POL[p.policy];
+    return '<tr class="row"><td style="padding-left:14px"><input type="checkbox" style="accent-color:var(--primary)"></td>'+
+    '<td><div class="cell"><span class="typechip" style="'+TYPECS[p.type]+'">'+p.type+'</span><div class="col-main"><div class="no">'+p.no+'</div><div class="nm">'+p.name+'</div></div></div></td>'+
+    '<td><span class="badge '+(p.status==='active'?'b-active':'b-inactive')+'"><span class="dot"></span>'+p.status+'</span></td>'+
+    '<td><span class="badge" style="background:'+pl[1]+';color:'+pl[2]+'">'+pl[0]+'</span></td>'+
+    '<td><span class="count-badge '+(p.vendors?'cb-on':'cb-off')+'">'+p.vendors+'</span></td>'+
+    '<td class="r"><div class="rowops"><button class="opbtn" title="Kelola" onclick="openDrawer('+p.id+')">'+ic(IC.edit)+'</button><button class="opbtn vend" title="Tambah Vendor">'+ic(IC.vend)+'</button><button class="opbtn del" title="Hapus">'+ic(IC.del)+'</button></div></td></tr>';
+  }).join('');
+}
+const T=[['RM','Raw Material','4.1K'],['FG','Finished Goods','1.9K'],['WIP','WIP','260'],['SUB','Substitute','180']];
+renderTabs();renderTable();
+
+$('q').addEventListener('input',e=>{q=e.target.value.toLowerCase();renderTable();});
+
+/* create */
+function openCreate(){$('createOv').classList.add('show');setTimeout(()=>$('cno').focus(),50)}
+function closeCreate(){$('createOv').classList.remove('show')}
+function saveCreate(){const no=$('cno').value.trim();if(!no){toast('Kode part wajib diisi');return}PARTS.push({id:100,no,name:$('cname').value,type:$('ctype').value,status:'active',policy:'backflush_return',conf:false,vendors:0});closeCreate();renderTable();toast('Part '+no+' berhasil ditambahkan')}
+
+/* drawer */
+function openDrawer(id){currentId=id;const p=PARTS.find(x=>x.id===id);$('dtitle').innerHTML='<span class="code">'+p.no+'</span> · '+p.name;renderVend();$('drawerWrap').classList.add('show')}
+function closeDrawer(){$('drawerWrap').classList.remove('show')}
+function dtab(t){document.querySelectorAll('.dtab').forEach(x=>x.classList.remove('active'));for(const k of['info','vendor','sub','policy']){$('tab-'+k).style.display=k===t?'':'none'}document.querySelector('.dtab[data-tab="'+t+'"]').classList.add('active')}
+function toggleSw(){const on=$('sw').classList.toggle('on');const f=$('subfields');f.style.opacity=on?'1':'.45';f.style.cursor=on?'':'not-allowed';f.querySelectorAll('input,select').forEach(i=>i.disabled=!on)}
+function renderVend(){const chips=vendSel.map(v=>'<span class="s-chip">'+v+'<button class="x" onclick="rmVend(\''+v+'\')"><svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="10" height="10"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg></button></span>').join('');$('selchips').innerHTML=chips;
+  $('vendlist').innerHTML=VENDORS.filter(v=>!vendSel.includes(v)).map(v=>'<label class="vitem"><input type="checkbox" onchange="addVend(\''+v+'\',this.checked)"><span>'+v+'</span></label>').join('')}
+function addVend(v,on){if(on&&!vendSel.includes(v))vendSel.push(v);if(!on)vendSel=vendSel.filter(x=>x!==v);renderVend()}
+function rmVend(v){vendSel=vendSel.filter(x=>x!==v);renderVend()}
+
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(window._tt);window._tt=setTimeout(()=>t.style.display='none',2600)}
+</script>
+</body>
+</html>

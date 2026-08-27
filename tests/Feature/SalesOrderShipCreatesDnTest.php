@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
-use App\Models\DeliveryNote;
-use App\Models\DnItem;
-use App\Models\FgInventory;
 use App\Models\GciPart;
-use App\Models\DeliveryOrder;
-use App\Models\DeliveryOrderItem;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryNote;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryNoteItem;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryOrder;
+use App\Models\NewSchema\Outgoing\OutgoingDeliveryOrderItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -32,27 +32,24 @@ class SalesOrderShipCreatesDnTest extends TestCase
             'part_name' => 'FG 001',
             'classification' => 'FG',
             'status' => 'active',
+            'default_location' => 'LT-01',
         ]);
 
-        $do = DeliveryOrder::create([
+        $do = OutgoingDeliveryOrder::create([
             'do_no' => 'DO-TEST-1',
             'customer_id' => $customer->id,
-            'do_date' => now()->toDateString(),
-            'status' => 'draft',
+            'order_date' => now()->toDateString(),
             'created_by' => $user->id,
         ]);
 
-        $item = DeliveryOrderItem::create([
+        $item = OutgoingDeliveryOrderItem::create([
             'delivery_order_id' => $do->id,
             'gci_part_id' => $part->id,
             'qty_ordered' => 10,
-            'qty_shipped' => 0,
+            'qty_delivered' => 0,
         ]);
 
-        FgInventory::create([
-            'gci_part_id' => $part->id,
-            'qty_on_hand' => 100,
-        ]);
+        InventoryLocationStock::updateStock($part->id, 'LT-01', 100, tag: 'INIT', transactionType: 'RECEIVE');
 
         $this->actingAs($user)
             ->post(route('outgoing.delivery-orders.ship', $do), [
@@ -64,15 +61,21 @@ class SalesOrderShipCreatesDnTest extends TestCase
 
         $do->refresh();
         $item->refresh();
-        $this->assertSame('partial_shipped', $do->status);
-        $this->assertSame(4.0, (float) $item->qty_shipped);
+        $this->assertSame('partial', $do->status);
+        $this->assertSame(4.0, (float) $item->qty_delivered);
 
-        $dn1 = DeliveryNote::query()->where('delivery_order_id', $do->id)->first();
-        $this->assertNotNull($dn1);
-        $this->assertSame('shipped', $dn1->status);
-        $this->assertTrue(DnItem::query()->where('dn_id', $dn1->id)->where('gci_part_id', $part->id)->where('qty', 4)->exists());
+        $dn = OutgoingDeliveryNote::query()->where('customer_id', $customer->id)->latest('id')->first();
+        $this->assertNotNull($dn);
+        $this->assertSame('loaded', $dn->status);
+        $this->assertTrue(
+            OutgoingDeliveryNoteItem::query()
+                ->where('delivery_note_id', $dn->id)
+                ->where('gci_part_id', $part->id)
+                ->where('qty_delivered', 4)
+                ->exists()
+        );
 
-        $this->assertSame(96.0, (float) FgInventory::where('gci_part_id', $part->id)->value('qty_on_hand'));
+        $this->assertSame(96.0, InventoryLocationStock::getStockByLocation($part->id, 'LT-01'));
 
         $this->actingAs($user)
             ->post(route('outgoing.delivery-orders.ship', $do), [
@@ -84,11 +87,10 @@ class SalesOrderShipCreatesDnTest extends TestCase
 
         $do->refresh();
         $item->refresh();
-        $this->assertSame('shipped', $do->status);
-        $this->assertSame(10.0, (float) $item->qty_shipped);
+        $this->assertSame('delivered', $do->status);
+        $this->assertSame(10.0, (float) $item->qty_delivered);
 
-        $this->assertSame(90.0, (float) FgInventory::where('gci_part_id', $part->id)->value('qty_on_hand'));
-        $this->assertSame(2, DeliveryNote::query()->where('delivery_order_id', $do->id)->count());
+        $this->assertSame(90.0, InventoryLocationStock::getStockByLocation($part->id, 'LT-01'));
+        $this->assertSame(2, OutgoingDeliveryNote::query()->count());
     }
 }
-

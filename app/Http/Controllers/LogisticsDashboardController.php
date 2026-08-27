@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Arrival;
-use App\Models\BinTransfer;
-use App\Models\LocationInventory;
-use App\Models\Receive;
+use App\Models\NewSchema\Incoming\IncomingArrival;
+use App\Models\NewSchema\Incoming\IncomingReceive;
+use App\Models\NewSchema\Inventory\InventoryBinTransfer;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +13,7 @@ class LogisticsDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $pendingArrivals = Arrival::with(['vendor', 'items.receives'])
+        $pendingArrivals = IncomingArrival::with(['vendor', 'items.receives'])
             ->latest()
             ->limit(20)
             ->get()
@@ -28,18 +28,18 @@ class LogisticsDashboardController extends Controller
             ->filter(fn ($arrival) => (float) ($arrival->remaining_qty ?? 0) > 0)
             ->values();
 
-        $qcCounts = Receive::query()
+        $qcCounts = IncomingReceive::query()
             ->select('qc_status', DB::raw('COUNT(*) as total'))
             ->groupBy('qc_status')
             ->pluck('total', 'qc_status')
             ->all();
 
-        $recentReceives = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+        $recentReceives = IncomingReceive::with(['arrivalItem.gciPart', 'arrivalItem.arrival.vendor'])
             ->latest()
             ->limit(10)
             ->get();
 
-        $topLocations = LocationInventory::query()
+        $topLocations = InventoryLocationStock::query()
             ->selectRaw('location_code, SUM(qty_on_hand) as total_qty')
             ->where('qty_on_hand', '>', 0)
             ->groupBy('location_code')
@@ -47,7 +47,7 @@ class LogisticsDashboardController extends Controller
             ->limit(10)
             ->get();
 
-        $recentBinTransfers = BinTransfer::with(['part', 'fromLocation', 'toLocation', 'creator'])
+        $recentBinTransfers = InventoryBinTransfer::with(['gciPart', 'createdBy'])
             ->latest()
             ->limit(10)
             ->get();
@@ -61,4 +61,3 @@ class LogisticsDashboardController extends Controller
         ));
     }
 }
-

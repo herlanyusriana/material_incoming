@@ -6,9 +6,9 @@ use App\Models\BomItem;
 use App\Models\Bom;
 use App\Models\ContractNumber;
 use App\Models\ContractNumberItem;
-use App\Models\GciPart;
-use App\Models\LocationInventory;
-use App\Models\LocationInventoryAdjustment;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Inventory\InventoryStockMovement;
 use App\Models\PricingMaster;
 use App\Models\ProductionInspection;
 use App\Models\ProductionOrder;
@@ -325,22 +325,21 @@ class SubconController extends Controller
                     $rmPart = GciPart::query()->findOrFail((int) $item['rm_gci_part_id']);
                     $resolvedSendLocation = strtoupper(trim((string) ($item['send_location_code'] ?? '')));
                     if ($resolvedSendLocation === '') {
-                        // User left it blank -> "pull from anywhere" dummy code
                         $resolvedSendLocation = 'WIP-BYPASS';
                     }
-                    
+
                     // Quantity Limit check against master contract
                     if ($masterContract && $masterContract->items->isNotEmpty()) {
                         $matchedItem = $masterContract->items->first(function($i) use ($item) {
-                            return $i->gci_part_id == $item['gci_part_id'] && 
-                                   $i->rm_gci_part_id == $item['rm_gci_part_id'] && 
+                            return $i->gci_part_id == $item['gci_part_id'] &&
+                                   $i->rm_gci_part_id == $item['rm_gci_part_id'] &&
                                    $i->process_type === $item['process_type'];
                         });
-                        
+
                         if (!$matchedItem) {
                             throw new \RuntimeException('Part/Proses belum dipetakan (mapping) di dalam Kontrak No: ' . $contractNo);
                         }
-                        
+
                         if ($qtySent > (int) floor((float) $matchedItem->remaining_qty)) {
                             throw new \RuntimeException("Qty dikirim (" . number_format($qtySent) . ") untuk RM " . ($rmPart->part_no ?? '-') . " melebihi sisa kontrak (" . number_format((float) $matchedItem->remaining_qty) . ").");
                         }
@@ -370,16 +369,14 @@ class SubconController extends Controller
                     $order = SubconOrder::create($payload);
 
                     if ($resolvedSendLocation !== 'WIP-BYPASS') {
-                        LocationInventory::consumeStock(
-                            null,
-                            $resolvedSendLocation,
-                            (float) $qtySent,
-                            null,
-                            (int) $item['rm_gci_part_id'],
-                            'SUBCON_SEND',
-                            $order->order_no,
-                            [],
-                            (float) ($item['weight_kgm'] ?? 0)
+                        InventoryLocationStock::consumeStock(
+                            gciPartId: (int) $item['rm_gci_part_id'],
+                            locationCode: $resolvedSendLocation,
+                            qty: (float) $qtySent,
+                            batchNo: null,
+                            transactionType: 'SUBCON_SEND',
+                            sourceReference: $order->order_no,
+                            createdBy: Auth::id()
                         );
                     }
 
@@ -413,9 +410,9 @@ class SubconController extends Controller
         $rejectReceives = $subconOrder->receives
             ->filter(fn (SubconOrderReceive $receive) => (float) $receive->qty_rejected > 0)
             ->values();
-        $traceability = LocationInventoryAdjustment::with(['creator'])
+        $traceability = InventoryStockMovement::with(['creator'])
             ->where('source_reference', $subconOrder->order_no)
-            ->orderBy('adjusted_at')
+            ->orderBy('movement_at')
             ->orderBy('id')
             ->get();
 
@@ -650,34 +647,28 @@ class SubconController extends Controller
         $receive = $subconOrder->receives()->create($payload);
 
         if ((float) $payload['qty_good'] > 0) {
-            LocationInventory::updateStock(
-                null,
-                $payload['receive_location_code'],
-                (float) $payload['qty_good'],
-                null,
-                $payload['received_date'],
-                (int) $subconOrder->gci_part_id,
-                'SUBCON_RECEIVE',
-                $subconOrder->order_no,
-                [],
-                null,
-                (float) ($payload['weight_kgm'] ?? 0)
+            InventoryLocationStock::updateStock(
+                gciPartId: (int) $subconOrder->gci_part_id,
+                locationCode: $payload['receive_location_code'],
+                qtyChange: (float) $payload['qty_good'],
+                batchNo: null,
+                transactionType: 'SUBCON_RECEIVE',
+                sourceReference: $subconOrder->order_no,
+                createdBy: $payload['created_by'],
+                weightKgm: (float) ($payload['weight_kgm'] ?? 0)
             );
         }
 
         if ((float) $payload['qty_rejected'] > 0) {
-            LocationInventory::updateStock(
-                null,
-                $payload['reject_location_code'],
-                (float) $payload['qty_rejected'],
-                null,
-                $payload['received_date'],
-                (int) $subconOrder->gci_part_id,
-                'SUBCON_REJECT_RECEIVE',
-                $subconOrder->order_no,
-                [],
-                null,
-                (float) ($payload['weight_rejected_kgm'] ?? 0)
+            InventoryLocationStock::updateStock(
+                gciPartId: (int) $subconOrder->gci_part_id,
+                locationCode: $payload['reject_location_code'],
+                qtyChange: (float) $payload['qty_rejected'],
+                batchNo: null,
+                transactionType: 'SUBCON_REJECT_RECEIVE',
+                sourceReference: $subconOrder->order_no,
+                createdBy: $payload['created_by'],
+                weightKgm: (float) ($payload['weight_rejected_kgm'] ?? 0)
             );
         }
 

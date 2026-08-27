@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Models\Arrival;
+use App\Models\NewSchema\Incoming\IncomingArrival;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -12,7 +12,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
-    private Arrival $arrival;
+    private IncomingArrival $arrival;
 
     private function shouldConvertToKgm(?string $unit): bool
     {
@@ -28,15 +28,15 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
         return (float) ($qty ?? 0);
     }
 
-    public function __construct(Arrival $arrival)
+    public function __construct(IncomingArrival $arrival)
     {
         $this->arrival = $arrival;
-        $this->arrival->loadMissing(['vendor', 'trucking', 'items.part', 'items.gciPart', 'items.vendorPart']);
+        $this->arrival->loadMissing(['vendor', 'incomingArrivalItems.gciPart', 'incomingArrivalItems.vendorPart']);
     }
 
     public function collection()
     {
-        return $this->arrival->items;
+        return $this->arrival->incomingArrivalItems;
     }
 
     public function headings(): array
@@ -80,7 +80,6 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
     public function map($item): array
     {
         $arrival = $this->arrival;
-        $part = $item->part;
 
         return [
             $arrival->arrival_no,
@@ -88,10 +87,10 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             optional($arrival->invoice_date)->format('Y-m-d') ?? '-',
             $arrival->vendor->vendor_name ?? '-',
             $arrival->vessel ?? '-',
-            $arrival->trucking->company_name ?? ($arrival->trucking_company ?: '-'),
-            optional($arrival->ETD)->format('Y-m-d') ?? '-',
-            optional($arrival->ETA)->format('Y-m-d') ?? '-',
-            optional($arrival->ETA_GCI)->format('Y-m-d') ?? '-',
+            $arrival->shipping_company ?: '-',
+            optional($arrival->etd)->format('Y-m-d') ?? '-',
+            optional($arrival->eta_jkt)->format('Y-m-d') ?? '-',
+            optional($arrival->eta_gci)->format('Y-m-d') ?? '-',
             $arrival->port_of_loading ?? '-',
             $arrival->bill_of_lading ?? '-',
             strtoupper((string)($arrival->bill_of_lading_status ?? '-')),
@@ -100,8 +99,8 @@ class DepartureDetailExport implements FromCollection, WithHeadings, WithMapping
             $arrival->container_numbers ?? '-',
             $arrival->seal_code ?? '-',
             $arrival->notes ?? '-',
-            $item->display_part_no,
-            $item->display_part_name,
+            $item->gciPart?->part_no ?? '-',
+            $item->gciPart?->part_name ?? '-',
             $item->material_group ?: '-',
             $item->size ?: '-',
             (float)($item->qty_bundle ?? 0),

@@ -7,12 +7,12 @@ use App\Models\Customer;
 use App\Models\CustomerPo;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
-use App\Models\GciPart;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\LocationInventory;
 use App\Models\PricingMaster;
 use App\Models\Driver;
 use App\Models\OutgoingPickingFg;
-use App\Models\Part;
 use App\Models\Truck;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
@@ -96,6 +96,8 @@ class DeliveryNoteController extends Controller
             'dn_no' => ['required', 'string', 'unique:delivery_notes,dn_no'],
             'customer_id' => ['required', 'exists:customers,id'],
             'delivery_date' => ['required', 'date'],
+            'truck_id' => ['nullable', 'exists:trucks,id'],
+            'driver_id' => ['nullable', 'exists:drivers,id'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.gci_part_id' => ['required', 'exists:gci_parts,id'],
@@ -132,7 +134,9 @@ class DeliveryNoteController extends Controller
                 'dn_no' => $validated['dn_no'],
                 'customer_id' => $validated['customer_id'],
                 'delivery_date' => $validated['delivery_date'],
-                'notes' => $validated['notes'],
+                'truck_id' => $validated['truck_id'] ?? null,
+                'driver_id' => $validated['driver_id'] ?? null,
+                'notes' => $validated['notes'] ?? null,
                 'status' => 'ready_to_ship', // Set directly to ready to ship because it's from picking
             ]);
 

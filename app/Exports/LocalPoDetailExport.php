@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Models\Arrival;
+use App\Models\NewSchema\Incoming\IncomingArrival;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -12,13 +12,13 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class LocalPoDetailExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
-    public function __construct(private Arrival $arrival) {}
+    public function __construct(private IncomingArrival $arrival) {}
 
     public function collection()
     {
-        $this->arrival->load(['vendor', 'items.part', 'items.gciPart', 'items.receives']);
+        $this->arrival->load(['vendor', 'incomingArrivalItems.gciPart', 'incomingArrivalItems.incomingReceives']);
 
-        return $this->arrival->items;
+        return $this->arrival->incomingArrivalItems;
     }
 
     public function headings(): array
@@ -42,16 +42,16 @@ class LocalPoDetailExport implements FromCollection, WithHeadings, WithMapping, 
 
     public function map($item): array
     {
-        $part = $item->part;
-        $receivedQty = $item->receives->sum('qty');
+        $part = $item->gciPart;
+        $receivedQty = $item->incomingReceives->sum('qty');
         $remaining = max(0, (float) $item->qty_goods - (float) $receivedQty);
 
         return [
             $this->arrival->invoice_no ?? '',
             $this->arrival->invoice_date?->format('Y-m-d') ?? '',
             $this->arrival->vendor?->vendor_name ?? '',
-            $part?->part_no ?? $item->gciPart?->part_no ?? '',
-            $part?->part_name_vendor ?? $item->gciPart?->part_name ?? '',
+            $part?->part_no ?? '',
+            $part?->part_name ?? '',
             $item->size ?? '',
             $item->qty_goods,
             $item->unit_goods ?? '',

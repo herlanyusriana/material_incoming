@@ -4,17 +4,6 @@
     </x-slot>
 
     <style>
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in { animation: fadeInUp 0.4s ease-out both; }
-        .animate-fade-in-1 { animation-delay: 0.05s; }
-        .animate-fade-in-2 { animation-delay: 0.1s; }
-        .animate-fade-in-3 { animation-delay: 0.15s; }
-        .animate-fade-in-4 { animation-delay: 0.2s; }
-        .card-hover { transition: all 0.25s ease; }
-        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
         .oee-ring { transition: stroke-dashoffset 1s ease-out; }
         .dept-card { transition: all 0.2s ease; }
         .dept-card:hover { transform: scale(1.01); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
@@ -25,66 +14,60 @@
         {{-- ══════════════════════════════════════════════════════
              HEADER + DATE FILTER
              ══════════════════════════════════════════════════════ --}}
-        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600">
-                        <span class="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                        Dashboard
-                    </div>
-                    <h1 class="mt-1 text-xl font-black text-slate-900">GCI Smart Dashboard</h1>
-                    <p class="mt-1 text-xs text-slate-500">
-                        Overview Incoming Material dan Plant Performance KPI dalam satu tampilan.
-                    </p>
-                </div>
-
+        <x-page-header 
+            title="GCI Smart Dashboard" 
+            subtitle="Overview Incoming Material dan Plant Performance KPI dalam satu tampilan."
+            badge="Dashboard"
+            badgeColor="indigo"
+        >
+            <x-slot name="actions">
                 <form method="GET" class="flex flex-wrap items-end gap-3">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Date From</label>
-                        <input type="date" name="date_from" value="{{ $dateFrom }}"
-                            class="rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div class="gci-form-group">
+                        <label class="gci-label">Date From</label>
+                        <input type="date" name="date_from" value="{{ $dateFrom }}" class="gci-input !w-auto">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Date To</label>
-                        <input type="date" name="date_to" value="{{ $dateTo }}"
-                            class="rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div class="gci-form-group">
+                        <label class="gci-label">Date To</label>
+                        <input type="date" name="date_to" value="{{ $dateTo }}" class="gci-input !w-auto">
                     </div>
-                    <button type="submit"
-                        class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition-colors shadow-sm">
+                    <button type="submit" class="gci-btn-primary h-[38px]">
                         Refresh
                     </button>
                 </form>
-            </div>
-        </div>
+            </x-slot>
+        </x-page-header>
 
         {{-- ══════════════════════════════════════════════════════
              INCOMING MATERIAL SUMMARY CARDS
              ══════════════════════════════════════════════════════ --}}
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            @php
-                $cards = [
-                    ['label' => 'Total Departures', 'value' => $incomingSummary['total_departures'], 'sub' => 'All shipments', 'color' => 'indigo', 'icon' => 'M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12'],
-                    ['label' => 'Total Receives', 'value' => $incomingSummary['total_receives'], 'sub' => 'Processed items', 'color' => 'indigo', 'icon' => 'M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z'],
-                    ['label' => 'Pending Items', 'value' => $incomingSummary['pending_items'], 'sub' => 'Need processing', 'color' => 'indigo', 'icon' => 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'],
-                    ['label' => 'Today Receives', 'value' => $incomingSummary['today_receives'], 'sub' => 'Processed today', 'color' => 'indigo', 'icon' => 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5'],
-                ];
-            @endphp
-            @foreach ($cards as $i => $card)
-                <div class="animate-fade-in animate-fade-in-{{ $i+1 }} card-hover rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">{{ $card['label'] }}</div>
-                            <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format($card['value']) }}</div>
-                            <div class="text-xs text-slate-400 mt-1">{{ $card['sub'] }}</div>
-                        </div>
-                        <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $card['icon'] }}"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
+            <x-stat-card class="animate-fade-in-up delay-1"
+                label="Total Departures" 
+                value="{{ number_format($incomingSummary['total_departures']) }}" 
+                subtitle="All shipments" 
+                color="indigo" 
+                icon="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+            
+            <x-stat-card class="animate-fade-in-up delay-2"
+                label="Total Receives" 
+                value="{{ number_format($incomingSummary['total_receives']) }}" 
+                subtitle="Processed items" 
+                color="emerald" 
+                icon="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+
+            <x-stat-card class="animate-fade-in-up delay-3"
+                label="Pending Items" 
+                value="{{ number_format($incomingSummary['pending_items']) }}" 
+                subtitle="Need processing" 
+                color="amber" 
+                icon="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+
+            <x-stat-card class="animate-fade-in-up delay-4"
+                label="Today Receives" 
+                value="{{ number_format($incomingSummary['today_receives']) }}" 
+                subtitle="Processed today" 
+                color="sky" 
+                icon="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
         </div>
 
         {{-- ══════════════════════════════════════════════════════
@@ -129,7 +112,7 @@
 
             {{-- Production Summary --}}
             <div class="lg:col-span-2 grid gap-4 sm:grid-cols-2">
-                <div class="card-hover rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                         <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Planned Qty</div>
@@ -137,7 +120,7 @@
                     <div class="text-3xl font-black text-slate-900">{{ number_format($plantSummary['planned_qty'], 0) }}</div>
                     <div class="mt-1 text-sm text-slate-500">{{ number_format($plantSummary['orders_count']) }} WO in range</div>
                 </div>
-                <div class="card-hover rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                         <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Actual Qty</div>
@@ -148,7 +131,7 @@
                         / NG <span class="font-semibold text-slate-700">{{ number_format($plantSummary['ng_qty'], 0) }}</span>
                     </div>
                 </div>
-                <div class="card-hover rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                         <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Production Achievement</div>
@@ -159,7 +142,7 @@
                              style="width: {{ min($productionAchievement, 100) }}%"></div>
                     </div>
                 </div>
-                <div class="card-hover rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                         <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Support Data</div>
@@ -192,7 +175,7 @@
 
         <div class="grid gap-4 lg:grid-cols-2">
             @foreach ($departments as $department => $items)
-                <div class="card-hover rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -236,7 +219,7 @@
              ══════════════════════════════════════════════════════ --}}
         <div class="grid lg:grid-cols-3 gap-4">
             {{-- QC Status --}}
-            <div class="card-hover rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="gci-card p-6">
                 <div class="pb-3 border-b border-slate-100">
                     <h3 class="text-sm font-black text-slate-900">QC Status</h3>
                     <p class="text-xs text-slate-400 mt-0.5">Quality check summary</p>
@@ -262,14 +245,13 @@
             </div>
 
             {{-- Recent Receives --}}
-            <div class="lg:col-span-2 card-hover rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="lg:col-span-2 gci-card p-6">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div>
                         <h3 class="text-sm font-black text-slate-900">Recent Receives</h3>
                         <p class="text-xs text-slate-400 mt-0.5">Latest 5 processed items</p>
                     </div>
-                    <a href="{{ route('receives.completed') }}"
-                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm">
+                    <a href="{{ route('receives.completed') }}" class="gci-btn-primary gci-btn-sm">
                         View All
                     </a>
                 </div>

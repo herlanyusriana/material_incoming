@@ -2,8 +2,8 @@
 
 namespace App\Imports;
 
-use App\Models\GciInventory;
-use App\Models\GciPart;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -59,29 +59,22 @@ class InventoryImport implements ToModel, WithHeadingRow, WithValidation
         }
 
         $onHandRaw = $this->firstNonEmpty($row, ['on_hand']);
-        $onOrderRaw = $this->firstNonEmpty($row, ['on_order']);
-        $asOfDate = $this->firstNonEmpty($row, ['as_of_date']);
         $batchNo = $this->firstNonEmpty($row, ['batch', 'batch_no']);
 
         $onHand = $onHandRaw !== null ? (float) $onHandRaw : 0;
-        $onOrder = $onOrderRaw !== null ? (float) $onOrderRaw : 0;
 
-        $inventory = GciInventory::where('gci_part_id', $part->id)->first();
-        if ($inventory) {
-            $inventory->update([
-                'on_hand' => $inventory->on_hand + $onHand,
-                'on_order' => $inventory->on_order + $onOrder,
-                'batch_no' => $batchNo ?: $inventory->batch_no,
-                'as_of_date' => $asOfDate ?: $inventory->as_of_date,
-            ]);
-        } else {
-            GciInventory::create([
-                'gci_part_id' => $part->id,
-                'batch_no' => $batchNo,
-                'on_hand' => $onHand,
-                'on_order' => $onOrder,
-                'as_of_date' => $asOfDate ?: null,
-            ]);
+        if ($onHand > 0) {
+            // Use new schema InventoryLocationStock with default location
+            $defaultLocation = $part->default_location ?? 'WIP-DEFAULT';
+            InventoryLocationStock::updateStock(
+                gciPartId: (int) $part->id,
+                locationCode: $defaultLocation,
+                qtyChange: $onHand,
+                batchNo: $batchNo,
+                transactionType: 'INVENTORY_IMPORT',
+                sourceReference: 'inventory_import',
+                createdBy: null
+            );
         }
 
         return null;

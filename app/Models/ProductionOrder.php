@@ -129,7 +129,7 @@ class ProductionOrder extends Model
      */
     public function arrivals()
     {
-        return $this->belongsToMany(Arrival::class, 'production_order_arrivals')
+        return $this->belongsToMany(\App\Models\NewSchema\Incoming\IncomingArrival::class, 'production_order_arrivals', 'production_order_id', 'arrival_id')
             ->withTimestamps();
     }
 

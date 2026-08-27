@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
-use App\Models\GciInventory;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\ProductionOrder;
 use App\Models\ProductionPlanningSession;
 use Carbon\Carbon;
@@ -136,9 +136,9 @@ class MaterialRequirementController extends Controller
             ];
         }
 
-        $stockMap = GciInventory::query()
+        $stockMap = InventoryLocationStock::query()
             ->whereIn('gci_part_id', $allStockIds->filter()->unique()->values()->all())
-            ->selectRaw('gci_part_id, SUM(on_hand) as total_on_hand')
+            ->selectRaw('gci_part_id, SUM(qty_on_hand) as total_on_hand')
             ->groupBy('gci_part_id')
             ->pluck('total_on_hand', 'gci_part_id');
 

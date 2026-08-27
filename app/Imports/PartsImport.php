@@ -2,10 +2,9 @@
 
 namespace App\Imports;
 
-use App\Models\Part;
-use App\Models\GciPart;
-use App\Models\GciPartVendor;
-use App\Models\Vendor;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\VendorPart;
+use App\Models\NewSchema\Core\Vendor;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
@@ -237,8 +236,8 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             return;
         }
 
-        // Check for duplicates in gci_part_vendor
-        $existing = GciPartVendor::where('gci_part_id', $gciPart->id)
+        // Check for duplicates in vendor_parts
+        $existing = VendorPart::where('gci_part_id', $gciPart->id)
             ->where('vendor_id', $vendor->id)
             ->first();
 
@@ -247,8 +246,8 @@ class PartsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             return;
         }
 
-        // Write to gci_part_vendor (the real table)
-        GciPartVendor::create([
+        // Write to vendor_parts (the new schema table)
+        VendorPart::create([
             'gci_part_id' => $gciPart->id,
             'vendor_id' => $vendor->id,
             'vendor_part_no' => strtoupper(trim($partNo)),

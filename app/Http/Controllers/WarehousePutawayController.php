@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\LocationInventory;
-use App\Models\Receive;
-use App\Models\WarehouseLocation;
-use App\Models\Inventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\WarehouseLocation;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Inventory\InventoryStockMovement;
+use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
+use App\Models\NewSchema\Incoming\IncomingArrivalItem as ArrivalItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -16,6 +18,18 @@ use App\Traits\LogsActivity;
 class WarehousePutawayController extends Controller
 {
     use LogsActivity;
+
+    private function resolveGciPartId(Receive $receive): ?int
+    {
+        $receive->loadMissing(['arrivalItem.vendorPart', 'arrivalItem.gciPart']);
+        $arrivalItem = $receive->arrivalItem;
+
+        if (!empty($arrivalItem->gci_part_id)) {
+            return (int) $arrivalItem->gci_part_id;
+        }
+
+        return $arrivalItem?->vendorPart?->gci_part_id ?: null;
+    }
 
     public function index(Request $request)
     {
@@ -29,7 +43,7 @@ class WarehousePutawayController extends Controller
         }
 
         $query = Receive::query()
-            ->with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+            ->with(['arrivalItem.vendorPart', 'arrivalItem.gciPart', 'arrivalItem.arrival.vendor'])
             ->where('qc_status', 'pass')
             ->where(function ($q) {
                 $q->whereNull('location_code')->orWhere('location_code', '');
@@ -39,7 +53,8 @@ class WarehousePutawayController extends Controller
                 $q->where(function ($qq) use ($s) {
                     $qq->where('tag', 'like', '%' . $s . '%')
                         ->orWhereHas('arrivalItem.arrival', fn ($qa) => $qa->where('arrival_no', 'like', '%' . $s . '%'))
-                        ->orWhereHas('arrivalItem.part', fn ($qp) => $qp->where('part_no', 'like', '%' . $s . '%'));
+                        ->orWhereHas('arrivalItem.gciPart', fn ($qp) => $qp->where('part_no', 'like', '%' . $s . '%'))
+                        ->orWhereHas('arrivalItem.vendorPart', fn ($qp) => $qp->where('vendor_part_no', 'like', '%' . $s . '%'));
                 });
             })
             ->latest();
@@ -49,7 +64,7 @@ class WarehousePutawayController extends Controller
         $locationCodes = [];
         if (Schema::hasTable('warehouse_locations')) {
             $locationCodes = WarehouseLocation::query()
-                ->where('status', 'ACTIVE')
+                ->where('status', 'active')
                 ->orderBy('location_code')
                 ->pluck('location_code')
                 ->all();
@@ -62,7 +77,7 @@ class WarehousePutawayController extends Controller
     {
         $locationCodeRule = ['required', 'string', 'max:50'];
         if (Schema::hasTable('warehouse_locations')) {
-            $locationCodeRule[] = Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE'));
+            $locationCodeRule[] = Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'active'));
         }
 
         $validated = $request->validate([
@@ -74,10 +89,9 @@ class WarehousePutawayController extends Controller
             return back()->with('error', 'Putaway hanya untuk QC status PASS.');
         }
 
-        $receive->loadMissing(['arrivalItem']);
-        $partId = (int) ($receive->arrivalItem?->part_id ?? 0);
-        if ($partId <= 0) {
-            return back()->with('error', 'Part belum terisi untuk receive ini.');
+        $gciPartId = $this->resolveGciPartId($receive);
+        if ($gciPartId === null) {
+            return back()->with('error', 'Part belum terhubung ke GCI Part Master untuk receive ini.');
         }
 
         $newLocationCode = strtoupper(trim((string) $validated['location_code']));
@@ -94,7 +108,7 @@ class WarehousePutawayController extends Controller
             return back()->with('error', 'Qty receive invalid untuk putaway.');
         }
 
-        DB::transaction(function () use ($receive, $partId, $oldLocationCode, $newLocationCode, $qtyContribution, $putawayDate) {
+        DB::transaction(function () use ($receive, $gciPartId, $oldLocationCode, $newLocationCode, $qtyContribution, $putawayDate) {
             $receive = Receive::query()->whereKey($receive->id)->lockForUpdate()->firstOrFail();
 
             $existingLoc = strtoupper(trim((string) ($receive->location_code ?? '')));
@@ -103,18 +117,46 @@ class WarehousePutawayController extends Controller
             }
 
             if ($oldLocationCode !== '' && $oldLocationCode !== $newLocationCode) {
-                LocationInventory::updateStock($partId, $oldLocationCode, -$qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}", [], $putawayDate);
+                InventoryLocationStock::updateStock(
+                    $gciPartId,
+                    $oldLocationCode,
+                    -$qtyContribution,
+                    null,
+                    $receive->tag,
+                    'PUTAWAY',
+                    "RCV#{$receive->id}",
+                    $receive->id,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                );
             }
 
             if ($oldLocationCode === '' || $oldLocationCode !== $newLocationCode) {
-                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}", [], $putawayDate);
+                InventoryLocationStock::updateStock(
+                    $gciPartId,
+                    $newLocationCode,
+                    $qtyContribution,
+                    null,
+                    $receive->tag,
+                    'PUTAWAY',
+                    "RCV#{$receive->id}",
+                    $receive->id,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                );
             }
 
             $receive->update(['location_code' => $newLocationCode]);
         });
 
         $this->logActivity('STORE Putaway', "receive_id:{$receive->id} location:{$newLocationCode}", [
-            'part_id' => $partId,
+            'gci_part_id' => $gciPartId,
             'qty' => $qtyContribution,
             'old_location' => $oldLocationCode,
         ]);
@@ -126,7 +168,7 @@ class WarehousePutawayController extends Controller
     {
         $locationCodeRule = ['required', 'string', 'max:50'];
         if (Schema::hasTable('warehouse_locations')) {
-            $locationCodeRule[] = Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'ACTIVE'));
+            $locationCodeRule[] = Rule::exists('warehouse_locations', 'location_code')->where(fn ($q) => $q->where('status', 'active'));
         }
 
         $validated = $request->validate([
@@ -163,9 +205,8 @@ class WarehousePutawayController extends Controller
                     continue;
                 }
 
-                $receive->loadMissing(['arrivalItem']);
-                $partId = (int) ($receive->arrivalItem?->part_id ?? 0);
-                if ($partId <= 0) {
+                $gciPartId = $this->resolveGciPartId($receive);
+                if ($gciPartId === null) {
                     $skipped++;
                     continue;
                 }
@@ -179,7 +220,21 @@ class WarehousePutawayController extends Controller
                     continue;
                 }
 
-                LocationInventory::updateStock($partId, $newLocationCode, $qtyContribution, null, null, null, 'PUTAWAY', "RCV#{$receive->id}", [], $putawayDate);
+                InventoryLocationStock::updateStock(
+                    $gciPartId,
+                    $newLocationCode,
+                    $qtyContribution,
+                    null,
+                    $receive->tag,
+                    'PUTAWAY',
+                    "RCV#{$receive->id}",
+                    $receive->id,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                );
                 $receive->update(['location_code' => $newLocationCode]);
                 $updated++;
             }
@@ -205,30 +260,36 @@ class WarehousePutawayController extends Controller
             return back()->with('error', 'Receive ini sudah di-putaway (punya lokasi), tidak bisa dihapus dari antrean.');
         }
 
-        $receive->loadMissing(['arrivalItem']);
-        $partId = (int) ($receive->arrivalItem?->part_id ?? ($receive->arrivalItem?->gci_part_vendor_id ?? 0));
-        
+        $gciPartId = $this->resolveGciPartId($receive);
         $qtyUnit = strtoupper(trim((string) ($receive->qty_unit ?? '')));
         $qtyContribution = $qtyUnit === 'COIL'
             ? (float) ($receive->net_weight ?? 0)
             : (float) ($receive->qty ?? 0);
 
-        DB::transaction(function () use ($receive, $partId, $qtyContribution) {
-            if ($partId > 0 && $receive->qc_status === 'pass' && $qtyContribution > 0) {
-                // Deduct the inventory on_hand because it was added during Receive QC Pass
-                $inventory = Inventory::query()->where('part_id', $partId)->lockForUpdate()->first();
-                if ($inventory) {
-                    $inventory->update([
-                        'on_hand' => max(0, (float) $inventory->on_hand - $qtyContribution),
-                    ]);
-                }
+        DB::transaction(function () use ($receive, $gciPartId, $qtyContribution) {
+            if ($gciPartId !== null && $receive->qc_status === 'pass' && $qtyContribution > 0 && !empty($receive->location_code)) {
+                InventoryLocationStock::updateStock(
+                    $gciPartId,
+                    strtoupper(trim($receive->location_code)),
+                    -$qtyContribution,
+                    null,
+                    $receive->tag,
+                    'PUTAWAY_DELETE',
+                    "RCV#{$receive->id}",
+                    $receive->id,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                );
             }
 
             $receive->delete();
         });
 
         $this->logActivity('DELETE from Putaway', "receive_id:{$receive->id}", [
-            'part_id' => $partId,
+            'gci_part_id' => $gciPartId,
             'qty_deducted' => $qtyContribution,
         ]);
 

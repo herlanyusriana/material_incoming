@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Receive;
+use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\WarehouseLocation;
-use App\Models\LocationInventory;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -52,11 +52,11 @@ class WarehouseScanningController extends Controller
             $tagNo = trim($parts[1]);
         }
 
-        $query = Receive::with(['arrivalItem.part', 'arrivalItem.arrival.vendor'])
+        $query = Receive::with(['arrivalItem.gciPart', 'arrivalItem.arrival.vendor'])
             ->where('tag', $tagNo);
 
         if ($filterPartNo) {
-            $query->whereHas('arrivalItem.part', fn($q) => $q->where('part_no', $filterPartNo));
+            $query->whereHas('arrivalItem.gciPart', fn($q) => $q->where('part_no', $filterPartNo));
         }
 
         if ($invoiceNo && $invoiceNo !== '-') {
@@ -71,15 +71,17 @@ class WarehouseScanningController extends Controller
             ], 404);
         }
 
+        $gciPart = $receive->arrivalItem?->gciPart;
+
         return response()->json([
             'tag_no' => $receive->tag,
-            'gci_part_id' => $receive->arrivalItem->part->gci_part_id,
-            'part_no' => $receive->arrivalItem->part->part_no,
-            'part_name' => $receive->arrivalItem->part->part_name_gci ?? $receive->arrivalItem->part->part_name_vendor,
+            'gci_part_id' => $gciPart?->id,
+            'part_no' => $gciPart?->part_no,
+            'part_name' => $gciPart?->part_name,
             'qty' => (float) $receive->qty,
-            'uom' => $receive->qty_unit,
+            'uom' => $receive->unit_goods ?? $receive->arrivalItem?->unit_goods,
             'current_location' => $receive->location_code,
-            'vendor' => $receive->arrivalItem->arrival->vendor->vendor_name,
+            'vendor' => $receive->arrivalItem?->arrival?->vendor?->vendor_name,
             'receive_date' => $receive->ata_date?->toDateString(),
         ]);
     }
@@ -140,7 +142,7 @@ class WarehouseScanningController extends Controller
         $query = Receive::with('arrivalItem')->where('tag', $tagNo);
 
         if ($filterPartNo) {
-            $query->whereHas('arrivalItem.part', fn($q) => $q->where('part_no', $filterPartNo));
+            $query->whereHas('arrivalItem.gciPart', fn($q) => $q->where('part_no', $filterPartNo));
         }
 
         if ($invoiceNo && $invoiceNo !== '-') {
@@ -162,30 +164,46 @@ class WarehouseScanningController extends Controller
             return response()->json(['message' => 'Tag is already at this location'], 200);
         }
 
+        $gciPartId = $receive->arrivalItem?->gci_part_id;
+        if (!$gciPartId) {
+            return response()->json(['message' => 'Cannot resolve GCI part for this tag'], 422);
+        }
+
+        $qty = (float) $receive->qty;
+        $batchNo = $tagNo; // Use tag as batch identifier
+
         try {
             DB::beginTransaction();
 
             // 1. Update location in receives table
             $receive->update(['location_code' => $locationCode]);
 
-            // 2. Adjust LocationInventory
-            $partId = $receive->arrivalItem->part_id;
-            $gciPartId = $receive->arrivalItem->gci_part_id
-                ?: \App\Models\GciPartVendor::query()->whereKey((int) $partId)->value('gci_part_id');
-            $qty = (float) $receive->qty;
-            $batchNo = $tagNo; // Use tag as batch identifier
-
+            // 2. Adjust InventoryLocationStock
             // If it was already at another warehouse location, subtract from there
             if ($oldLocation) {
                 try {
-                    LocationInventory::updateStock($partId, $oldLocation, -$qty, $batchNo, null, $gciPartId, 'PUTAWAY', "TAG:{$tagNo}");
+                    InventoryLocationStock::consumeStock(
+                        gciPartId: (int) $gciPartId,
+                        locationCode: $oldLocation,
+                        qty: $qty,
+                        batchNo: $batchNo,
+                        transactionType: 'PUTAWAY',
+                        sourceReference: "TAG:{$tagNo}"
+                    );
                 } catch (\Exception $e) {
                     Log::warning("Could not subtract stock from old location {$oldLocation} for tag {$tagNo}: " . $e->getMessage());
                 }
             }
 
             // Add to new location
-            LocationInventory::updateStock($partId, $locationCode, $qty, $batchNo, null, $gciPartId, 'PUTAWAY', "TAG:{$tagNo}");
+            InventoryLocationStock::updateStock(
+                gciPartId: (int) $gciPartId,
+                locationCode: $locationCode,
+                qty: $qty,
+                batchNo: $batchNo,
+                transactionType: 'PUTAWAY',
+                sourceReference: "TAG:{$tagNo}"
+            );
 
             DB::commit();
 
@@ -199,6 +217,7 @@ class WarehouseScanningController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Putaway failed for tag {$tagNo}: " . $e->getMessage());
+
             return response()->json(['message' => 'Internal server error: ' . $e->getMessage()], 500);
         }
     }

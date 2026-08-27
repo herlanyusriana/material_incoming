@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Inventory;
 use App\Models\GciInventory;
-use App\Models\LocationInventory;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\WarehouseLocation;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Inventory\InventoryStockMovement;
 use App\Imports\LocationInventoryImport;
 use App\Exports\LocationStockExport;
 use Illuminate\Http\Request;
@@ -28,19 +30,15 @@ class WarehouseStockController extends Controller
             $perPage = 200;
         }
 
-        $query = LocationInventory::query()
-            ->with(['part', 'gciPart', 'location'])
+        $query = InventoryLocationStock::query()
+            ->with(['gciPart'])
             ->when($onlyPositive, fn ($q) => $q->where('qty_on_hand', '>', 0))
             ->when($location !== '', fn ($q) => $q->where('location_code', $location))
             ->when(in_array($classification, ['RM', 'WIP', 'FG'], true), fn ($q) => $q->whereHas('gciPart', fn ($qg) => $qg->where('classification', $classification)))
             ->when($search !== '', function ($q) use ($search) {
                 $s = strtoupper($search);
                 $q->where(function ($qq) use ($s) {
-                    $qq->whereHas('part', function ($qp) use ($s) {
-                        $qp->where('part_no', 'like', '%' . $s . '%')
-                            ->orWhere('part_name_gci', 'like', '%' . $s . '%')
-                            ->orWhere('part_name_vendor', 'like', '%' . $s . '%');
-                    })->orWhereHas('gciPart', function ($qg) use ($s) {
+                    $qq->whereHas('gciPart', function ($qg) use ($s) {
                         $qg->where('part_no', 'like', '%' . $s . '%')
                             ->orWhere('part_name', 'like', '%' . $s . '%');
                     })->orWhere('location_code', 'like', '%' . $s . '%');
@@ -51,7 +49,7 @@ class WarehouseStockController extends Controller
 
         $records = $query->paginate($perPage)->withQueryString();
 
-        $totalsByLocation = LocationInventory::query()
+        $totalsByLocation = InventoryLocationStock::query()
             ->selectRaw('location_code, SUM(qty_on_hand) as total_qty')
             ->when($onlyPositive, fn ($q) => $q->where('qty_on_hand', '>', 0))
             ->when($location !== '', fn ($q) => $q->where('location_code', $location))
@@ -86,16 +84,8 @@ class WarehouseStockController extends Controller
             $perPage = 200;
         }
 
-        $locationPartSums = LocationInventory::query()
-            ->whereNotNull('part_id')
-            ->selectRaw('part_id, SUM(qty_on_hand) as loc_qty')
-            ->groupBy('part_id')
-            ->pluck('loc_qty', 'part_id')
-            ->map(fn ($qty) => (float) $qty)
-            ->all();
-
-        $locationGciSums = LocationInventory::query()
-            ->whereNull('part_id')
+        // Aggregate stock per gci_part per location.
+        $locationSums = InventoryLocationStock::query()
             ->whereNotNull('gci_part_id')
             ->selectRaw('gci_part_id, SUM(qty_on_hand) as loc_qty')
             ->groupBy('gci_part_id')
@@ -103,35 +93,24 @@ class WarehouseStockController extends Controller
             ->map(fn ($qty) => (float) $qty)
             ->all();
 
+        // Aggregate on_hand from GciInventory per gci_part_id
+        $gciInventorySums = GciInventory::query()
+            ->selectRaw('gci_part_id, SUM(on_hand) as total_on_hand')
+            ->groupBy('gci_part_id')
+            ->pluck('total_on_hand', 'gci_part_id')
+            ->map(fn ($qty) => (float) $qty)
+            ->all();
+
         $rows = collect();
 
-        foreach (Inventory::with('part')->get() as $inventory) {
-            $part = $inventory->part;
-            $onHand = (float) ($inventory->on_hand ?? 0);
-            $locQty = (float) ($locationPartSums[$inventory->part_id] ?? 0);
+        foreach (GciPart::with(['customers'])->cursor() as $gciPart) {
+            $locQty = (float) ($locationSums[$gciPart->id] ?? 0);
+            $onHand = (float) ($gciInventorySums[$gciPart->id] ?? 0);
             $diffQty = $onHand - $locQty;
 
             $rows->push((object) [
-                'reconcile_key' => 'part:' . $inventory->part_id,
-                'summary_type' => 'inventory',
-                'part' => $part,
-                'gciPart' => null,
-                'on_hand' => $onHand,
-                'loc_qty' => $locQty,
-                'diff_qty' => $diffQty,
-            ]);
-        }
-
-        foreach (GciInventory::with('gciPart')->get() as $inventory) {
-            $gciPart = $inventory->gciPart;
-            $onHand = (float) ($inventory->on_hand ?? 0);
-            $locQty = (float) ($locationGciSums[$inventory->gci_part_id] ?? 0);
-            $diffQty = $onHand - $locQty;
-
-            $rows->push((object) [
-                'reconcile_key' => 'gci:' . $inventory->gci_part_id,
+                'reconcile_key' => 'gci:' . $gciPart->id,
                 'summary_type' => 'gci_inventory',
-                'part' => null,
                 'gciPart' => $gciPart,
                 'on_hand' => $onHand,
                 'loc_qty' => $locQty,
@@ -139,46 +118,11 @@ class WarehouseStockController extends Controller
             ]);
         }
 
-        $knownPartIds = Inventory::query()->pluck('part_id')->filter()->map(fn ($id) => (int) $id)->all();
-        $knownGciIds = GciInventory::query()->pluck('gci_part_id')->filter()->map(fn ($id) => (int) $id)->all();
-
-        foreach ($locationPartSums as $partId => $locQty) {
-            if (in_array((int) $partId, $knownPartIds, true)) {
-                continue;
-            }
-
-            $rows->push((object) [
-                'reconcile_key' => 'part:' . $partId,
-                'summary_type' => 'inventory',
-                'part' => \App\Models\Part::find($partId),
-                'gciPart' => null,
-                'on_hand' => 0.0,
-                'loc_qty' => (float) $locQty,
-                'diff_qty' => 0.0 - (float) $locQty,
-            ]);
-        }
-
-        foreach ($locationGciSums as $gciPartId => $locQty) {
-            if (in_array((int) $gciPartId, $knownGciIds, true)) {
-                continue;
-            }
-
-            $rows->push((object) [
-                'reconcile_key' => 'gci:' . $gciPartId,
-                'summary_type' => 'gci_inventory',
-                'part' => null,
-                'gciPart' => \App\Models\GciPart::find($gciPartId),
-                'on_hand' => 0.0,
-                'loc_qty' => (float) $locQty,
-                'diff_qty' => 0.0 - (float) $locQty,
-            ]);
-        }
-
         if ($search !== '') {
             $needle = strtoupper($search);
             $rows = $rows->filter(function ($row) use ($needle) {
-                $partNo = strtoupper((string) ($row->gciPart?->part_no ?? $row->part?->part_no ?? ''));
-                $partName = strtoupper((string) ($row->gciPart?->part_name ?? $row->part?->part_name_gci ?? $row->part?->part_name_vendor ?? ''));
+                $partNo = strtoupper((string) ($row->gciPart?->part_no ?? ''));
+                $partName = strtoupper((string) ($row->gciPart?->part_name ?? ''));
                 return str_contains($partNo, $needle) || str_contains($partName, $needle);
             });
         }
@@ -190,7 +134,7 @@ class WarehouseStockController extends Controller
         $rows = $rows
             ->sortBy([
                 fn ($row) => -abs((float) $row->diff_qty),
-                fn ($row) => strtoupper((string) ($row->gciPart?->part_no ?? $row->part?->part_no ?? '')),
+                fn ($row) => strtoupper((string) ($row->gciPart?->part_no ?? '')),
             ])
             ->values();
 

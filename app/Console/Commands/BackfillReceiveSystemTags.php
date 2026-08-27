@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Receive;
+use App\Models\NewSchema\Incoming\IncomingReceive;
 use Illuminate\Console\Command;
 
 class BackfillReceiveSystemTags extends Command
@@ -17,7 +17,7 @@ class BackfillReceiveSystemTags extends Command
         $normalizedExisting = 0;
         $normalizeExisting = (bool) $this->option('normalize-existing');
 
-        Receive::query()
+        IncomingReceive::query()
             ->orderBy('id')
             ->chunkById(200, function ($receives) use (&$updatedMissing, &$normalizedExisting, $normalizeExisting) {
                 foreach ($receives as $receive) {

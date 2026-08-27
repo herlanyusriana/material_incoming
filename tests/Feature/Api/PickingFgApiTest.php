@@ -4,7 +4,8 @@ namespace Tests\Feature\Api;
 
 use App\Models\Customer;
 use App\Models\DeliveryOrder;
-use App\Models\GciPart;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\OutgoingPickingFg;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -21,6 +22,8 @@ class PickingFgApiTest extends TestCase
         Sanctum::actingAs($user);
 
         [$date, $part, $do] = $this->seedBaseData();
+        $this->seedStock($part->id, 'LT-01', 100);
+
         $pick = OutgoingPickingFg::create([
             'delivery_date' => $date,
             'gci_part_id' => $part->id,
@@ -36,6 +39,8 @@ class PickingFgApiTest extends TestCase
             'date' => $date,
             'part_no' => $part->part_no,
             'qty' => 3,
+            'delivery_order_id' => $do->id,
+            'location' => 'LT-01',
         ])->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.qty_picked', 5)
@@ -53,6 +58,8 @@ class PickingFgApiTest extends TestCase
         Sanctum::actingAs($user);
 
         [$date, $part, $do] = $this->seedBaseData();
+        $this->seedStock($part->id, 'LT-01', 100);
+
         $pick = OutgoingPickingFg::create([
             'delivery_date' => $date,
             'gci_part_id' => $part->id,
@@ -69,6 +76,7 @@ class PickingFgApiTest extends TestCase
             'part_no' => $part->part_no,
             'qty' => 5,
             'delivery_order_id' => $do->id,
+            'location' => 'LT-01',
         ])->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.qty_picked', 10)
@@ -119,10 +127,9 @@ class PickingFgApiTest extends TestCase
             'date' => $date,
             'part_no' => $part->part_no,
             'qty' => 1,
+            'location' => 'LT-01',
         ])->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('require_do_selection', true)
-            ->assertJsonCount(2, 'options');
+            ->assertJsonValidationErrors(['delivery_order_id']);
     }
 
     public function test_pick_rejects_when_task_already_completed(): void
@@ -131,6 +138,8 @@ class PickingFgApiTest extends TestCase
         Sanctum::actingAs($user);
 
         [$date, $part, $do] = $this->seedBaseData();
+        $this->seedStock($part->id, 'LT-01', 100);
+
         OutgoingPickingFg::create([
             'delivery_date' => $date,
             'gci_part_id' => $part->id,
@@ -147,6 +156,7 @@ class PickingFgApiTest extends TestCase
             'part_no' => $part->part_no,
             'qty' => 1,
             'delivery_order_id' => $do->id,
+            'location' => 'LT-01',
         ])->assertStatus(422)
             ->assertJsonPath('success', false);
     }
@@ -183,5 +193,16 @@ class PickingFgApiTest extends TestCase
             'do_date' => now()->toDateString(),
             'status' => 'draft',
         ]);
+    }
+
+    private function seedStock(int $gciPartId, string $location = 'LT-01', float $qty = 100): void
+    {
+        InventoryLocationStock::updateStock(
+            gciPartId: $gciPartId,
+            locationCode: $location,
+            qtyChange: $qty,
+            tag: 'STOCK-INIT',
+            transactionType: 'RECEIVE'
+        );
     }
 }

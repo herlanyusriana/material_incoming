@@ -2,21 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Inventory;
-use App\Models\GciInventory;
-use App\Models\GciPart;
-use App\Models\LocationInventory;
-use App\Models\LocationInventoryAdjustment;
-use App\Models\Part;
-use App\Models\Receive;
-use App\Models\WarehouseLocation;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Inventory\InventoryStockMovement;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\WarehouseLocation;
+use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\Rule;
 use App\Exports\InventoryExport;
-use App\Exports\GciInventoryExport;
-use App\Imports\InventoryImport;
 use App\Imports\LocationInventoryImport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -37,7 +31,7 @@ class InventoryController extends Controller
         $classificationMap = ['rm' => 'RM', 'wip' => 'WIP', 'fg' => 'FG'];
         $classification = $classificationMap[$activeTab];
 
-        $locationSummary = LocationInventory::query()
+        $locationSummary = InventoryLocationStock::query()
             ->selectRaw('gci_part_id, SUM(qty_on_hand) as on_hand, COUNT(DISTINCT location_code) as location_count')
             ->whereNotNull('gci_part_id')
             ->groupBy('gci_part_id');
@@ -57,43 +51,48 @@ class InventoryController extends Controller
             ->leftJoinSub($locationSummary, 'location_summary', function ($join) {
                 $join->on('location_summary.gci_part_id', '=', 'gci_parts.id');
             })
-            ->leftJoin('gci_inventories', 'gci_inventories.gci_part_id', '=', 'gci_parts.id')
+            // ->leftJoin('gci_inventories', 'gci_inventories.gci_part_id', '=', 'gci_parts.id') // Deprecated in new schema
             ->addSelect([
                 'gci_parts.*',
                 DB::raw('COALESCE(location_summary.on_hand, 0) as on_hand'),
-                DB::raw('COALESCE(gci_inventories.on_order, 0) as on_order'),
-                DB::raw('COALESCE(location_summary.on_hand, 0) - COALESCE(gci_inventories.on_order, 0) as available_qty'),
+                DB::raw('0 as on_order'), // TODO: compute from inventory_stock_movements
+                DB::raw('COALESCE(location_summary.on_hand, 0) - 0 as available_qty'), // on_order currently 0
                 DB::raw('COALESCE(location_summary.location_count, 0) as location_count'),
-                'latest_batch_received' => \App\Models\Receive::query()
-                    ->select('receives.tag')
-                    ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
-                    ->whereColumn('arrival_items.gci_part_id', 'gci_parts.id')
-                    ->whereNotNull('receives.tag')
-                    ->orderByDesc('receives.created_at')
+                'latest_batch_received' => Receive::query()
+                    ->select('incoming_receives.tag')
+                    ->join('incoming_arrival_items', 'incoming_arrival_items.id', '=', 'incoming_receives.arrival_item_id')
+                    ->whereColumn('incoming_arrival_items.gci_part_id', 'gci_parts.id')
+                    ->whereNotNull('incoming_receives.tag')
+                    ->orderByDesc('incoming_receives.created_at')
                     ->limit(1),
-                'latest_receive_invoice_no' => \App\Models\Receive::query()
-                    ->selectRaw("COALESCE(NULLIF(receives.invoice_no, ''), NULLIF(arrivals.invoice_no, ''))")
-                    ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
-                    ->leftJoin('arrivals', 'arrivals.id', '=', 'arrival_items.arrival_id')
-                    ->whereColumn('arrival_items.gci_part_id', 'gci_parts.id')
+                'latest_receive_invoice_no' => Receive::query()
+                    ->selectRaw("COALESCE(NULLIF(incoming_receives.invoice_no, ''), NULLIF(incoming_arrivals.invoice_no, ''))")
+                    ->join('incoming_arrival_items', 'incoming_arrival_items.id', '=', 'incoming_receives.arrival_item_id')
+                    ->leftJoin('incoming_arrivals', 'incoming_arrivals.id', '=', 'incoming_arrival_items.arrival_id')
+                    ->whereColumn('incoming_arrival_items.gci_part_id', 'gci_parts.id')
                     ->where(function ($q) {
-                        $q->whereNotNull('receives.invoice_no')
-                            ->where('receives.invoice_no', '!=', '')
+                        $q->whereNotNull('incoming_receives.invoice_no')
+                            ->where('incoming_receives.invoice_no', '!=', '')
                             ->orWhere(function ($qq) {
-                                $qq->whereNotNull('arrivals.invoice_no')
-                                    ->where('arrivals.invoice_no', '!=', '');
+                                $qq->whereNotNull('incoming_arrivals.invoice_no')
+                                    ->where('incoming_arrivals.invoice_no', '!=', '');
                             });
                     })
-                    ->orderByDesc('receives.created_at')
+                    ->orderByDesc('incoming_receives.created_at')
                     ->limit(1),
-                'latest_source_invoice_no' => LocationInventoryAdjustment::query()
-                    ->select('source_invoice_no')
-                    ->whereColumn('location_inventory_adjustments.gci_part_id', 'gci_parts.id')
-                    ->where('transaction_type', 'RECEIVE')
-                    ->where('qty_change', '>', 0)
-                    ->whereNotNull('source_invoice_no')
-                    ->where('source_invoice_no', '!=', '')
-                    ->orderByDesc('adjusted_at')
+                'latest_source_invoice_no' => InventoryStockMovement::query()
+                    ->select('incoming_receives.invoice_no')
+                    ->join('incoming_receives', function ($join) {
+                        $join->on('incoming_receives.gci_part_id', '=', 'inventory_stock_movements.gci_part_id')
+                             ->on('incoming_receives.tag', '=', 'inventory_stock_movements.tag_number');
+                    })
+                    ->whereColumn('inventory_stock_movements.gci_part_id', 'gci_parts.id')
+                    ->where('inventory_stock_movements.movement_type', 'RECEIVE')
+                    ->where('inventory_stock_movements.qty', '>', 0)
+                    ->whereNull('incoming_receives.deleted_at')
+                    ->whereNotNull('incoming_receives.invoice_no')
+                    ->where('incoming_receives.invoice_no', '!=', '')
+                    ->orderByDesc('inventory_stock_movements.moved_at')
                     ->limit(1),
             ])
             ->orderByDesc('on_hand')
@@ -118,8 +117,8 @@ class InventoryController extends Controller
         $kpi = [
             'item_count' => (clone $query)->toBase()->getCountForPagination(),
             'total_on_hand' => (float) (clone $query)->sum(DB::raw('COALESCE(location_summary.on_hand, 0)')),
-            'total_on_order' => (float) (clone $query)->sum(DB::raw('COALESCE(gci_inventories.on_order, 0)')),
-            'total_available' => (float) (clone $query)->sum(DB::raw('COALESCE(location_summary.on_hand, 0) - COALESCE(gci_inventories.on_order, 0)')),
+            'total_on_order' => 0.0,
+            'total_available' => (float) (clone $query)->sum(DB::raw('COALESCE(location_summary.on_hand, 0)')),
         ];
 
         return view('inventory.index', compact(
@@ -141,21 +140,24 @@ class InventoryController extends Controller
         $qcStatus = $request->query('qc_status');
         $search = trim((string) $request->query('search', ''));
 
-        $parts = Part::query()->orderBy('part_no')->get();
+        $parts = GciPart::query()->orderBy('part_no')->get();
 
         $receives = Receive::query()
-            ->with(['arrivalItem.part', 'arrivalItem.arrival'])
-            ->when($partId, fn($q) => $q->whereHas('arrivalItem', fn($qq) => $qq->where('part_id', $partId)))
+            ->with(['arrivalItem.gciPart', 'arrivalItem.vendorPart', 'arrivalItem.arrival'])
+            ->when($partId, fn($q) => $q->whereHas('arrivalItem', fn($qq) => $qq->where('gci_part_id', $partId)))
             ->when($qcStatus, fn($q) => $q->where('qc_status', $qcStatus))
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('tag', 'like', '%' . $search . '%')
                         ->orWhereHas('arrivalItem', function ($qqq) use ($search) {
-                            $qqq->where('invoice_no', 'like', '%' . $search . '%')
-                                ->orWhereHas('part', function ($qqqq) use ($search) {
+                            $qqq->whereHas('arrival', fn ($a) => $a->where('invoice_no', 'like', '%' . $search . '%'))
+                                ->orWhereHas('gciPart', function ($qqqq) use ($search) {
                                     $qqqq->where('part_no', 'like', '%' . $search . '%')
-                                        ->orWhere('part_name_gci', 'like', '%' . $search . '%')
-                                        ->orWhere('part_name_vendor', 'like', '%' . $search . '%');
+                                        ->orWhere('part_name', 'like', '%' . $search . '%');
+                                })
+                                ->orWhereHas('vendorPart', function ($qqqq) use ($search) {
+                                    $qqqq->where('vendor_part_no', 'like', '%' . $search . '%')
+                                        ->orWhere('vendor_part_name', 'like', '%' . $search . '%');
                                 });
                         });
                 });
@@ -181,39 +183,23 @@ class InventoryController extends Controller
         return view('inventory.receives', compact('receives', 'parts', 'partId', 'qcStatus', 'locationMap'));
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'part_id' => ['required', Rule::exists('parts', 'id'), Rule::unique('inventories', 'part_id')],
-            'on_hand' => ['required', 'numeric', 'min:0'],
-            'on_order' => ['required', 'numeric', 'min:0'],
-            'as_of_date' => ['nullable', 'date'],
-        ]);
+    // public function store(Request $request)
+    // {
+    //     // Deprecated: use InventoryLocationStock adjustments via movements.
+    //     return back()->with('error', 'Manual inventory creation is deprecated. Use stock movements.');
+    // }
 
-        Inventory::create($validated);
+    // public function update(Request $request, Inventory $inventory)
+    // {
+    //     // Deprecated: use InventoryLocationStock adjustments via movements.
+    //     return back()->with('error', 'Manual inventory update is deprecated. Use stock movements.');
+    // }
 
-        return back()->with('success', 'Inventory record created.');
-    }
-
-    public function update(Request $request, Inventory $inventory)
-    {
-        $validated = $request->validate([
-            'on_hand' => ['required', 'numeric', 'min:0'],
-            'on_order' => ['required', 'numeric', 'min:0'],
-            'as_of_date' => ['nullable', 'date'],
-        ]);
-
-        $inventory->update($validated);
-
-        return back()->with('success', 'Inventory updated.');
-    }
-
-    public function destroy(Inventory $inventory)
-    {
-        $inventory->delete();
-
-        return back()->with('success', 'Inventory deleted.');
-    }
+    // public function destroy(Inventory $inventory)
+    // {
+    //     // Deprecated: inventory records are not deleted in new schema.
+    //     return back()->with('error', 'Inventory deletion is deprecated.');
+    // }
 
     public function export()
     {
@@ -248,15 +234,18 @@ class InventoryController extends Controller
         }
 
         $receives = Receive::query()
-            ->with(['arrivalItem.part', 'arrivalItem.arrival'])
+            ->with(['arrivalItem.vendorPart', 'arrivalItem.gciPart', 'arrivalItem.arrival'])
             ->where(function ($q) use ($query) {
                 $q->where('tag', 'like', '%' . $query . '%')
                     ->orWhereHas('arrivalItem', function ($qq) use ($query) {
-                        $qq->where('invoice_no', 'like', '%' . $query . '%')
-                            ->orWhereHas('part', function ($qqq) use ($query) {
+                        $qq->whereHas('arrival', fn ($a) => $a->where('invoice_no', 'like', '%' . $query . '%'))
+                            ->orWhereHas('gciPart', function ($qqq) use ($query) {
                                 $qqq->where('part_no', 'like', '%' . $query . '%')
-                                    ->orWhere('part_name_gci', 'like', '%' . $query . '%')
-                                    ->orWhere('part_name_vendor', 'like', '%' . $query . '%');
+                                    ->orWhere('part_name', 'like', '%' . $query . '%');
+                            })
+                            ->orWhereHas('vendorPart', function ($qqq) use ($query) {
+                                $qqq->where('vendor_part_no', 'like', '%' . $query . '%')
+                                    ->orWhere('vendor_part_name', 'like', '%' . $query . '%');
                             });
                     });
             })
@@ -264,13 +253,14 @@ class InventoryController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($receive) {
-                $part = $receive->arrivalItem?->part;
+                $part = $receive->arrivalItem?->gciPart;
+                $vendorPart = $receive->arrivalItem?->vendorPart;
                 $arrival = $receive->arrivalItem?->arrival;
                 return [
                     'id' => $receive->id,
                     'tag' => $receive->tag,
-                    'part_no' => $part?->part_no ?? '-',
-                    'part_name' => $part?->part_name_gci ?? $part?->part_name_vendor ?? '-',
+                    'part_no' => $part?->part_no ?? $vendorPart?->vendor_part_no ?? '-',
+                    'part_name' => $part?->part_name ?? $vendorPart?->vendor_part_name ?? '-',
                     'invoice_no' => $arrival?->invoice_no ?? '-',
                     'location_code' => $receive->location_code ?? '-',
                 ];

@@ -2,7 +2,8 @@
 
 namespace App\Exports;
 
-use App\Models\GciInventory;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Incoming\IncomingReceive;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -14,17 +15,17 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
 {
     public function collection()
     {
-        return GciInventory::query()
-            ->with('part')
-            ->whereHas('part')
-            ->join('gci_parts as gp', 'gp.id', '=', 'gci_inventories.gci_part_id')
-            ->addSelect(['gci_inventories.*'])
-            ->addSelect(['latest_batch' => \App\Models\Receive::query()
-                ->select('receives.tag')
-                ->join('arrival_items', 'arrival_items.id', '=', 'receives.arrival_item_id')
-                ->whereColumn('arrival_items.gci_part_id', 'gci_inventories.gci_part_id')
-                ->whereNotNull('receives.tag')
-                ->orderByDesc('receives.created_at')
+        return InventoryLocationStock::query()
+            ->with('gciPart')
+            ->whereHas('gciPart')
+            ->join('gci_parts as gp', 'gp.id', '=', 'inventory_location_stock.gci_part_id')
+            ->addSelect(['inventory_location_stock.*'])
+            ->addSelect(['latest_batch' => IncomingReceive::query()
+                ->select('incoming_receives.tag')
+                ->join('incoming_arrival_items', 'incoming_arrival_items.id', '=', 'incoming_receives.incoming_arrival_item_id')
+                ->whereColumn('incoming_arrival_items.gci_part_id', 'inventory_location_stock.gci_part_id')
+                ->whereNotNull('incoming_receives.tag')
+                ->orderByDesc('incoming_receives.created_at')
                 ->limit(1),
             ])
             ->orderByRaw("FIELD(gp.classification, 'RM', 'WIP', 'FG')")
@@ -46,19 +47,19 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
         ];
     }
 
-    public function map($inventory): array
+    public function map($stock): array
     {
-        $part = $inventory->part;
+        $part = $stock->gciPart;
 
         return [
             $part?->part_no ?? '',
             $part?->part_name ?? '',
             $part?->model ?? '',
             $part?->classification ?? '',
-            $inventory->latest_batch ?? '',
-            $inventory->on_hand,
-            $inventory->on_order,
-            $inventory->as_of_date ? \Carbon\Carbon::parse($inventory->as_of_date)->format('Y-m-d') : '',
+            $stock->latest_batch ?? '',
+            (float) ($stock->qty_on_hand ?? 0),
+            0, // on_order field not available in new schema
+            $stock->last_counted_at ? \Carbon\Carbon::parse($stock->last_counted_at)->format('Y-m-d') : '',
         ];
     }
 

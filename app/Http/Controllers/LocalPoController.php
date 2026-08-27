@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Arrival;
-use App\Models\Part;
+use App\Models\NewSchema\Incoming\IncomingArrival as Arrival;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Core\VendorPart;
 use App\Models\Vendor;
 use App\Exports\LocalPoExport;
 use App\Exports\LocalPoDetailExport;
@@ -61,9 +62,13 @@ class LocalPoController extends Controller
 
         $localVendorIds = $vendors->pluck('id')->all();
 
-        $parts = Part::with('vendor')
-            ->where('status', 'active')
-            ->whereIn('vendor_id', $localVendorIds)
+        $parts = GciPart::query()
+            ->join('vendor_parts', 'vendor_parts.gci_part_id', '=', 'gci_parts.id')
+            ->join('vendors', 'vendors.id', '=', 'vendor_parts.vendor_id')
+            ->where('vendors.vendor_type', 'local')
+            ->where('gci_parts.status', 'active')
+            ->select('gci_parts.*')
+            ->distinct()
             ->get();
 
         return view('local_pos.create', compact('vendors', 'parts'));
@@ -192,9 +197,13 @@ class LocalPoController extends Controller
         $localVendorIds = $vendors->pluck('id')->all();
 
         // Load all active parts for local vendors to allow changing parts/adding new ones
-        $parts = Part::with('vendor')
-            ->where('status', 'active')
-            ->whereIn('vendor_id', $localVendorIds)
+        $parts = GciPart::query()
+            ->join('vendor_parts', 'vendor_parts.gci_part_id', '=', 'gci_parts.id')
+            ->join('vendors', 'vendors.id', '=', 'vendor_parts.vendor_id')
+            ->where('vendors.vendor_type', 'local')
+            ->where('gci_parts.status', 'active')
+            ->select('gci_parts.*')
+            ->distinct()
             ->get();
 
         return view('local_pos.edit', compact('arrival', 'vendors', 'parts'));

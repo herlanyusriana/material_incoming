@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Outgoing;
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\Customer;
-use App\Models\LocationInventory;
+use App\Models\NewSchema\Core\Customer;
+use App\Models\NewSchema\Core\GciPart;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\OspOrder;
 use App\Models\PricingMaster;
 use Illuminate\Http\Request;
@@ -38,14 +39,14 @@ class OspController extends Controller
             sum(case when status = 'shipped' then 1 else 0 end) as shipped
         ")->first();
 
-        $customers = Customer::orderBy('name')->get(['id', 'name']);
+        $customers = Customer::orderBy('customer_name')->get(['id', 'customer_name']);
 
         return view('outgoing.osp.index', compact('orders', 'stats', 'customers'));
     }
 
     public function create()
     {
-        $customers = Customer::orderBy('name')->get(['id', 'name']);
+        $customers = Customer::orderBy('customer_name')->get(['id', 'customer_name']);
 
         // OSP parts must use a dedicated outgoing document flow, separate from normal FG outgoing.
         $ospParts = BomItem::query()
@@ -203,14 +204,14 @@ class OspController extends Controller
 
         DB::transaction(function () use ($ospOrder, $qtyShipped, $validated, $allocations) {
             foreach ($allocations as $allocation) {
-                LocationInventory::consumeStock(
-                    (int) $allocation['part_id'],
-                    (string) $allocation['location_code'],
-                    (float) $allocation['request_qty'],
-                    $allocation['batch_no'] !== '' ? (string) $allocation['batch_no'] : null,
-                    null,
-                    'OSP_OUTGOING',
-                    $ospOrder->order_no
+                InventoryLocationStock::consumeStock(
+                    gciPartId: (int) $allocation['gci_part_id'],
+                    locationCode: (string) $allocation['location_code'],
+                    qty: (float) $allocation['request_qty'],
+                    batchNo: $allocation['batch_no'] !== '' ? (string) $allocation['batch_no'] : null,
+                    transactionType: 'OSP_OUTGOING',
+                    sourceReference: $ospOrder->order_no,
+                    createdBy: Auth::id()
                 );
             }
 
@@ -229,11 +230,16 @@ class OspController extends Controller
         $candidateParts = collect();
 
         if ($bomItem->incomingPart) {
+            $gciPartId = (int) ($bomItem->incomingPart->gci_part_id
+                ?? $bomItem->incomingPart->gciPart?->id
+                ?? $bomItem->component_part_id
+                ?? 0);
             $candidateParts->push([
                 'type' => 'primary',
-                'part_id' => (int) $bomItem->incomingPart->id,
-                'part_no' => (string) ($bomItem->incomingPart->part_no ?? '-'),
-                'part_name' => (string) ($bomItem->incomingPart->part_name ?? '-'),
+                'gci_part_id' => $gciPartId,
+                'vendor_part_id' => (int) $bomItem->incomingPart->id,
+                'part_no' => (string) ($bomItem->incomingPart->vendor_part_no ?? $bomItem->incomingPart->gciPart?->part_no ?? '-'),
+                'part_name' => (string) ($bomItem->incomingPart->vendor_part_name ?? $bomItem->incomingPart->gciPart?->part_name ?? '-'),
             ]);
         }
 
@@ -242,17 +248,23 @@ class OspController extends Controller
                 continue;
             }
 
+            $gciPartId = (int) ($substitute->incomingPart->gci_part_id
+                ?? $substitute->incomingPart->gciPart?->id
+                ?? $substitute->substitute_part_id
+                ?? $substitute->gciPart?->id
+                ?? 0);
             $candidateParts->push([
                 'type' => 'substitute',
-                'part_id' => (int) $substitute->incomingPart->id,
-                'part_no' => (string) ($substitute->incomingPart->part_no ?? $substitute->substitute_part_no ?? '-'),
-                'part_name' => (string) ($substitute->incomingPart->part_name ?? $substitute->part?->part_name ?? '-'),
+                'gci_part_id' => $gciPartId,
+                'vendor_part_id' => (int) $substitute->incomingPart->id,
+                'part_no' => (string) ($substitute->incomingPart->vendor_part_no ?? $substitute->incomingPart->gciPart?->part_no ?? '-'),
+                'part_name' => (string) ($substitute->incomingPart->vendor_part_name ?? $substitute->incomingPart->gciPart?->part_name ?? '-'),
             ]);
         }
 
         $candidateParts = $candidateParts
-            ->filter(fn ($part) => !empty($part['part_id']))
-            ->unique('part_id')
+            ->filter(fn ($part) => !empty($part['gci_part_id']))
+            ->unique('gci_part_id')
             ->values();
 
         if ($candidateParts->isEmpty()) {
@@ -267,8 +279,8 @@ class OspController extends Controller
                 break;
             }
 
-            $stocks = LocationInventory::query()
-                ->where('part_id', $candidate['part_id'])
+            $stocks = InventoryLocationStock::query()
+                ->where('gci_part_id', $candidate['gci_part_id'])
                 ->where('qty_on_hand', '>', 0)
                 ->orderByRaw('production_date IS NULL')
                 ->orderBy('production_date')
@@ -291,7 +303,8 @@ class OspController extends Controller
 
                 $allocations[] = [
                     'source_type' => $candidate['type'],
-                    'part_id' => (int) $candidate['part_id'],
+                    'gci_part_id' => (int) $candidate['gci_part_id'],
+                    'vendor_part_id' => (int) $candidate['vendor_part_id'],
                     'part_no' => (string) $candidate['part_no'],
                     'part_name' => (string) $candidate['part_name'],
                     'location_code' => (string) $stock->location_code,
