@@ -18,13 +18,13 @@
         <form method="GET" class="rounded-xl border bg-white p-4 shadow-sm">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Month</label>
-                    <input type="month" name="month" value="{{ $month }}"
+                    <label class="block text-xs font-semibold text-slate-600" for="mr-month">Month</label>
+                    <input type="month" name="month" id="mr-month" value="{{ $month }}"
                         class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Status</label>
-                    <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600" for="mr-status">Status</label>
+                    <select name="status" id="mr-status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                         <option value="">All</option>
                         @foreach(['requested', 'issued_partial', 'issued_complete', 'cancelled'] as $option)
                             <option value="{{ $option }}" @selected($status === $option)>{{ strtoupper(str_replace('_', ' ', $option)) }}</option>
@@ -32,8 +32,8 @@
                     </select>
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-600">Search</label>
-                    <input type="text" name="q" value="{{ $q }}" placeholder="Request no / WO / part / reason"
+                    <label class="block text-xs font-semibold text-slate-600" for="mr-search">Search</label>
+                    <input type="text" name="q" id="mr-search" value="{{ $q }}" placeholder="Request no / WO / part / reason"
                         class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                 </div>
             </div>

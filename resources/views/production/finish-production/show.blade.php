@@ -53,8 +53,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Final Quantity Produced *</label>
-                        <input type="number" name="qty_actual" value="{{ $order->qty_actual }}" step="1" min="0" class="w-full rounded-lg border-slate-200" required>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2" for="qty_actual">Final Quantity Produced *</label>
+                        <input type="number" name="qty_actual" id="qty_actual" value="{{ $order->qty_actual }}" step="1" min="0" class="w-full rounded-lg border-slate-200" required>
                         <p class="text-xs text-slate-500 mt-1">Enter the total quantity produced for this order</p>
                     </div>
 

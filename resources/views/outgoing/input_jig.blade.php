@@ -21,13 +21,13 @@
             <div class="mt-6 flex flex-wrap gap-4 items-end border-t border-slate-100 pt-6">
                 <form action="{{ route('outgoing.input-jig') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
-                        <input type="date" name="date_from" value="{{ $dateFrom->toDateString() }}"
+                        <label for="date_from" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
+                        <input type="date" name="date_from" id="date_from" value="{{ $dateFrom->toDateString() }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
-                        <input type="date" name="date_to" value="{{ $dateTo->toDateString() }}"
+                        <label for="date_to" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
+                        <input type="date" name="date_to" id="date_to" value="{{ $dateTo->toDateString() }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <button type="submit"
@@ -104,7 +104,11 @@
                                     <form action="{{ route('outgoing.input-jig.delete', $item->id) }}" method="POST" onsubmit="return confirm('Delete row?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="text-slate-400 hover:text-red-500">&times;</button>
+                                        <button class="text-slate-400 hover:text-red-500" aria-label="Delete row">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
                                     </form>
                                 </td>
                             </tr>
@@ -176,12 +180,12 @@
                                         </div>
 
                                         <div x-show="open" @click.away="open = false" 
-                                             class="fixed z-[9999] bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                                             class="fixed z-[9999] bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
                                              :style="`top: ${top}px; left: ${left}px; width: ${Math.max(width, 300)}px;`"
                                              x-cloak>
                                             <div class="sticky top-0 bg-white p-2 border-b border-slate-100">
-                                                <input x-model="search" type="text" 
-                                                       class="w-full text-xs rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" 
+                                                <input x-model="search" type="text" aria-label="Search customer part"
+                                                       class="w-full text-xs rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
                                                        placeholder="Search...">
                                             </div>
                                             <ul class="py-1">
@@ -200,7 +204,12 @@
                                     </div>
                                 </td>
                                 <td colspan="{{ count($days) + 1 }}" class="p-2 bg-slate-50">
-                                    <button class="px-3 py-1 bg-slate-800 text-white text-xs font-bold rounded hover:bg-slate-900">+ Add Row</button>
+                                    <button class="px-3 py-1 bg-slate-800 text-white text-xs font-bold rounded hover:bg-slate-900">
+                                        <svg class="h-3.5 w-3.5 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Add Row
+                                    </button>
                                 </td>
                             </form>
                         </tr>

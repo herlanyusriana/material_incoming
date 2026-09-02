@@ -21,23 +21,23 @@
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Total</div>
-                <div class="mt-1 text-2xl font-black text-slate-900">{{ $stats->total }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-slate-900">{{ $stats->total }}</div>
             </div>
             <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-wider text-blue-600">Received</div>
-                <div class="mt-1 text-2xl font-black text-blue-700">{{ $stats->received }}</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-indigo-600">Received</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-blue-700">{{ $stats->received }}</div>
             </div>
             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
                 <div class="text-xs font-bold uppercase tracking-wider text-amber-600">In Progress</div>
-                <div class="mt-1 text-2xl font-black text-amber-700">{{ $stats->in_progress }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-amber-700">{{ $stats->in_progress }}</div>
             </div>
             <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
                 <div class="text-xs font-bold uppercase tracking-wider text-indigo-600">Ready</div>
-                <div class="mt-1 text-2xl font-black text-indigo-700">{{ $stats->ready }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-indigo-700">{{ $stats->ready }}</div>
             </div>
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
                 <div class="text-xs font-bold uppercase tracking-wider text-emerald-600">Shipped</div>
-                <div class="mt-1 text-2xl font-black text-emerald-700">{{ $stats->shipped }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-emerald-700">{{ $stats->shipped }}</div>
             </div>
         </div>
 
@@ -46,8 +46,8 @@
             <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <form action="{{ route('outgoing.osp.index') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
-                        <select name="status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="filter-status" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
+                        <select name="status" id="filter-status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">All</option>
                             @foreach (['received','in_progress','ready','shipped','cancelled'] as $s)
                                 <option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst(str_replace('_', ' ', $s)) }}</option>
@@ -55,8 +55,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Customer</label>
-                        <select name="customer_id" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="filter-customer" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Customer</label>
+                        <select name="customer_id" id="filter-customer" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">All</option>
                             @foreach ($customers as $c)
                                 <option value="{{ $c->id }}" @selected(request('customer_id') == $c->id)>{{ $c->name }}</option>
@@ -104,9 +104,9 @@
                                     {{ $order->gciPart->part_name ?? '-' }}
                                     <div class="text-[10px] text-slate-400 font-mono">{{ $order->gciPart->part_no ?? '' }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($order->qty_received_material) }}</td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($order->qty_assembled) }}</td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($order->qty_shipped) }}</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format($order->qty_received_material) }}</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format($order->qty_assembled) }}</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format($order->qty_shipped) }}</td>
                                 <td class="px-4 py-3 text-center text-slate-600">{{ $order->received_date->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 text-center">
                                     @php

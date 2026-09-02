@@ -10,7 +10,7 @@
                 <div>
                     <div class="flex items-center gap-2 mb-2">
                         <a href="{{ route('production.machine-load.index', ['date' => $date->format('Y-m-d')]) }}"
-                            class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                            class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                             Back to Machine Load
                         </a>
@@ -55,19 +55,19 @@
                     </div>
                     <div>
                         <div class="text-xs text-slate-400">Cycle Time</div>
-                        <div class="font-mono font-bold text-slate-700">{{ $machine->cycle_time }} {{ $machine->cycle_time_unit }}</div>
+                        <div class="font-mono tabular-nums font-bold text-slate-700">{{ $machine->cycle_time }} {{ $machine->cycle_time_unit }}</div>
                     </div>
                     <div>
                         <div class="text-xs text-slate-400">Setup Time</div>
-                        <div class="font-mono font-bold text-slate-700">{{ $machine->setup_time_minutes }} min</div>
+                        <div class="font-mono tabular-nums font-bold text-slate-700">{{ $machine->setup_time_minutes }} min</div>
                     </div>
                     <div>
                         <div class="text-xs text-slate-400">Available Hours/Shift</div>
-                        <div class="font-mono font-bold text-slate-700">{{ $machine->available_hours_per_shift }} hrs</div>
+                        <div class="font-mono tabular-nums font-bold text-slate-700">{{ $machine->available_hours_per_shift }} hrs</div>
                     </div>
                     <div>
                         <div class="text-xs text-slate-400">Shifts Today</div>
-                        <div class="font-mono font-bold text-slate-700">{{ $maxShift }}</div>
+                        <div class="font-mono tabular-nums font-bold text-slate-700">{{ $maxShift }}</div>
                     </div>
                 </div>
             </div>
@@ -79,7 +79,7 @@
                     <div>
                         <div class="flex justify-between text-sm mb-1">
                             <span class="text-slate-600">Planned / Capacity</span>
-                            <span class="font-bold {{ $status === 'overload' ? 'text-red-700' : ($status === 'warning' ? 'text-amber-700' : 'text-emerald-700') }}">
+                            <span class="font-bold tabular-nums {{ $status === 'overload' ? 'text-red-700' : ($status === 'warning' ? 'text-amber-700' : 'text-emerald-700') }}">
                                 {{ number_format($totalPlannedHours, 1) }}h / {{ number_format($capacityHours, 1) }}h
                             </span>
                         </div>
@@ -89,12 +89,12 @@
                         </div>
                     </div>
                     <div class="text-center">
-                        <span class="text-4xl font-black {{ $status === 'overload' ? 'text-red-600' : ($status === 'warning' ? 'text-amber-600' : 'text-emerald-600') }}">
+                        <span class="text-4xl font-black tabular-nums {{ $status === 'overload' ? 'text-red-600' : ($status === 'warning' ? 'text-amber-600' : 'text-emerald-600') }}">
                             {{ $loadPercent }}%
                         </span>
                         <div class="text-xs text-slate-400 mt-1">Load Percentage</div>
                     </div>
-                    <div class="flex justify-between text-xs text-slate-500">
+                    <div class="flex justify-between text-xs text-slate-500 tabular-nums">
                         <span>{{ count($orderDetails) }} Work Orders</span>
                         @if($capacityHours > $totalPlannedHours)
                             <span class="text-emerald-600 font-semibold">{{ number_format($capacityHours - $totalPlannedHours, 1) }}h remaining</span>
@@ -129,15 +129,15 @@
                         @forelse($orderDetails as $idx => $detail)
                             <tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
                                 <td class="px-4 py-3 text-center text-slate-400 font-mono">{{ $idx + 1 }}</td>
-                                <td class="px-4 py-3 font-mono text-xs font-bold text-blue-700">
+                                <td class="px-4 py-3 font-mono tabular-nums text-xs font-bold text-indigo-700">
                                     <a href="{{ route('production.orders.show', $detail['order']->id) }}" class="hover:underline">
                                         {{ $detail['order']->production_order_number }}
                                     </a>
                                 </td>
                                 <td class="px-4 py-3 font-mono text-xs font-semibold text-slate-700">{{ $detail['order']->part->part_no ?? '-' }}</td>
                                 <td class="px-4 py-3 text-sm text-slate-800">{{ $detail['order']->part->part_name ?? '-' }}</td>
-                                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-700">{{ number_format((float) $detail['order']->qty_planned, 0) }}</td>
-                                <td class="px-4 py-3 text-right font-mono font-bold text-indigo-700">{{ number_format($detail['est_hours'], 2) }}h</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums font-semibold text-slate-700">{{ number_format((float) $detail['order']->qty_planned, 0) }}</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums font-bold text-indigo-700">{{ number_format($detail['est_hours'], 2) }}h</td>
                                 <td class="px-4 py-3 text-center text-slate-600">{{ $detail['order']->shift ?? '-' }}</td>
                                 <td class="px-4 py-3 text-center">
                                     @php
@@ -167,10 +167,10 @@
                         @if(count($orderDetails) > 0)
                             <tr class="bg-slate-100 border-t-2 border-slate-300 font-bold">
                                 <td colspan="4" class="px-4 py-3 text-right text-slate-700">Total</td>
-                                <td class="px-4 py-3 text-right font-mono text-slate-800">
+                                <td class="px-4 py-3 text-right font-mono tabular-nums text-slate-800">
                                     {{ number_format(collect($orderDetails)->sum(fn($d) => (float) $d['order']->qty_planned), 0) }}
                                 </td>
-                                <td class="px-4 py-3 text-right font-mono text-indigo-700">{{ number_format($totalPlannedHours, 2) }}h</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums text-indigo-700">{{ number_format($totalPlannedHours, 2) }}h</td>
                                 <td colspan="2" class="px-4 py-3"></td>
                             </tr>
                         @endif

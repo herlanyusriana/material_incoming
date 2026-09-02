@@ -17,8 +17,8 @@
         <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Search</label>
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Order number / Part" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600" for="mp-search">Search</label>
+                    <input type="text" name="search" id="mp-search" value="{{ $search }}" placeholder="Order number / Part" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                 </div>
                 <div class="flex gap-2">
                     <a href="{{ route('production.mass-production.index') }}" class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
@@ -52,8 +52,8 @@
                                 <div class="text-sm font-medium text-slate-900">{{ $order->process_name ?: '-' }}</div>
                                 <div class="text-xs text-slate-500">{{ $order->machine?->name ?: '-' }}</div>
                             </td>
-                            <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_planned) }}</td>
-                            <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_actual) }}</td>
+                            <td class="px-6 py-4 font-mono tabular-nums text-slate-700">{{ number_format($order->qty_planned) }}</td>
+                            <td class="px-6 py-4 font-mono tabular-nums text-slate-700">{{ number_format($order->qty_actual) }}</td>
                             <td class="px-6 py-4">
                                 @php
                                     $progress = $order->qty_planned > 0 ? ($order->qty_actual / $order->qty_planned * 100) : 0;

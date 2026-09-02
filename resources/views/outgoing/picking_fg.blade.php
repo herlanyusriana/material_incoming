@@ -157,8 +157,8 @@
                 <div class="flex flex-wrap items-end gap-2">
                     <form method="GET" action="{{ route('outgoing.picking-fg') }}" class="flex items-end gap-2">
                         <div>
-                            <div class="text-xs font-semibold text-slate-500 mb-1">Delivery Date</div>
-                            <input type="date" name="date" value="{{ $selectedDate->toDateString() }}"
+                            <label for="filter-date" class="text-xs font-semibold text-slate-500 mb-1">Delivery Date</label>
+                            <input type="date" name="date" id="filter-date" value="{{ $selectedDate->toDateString() }}"
                                 class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                         </div>
                         <button type="submit"
@@ -207,10 +207,10 @@
                         <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        <input type="text" name="search" value="{{ $filterSearch ?? '' }}" placeholder="Search DO / Part..."
+                        <input type="text" name="search" value="{{ $filterSearch ?? '' }}" aria-label="Search DO or part" placeholder="Search DO / Part..."
                             class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
                     </div>
-                    <button type="submit" class="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white hover:bg-slate-700">
+                    <button type="submit" aria-label="Search" class="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white hover:bg-slate-700">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
@@ -242,11 +242,11 @@
                 <div class="stat-label">Completed</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value text-indigo-700 text-xl" id="stat-total-qty">{{ number_format($stats->total_qty) }}</div>
+                <div class="stat-value text-indigo-700 text-xl tabular-nums" id="stat-total-qty">{{ number_format($stats->total_qty) }}</div>
                 <div class="stat-label">Plan Qty</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value text-emerald-700 text-xl" id="stat-total-picked">{{ number_format($stats->total_picked) }}</div>
+                <div class="stat-value text-emerald-700 text-xl tabular-nums" id="stat-total-picked">{{ number_format($stats->total_picked) }}</div>
                 <div class="stat-label">Picked</div>
             </div>
         </div>
@@ -305,7 +305,7 @@
                                 <div class="flex items-center gap-6">
                                     <div class="text-right">
                                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan Qty</div>
-                                        <div class="text-lg font-black text-slate-800">{{ number_format($so->qty_plan_total) }}</div>
+                                        <div class="text-lg font-black text-slate-800 tabular-nums">{{ number_format($so->qty_plan_total) }}</div>
                                     </div>
                                     
                                     @if($so->status === 'completed')
@@ -382,14 +382,14 @@
                                                 <div class="truncate text-[10px] font-bold text-slate-900" title="{{ $row->part_name }}">{{ $row->part_name }}</div>
                                                 <div class="truncate text-[9px] text-slate-500 uppercase font-bold" title="{{ $row->model }}">{{ $row->model }}</div>
                                             </td>
-                                            <td class="px-3 py-3 text-right font-bold text-slate-900">{{ number_format($row->qty_plan) }}</td>
+                                            <td class="px-3 py-3 text-right font-bold text-slate-900 tabular-nums">{{ number_format($row->qty_plan) }}</td>
                                             <td class="px-3 py-3 text-center bg-emerald-50/30">
                                                 <input type="number" min="0" max="{{ $row->qty_plan }}" value="{{ $row->qty_picked }}"
-                                                    class="pick-input" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}"
+                                                    class="pick-input tabular-nums" data-row-key="{{ $rowKey }}" data-part-id="{{ $row->gci_part_id }}"
                                                     data-source="{{ $row->source }}" data-delivery-order-id="{{ $row->delivery_order_id }}"
-                                                    onchange="savePick(this)" id="pick-input-{{ $rowKey }}">
+                                                    onchange="savePick(this)" id="pick-input-{{ $rowKey }}" aria-label="Picked quantity">
                                             </td>
-                                            <td class="px-3 py-3 text-right font-bold" id="remaining-{{ $rowKey }}">
+                                            <td class="px-3 py-3 text-right font-bold tabular-nums" id="remaining-{{ $rowKey }}">
                                                 <span class="{{ $row->qty_remaining > 0 ? 'text-amber-600' : 'text-green-700' }}">
                                                     {{ number_format($row->qty_remaining) }}
                                                 </span>
@@ -407,13 +407,14 @@
                                             <td class="px-3 py-3">
                                                 @if($row->expected_location)
                                                     <div class="text-[10px] font-black text-indigo-600 mb-0.5" title="Default Location">
-                                                        📍 {{ $row->expected_location }}
+                                                        <svg class="w-3 h-3 inline-block -mt-0.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                        {{ $row->expected_location }}
                                                     </div>
                                                 @endif
                                                 @if(!empty($row->stock_locations))
                                                     @foreach($row->stock_locations as $sl)
                                                         <div class="text-[9px] text-slate-500 font-mono">
-                                                            {{ $sl['code'] }} <span class="text-slate-400">({{ number_format($sl['qty']) }})</span>
+                                                            {{ $sl['code'] }} <span class="text-slate-400 tabular-nums">({{ number_format($sl['qty']) }})</span>
                                                         </div>
                                                     @endforeach
                                                 @elseif(!$row->expected_location)
@@ -422,7 +423,7 @@
                                                 <input type="text" value="{{ $row->pick_location ?: ($row->expected_location ?? '') }}" placeholder="Loc..."
                                                     class="border border-slate-200 rounded-lg px-2 py-1 text-[11px] w-20 focus:outline-none focus:border-indigo-400 mt-1"
                                                     onchange="savePick(document.getElementById('pick-input-{{ $rowKey }}'))"
-                                                    id="loc-{{ $rowKey }}">
+                                                    id="loc-{{ $rowKey }}" aria-label="Pick location">
                                             </td>
                                             <td class="px-3 py-3 text-slate-500 text-[10px] font-medium">
                                                 <span class="block truncate" id="picker-{{ $rowKey }}" title="{{ $row->picked_by_name ?? '-' }}">{{ $row->picked_by_name ?? '-' }}</span>

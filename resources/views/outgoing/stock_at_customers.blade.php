@@ -19,13 +19,13 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
                 <form method="GET" action="{{ route('outgoing.stock-at-customers') }}" class="flex flex-wrap items-end gap-2">
                     <div>
-                        <div class="text-xs font-semibold text-slate-500 mb-1">Start Date</div>
-                        <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}"
+                        <label for="start_date" class="text-xs font-semibold text-slate-500 mb-1">Start Date</label>
+                        <input type="date" name="start_date" id="start_date" value="{{ $startDate->format('Y-m-d') }}"
                             class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                     </div>
                     <div>
-                        <div class="text-xs font-semibold text-slate-500 mb-1">Customer</div>
-                        <select name="customer_id"
+                        <label for="customer_id" class="text-xs font-semibold text-slate-500 mb-1">Customer</label>
+                        <select name="customer_id" id="customer_id"
                             class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 min-w-[200px]">
                             <option value="">All Customer</option>
                             @foreach(($customers ?? collect()) as $customer)
@@ -36,8 +36,8 @@
                         </select>
                     </div>
                     <div>
-                        <div class="text-xs font-semibold text-slate-500 mb-1">Search</div>
-                        <input type="text" name="q" value="{{ $search ?? '' }}" placeholder="Part no / part name / model / customer"
+                        <label for="q" class="text-xs font-semibold text-slate-500 mb-1">Search</label>
+                        <input type="text" name="q" id="q" value="{{ $search ?? '' }}" placeholder="Part no / part name / model / customer"
                             class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 min-w-[280px]">
                     </div>
                     <button
@@ -75,12 +75,12 @@
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Qty</div>
-            <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((float) ($totalQty ?? 0), 0) }}</div>
+            <div class="mt-2 text-3xl font-black text-slate-900 tabular-nums">{{ number_format((float) ($totalQty ?? 0), 0) }}</div>
             <div class="mt-1 text-sm text-slate-500">Akumulasi stock customer pada range 7 hari</div>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Tracked Parts</div>
-            <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((int) ($trackedParts ?? 0)) }}</div>
+            <div class="mt-2 text-3xl font-black text-slate-900 tabular-nums">{{ number_format((int) ($trackedParts ?? 0)) }}</div>
             <div class="mt-1 text-sm text-slate-500">Part yang terinput dari APK / import</div>
         </div>
     </div>
@@ -100,7 +100,7 @@
                             <div class="text-xs text-slate-500">{{ number_format((int) $row['customer_count']) }} customer</div>
                         </div>
                         <div class="text-right">
-                            <div class="text-lg font-black text-slate-900">{{ number_format((float) $row['total_qty'], 0) }}</div>
+                            <div class="text-lg font-black text-slate-900 tabular-nums">{{ number_format((float) $row['total_qty'], 0) }}</div>
                             <div class="text-xs text-slate-400">qty total</div>
                         </div>
                     </div>
@@ -154,7 +154,7 @@
                         @foreach($days as $dateKey => $dateLabel)
                         @php($v = (float) ($rec->{$dateKey} ?? 0))
                         <td
-                            class="px-3 py-3 text-right text-slate-700 {{ $v > 0 ? 'font-semibold' : 'text-slate-400' }}">
+                            class="px-3 py-3 text-right tabular-nums {{ $v > 0 ? 'font-semibold text-slate-700' : 'text-slate-400' }}">
                             {{ $v > 0 ? number_format($v, 0) : '-' }}
                         </td>
                         @endforeach

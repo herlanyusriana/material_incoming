@@ -89,7 +89,7 @@
 
                         <div class="bg-slate-900 p-6 rounded-2xl shadow-xl flex flex-col items-center justify-center text-center">
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total PO Value</span>
-                            <span class="text-3xl font-black text-white font-mono">{{ number_format($purchaseOrder->total_amount, 2) }}</span>
+                            <span class="text-3xl font-black text-white font-mono tabular-nums">{{ number_format($purchaseOrder->total_amount, 2) }}</span>
                             <span class="text-[10px] text-slate-500 mt-2 font-medium italic">Incl. all items & taxes if any</span>
                         </div>
                     </div>

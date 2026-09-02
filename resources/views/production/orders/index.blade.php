@@ -60,7 +60,7 @@
                         Export Excel
                     </a>
                     <a href="{{ route('production.orders.create') }}"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-colors">
                         New Production Order
                     </a>
                 </div>
@@ -69,23 +69,23 @@
             <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
                 <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600">Month</label>
-                        <input type="month" name="month" value="{{ $month ?? '' }}"
+                        <label class="block text-xs font-semibold text-slate-600" for="filter-month">Month</label>
+                        <input type="month" name="month" id="filter-month" value="{{ $month ?? '' }}"
                             class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600">Date From</label>
-                        <input type="date" name="date_from" value="{{ $dateFrom ?? '' }}"
+                        <label class="block text-xs font-semibold text-slate-600" for="filter-date-from">Date From</label>
+                        <input type="date" name="date_from" id="filter-date-from" value="{{ $dateFrom ?? '' }}"
                             class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600">Date To</label>
-                        <input type="date" name="date_to" value="{{ $dateTo ?? '' }}"
+                        <label class="block text-xs font-semibold text-slate-600" for="filter-date-to">Date To</label>
+                        <input type="date" name="date_to" id="filter-date-to" value="{{ $dateTo ?? '' }}"
                             class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600">Status</label>
-                        <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                        <label class="block text-xs font-semibold text-slate-600" for="filter-status">Status</label>
+                        <select name="status" id="filter-status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                             <option value="">All</option>
                             @foreach(($allowedStatuses ?? []) as $s)
                                 <option value="{{ $s }}" @selected(($status ?? '') === $s)>
@@ -94,8 +94,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600">Sisa Material</label>
-                        <select name="inventory_balance" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                        <label class="block text-xs font-semibold text-slate-600" for="filter-inventory-balance">Sisa Material</label>
+                        <select name="inventory_balance" id="filter-inventory-balance" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                             <option value="">Semua</option>
                             <option value="remaining" @selected(($inventoryBalance ?? '') === 'remaining')>Masih ada sisa</option>
                             <option value="clean" @selected(($inventoryBalance ?? '') === 'clean')>Sudah bersih</option>
@@ -103,8 +103,8 @@
                         </select>
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-600">Search</label>
-                        <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="MO number / part no / model"
+                        <label class="block text-xs font-semibold text-slate-600" for="filter-q">Search</label>
+                        <input type="text" name="q" id="filter-q" value="{{ $q ?? '' }}" placeholder="MO number / part no / model"
                             class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                         @if(!empty($gciPartId))
                             <input type="hidden" name="gci_part_id" value="{{ (int) $gciPartId }}">
@@ -219,7 +219,7 @@
                                             @endif
                                         </div>
                                         @if($currentMachine && $currentMachine !== '-')
-                                            <div class="mt-1 text-[11px] text-blue-600 font-medium">
+                                            <div class="mt-1 text-[11px] text-indigo-600 font-medium">
                                                 Step aktif di {{ $currentMachine }}
                                             </div>
                                         @endif
@@ -237,7 +237,7 @@
                                         <span class="text-xs text-slate-400 italic">No shift</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_planned) }}</td>
+                                <td class="px-6 py-4 font-mono tabular-nums text-slate-700">{{ number_format($order->qty_planned) }}</td>
                                 <td class="px-6 py-4">
                                     @php
                                         $colors = [
@@ -262,12 +262,12 @@
                                         {{ $materialFlowLabel }}
                                     </span>
                                     @if($supplyQty > 0)
-                                        <div class="mt-1 text-xs text-slate-500">
+                                        <div class="mt-1 text-xs text-slate-500 tabular-nums">
                                             Supply {{ number_format($supplyQty, 4) }}
                                             • Pakai {{ number_format($consumedQty, 4) }}
                                             • Balik {{ number_format($returnedQty, 4) }}
                                         </div>
-                                        <div class="text-xs font-semibold {{ $remainingQty > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
+                                        <div class="text-xs font-semibold tabular-nums {{ $remainingQty > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
                                             Sisa {{ number_format($remainingQty, 4) }}
                                         </div>
                                     @elseif($scanCount > 0)
@@ -278,8 +278,9 @@
                                     <div class="flex items-center justify-end gap-3">
                                         @if(!in_array($order->status, ['completed', 'cancelled'], true))
                                             <a href="{{ route('production.orders.edit', $order) }}"
-                                                class="text-blue-600 hover:text-blue-800"
+                                                class="text-indigo-600 hover:text-indigo-800"
                                                 title="Update WO"
+                                                aria-label="Update WO"
                                                 @click.stop>
                                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -289,7 +290,7 @@
                                                 onsubmit="return confirm('Cancel WO ini? Material reserve akan dikembalikan.');"
                                                 @click.stop>
                                                 @csrf
-                                                <button type="submit" class="text-red-600 hover:text-red-800" title="Cancel WO">
+                                                <button type="submit" class="text-red-600 hover:text-red-800" title="Cancel WO" aria-label="Cancel WO">
                                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                                     </svg>
@@ -299,6 +300,7 @@
                                         <button
                                             class="text-indigo-600 hover:text-indigo-900"
                                             title="Quick View"
+                                            aria-label="Quick View"
                                             @click.stop="openSlideOver('{{ route('production.orders.show', $order) }}')">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -327,7 +329,7 @@
         <div class="relative z-50" aria-labelledby="slide-over-title" role="dialog" aria-modal="true"
             x-show="slideOverOpen" style="display: none;">
             <!-- Background backdrop -->
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" x-show="slideOverOpen"
+            <div class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" x-show="slideOverOpen"
                 x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0"
                 x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500"
                 x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
@@ -349,7 +351,7 @@
                                             Details</h2>
                                         <div class="ml-3 flex h-7 items-center">
                                             <button type="button"
-                                                class="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                class="rounded-xl bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                                                 @click="slideOverOpen = false">
                                                 <span class="sr-only">Close panel</span>
                                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5"

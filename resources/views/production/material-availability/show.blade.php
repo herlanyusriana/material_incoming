@@ -61,16 +61,18 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-center">{{ $material['uom'] }}</td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($material['required'], 2) }}</td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($material['primary_stock'], 2) }}</td>
-                                <td class="px-4 py-3 text-right font-mono {{ $material['substitute_stock'] > 0 ? 'text-blue-600 font-semibold' : 'text-slate-400' }}">
+                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format($material['required'], 2) }}</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format($material['primary_stock'], 2) }}</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums {{ $material['substitute_stock'] > 0 ? 'text-indigo-600 font-semibold' : 'text-slate-400' }}">
                                     {{ number_format($material['substitute_stock'], 2) }}
                                     @if($material['substitute_stock'] > 0 && !empty($material['substitutes']))
-                                        <span class="text-xs" title="{{ collect($material['substitutes'])->pluck('part_no')->join(', ') }}">ℹ️</span>
+                                        <span class="inline-flex" title="{{ collect($material['substitutes'])->pluck('part_no')->join(', ') }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                                        </span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-right font-mono">{{ number_format($material['available'], 2) }}</td>
-                                <td class="px-4 py-3 text-right font-mono {{ $material['shortage'] > 0 ? 'text-red-600 font-bold' : '' }}">
+                                <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format($material['available'], 2) }}</td>
+                                <td class="px-4 py-3 text-right font-mono tabular-nums {{ $material['shortage'] > 0 ? 'text-red-600 font-bold' : '' }}">
                                     {{ number_format($material['shortage'], 2) }}
                                 </td>
                                 <td class="px-4 py-3 text-center">

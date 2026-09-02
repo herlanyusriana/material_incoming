@@ -21,7 +21,7 @@
                                     <thead class="bg-slate-50">
                                         <tr>
                                             <th class="px-4 py-3 text-left">
-                                                <input type="checkbox" id="select-all"
+                                                <input type="checkbox" id="select-all" aria-label="Select all items"
                                                     class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                             </th>
                                             <th
@@ -77,17 +77,17 @@
                                                 <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600">
                                                     {{ \Carbon\Carbon::parse($plan->plan_date)->format('M d, Y') }}
                                                 </td>
-                                                <td class="px-4 py-3 text-right text-xs font-mono text-slate-600">
+                                                <td class="px-4 py-3 text-right text-xs font-mono text-slate-600 tabular-nums">
                                                     {{ number_format($plan->net_required, 2) }}
                                                 </td>
                                                 <td
-                                                    class="px-4 py-3 text-right text-xs font-bold text-indigo-600 font-mono">
+                                                    class="px-4 py-3 text-right text-xs font-bold text-indigo-600 font-mono tabular-nums">
                                                     {{ number_format($plan->planned_order_rec, 2) }}
                                                 </td>
                                                 <td class="px-4 py-3 text-right">
                                                     <input type="number" name="items[{{ $index }}][qty]"
                                                         value="{{ (float) $plan->planned_order_rec }}" step="0.0001"
-                                                        class="w-24 rounded-xl border-slate-200 text-xs font-bold text-right"
+                                                        class="w-24 rounded-xl border-slate-200 text-xs font-bold text-right tabular-nums"
                                                         required>
                                                     <input type="hidden" name="items[{{ $index }}][required_date]"
                                                         value="{{ $plan->plan_date }}">
@@ -104,10 +104,10 @@
                             </div>
 
                             <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                                <label
+                                <label for="notes"
                                     class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">Additional
                                     Notes</label>
-                                <textarea name="notes" rows="3"
+                                <textarea name="notes" id="notes" rows="3"
                                     class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                                     placeholder="Any specific instructions for this request..."></textarea>
                             </div>

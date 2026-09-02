@@ -29,7 +29,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">
+                        <label for="customerId" class="block text-xs font-bold text-slate-600 mb-1">
                             Vendor / Customer <span class="text-red-500">*</span>
                         </label>
                         <select name="customer_id" id="customerId" required
@@ -46,10 +46,10 @@
                         @enderror
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">
+                        <label for="po_no" class="block text-xs font-bold text-slate-600 mb-1">
                             PO No. <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="po_no" value="{{ old('po_no') }}" required
+                        <input type="text" name="po_no" id="po_no" value="{{ old('po_no') }}" required
                             placeholder="e.g. 0093-POC/II/2026"
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none">
                         @error('po_no')
@@ -57,10 +57,10 @@
                         @enderror
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">
+                        <label for="po_release_date" class="block text-xs font-bold text-slate-600 mb-1">
                             PO Release Date <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" name="po_release_date" value="{{ old('po_release_date', date('Y-m-d')) }}"
+                        <input type="date" name="po_release_date" id="po_release_date" value="{{ old('po_release_date', date('Y-m-d')) }}"
                             required
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none">
                         @error('po_release_date')
@@ -70,8 +70,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Notes</label>
-                    <textarea name="notes" rows="2" placeholder="Optional notes..."
+                    <label for="notes" class="block text-xs font-bold text-slate-600 mb-1">Notes</label>
+                    <textarea name="notes" id="notes" rows="2" placeholder="Optional notes..."
                         class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none resize-none">{{ old('notes') }}</textarea>
                 </div>
             </div>

@@ -33,18 +33,18 @@
             <form action="{{ route($routePrefix . '.index') }}" method="GET"
                 class="mt-6 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-6">
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
-                    <input type="date" name="date_from" value="{{ $dateFrom }}"
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1" for="date_from">From</label>
+                    <input type="date" name="date_from" id="date_from" value="{{ $dateFrom }}"
                         class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
-                    <input type="date" name="date_to" value="{{ $dateTo }}"
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1" for="date_to">To</label>
+                    <input type="date" name="date_to" id="date_to" value="{{ $dateTo }}"
                         class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Category</label>
-                    <select name="category"
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1" for="qdc-category">Category</label>
+                    <select name="category" id="qdc-category"
                         class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">All</option>
                         @foreach ($categories as $cat)
@@ -53,8 +53,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Machine</label>
-                    <select name="machine"
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1" for="qdc-machine">Machine</label>
+                    <select name="machine" id="qdc-machine"
                         class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">All</option>
                         @foreach ($machines as $m)
@@ -63,8 +63,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Source</label>
-                    <select name="source"
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1" for="qdc-source">Source</label>
+                    <select name="source" id="qdc-source"
                         class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="all" {{ ($source ?? 'all') === 'all' ? 'selected' : '' }}>All</option>
                         <option value="wo" {{ ($source ?? '') === 'wo' ? 'selected' : '' }}>Work Order</option>
@@ -265,21 +265,21 @@
                                 <td class="px-4 py-3 text-center">
                                     <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded {{ $badgeClass }}">{{ strtoupper($dt->category) }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-center font-mono text-xs text-slate-700">
+                                <td class="px-4 py-3 text-center font-mono tabular-nums text-xs text-slate-700">
                                     @if($dt->source === 'app' && $dt->start_time)
                                         {{ \Carbon\Carbon::parse($dt->start_time)->format('H:i') }}
                                     @else
                                         {{ $dt->start_time ?? '-' }}
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-center font-mono text-xs text-slate-700">
+                                <td class="px-4 py-3 text-center font-mono tabular-nums text-xs text-slate-700">
                                     @if($dt->source === 'app' && $dt->end_time)
                                         {{ \Carbon\Carbon::parse($dt->end_time)->format('H:i') }}
                                     @else
                                         {{ $dt->end_time ?? '-' }}
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold font-mono text-xs {{ $dt->duration_minutes !== null ? 'text-slate-900' : 'text-amber-600' }}">
+                                <td class="px-4 py-3 text-right font-bold font-mono tabular-nums text-xs {{ $dt->duration_minutes !== null ? 'text-slate-900' : 'text-amber-600' }}">
                                     @if($dt->start_time && $dt->end_time)
                                         @php
                                             $start = \Carbon\Carbon::parse($dt->start_time);

@@ -73,7 +73,7 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right">
-                                        <div class="text-sm font-bold text-slate-900">{{ number_format($request->total_amount, 2) }}</div>
+                                        <div class="text-sm font-bold text-slate-900 tabular-nums">{{ number_format($request->total_amount, 2) }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         @php
@@ -95,7 +95,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('purchasing.purchase-requests.show', $request) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail">
+                                            <a href="{{ route('purchasing.purchase-requests.show', $request) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail" aria-label="View detail">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -104,7 +104,7 @@
                                             @if ($request->status === 'Approved')
                                                 <form action="{{ route('purchasing.purchase-requests.convert', $request) }}" method="POST" class="inline">
                                                     @csrf
-                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Convert to PO">
+                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Convert to PO" aria-label="Convert to PO">
                                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                                         </svg>

@@ -6,8 +6,11 @@
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div class="flex items-center gap-3">
                     <a href="{{ route('outgoing.delivery-notes.index') }}"
-                        class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500">
-                        ←
+                        class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500"
+                        aria-label="Back to delivery notes">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
                     </a>
                     <div>
                         <h1 class="text-2xl font-black text-slate-900">{{ $deliveryNote->dn_no }}</h1>
@@ -83,7 +86,7 @@
                         <form action="{{ route('outgoing.delivery-notes.complete-picking', $deliveryNote) }}" method="POST">
                             @csrf
                             <button type="submit"
-                                class="px-6 py-2 rounded-xl bg-blue-600 text-white font-black hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">
+                                class="px-6 py-2 rounded-xl bg-indigo-600 text-white font-black hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-95">
                                 COMPLETE PICKING
                             </button>
                         </form>
@@ -108,8 +111,8 @@
                         @csrf
                         <div class="flex flex-wrap items-end gap-4">
                             <div>
-                                <label class="block text-xs font-black text-emerald-800 mb-1">Driver</label>
-                                <select name="driver_id" required
+                                <label for="driver_id" class="block text-xs font-black text-emerald-800 mb-1">Driver</label>
+                                <select name="driver_id" id="driver_id" required
                                     class="rounded-xl border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm font-semibold w-48">
                                     <option value="">Pilih driver...</option>
                                     @foreach ($drivers as $driver)
@@ -118,8 +121,8 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-black text-emerald-800 mb-1">Truck</label>
-                                <select name="truck_id" required
+                                <label for="truck_id" class="block text-xs font-black text-emerald-800 mb-1">Truck</label>
+                                <select name="truck_id" id="truck_id" required
                                     class="rounded-xl border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm font-semibold w-48">
                                     <option value="">Pilih truck...</option>
                                     @foreach ($trucks as $truck)
@@ -224,10 +227,10 @@
                                                 <span class="font-mono text-xs">{{ $item->kitting_location_code ?: '-' }}</span>
                                             @endif
                                         </td>
-                                        <td class="px-5 py-4 text-right font-black text-slate-900">
+                                        <td class="px-5 py-4 text-right font-black text-slate-900 tabular-nums">
                                             {{ number_format((float) ($item->picked_qty ?? 0), 4) }}
                                         </td>
-                                        <td class="px-5 py-4 text-right font-black text-indigo-600 text-lg">
+                                        <td class="px-5 py-4 text-right font-black text-indigo-600 text-lg tabular-nums">
                                             {{ number_format($item->qty) }}</td>
                                     </tr>
                                 @endforeach
@@ -235,9 +238,9 @@
                                 <tr class="bg-indigo-50 font-black">
                                     <td colspan="4" class="px-5 py-4 text-right text-indigo-900 uppercase tracking-wider">
                                         Total Quantity</td>
-                                    <td class="px-5 py-4 text-right text-indigo-900 text-xl">
+                                    <td class="px-5 py-4 text-right text-indigo-900 text-xl tabular-nums">
                                         {{ number_format((float) $deliveryNote->items->sum('picked_qty'), 4) }}</td>
-                                    <td class="px-5 py-4 text-right text-indigo-900 text-xl">
+                                    <td class="px-5 py-4 text-right text-indigo-900 text-xl tabular-nums">
                                         {{ number_format($deliveryNote->items->sum('qty')) }}</td>
                                 </tr>
                             </tfoot>
@@ -249,7 +252,9 @@
             @if ($deliveryNote->status === 'shipped')
                 <div class="mt-8 p-6 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-4">
                     <div class="h-12 w-12 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xl">
-                        ✓
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
                     </div>
                     <div>
                         <p class="font-black text-emerald-900">Delivery Confirmed</p>

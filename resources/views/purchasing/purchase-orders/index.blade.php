@@ -74,7 +74,7 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right">
-                                        <div class="text-sm font-bold text-slate-900">
+                                        <div class="text-sm font-bold text-slate-900 tabular-nums">
                                             {{ number_format($order->total_amount, 2) }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -101,7 +101,7 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('purchasing.purchase-orders.show', $order) }}"
                                                 class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-                                                title="View Detail">
+                                                title="View Detail" aria-label="View detail">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -112,7 +112,7 @@
                                             <a href="{{ route('purchasing.purchase-orders.print', $order) }}"
                                                 target="_blank"
                                                 class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-                                                title="Print PO">
+                                                title="Print PO" aria-label="Print PO">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />

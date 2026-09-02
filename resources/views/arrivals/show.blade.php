@@ -6,12 +6,12 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
                 </div>
             @endif
             @if (session('error'))
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                <div class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
                     {{ session('error') }}
                 </div>
             @endif
@@ -50,7 +50,7 @@
                         </svg>
                         Export Excel
                     </a>
-                    <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                    <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
                         </svg>
@@ -185,12 +185,12 @@
 		                        <span class="text-slate-900">
                                     {{ $arrival->bill_of_lading ?: '-' }}
                                     @if ($arrival->bill_of_lading_status)
-                                        <span class="ml-2 inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                        <span class="ml-2 inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
                                             {{ strtoupper($arrival->bill_of_lading_status) }}
                                         </span>
                                     @endif
                                     @if ($arrival->bill_of_lading_file_url)
-                                        <a class="ml-2 text-xs font-semibold text-blue-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}" target="_blank" rel="noopener">
+                                        <a class="ml-2 text-xs font-semibold text-indigo-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}" target="_blank" rel="noopener">
                                             View File
                                         </a>
                                     @endif
@@ -218,7 +218,7 @@
 	                            @if ($hsCodes->count())
 	                                <div class="flex flex-wrap gap-1">
 	                                    @foreach ($hsCodes as $code)
-	                                        <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
+	                                        <span class="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
 	                                            {{ $code }}
 	                                        </span>
 	                                    @endforeach
@@ -440,7 +440,7 @@
                         <h3 class="text-lg font-bold text-slate-900">Departure Items</h3>
                         <p class="text-sm text-slate-600 mt-1">Parts and receiving details</p>
                     </div>
-                    <a href="{{ route('departure-items.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                    <a href="{{ route('departure-items.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
@@ -503,7 +503,7 @@
                                     </td>
 		                                    <td class="px-4 py-4">
 		                                        <div class="flex justify-center">
-		                                            <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+		                                            <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
 		                                                Edit Item
 		                                            </a>
 		                                        </div>

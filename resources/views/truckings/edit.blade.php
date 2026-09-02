@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit Trucking Company</h2>
-            <p class="text-sm text-gray-500">Update company details.</p>
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">Edit Trucking Company</h2>
+            <p class="text-sm text-slate-500">Update company details.</p>
         </div>
     </x-slot>
 
@@ -21,7 +21,7 @@
 
                     <div>
                         <x-input-label for="address" value="Address" />
-                        <textarea id="address" name="address" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>{{ old('address', $trucking->address) }}</textarea>
+                        <textarea id="address" name="address" rows="3" class="mt-1 block w-full rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>{{ old('address', $trucking->address) }}</textarea>
                         <x-input-error :messages="$errors->get('address')" class="mt-2" />
                     </div>
 
@@ -45,7 +45,7 @@
 
                     <div>
                         <x-input-label for="status" value="Status" />
-                        <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                        <select id="status" name="status" class="mt-1 block w-full rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             <option value="active" {{ old('status', $trucking->status) === 'active' ? 'selected' : '' }}>Active</option>
                             <option value="inactive" {{ old('status', $trucking->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
                         </select>
@@ -53,10 +53,10 @@
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors">
                             Update Trucking Company
                         </button>
-                        <a href="{{ route('truckings.index') }}" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors">
+                        <a href="{{ route('truckings.index') }}" class="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-xl transition-colors">
                             Cancel
                         </a>
                     </div>

@@ -15,12 +15,12 @@
                 <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Identitas Part</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Part No <span class="text-red-600">*</span></label>
-                        <input name="part_no" required class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.part_no">
+                        <label for="part_no" class="text-sm font-semibold text-slate-700">Part No <span class="text-red-600">*</span></label>
+                        <input id="part_no" name="part_no" required class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.part_no">
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Tipe <span class="text-red-600">*</span></label>
-                        <select name="classification" required class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.classification">
+                        <label for="classification" class="text-sm font-semibold text-slate-700">Tipe <span class="text-red-600">*</span></label>
+                        <select id="classification" name="classification" required class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.classification">
                             <option value="FG">FG</option>
                             <option value="WIP">WIP</option>
                             <option value="RM">RM</option>
@@ -28,17 +28,17 @@
                     </div>
                 </div>
                 <div class="mt-3">
-                    <label class="text-sm font-semibold text-slate-700">Part Name</label>
-                    <input name="part_name" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.part_name">
+                    <label for="part_name" class="text-sm font-semibold text-slate-700">Part Name</label>
+                    <input id="part_name" name="part_name" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.part_name">
                 </div>
                 <div class="grid grid-cols-2 gap-3 mt-3">
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Size</label>
-                        <input name="size" class="mt-1 w-full rounded-lg border-slate-300" placeholder="e.g. 100x50x2mm" x-model="partForm.size">
+                        <label for="size" class="text-sm font-semibold text-slate-700">Size</label>
+                        <input id="size" name="size" class="mt-1 w-full rounded-lg border-slate-300" placeholder="e.g. 100x50x2mm" x-model="partForm.size">
                     </div>
                     <div x-show="partForm.classification !== 'RM'" x-cloak>
-                        <label class="text-sm font-semibold text-slate-700">Model</label>
-                        <input name="model" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.model">
+                        <label for="model" class="text-sm font-semibold text-slate-700">Model</label>
+                        <input id="model" name="model" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.model">
                     </div>
                 </div>
             </section>
@@ -48,16 +48,16 @@
                 <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Material & Status</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Material Policy</label>
-                        <select name="consumption_policy" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.consumption_policy">
+                        <label for="consumption_policy" class="text-sm font-semibold text-slate-700">Material Policy</label>
+                        <select id="consumption_policy" name="consumption_policy" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.consumption_policy">
                             <option value="direct_issue">Pakai Habis</option>
                             <option value="backflush_return">Balik Sisa</option>
                             <option value="backflush_line_stock">Simpan di Line</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Status</label>
-                        <select name="status" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.status">
+                        <label for="status" class="text-sm font-semibold text-slate-700">Status</label>
+                        <select id="status" name="status" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.status">
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
@@ -76,6 +76,7 @@
                         </span>
                     </button>
                     <div x-show="open" x-cloak class="px-3.5 pb-3 space-y-2">
+                        <label class="sr-only">Cari vendor</label>
                         <input type="text" x-model="q" placeholder="Cari vendor..." class="w-full rounded-lg border-slate-300 text-sm px-2.5 py-1.5">
                         <div class="max-h-40 overflow-y-auto divide-y divide-slate-100 rounded-lg border border-slate-200">
                             @foreach ($vendors as $v)
@@ -145,8 +146,8 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="text-xs font-semibold text-slate-600">RM / Asal</label>
-                                <select name="subcount_rm_part_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="partForm.subcount_rm_part_id">
+                                <label for="subcount_rm_part_id" class="text-xs font-semibold text-slate-600">RM / Asal</label>
+                                <select id="subcount_rm_part_id" name="subcount_rm_part_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="partForm.subcount_rm_part_id">
                                     <option value="">Part ini sendiri</option>
                                     <template x-for="p in filteredSubcountSourceOptions" :key="p.id">
                                         <option :value="p.id" x-text="`${p.part_no} - ${p.part_name || ''} (${p.classification})`"></option>
@@ -154,12 +155,12 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="text-xs font-semibold text-slate-600">UOM</label>
-                                <input name="subcount_uom" class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="partForm.subcount_uom">
+                                <label for="subcount_uom" class="text-xs font-semibold text-slate-600">UOM</label>
+                                <input id="subcount_uom" name="subcount_uom" class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="partForm.subcount_uom">
                             </div>
                             <div>
-                                <label class="text-xs font-semibold text-slate-600">Process</label>
-                                <input name="subcount_process_type" class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="partForm.subcount_process_type">
+                                <label for="subcount_process_type" class="text-xs font-semibold text-slate-600">Process</label>
+                                <input id="subcount_process_type" name="subcount_process_type" class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="partForm.subcount_process_type">
                             </div>
                         </div>
                     </div>

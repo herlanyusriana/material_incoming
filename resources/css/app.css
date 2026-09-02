@@ -62,11 +62,28 @@
         scroll-behavior: smooth;
     }
 
-    /* Focus ring for accessibility */
+    /* Focus ring for accessibility.
+       NOTE: outline auto-follows the element's border-radius, so we must NOT
+       set border-radius here (doing so would reshape rounded-xl controls). */
     *:focus-visible {
         outline: 2px solid rgb(var(--color-primary));
         outline-offset: 2px;
-        border-radius: 4px;
+    }
+
+    /* Interactive elements must show a pointer cursor.
+       Tailwind v4 preflight sets `cursor: default` on buttons, which makes
+       controls with a visible hover state feel non-interactive. */
+    button:not(:disabled),
+    [role="button"]:not(:disabled),
+    summary,
+    label[for],
+    select:not(:disabled) {
+        cursor: pointer;
+    }
+
+    /* Reusable skip-link: hidden until focused (WCAG 2.4.1 Bypass Blocks). */
+    .skip-link {
+        @apply sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold;
     }
 }
 

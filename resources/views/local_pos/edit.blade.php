@@ -57,8 +57,8 @@
 
                 <div class="grid md:grid-cols-4 gap-4">
                     <div class="md:col-span-2">
-                        <label class="text-sm font-semibold text-slate-700">Vendor (LOCAL)</label>
-                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200" required
+                        <label for="vendor_id" class="text-sm font-semibold text-slate-700">Vendor (LOCAL)</label>
+                        <select id="vendor_id" name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200" required
                             x-model="vendor_id">
                             <option value="" disabled>Select vendor</option>
                             @foreach ($vendors as $v)
@@ -69,16 +69,16 @@
                     </div>
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">PO No</label>
-                        <input type="text" name="po_no" value="{{ old('po_no', $arrival->invoice_no) }}"
+                        <label for="po_no" class="text-sm font-semibold text-slate-700">PO No</label>
+                        <input id="po_no" type="text" name="po_no" value="{{ old('po_no', $arrival->invoice_no) }}"
                             class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="PO-LOCAL-001"
                             required>
                         @error('po_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">PO Date</label>
-                        <input type="date" name="po_date"
+                        <label for="po_date" class="text-sm font-semibold text-slate-700">PO Date</label>
+                        <input id="po_date" type="date" name="po_date"
                             value="{{ old('po_date', $arrival->invoice_date?->format('Y-m-d')) }}"
                             class="mt-1 w-full rounded-xl border-slate-200" required>
                         @error('po_date') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
@@ -87,15 +87,15 @@
 
                 <div class="grid md:grid-cols-4 gap-4">
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Currency</label>
-                        <input type="text" name="currency" value="{{ old('currency', $arrival->currency) }}"
+                        <label for="currency" class="text-sm font-semibold text-slate-700">Currency</label>
+                        <input id="currency" type="text" name="currency" value="{{ old('currency', $arrival->currency) }}"
                             class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="IDR">
                         @error('currency') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="md:col-span-3">
-                        <label class="text-sm font-semibold text-slate-700">Notes</label>
-                        <input type="text" name="notes" value="{{ old('notes', $arrival->notes) }}"
+                        <label for="notes" class="text-sm font-semibold text-slate-700">Notes</label>
+                        <input id="notes" type="text" name="notes" value="{{ old('notes', $arrival->notes) }}"
                             class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="Optional">
                         @error('notes') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -105,8 +105,13 @@
                     <div class="flex items-center justify-between">
                         <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Items</h4>
                         <button type="button"
-                            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                            @click="addItem()">+ Add Item</button>
+                            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+                            @click="addItem()">
+                            <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Item
+                        </button>
                     </div>
 
                     <div class="overflow-x-auto border border-slate-200 rounded-xl min-h-[200px]">
@@ -177,7 +182,7 @@
                                                     :class="{'opacity-50 cursor-not-allowed': !vendor_id}"
                                                     @click="toggle()">
                                                     <span class="block truncate" x-text="selectedLabel"></span>
-                                                    <svg class="h-5 w-5 text-gray-400"
+                                                    <svg class="h-5 w-5 text-slate-400"
                                                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
                                                         fill="currentColor">
                                                         <path fill-rule="evenodd"
@@ -193,7 +198,7 @@
 
                                                         <div
                                                             class="sticky top-0 z-10 bg-white px-2 py-1.5 border-b border-slate-100">
-                                                            <input type="text" x-model="search"
+                                                            <input type="text" x-model="search" aria-label="Search part"
                                                                 class="w-full border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
                                                                 placeholder="Search part..." @click.stop>
                                                         </div>
@@ -234,7 +239,7 @@
                                             <div class="flex items-center justify-end gap-2">
                                                 <input type="number" :name="`items[${index}][qty_goods]`" min="0"
                                                     step="1" x-model="item.qty_goods"
-                                                    class="w-24 text-right rounded-xl border-slate-200" required>
+                                                    class="w-24 text-right tabular-nums rounded-xl border-slate-200" required>
                                                 <select :name="`items[${index}][unit_goods]`" x-model="item.unit_goods"
                                                     class="w-24 rounded-xl border-slate-200" required>
                                                     <option value="PCS">PCS</option>
@@ -249,7 +254,7 @@
                                         </td>
                                         <td class="px-4 py-3">
                                             <input type="number" :name="`items[${index}][price]`" step="0.01" min="0"
-                                                x-model="item.price" class="w-32 text-right rounded-xl border-slate-200"
+                                                x-model="item.price" class="w-32 text-right tabular-nums rounded-xl border-slate-200"
                                                 placeholder="0">
                                         </td>
                                         <td class="px-4 py-3 text-right">

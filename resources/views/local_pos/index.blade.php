@@ -6,12 +6,12 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
                 </div>
             @endif
             @if (session('error'))
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                <div class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
                     {{ session('error') }}
                 </div>
             @endif
@@ -20,19 +20,19 @@
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex flex-wrap items-end gap-3">
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Search</label>
-                            <input name="q" value="{{ $q }}" class="mt-1 rounded-xl border-slate-200" placeholder="PO No / ARR-...">
+                            <label for="q" class="text-xs font-semibold text-slate-600">Search</label>
+                            <input id="q" name="q" value="{{ $q }}" class="mt-1 rounded-xl border-slate-200" placeholder="PO No / ARR-...">
                         </div>
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Vendor</label>
-                            <select name="vendor_id" class="mt-1 rounded-xl border-slate-200">
+                            <label for="vendor_id" class="text-xs font-semibold text-slate-600">Vendor</label>
+                            <select id="vendor_id" name="vendor_id" class="mt-1 rounded-xl border-slate-200">
                                 <option value="">All</option>
                                 @foreach ($vendors as $v)
                                     <option value="{{ $v->id }}" @selected((string) $vendorId === (string) $v->id)>{{ $v->vendor_name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
                     <div class="flex items-center gap-2">
@@ -106,7 +106,7 @@
                                         </a>
 
                                         {{-- Edit PO --}}
-                                        <a href="{{ route('local-pos.edit', $po) }}" class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit PO">
+                                        <a href="{{ route('local-pos.edit', $po) }}" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit PO">
                                              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                               <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
                                             </svg>

@@ -14,13 +14,13 @@
 
                 <form method="GET" class="grid gap-3 sm:grid-cols-3">
                     <div>
-                        <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Date From</label>
-                        <input type="date" name="date_from" value="{{ $dateFrom }}"
+                        <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500" for="pp-date-from">Date From</label>
+                        <input type="date" name="date_from" id="pp-date-from" value="{{ $dateFrom }}"
                             class="w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Date To</label>
-                        <input type="date" name="date_to" value="{{ $dateTo }}"
+                        <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500" for="pp-date-to">Date To</label>
+                        <input type="date" name="date_to" id="pp-date-to" value="{{ $dateTo }}"
                             class="w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <div class="flex items-end">

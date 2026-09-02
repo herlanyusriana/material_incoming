@@ -141,10 +141,10 @@
                                                         {{ $item->delivery_class }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900 text-right">
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900 text-right tabular-nums">
                                                     {{ $item->packing_qty + 0 }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ $item->uom }}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-right">
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-right tabular-nums">
                                                     {{ $item->net_weight ? number_format($item->net_weight, 4) : '-' }}</td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
                                                     {{ $item->kemasan ?? '-' }}</td>
@@ -219,8 +219,9 @@
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                 <h3 class="text-lg font-bold text-slate-900">Import Standard Packing</h3>
                 <button onclick="document.getElementById('importModal').close()"
-                    class="p-2 transition-colors rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    class="p-2 transition-colors rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                    aria-label="Close import modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd"
                             d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                             clip-rule="evenodd" />
@@ -235,7 +236,7 @@
                 <div class="space-y-4">
                     <div class="text-sm rounded-lg bg-blue-50 text-blue-700 p-4 border border-blue-100">
                         <strong class="block mb-1 font-semibold">Instructions:</strong>
-                        <ul class="list-disc list-inside space-y-1 text-blue-600">
+                        <ul class="list-disc list-inside space-y-1 text-indigo-600">
                             <li>Ensure Part No exists in system</li>
                             <li>Format: <code>customer</code>, <code>part_no</code>, <code>qty</code>,
                                 <code>del_class</code>, <code>trolley_type</code></li>
@@ -248,8 +249,8 @@
                     </div>
 
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-slate-700">Select Excel File</label>
-                        <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="block w-full text-sm text-slate-500
+                        <label for="file-import" class="block mb-2 text-sm font-medium text-slate-700">Select Excel File</label>
+                        <input type="file" name="file" id="file-import" accept=".xlsx,.xls,.csv" required class="block w-full text-sm text-slate-500
                                 file:mr-4 file:py-2.5 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
@@ -281,8 +282,9 @@
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                 <h3 class="text-lg font-bold text-slate-900">Edit Standard Packing</h3>
                 <button onclick="document.getElementById('editModal').close()"
-                    class="p-2 transition-colors rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    class="p-2 transition-colors rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                    aria-label="Close edit modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd"
                             d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                             clip-rule="evenodd" />
@@ -314,7 +316,7 @@
                     <div>
                         <label for="edit_packing_qty" class="block mb-1.5 text-sm font-medium text-slate-700">Packing Qty <span class="text-rose-500">*</span></label>
                         <input type="number" name="packing_qty" id="edit_packing_qty" step="0.0001" min="0" required
-                            class="block w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="block w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500 tabular-nums"
                             placeholder="e.g. 100">
                     </div>
 
@@ -334,7 +336,7 @@
                     <div>
                         <label for="edit_net_weight" class="block mb-1.5 text-sm font-medium text-slate-700">Net Weight (Kg)</label>
                         <input type="number" name="net_weight" id="edit_net_weight" step="0.0001" min="0"
-                            class="block w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="block w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500 tabular-nums"
                             placeholder="e.g. 5.2">
                     </div>
 

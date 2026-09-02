@@ -32,20 +32,20 @@
             {{-- Filter --}}
             <div class="border-b border-slate-100 px-6 py-4">
                 <form method="GET" class="grid gap-3 lg:grid-cols-4">
-                    <input name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="Cari nomor kontrak atau deskripsi">
-                    <select name="vendor_id" class="rounded-xl border-slate-200 text-sm">
+                    <input name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="Cari nomor kontrak atau deskripsi" aria-label="Cari nomor kontrak atau deskripsi">
+                    <select name="vendor_id" class="rounded-xl border-slate-200 text-sm" aria-label="Pilih vendor">
                         <option value="">Semua Vendor</option>
                         @foreach($vendors as $vendor)
                             <option value="{{ $vendor->id }}" @selected($filters['vendorId'] == $vendor->id)>{{ $vendor->vendor_name }}</option>
                         @endforeach
                     </select>
                     <div class="flex gap-2">
-                        <select name="status" class="w-full rounded-xl border-slate-200 text-sm">
+                        <select name="status" class="w-full rounded-xl border-slate-200 text-sm" aria-label="Pilih status">
                             <option value="">Semua Status</option>
                             <option value="active" @selected($filters['status'] === 'active')>Active</option>
                             <option value="inactive" @selected($filters['status'] === 'inactive')>Inactive</option>
                         </select>
-                        <button class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">Filter</button>
+                        <button class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed">Filter</button>
                     </div>
                 </form>
             </div>
@@ -74,15 +74,15 @@
                                 <td class="px-4 py-3">
                                     <div class="text-xs">
                                         @if($contract->items->count() > 0)
-                                            <span class="inline-block px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">{{ $contract->items->count() }} Items</span>
+                                            <span class="inline-block px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 tabular-nums">{{ $contract->items->count() }} Items</span>
                                         @else
                                             <span class="text-slate-400 italic">No Items</span>
                                         @endif
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-slate-700">
-                                    <div class="font-semibold">{{ $contract->effective_from?->format('d M Y') ?: '-' }}</div>
-                                    <div class="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Exp: {{ $contract->effective_to?->format('d M Y') ?: 'OPEN' }}</div>
+                                    <div class="font-semibold tabular-nums">{{ $contract->effective_from?->format('d M Y') ?: '-' }}</div>
+                                    <div class="text-[10px] uppercase font-bold text-slate-500 mt-0.5 tabular-nums">Exp: {{ $contract->effective_to?->format('d M Y') ?: 'OPEN' }}</div>
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-bold {{ $contract->status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
@@ -97,7 +97,7 @@
                                         <form action="{{ route('contract-numbers.destroy', $contract) }}" method="POST" onsubmit="return confirm('Hapus nomor kontrak beserta itemnya secara permanen?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50">Del</button>
+                                            <button class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60 disabled:cursor-not-allowed">Del</button>
                                         </form>
                                     </div>
                                 </td>

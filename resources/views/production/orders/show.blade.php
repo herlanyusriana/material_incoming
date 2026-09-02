@@ -3,7 +3,8 @@
         Order {{ $order->production_order_number }}
         @if($order->transaction_no)
             <span
-                class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 tracking-wide">🔗
+                class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 tracking-wide">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
                 {{ $order->transaction_no }}</span>
         @endif
     </x-slot>
@@ -82,7 +83,9 @@
                 </div>
                 @if($order->arrivals->count())
                     <div class="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                        <p class="text-[10px] font-black uppercase tracking-wider text-emerald-600 mb-2">🔗 Linked SO (Incoming RM)</p>
+                        <p class="text-[10px] font-black uppercase tracking-wider text-emerald-600 mb-2 inline-flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
+                        Linked SO (Incoming RM)</p>
                         <div class="flex flex-wrap gap-1">
                             @foreach($order->arrivals as $arrival)
                                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">{{ $arrival->transaction_no ?? $arrival->arrival_no }}</span>
@@ -92,38 +95,38 @@
                 @endif
                 <dl class="space-y-3 text-sm">
                     <div>
-                        <dt class="text-gray-500">Part Number</dt>
+                        <dt class="text-slate-500">Part Number</dt>
                         <dd class="font-medium">{{ $order->part->part_no }}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Name</dt>
+                        <dt class="text-slate-500">Name</dt>
                         <dd class="font-medium">{{ $order->part->part_name }}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Process</dt>
+                        <dt class="text-slate-500">Process</dt>
                         <dd class="font-medium">{{ $order->process_name ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Machine</dt>
+                        <dt class="text-slate-500">Machine</dt>
                         <dd class="font-medium">{{ $order->machine?->name ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Dies</dt>
+                        <dt class="text-slate-500">Dies</dt>
                         <dd class="font-medium">{{ $order->die_name ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Planned Qty</dt>
+                        <dt class="text-slate-500">Planned Qty</dt>
                         <dd class="font-medium text-lg">{{ number_format($order->qty_planned) }}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Plan Date</dt>
+                        <dt class="text-slate-500">Plan Date</dt>
                         <dd class="font-medium">{{ \Carbon\Carbon::parse($order->plan_date)->format('d M Y') }}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Status</dt>
+                        <dt class="text-slate-500">Status</dt>
                         <dd>
                             <span
-                                class="px-2 py-1 rounded text-xs font-semibold bg-gray-100">{{ strtoupper($order->status) }}</span>
+                                class="px-2 py-1 rounded text-xs font-semibold bg-slate-100">{{ strtoupper($order->status) }}</span>
                         </dd>
                     </div>
                 </dl>
@@ -205,7 +208,7 @@
                             <div class="mt-1 text-lg font-bold text-amber-800">{{ number_format($materialRequiredTotal, 4) }}</div>
                         </div>
                         <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                            <div class="text-[11px] uppercase tracking-wide text-blue-600">Allocated Total</div>
+                            <div class="text-[11px] uppercase tracking-wide text-indigo-600">Allocated Total</div>
                             <div class="mt-1 text-lg font-bold text-blue-800">{{ number_format($materialAllocatedTotal, 4) }}</div>
                         </div>
                     </div>
@@ -322,7 +325,7 @@
                     </div>
                     <div>
                         <a href="{{ route('planning.mrp.history', ['period' => $order->mrp_period]) }}"
-                            class="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                            class="text-xs font-semibold text-indigo-600 hover:text-blue-800">
                             Lihat riwayat MRP
                         </a>
                     </div>
@@ -336,7 +339,7 @@
                 @if($order->status == 'planned')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">0. Work Order &amp; Kanban Release</h4>
-                        <p class="text-sm text-gray-600 mb-3">Release work order to Kanban.</p>
+                        <p class="text-sm text-slate-600 mb-3">Release work order to Kanban.</p>
                         <form action="{{ route('production.orders.release-kanban', $order) }}" method="POST">
                             @csrf
                             <button type="submit"
@@ -350,7 +353,7 @@
                 @if($order->status == 'kanban_released' || $order->status == 'material_hold' || $order->status == 'resource_hold')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">1. Material Availability</h4>
-                        <p class="text-sm text-gray-600 mb-3">Check if components are available in inventory.</p>
+                        <p class="text-sm text-slate-600 mb-3">Check if components are available in inventory.</p>
                         <form action="{{ route('production.orders.refresh-material', $order) }}" method="POST" class="mb-3">
                             @csrf
                             <button type="submit"
@@ -385,7 +388,7 @@
 
                 <div class="p-4 bg-indigo-50 rounded border border-indigo-200 mb-4">
                     <h4 class="font-medium mb-2">Additional Material Request</h4>
-                    <p class="text-sm text-indigo-800 mb-3">Ajukan material tambahan di luar kebutuhan standar WO, misalnya untuk shortage, rework, trial, atau kebutuhan line aktual.</p>
+                    <p class="text-sm text-blue-800 mb-3">Ajukan material tambahan di luar kebutuhan standar WO, misalnya untuk shortage, rework, trial, atau kebutuhan line aktual.</p>
                     <a href="{{ route('production.material-request.create', ['production_order_id' => $order->id]) }}"
                         class="inline-flex w-full items-center justify-center rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
                         Create Additional Request
@@ -474,11 +477,11 @@
                             <form action="{{ route('production.orders.material-handover', $order) }}" method="POST" class="space-y-3">
                                 @csrf
                                 <div>
-                                    <label class="block text-xs font-semibold text-blue-700 mb-1">Catatan Serah Terima</label>
-                                    <textarea name="handover_notes" rows="3" class="w-full rounded-md border-blue-200 shadow-sm" placeholder="Opsional: catatan penerimaan, shift, line, atau kondisi material.">{{ old('handover_notes') }}</textarea>
+                                    <label class="block text-xs font-semibold text-blue-700 mb-1" for="handover_notes">Catatan Serah Terima</label>
+                                    <textarea name="handover_notes" id="handover_notes" rows="3" class="w-full rounded-xl border-blue-200 shadow-sm" placeholder="Opsional: catatan penerimaan, shift, line, atau kondisi material.">{{ old('handover_notes') }}</textarea>
                                 </div>
                                 <button type="submit"
-                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
                                     onclick="return confirm('Catat serah terima material WO ini ke production?');">
                                     Konfirmasi Serah Terima
                                 </button>
@@ -539,16 +542,16 @@
                             @csrf
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Qty Good</label>
-                                    <input type="number" step="0.0001" min="0" name="qty_good"
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1" for="qty_good">Qty Good</label>
+                                    <input type="number" step="0.0001" min="0" name="qty_good" id="qty_good"
                                         value="{{ old('qty_good', $order->qty_actual > 0 ? $order->qty_actual : $order->qty_planned) }}"
-                                        class="w-full rounded-md border-gray-300 shadow-sm">
+                                        class="w-full rounded-xl border-slate-300 shadow-sm">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Qty NG</label>
-                                    <input type="number" step="0.0001" min="0" name="qty_ng"
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1" for="qty_ng">Qty NG</label>
+                                    <input type="number" step="0.0001" min="0" name="qty_ng" id="qty_ng"
                                         value="{{ old('qty_ng', $order->qty_ng ?? 0) }}"
-                                        class="w-full rounded-md border-gray-300 shadow-sm">
+                                        class="w-full rounded-xl border-slate-300 shadow-sm">
                                 </div>
                             </div>
                             <button type="submit"
@@ -590,13 +593,13 @@
                             <form action="{{ route('production.orders.fg-supply-wh', $order) }}" method="POST" class="space-y-3">
                                 @csrf
                                 <div>
-                                    <label class="block text-xs font-semibold text-violet-700 mb-1">Lokasi Warehouse</label>
-                                    <input type="text" name="fg_supply_location_code" value="{{ old('fg_supply_location_code', $order->part->default_location ?? '') }}"
-                                        class="w-full rounded-md border-violet-200 shadow-sm" placeholder="Contoh: FG-A01">
+                                    <label class="block text-xs font-semibold text-violet-700 mb-1" for="fg_supply_location_code">Lokasi Warehouse</label>
+                                    <input type="text" name="fg_supply_location_code" id="fg_supply_location_code" value="{{ old('fg_supply_location_code', $order->part->default_location ?? '') }}"
+                                        class="w-full rounded-xl border-violet-200 shadow-sm" placeholder="Contoh: FG-A01">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-violet-700 mb-1">Catatan Supply</label>
-                                    <textarea name="fg_supply_notes" rows="3" class="w-full rounded-md border-violet-200 shadow-sm" placeholder="Opsional: trolley, shift, pallet, atau catatan supply.">{{ old('fg_supply_notes') }}</textarea>
+                                    <label class="block text-xs font-semibold text-violet-700 mb-1" for="fg_supply_notes">Catatan Supply</label>
+                                    <textarea name="fg_supply_notes" id="fg_supply_notes" rows="3" class="w-full rounded-xl border-violet-200 shadow-sm" placeholder="Opsional: trolley, shift, pallet, atau catatan supply.">{{ old('fg_supply_notes') }}</textarea>
                                 </div>
                                 <button type="submit"
                                     class="w-full px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700"
@@ -626,8 +629,8 @@
                             <form action="{{ route('production.orders.fg-handover-wh', $order) }}" method="POST" class="space-y-3">
                                 @csrf
                                 <div>
-                                    <label class="block text-xs font-semibold text-cyan-700 mb-1">Catatan Serah Terima</label>
-                                    <textarea name="fg_handover_notes" rows="3" class="w-full rounded-md border-cyan-200 shadow-sm" placeholder="Opsional: pallet, shift, operator, checker, atau kondisi FG.">{{ old('fg_handover_notes') }}</textarea>
+                                    <label class="block text-xs font-semibold text-cyan-700 mb-1" for="fg_handover_notes">Catatan Serah Terima</label>
+                                    <textarea name="fg_handover_notes" id="fg_handover_notes" rows="3" class="w-full rounded-xl border-cyan-200 shadow-sm" placeholder="Opsional: pallet, shift, operator, checker, atau kondisi FG.">{{ old('fg_handover_notes') }}</textarea>
                                 </div>
                                 <button type="submit"
                                     class="w-full px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700"
@@ -642,7 +645,7 @@
                 @if($order->status == 'released')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">4. Start Production</h4>
-                        <p class="text-sm text-gray-600 mb-3">Mulai produksi setelah WH supply dan serah terima material WO selesai.</p>
+                        <p class="text-sm text-slate-600 mb-3">Mulai produksi setelah WH supply dan serah terima material WO selesai.</p>
                         <form action="{{ route('production.orders.start', $order) }}" method="POST">
                             @csrf
                             <button type="submit"
@@ -656,15 +659,15 @@
                 @if($order->status == 'in_production')
                     <div class="p-4 bg-slate-50 rounded border mb-4">
                         <h4 class="font-medium mb-2">3. Production Active</h4>
-                        <p class="text-sm text-gray-600 mb-2">Current Stage:
+                        <p class="text-sm text-slate-600 mb-2">Current Stage:
                             <strong>{{ strtoupper(str_replace('_', ' ', $order->workflow_stage)) }}</strong></p>
 
                         <div class="space-y-2">
-                            <p class="text-xs text-gray-500">Complete all inspections before finishing.</p>
+                            <p class="text-xs text-slate-500">Complete all inspections before finishing.</p>
                             <form action="{{ route('production.orders.finish', $order) }}" method="POST">
                                 @csrf
                                 <button type="submit"
-                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
                                     onclick="return confirm('Ensure all inspections are passed. Continue?');">
                                     Finish Production (Go to Final Inspection)
                                 </button>
@@ -680,7 +683,8 @@
                         @if($order->transaction_no)
                             <div class="mt-2">
                                 <span
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 tracking-wide">🔗
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 tracking-wide">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
                                     {{ $order->transaction_no }}</span>
                             </div>
                         @endif
@@ -693,7 +697,7 @@
                     <div class="flex items-center justify-between gap-4 mb-4">
                         <div>
                             <h3 class="text-lg font-semibold">FG Supply to Warehouse</h3>
-                            <p class="text-sm text-gray-500">
+                            <p class="text-sm text-slate-500">
                                 Supplied at:
                                 {{ $order->fg_supplied_to_wh_at?->format('d M Y H:i') ?? '-' }}
                                 @if($order->fgSupplier)
@@ -745,7 +749,7 @@
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
                             <div>
                                 <h3 class="text-2xl font-bold text-slate-900">RM Material Suggestion per WO</h3>
-                                <p class="mt-1 text-base text-gray-600">
+                                <p class="mt-1 text-base text-slate-600">
                                     Last request:
                                     {{ $order->material_requested_at?->format('d M Y H:i') ?? '-' }}
                                     @if($order->materialRequester)
@@ -814,8 +818,8 @@
                                             @endif
                                         </td>
                                         <td class="px-5 py-5 text-center text-xl font-medium text-slate-800">{{ $line['uom'] ?? '-' }}</td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl text-slate-900">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl {{ $scanRemaining > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl text-slate-900">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl {{ $scanRemaining > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
                                             {{ number_format($scanQty, 4) }}
                                         </td>
                                         <td class="px-5 py-5 text-center text-xl font-bold text-slate-700">{{ $scanTags }}</td>
@@ -829,8 +833,8 @@
                                                 </div>
                                             @endif
                                         </td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">
                                             {{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}
                                         </td>
                                         <td class="px-5 py-5">
@@ -899,7 +903,7 @@
                     <div class="flex items-center justify-between gap-4 mb-4">
                         <div>
                             <h3 class="text-lg font-semibold">WH Supply History</h3>
-                            <p class="text-sm text-gray-500">
+                            <p class="text-sm text-slate-500">
                                 Supplied at:
                                 {{ $order->material_issued_at?->format('d M Y H:i') ?? '-' }}
                                 @if($order->materialIssuer)
@@ -907,7 +911,7 @@
                                 @endif
                             </p>
                             @if($order->material_handed_over_at)
-                                <p class="text-sm text-blue-600 mt-1">
+                                <p class="text-sm text-indigo-600 mt-1">
                                     Diterima line:
                                     {{ $order->material_handed_over_at->format('d M Y H:i') }}
                                     @if($order->materialHandoverUser)
@@ -953,7 +957,7 @@
                                                 </div>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-right font-mono text-emerald-700">{{ number_format((float) ($line['qty'] ?? $line['issued_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono tabular-nums text-emerald-700">{{ number_format((float) ($line['qty'] ?? $line['issued_qty'] ?? 0), 4) }}</td>
                                         <td class="px-4 py-3 text-xs text-slate-600">
                                             <div>Scan: {{ !empty($line['scanned_at']) ? \Carbon\Carbon::parse($line['scanned_at'])->format('d M Y H:i') : '-' }}</div>
                                             <div class="mt-1">Posting: {{ !empty($line['posted_at']) ? \Carbon\Carbon::parse($line['posted_at'])->format('d M Y H:i') : ($order->material_issued_at?->format('d M Y H:i') ?? '-') }}</div>
@@ -1051,12 +1055,12 @@
                                             </div>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-right font-mono font-bold text-emerald-700">{{ number_format((float) $row['ok_qty']) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-bold text-rose-700">{{ number_format((float) $row['ng_qty']) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono">{{ number_format((float) $row['scrap_qty']) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono">{{ number_format((float) $row['rework_qty']) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono">{{ number_format((float) $row['hold_qty']) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-bold">
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums font-bold text-emerald-700">{{ number_format((float) $row['ok_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums font-bold text-rose-700">{{ number_format((float) $row['ng_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format((float) $row['scrap_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format((float) $row['rework_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format((float) $row['hold_qty']) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums font-bold">
                                         {{ $row['yield_rate'] === null ? '-' : number_format((float) $row['yield_rate'], 2) . '%' }}
                                     </td>
                                 </tr>
@@ -1133,15 +1137,15 @@
 
             <!-- Machine Stop / Downtime (QDC) -->
             <div class="bg-white border rounded-lg shadow-sm" x-data="{ openDowntime: false }">
-                <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-                    <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-lg">
+                    <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         Machine Stop / Downtime
                     </h3>
                     @if($order->status == 'in_production')
-                        <button @click="openDowntime = !openDowntime" class="text-sm px-3 py-1.5 bg-white border shadow-sm text-gray-700 hover:bg-gray-50 rounded-md font-medium transition-colors">
+                        <button @click="openDowntime = !openDowntime" class="text-sm px-3 py-1.5 bg-white border shadow-sm text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors">
                             + Add Record
                         </button>
                     @endif
@@ -1153,17 +1157,17 @@
                         @csrf
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Start Time</label>
-                                <input type="time" name="start_time" required class="w-full text-sm rounded border-gray-300">
+                                <label class="block text-xs font-semibold text-slate-700 mb-1" for="downtime_start">Start Time</label>
+                                <input type="time" name="start_time" id="downtime_start" required class="w-full text-sm rounded border-slate-300">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">End Time</label>
-                                <input type="time" name="end_time" class="w-full text-sm rounded border-gray-300">
-                                <span class="text-[10px] text-gray-500">Leave blank if ongoing</span>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1" for="downtime_end">End Time</label>
+                                <input type="time" name="end_time" id="downtime_end" class="w-full text-sm rounded border-slate-300">
+                                <span class="text-[10px] text-slate-500">Leave blank if ongoing</span>
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Category / Issue</label>
-                                <select name="category" required class="w-full text-sm rounded border-gray-300">
+                                <label class="block text-xs font-semibold text-slate-700 mb-1" for="downtime_category">Category / Issue</label>
+                                <select name="category" id="downtime_category" required class="w-full text-sm rounded border-slate-300">
                                     <option value="qdc">QDC (Quick Dies Change)</option>
                                     <option value="setting">Setting</option>
                                     <option value="refill">Refill Material</option>
@@ -1172,21 +1176,21 @@
                                 </select>
                             </div>
                             <div class="col-span-full">
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Keterangan / Notes</label>
-                                <input type="text" name="notes" placeholder="e.g., QDC VT11 -> ng" class="w-full text-sm rounded border-gray-300">
+                                <label class="block text-xs font-semibold text-slate-700 mb-1" for="downtime_notes">Keterangan / Notes</label>
+                                <input type="text" name="notes" id="downtime_notes" placeholder="e.g., QDC VT11 -> ng" class="w-full text-sm rounded border-slate-300">
                             </div>
                         </div>
                         <div class="flex justify-end gap-2 pt-2">
-                            <button type="button" @click="openDowntime = false" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-                            <button type="submit" class="px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800 rounded shadow-sm">Save Record</button>
+                            <button type="button" @click="openDowntime = false" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+                            <button type="submit" class="px-4 py-2 text-sm bg-slate-900 text-white hover:bg-slate-800 rounded shadow-sm">Save Record</button>
                         </div>
                     </form>
                 </div>
 
                 <div class="divide-y overflow-x-auto">
                     @if($order->downtimes->count() > 0)
-                        <table class="w-full text-left text-sm text-gray-600">
-                            <thead class="bg-gray-50 border-b text-xs uppercase font-semibold text-gray-700">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-50 border-b text-xs uppercase font-semibold text-slate-700">
                                 <tr>
                                     <th class="px-6 py-3">Jam</th>
                                     <th class="px-6 py-3">Mnt</th>
@@ -1196,8 +1200,8 @@
                             </thead>
                             <tbody class="divide-y">
                                 @foreach($order->downtimes as $downtime)
-                                    <tr class="hover:bg-gray-50/50 transition-colors">
-                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">
                                             {{ \Carbon\Carbon::parse($downtime->start_time)->format('H:i') }} - 
                                             @if($downtime->end_time)
                                                 {{ \Carbon\Carbon::parse($downtime->end_time)->format('H:i') }}
@@ -1207,16 +1211,16 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             @if($downtime->duration_minutes !== null)
-                                                {{ $downtime->duration_minutes }} <span class="text-xs text-gray-400">m</span>
+                                                {{ $downtime->duration_minutes }} <span class="text-xs text-slate-400">m</span>
                                             @else
                                                 -
                                             @endif
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex flex-col">
-                                                <span class="font-semibold text-gray-800 uppercase text-xs">{{ $downtime->category }}</span>
+                                                <span class="font-semibold text-slate-800 uppercase text-xs">{{ $downtime->category }}</span>
                                                 @if($downtime->notes)
-                                                    <span class="text-sm text-gray-500 mt-0.5">{{ $downtime->notes }}</span>
+                                                    <span class="text-sm text-slate-500 mt-0.5">{{ $downtime->notes }}</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -1227,7 +1231,7 @@
                                                     <form action="{{ route('production.downtimes.update', [$order, $downtime]) }}" method="POST" class="flex items-center gap-1">
                                                         @csrf
                                                         @method('PUT')
-                                                        <input type="time" name="end_time" value="{{ now()->format('H:i') }}" required class="w-24 text-xs py-1 px-2 rounded border-gray-300">
+                                                        <input type="time" name="end_time" value="{{ now()->format('H:i') }}" required class="w-24 text-xs py-1 px-2 rounded border-slate-300">
                                                         <button type="submit" class="px-2 py-1 text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded font-semibold transition-colors">
                                                             Stop
                                                         </button>
@@ -1237,7 +1241,7 @@
                                                 <form action="{{ route('production.downtimes.destroy', [$order, $downtime]) }}" method="POST" onsubmit="return confirm('Delete this record?');">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="text-gray-400 hover:text-red-600 transition-colors">
+                                                    <button type="submit" class="text-slate-400 hover:text-red-600 transition-colors">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                     </button>
                                                 </form>
@@ -1248,16 +1252,16 @@
                             </tbody>
                         </table>
                     @else
-                        <div class="p-6 text-center text-gray-500 text-sm italic">
+                        <div class="p-6 text-center text-slate-500 text-sm italic">
                             No machine stop or downtime recorded.
                         </div>
                     @endif
                 </div>
                 
                 @if($order->total_downtime_minutes > 0)
-                    <div class="px-6 py-3 bg-gray-50 rounded-b-lg border-t text-sm flex justify-between items-center">
-                        <span class="text-gray-600 font-medium">Total Downtime:</span>
-                        <span class="font-bold text-gray-900 bg-white px-3 py-1 border rounded shadow-sm">{{ $order->total_downtime_minutes }} Minutes</span>
+                    <div class="px-6 py-3 bg-slate-50 rounded-b-lg border-t text-sm flex justify-between items-center">
+                        <span class="text-slate-600 font-medium">Total Downtime:</span>
+                        <span class="font-bold text-slate-900 bg-white px-3 py-1 border rounded shadow-sm">{{ $order->total_downtime_minutes }} Minutes</span>
                     </div>
                 @endif
             </div>
@@ -1268,20 +1272,20 @@
                     <h3 class="text-lg font-semibold">Inspections</h3>
                     @if($order->status == 'in_production')
                         <div x-data="{ open: false }" class="relative">
-                            <button @click="open = !open" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                            <button @click="open = !open" class="text-sm text-indigo-600 hover:text-blue-800 font-medium">
                                 + Add Inspection
                             </button>
                             <div x-show="open" @click.away="open = false"
-                                class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border">
+                                class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg z-20 border">
                                 <form action="{{ route('production.inspections.store', $order) }}" method="POST">
                                     @csrf
                                     <button type="submit" name="type" value="first_article"
-                                        class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">First
+                                        class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-100">First
                                         Article</button>
                                     <button type="submit" name="type" value="in_process"
-                                        class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">In-Process</button>
+                                        class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-100">In-Process</button>
                                     <button type="submit" name="type" value="final"
-                                        class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Final
+                                        class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-100">Final
                                         Inspection</button>
                                 </form>
                             </div>
@@ -1294,10 +1298,10 @@
                             <div class="flex justify-between items-start mb-3">
                                 <div>
                                     <span
-                                        class="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-gray-100 border text-gray-700 mb-1">
+                                        class="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-slate-100 border text-slate-700 mb-1">
                                         {{ strtoupper(str_replace('_', ' ', $inspection->type)) }}
                                     </span>
-                                    <div class="text-xs text-gray-500">
+                                    <div class="text-xs text-slate-500">
                                         Created: {{ $inspection->created_at->format('d M H:i') }}
                                     </div>
                                 </div>
@@ -1316,12 +1320,12 @@
 
                             @if($inspection->status == 'pending')
                                 <form action="{{ route('production.inspections.update', $inspection) }}" method="POST"
-                                    class="bg-gray-50 p-3 rounded border">
+                                    class="bg-slate-50 p-3 rounded border">
                                     @csrf
                                     @method('PUT')
                                     <p class="text-sm font-medium mb-2">Record Result</p>
                                     <input type="text" name="remarks" placeholder="Remarks / Measurements"
-                                        class="w-full text-sm rounded border-gray-300 mb-2">
+                                        class="w-full text-sm rounded border-slate-300 mb-2">
                                     <div class="flex gap-2">
                                         <button type="submit" name="status" value="pass"
                                             class="flex-1 bg-green-600 text-white text-xs py-2 rounded hover:bg-green-700">Pass</button>
@@ -1331,16 +1335,16 @@
                                 </form>
                             @else
                                 <div class="text-sm space-y-1">
-                                    <p><span class="text-gray-500">Inspector:</span>
+                                    <p><span class="text-slate-500">Inspector:</span>
                                         {{ $inspection->inspector->name ?? 'Unknown' }}</p>
-                                    <p><span class="text-gray-500">Remarks:</span> {{ $inspection->remarks ?: '-' }}</p>
-                                    <p><span class="text-gray-500">Time:</span>
+                                    <p><span class="text-slate-500">Remarks:</span> {{ $inspection->remarks ?: '-' }}</p>
+                                    <p><span class="text-slate-500">Time:</span>
                                         {{ $inspection->inspected_at->format('d M H:i') }}</p>
                                 </div>
                             @endif
                         </div>
                     @empty
-                        <div class="p-6 text-center text-gray-500 italic">No inspections recorded yet.</div>
+                        <div class="p-6 text-center text-slate-500 italic">No inspections recorded yet.</div>
                     @endforelse
                 </div>
 
@@ -1349,7 +1353,7 @@
                         <div class="flex items-center justify-between gap-4 mb-4">
                             <div>
                                 <h3 class="text-lg font-semibold">Final Inspection</h3>
-                                <p class="text-sm text-gray-500">Status inspeksi final untuk WO ini.</p>
+                                <p class="text-sm text-slate-500">Status inspeksi final untuk WO ini.</p>
                             </div>
                             <a href="{{ route('production.final-inspection.show', $finalInspection) }}"
                                 class="inline-flex items-center justify-center rounded bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">

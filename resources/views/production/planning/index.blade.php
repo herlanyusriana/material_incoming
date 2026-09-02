@@ -25,8 +25,8 @@
                 <div class="flex items-center gap-3 flex-wrap">
                     {{-- Date Selector --}}
                     <form action="{{ route('production.planning.index') }}" method="GET" class="flex items-center gap-2">
-                        <label class="text-sm font-semibold text-slate-600">DATE:</label>
-                        <input type="date" name="date" value="{{ $planDate->format('Y-m-d') }}"
+                        <label class="text-sm font-semibold text-slate-600" for="plan-date">DATE:</label>
+                        <input type="date" name="date" id="plan-date" value="{{ $planDate->format('Y-m-d') }}"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             onchange="this.form.submit()">
                     </form>
@@ -68,27 +68,27 @@
                     <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-6">
                         <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
                             <div class="text-[10px] uppercase tracking-wide text-slate-500">Lines</div>
-                            <div class="font-mono text-lg font-black text-blue-950">{{ number_format($lineCount) }}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-blue-950">{{ number_format($lineCount) }}</div>
                         </div>
                         <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
                             <div class="text-[10px] uppercase tracking-wide text-slate-500">Shift 1</div>
-                            <div class="font-mono text-lg font-black text-blue-700">{{ number_format($totalShift1Qty, 0) }}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-blue-700">{{ number_format($totalShift1Qty, 0) }}</div>
                         </div>
                         <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
                             <div class="text-[10px] uppercase tracking-wide text-slate-500">Shift 2</div>
-                            <div class="font-mono text-lg font-black text-blue-700">{{ number_format($totalShift2Qty, 0) }}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-blue-700">{{ number_format($totalShift2Qty, 0) }}</div>
                         </div>
                         <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
                             <div class="text-[10px] uppercase tracking-wide text-slate-500">Shift 3</div>
-                            <div class="font-mono text-lg font-black text-blue-700">{{ number_format($totalShift3Qty, 0) }}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-blue-700">{{ number_format($totalShift3Qty, 0) }}</div>
                         </div>
                         <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
                             <div class="text-[10px] uppercase tracking-wide text-slate-500">Total</div>
-                            <div class="font-mono text-lg font-black text-sky-700">{{ number_format($totalPlanQty, 0) }}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-sky-700">{{ number_format($totalPlanQty, 0) }}</div>
                         </div>
                         <div class="rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm">
                             <div class="text-[10px] uppercase tracking-wide text-slate-500">WO</div>
-                            <div class="font-mono text-lg font-black text-blue-950">{{ number_format($generatedWoCount) }}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-blue-950">{{ number_format($generatedWoCount) }}</div>
                         </div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@
                             </form>
 
                             <button type="button" @click="generateMoAll({{ $session->id }})"
-                                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-all whitespace-nowrap">
+                                class="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all whitespace-nowrap">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -229,7 +229,7 @@
                                                 </div>
                                             </td>
                                             <td class="px-3 py-2 text-right">
-                                                <span class="font-mono text-sm font-black text-slate-900">{{ number_format((float) $line->stock_fg_gci, 0) }}</span>
+                                                <span class="font-mono tabular-nums text-sm font-black text-slate-900">{{ number_format((float) $line->stock_fg_gci, 0) }}</span>
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <input type="number" step="1" min="1"
@@ -259,7 +259,7 @@
                                                     @change="updateLineField($event, {{ $line->id }}, 'shift_3_qty')">
                                             </td>
                                             <td class="px-3 py-2 text-right">
-                                                <span class="font-mono text-sm font-black text-cyan-700">
+                                                <span class="font-mono tabular-nums text-sm font-black text-cyan-700">
                                                     {{ number_format((float) $line->plan_qty, 0) }}
                                                 </span>
                                             </td>
@@ -321,20 +321,20 @@
                                     <td colspan="3" class="px-4 py-3 text-right text-slate-700">
                                         Grand Total ({{ $totalParts }} parts)
                                     </td>
-                                    <td class="px-3 py-3 text-right font-mono text-slate-800">
+                                    <td class="px-3 py-3 text-right font-mono tabular-nums text-slate-800">
                                         {{ number_format($grandTotalFgGci, 0) }}
                                     </td>
                                     <td class="px-3 py-3"></td>
-                                    <td class="px-3 py-3 text-right font-mono text-emerald-700">
+                                    <td class="px-3 py-3 text-right font-mono tabular-nums text-emerald-700">
                                         {{ number_format($totalShift1Qty, 0) }}
                                     </td>
-                                    <td class="px-3 py-3 text-right font-mono text-emerald-700">
+                                    <td class="px-3 py-3 text-right font-mono tabular-nums text-emerald-700">
                                         {{ number_format($totalShift2Qty, 0) }}
                                     </td>
-                                    <td class="px-3 py-3 text-right font-mono text-emerald-700">
+                                    <td class="px-3 py-3 text-right font-mono tabular-nums text-emerald-700">
                                         {{ number_format($totalShift3Qty, 0) }}
                                     </td>
-                                    <td class="px-3 py-3 text-right font-mono text-cyan-700">
+                                    <td class="px-3 py-3 text-right font-mono tabular-nums text-cyan-700">
                                         {{ number_format($grandTotalPlanQty, 0) }}
                                     </td>
                                     <td class="px-3 py-3"></td>
@@ -393,7 +393,7 @@
                 {{-- Legend --}}
                 <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-5">
                     <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                        <svg class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -450,8 +450,8 @@
 
                     <div class="space-y-4">
                         <div>
-                            <label class="text-sm font-semibold text-slate-600">Search Part (GCI)</label>
-                            <input type="text" x-model="partSearch" @input.debounce.300ms="searchParts()"
+                            <label class="text-sm font-semibold text-slate-600" for="part-search">Search Part (GCI)</label>
+                            <input type="text" id="part-search" aria-label="Search Part (GCI)" x-model="partSearch" @input.debounce.300ms="searchParts()"
                                 class="mt-1 w-full rounded-lg border-slate-300 text-sm shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                 placeholder="Type part name or part number...">
                         </div>

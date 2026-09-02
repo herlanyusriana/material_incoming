@@ -29,13 +29,13 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
             <form method="GET" class="flex flex-wrap items-end gap-3">
                 <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">Search</div>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="PO No or Customer..."
+                    <label for="filter-search" class="text-xs font-semibold text-slate-500 mb-1">Search</label>
+                    <input type="text" name="search" id="filter-search" value="{{ request('search') }}" placeholder="PO No or Customer..."
                         class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 w-60">
                 </div>
                 <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">Status</div>
-                    <select name="status"
+                    <label for="filter-status" class="text-xs font-semibold text-slate-500 mb-1">Status</label>
+                    <select name="status" id="filter-status"
                         class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                         <option value="">All</option>
                         <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
@@ -89,7 +89,7 @@
                                             {{ $po->items->count() }} items
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 text-right font-bold text-slate-900">{{ number_format($po->total_qty) }}
+                                    <td class="px-4 py-3 text-right font-bold text-slate-900 tabular-nums">{{ number_format($po->total_qty) }}
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         @php

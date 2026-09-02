@@ -50,16 +50,16 @@
                             <div class="flex items-center gap-3">
                                 <h1 class="text-3xl font-black tracking-tight">{{ $workOrder->order_no }}</h1>
                                 @if($workOrder->status === 'in_production')
-                                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-black border border-emerald-500/30 uppercase tracking-widest animate-pulse">
+                                    <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 text-[10px] font-black border border-emerald-500/30 uppercase tracking-widest animate-pulse">
                                         PRODUCING
                                     </span>
                                 @else
-                                    <span class="px-2.5 py-1 rounded-md bg-white/10 text-white/50 text-[10px] font-black border border-white/20 uppercase tracking-widest">
+                                    <span class="px-2.5 py-1 rounded-xl bg-white/10 text-white/50 text-[10px] font-black border border-white/20 uppercase tracking-widest">
                                         {{ str_replace('_', ' ', $workOrder->status) }}
                                     </span>
                                 @endif
                                 <span
-                                    class="px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-400 text-[10px] font-black border border-indigo-500/30 uppercase tracking-widest">
+                                    class="px-2.5 py-1 rounded-xl bg-indigo-500/20 text-indigo-400 text-[10px] font-black border border-indigo-500/30 uppercase tracking-widest">
                                     SYNCED
                                 </span>
                             </div>
@@ -302,7 +302,7 @@
                                     <tr class="hover:bg-slate-50/50">
                                         <td class="px-6 py-4">
                                             <div
-                                                class="inline-flex px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md font-mono text-xs border border-indigo-100">
+                                                class="inline-flex px-2 py-1 bg-indigo-50 text-indigo-700 rounded-xl font-mono text-xs border border-indigo-100">
                                                 {{ $lot->invoice_or_tag }}
                                             </div>
                                         </td>

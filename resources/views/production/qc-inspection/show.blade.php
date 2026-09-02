@@ -65,13 +65,13 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Inspected Quantity</label>
-                        <input type="number" name="inspected_qty" value="{{ $inspection->inspected_qty }}" step="0.01" class="w-full rounded-lg border-slate-200">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2" for="inspected_qty">Inspected Quantity</label>
+                        <input type="number" name="inspected_qty" id="inspected_qty" value="{{ $inspection->inspected_qty }}" step="0.01" class="w-full rounded-lg border-slate-200">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Notes / Remarks</label>
-                        <textarea name="notes" rows="4" class="w-full rounded-lg border-slate-200" placeholder="Enter inspection notes, defects found, or remarks...">{{ $inspection->notes }}</textarea>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2" for="notes">Notes / Remarks</label>
+                        <textarea name="notes" id="notes" rows="4" class="w-full rounded-lg border-slate-200" placeholder="Enter inspection notes, defects found, or remarks...">{{ $inspection->notes }}</textarea>
                     </div>
 
                     <div class="flex justify-between items-center pt-4">

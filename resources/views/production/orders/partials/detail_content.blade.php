@@ -29,9 +29,9 @@
 <div class="grid grid-cols-1 gap-6">
     <!-- Order Details -->
     <div class="space-y-6">
-        <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <div class="bg-slate-50 rounded-lg p-6 border border-slate-200">
             <div class="mb-4 flex items-start justify-between gap-4">
-                <h3 class="text-lg font-semibold text-gray-900">Order Details</h3>
+                <h3 class="text-lg font-semibold text-slate-900">Order Details</h3>
                 @if(!in_array($order->status, ['completed', 'cancelled'], true))
                     <div class="flex items-center gap-2">
                         <form action="{{ route('production.orders.refresh-material', $order) }}" method="POST"
@@ -68,53 +68,53 @@
             </div>
             <dl class="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
                 <div>
-                    <dt class="text-gray-500">Order Number</dt>
-                    <dd class="font-medium text-gray-900">{{ $order->production_order_number }}</dd>
+                    <dt class="text-slate-500">Order Number</dt>
+                    <dd class="font-medium text-slate-900">{{ $order->production_order_number }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Part Number</dt>
-                    <dd class="font-medium text-gray-900">{{ $order->part->part_no }}</dd>
+                    <dt class="text-slate-500">Part Number</dt>
+                    <dd class="font-medium text-slate-900">{{ $order->part->part_no }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Part Name</dt>
-                    <dd class="font-medium text-gray-900">{{ $order->part->part_name }}</dd>
+                    <dt class="text-slate-500">Part Name</dt>
+                    <dd class="font-medium text-slate-900">{{ $order->part->part_name }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Process</dt>
-                    <dd class="font-medium text-gray-900">{{ $order->process_name ?? '-' }}</dd>
+                    <dt class="text-slate-500">Process</dt>
+                    <dd class="font-medium text-slate-900">{{ $order->process_name ?? '-' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Machine</dt>
-                    <dd class="font-medium text-gray-900">{{ $order->machine?->name ?? '-' }}</dd>
+                    <dt class="text-slate-500">Machine</dt>
+                    <dd class="font-medium text-slate-900">{{ $order->machine?->name ?? '-' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Dies</dt>
-                    <dd class="font-medium text-gray-900">{{ $order->die_name ?? '-' }}</dd>
+                    <dt class="text-slate-500">Dies</dt>
+                    <dd class="font-medium text-slate-900">{{ $order->die_name ?? '-' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Planned Qty</dt>
-                    <dd class="font-medium text-lg text-gray-900">{{ number_format($order->qty_planned) }}</dd>
+                    <dt class="text-slate-500">Planned Qty</dt>
+                    <dd class="font-medium text-lg text-slate-900">{{ number_format($order->qty_planned) }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Plan Date</dt>
-                    <dd class="font-medium text-gray-900">{{ \Carbon\Carbon::parse($order->plan_date)->format('d M Y') }}</dd>
+                    <dt class="text-slate-500">Plan Date</dt>
+                    <dd class="font-medium text-slate-900">{{ \Carbon\Carbon::parse($order->plan_date)->format('d M Y') }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Status</dt>
+                    <dt class="text-slate-500">Status</dt>
                     <dd>
                         <span class="px-2 py-1 rounded-full text-xs font-semibold 
                             @if($order->status == 'completed') bg-green-100 text-green-800
                             @elseif($order->status == 'in_production') bg-blue-100 text-blue-800
                             @elseif($order->status == 'released') bg-indigo-100 text-indigo-800
                             @elseif($order->status == 'material_hold') bg-red-100 text-red-800
-                            @else bg-gray-100 text-gray-800 @endif">
+                            @else bg-slate-100 text-slate-800 @endif">
                             {{ strtoupper(str_replace('_', ' ', $order->status)) }}
                         </span>
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500">Stage</dt>
-                    <dd class="font-medium text-gray-900">{{ strtoupper(str_replace('_', ' ', $order->workflow_stage)) }}</dd>
+                    <dt class="text-slate-500">Stage</dt>
+                    <dd class="font-medium text-slate-900">{{ strtoupper(str_replace('_', ' ', $order->workflow_stage)) }}</dd>
                 </div>
             </dl>
         </div>
@@ -192,7 +192,7 @@
                         <div class="mt-1 text-lg font-bold text-amber-800">{{ number_format($materialRequiredTotal, 4) }}</div>
                     </div>
                     <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-blue-600">Allocated Total</div>
+                        <div class="text-[11px] uppercase tracking-wide text-indigo-600">Allocated Total</div>
                         <div class="mt-1 text-lg font-bold text-blue-800">{{ number_format($materialAllocatedTotal, 4) }}</div>
                     </div>
                 </div>
@@ -229,7 +229,7 @@
                     <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
                         <div>
                             <h3 class="text-2xl font-bold text-slate-900">RM Material Suggestion per WO</h3>
-                            <p class="mt-1 text-base text-gray-600">
+                            <p class="mt-1 text-base text-slate-600">
                                 Expand untuk lihat alokasi tag, lokasi prioritas, dan status scan material.
                             </p>
                         </div>
@@ -290,8 +290,8 @@
                                             @endif
                                         </td>
                                         <td class="px-5 py-5 text-center text-xl font-medium text-slate-800">{{ $line['uom'] ?? '-' }}</td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl text-slate-900">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl {{ $scanRemaining > 0 ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($scanQty, 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl text-slate-900">{{ number_format((float) ($line['required_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl {{ $scanRemaining > 0 ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($scanQty, 4) }}</td>
                                         <td class="px-5 py-5 text-center text-xl font-bold text-slate-700">{{ $scanTags }}</td>
                                         <td class="px-5 py-5 text-center">
                                             <span class="inline-flex rounded-full px-4 py-2 text-lg font-bold {{ $scanClass }}">
@@ -301,8 +301,8 @@
                                                 <div class="mt-2 text-base text-slate-500">Sisa {{ number_format($scanRemaining, 4) }}</div>
                                             @endif
                                         </td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
-                                        <td class="px-5 py-5 text-right font-mono text-xl {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">{{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl text-emerald-700">{{ number_format((float) ($line['available_qty'] ?? 0), 4) }}</td>
+                                        <td class="px-5 py-5 text-right font-mono tabular-nums text-xl {{ (float) ($line['shortage_qty'] ?? 0) > 0 ? 'text-red-600 font-bold' : 'text-slate-400' }}">{{ number_format((float) ($line['shortage_qty'] ?? 0), 4) }}</td>
                                         <td class="px-5 py-5">
                                             @if(!empty($line['allocations']))
                                                 @php
@@ -432,21 +432,21 @@
                     
                     @if(session('material_check'))
                         <div class="mb-4 overflow-hidden border border-indigo-200 rounded-lg bg-white">
-                            <table class="min-w-full divide-y divide-gray-200 text-[10px]">
-                                <thead class="bg-gray-50">
+                            <table class="min-w-full divide-y divide-slate-200 text-[10px]">
+                                <thead class="bg-slate-50">
                                     <tr>
-                                        <th class="px-2 py-1.5 text-left font-bold text-gray-500 uppercase">Part No</th>
-                                        <th class="px-2 py-1.5 text-right font-bold text-gray-500 uppercase">Needed</th>
-                                        <th class="px-2 py-1.5 text-right font-bold text-gray-500 uppercase">Stock</th>
-                                        <th class="px-2 py-1.5 text-center font-bold text-gray-500 uppercase">Status</th>
+                                        <th class="px-2 py-1.5 text-left font-bold text-slate-500 uppercase">Part No</th>
+                                        <th class="px-2 py-1.5 text-right font-bold text-slate-500 uppercase">Needed</th>
+                                        <th class="px-2 py-1.5 text-right font-bold text-slate-500 uppercase">Stock</th>
+                                        <th class="px-2 py-1.5 text-center font-bold text-slate-500 uppercase">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-100">
+                                <tbody class="divide-y divide-slate-100">
                                     @foreach(session('material_check') as $item)
                                         <tr>
-                                            <td class="px-2 py-1.5 font-medium text-gray-900">
+                                            <td class="px-2 py-1.5 font-medium text-slate-900">
                                                 {{ $item['part_no'] }}
-                                                <div class="text-[8px] text-gray-400 truncate w-24">{{ $item['part_name'] }}</div>
+                                                <div class="text-[8px] text-slate-400 truncate w-24">{{ $item['part_name'] }}</div>
                                             </td>
                                             <td class="px-2 py-1.5 text-right font-semibold">{{ number_format($item['needed'], 2) }}</td>
                                             <td class="px-2 py-1.5 text-right {{ $item['sufficient'] ? 'text-emerald-600' : 'text-rose-600 font-bold' }}">
@@ -470,14 +470,14 @@
 
                     <form action="{{ route('production.orders.refresh-material', $order) }}" method="POST" class="mb-3">
                         @csrf
-                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-emerald-200 rounded-md shadow-sm text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
+                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-emerald-200 rounded-xl shadow-sm text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
                             Refresh Material from BOM
                         </button>
                     </form>
 
                     <form action="{{ route('production.orders.check-material', $order) }}" method="POST">
                         @csrf
-                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-indigo-200 rounded-md shadow-sm text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-indigo-200 rounded-xl shadow-sm text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
                             {{ $order->status == 'material_hold' ? 'Re-check Material' : 'Check Availability' }}
                         </button>
                     </form>
@@ -490,7 +490,7 @@
                     <p class="text-sm text-teal-700 mb-4">Materials are reserved. Begin production workflow.</p>
                     <form action="{{ route('production.orders.start', $order) }}" method="POST">
                         @csrf
-                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                        <button type="submit" class="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
                             Start Production
                         </button>
                     </form>
@@ -506,7 +506,7 @@
                      
                     <form action="{{ route('production.orders.finish', $order) }}" method="POST">
                         @csrf
-                        <button type="submit" class="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="return confirm('Ensure all inspections are passed. Continue?');">
+                        <button type="submit" class="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" onclick="return confirm('Ensure all inspections are passed. Continue?');">
                             Finish Production
                         </button>
                     </form>
@@ -517,16 +517,16 @@
 
         <!-- Inspections Brief -->
         <div class="bg-white border rounded-lg shadow-sm">
-            <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                <h3 class="text-md font-semibold text-gray-900">Recent Inspections</h3>
-                <a href="{{ route('production.orders.show', $order) }}" class="text-xs text-blue-600 hover:text-blue-800 font-medium">View Full Details &rarr;</a>
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="text-md font-semibold text-slate-900">Recent Inspections</h3>
+                <a href="{{ route('production.orders.show', $order) }}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">View Full Details &rarr;</a>
             </div>
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-slate-100">
                 @forelse($order->inspections->take(3) as $inspection)
                     <div class="px-6 py-3 flex justify-between items-center">
                         <div>
-                            <span class="block text-xs font-semibold text-gray-700">{{ strtoupper(str_replace('_', ' ', $inspection->type)) }}</span>
-                            <span class="text-[10px] text-gray-400">{{ $inspection->created_at->diffForHumans() }}</span>
+                            <span class="block text-xs font-semibold text-slate-700">{{ strtoupper(str_replace('_', ' ', $inspection->type)) }}</span>
+                            <span class="text-[10px] text-slate-400">{{ $inspection->created_at->diffForHumans() }}</span>
                         </div>
                         <div>
                              @if($inspection->status == 'pending')
@@ -539,7 +539,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="px-6 py-4 text-center text-sm text-gray-500 italic">No inspections needed yet.</div>
+                    <div class="px-6 py-4 text-center text-sm text-slate-500 italic">No inspections needed yet.</div>
                 @endforelse
             </div>
         </div>

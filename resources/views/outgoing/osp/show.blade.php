@@ -89,16 +89,16 @@
             <div class="mt-6 pt-6 border-t border-slate-200">
                 <div class="grid grid-cols-3 gap-4">
                     <div class="rounded-lg bg-blue-50 p-4 text-center">
-                    <div class="text-xs font-bold text-blue-600 uppercase">OSP Qty</div>
-                        <div class="mt-1 text-xl font-black text-blue-800">{{ number_format($ospOrder->qty_received_material) }}</div>
+                    <div class="text-xs font-bold text-indigo-600 uppercase">OSP Qty</div>
+                        <div class="mt-1 text-xl font-black text-blue-800 tabular-nums">{{ number_format($ospOrder->qty_received_material) }}</div>
                     </div>
                     <div class="rounded-lg bg-amber-50 p-4 text-center">
                     <div class="text-xs font-bold text-amber-600 uppercase">Progress</div>
-                        <div class="mt-1 text-xl font-black text-amber-800">{{ number_format($ospOrder->qty_assembled) }}</div>
+                        <div class="mt-1 text-xl font-black text-amber-800 tabular-nums">{{ number_format($ospOrder->qty_assembled) }}</div>
                     </div>
                     <div class="rounded-lg bg-emerald-50 p-4 text-center">
                     <div class="text-xs font-bold text-emerald-600 uppercase">Outgoing</div>
-                        <div class="mt-1 text-xl font-black text-emerald-800">{{ number_format($ospOrder->qty_shipped) }}</div>
+                        <div class="mt-1 text-xl font-black text-emerald-800 tabular-nums">{{ number_format($ospOrder->qty_shipped) }}</div>
                     </div>
                 </div>
             </div>
@@ -120,10 +120,10 @@
                     <form action="{{ route('outgoing.osp.progress', $ospOrder) }}" method="POST" class="space-y-4">
                         @csrf
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Progress</label>
-                            <input type="number" name="qty_assembled" step="0.0001" min="0" required
+                            <label for="qty_assembled" class="block text-sm font-bold text-slate-700 mb-1">Qty Progress</label>
+                            <input type="number" name="qty_assembled" id="qty_assembled" step="0.0001" min="0" required
                                 value="{{ $ospOrder->qty_assembled }}"
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 tabular-nums" />
                             <div class="mt-1 text-xs text-slate-400">Max: {{ number_format($ospOrder->qty_received_material) }} sesuai qty dokumen OSP.</div>
                         </div>
                         <button type="submit"
@@ -140,14 +140,14 @@
                         onsubmit="return confirm('Mark this order as shipped?');">
                         @csrf
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Outgoing</label>
-                            <input type="number" name="qty_shipped" step="0.0001" min="0.0001" required
+                            <label for="qty_shipped" class="block text-sm font-bold text-slate-700 mb-1">Qty Outgoing</label>
+                            <input type="number" name="qty_shipped" id="qty_shipped" step="0.0001" min="0.0001" required
                                 value="{{ $ospOrder->qty_assembled ?: '' }}"
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 tabular-nums" />
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Outgoing Date</label>
-                            <input type="date" name="shipped_date" required value="{{ now()->toDateString() }}"
+                            <label for="shipped_date" class="block text-sm font-bold text-slate-700 mb-1">Outgoing Date</label>
+                            <input type="date" name="shipped_date" id="shipped_date" required value="{{ now()->toDateString() }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <button type="submit"

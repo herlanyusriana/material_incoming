@@ -5,8 +5,11 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex items-center gap-3 mb-6">
                 <a href="{{ route('outgoing.delivery-notes.index') }}"
-                    class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500">
-                    ←
+                    class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500"
+                    aria-label="Back to delivery notes">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
                 </a>
                 <h1 class="text-2xl font-black text-slate-900">Create New Delivery Note</h1>
             </div>
@@ -16,16 +19,16 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">DN Number</label>
-                        <input type="text" name="dn_no" required
+                        <label for="dn_no" class="block text-sm font-bold text-slate-700 mb-2">DN Number</label>
+                        <input type="text" name="dn_no" id="dn_no" required
                             value="{{ \App\Models\DeliveryNote::generateDeliveryNoteNo() }}"
                             class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 @error('dn_no') border-red-300 @enderror">
                         @error('dn_no') <p class="mt-1 text-xs text-red-600 font-semibold">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Customer</label>
-                        <select name="customer_id" required
+                        <label for="customer_id" class="block text-sm font-bold text-slate-700 mb-2">Customer</label>
+                        <select name="customer_id" id="customer_id" required
                             class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select Customer</option>
                             @foreach ($customers as $customer)
@@ -35,16 +38,16 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Delivery Date</label>
-                        <input type="date" name="delivery_date" required value="{{ date('Y-m-d') }}"
+                        <label for="delivery_date" class="block text-sm font-bold text-slate-700 mb-2">Delivery Date</label>
+                        <input type="date" name="delivery_date" id="delivery_date" required value="{{ date('Y-m-d') }}"
                             class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
 
 
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Notes</label>
-                        <input type="text" name="notes" placeholder="Optional notes..."
+                        <label for="notes" class="block text-sm font-bold text-slate-700 mb-2">Notes</label>
+                        <input type="text" name="notes" id="notes" placeholder="Optional notes..."
                             class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                 </div>
@@ -55,9 +58,9 @@
                             <h2 class="text-lg font-black text-slate-900">Delivery Items</h2>
                             <div class="h-4 w-px bg-slate-200"></div>
                             <div class="flex items-center gap-2">
-                                <label class="text-[10px] font-black uppercase tracking-wider text-slate-400">Import from
+                                <label for="import-picking" class="text-[10px] font-black uppercase tracking-wider text-slate-400">Import from
                                     Picking:</label>
-                                <select @change="importPicking($event.target.value)"
+                                <select id="import-picking" @change="importPicking($event.target.value)"
                                     class="text-xs rounded-lg border-slate-200 py-1">
                                     <option value="">- Select Completed Picking -</option>
                                     @foreach($completedPickings as $p)
@@ -70,9 +73,12 @@
                                 </select>
                             </div>
                         </div>
-                        <button type="button" @click="addItem()"
+                        <button type="button" @click="addItem()" aria-label="Add manual item"
                             class="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 transition-all active:scale-95">
-                            ＋ Add Manual
+                            <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Manual
                         </button>
                     </div>
 
@@ -82,9 +88,10 @@
                                 class="flex flex-col md:flex-row gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 group">
                                 <div class="flex-1">
                                     <label
+                                        :for="`item-${index}-gci-part-id`"
                                         class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Part
                                         FG</label>
-                                    <select :name="`items[${index}][gci_part_id]`" x-model="item.gci_part_id" required
+                                    <select :id="`item-${index}-gci-part-id`" :name="`items[${index}][gci_part_id]`" x-model="item.gci_part_id" required
                                         class="w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         <option value="">Select Part</option>
                                         @foreach ($gciParts as $part)
@@ -95,16 +102,18 @@
                                 </div>
                                 <div class="w-full md:w-32">
                                     <label
+                                        :for="`item-${index}-qty`"
                                         class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Quantity</label>
-                                    <input type="number" :name="`items[${index}][qty]`" x-model="item.qty" required
+                                    <input type="number" :id="`item-${index}-qty`" :name="`items[${index}][qty]`" x-model="item.qty" required
                                         step="0.0001" min="0.0001"
-                                        class="w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        class="w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500 tabular-nums"
                                         placeholder="0.00">
                                 </div>
                                 <div class="w-full md:w-64">
                                     <label
+                                        :for="`item-${index}-remarks`"
                                         class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Remarks</label>
-                                    <input type="text" :name="`items[${index}][remarks]`" x-model="item.remarks"
+                                    <input type="text" :id="`item-${index}-remarks`" :name="`items[${index}][remarks]`" x-model="item.remarks"
                                         class="w-full rounded-lg border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="Optional notes...">
                                 </div>
@@ -113,9 +122,11 @@
                                 <input type="hidden" :name="`items[${index}][sales_order_id]`"
                                     x-model="item.sales_order_id">
                                 <div class="flex items-end pb-1">
-                                    <button type="button" @click="removeItem(index)"
+                                    <button type="button" @click="removeItem(index)" aria-label="Remove item"
                                         class="h-9 w-9 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all">
-                                        ✕
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
@@ -130,14 +141,22 @@
 
                 {{-- Related WO (Production) — Traceability --}}
                 <div class="border-t border-slate-100 pt-6">
-                    <label class="block text-sm font-bold text-slate-700 mb-2">🔗 Related WO (Production Orders)</label>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">
+                        <svg class="inline h-4 w-4 -mt-0.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                        </svg>
+                        Related WO (Production Orders)</label>
                     <p class="text-xs text-slate-500 mb-3">Auto-suggest berdasarkan Part FG yang dipilih. Bisa diedit.</p>
                     <div id="wo-checkboxes" class="space-y-2 max-h-48 overflow-y-auto bg-slate-50 rounded-xl p-3">
                         <p class="text-xs text-slate-400 italic">Tambahkan items terlebih dahulu...</p>
                     </div>
                     <button type="button" onclick="refreshWoSuggestions()"
-                        class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-bold">↻ Refresh WO
-                        Suggestions</button>
+                        class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-bold">
+                        <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh WO Suggestions
+                    </button>
                 </div>
 
                 <script>
@@ -191,7 +210,7 @@
                         Cancel
                     </a>
                     <button type="submit"
-                        class="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
+                        class="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         :disabled="items.length === 0">
                         Save Delivery Note
                     </button>

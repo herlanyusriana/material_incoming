@@ -13,19 +13,19 @@
 
                 <div class="flex items-center gap-3 flex-wrap">
                     <form action="{{ route('production.material-requirement.index') }}" method="GET" class="flex items-center gap-2 flex-wrap">
-                        <label class="text-sm font-semibold text-slate-600">Date:</label>
-                        <input type="date" name="date" value="{{ $planDate->format('Y-m-d') }}"
+                        <label class="text-sm font-semibold text-slate-600" for="mr-date">Date:</label>
+                        <input type="date" name="date" id="mr-date" value="{{ $planDate->format('Y-m-d') }}"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             onchange="this.form.submit()">
-                        <label class="text-sm font-semibold text-slate-600 ml-2">Mode:</label>
-                        <select name="calc_mode"
+                        <label class="text-sm font-semibold text-slate-600 ml-2" for="calc_mode">Mode:</label>
+                        <select name="calc_mode" id="calc_mode"
                             class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             onchange="this.form.submit()">
                             <option value="strict" @selected($calcMode === 'strict')>Strict</option>
                             <option value="with_substitute" @selected($calcMode === 'with_substitute')>With Substitute</option>
                         </select>
-                        <label class="text-sm font-semibold text-slate-600 ml-2">Search:</label>
-                        <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="WO / transaction / part no"
+                        <label class="text-sm font-semibold text-slate-600 ml-2" for="mr-q">Search:</label>
+                        <input type="text" name="q" id="mr-q" value="{{ $q ?? '' }}" placeholder="WO / transaction / part no"
                             class="rounded-lg border-slate-300 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         <input type="hidden" name="sort_by" value="{{ $sortBy }}">
                         <input type="hidden" name="sort_dir" value="{{ $sortDir }}">
@@ -147,7 +147,7 @@
                             <tbody class="divide-y divide-slate-100">
                                 @foreach($materials as $material)
                                     <tr class="hover:bg-slate-50">
-                                        <td class="px-3 py-3 text-center text-xs font-mono text-slate-500">
+                                        <td class="px-3 py-3 text-center text-xs font-mono tabular-nums text-slate-500">
                                             {{ $loop->iteration }}
                                         </td>
                                         <td class="px-4 py-3">
@@ -182,9 +182,9 @@
                                                 {{ $material['make_or_buy'] }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 text-right font-mono text-xs text-slate-700">{{ number_format((float) $material['gross_qty'], 2) }}</td>
-                                        <td class="px-4 py-3 text-right font-mono text-xs text-slate-700">{{ number_format((float) $material['effective_stock_on_hand'], 2) }}</td>
-                                        <td class="px-4 py-3 text-right font-mono text-xs font-bold {{ $material['status'] === 'shortage' ? 'text-red-600' : 'text-slate-800' }}">{{ number_format((float) $material['net_qty'], 2) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono tabular-nums text-xs text-slate-700">{{ number_format((float) $material['gross_qty'], 2) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono tabular-nums text-xs text-slate-700">{{ number_format((float) $material['effective_stock_on_hand'], 2) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono tabular-nums text-xs font-bold {{ $material['status'] === 'shortage' ? 'text-red-600' : 'text-slate-800' }}">{{ number_format((float) $material['net_qty'], 2) }}</td>
                                         <td class="px-3 py-3 text-center text-xs text-slate-500">{{ $material['uom'] }}</td>
                                         <td class="px-3 py-3 text-center">
                                             @if($material['status'] === 'N/A')

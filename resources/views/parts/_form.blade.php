@@ -1,17 +1,17 @@
 @csrf
 <div class="w-full p-0 space-y-8">
     <!-- Section 1 — Vendor Information -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Vendor Information</h2>
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Vendor Information</h2>
         <div class="space-y-2">
-            <label for="vendor_id" class="text-sm font-medium text-gray-700">Vendor</label>
-            <select id="vendor_id" name="vendor_id" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <label for="vendor_id" class="text-sm font-medium text-slate-700">Vendor</label>
+            <select id="vendor_id" name="vendor_id" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                 <option value="">Select vendor</option>
                 @foreach ($vendors as $vendor)
                     <option value="{{ $vendor->id }}" data-type="{{ strtolower($vendor->vendor_type) }}" @selected(old('vendor_id', $part->vendor_id ?? '') == $vendor->id)>{{ $vendor->vendor_name }}</option>
                 @endforeach
             </select>
-            <p class="text-xs text-gray-500">Ketik satu kata, daftar vendor akan muncul.</p>
+            <p class="text-xs text-slate-500">Ketik satu kata, daftar vendor akan muncul.</p>
             <x-input-error :messages="$errors->get('vendor_id')" class="mt-1" />
         </div>
     </div>
@@ -58,35 +58,35 @@
 		}
     @endphp
 
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Part Identification</h2>
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Part Identification</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
-                <label for="part_no" class="text-sm font-medium text-gray-700">Part Number*</label>
-                <input type="text" id="part_no" name="part_no" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" value="{{ old('part_no', $part->part_no ?? '') }}" required>
-                <p class="text-xs text-gray-500">Gunakan kode internal singkat.</p>
+                <label for="part_no" class="text-sm font-medium text-slate-700">Part Number*</label>
+                <input type="text" id="part_no" name="part_no" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" value="{{ old('part_no', $part->part_no ?? '') }}" required>
+                <p class="text-xs text-slate-500">Gunakan kode internal singkat.</p>
                 <x-input-error :messages="$errors->get('part_no')" class="mt-1" />
             </div>
             <div class="space-y-1">
-                <label class="text-xs font-medium text-gray-700">Size*</label>
+                <label class="text-xs font-medium text-slate-700">Size*</label>
                 <div class="flex flex-wrap items-center gap-1.5">
                     <div class="flex-1 min-w-[60px]">
-                        <input type="text" id="size_thickness" name="thickness" class="w-full rounded border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs px-2 py-1" placeholder="Thick" value="{{ $thicknessValue }}">
+                        <input type="text" id="size_thickness" name="thickness" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="Thick" value="{{ $thicknessValue }}">
                     </div>
-                    <span class="text-gray-400 text-xs font-bold">×</span>
+                    <span class="text-slate-400 text-xs font-bold">×</span>
                     <div class="flex-1 min-w-[60px]">
-                        <input type="text" id="size_width" name="width" class="w-full rounded border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs px-2 py-1" placeholder="Width" value="{{ $widthValue }}">
+                        <input type="text" id="size_width" name="width" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="Width" value="{{ $widthValue }}">
                     </div>
-                    <span class="text-gray-400 text-xs font-bold">×</span>
+                    <span class="text-slate-400 text-xs font-bold">×</span>
                     <div class="flex-1 min-w-[60px]">
-                        <input type="text" id="size_length" name="length" class="w-full rounded border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs px-2 py-1" placeholder="Length" value="{{ $lengthValue }}">
+                        <input type="text" id="size_length" name="length" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="Length" value="{{ $lengthValue }}">
                     </div>
-                    <label class="flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 whitespace-nowrap">
-                        <input type="checkbox" id="size_is_coil" name="is_coil" value="1" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 w-3.5 h-3.5" @checked($isCoil)>
+                    <label class="flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 whitespace-nowrap">
+                        <input type="checkbox" id="size_is_coil" name="is_coil" value="1" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500 w-3.5 h-3.5" @checked($isCoil)>
                         <span>Coil</span>
                     </label>
                 </div>
-                <p class="text-[10px] text-gray-500">
+                <p class="text-[10px] text-slate-500">
                     Format: <span id="size-preview-form" class="font-mono">{{ $rawSize ?: '-' }}</span>
                     &nbsp;·&nbsp; Ceklis Coil = <span class="font-semibold">C</span> di panjang
                     &nbsp;·&nbsp; tersimpan di <span class="font-semibold">register_no</span>
@@ -98,54 +98,54 @@
     </div>
 
     <!-- Section 3 — Naming Details -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Naming Details</h2>
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Naming Details</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
                 @if(!($part->exists ?? false))
-                    <label for="vendor_part_name_select" class="text-sm font-medium text-gray-700">Vendor Part (Existing)</label>
-                    <select id="vendor_part_name_select" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" disabled>
+                    <label for="vendor_part_name_select" class="text-sm font-medium text-slate-700">Vendor Part (Existing)</label>
+                    <select id="vendor_part_name_select" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" disabled>
                         <option value="">Pilih yang tersedia...</option>
                         <option value="__other__">Lainnya...</option>
                     </select>
-                    <p class="text-xs text-gray-500">Pilih vendor dulu untuk melihat daftar existing. Jika belum ada, pilih <span class="font-semibold">Lainnya</span> lalu isi manual.</p>
+                    <p class="text-xs text-slate-500">Pilih vendor dulu untuk melihat daftar existing. Jika belum ada, pilih <span class="font-semibold">Lainnya</span> lalu isi manual.</p>
                 @endif
-                <label for="part_name_vendor" class="text-sm font-medium text-gray-700">Vendor Part Name*</label>
-                <input type="text" id="part_name_vendor" name="part_name_vendor" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" value="{{ old('part_name_vendor', $part->part_name_vendor ?? '') }}" required>
+                <label for="part_name_vendor" class="text-sm font-medium text-slate-700">Vendor Part Name*</label>
+                <input type="text" id="part_name_vendor" name="part_name_vendor" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" value="{{ old('part_name_vendor', $part->part_name_vendor ?? '') }}" required>
                 <x-input-error :messages="$errors->get('part_name_vendor')" class="mt-1" />
             </div>
             <div class="space-y-2">
-                <label for="part_name_gci" class="text-sm font-medium text-gray-700">GCI Part Name*</label>
-                <input type="text" id="part_name_gci" name="part_name_gci" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" value="{{ old('part_name_gci', $part->part_name_gci ?? '') }}" required>
+                <label for="part_name_gci" class="text-sm font-medium text-slate-700">GCI Part Name*</label>
+                <input type="text" id="part_name_gci" name="part_name_gci" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" value="{{ old('part_name_gci', $part->part_name_gci ?? '') }}" required>
                 <x-input-error :messages="$errors->get('part_name_gci')" class="mt-1" />
             </div>
         </div>
         <div class="space-y-2">
-            <label for="hs_code" class="text-sm font-medium text-gray-700">HS Code</label>
-            <input type="text" id="hs_code" name="hs_code" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="e.g., 7225.99.10" value="{{ old('hs_code', $part->hs_code ?? '') }}">
-            <p class="text-xs text-gray-500">Harmonized System code for customs.</p>
+            <label for="hs_code" class="text-sm font-medium text-slate-700">HS Code</label>
+            <input type="text" id="hs_code" name="hs_code" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="e.g., 7225.99.10" value="{{ old('hs_code', $part->hs_code ?? '') }}">
+            <p class="text-xs text-slate-500">Harmonized System code for customs.</p>
             <x-input-error :messages="$errors->get('hs_code')" class="mt-1" />
         </div>
         <div class="space-y-2">
-            <label for="quality_inspection" class="text-sm font-medium text-gray-700">Quality Inspection</label>
+            <label for="quality_inspection" class="text-sm font-medium text-slate-700">Quality Inspection</label>
             @php $qi = old('quality_inspection', $part->quality_inspection ?? ''); @endphp
-            <select id="quality_inspection" name="quality_inspection" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <select id="quality_inspection" name="quality_inspection" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                 <option value="" @selected($qi === '' || $qi === null)>-</option>
                 <option value="YES" @selected(strtoupper((string) $qi) === 'YES')>YES</option>
             </select>
-            <p class="text-xs text-gray-500">Isi YES jika part butuh QC inspection.</p>
+            <p class="text-xs text-slate-500">Isi YES jika part butuh QC inspection.</p>
             <x-input-error :messages="$errors->get('quality_inspection')" class="mt-1" />
         </div>
 
         <!-- Local Vendor Specifics -->
-        <div id="local-fields" class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100 hidden">
+        <div id="local-fields" class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 hidden">
             <div class="col-span-full">
-                <h3 class="text-xs font-semibold text-blue-600 tracking-wide uppercase">Local Vendor Details</h3>
-                <p class="mt-1 text-xs text-gray-500">Harga vendor part tidak diatur di Part Master. Gunakan <span class="font-semibold">Pricing Master</span> untuk harga beli.</p>
+                <h3 class="text-xs font-semibold text-indigo-600 tracking-wide uppercase">Local Vendor Details</h3>
+                <p class="mt-1 text-xs text-slate-500">Harga vendor part tidak diatur di Part Master. Gunakan <span class="font-semibold">Pricing Master</span> untuk harga beli.</p>
             </div>
             <div class="space-y-2">
-                <label for="uom" class="text-sm font-medium text-gray-700">UOM</label>
-                <select id="uom" name="uom" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <label for="uom" class="text-sm font-medium text-slate-700">UOM</label>
+                <select id="uom" name="uom" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                     <option value="">Select UOM</option>
                     @foreach(['PCS', 'KG', 'SET', 'EA', 'SHEET', 'COIL', 'LITER', 'METER', 'ROLL'] as $pkg)
                         <option value="{{ $pkg }}" @selected(old('uom', $part->uom ?? '') === $pkg)>{{ $pkg }}</option>
@@ -157,11 +157,11 @@
     </div>
 
     <!-- Section 4 — Operational Status -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Operational Status</h2>
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Operational Status</h2>
         <div class="space-y-2">
-            <label for="status" class="text-sm font-medium text-gray-700">Status</label>
-            <select name="status" id="status" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <label for="status" class="text-sm font-medium text-slate-700">Status</label>
+            <select name="status" id="status" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                 <option value="active" @selected(old('status', $part->status ?? 'active') === 'active')>Active</option>
                 <option value="inactive" @selected(old('status', $part->status ?? 'active') === 'inactive')>Inactive</option>
             </select>
@@ -170,7 +170,7 @@
     </div>
 
     <div class="flex justify-end">
-        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">Save</button>
+        <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700">Save</button>
     </div>
 </div>
 

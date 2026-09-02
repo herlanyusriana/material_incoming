@@ -6,12 +6,12 @@
     <div class="py-6" x-data="warehouseLocationsPage()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
                 </div>
             @endif
             @if (session('error'))
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                <div class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
                     {{ session('error') }}
                 </div>
             @endif
@@ -142,17 +142,17 @@
                             class="flex flex-wrap items-center gap-2 bg-slate-50 rounded-lg p-1.5 border border-slate-200">
                             <span class="text-xs font-bold text-slate-500 px-2 uppercase">Print Range:</span>
                             <input name="start" value="{{ request('start') }}"
-                                class="w-24 px-2 py-1 text-sm rounded-md border-slate-200 placeholder-slate-400 uppercase focus:border-indigo-500 focus:ring-0"
+                                class="w-24 px-2 py-1 text-sm rounded-xl border-slate-200 placeholder-slate-400 uppercase focus:border-indigo-500 focus:ring-0"
                                 placeholder="Start">
                             <span class="text-slate-400 text-xs">to</span>
                             <input name="end" value="{{ request('end') }}"
-                                class="w-24 px-2 py-1 text-sm rounded-md border-slate-200 placeholder-slate-400 uppercase focus:border-indigo-500 focus:ring-0"
+                                class="w-24 px-2 py-1 text-sm rounded-xl border-slate-200 placeholder-slate-400 uppercase focus:border-indigo-500 focus:ring-0"
                                 placeholder="End">
                             <input type="number" name="limit" min="1" max="50" value="{{ request('limit', 20) }}"
-                                class="w-16 px-2 py-1 text-sm rounded-md border-slate-200 placeholder-slate-400 focus:border-indigo-500 focus:ring-0"
+                                class="w-16 px-2 py-1 text-sm rounded-xl border-slate-200 placeholder-slate-400 focus:border-indigo-500 focus:ring-0"
                                 title="Limit">
                             <button
-                                class="px-3 py-1 bg-white border border-slate-200 rounded-md text-slate-600 text-xs font-bold hover:text-indigo-600 hover:border-indigo-300 transition-colors uppercase tracking-wide">
+                                class="px-3 py-1 bg-white border border-slate-200 rounded-xl text-slate-600 text-xs font-bold hover:text-indigo-600 hover:border-indigo-300 transition-colors uppercase tracking-wide">
                                 Print
                             </button>
                         </form>
@@ -208,7 +208,7 @@
                                     <td class="px-6 py-4 font-mono text-slate-600">
                                         @if(strtoupper($loc->class) === 'TROLLY')
                                             <span
-                                                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">
+                                                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-xl bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

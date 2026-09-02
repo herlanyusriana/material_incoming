@@ -6,7 +6,7 @@
     <div class="py-6">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             @if ($errors->any())
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 mb-4">
+                <div class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 mb-4">
                     <ul class="list-disc list-inside">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>

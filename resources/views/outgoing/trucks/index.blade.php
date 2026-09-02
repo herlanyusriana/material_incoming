@@ -12,8 +12,8 @@
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
                     <form method="GET" action="{{ route('outgoing.trucks.index') }}" class="flex items-end gap-2">
                         <div>
-                            <div class="text-xs font-semibold text-slate-500 mb-1">Search</div>
-                            <input name="q" value="{{ $q }}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700" placeholder="plate/type/capacity">
+                            <label for="q" class="text-xs font-semibold text-slate-500 mb-1">Search</label>
+                            <input name="q" id="q" value="{{ $q }}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700" placeholder="plate/type/capacity">
                         </div>
                         <button class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">Search</button>
                     </form>
@@ -52,8 +52,8 @@
                 <form method="POST" action="{{ route('outgoing.trucks.import') }}" enctype="multipart/form-data" class="flex flex-col gap-2 sm:flex-row sm:items-end">
                     @csrf
                     <div>
-                        <div class="text-xs font-semibold text-slate-500 mb-1">Import file</div>
-                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
+                        <label for="import-file" class="text-xs font-semibold text-slate-500 mb-1">Import file</label>
+                        <input type="file" name="file" id="import-file" accept=".xlsx,.xls,.csv" class="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
                     </div>
                     <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">Import</button>
                 </form>
@@ -62,20 +62,20 @@
             <form method="POST" action="{{ route('outgoing.trucks.store') }}" class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
                 @csrf
                 <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">Plate No</div>
-                    <input name="plate_no" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" required placeholder="B 1234 XX">
+                    <label for="plate_no" class="text-xs font-semibold text-slate-500 mb-1">Plate No</label>
+                    <input name="plate_no" id="plate_no" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" required placeholder="B 1234 XX">
                 </div>
                 <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">Type</div>
-                    <input name="type" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Box Truck">
+                    <label for="type" class="text-xs font-semibold text-slate-500 mb-1">Type</label>
+                    <input name="type" id="type" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Box Truck">
                 </div>
                 <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">Capacity</div>
-                    <input name="capacity" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="5 Ton">
+                    <label for="capacity" class="text-xs font-semibold text-slate-500 mb-1">Capacity</label>
+                    <input name="capacity" id="capacity" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="5 Ton">
                 </div>
                 <div>
-                    <div class="text-xs font-semibold text-slate-500 mb-1">Status</div>
-                    <select name="status" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white">
+                    <label for="new-status" class="text-xs font-semibold text-slate-500 mb-1">Status</label>
+                    <select name="status" id="new-status" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white">
                         <option value="available">available</option>
                         <option value="in-use">in-use</option>
                         <option value="maintenance">maintenance</option>
@@ -112,16 +112,16 @@
                                     @csrf
                                     @method('PUT')
                                     <td class="px-4 py-3 font-black text-slate-900 whitespace-nowrap">
-                                        <input name="plate_no" value="{{ $truck->plate_no }}" class="w-40 rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                                        <input name="plate_no" value="{{ $truck->plate_no }}" aria-label="Plate number" class="w-40 rounded-lg border border-slate-200 px-2 py-1 text-sm">
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input name="type" value="{{ $truck->type }}" class="w-44 rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                                        <input name="type" value="{{ $truck->type }}" aria-label="Truck type" class="w-44 rounded-lg border border-slate-200 px-2 py-1 text-sm">
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input name="capacity" value="{{ $truck->capacity }}" class="w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                                        <input name="capacity" value="{{ $truck->capacity }}" aria-label="Truck capacity" class="w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm">
                                     </td>
                                     <td class="px-4 py-3">
-                                        <select name="status" class="rounded-lg border border-slate-200 px-2 py-1 text-sm bg-white">
+                                        <select name="status" aria-label="Truck status" class="rounded-lg border border-slate-200 px-2 py-1 text-sm bg-white">
                                             <option value="available" @selected($truck->status === 'available')>available</option>
                                             <option value="in-use" @selected($truck->status === 'in-use')>in-use</option>
                                             <option value="maintenance" @selected($truck->status === 'maintenance')>maintenance</option>

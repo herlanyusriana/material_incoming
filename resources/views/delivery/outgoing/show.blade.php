@@ -42,7 +42,7 @@
                                 'delivered' => 'bg-emerald-100 text-emerald-800',
                                 'cancelled' => 'bg-red-100 text-red-800',
                             ];
-                            $statusColor = $statusColors[$deliveryNote->status] ?? 'bg-gray-100 text-gray-800';
+                            $statusColor = $statusColors[$deliveryNote->status] ?? 'bg-slate-100 text-slate-800';
                         @endphp
                         <span class="px-2.5 py-0.5 text-xs font-medium rounded-full {{ $statusColor }}">
                             {{ ucfirst(str_replace('_', ' ', $deliveryNote->status)) }}
@@ -95,8 +95,8 @@
                     @method('POST')
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Update Status</label>
-                        <select name="status" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="status" class="block text-sm font-medium text-slate-700 mb-1">Update Status</label>
+                        <select name="status" id="status" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="prepared" {{ $deliveryNote->status === 'prepared' ? 'selected' : '' }}>Prepared</option>
                             <option value="assigned" {{ $deliveryNote->status === 'assigned' ? 'selected' : '' }}>Assigned</option>
                             <option value="in_transit" {{ $deliveryNote->status === 'in_transit' ? 'selected' : '' }}>In Transit</option>
@@ -116,8 +116,8 @@
                     @method('POST')
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Assign Truck</label>
-                        <select name="truck_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="truck_id" class="block text-sm font-medium text-slate-700 mb-1">Assign Truck</label>
+                        <select name="truck_id" id="truck_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select a truck</option>
                             @foreach(\App\Models\Trucking::all() as $truck)
                                 <option value="{{ $truck->id }}" {{ $deliveryNote->truck_id == $truck->id ? 'selected' : '' }}>
@@ -138,8 +138,8 @@
                     @method('POST')
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Assign Driver</label>
-                        <select name="driver_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="driver_id" class="block text-sm font-medium text-slate-700 mb-1">Assign Driver</label>
+                        <select name="driver_id" id="driver_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select a driver</option>
                             @foreach(\App\Models\User::where('role', 'driver')->get() as $driver)
                                 <option value="{{ $driver->id }}" {{ $deliveryNote->driver_id == $driver->id ? 'selected' : '' }}>
@@ -149,7 +149,7 @@
                         </select>
                     </div>
                     
-                    <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                         Assign Driver
                     </button>
                 </form>
@@ -187,7 +187,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 {{ $item->salesOrder->order_number ?? 'N/A' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 tabular-nums">
                                 {{ number_format($item->quantity, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">

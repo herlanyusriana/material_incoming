@@ -41,8 +41,8 @@
     @else
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                <div class="text-[11px] uppercase tracking-wide text-blue-600">Total Supply</div>
-                <div class="mt-1 text-lg font-bold text-blue-800">{{ number_format($totalSupplied, 4) }}</div>
+                <div class="text-[11px] uppercase tracking-wide text-indigo-600">Total Supply</div>
+                <div class="mt-1 text-lg font-bold tabular-nums text-blue-800">{{ number_format($totalSupplied, 4) }}</div>
             </div>
             <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
                 <div class="text-[11px] uppercase tracking-wide text-emerald-600">Sudah Dipakai</div>

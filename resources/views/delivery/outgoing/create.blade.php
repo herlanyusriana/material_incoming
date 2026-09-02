@@ -12,7 +12,7 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Customer *</label>
+                <label for="customerSelect" class="block text-sm font-medium text-slate-700 mb-1">Customer *</label>
                 <select name="customer_id" id="customerSelect" required class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Select a customer</option>
                     @foreach($customers as $customer)
@@ -27,8 +27,8 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Truck (Optional)</label>
-                <select name="truck_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                <label for="truck_id" class="block text-sm font-medium text-slate-700 mb-1">Truck (Optional)</label>
+                <select name="truck_id" id="truck_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Select a truck (optional)</option>
                     @foreach($trucks as $truck)
                         <option value="{{ $truck->id }}">{{ $truck->name }} - {{ $truck->vehicle_number }}</option>
@@ -40,8 +40,8 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Driver (Optional)</label>
-                <select name="driver_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                <label for="driver_id" class="block text-sm font-medium text-slate-700 mb-1">Driver (Optional)</label>
+                <select name="driver_id" id="driver_id" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Select a driver (optional)</option>
                     @foreach(\App\Models\User::where('role', 'driver')->get() as $driver)
                         <option value="{{ $driver->id }}">{{ $driver->name }} ({{ $driver->username }})</option>
@@ -53,8 +53,8 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Delivery Date (Optional)</label>
-                <input type="date" name="delivery_date" value="{{ old('delivery_date') }}" 
+                <label for="delivery_date" class="block text-sm font-medium text-slate-700 mb-1">Delivery Date (Optional)</label>
+                <input type="date" name="delivery_date" id="delivery_date" value="{{ old('delivery_date') }}"
                        class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                 @error('delivery_date')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -62,8 +62,8 @@
             </div>
             
             <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-                <textarea name="notes" rows="3" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
+                <label for="notes" class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                <textarea name="notes" id="notes" rows="3" class="w-full rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
                 @error('notes')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -81,7 +81,7 @@
                 
                 <div class="space-y-3 max-h-96 overflow-y-auto">
                     @forelse($deliveryOrders as $do)
-                        <div class="border border-slate-200 rounded-lg p-4 bg-white hover:bg-slate-25 transition-colors">
+                        <div class="border border-slate-200 rounded-lg p-4 bg-white hover:bg-slate-50 transition-colors">
                             <div class="flex items-start">
                                 <input type="checkbox" 
                                        name="delivery_order_ids[]" 
@@ -95,7 +95,7 @@
                                             <div class="text-sm text-slate-500">{{ $do->customer->name ?? 'N/A' }}</div>
                                         </div>
                                         <div class="text-right">
-                                            <div class="text-sm font-medium text-slate-900">{{ $do->items->count() }} items</div>
+                                            <div class="text-sm font-medium text-slate-900 tabular-nums">{{ $do->items->count() }} items</div>
                                             <div class="text-sm text-slate-500">{{ $do->status }}</div>
                                         </div>
                                     </div>

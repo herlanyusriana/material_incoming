@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">New Machine</h2>
-            <p class="text-sm text-gray-500">Add a new production machine.</p>
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">New Machine</h2>
+            <p class="text-sm text-slate-500">Add a new production machine.</p>
         </div>
     </x-slot>
 

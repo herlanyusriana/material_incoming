@@ -34,9 +34,9 @@
                     <label class="block">
                         <span class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Tanggal</span>
                         <input type="date" name="date" value="{{ $date->toDateString() }}"
-                            class="rounded-xl border-blue-100 bg-white px-3 py-2 text-sm font-bold text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            class="rounded-xl border-blue-100 bg-white px-3 py-2 text-sm font-bold text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </label>
-                    <button class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-sm hover:bg-blue-700">
+                    <button class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-black text-white shadow-sm hover:bg-indigo-700">
                         View
                     </button>
                 </form>
@@ -46,31 +46,31 @@
         <div class="grid grid-cols-2 gap-3 lg:grid-cols-7">
             <div class="rounded-2xl bg-white p-4 ring-1 ring-slate-200 shadow-sm">
                 <div class="text-[11px] font-black uppercase tracking-wider text-slate-400">WO</div>
-                <div class="mt-1 text-2xl font-black text-slate-900">{{ $fmtQty($summary['wo_count']) }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-slate-900">{{ $fmtQty($summary['wo_count']) }}</div>
             </div>
             <div class="rounded-2xl bg-white p-4 ring-1 ring-emerald-100 shadow-sm">
                 <div class="text-[11px] font-black uppercase tracking-wider text-emerald-500">Running</div>
-                <div class="mt-1 text-2xl font-black text-emerald-700">{{ $fmtQty($summary['running']) }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-emerald-700">{{ $fmtQty($summary['running']) }}</div>
             </div>
             <div class="rounded-2xl bg-white p-4 ring-1 ring-amber-100 shadow-sm">
                 <div class="text-[11px] font-black uppercase tracking-wider text-amber-500">Paused</div>
-                <div class="mt-1 text-2xl font-black text-amber-700">{{ $fmtQty($summary['paused']) }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-amber-700">{{ $fmtQty($summary['paused']) }}</div>
             </div>
             <div class="rounded-2xl bg-white p-4 ring-1 ring-indigo-100 shadow-sm">
                 <div class="text-[11px] font-black uppercase tracking-wider text-indigo-500">Completed</div>
-                <div class="mt-1 text-2xl font-black text-indigo-700">{{ $fmtQty($summary['completed']) }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-indigo-700">{{ $fmtQty($summary['completed']) }}</div>
             </div>
             <div class="rounded-2xl bg-white p-4 ring-1 ring-blue-100 shadow-sm">
                 <div class="text-[11px] font-black uppercase tracking-wider text-blue-500">Target</div>
-                <div class="mt-1 text-2xl font-black text-blue-700">{{ $fmtQty($summary['target_qty']) }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-indigo-700">{{ $fmtQty($summary['target_qty']) }}</div>
             </div>
             <div class="rounded-2xl bg-white p-4 ring-1 ring-sky-100 shadow-sm">
                 <div class="text-[11px] font-black uppercase tracking-wider text-sky-500">OK</div>
-                <div class="mt-1 text-2xl font-black text-sky-700">{{ $fmtQty($summary['ok_qty']) }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-sky-700">{{ $fmtQty($summary['ok_qty']) }}</div>
             </div>
             <div class="rounded-2xl bg-white p-4 ring-1 ring-red-100 shadow-sm">
                 <div class="text-[11px] font-black uppercase tracking-wider text-red-500">NG</div>
-                <div class="mt-1 text-2xl font-black text-red-700">{{ $fmtQty($summary['ng_qty']) }}</div>
+                <div class="mt-1 text-2xl font-black tabular-nums text-red-700">{{ $fmtQty($summary['ng_qty']) }}</div>
             </div>
         </div>
 
@@ -129,18 +129,18 @@
                                         <span class="text-slate-400">-</span>
                                     @endforelse
                                 </td>
-                                <td class="px-4 py-4 text-right font-black text-slate-900">{{ $fmtQty($row['target_qty']) }}</td>
+                                <td class="px-4 py-4 text-right font-black tabular-nums text-slate-900">{{ $fmtQty($row['target_qty']) }}</td>
                                 <td class="px-4 py-4 text-right">
-                                    <div class="font-black text-emerald-700">{{ $fmtQty($row['ok_qty']) }}</div>
-                                    <div class="text-xs font-bold text-red-600">NG {{ $fmtQty($row['ng_qty']) }}</div>
-                                    <div class="mt-1 text-[11px] text-slate-500">WIP {{ $fmtQty($row['wip_qty']) }} · FG {{ $fmtQty($row['fg_qty']) }}</div>
+                                    <div class="font-black tabular-nums text-emerald-700">{{ $fmtQty($row['ok_qty']) }}</div>
+                                    <div class="text-xs font-bold tabular-nums text-red-600">NG {{ $fmtQty($row['ng_qty']) }}</div>
+                                    <div class="mt-1 text-[11px] tabular-nums text-slate-500">WIP {{ $fmtQty($row['wip_qty']) }} · FG {{ $fmtQty($row['fg_qty']) }}</div>
                                 </td>
                                 <td class="px-4 py-4">
                                     <div class="flex items-center gap-2">
                                         <div class="h-3 w-28 overflow-hidden rounded-full bg-slate-100">
-                                            <div class="h-full rounded-full bg-blue-600" style="width: {{ $row['progress_percent'] }}%"></div>
+                                            <div class="h-full rounded-full bg-indigo-600" style="width: {{ $row['progress_percent'] }}%"></div>
                                         </div>
-                                        <span class="text-xs font-black text-blue-700">{{ $row['progress_percent'] }}%</span>
+                                        <span class="text-xs font-black tabular-nums text-indigo-700">{{ $row['progress_percent'] }}%</span>
                                     </div>
                                 </td>
                                 @foreach([1, 2, 3] as $shiftNo)
@@ -149,10 +149,10 @@
                                         @if($cell['ok'] > 0 || $cell['ng'] > 0)
                                             <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
                                                 <div class="flex items-center justify-between gap-2">
-                                                    <span class="text-xs font-black text-blue-800">OK {{ $fmtQty($cell['ok']) }}</span>
-                                                    <span class="text-xs font-black text-red-600">NG {{ $fmtQty($cell['ng']) }}</span>
+                                                    <span class="text-xs font-black tabular-nums text-indigo-800">OK {{ $fmtQty($cell['ok']) }}</span>
+                                                    <span class="text-xs font-black tabular-nums text-red-600">NG {{ $fmtQty($cell['ng']) }}</span>
                                                 </div>
-                                                <div class="mt-1 text-[11px] font-bold text-slate-600">WIP {{ $fmtQty($cell['wip']) }} · FG {{ $fmtQty($cell['fg']) }}</div>
+                                                <div class="mt-1 text-[11px] font-bold tabular-nums text-slate-600">WIP {{ $fmtQty($cell['wip']) }} · FG {{ $fmtQty($cell['fg']) }}</div>
                                                 <div class="mt-2 flex flex-wrap gap-1">
                                                     @foreach($cell['processes'] as $process)
                                                         <span class="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-700 ring-1 ring-slate-200">{{ $process }}</span>
@@ -160,7 +160,7 @@
                                                 </div>
                                                 <div class="mt-2 flex flex-wrap gap-1">
                                                     @foreach($cell['machines'] as $machine)
-                                                        <span class="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-black text-white">{{ $machine }}</span>
+                                                        <span class="rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-black text-white">{{ $machine }}</span>
                                                     @endforeach
                                                 </div>
                                             </div>

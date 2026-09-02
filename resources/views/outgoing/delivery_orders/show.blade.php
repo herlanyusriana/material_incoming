@@ -76,9 +76,9 @@
                                 @foreach($deliveryOrder->items as $item)
                                 <tr class="border-b border-slate-100 hover:bg-slate-50">
                                     <td class="px-4 py-3">{{ $item->description ?? '-' }}</td>
-                                    <td class="px-4 py-3">{{ $item->quantity ?? '-' }}</td>
-                                    <td class="px-4 py-3">{{ $item->unit_price ? 'Rp ' . number_format($item->unit_price, 0, ',', '.') : '-' }}</td>
-                                    <td class="px-4 py-3 text-right font-bold">{{ (($item->quantity ?? 0) * ($item->unit_price ?? 0)) > 0 ? 'Rp ' . number_format(($item->quantity ?? 0) * ($item->unit_price ?? 0), 0, ',', '.') : '-' }}</td>
+                                    <td class="px-4 py-3 tabular-nums">{{ $item->quantity ?? '-' }}</td>
+                                    <td class="px-4 py-3 tabular-nums">{{ $item->unit_price ? 'Rp ' . number_format($item->unit_price, 0, ',', '.') : '-' }}</td>
+                                    <td class="px-4 py-3 text-right font-bold tabular-nums">{{ (($item->quantity ?? 0) * ($item->unit_price ?? 0)) > 0 ? 'Rp ' . number_format(($item->quantity ?? 0) * ($item->unit_price ?? 0), 0, ',', '.') : '-' }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -109,7 +109,7 @@
                     <div class="pt-4 border-t border-slate-200">
                         <div class="flex justify-between">
                             <span class="font-bold text-slate-900">Total Items</span>
-                            <span class="font-bold text-lg text-indigo-600">{{ $deliveryOrder->items->count() }}</span>
+                            <span class="font-bold text-lg text-indigo-600 tabular-nums">{{ $deliveryOrder->items->count() }}</span>
                         </div>
                     </div>
                 </div>

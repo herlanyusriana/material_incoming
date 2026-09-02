@@ -71,7 +71,7 @@
                             <label for="invoice_no" class="text-sm font-medium text-slate-700">Invoice No.</label>
                             <input type="text" id="invoice_no" name="invoice_no"
                                 value="{{ old('invoice_no', $arrival->invoice_no) }}"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                                 required>
                         </div>
 
@@ -79,7 +79,7 @@
                             <label for="invoice_date" class="text-sm font-medium text-slate-700">Invoice Date</label>
                             <input type="date" id="invoice_date" name="invoice_date"
                                 value="{{ old('invoice_date', optional($arrival->invoice_date)->format('Y-m-d')) }}"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                                 required>
                         </div>
 
@@ -88,19 +88,19 @@
                                 <label for="etd" class="text-sm font-medium text-slate-700">ETD</label>
                                 <input type="date" id="etd" name="etd"
                                     value="{{ old('etd', optional($arrival->ETD)->format('Y-m-d')) }}"
-                                    class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             </div>
                             <div class="space-y-1">
                                 <label for="eta" class="text-sm font-medium text-slate-700">ETA JKT</label>
                                 <input type="date" id="eta" name="eta"
                                     value="{{ old('eta', optional($arrival->ETA)->format('Y-m-d')) }}"
-                                    class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             </div>
                             <div class="space-y-1">
                                 <label for="eta_gci" class="text-sm font-medium text-slate-700">ETA GCI</label>
                                 <input type="date" id="eta_gci" name="eta_gci"
                                     value="{{ old('eta_gci', optional($arrival->ETA_GCI)->format('Y-m-d')) }}"
-                                    class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 @error('eta_gci') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
@@ -109,20 +109,20 @@
                             <div class="space-y-1">
                                 <label for="vessel" class="text-sm font-medium text-slate-700">Vessel</label>
                                 <input type="text" id="vessel" name="vessel" value="{{ old('vessel', $arrival->vessel) }}"
-                                    class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             </div>
                             <div class="space-y-1">
                                 <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
                                 <input type="text" id="bl_no" name="bl_no"
                                     value="{{ old('bl_no', $arrival->bill_of_lading) }}"
-                                    class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div class="space-y-1">
                                 <label for="price_term" class="text-sm font-medium text-slate-700">Price Term</label>
                                 <input type="text" id="price_term" name="price_term"
                                     value="{{ old('price_term', $arrival->price_term) }}" placeholder="FOB / CIF / EXW"
-                                    class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
@@ -132,21 +132,21 @@
                             <label for="pen_no" class="text-sm font-medium text-slate-700">Nomor PEN</label>
                             <input type="text" id="pen_no" name="pen_no"
                                 value="{{ old('pen_no', $arrival->pen_no) }}"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
                             <label for="pen_date" class="text-sm font-medium text-slate-700">Tanggal No PEN</label>
                             <input type="date" id="pen_date" name="pen_date"
                                 value="{{ old('pen_date', optional($arrival->pen_date)->format('Y-m-d')) }}"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
                             <label for="aju_no" class="text-sm font-medium text-slate-700">Nomor AJU</label>
                             <input type="text" id="aju_no" name="aju_no"
                                 value="{{ old('aju_no', $arrival->aju_no) }}"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('aju_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -156,7 +156,7 @@
                             <label for="bl_status" class="text-sm font-medium text-slate-700">Bill of Lading
                                 Status</label>
                             <select id="bl_status" name="bl_status"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 <option value="">-</option>
                                 <option value="draft" {{ old('bl_status', $arrival->bill_of_lading_status) === 'draft' ? 'selected' : '' }}>Draft</option>
                                 <option value="surrender" {{ old('bl_status', $arrival->bill_of_lading_status) === 'surrender' ? 'selected' : '' }}>Surrender
@@ -172,7 +172,7 @@
                             <div class="text-xs text-slate-500">
                                 @if ($arrival->bill_of_lading_file_url)
                                     File sekarang:
-                                    <a class="text-blue-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}"
+                                    <a class="text-indigo-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}"
                                         target="_blank" rel="noopener">Download / View</a>
                                 @else
                                     Belum ada file.
@@ -192,7 +192,7 @@
                             </svg>
                             <span class="text-xs font-bold uppercase tracking-wider">Automated HS Code</span>
                         </div>
-                        <p class="text-xs text-blue-600 leading-relaxed">
+                        <p class="text-xs text-indigo-600 leading-relaxed">
                             HS Code akan di-generate otomatis berdasarkan Master Part dari setiap item yang Anda
                             tambahkan ke departure ini. Sistem akan menggabungkan nomor HS yang sama menjadi satu.
                         </p>
@@ -202,7 +202,7 @@
                         <label for="currency" class="text-sm font-medium text-slate-700">Currency</label>
                         <input type="text" id="currency" name="currency"
                             value="{{ old('currency', $arrival->currency) }}"
-                            class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                             required>
                     </div>
 
@@ -212,13 +212,13 @@
                                 Loading</label>
                             <input type="text" id="port_of_loading" name="port_of_loading"
                                 value="{{ old('port_of_loading', $arrival->port_of_loading) }}"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                         </div>
                         <div class="space-y-1">
                             <label for="seal_code" class="text-sm font-medium text-slate-700">Seal Code</label>
                             <input type="text" id="seal_code" name="seal_code"
                                 value="{{ old('seal_code', $arrival->seal_code) }}"
-                                class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                         </div>
                     </div>
 
@@ -243,7 +243,7 @@
                         <label for="container_numbers" class="text-sm font-medium text-slate-700">Container
                             Numbers</label>
                         <textarea id="container_numbers" name="container_numbers" rows="4"
-                            class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                             placeholder="1 baris = 1 container\nFormat: CONTAINER_NO [SEAL_CODE]">{{ $containerPrefill }}</textarea>
                         <p class="text-xs text-slate-500">Contoh: <span class="font-semibold">MSKU1234567 SEAL001</span>
                             (seal optional). Kalau seal kosong, akan pakai <span class="font-semibold">Seal Code</span>
@@ -254,7 +254,7 @@
                     <div class="space-y-1">
                         <label for="notes" class="text-sm font-medium text-slate-700">Notes</label>
                         <textarea id="notes" name="notes" rows="3"
-                            class="w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm">{{ old('notes', $arrival->notes) }}</textarea>
+                            class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">{{ old('notes', $arrival->notes) }}</textarea>
                     </div>
                     @endif
 
@@ -262,7 +262,7 @@
                         <a href="{{ ($customsOnly ?? false) ? route('receives.completed.invoice', $arrival) : route('departures.show', $arrival) }}"
                             class="px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50">Back</a>
                         <button type="submit"
-                            class="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition">Save
+                            class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">Save
                             Changes</button>
                     </div>
                 </form>

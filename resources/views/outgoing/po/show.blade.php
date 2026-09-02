@@ -38,8 +38,9 @@
                     @if($outgoingPo->status === 'draft')
                         <form method="POST" action="{{ route('outgoing.customer-po.confirm', $outgoingPo) }}" class="inline">
                             @csrf
-                            <button class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700">
-                                ✓ Confirm
+                            <button class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700">
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                Confirm
                             </button>
                         </form>
                         <form method="POST" action="{{ route('outgoing.customer-po.cancel', $outgoingPo) }}" class="inline"
@@ -47,20 +48,22 @@
                             @csrf
                             <button
                                 class="rounded-xl border border-red-300 bg-white px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
-                                ✕ Cancel
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                Cancel
                             </button>
                         </form>
                     @elseif($outgoingPo->status === 'confirmed')
                         <form method="POST" action="{{ route('outgoing.customer-po.complete', $outgoingPo) }}" class="inline">
                             @csrf
                             <button class="rounded-xl bg-green-600 px-4 py-2 text-xs font-bold text-white hover:bg-green-700">
-                                ✓ Complete
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                Complete
                             </button>
                         </form>
                     @endif
                     <a href="{{ route('outgoing.customer-po.index') }}"
                         class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
-                        ← Back
+                        Back
                     </a>
                 </div>
             </div>
@@ -69,15 +72,15 @@
         {{-- Summary Cards --}}
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
-                <div class="text-2xl font-black text-slate-900">{{ $outgoingPo->items->count() }}</div>
+                <div class="text-2xl font-black text-slate-900 tabular-nums">{{ $outgoingPo->items->count() }}</div>
                 <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1">Total Items</div>
             </div>
             <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
-                <div class="text-2xl font-black text-indigo-700">{{ number_format($outgoingPo->total_qty) }}</div>
+                <div class="text-2xl font-black text-indigo-700 tabular-nums">{{ number_format($outgoingPo->total_qty) }}</div>
                 <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1">Total Qty</div>
             </div>
             <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
-                <div class="text-2xl font-black text-emerald-700">{{ number_format($outgoingPo->total_amount, 0) }}</div>
+                <div class="text-2xl font-black text-emerald-700 tabular-nums">{{ number_format($outgoingPo->total_amount, 0) }}</div>
                 <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1">Total Amount</div>
             </div>
             <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
@@ -138,16 +141,16 @@
                                 <td class="px-4 py-3 text-slate-900 font-semibold">{{ $item->part->part_name ?? '-' }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $item->part->model ?? '-' }}</td>
                                 <td class="px-4 py-3 text-indigo-700 font-mono font-bold">{{ $item->part->part_no ?? '-' }}</td>
-                                <td class="px-4 py-3 text-right font-bold text-slate-900">{{ number_format($item->qty) }}</td>
-                                <td class="px-4 py-3 text-right font-bold text-emerald-700 bg-emerald-50/30">
+                                <td class="px-4 py-3 text-right font-bold text-slate-900 tabular-nums">{{ number_format($item->qty) }}</td>
+                                <td class="px-4 py-3 text-right font-bold text-emerald-700 bg-emerald-50/30 tabular-nums">
                                     {{ number_format($item->fulfilled_qty) }}
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold {{ $item->remaining_qty > 0 ? 'text-amber-600 bg-amber-50/30' : 'text-green-700 bg-green-50/30' }}">
+                                <td class="px-4 py-3 text-right font-bold tabular-nums {{ $item->remaining_qty > 0 ? 'text-amber-600 bg-amber-50/30' : 'text-green-700 bg-green-50/30' }}">
                                     {{ number_format($item->remaining_qty) }}
                                 </td>
-                                <td class="px-4 py-3 text-right text-slate-700 font-semibold">
+                                <td class="px-4 py-3 text-right text-slate-700 font-semibold tabular-nums">
                                     {{ number_format($item->price, 0) }}</td>
-                                <td class="px-4 py-3 text-right font-bold text-emerald-700">
+                                <td class="px-4 py-3 text-right font-bold text-emerald-700 tabular-nums">
                                     {{ number_format($item->subtotal, 0) }}</td>
                                 <td class="px-4 py-3 text-center text-slate-600">
                                     {{ $item->delivery_date ? $item->delivery_date->format('d M Y') : '-' }}
@@ -159,14 +162,14 @@
                         <tr class="bg-slate-50 border-t-2 border-slate-300">
                             <td colspan="5" class="px-4 py-3 text-right font-black text-slate-700 text-xs uppercase">Grand
                                 Total</td>
-                            <td class="px-4 py-3 text-right font-black text-slate-900">
+                            <td class="px-4 py-3 text-right font-black text-slate-900 tabular-nums">
                                 {{ number_format($outgoingPo->total_qty) }}</td>
-                            <td class="px-4 py-3 text-right font-black text-emerald-700">
+                            <td class="px-4 py-3 text-right font-black text-emerald-700 tabular-nums">
                                 {{ number_format($outgoingPo->items->sum('fulfilled_qty')) }}</td>
-                            <td class="px-4 py-3 text-right font-black text-amber-600">
+                            <td class="px-4 py-3 text-right font-black text-amber-600 tabular-nums">
                                 {{ number_format($outgoingPo->items->sum(fn($i) => $i->remaining_qty)) }}</td>
                             <td class="px-4 py-3"></td>
-                            <td class="px-4 py-3 text-right font-black text-emerald-700">
+                            <td class="px-4 py-3 text-right font-black text-emerald-700 tabular-nums">
                                 {{ number_format($outgoingPo->total_amount, 0) }}</td>
                             <td class="px-4 py-3"></td>
                         </tr>

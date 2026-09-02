@@ -66,13 +66,13 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Inspected Quantity</label>
-                        <input type="number" name="inspected_qty" value="{{ $inspection->inspected_qty }}" step="0.01" class="w-full rounded-lg border-slate-200">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2" for="inspected_qty">Inspected Quantity</label>
+                        <input type="number" name="inspected_qty" id="inspected_qty" value="{{ $inspection->inspected_qty }}" step="0.01" class="w-full rounded-lg border-slate-200">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Notes / Remarks</label>
-                        <textarea name="notes" rows="4" class="w-full rounded-lg border-slate-200" placeholder="Enter final inspection notes...">{{ $inspection->notes }}</textarea>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2" for="notes">Notes / Remarks</label>
+                        <textarea name="notes" id="notes" rows="4" class="w-full rounded-lg border-slate-200" placeholder="Enter final inspection notes...">{{ $inspection->notes }}</textarea>
                     </div>
 
                     <div class="flex justify-end">
@@ -99,8 +99,8 @@
                 </div>
                 
                 @if($inspection->productionOrder->kanban_updated_at)
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <p class="text-sm text-blue-800">
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                        <p class="text-sm text-indigo-800">
                             <strong>✓ Kanban Updated</strong><br>
                             Updated at: {{ $inspection->productionOrder->kanban_updated_at->format('d M Y H:i') }}<br>
                             Good Qty: {{ number_format($inspection->productionOrder->qty_actual) }}<br>
@@ -120,13 +120,13 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Good Quantity *</label>
-                                <input type="number" name="qty_good" value="{{ $inspection->productionOrder->qty_actual }}" step="0.01" min="0" class="w-full rounded-lg border-slate-200" required>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2" for="qty_good">Good Quantity *</label>
+                                <input type="number" name="qty_good" id="qty_good" value="{{ $inspection->productionOrder->qty_actual }}" step="0.01" min="0" class="w-full rounded-lg border-slate-200" required>
                                 <p class="text-xs text-slate-500 mt-1">Quantity hasil final yang akan dipakai untuk kanban update</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">NG Quantity</label>
-                                <input type="number" name="qty_ng" value="{{ $inspection->productionOrder->qty_ng ?? 0 }}" step="0.01" min="0" class="w-full rounded-lg border-slate-200">
+                                <label class="block text-sm font-semibold text-slate-700 mb-2" for="qty_ng">NG Quantity</label>
+                                <input type="number" name="qty_ng" id="qty_ng" value="{{ $inspection->productionOrder->qty_ng ?? 0 }}" step="0.01" min="0" class="w-full rounded-lg border-slate-200">
                                 <p class="text-xs text-slate-500 mt-1">Rejected/defective quantity</p>
                             </div>
                         </div>

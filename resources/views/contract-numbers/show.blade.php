@@ -32,7 +32,7 @@
                         <form action="{{ route('contract-numbers.destroy', $contract) }}" method="POST" onsubmit="return confirm('Hapus nomor kontrak beserta itemnya secara permanen?')">
                             @csrf
                             @method('DELETE')
-                            <button class="rounded-xl border border-rose-300/40 bg-rose-500/10 px-4 py-2 text-sm font-bold text-rose-100 hover:bg-rose-500/20">
+                            <button class="rounded-xl border border-rose-300/40 bg-rose-500/10 px-4 py-2 text-sm font-bold text-rose-100 hover:bg-rose-500/20 disabled:opacity-60 disabled:cursor-not-allowed">
                                 Delete
                             </button>
                         </form>
@@ -54,7 +54,7 @@
                     </div>
                     <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Items</div>
-                        <div class="mt-1 font-mono text-lg font-black">{{ number_format($contract->items->count()) }}</div>
+                        <div class="mt-1 font-mono text-lg font-black tabular-nums">{{ number_format($contract->items->count()) }}</div>
                     </div>
                     <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Updated By</div>
@@ -109,11 +109,11 @@
                                     </td>
                                     <td class="px-4 py-3 text-xs font-bold text-slate-600">{{ $item->process_type ?: '-' }}</td>
                                     <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">{{ $uom }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-black text-slate-900">{{ number_format((float) $item->target_qty) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-bold text-blue-700">{{ number_format((float) $item->sent_qty, 2) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-bold {{ (float) $item->rejected_qty > 0 ? 'text-rose-700' : 'text-slate-400' }}">{{ number_format((float) $item->rejected_qty, 2) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-black {{ $isAlarm ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($remaining, 2) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs font-bold text-slate-500">{{ $alarm !== null ? number_format($alarm, 2) : '-' }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-black text-slate-900 tabular-nums">{{ number_format((float) $item->target_qty) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold text-blue-700 tabular-nums">{{ number_format((float) $item->sent_qty, 2) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold tabular-nums {{ (float) $item->rejected_qty > 0 ? 'text-rose-700' : 'text-slate-400' }}">{{ number_format((float) $item->rejected_qty, 2) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-black tabular-nums {{ $isAlarm ? 'text-amber-700' : 'text-emerald-700' }}">{{ number_format($remaining, 2) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs font-bold text-slate-500 tabular-nums">{{ $alarm !== null ? number_format($alarm, 2) : '-' }}</td>
                                 </tr>
                             @empty
                                 <tr>

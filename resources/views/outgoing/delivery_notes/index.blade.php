@@ -28,7 +28,10 @@
 
                 <div class="flex items-center gap-3">
                     <a href="{{ route('outgoing.delivery-notes.create') }}" class="inline-flex items-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition-all active:scale-95">
-                        <span class="mr-2">＋</span> New Delivery Note
+                        <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Delivery Note
                     </a>
                 </div>
             </div>
@@ -67,7 +70,7 @@
                                 <td class="px-5 py-4 text-slate-600">
                                     <div class="flex flex-wrap gap-1">
                                         @foreach ($dn->items->take(2) as $item)
-                                            <span class="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                                            <span class="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold uppercase tracking-wider text-slate-600 tabular-nums">
                                                 {{ $item->part->part_no }} ({{ number_format($item->qty) }})
                                             </span>
                                         @endforeach

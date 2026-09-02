@@ -18,34 +18,34 @@
             <div class="grid gap-4 md:grid-cols-3">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Subcount</div>
-                    <div class="mt-1 text-2xl font-black text-slate-900">{{ number_format($summary['total']) }}</div>
+                    <div class="mt-1 text-2xl font-black text-slate-900 tabular-nums">{{ number_format($summary['total']) }}</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Foto Timbang</div>
-                    <div class="mt-1 text-2xl font-black text-slate-900">{{ number_format($summary['records']) }}</div>
+                    <div class="mt-1 text-2xl font-black text-slate-900 tabular-nums">{{ number_format($summary['records']) }}</div>
                 </div>
                 <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
                     <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Total Netto Web</div>
-                    <div class="mt-1 text-2xl font-black text-blue-800">{{ number_format($summary['net'], 3) }} kg</div>
+                    <div class="mt-1 text-2xl font-black text-blue-800 tabular-nums">{{ number_format($summary['net'], 3) }} kg</div>
                 </div>
             </div>
 
             <form method="GET" action="{{ route('subcounts.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div class="grid gap-3 lg:grid-cols-[1fr_180px_180px_auto_auto]">
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Search</label>
-                        <input type="text" name="q" value="{{ request('q') }}" placeholder="WH Send, vendor, part, operator..." class="mt-1 w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="q" class="text-xs font-bold uppercase tracking-wider text-slate-500">Search</label>
+                        <input id="q" type="text" name="q" value="{{ request('q') }}" placeholder="WH Send, vendor, part, operator..." class="mt-1 w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">From</label>
-                        <input type="date" name="date_from" value="{{ request('date_from') }}" class="mt-1 w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="date_from" class="text-xs font-bold uppercase tracking-wider text-slate-500">From</label>
+                        <input id="date_from" type="date" name="date_from" value="{{ request('date_from') }}" class="mt-1 w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">To</label>
-                        <input type="date" name="date_to" value="{{ request('date_to') }}" class="mt-1 w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="date_to" class="text-xs font-bold uppercase tracking-wider text-slate-500">To</label>
+                        <input id="date_to" type="date" name="date_to" value="{{ request('date_to') }}" class="mt-1 w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <div class="flex items-end">
-                        <button class="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Filter</button>
+                        <button class="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed">Filter</button>
                     </div>
                     <div class="flex items-end">
                         <a href="{{ route('subcounts.index') }}" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-center text-sm font-bold text-slate-700 hover:bg-slate-50">Reset</a>
@@ -94,8 +94,8 @@
                                         <div class="truncate">{{ $subcount->part_info ?? '-' }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-slate-600">{{ $subcount->operator_name ?: '-' }}</td>
-                                    <td class="px-4 py-3 text-right font-mono">{{ number_format($subcount->records_count) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-bold text-blue-700">{{ number_format((float) $subcount->total_net_weight_kg, 3) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums">{{ number_format($subcount->records_count) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold text-blue-700 tabular-nums">{{ number_format((float) $subcount->total_net_weight_kg, 3) }}</td>
                                     <td class="px-4 py-3 text-center text-slate-500">{{ $subcount->received_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                     <td class="px-4 py-3 text-center">
                                         <a href="{{ route('subcounts.show', $subcount) }}" class="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100">Detail Foto</a>

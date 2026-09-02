@@ -25,7 +25,7 @@
                             @if($plan)
                                 Plan #{{ $plan->id }} • {{ $dateFrom->format('d M Y') }} - {{ $dateTo->format('d M Y') }}
                                 <span
-                                    class="ml-2 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100 italic">
+                                    class="ml-2 px-2 py-0.5 rounded-xl bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100 italic">
                                     Last Update: {{ $plan->updated_at->format('d M Y H:i') }}
                                 </span>
                             @else
@@ -154,7 +154,7 @@
                                                         {{ $uRow->part_no }}</td>
                                                     <td class="px-4 py-3 text-sm text-slate-600">
                                                         @if($uRow->customerPart)
-                                                            <span class="text-blue-600">{{ $uRow->customerPart->customer_part_no }}</span>
+                                                            <span class="text-indigo-600">{{ $uRow->customerPart->customer_part_no }}</span>
                                                             <span class="text-xs text-slate-400">(ID: {{ $uRow->customer_part_id }})</span>
                                                         @else
                                                             <span class="text-slate-400 italic">Not linked to Customer Part</span>
@@ -200,13 +200,13 @@
             <div class="mt-6 flex flex-wrap gap-4 items-end border-t border-slate-100 pt-6">
                 <form action="{{ route('outgoing.daily-planning') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
-                        <input type="date" name="date_from" value="{{ $dateFrom->toDateString() }}"
+                        <label for="date_from" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
+                        <input type="date" name="date_from" id="date_from" value="{{ $dateFrom->toDateString() }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
-                        <input type="date" name="date_to" value="{{ $dateTo->toDateString() }}"
+                        <label for="date_to" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
+                        <input type="date" name="date_to" id="date_to" value="{{ $dateTo->toDateString() }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <button type="submit"
@@ -216,13 +216,13 @@
 
                     @if($plan)
                         <div class="w-full md:w-auto md:ml-2">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Search</label>
-                            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Line / Part No"
+                            <label for="search" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Search</label>
+                            <input type="text" name="search" id="search" value="{{ $search ?? '' }}" placeholder="Line / Part No"
                                 class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Rows</label>
-                            <select name="per_page"
+                            <label for="per_page" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Rows</label>
+                            <select name="per_page" id="per_page"
                                 class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 @foreach([25, 50, 100, 200] as $n)
                                     <option value="{{ $n }}" @selected(($perPage ?? 50) === $n)>{{ $n }}</option>
@@ -361,13 +361,18 @@
                     <form action="{{ route('outgoing.daily-planning.row', $plan->id) }}" method="POST"
                         class="flex gap-2 max-w-2xl">
                         @csrf
-                        <input type="text" name="production_line" placeholder="Line (e.g. L1)"
+                        <label for="prod-line" class="sr-only">Production line</label>
+                        <input type="text" id="prod-line" name="production_line" placeholder="Line (e.g. L1)"
                             class="w-24 rounded-lg border-slate-300 text-sm" required>
-                        <input type="text" name="part_no" placeholder="Part No (e.g. 123-ABC)"
+                        <label for="part-no" class="sr-only">Part number</label>
+                        <input type="text" id="part-no" name="part_no" placeholder="Part No (e.g. 123-ABC)"
                             class="flex-1 rounded-lg border-slate-300 text-sm" required>
                         <button
                             class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
-                            + Add Row
+                            <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Row
                         </button>
                     </form>
                 </div>

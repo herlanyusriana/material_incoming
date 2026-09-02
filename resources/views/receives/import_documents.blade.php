@@ -50,22 +50,22 @@
                                     </span>
                                     <input type="text" id="q" name="q" value="{{ $q ?? '' }}"
                                         placeholder="Cari transaction no, invoice, vendor, no PEN, no AJU..."
-                                        class="w-full rounded-xl border-slate-300 pl-10 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                        class="w-full rounded-xl border-slate-300 pl-10 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </div>
                             </div>
                             <div class="space-y-2">
                                 <label for="date_from" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Invoice Date From</label>
                                 <input type="date" id="date_from" name="date_from" value="{{ $dateFrom ?? '' }}"
-                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div class="space-y-2">
                                 <label for="date_to" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Invoice Date To</label>
                                 <input type="date" id="date_to" name="date_to" value="{{ $dateTo ?? '' }}"
-                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div class="flex items-end gap-2 xl:justify-end">
                                 <button type="submit"
-                                    class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                    class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
                                     Filter
                                 </button>
                                 @if (($q ?? '') !== '' || ($dateFrom ?? '') !== '' || ($dateTo ?? '') !== '')

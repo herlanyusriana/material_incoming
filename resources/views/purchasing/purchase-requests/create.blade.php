@@ -17,10 +17,10 @@
                     <div class="p-8 space-y-8">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="space-y-4">
-                                <label
+                                <label for="vendor_id"
                                     class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Select
                                     Vendor</label>
-                                <select name="vendor_id" x-model="selectedVendorId" @change="onVendorChange()"
+                                <select name="vendor_id" id="vendor_id" x-model="selectedVendorId" @change="onVendorChange()"
                                     class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-semibold"
                                     required>
                                     <option value="">— Choose Vendor —</option>
@@ -32,10 +32,10 @@
                                 </select>
                             </div>
                             <div class="space-y-4">
-                                <label
+                                <label for="notes"
                                     class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">General
                                     Notes</label>
-                                <input type="text" name="notes" class="w-full rounded-2xl border-slate-200 text-sm"
+                                <input type="text" name="notes" id="notes" class="w-full rounded-2xl border-slate-200 text-sm"
                                     placeholder="Any specific instructions for this request...">
                             </div>
                         </div>
@@ -81,7 +81,7 @@
                                                 <td class="px-6 py-4 text-right">
                                                     <input type="number" :name="`items[${index}][qty]`"
                                                         x-model="item.qty" step="0.0001"
-                                                        class="w-24 rounded-xl border-slate-200 text-sm text-right"
+                                                        class="w-24 rounded-xl border-slate-200 text-sm text-right tabular-nums"
                                                         required x-bind:disabled="!selectedVendorId">
                                                 </td>
                                                 <td class="px-6 py-4">
@@ -90,7 +90,7 @@
                                                         x-bind:disabled="!selectedVendorId">
                                                 </td>
                                                 <td class="px-6 py-4 text-center">
-                                                    <button type="button" @click="removeItem(index)"
+                                                    <button type="button" @click="removeItem(index)" aria-label="Remove item"
                                                         class="text-rose-500 hover:bg-rose-50 p-2 rounded-xl transition-all">
                                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                                             stroke="currentColor">

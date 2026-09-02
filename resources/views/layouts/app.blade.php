@@ -63,6 +63,7 @@
 	        </style>
 	    </head>
     <body class="bg-slate-50 text-slate-800 antialiased">
+        <a href="#main-content" class="skip-link">Skip ke konten utama</a>
 	        <div
 	            class="min-h-screen flex"
 	            x-data="{
@@ -163,7 +164,7 @@
                     </div>
                 </header>
 
-                <main class="flex-1 bg-slate-50/50">
+                <main id="main-content" tabindex="-1" class="flex-1 bg-slate-50/50">
                     <div class="w-full max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-6">
                         @isset($slot)
                             {{ $slot }}

@@ -18,11 +18,11 @@
 
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-xl font-bold text-gray-900">Departure Form</h1>
-                    <p class="text-sm text-gray-600">Isi detail vendor, jadwal, transport, dan dokumen.</p>
+                    <h1 class="text-xl font-bold text-slate-900">Departure Form</h1>
+                    <p class="text-sm text-slate-600">Isi detail vendor, jadwal, transport, dan dokumen.</p>
                 </div>
                 <a href="{{ route('departures.index') }}"
-                    class="text-sm text-blue-600 hover:text-blue-700 font-medium">Back to list</a>
+                    class="text-sm text-indigo-600 hover:text-blue-700 font-medium">Back to list</a>
             </div>
 
             <form method="POST" action="{{ route('departures.store') }}" class="space-y-6" id="arrival-form"
@@ -30,50 +30,50 @@
                 @csrf
 
                 <!-- Section 1: Vendor & Invoice -->
-                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Vendor & Invoice</h2>
+                <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-4 uppercase">Vendor & Invoice</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2 space-y-1">
                             <label for="vendor_name"
-                                class="text-[11px] font-semibold text-gray-500 uppercase">Vendor</label>
+                                class="text-[11px] font-semibold text-slate-500 uppercase">Vendor</label>
                             <div class="relative">
                                 <input type="text" id="vendor_name" name="vendor_name" value="{{ old('vendor_name') }}"
                                     placeholder="Ketik nama vendor..."
-                                    class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs"
+                                    class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs"
                                     autocomplete="off" required>
                                 <div id="vendor-suggestions"
-                                    class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
+                                    class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
                                 </div>
                             </div>
-                            <p class="text-xs text-gray-500">Mulai ketik untuk melihat saran (autocomplete).</p>
+                            <p class="text-xs text-slate-500">Mulai ketik untuk melihat saran (autocomplete).</p>
                             <input type="hidden" name="vendor_id" id="vendor_id" value="{{ old('vendor_id') }}">
                             @error('vendor_id') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="space-y-1">
-                            <label for="invoice_no" class="text-[11px] font-semibold text-gray-500 uppercase">Invoice
+                            <label for="invoice_no" class="text-[11px] font-semibold text-slate-500 uppercase">Invoice
                                 Number</label>
                             <input type="text" id="invoice_no" name="invoice_no" value="{{ old('invoice_no') }}"
                                 placeholder="INV-2025-001"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs"
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs"
                                 required>
                             @error('invoice_no') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="space-y-1">
-                            <label for="invoice_date" class="text-[11px] font-semibold text-gray-500 uppercase">Invoice
+                            <label for="invoice_date" class="text-[11px] font-semibold text-slate-500 uppercase">Invoice
                                 Date</label>
                             <input type="date" id="invoice_date" name="invoice_date" value="{{ old('invoice_date') }}"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs"
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs"
                                 required>
                             @error('invoice_date') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="space-y-1">
                             <label for="currency"
-                                class="text-[11px] font-semibold text-gray-500 uppercase">Currency</label>
+                                class="text-[11px] font-semibold text-slate-500 uppercase">Currency</label>
                             <select id="currency" name="currency"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                                 <option value="USD" {{ old('currency', 'USD') == 'USD' ? 'selected' : '' }}>USD</option>
                                 <option value="IDR" {{ old('currency') == 'IDR' ? 'selected' : '' }}>IDR</option>
                                 <option value="EUR" {{ old('currency') == 'EUR' ? 'selected' : '' }}>EUR</option>
@@ -85,44 +85,44 @@
                 </div>
 
                 <!-- Section 2: Shipment Schedule -->
-                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-1 uppercase">Shipment Schedule</h2>
-                    <p class="text-xs text-gray-500 mb-4">Isi jadwal keberangkatan, kedatangan, serta detail kapal dan
+                <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-1 uppercase">Shipment Schedule</h2>
+                    <p class="text-xs text-slate-500 mb-4">Isi jadwal keberangkatan, kedatangan, serta detail kapal dan
                         pelabuhan.</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
-                            <label for="etd" class="text-[11px] font-semibold text-gray-500 uppercase">ETD</label>
+                            <label for="etd" class="text-[11px] font-semibold text-slate-500 uppercase">ETD</label>
                             <input type="date" id="etd" name="etd" value="{{ old('etd') }}"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                             @error('etd') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="eta" class="text-[11px] font-semibold text-gray-500 uppercase">ETA JKT</label>
+                            <label for="eta" class="text-[11px] font-semibold text-slate-500 uppercase">ETA JKT</label>
                             <input type="date" id="eta" name="eta" value="{{ old('eta') }}"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                             @error('eta') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="eta_gci" class="text-[11px] font-semibold text-gray-500 uppercase">ETA
+                            <label for="eta_gci" class="text-[11px] font-semibold text-slate-500 uppercase">ETA
                                 GCI</label>
                             <input type="date" id="eta_gci" name="eta_gci" value="{{ old('eta_gci') }}"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
-                            <p class="text-[10px] text-gray-500">Estimasi tiba di GCI (opsional).</p>
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
+                            <p class="text-[10px] text-slate-500">Estimasi tiba di GCI (opsional).</p>
                             @error('eta_gci') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="vessel" class="text-[11px] font-semibold text-gray-500 uppercase">Vessel</label>
+                            <label for="vessel" class="text-[11px] font-semibold text-slate-500 uppercase">Vessel</label>
                             <input type="text" id="vessel" name="vessel" value="{{ old('vessel') }}"
                                 placeholder="Nama kapal (opsional)"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                             @error('vessel') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="port_of_loading" class="text-[11px] font-semibold text-gray-500 uppercase">Port
+                            <label for="port_of_loading" class="text-[11px] font-semibold text-slate-500 uppercase">Port
                                 of Loading</label>
                             <input type="text" id="port_of_loading" name="port_of_loading"
                                 value="{{ old('port_of_loading') }}" placeholder="e.g., HOCHIMINH, VIET NAM"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                             @error('port_of_loading') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-4 space-y-2">
@@ -135,7 +135,7 @@
                                 </svg>
                                 <span class="text-xs font-bold uppercase tracking-wider">Automated HS Code</span>
                             </div>
-                            <p class="text-xs text-blue-600 leading-relaxed">
+                            <p class="text-xs text-indigo-600 leading-relaxed">
                                 HS Code akan di-generate otomatis berdasarkan Master Part dari setiap item yang Anda
                                 tambahkan.
                             </p>
@@ -144,15 +144,15 @@
                 </div>
 
                 <!-- Section 3: Transport -->
-                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-1 uppercase">Transport</h2>
-                    <p class="text-xs text-gray-500 mb-4">Detail trucking dan container.</p>
+                <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-1 uppercase">Transport</h2>
+                    <p class="text-xs text-slate-500 mb-4">Detail trucking dan container.</p>
                     <div class="space-y-4">
                         <div class="space-y-1">
                             <label for="trucking_company_id"
-                                class="text-[11px] font-semibold text-gray-500 uppercase">Trucking Company</label>
+                                class="text-[11px] font-semibold text-slate-500 uppercase">Trucking Company</label>
                             <select id="trucking_company_id" name="trucking_company_id"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                                 <option value="">Pilih trucking company</option>
                                 @foreach($truckings as $trucking)
                                     <option value="{{ $trucking->id }}" {{ old('trucking_company_id') == $trucking->id ? 'selected' : '' }}>
@@ -167,8 +167,8 @@
                         <div class="space-y-2">
                             <div class="flex items-center justify-between gap-3">
                                 <div>
-                                    <label class="text-sm font-medium text-gray-700">Containers & Seal Code</label>
-                                    <p class="text-xs text-gray-500">1 container = 1 seal code. 1 invoice bisa punya
+                                    <label class="text-sm font-medium text-slate-700">Containers & Seal Code</label>
+                                    <p class="text-xs text-slate-500">1 container = 1 seal code. 1 invoice bisa punya
                                         banyak container.</p>
                                 </div>
                             </div>
@@ -185,38 +185,38 @@
                 </div>
 
                 <!-- Section 4: Documents & Notes -->
-                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-gray-500 tracking-wide mb-4 uppercase">Documents & Notes</h2>
+                <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-4 uppercase">Documents & Notes</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
-                            <label for="bl_no" class="text-sm font-medium text-gray-700">Bill of Lading</label>
+                            <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
                             <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no') }}" placeholder="BL-56789"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="pen_no" class="text-sm font-medium text-gray-700">Nomor PEN</label>
+                            <label for="pen_no" class="text-sm font-medium text-slate-700">Nomor PEN</label>
                             <input type="text" id="pen_no" name="pen_no" value="{{ old('pen_no') }}" placeholder="Nomor PEN"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="pen_date" class="text-sm font-medium text-gray-700">Tanggal No PEN</label>
+                            <label for="pen_date" class="text-sm font-medium text-slate-700">Tanggal No PEN</label>
                             <input type="date" id="pen_date" name="pen_date" value="{{ old('pen_date') }}"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="aju_no" class="text-sm font-medium text-gray-700">Nomor AJU</label>
+                            <label for="aju_no" class="text-sm font-medium text-slate-700">Nomor AJU</label>
                             <input type="text" id="aju_no" name="aju_no" value="{{ old('aju_no') }}" placeholder="Nomor AJU"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('aju_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="bl_status" class="text-sm font-medium text-gray-700">Bill of Lading
+                            <label for="bl_status" class="text-sm font-medium text-slate-700">Bill of Lading
                                 Status</label>
                             <select id="bl_status" name="bl_status"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 <option value="">-</option>
                                 <option value="draft" {{ old('bl_status') === 'draft' ? 'selected' : '' }}>Draft</option>
                                 <option value="surrender" {{ old('bl_status') === 'surrender' ? 'selected' : '' }}>
@@ -225,24 +225,24 @@
                             @error('bl_status') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1 md:col-span-2">
-                            <label for="bl_file" class="text-sm font-medium text-gray-700">Upload Bill of Lading
+                            <label for="bl_file" class="text-sm font-medium text-slate-700">Upload Bill of Lading
                                 (PDF/JPG/PNG)</label>
                             <input type="file" id="bl_file" name="bl_file" accept="application/pdf,image/*"
-                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
-                            <p class="text-xs text-gray-500">Maks 10MB.</p>
+                                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                            <p class="text-xs text-slate-500">Maks 10MB.</p>
                             @error('bl_file') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="price_term" class="text-sm font-medium text-gray-700">Price Term</label>
+                            <label for="price_term" class="text-sm font-medium text-slate-700">Price Term</label>
                             <input type="text" id="price_term" name="price_term" value="{{ old('price_term') }}"
                                 placeholder="FOB / CIF / EXW"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="md:col-span-2 space-y-1">
-                            <label for="notes" class="text-sm font-medium text-gray-700">Notes</label>
+                            <label for="notes" class="text-sm font-medium text-slate-700">Notes</label>
                             <textarea id="notes" name="notes" rows="3"
-                                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                                 placeholder="Catatan atau instruksi khusus">{{ old('notes') }}</textarea>
                             @error('notes') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -250,17 +250,17 @@
                 </div>
 
                 <!-- Material & Part Lines -->
-                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
+                <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h3 class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Material & Part
+                            <h3 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Material & Part
                                 Lines</h3>
-                            <p class="text-sm text-gray-600">Kelompokkan part internal berdasarkan jenis material
+                            <p class="text-sm text-slate-600">Kelompokkan part internal berdasarkan jenis material
                                 (contoh: SPHC / PO STEEL IN COIL).</p>
                         </div>
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                             <button type="button" id="open-qty-goods-sheet"
-                                class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition sm:w-auto">
+                                class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition sm:w-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18" />
@@ -268,7 +268,7 @@
                                 Qty Goods Sheet
                             </button>
                             <button type="button" id="refresh-parts"
-                                class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-md border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition sm:w-auto"
+                                class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition sm:w-auto"
                                 disabled>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
@@ -287,7 +287,7 @@
 
                 <div class="flex justify-end">
                     <button type="submit"
-                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+                        class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
                         Save Departure
                     </button>
                 </div>
@@ -445,11 +445,11 @@
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                         <label class="text-xs font-semibold text-slate-500">Container No</label>
-                        <input type="text" name="containers[${idx}][container_no]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="e.g. SKLU1809368" value="${containerNo}" required>
+                        <input type="text" name="containers[${idx}][container_no]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. SKLU1809368" value="${containerNo}" required>
                     </div>
                     <div>
                         <label class="text-xs font-semibold text-slate-500">Seal Code</label>
-                        <input type="text" name="containers[${idx}][seal_code]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="e.g. HUPH019101" value="${seal}" required>
+                        <input type="text" name="containers[${idx}][seal_code]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. HUPH019101" value="${seal}" required>
                     </div>
                 </div>
                 <div class="mt-3 flex flex-wrap justify-end gap-2">
@@ -658,12 +658,12 @@
                     let highlighted = name;
                     if (index !== -1 && rawQuery) {
                         highlighted = name.substring(0, index)
-                            + '<span class="font-semibold text-blue-600">'
+                            + '<span class="font-semibold text-indigo-600">'
                             + name.substring(index, index + rawQuery.length)
                             + '</span>'
                             + name.substring(index + rawQuery.length);
                     }
-                    return `<div class="px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-0 transition-colors" data-id="${v.id}" data-name="${name}">
+                    return `<div class="px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-slate-100 last:border-0 transition-colors" data-id="${v.id}" data-name="${name}">
                         ${highlighted}
                     </div>`;
                 }).join('');
@@ -688,7 +688,7 @@
                 renderSuggestions(matches, query);
                 suggestionsBox.classList.remove('hidden');
             } else {
-                suggestionsBox.innerHTML = '<div class="px-4 py-2 text-gray-500 text-sm italic">No vendors found</div>';
+                suggestionsBox.innerHTML = '<div class="px-4 py-2 text-slate-500 text-sm italic">No vendors found</div>';
                 suggestionsBox.classList.remove('hidden');
             }
             lastVendorQuery = query;
@@ -1341,7 +1341,7 @@
 	                    <div class="sm:flex sm:items-center sm:gap-4">
 	                        <label class="text-[11px] font-semibold text-slate-500 sm:w-44">Size</label>
 	                        <div class="mt-1 block w-full sm:mt-0 sm:flex-1 size-dropdown-wrap">
-	                            <input type="text" name="items[${rowIndex}][size]" class="input-size size-autocomplete w-full rounded-lg border-slate-300 bg-white text-xs focus:border-blue-500 focus:ring-blue-500" placeholder="Ketik size / pilih dari suggestion" value="${escapeHtml(existing?.size ?? '')}" ${vendorId ? '' : 'disabled'} autocomplete="off">
+	                            <input type="text" name="items[${rowIndex}][size]" class="input-size size-autocomplete w-full rounded-lg border-slate-300 bg-white text-xs focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ketik size / pilih dari suggestion" value="${escapeHtml(existing?.size ?? '')}" ${vendorId ? '' : 'disabled'} autocomplete="off">
 	                            <div class="size-dropdown-list"></div>
 	                            <select name="items[${rowIndex}][part_id]" class="part-select hidden" ${vendorId ? '' : 'disabled'} required>
 	                                ${buildPartOptions(vendorId, groupTitle, existing?.part_id)}
@@ -1426,7 +1426,7 @@
                     <div class="sm:flex sm:items-start sm:gap-4">
                         <label class="text-[11px] font-semibold text-slate-500 sm:w-44 sm:pt-2">Total Price</label>
                         <div class="mt-1 w-full sm:mt-0 sm:flex-1">
-                            <input type="text" inputmode="decimal" name="items[${rowIndex}][total_amount]" class="total-input w-full rounded-lg border-blue-300 bg-white text-xs focus:border-blue-500 focus:ring-blue-500" value="${existingTotal}" placeholder="0.00" required>
+                            <input type="text" inputmode="decimal" name="items[${rowIndex}][total_amount]" class="total-input w-full rounded-lg border-blue-300 bg-white text-xs focus:border-indigo-500 focus:ring-indigo-500" value="${existingTotal}" placeholder="0.00" required>
                             <input type="hidden" name="items[${rowIndex}][price]" class="price" value="${existing?.price ?? ''}">
                             <div class="mt-1 text-[10px] text-slate-500">Price otomatis = Total / Net Weight (KGM)</div>
 	                        </div>
@@ -1584,15 +1584,15 @@
 
         function createGroup({ title = '', rows = [] } = {}) {
             const groupEl = document.createElement('div');
-            groupEl.className = 'material-group border border-gray-200 rounded-lg shadow-sm';
+            groupEl.className = 'material-group border border-slate-200 rounded-lg shadow-sm';
             groupEl.innerHTML = `
-		                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-gray-100 bg-gray-50 p-4 rounded-t-lg">
+		                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-slate-100 bg-slate-50 p-4 rounded-t-lg">
 		                    <div class="w-full">
-		                        <label class="text-xs font-semibold text-gray-700">Jenis Material / Part Name Vendor</label>
-	                        <select class="material-title-select mt-1 w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-xs">
+		                        <label class="text-xs font-semibold text-slate-700">Jenis Material / Part Name Vendor</label>
+	                        <select class="material-title-select mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
 	                            <option value="">Pilih Jenis Material / Part Name Vendor</option>
 	                        </select>
-	                        <p class="text-[10px] text-gray-500 mt-1">Hanya material yang sudah terdaftar di <span class="font-semibold">Vendor Part List</span> yang bisa dipakai untuk departure.</p>
+	                        <p class="text-[10px] text-slate-500 mt-1">Hanya material yang sudah terdaftar di <span class="font-semibold">Vendor Part List</span> yang bisa dipakai untuk departure.</p>
 	                    </div>
 	                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
 		                        <button type="button" class="remove-group text-xs text-red-600 hover:text-red-700">Remove Group</button>

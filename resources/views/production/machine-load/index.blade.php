@@ -21,9 +21,9 @@
 
                 <div class="flex items-center gap-3">
                     <form action="{{ route('production.machine-load.index') }}" method="GET" class="flex items-center gap-2">
-                        <label class="text-sm font-semibold text-slate-600">DATE:</label>
-                        <input type="date" name="date" value="{{ $date->format('Y-m-d') }}"
-                            class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        <label class="text-sm font-semibold text-slate-600" for="ml-date">DATE:</label>
+                        <input type="date" name="date" id="ml-date" value="{{ $date->format('Y-m-d') }}"
+                            class="rounded-lg border-slate-300 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             onchange="this.form.submit()">
                     </form>
                 </div>
@@ -34,19 +34,19 @@
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-4">
                 <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Machines with WO</div>
-                <div class="mt-1 text-2xl font-bold text-slate-800">{{ $machinesWithWo }}</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums text-slate-800">{{ $machinesWithWo }}</div>
             </div>
             <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-4">
                 <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Load</div>
-                <div class="mt-1 text-2xl font-bold {{ $avgLoad > 100 ? 'text-red-600' : ($avgLoad >= 85 ? 'text-amber-600' : 'text-emerald-600') }}">{{ $avgLoad }}%</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums {{ $avgLoad > 100 ? 'text-red-600' : ($avgLoad >= 85 ? 'text-amber-600' : 'text-emerald-600') }}">{{ $avgLoad }}%</div>
             </div>
             <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-4">
                 <div class="text-xs font-semibold text-red-400 uppercase tracking-wider">Overloaded</div>
-                <div class="mt-1 text-2xl font-bold text-red-600">{{ $totalOverloaded }}</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums text-red-600">{{ $totalOverloaded }}</div>
             </div>
             <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-4">
                 <div class="text-xs font-semibold text-amber-400 uppercase tracking-wider">Warning</div>
-                <div class="mt-1 text-2xl font-bold text-amber-600">{{ $totalWarning }}</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums text-amber-600">{{ $totalWarning }}</div>
             </div>
         </div>
 
@@ -76,10 +76,10 @@
                                     <td class="px-4 py-3 font-mono text-xs font-bold text-slate-700">{{ $load['machine']->code }}</td>
                                     <td class="px-4 py-3 font-medium text-slate-800">{{ $load['machine']->name }}</td>
                                     <td class="px-4 py-3 text-xs text-slate-500">{{ $load['machine']->group_name ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-center font-semibold text-slate-700">{{ $load['wo_count'] }}</td>
-                                    <td class="px-4 py-3 text-center text-slate-600">{{ $load['max_shift'] }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-slate-600">{{ number_format($load['capacity_hours'], 1) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono font-semibold
+                                    <td class="px-4 py-3 text-center font-semibold tabular-nums text-slate-700">{{ $load['wo_count'] }}</td>
+                                    <td class="px-4 py-3 text-center tabular-nums text-slate-600">{{ $load['max_shift'] }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums text-slate-600">{{ number_format($load['capacity_hours'], 1) }}</td>
+                                    <td class="px-4 py-3 text-right font-mono tabular-nums font-semibold
                                         {{ $load['status'] === 'overload' ? 'text-red-700' : ($load['status'] === 'warning' ? 'text-amber-700' : 'text-slate-700') }}">
                                         {{ number_format($load['planned_hours'], 1) }}
                                     </td>
@@ -90,7 +90,7 @@
                                                     {{ $load['status'] === 'overload' ? 'bg-red-500' : ($load['status'] === 'warning' ? 'bg-amber-500' : 'bg-emerald-500') }}"
                                                     style="width: {{ min($load['load_percent'], 100) }}%"></div>
                                             </div>
-                                            <span class="text-xs font-bold min-w-[45px] text-right
+                                            <span class="text-xs font-bold tabular-nums min-w-[45px] text-right
                                                 {{ $load['status'] === 'overload' ? 'text-red-700' : ($load['status'] === 'warning' ? 'text-amber-700' : 'text-emerald-700') }}">
                                                 {{ $load['load_percent'] }}%
                                             </span>
@@ -107,7 +107,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <a href="{{ route('production.machine-load.show', ['machine' => $load['machine']->id, 'date' => $date->format('Y-m-d')]) }}"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 ring-1 ring-blue-200 transition-colors">
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 ring-1 ring-indigo-200 transition-colors">
                                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                             Detail
                                         </a>
@@ -146,8 +146,8 @@
                                     <td class="px-4 py-2 text-xs">{{ $load['machine']->group_name ?? '-' }}</td>
                                     <td class="px-4 py-2 text-center">0</td>
                                     <td class="px-4 py-2 text-center">-</td>
-                                    <td class="px-4 py-2 text-right font-mono">{{ number_format((float) $load['machine']->available_hours_per_shift, 1) }}</td>
-                                    <td class="px-4 py-2 text-right font-mono">0.0</td>
+                                    <td class="px-4 py-2 text-right font-mono tabular-nums">{{ number_format((float) $load['machine']->available_hours_per_shift, 1) }}</td>
+                                    <td class="px-4 py-2 text-right font-mono tabular-nums">0.0</td>
                                     <td class="px-4 py-2">
                                         <div class="flex items-center gap-2">
                                             <div class="flex-1 bg-slate-200 rounded-full h-3"></div>

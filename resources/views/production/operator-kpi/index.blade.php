@@ -13,10 +13,10 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="flex items-center gap-2 bg-slate-50 rounded-xl border border-slate-200 px-4 py-2.5">
-                        <label class="text-xs font-bold text-slate-500 uppercase">Dari</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase" for="dateFrom">Dari</label>
                         <input type="date" id="dateFrom" value="{{ $from }}"
                             class="border-0 bg-transparent text-sm p-0 focus:ring-0 font-semibold" />
-                        <label class="text-xs font-bold text-slate-500 uppercase ml-2">Sampai</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-2" for="dateTo">Sampai</label>
                         <input type="date" id="dateTo" value="{{ $to }}"
                             class="border-0 bg-transparent text-sm p-0 focus:ring-0 font-semibold" />
                         <button onclick="fetchKpiData()"
@@ -271,7 +271,7 @@
                             </div>
                             <div class="flex justify-between bg-blue-50 rounded-lg px-3 py-2">
                                 <span class="text-sm text-slate-500">Efisiensi</span>
-                                <span class="text-sm font-bold text-blue-600">${op.efficiency}%</span>
+                                <span class="text-sm font-bold tabular-nums text-indigo-600">${op.efficiency}%</span>
                             </div>
                             <div class="flex justify-between bg-amber-50 rounded-lg px-3 py-2">
                                 <span class="text-sm text-slate-500">NG Rate</span>

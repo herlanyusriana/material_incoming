@@ -61,7 +61,7 @@
                         </div>
                         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center min-w-[180px]">
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total PR Value</span>
-                            <span class="text-2xl font-black text-indigo-600">{{ number_format($purchaseRequest->total_amount, 2) }}</span>
+                            <span class="text-2xl font-black text-indigo-600 tabular-nums">{{ number_format($purchaseRequest->total_amount, 2) }}</span>
                         </div>
                     </div>
                 </div>

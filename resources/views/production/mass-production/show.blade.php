@@ -70,12 +70,12 @@
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Quantity Produced *</label>
-                        <input type="number" name="qty_produced" value="{{ $order->qty_actual }}" step="1" min="0" class="w-full rounded-lg border-slate-200" required>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2" for="qty_produced">Quantity Produced *</label>
+                        <input type="number" name="qty_produced" id="qty_produced" value="{{ $order->qty_actual }}" step="1" min="0" class="w-full rounded-lg border-slate-200" required>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Notes</label>
-                        <input type="text" name="notes" value="{{ $order->production_notes }}" class="w-full rounded-lg border-slate-200" placeholder="Optional notes">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2" for="notes">Notes</label>
+                        <input type="text" name="notes" id="notes" value="{{ $order->production_notes }}" class="w-full rounded-lg border-slate-200" placeholder="Optional notes">
                     </div>
                 </div>
                 <div class="mt-4 flex justify-end">

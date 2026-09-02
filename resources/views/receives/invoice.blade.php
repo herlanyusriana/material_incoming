@@ -139,26 +139,26 @@
                     <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                         <div class="space-y-1">
                             <label for="receive_date" class="text-sm font-medium text-slate-700">Tanggal Receive</label>
-                            <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                            <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
                             @error('receive_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="space-y-1">
                             <label for="invoice_no" class="text-sm font-medium text-slate-700">Invoice No.</label>
-                            <input type="text" id="invoice_no" name="invoice_no" value="{{ old('invoice_no', $arrival->invoice_no) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase" placeholder="INV/2024/001">
+                            <input type="text" id="invoice_no" name="invoice_no" value="{{ old('invoice_no', $arrival->invoice_no) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="INV/2024/001">
                             @error('invoice_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="space-y-1">
                             <label for="delivery_note_no" class="text-sm font-medium text-slate-700">No. Surat Jalan</label>
-                            <input type="text" id="delivery_note_no" name="delivery_note_no" value="{{ old('delivery_note_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase" placeholder="SJ/2024/001">
+                            <input type="text" id="delivery_note_no" name="delivery_note_no" value="{{ old('delivery_note_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="SJ/2024/001">
                             @error('delivery_note_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         @if ($isLocal)
                             <div class="space-y-1">
                                 <label for="truck_no" class="text-sm font-medium text-slate-700">No. Truck</label>
-                                <input type="text" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase" placeholder="B 1234 CD" required>
+                                <input type="text" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="B 1234 CD" required>
                                 @error('truck_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                         @endif
@@ -187,11 +187,11 @@
                                             <td class="px-4 py-3 font-mono text-xs">{{ strtoupper($c->seal_code ?? '-') }}</td>
                                             <td class="px-4 py-3">
                                                 @if ($c->inspection)
-                                                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold border {{ $c->inspection->status === 'damage' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200' }}">
+                                                    <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold border {{ $c->inspection->status === 'damage' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200' }}">
                                                         {{ strtoupper($c->inspection->status) }}
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
+                                                    <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
                                                         NOT INSPECTED
                                                     </span>
                                                 @endif
@@ -254,7 +254,7 @@
                                     <tr>
                                         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                                             Tag
-                                            <button type="button" class="ml-2 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm add-tag-btn" data-item="{{ $item->id }}">+ Add TAG</button>
+                                            <button type="button" class="ml-2 px-3 py-1 bg-blue-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm add-tag-btn" data-item="{{ $item->id }}">+ Add TAG</button>
                                         </th>
 	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
 	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
@@ -277,18 +277,18 @@
                                 >
                                     <tr class="tag-row hover:bg-slate-50 transition-colors">
                                         <td class="px-3 py-2 align-top">
-                                            <input type="text" name="items[{{ $item->id }}][tags][0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                            <input type="text" name="items[{{ $item->id }}][tags][0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
                                         </td>
 	                                        <td class="px-3 py-2 align-top">
-	                                            <input type="text" name="items[{{ $item->id }}][tags][0][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
+	                                            <input type="text" name="items[{{ $item->id }}][tags][0][location_code]" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" data-qr-location-input>
 	                                        </td>
                                         <td class="px-3 py-2 align-top">
                                             @php
                                                 $defaultBundleUnit = strtoupper($item->unit_bundle ?? 'PALLET');
                                             @endphp
                                             <div class="flex items-center gap-2">
-                                                <input type="number" name="items[{{ $item->id }}][tags][0][bundle_qty]" min="0" value="0" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-                                                <select name="items[{{ $item->id }}][tags][0][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                                <input type="number" name="items[{{ $item->id }}][tags][0][bundle_qty]" min="0" value="0" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
+                                                <select name="items[{{ $item->id }}][tags][0][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
                                                     <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
                                                     <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                     <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
@@ -301,7 +301,7 @@
                                         <td class="px-3 py-2 align-top">
                                             @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
                                             <div class="flex items-center gap-2">
-                                                <input type="number" name="items[{{ $item->id }}][tags][0][qty]" min="1" placeholder="Qty {{ $defaultGoodsUnit }}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="{{ $item->id }}">
+                                                <input type="number" name="items[{{ $item->id }}][tags][0][qty]" min="1" placeholder="Qty {{ $defaultGoodsUnit }}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required data-item="{{ $item->id }}">
                                                 <input type="hidden" name="items[{{ $item->id }}][tags][0][qty_unit]" value="{{ $defaultGoodsUnit }}">
                                                 <span class="w-24 text-center text-xs font-semibold text-slate-700">{{ $defaultGoodsUnit }}</span>
                                             </div>
@@ -312,7 +312,7 @@
 	                                                name="items[{{ $item->id }}][tags][0][net_weight]"
 	                                                step="0.01"
 	                                                placeholder="0.00"
-	                                                class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5"
+	                                                class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5"
 	                                            >
 	                                        </td>
 	                                        <td class="px-3 py-2 align-top">
@@ -321,11 +321,11 @@
 	                                                name="items[{{ $item->id }}][tags][0][gross_weight]"
 	                                                step="0.01"
 	                                                placeholder="0.00"
-	                                                class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5"
+	                                                class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5"
 	                                            >
 	                                        </td>
                                         <td class="px-3 py-2 align-top">
-                                            <select name="items[{{ $item->id }}][tags][0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                                            <select name="items[{{ $item->id }}][tags][0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
                                                 <option value="pass">Pass</option>
                                                 <option value="reject">Reject</option>
                                             </select>
@@ -351,15 +351,15 @@
                                     <tbody class="divide-y divide-slate-100 bg-white">
                                         <tr class="hover:bg-slate-50 transition-colors">
                                             <td class="px-3 py-2 align-top">
-                                                <input type="text" name="items[{{ $item->id }}][summary][location_code]" value="{{ old("items.{$item->id}.summary.location_code") }}" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
+                                                <input type="text" name="items[{{ $item->id }}][summary][location_code]" value="{{ old("items.{$item->id}.summary.location_code") }}" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" data-qr-location-input>
                                             </td>
                                             <td class="px-3 py-2 align-top">
                                                 @php
                                                     $defaultBundleUnit = strtoupper($item->unit_bundle ?? 'PALLET');
                                                 @endphp
                                                 <div class="flex items-center gap-2">
-                                                    <input type="number" name="items[{{ $item->id }}][summary][bundle_qty]" min="0" value="{{ old("items.{$item->id}.summary.bundle_qty", (int) ($item->qty_bundle ?? 0)) }}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
-                                                    <select name="items[{{ $item->id }}][summary][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                    <input type="number" name="items[{{ $item->id }}][summary][bundle_qty]" min="0" value="{{ old("items.{$item->id}.summary.bundle_qty", (int) ($item->qty_bundle ?? 0)) }}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5">
+                                                    <select name="items[{{ $item->id }}][summary][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5">
                                                         <option value="PALLET" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'PALLET')>PALLET</option>
                                                         <option value="BUNDLE" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BUNDLE')>BUNDLE</option>
                                                         <option value="BOX" @selected(old("items.{$item->id}.summary.bundle_unit", $defaultBundleUnit) === 'BOX')>BOX</option>
@@ -372,19 +372,19 @@
                                             <td class="px-3 py-2 align-top">
                                                 @php $defaultGoodsUnit = strtoupper($item->unit_goods ?? 'KGM'); @endphp
                                                 <div class="flex items-center gap-2">
-                                                    <input type="number" name="items[{{ $item->id }}][summary][qty]" min="0" value="{{ old("items.{$item->id}.summary.qty") }}" placeholder="0" class="no-tag-qty w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-item="{{ $item->id }}">
+                                                    <input type="number" name="items[{{ $item->id }}][summary][qty]" min="0" value="{{ old("items.{$item->id}.summary.qty") }}" placeholder="0" class="no-tag-qty w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" data-item="{{ $item->id }}">
                                                     <input type="hidden" name="items[{{ $item->id }}][summary][qty_unit]" value="{{ $defaultGoodsUnit }}">
                                                     <span class="w-24 text-center text-xs font-semibold text-slate-700">{{ $defaultGoodsUnit }}</span>
                                                 </div>
                                             </td>
                                             <td class="px-3 py-2 align-top">
-                                                <input type="number" name="items[{{ $item->id }}][summary][net_weight]" value="{{ old("items.{$item->id}.summary.net_weight") }}" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                <input type="number" name="items[{{ $item->id }}][summary][net_weight]" value="{{ old("items.{$item->id}.summary.net_weight") }}" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5">
                                             </td>
                                             <td class="px-3 py-2 align-top">
-                                                <input type="number" name="items[{{ $item->id }}][summary][gross_weight]" value="{{ old("items.{$item->id}.summary.gross_weight") }}" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                <input type="number" name="items[{{ $item->id }}][summary][gross_weight]" value="{{ old("items.{$item->id}.summary.gross_weight") }}" step="0.01" placeholder="0.00" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5">
                                             </td>
                                             <td class="px-3 py-2 align-top">
-                                                <select name="items[{{ $item->id }}][summary][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+                                                <select name="items[{{ $item->id }}][summary][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5">
                                                     <option value="pass" @selected(old("items.{$item->id}.summary.qc_status", 'pass') === 'pass')>Pass</option>
                                                     <option value="reject" @selected(old("items.{$item->id}.summary.qc_status") === 'reject')>Reject</option>
                                                 </select>
@@ -399,7 +399,7 @@
 
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
                     <a href="{{ route('receives.index') }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</a>
-                    <button type="submit" class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
+                    <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
                         Simpan Receive
                     </button>
                 </div>
@@ -493,15 +493,15 @@
 
 	            return `
 	                <td class="px-3 py-2 align-top">
-	                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" value="${val('tag')}" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                    <input type="text" name="items[${itemId}][tags][${idx}][tag]" value="${val('tag')}" placeholder="TAG-${String(idx + 1).padStart(3, '0')}" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
 	                </td>
 	                <td class="px-3 py-2 align-top">
-	                    <input type="text" name="items[${itemId}][tags][${idx}][location_code]" value="${val('location_code')}" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" data-qr-location-input>
+	                    <input type="text" name="items[${itemId}][tags][${idx}][location_code]" value="${val('location_code')}" placeholder="RACK-A1" class="w-32 uppercase rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" data-qr-location-input>
 	                </td>
 	                <td class="px-3 py-2 align-top">
                         <div class="flex items-center gap-2">
-	                        <input type="number" name="items[${itemId}][tags][${idx}][bundle_qty]" min="0" value="${val('bundle_qty', 0)}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
-	                            <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+	                        <input type="number" name="items[${itemId}][tags][${idx}][bundle_qty]" min="0" value="${val('bundle_qty', 0)}" class="w-16 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
+	                            <select name="items[${itemId}][tags][${idx}][bundle_unit]" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
 	                                <option value="PALLET" ${sel('bundle_unit', 'PALLET')}>PALLET</option>
 	                                <option value="BUNDLE" ${sel('bundle_unit', 'BUNDLE')}>BUNDLE</option>
 	                                <option value="BOX" ${sel('bundle_unit', 'BOX')}>BOX</option>
@@ -513,19 +513,19 @@
 	                </td>
 		                <td class="px-3 py-2 align-top">
 	                        <div class="flex items-center gap-2">
-		                        <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="${val('qty', 1)}" placeholder="Qty ${goodsUnit}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required data-item="${itemId}">
+		                        <input type="number" name="items[${itemId}][tags][${idx}][qty]" min="1" value="${val('qty', 1)}" placeholder="Qty ${goodsUnit}" class="qty-input w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required data-item="${itemId}">
 	                            <input type="hidden" name="items[${itemId}][tags][${idx}][qty_unit]" value="${goodsUnit}">
 	                            <span class="w-24 text-center text-xs font-semibold text-slate-700">${goodsUnit}</span>
 	                        </div>
 		                </td>
 	                <td class="px-3 py-2 align-top">
-	                    <input type="number" name="items[${itemId}][tags][${idx}][net_weight]" step="0.01" placeholder="0.00" value="${val('net_weight', defaultWeight || '')}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                    <input type="number" name="items[${itemId}][tags][${idx}][net_weight]" step="0.01" placeholder="0.00" value="${val('net_weight', defaultWeight || '')}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5">
 	                </td>
 	                <td class="px-3 py-2 align-top">
-	                    <input type="number" name="items[${itemId}][tags][${idx}][gross_weight]" step="0.01" placeholder="0.00" value="${val('gross_weight')}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5">
+	                    <input type="number" name="items[${itemId}][tags][${idx}][gross_weight]" step="0.01" placeholder="0.00" value="${val('gross_weight')}" class="w-24 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5">
 	                </td>
                 <td class="px-3 py-2 align-top">
-                    <select name="items[${itemId}][tags][${idx}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs py-1.5" required>
+                    <select name="items[${itemId}][tags][${idx}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs py-1.5" required>
                         <option value="pass" ${sel('qc_status', 'pass')}>Pass</option>
                         <option value="reject" ${sel('qc_status', 'reject')}>Reject</option>
                     </select>

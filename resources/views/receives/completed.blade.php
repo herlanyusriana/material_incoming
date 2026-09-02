@@ -6,7 +6,7 @@
     <div class="py-6">
         <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
                 </div>
             @endif
@@ -41,12 +41,12 @@
                             <label for="q" class="sr-only">Search</label>
                             <input type="text" id="q" name="q" value="{{ $q ?? '' }}"
                                 placeholder="Search transaction no, invoice, vendor..."
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                         <div>
                             <label for="flow" class="sr-only">Flow</label>
                             <select id="flow" name="flow"
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">All Flows</option>
                                 <option value="import" {{ ($flow ?? '') === 'import' ? 'selected' : '' }}>Import</option>
                                 <option value="local" {{ ($flow ?? '') === 'local' ? 'selected' : '' }}>Local</option>
@@ -54,7 +54,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button type="submit"
-                                class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
                                 Filter
                             </button>
                             @if (($q ?? '') !== '' || ($flow ?? '') !== '')

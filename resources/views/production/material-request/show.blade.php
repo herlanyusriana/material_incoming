@@ -82,10 +82,10 @@
                                     <div class="font-semibold text-slate-900">{{ $item->part_no }}</div>
                                     <div class="text-xs text-slate-500">{{ $item->part_name }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-right font-mono text-slate-700">{{ number_format($item->qty_requested, 4) }}</td>
-                                <td class="px-6 py-4 text-right font-mono text-slate-700">{{ number_format($item->qty_issued, 4) }}</td>
-                                <td class="px-6 py-4 text-right font-mono text-slate-700">{{ number_format($item->stock_on_hand, 4) }}</td>
-                                <td class="px-6 py-4 text-right font-mono text-slate-700">{{ number_format($item->stock_on_order, 4) }}</td>
+                                <td class="px-6 py-4 text-right font-mono tabular-nums text-slate-700">{{ number_format($item->qty_requested, 4) }}</td>
+                                <td class="px-6 py-4 text-right font-mono tabular-nums text-slate-700">{{ number_format($item->qty_issued, 4) }}</td>
+                                <td class="px-6 py-4 text-right font-mono tabular-nums text-slate-700">{{ number_format($item->stock_on_hand, 4) }}</td>
+                                <td class="px-6 py-4 text-right font-mono tabular-nums text-slate-700">{{ number_format($item->stock_on_order, 4) }}</td>
                                 <td class="px-6 py-4 text-center text-slate-700">{{ $item->uom ?: '-' }}</td>
                                 <td class="px-6 py-4 text-slate-700">{{ $item->notes ?: '-' }}</td>
                             </tr>

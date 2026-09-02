@@ -419,19 +419,19 @@
                     <div class="mb-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                         <div class="rounded-xl bg-emerald-50 px-3 py-2 ring-1 ring-emerald-100">
                             <div class="text-[10px] font-bold uppercase text-emerald-600">Total OK</div>
-                            <div class="font-mono text-lg font-black text-emerald-700">${Math.round(totalOk)}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-emerald-700">${Math.round(totalOk)}</div>
                         </div>
                         <div class="rounded-xl bg-rose-50 px-3 py-2 ring-1 ring-rose-100">
                             <div class="text-[10px] font-bold uppercase text-rose-600">Total NG</div>
-                            <div class="font-mono text-lg font-black text-rose-700">${Math.round(totalNg)}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-rose-700">${Math.round(totalNg)}</div>
                         </div>
                         <div class="rounded-xl bg-sky-50 px-3 py-2 ring-1 ring-sky-100">
                             <div class="text-[10px] font-bold uppercase text-sky-600">WIP OK</div>
-                            <div class="font-mono text-lg font-black text-sky-700">${Math.round(wipOk)}</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-sky-700">${Math.round(wipOk)}</div>
                         </div>
                         <div class="rounded-xl bg-blue-50 px-3 py-2 ring-1 ring-blue-100">
-                            <div class="text-[10px] font-bold uppercase text-blue-600">FG OK</div>
-                            <div class="font-mono text-lg font-black text-blue-700">${Math.round(fgOk)}</div>
+                            <div class="text-[10px] font-bold uppercase text-indigo-600">FG OK</div>
+                            <div class="font-mono tabular-nums text-lg font-black text-blue-700">${Math.round(fgOk)}</div>
                         </div>
                     </div>
                     <div class="grid gap-2 xl:grid-cols-3">

@@ -31,15 +31,16 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <form action="{{ route('outgoing.delivery-orders.index') }}" method="GET" class="flex items-center gap-2">
-                            <input type="text" name="q" value="{{ $q }}" placeholder="Search DO No..." class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <select name="customer_id" class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <label for="q" class="sr-only">Search DO No</label>
+                            <input type="text" name="q" id="q" value="{{ $q }}" placeholder="Search DO No..." class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <select name="customer_id" aria-label="Filter by customer" class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="">All Customers</option>
                                 @foreach($customers as $c)
                                     <option value="{{ $c->id }}" @selected($customerId == $c->id)>{{ $c->name }}</option>
                                 @endforeach
                             </select>
-                            <button type="submit" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <button type="submit" aria-label="Search" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </button>
@@ -92,18 +93,18 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right">
-                                        <div class="text-sm font-bold text-slate-900">{{ number_format($order->items->count()) }}</div>
+                                        <div class="text-sm font-bold text-slate-900 tabular-nums">{{ number_format($order->items->count()) }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('outgoing.delivery-orders.show', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail">
+                                            <a href="{{ route('outgoing.delivery-orders.show', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail" aria-label="View detail">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
                                             </a>
                                             @if($order->status === 'draft')
-                                                <a href="{{ route('outgoing.delivery-orders.edit', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="Edit">
+                                                <a href="{{ route('outgoing.delivery-orders.edit', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="Edit" aria-label="Edit delivery order">
                                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
@@ -111,7 +112,7 @@
                                                 <form action="{{ route('outgoing.delivery-orders.destroy', $order) }}" method="POST" class="inline" onsubmit="return confirm('Confirm delete?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all" title="Delete">
+                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all" title="Delete" aria-label="Delete delivery order">
                                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>

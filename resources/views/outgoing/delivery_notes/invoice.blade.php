@@ -106,7 +106,7 @@
 
     @php
         $poRefs = $delivery_note->items
-            ->map(fn($i) => $i->outgoing_po_item_id ? ($i->outgoingPoItem?->outgoingPo?->po_no) : ($i->customerPo?->po_no))
+            ->map(fn($i) => $i->outgoingPoItem?->outgoingPo?->po_no)
             ->filter()->unique()->implode(', ');
 
         $totalQty = 0;
@@ -212,7 +212,7 @@
             {{-- Items --}}
                 @foreach($delivery_note->items as $index => $item)
                     @php
-                    $price = $resolvedUnitPrices[$item->id] ?? $item->outgoingPoItem?->price ?? $item->customerPo?->price ?? 0;
+                    $price = $resolvedUnitPrices[$item->id] ?? $item->outgoingPoItem?->price ?? 0;
                     $price = (float) $price;
                     $qty = (float) $item->qty;
                     $amount = $qty * $price;

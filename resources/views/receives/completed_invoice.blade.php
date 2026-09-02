@@ -37,7 +37,7 @@
                     </div>
                 <div class="flex items-center gap-2">
                     @if (!empty($hasPending))
-                        <a href="{{ route('receives.invoice.create', $arrival) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        <a href="{{ route('receives.invoice.create', $arrival) }}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
                             Lanjut Receive
                         </a>
                     @else
@@ -134,7 +134,7 @@
                                     <td class="px-4 py-4 text-slate-700">{{ $receive->ata_date?->format('Y-m-d H:i') }}</td>
                                     <td class="px-4 py-4 text-sm">
                                         <div class="flex items-center gap-3">
-                                            <a href="{{ route('receives.label', $receive) }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium">Print label</a>
+                                            <a href="{{ route('receives.label', $receive) }}" target="_blank" class="text-indigo-600 hover:text-blue-700 font-medium">Print label</a>
                                             <a href="{{ route('receives.edit', $receive) }}" class="text-slate-700 hover:text-slate-900 font-medium">Edit</a>
                                             <form method="POST" action="{{ route('receives.destroy', $receive) }}" class="inline" onsubmit="return confirm('Hapus receive {{ $receive->tag }}? Stok inventory akan dikurangi kembali.');">
                                                 @csrf

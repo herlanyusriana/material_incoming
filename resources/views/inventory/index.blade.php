@@ -187,7 +187,7 @@
                                     </td>
                                     <td class="px-3 py-4 text-center align-middle">
                                         <span @class([
-                                            'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-black tracking-wider',
+                                            'inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black tracking-wider',
                                             'bg-emerald-100 text-emerald-700' => $p?->classification === 'RM',
                                             'bg-amber-100 text-amber-700' => $p?->classification === 'WIP',
                                             'bg-blue-100 text-blue-700' => $p?->classification === 'FG',

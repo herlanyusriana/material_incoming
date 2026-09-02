@@ -30,8 +30,8 @@
 
                 <div class="grid gap-4 lg:grid-cols-4">
                     <div class="lg:col-span-2">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor <span class="text-red-500">*</span></label>
-                        <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                        <label for="vendor_id" class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor <span class="text-red-500">*</span></label>
+                        <select id="vendor_id" name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                             <option value="">Pilih vendor</option>
                             @foreach($vendors as $vendor)
                                 <option value="{{ $vendor->id }}" @selected(old('vendor_id') == $vendor->id)>{{ $vendor->vendor_name }}</option>
@@ -39,29 +39,29 @@
                         </select>
                     </div>
                     <div class="lg:col-span-2">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Nomor Kontrak <span class="text-red-500">*</span></label>
-                        <input type="text" name="contract_no" value="{{ old('contract_no') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                        <label for="contract_no" class="text-xs font-bold uppercase tracking-wider text-slate-500">Nomor Kontrak <span class="text-red-500">*</span></label>
+                        <input id="contract_no" type="text" name="contract_no" value="{{ old('contract_no') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                     </div>
                     <div class="lg:col-span-4">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi Kontrak</label>
+                        <label for="description" class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi Kontrak</label>
                         @php $description = old('description'); @endphp
-                        <select name="description" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="description" @change="syncRowsWithDescription()">
+                        <select id="description" name="description" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="description" @change="syncRowsWithDescription()">
                             <option value="">Pilih deskripsi</option>
                             <option value="Hardening" @selected($description === 'Hardening')>Hardening</option>
                             <option value="Plating" @selected($description === 'Plating')>Plating</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From <span class="text-red-500">*</span></label>
-                        <input type="date" name="effective_from" value="{{ old('effective_from', now()->toDateString()) }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                        <label for="effective_from" class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From <span class="text-red-500">*</span></label>
+                        <input id="effective_from" type="date" name="effective_from" value="{{ old('effective_from', now()->toDateString()) }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Expired Date</label>
-                        <input type="date" name="effective_to" value="{{ old('effective_to') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                        <label for="effective_to" class="text-xs font-bold uppercase tracking-wider text-slate-500">Expired Date</label>
+                        <input id="effective_to" type="date" name="effective_to" value="{{ old('effective_to') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Status <span class="text-red-500">*</span></label>
-                        <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                        <label for="status" class="text-xs font-bold uppercase tracking-wider text-slate-500">Status <span class="text-red-500">*</span></label>
+                        <select id="status" name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                             <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
                             <option value="inactive" @selected(old('status') === 'inactive')>Inactive</option>
                         </select>
@@ -115,7 +115,7 @@
                                     <input type="number" step="1" min="0" :name="`items[${index}][warning_limit_qty]`" x-model="row.warning_limit_qty" class="mt-1 w-full rounded-lg border-slate-300 text-sm font-bold">
                                 </div>
                                 <div class="col-span-12 flex items-end lg:col-span-1">
-                                    <button type="button" x-show="rows.length > 1" @click="rows.splice(index, 1)" class="w-full rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
+                                    <button type="button" x-show="rows.length > 1" @click="rows.splice(index, 1)" aria-label="Hapus part" class="w-full rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
                                         X
                                     </button>
                                 </div>
@@ -125,15 +125,15 @@
                 </div>
 
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Notes / Lampiran Info</label>
-                    <textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border-slate-200 text-sm">{{ old('notes') }}</textarea>
+                    <label for="notes" class="text-xs font-bold uppercase tracking-wider text-slate-500">Notes / Lampiran Info</label>
+                    <textarea id="notes" name="notes" rows="3" class="mt-1 w-full rounded-xl border-slate-200 text-sm">{{ old('notes') }}</textarea>
                 </div>
 
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('contract-numbers.index') }}" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
                         Cancel
                     </a>
-                    <button class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-black text-white hover:bg-indigo-700">
+                    <button class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-black text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
                         Save Contract
                     </button>
                 </div>

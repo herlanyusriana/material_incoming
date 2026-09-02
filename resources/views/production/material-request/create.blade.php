@@ -37,13 +37,13 @@
                     <h2 class="text-lg font-semibold text-slate-900">Header</h2>
                     <div class="mt-4 space-y-4">
                         <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600">Request Date</label>
-                            <input type="date" name="request_date" value="{{ old('request_date', now()->toDateString()) }}"
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600" for="request_date">Request Date</label>
+                            <input type="date" name="request_date" id="request_date" value="{{ old('request_date', now()->toDateString()) }}"
                                 class="mt-1 w-full rounded-lg border-slate-200 text-sm shadow-sm" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600">WO Reference</label>
-                            <select name="production_order_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm shadow-sm">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600" for="production_order_id">WO Reference</label>
+                            <select name="production_order_id" id="production_order_id" class="mt-1 w-full rounded-lg border-slate-200 text-sm shadow-sm">
                                 <option value="">Manual request tanpa WO</option>
                                 @foreach($orders as $order)
                                     <option value="{{ $order->id }}" @selected((string) old('production_order_id', $selectedOrderId) === (string) $order->id)>
@@ -53,14 +53,14 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600">Reason</label>
-                            <input type="text" name="reason" value="{{ old('reason') }}"
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600" for="reason">Reason</label>
+                            <input type="text" name="reason" id="reason" value="{{ old('reason') }}"
                                 placeholder="Contoh: shortage, rework, trial, setup, tambahan line"
                                 class="mt-1 w-full rounded-lg border-slate-200 text-sm shadow-sm" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600">Notes</label>
-                            <textarea name="notes" rows="4" class="mt-1 w-full rounded-lg border-slate-200 text-sm shadow-sm"
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600" for="notes">Notes</label>
+                            <textarea name="notes" id="notes" rows="4" class="mt-1 w-full rounded-lg border-slate-200 text-sm shadow-sm"
                                 placeholder="Catatan tambahan untuk warehouse">{{ old('notes') }}</textarea>
                         </div>
                     </div>
@@ -103,8 +103,8 @@
                                                 </template>
                                             </select>
                                         </td>
-                                        <td class="px-3 py-3 text-right font-mono text-slate-700" x-text="formatNumber(selectedPart(item.part_id)?.stock_on_hand ?? 0)"></td>
-                                        <td class="px-3 py-3 text-right font-mono text-slate-700" x-text="formatNumber(selectedPart(item.part_id)?.stock_on_order ?? 0)"></td>
+                                        <td class="px-3 py-3 text-right font-mono tabular-nums text-slate-700" x-text="formatNumber(selectedPart(item.part_id)?.stock_on_hand ?? 0)"></td>
+                                        <td class="px-3 py-3 text-right font-mono tabular-nums text-slate-700" x-text="formatNumber(selectedPart(item.part_id)?.stock_on_order ?? 0)"></td>
                                         <td class="px-3 py-3 text-center text-slate-700" x-text="selectedPart(item.part_id)?.uom ?? '-'"></td>
                                         <td class="px-3 py-3">
                                             <input type="number" step="0.0001" min="0.0001" :name="`items[${index}][qty_requested]`"

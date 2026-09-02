@@ -33,7 +33,7 @@
                                 class="w-32 px-3 py-1.5 text-sm rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <button type="submit"
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow-sm">
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-semibold shadow-sm">
                             Print Selected Labels
                         </button>
                     </div>

@@ -6,7 +6,7 @@
     <div class="py-6">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if ($errors->any())
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                <div class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
                     <div class="font-semibold mb-1">Ada error:</div>
                     <ul class="list-disc ml-5">
                         @foreach ($errors->all() as $error)
@@ -31,7 +31,7 @@
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label for="material_group" class="text-sm font-medium text-slate-700">Material Group</label>
-                        <input type="text" id="material_group" name="material_group" value="{{ old('material_group') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Optional">
+                        <input type="text" id="material_group" name="material_group" value="{{ old('material_group') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="Optional">
                     </div>
 
                     <div class="sm:col-span-2">
@@ -46,7 +46,7 @@
 
                     <div class="sm:col-span-2">
                         <label for="size" class="text-sm font-medium text-slate-700">Size</label>
-                        <input type="text" id="size" name="size" value="{{ old('size') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="e.g. 0.25 x 557 x 1203">
+                        <input type="text" id="size" name="size" value="{{ old('size') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="e.g. 0.25 x 557 x 1203">
                     </div>
                 </div>
 
@@ -123,7 +123,7 @@
                         <div class="sm:flex sm:items-start sm:gap-4">
                             <label for="total_amount" class="text-xs font-semibold text-slate-500 sm:w-44 sm:pt-2">Total Price</label>
                             <div class="mt-1 w-full sm:mt-0 sm:flex-1">
-                                <input type="text" inputmode="decimal" id="total_amount" name="total_amount" value="{{ old('total_amount') }}" class="w-full rounded-lg border-blue-300 bg-white text-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                <input type="text" inputmode="decimal" id="total_amount" name="total_amount" value="{{ old('total_amount') }}" class="w-full rounded-lg border-blue-300 bg-white text-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                 <input type="hidden" name="price" id="price_display" value="">
                                 <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Net Weight (KGM)</div>
                             </div>
@@ -134,7 +134,7 @@
                 <div>
                     <label class="inline-flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                         <input type="hidden" name="is_foc" value="0">
-                        <input type="checkbox" name="is_foc" value="1" @checked(old('is_foc')) class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <input type="checkbox" name="is_foc" value="1" @checked(old('is_foc')) class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                         <span class="text-sm font-medium text-slate-700">Label FOC</span>
                     </label>
                 </div>
@@ -146,7 +146,7 @@
 
                 <div class="flex items-center justify-end gap-2">
                     <a href="{{ route('departures.show', $arrival) }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold">Cancel</a>
-                    <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold">Save Item</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save Item</button>
                 </div>
             </form>
         </div>

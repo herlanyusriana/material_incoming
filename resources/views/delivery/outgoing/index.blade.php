@@ -13,8 +13,8 @@
             <div class="flex flex-wrap gap-3">
                 <form method="GET" class="flex flex-wrap gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Customer</label>
-                        <select name="customer_id" class="rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="customer_id" class="block text-sm font-medium text-slate-700 mb-1">Customer</label>
+                        <select name="customer_id" id="customer_id" class="rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">All Customers</option>
                             @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}" {{ request('customer_id') == $customer->id ? 'selected' : '' }}>
@@ -25,8 +25,8 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                        <select name="status" class="rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="status" class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <select name="status" id="status" class="rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">All Statuses</option>
                             <option value="prepared" {{ request('status') == 'prepared' ? 'selected' : '' }}>Prepared</option>
                             <option value="assigned" {{ request('status') == 'assigned' ? 'selected' : '' }}>Assigned</option>
@@ -37,14 +37,14 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Date From</label>
-                        <input type="date" name="date_from" value="{{ request('date_from') }}" 
+                        <label for="date_from" class="block text-sm font-medium text-slate-700 mb-1">Date From</label>
+                        <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
                                class="rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Date To</label>
-                        <input type="date" name="date_to" value="{{ request('date_to') }}" 
+                        <label for="date_to" class="block text-sm font-medium text-slate-700 mb-1">Date To</label>
+                        <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}"
                                class="rounded-lg border-slate-200 bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     
@@ -67,21 +67,21 @@
         </div>
         
         <!-- Stats Summary -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-slate-25">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-slate-50">
             <div class="text-center">
-                <div class="text-2xl font-bold text-slate-900">{{ $deliveryNotes->total() }}</div>
+                <div class="text-2xl font-bold text-slate-900 tabular-nums">{{ $deliveryNotes->total() }}</div>
                 <div class="text-xs text-slate-500">Total Deliveries</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-indigo-600">{{ $deliveryNotes->where('status', 'prepared')->count() }}</div>
+                <div class="text-2xl font-bold text-indigo-600 tabular-nums">{{ $deliveryNotes->where('status', 'prepared')->count() }}</div>
                 <div class="text-xs text-slate-500">Prepared</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-amber-600">{{ $deliveryNotes->where('status', 'assigned')->count() }}</div>
+                <div class="text-2xl font-bold text-amber-600 tabular-nums">{{ $deliveryNotes->where('status', 'assigned')->count() }}</div>
                 <div class="text-xs text-slate-500">Assigned</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-emerald-600">{{ $deliveryNotes->where('status', 'delivered')->count() }}</div>
+                <div class="text-2xl font-bold text-emerald-600 tabular-nums">{{ $deliveryNotes->where('status', 'delivered')->count() }}</div>
                 <div class="text-xs text-slate-500">Delivered</div>
             </div>
         </div>
@@ -128,7 +128,7 @@
                                         'delivered' => 'bg-emerald-100 text-emerald-800',
                                         'cancelled' => 'bg-red-100 text-red-800',
                                     ];
-                                    $statusColor = $statusColors[$dn->status] ?? 'bg-gray-100 text-gray-800';
+                                    $statusColor = $statusColors[$dn->status] ?? 'bg-slate-100 text-slate-800';
                                 @endphp
                                 <span class="px-2.5 py-0.5 text-xs font-medium rounded-full {{ $statusColor }}">
                                     {{ ucfirst(str_replace('_', ' ', $dn->status)) }}

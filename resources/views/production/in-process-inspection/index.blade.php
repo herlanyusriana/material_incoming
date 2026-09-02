@@ -23,8 +23,8 @@
         <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Status</label>
-                    <select name="status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600" for="ipi-status">Status</label>
+                    <select name="status" id="ipi-status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                         <option value="">All</option>
                         <option value="pending" @selected($status === 'pending')>Pending</option>
                         <option value="pass" @selected($status === 'pass')>Pass</option>
@@ -58,7 +58,7 @@
                                 <div class="font-medium text-slate-900">{{ $inspection->productionOrder->part->part_no }}</div>
                                 <div class="text-xs text-slate-500">{{ $inspection->productionOrder->part->part_name }}</div>
                             </td>
-                            <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($inspection->productionOrder->qty_actual) }}</td>
+                            <td class="px-6 py-4 font-mono tabular-nums text-slate-700">{{ number_format($inspection->productionOrder->qty_actual) }}</td>
                             <td class="px-6 py-4">
                                 @php
                                     $colors = [

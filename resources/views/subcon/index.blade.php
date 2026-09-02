@@ -48,8 +48,8 @@
                 <form action="{{ ($mode ?? 'receive') === 'traceability' ? route('subcon.traceability-index') : route('subcon.receive-index') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     @if (($mode ?? 'receive') !== 'traceability')
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
-                            <select name="status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <label for="status" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
+                            <select id="status" name="status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">All</option>
                                 @foreach (['draft','sent','partial','completed','cancelled'] as $s)
                                     <option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst($s) }}</option>
@@ -58,8 +58,8 @@
                         </div>
                     @endif
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Vendor</label>
-                        <select name="vendor_id" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="vendor_id" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Vendor</label>
+                        <select id="vendor_id" name="vendor_id" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">All</option>
                             @foreach ($vendors as $v)
                                 <option value="{{ $v->id }}" @selected(request('vendor_id') == $v->id)>{{ $v->vendor_name }}</option>
@@ -67,17 +67,17 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
-                        <input type="date" name="date_from" value="{{ request('date_from') }}"
+                        <label for="date_from" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
+                        <input type="date" id="date_from" name="date_from" value="{{ request('date_from') }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
-                        <input type="date" name="date_to" value="{{ request('date_to') }}"
+                        <label for="date_to" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
+                        <input type="date" id="date_to" name="date_to" value="{{ request('date_to') }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <button type="submit"
-                        class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900">
+                        class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed">
                         Filter
                     </button>
                     @if (($mode ?? 'receive') === 'receive')

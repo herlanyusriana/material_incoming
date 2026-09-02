@@ -6,8 +6,11 @@
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <a href="{{ route('outgoing.delivery-notes.show', $deliveryNote) }}"
-                        class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500">
-                        ←
+                        class="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500"
+                        aria-label="Back to delivery note">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
                     </a>
                     <div>
                         <h1 class="text-2xl font-black text-slate-900">Picking Scan • {{ $deliveryNote->dn_no }}</h1>
@@ -35,17 +38,17 @@
         </div>
 
         @if (session('success'))
-            <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+            <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                 {{ session('success') }}
             </div>
         @endif
         @if (session('error'))
-            <div class="rounded-md bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-800">
+            <div class="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-800">
                 {{ session('error') }}
             </div>
         @endif
         @if ($errors->any())
-            <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+            <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
                 {{ $errors->first() }}
             </div>
         @endif
@@ -54,20 +57,20 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <div class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Scan Location</div>
-                    <input id="scan-location" type="text" placeholder="Scan location code"
+                    <input id="scan-location" type="text" aria-label="Scan location code" placeholder="Scan location code"
                         class="w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                     <div class="text-xs text-slate-500 mt-1">Harus sama dengan kitting location.</div>
                 </div>
                 <div>
                     <div class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Scan Part</div>
-                    <input id="scan-part" type="text" placeholder="Scan part no"
+                    <input id="scan-part" type="text" aria-label="Scan part no" placeholder="Scan part no"
                         class="w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                     <div class="text-xs text-slate-500 mt-1">Scan part setelah lokasi.</div>
                 </div>
                 <div>
                     <div class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Qty</div>
-                    <input id="scan-qty" type="number" step="0.0001" min="0.0001" value="1"
-                        class="w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <input id="scan-qty" type="number" aria-label="Quantity" step="0.0001" min="0.0001" value="1"
+                        class="w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 tabular-nums">
                     <div class="text-xs text-slate-500 mt-1">Default 1.</div>
                 </div>
             </div>
@@ -89,7 +92,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                 <div class="text-lg font-black text-slate-900">Items</div>
-                <div class="text-sm font-semibold text-slate-600">
+                <div class="text-sm font-semibold text-slate-600 tabular-nums">
                     Picked: {{ number_format((float) $deliveryNote->items->sum('picked_qty'), 4) }} /
                     {{ number_format((float) $deliveryNote->items->sum('qty'), 4) }}
                 </div>
@@ -120,11 +123,11 @@
                                 <td class="px-5 py-4 text-slate-700">
                                     <span class="font-mono text-xs">{{ $item->kitting_location_code ?: '-' }}</span>
                                 </td>
-                                <td class="px-5 py-4 text-right font-black text-slate-900">{{ number_format($required, 4) }}
+                                <td class="px-5 py-4 text-right font-black text-slate-900 tabular-nums">{{ number_format($required, 4) }}
                                 </td>
-                                <td class="px-5 py-4 text-right font-black text-indigo-700">{{ number_format($picked, 4) }}</td>
+                                <td class="px-5 py-4 text-right font-black text-indigo-700 tabular-nums">{{ number_format($picked, 4) }}</td>
                                 <td
-                                    class="px-5 py-4 text-right font-black {{ $remaining <= 0 ? 'text-emerald-700' : 'text-rose-700' }}">
+                                    class="px-5 py-4 text-right font-black tabular-nums {{ $remaining <= 0 ? 'text-emerald-700' : 'text-rose-700' }}">
                                     {{ number_format($remaining, 4) }}
                                 </td>
                             </tr>

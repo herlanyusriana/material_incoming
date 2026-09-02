@@ -101,22 +101,22 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="rounded-lg bg-blue-50 p-4 text-center">
                         <div class="text-xs font-bold text-blue-600 uppercase">Qty Sent</div>
-                        <div class="mt-1 text-xl font-black text-blue-800">{{ number_format($subconOrder->qty_sent) }} <span class="text-xs text-blue-600">{{ $subconUom }}</span></div>
+                        <div class="mt-1 text-xl font-black text-blue-800 tabular-nums">{{ number_format($subconOrder->qty_sent) }} <span class="text-xs text-blue-600">{{ $subconUom }}</span></div>
                         <div class="text-[10px] text-blue-500 font-bold">({{ number_format((float)$subconOrder->qty_sent * (float)($subconOrder->rmPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                     <div class="rounded-lg bg-emerald-50 p-4 text-center">
                         <div class="text-xs font-bold text-emerald-600 uppercase">Qty Received</div>
-                        <div class="mt-1 text-xl font-black text-emerald-800">{{ number_format($subconOrder->qty_received) }} <span class="text-xs text-emerald-600">{{ $subconUom }}</span></div>
+                        <div class="mt-1 text-xl font-black text-emerald-800 tabular-nums">{{ number_format($subconOrder->qty_received) }} <span class="text-xs text-emerald-600">{{ $subconUom }}</span></div>
                         <div class="text-[10px] text-emerald-500 font-bold">({{ number_format((float)$subconOrder->qty_received * (float)($subconOrder->gciPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                     <div class="rounded-lg bg-red-50 p-4 text-center">
                         <div class="text-xs font-bold text-red-600 uppercase">Qty Rejected</div>
-                        <div class="mt-1 text-xl font-black text-red-800">{{ number_format($subconOrder->qty_rejected) }} <span class="text-xs text-red-600">{{ $subconUom }}</span></div>
+                        <div class="mt-1 text-xl font-black text-red-800 tabular-nums">{{ number_format($subconOrder->qty_rejected) }} <span class="text-xs text-red-600">{{ $subconUom }}</span></div>
                         <div class="text-[10px] text-red-500 font-bold">({{ number_format((float)$subconOrder->qty_rejected * (float)($subconOrder->gciPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                     <div class="rounded-lg bg-amber-50 p-4 text-center">
                         <div class="text-xs font-bold text-amber-600 uppercase">Outstanding</div>
-                        <div class="mt-1 text-xl font-black text-amber-800">{{ number_format($subconOrder->qty_outstanding) }} <span class="text-xs text-amber-600">{{ $subconUom }}</span></div>
+                        <div class="mt-1 text-xl font-black text-amber-800 tabular-nums">{{ number_format($subconOrder->qty_outstanding) }} <span class="text-xs text-amber-600">{{ $subconUom }}</span></div>
                         <div class="text-[10px] text-amber-500 font-bold">({{ number_format((float)$subconOrder->qty_outstanding * (float)($subconOrder->rmPart->net_weight ?? 0), 2) }} kg)</div>
                     </div>
                 </div>
@@ -138,66 +138,66 @@
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span></label>
-                            <input type="number" step="1" min="0" name="qty_good" value="{{ old('qty_good') }}"
+                            <label for="qty_good" class="block text-sm font-bold text-slate-700 mb-1">Qty Good <span class="text-red-500">*</span></label>
+                            <input type="number" id="qty_good" step="1" min="0" name="qty_good" value="{{ old('qty_good') }}"
                                 class="w-full rounded-lg border-emerald-300 text-sm focus:border-emerald-500 focus:ring-emerald-500" required />
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Weight Good (KGM) <span class="text-red-500">*</span></label>
-                            <input type="number" step="0.0001" min="0" name="weight_kgm" value="{{ old('weight_kgm') }}"
+                            <label for="weight_kgm" class="block text-sm font-bold text-slate-700 mb-1">Weight Good (KGM) <span class="text-red-500">*</span></label>
+                            <input type="number" id="weight_kgm" step="0.0001" min="0" name="weight_kgm" value="{{ old('weight_kgm') }}"
                                 class="w-full rounded-lg border-emerald-300 text-sm focus:border-emerald-500 focus:ring-emerald-500" required />
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
-                            <input type="number" step="1" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
+                            <label for="qty_rejected" class="block text-sm font-bold text-slate-700 mb-1">Qty Rejected</label>
+                            <input type="number" id="qty_rejected" step="1" min="0" name="qty_rejected" value="{{ old('qty_rejected') }}"
                                 class="w-full rounded-lg border-rose-300 text-sm focus:border-rose-500 focus:ring-rose-500" />
                             <div class="mt-1 text-xs font-semibold text-rose-600">NG akan mengurangi remain efektif kontrak/SKEP.</div>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Weight Rejected (KGM)</label>
-                            <input type="number" step="0.0001" min="0" name="weight_rejected_kgm" value="{{ old('weight_rejected_kgm') }}"
+                            <label for="weight_rejected_kgm" class="block text-sm font-bold text-slate-700 mb-1">Weight Rejected (KGM)</label>
+                            <input type="number" id="weight_rejected_kgm" step="0.0001" min="0" name="weight_rejected_kgm" value="{{ old('weight_rejected_kgm') }}"
                                 class="w-full rounded-lg border-rose-300 text-sm focus:border-rose-500 focus:ring-rose-500" />
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Received Date <span class="text-red-500">*</span></label>
-                            <input type="date" name="received_date" value="{{ old('received_date', now()->format('Y-m-d')) }}"
+                            <label for="received_date" class="block text-sm font-bold text-slate-700 mb-1">Received Date <span class="text-red-500">*</span></label>
+                            <input type="date" id="received_date" name="received_date" value="{{ old('received_date', now()->format('Y-m-d')) }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" required />
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Upload Surat Jalan (SJ)</label>
-                            <input type="file" name="sj_file" accept=".pdf,image/jpeg,image/png"
+                            <label for="sj_file" class="block text-sm font-bold text-slate-700 mb-1">Upload Surat Jalan (SJ)</label>
+                            <input type="file" id="sj_file" name="sj_file" accept=".pdf,image/jpeg,image/png"
                                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">Upload Invoice</label>
-                            <input type="file" name="invoice_file" accept=".pdf,image/jpeg,image/png"
+                            <label for="invoice_file" class="block text-sm font-bold text-slate-700 mb-1">Upload Invoice</label>
+                            <input type="file" id="invoice_file" name="invoice_file" accept=".pdf,image/jpeg,image/png"
                                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">WH Receive Good Location</label>
-                            <input type="text" name="receive_location_code" value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
+                            <label for="receive_location_code" class="block text-sm font-bold text-slate-700 mb-1">WH Receive Good Location</label>
+                            <input type="text" id="receive_location_code" name="receive_location_code" value="{{ old('receive_location_code', $subconOrder->gciPart->default_location ?? '') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                             <div class="mt-1 text-xs text-slate-500">Opsional. Kosongkan kalau tidak perlu catat stok ke lokasi.</div>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">WH Reject Location</label>
-                            <input type="text" name="reject_location_code" value="{{ old('reject_location_code') }}"
+                            <label for="reject_location_code" class="block text-sm font-bold text-slate-700 mb-1">WH Reject Location</label>
+                            <input type="text" id="reject_location_code" name="reject_location_code" value="{{ old('reject_location_code') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                             <div class="mt-1 text-xs text-slate-500">Opsional. Kosongkan untuk pakai lokasi reject default.</div>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
-                        <textarea name="notes" rows="2"
+                        <label for="notes" class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
+                        <textarea id="notes" name="notes" rows="2"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                             placeholder="Optional"></textarea>
                     </div>
                     <button type="submit"
-                        class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">
+                        class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed">
                         Record Receive
                     </button>
                 </form>
@@ -404,7 +404,7 @@
                     onsubmit="return confirm('Are you sure you want to cancel this order?');">
                     @csrf
                     <button type="submit"
-                        class="rounded-lg bg-red-100 px-5 py-2 text-sm font-bold text-red-700 hover:bg-red-200">
+                        class="rounded-lg bg-red-100 px-5 py-2 text-sm font-bold text-red-700 hover:bg-red-200 disabled:opacity-60 disabled:cursor-not-allowed">
                         Cancel Order
                     </button>
                 </form>

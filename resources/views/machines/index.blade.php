@@ -6,7 +6,7 @@
     <div class="py-8">
         <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
                 </div>
             @endif
@@ -20,30 +20,31 @@
                     <div class="flex items-center gap-2">
                         <form method="GET" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                             <div class="relative w-full sm:w-64">
-                                <input type="text" name="q" value="{{ $search }}" placeholder="Search machines..."
-                                    class="w-full pl-9 pr-3 py-2 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+                                <input type="text" name="q" value="{{ $search }}" placeholder="Search machines..." aria-label="Search machines"
+                                    class="w-full pl-9 pr-3 py-2 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" />
                                 <span class="absolute left-3 top-2.5 text-slate-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" />
                                     </svg>
                                 </span>
                             </div>
-                            <select name="status" class="py-2 px-4 w-full sm:w-44 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <label class="sr-only" for="filter-status">Status</label>
+                            <select name="status" id="filter-status" class="py-2 px-4 w-full sm:w-44 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                 <option value="">All Status</option>
                                 <option value="active" @selected($status === 'active')>Active</option>
                                 <option value="inactive" @selected($status === 'inactive')>Inactive</option>
                             </select>
-                            <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Filter</button>
+                            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">Filter</button>
                         </form>
                         <a href="{{ route('machines.export') }}"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0-3-3m3 3 3-3m2 8H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
                             </svg>
                             Export
                         </a>
                         <button type="button" onclick="document.getElementById('import-machine-modal').classList.remove('hidden')"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-6m0 0 3 3m-3-3-3 3m8-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
@@ -77,7 +78,7 @@
                                     <td class="px-4 py-4 font-mono text-sm font-semibold text-slate-800">{{ $machine->code }}</td>
                                     <td class="px-4 py-4 font-semibold text-slate-900">{{ $machine->name }}</td>
                                     <td class="px-4 py-4 text-slate-600">{{ $machine->group_name ?? '-' }}</td>
-                                    <td class="px-4 py-4 text-center text-slate-600">{{ $machine->cycle_time }} {{ $machine->cycle_time_unit }}</td>
+                                    <td class="px-4 py-4 text-center text-slate-600 tabular-nums">{{ $machine->cycle_time }} {{ $machine->cycle_time_unit }}</td>
                                     <td class="px-4 py-4 text-center">
                                         @if ($machine->is_active)
                                             <span class="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-green-200">Active</span>
@@ -88,7 +89,7 @@
                                     <td class="px-4 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('machines.edit', $machine) }}"
-                                                class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors">
+                                                class="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
@@ -141,7 +142,7 @@
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-200">
                 <h3 class="text-lg font-bold text-slate-900">Import Machines</h3>
-                <button type="button" onclick="document.getElementById('import-machine-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <button type="button" onclick="document.getElementById('import-machine-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600" aria-label="Close">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
@@ -151,22 +152,22 @@
             <form action="{{ route('machines.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Upload Excel File</label>
-                    <input type="file" name="file" accept=".xlsx,.xls" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <label class="block text-sm font-medium text-slate-700 mb-2" for="import-file">Upload Excel File</label>
+                    <input type="file" name="file" id="import-file" accept=".xlsx,.xls" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                     <p class="mt-2 text-xs text-slate-500">Accepted formats: .xlsx, .xls (Max: 2MB)</p>
                 </div>
 
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p class="text-xs text-blue-800 font-medium mb-1">Required Columns (exact names):</p>
-                    <p class="text-xs text-blue-700">code, name, group_name, cycle_time, cycle_time_unit, is_active</p>
-                    <p class="text-xs text-blue-600 mt-1">Tip: Export existing data to get the correct format</p>
+                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                    <p class="text-xs text-indigo-800 font-medium mb-1">Required Columns (exact names):</p>
+                    <p class="text-xs text-indigo-700">code, name, group_name, cycle_time, cycle_time_unit, is_active</p>
+                    <p class="text-xs text-indigo-600 mt-1">Tip: Export existing data to get the correct format</p>
                 </div>
 
                 <div class="flex gap-3 pt-2">
                     <button type="button" onclick="document.getElementById('import-machine-modal').classList.add('hidden')" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
                         Cancel
                     </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                    <button type="submit" class="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
                         Upload & Import
                     </button>
                 </div>

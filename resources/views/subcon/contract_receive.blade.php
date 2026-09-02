@@ -26,36 +26,36 @@
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
                     <div>
-                        <label class="mb-1 block text-sm font-bold text-slate-700">Received Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="received_date" value="{{ old('received_date', now()->format('Y-m-d')) }}"
+                        <label for="received_date" class="mb-1 block text-sm font-bold text-slate-700">Received Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="received_date" name="received_date" value="{{ old('received_date', now()->format('Y-m-d')) }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-bold text-slate-700">WH Good Location</label>
-                        <input type="text" name="receive_location_code" value="{{ old('receive_location_code') }}"
+                        <label for="receive_location_code" class="mb-1 block text-sm font-bold text-slate-700">WH Good Location</label>
+                        <input type="text" id="receive_location_code" name="receive_location_code" value="{{ old('receive_location_code') }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                             placeholder="Kosongkan kalau tidak perlu catat stok ke lokasi">
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-bold text-slate-700">WH Reject Location</label>
-                        <input type="text" name="reject_location_code" value="{{ old('reject_location_code') }}"
+                        <label for="reject_location_code" class="mb-1 block text-sm font-bold text-slate-700">WH Reject Location</label>
+                        <input type="text" id="reject_location_code" name="reject_location_code" value="{{ old('reject_location_code') }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                             placeholder="Kosongkan untuk lokasi reject default">
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-bold text-slate-700">Upload SJ</label>
-                        <input type="file" name="sj_file" accept=".pdf,image/jpeg,image/png"
+                        <label for="sj_file" class="mb-1 block text-sm font-bold text-slate-700">Upload SJ</label>
+                        <input type="file" id="sj_file" name="sj_file" accept=".pdf,image/jpeg,image/png"
                             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-bold text-slate-700">Upload Invoice</label>
-                        <input type="file" name="invoice_file" accept=".pdf,image/jpeg,image/png"
+                        <label for="invoice_file" class="mb-1 block text-sm font-bold text-slate-700">Upload Invoice</label>
+                        <input type="file" id="invoice_file" name="invoice_file" accept=".pdf,image/jpeg,image/png"
                             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                 </div>
                 <div class="mt-4">
-                    <label class="mb-1 block text-sm font-bold text-slate-700">Notes</label>
-                    <textarea name="notes" rows="2" class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
+                    <label for="notes" class="mb-1 block text-sm font-bold text-slate-700">Notes</label>
+                    <textarea id="notes" name="notes" rows="2" class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
                 </div>
             </div>
 
@@ -146,7 +146,7 @@
 
             <div class="flex justify-end gap-3">
                 <a href="{{ route('subcon.receive-index') }}" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</a>
-                <button type="submit" class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700" onclick="return confirm('Simpan receive untuk item kontrak yang terisi?')">
+                <button type="submit" class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed" onclick="return confirm('Simpan receive untuk item kontrak yang terisi?')">
                     Simpan Receive Kontrak
                 </button>
             </div>

@@ -19,8 +19,18 @@
     @if($showPoAction)
         <form action="{{ route('planning.mrp.generate-po') }}" method="POST" id="po-form-{{ \Illuminate\Support\Str::slug($modeLabel) }}">
             @csrf
-            <div class="flex justify-end mb-2">
-                <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-2">
+            <div class="flex justify-end mb-2 gap-2">
+                @can('approve_mrp')
+                    <button formaction="{{ route('planning.mrp.approve') }}"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm transition-colors">
+                        Approve Selected
+                    </button>
+                    <button formaction="{{ route('planning.mrp.reject') }}"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors">
+                        Reject Selected
+                    </button>
+                @endcan
+                <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm transition-colors">
                     Generate PO from Selection
                 </button>
             </div>
@@ -145,8 +155,8 @@
                                         @if($val > 0)
                                             <div class="flex flex-col items-center justify-center gap-1">
                                                 <span class="text-xs font-bold text-red-600">{{ formatNumber($val) }}</span>
-                                                @if($showPoAction)
-                                                    <input type="checkbox" name="items[{{ $part->id }}]" value="{{ $val }}" class="h-3 w-3 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" title="Create PO for {{ $val }} items">
+                                                @if($showPoAction && !empty($row['plan_id']))
+                                                    <input type="checkbox" name="plan_ids[]" value="{{ $row['plan_id'] }}" class="h-3 w-3 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" title="Select plan for PO / approval">
                                                 @endif
                                             </div>
                                         @else

@@ -6,12 +6,12 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
                 </div>
             @endif
             @if (session('error'))
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                <div class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
                     {{ session('error') }}
                 </div>
             @endif
@@ -117,7 +117,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format($displayQty, $goodsUnit === 'COIL' ? 2 : 0) }}</td>
                                     <td class="px-4 py-3">
-                                        <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold {{ $r->qc_status === 'pass' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200' }}">
+                                        <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold {{ $r->qc_status === 'pass' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200' }}">
                                             {{ $statusLabel }}
                                         </span>
                                     </td>

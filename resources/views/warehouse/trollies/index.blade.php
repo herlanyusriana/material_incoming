@@ -109,7 +109,7 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <span
-                                        class="px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-bold uppercase">
+                                        class="px-2 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold uppercase">
                                         {{ $trolly->type ?: 'GENERAL' }}
                                     </span>
                                 </td>

@@ -38,8 +38,8 @@
 
                 {{-- Customer --}}
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Customer <span class="text-red-500">*</span></label>
-                    <select name="customer_id" required
+                    <label for="customer_id" class="block text-sm font-bold text-slate-700 mb-1">Customer <span class="text-red-500">*</span></label>
+                    <select name="customer_id" id="customer_id" required
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">Select Customer</option>
                         @foreach ($customers as $c)
@@ -50,8 +50,8 @@
 
                 {{-- Part --}}
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Part FG <span class="text-red-500">*</span></label>
-                    <select name="gci_part_id" required
+                    <label for="gci_part_id" class="block text-sm font-bold text-slate-700 mb-1">Part FG <span class="text-red-500">*</span></label>
+                    <select name="gci_part_id" id="gci_part_id" required
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">Select Part</option>
                         @foreach ($ospParts as $p)
@@ -65,30 +65,30 @@
 
                 {{-- Qty --}}
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">OSP Document Qty <span class="text-red-500">*</span></label>
-                    <input type="number" name="qty_received_material" step="0.0001" min="0.0001" required
+                    <label for="qty_received_material" class="block text-sm font-bold text-slate-700 mb-1">OSP Document Qty <span class="text-red-500">*</span></label>
+                    <input type="number" name="qty_received_material" id="qty_received_material" step="0.0001" min="0.0001" required
                         value="{{ old('qty_received_material') }}"
-                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                        class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 tabular-nums" />
                 </div>
 
                 {{-- Dates --}}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Document Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="received_date" required value="{{ old('received_date', now()->toDateString()) }}"
+                        <label for="received_date" class="block text-sm font-bold text-slate-700 mb-1">Document Date <span class="text-red-500">*</span></label>
+                        <input type="date" name="received_date" id="received_date" required value="{{ old('received_date', now()->toDateString()) }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Target Outgoing Date</label>
-                        <input type="date" name="target_ship_date" value="{{ old('target_ship_date') }}"
+                        <label for="target_ship_date" class="block text-sm font-bold text-slate-700 mb-1">Target Outgoing Date</label>
+                        <input type="date" name="target_ship_date" id="target_ship_date" value="{{ old('target_ship_date') }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                 </div>
 
                 {{-- Notes --}}
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
-                    <textarea name="notes" rows="3"
+                    <label for="notes" class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
+                    <textarea name="notes" id="notes" rows="3"
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Optional notes...">{{ old('notes') }}</textarea>
                 </div>

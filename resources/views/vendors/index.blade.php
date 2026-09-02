@@ -26,38 +26,39 @@
                         <div class="flex items-center gap-2">
 	                            <form method="GET" id="vendor-filter-form" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                                 <div class="relative w-full sm:w-64">
-                                    <input type="text" name="q" value="{{ $search }}" placeholder="Search vendors..." class="w-full pl-9 pr-3 py-2 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+                                    <label for="vendor-search" class="sr-only">Cari vendor</label>
+                                    <input type="text" id="vendor-search" name="q" value="{{ $search }}" placeholder="Search vendors..." class="w-full pl-9 pr-3 py-2 rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" />
                                     <span class="absolute left-3 top-2.5 text-slate-400">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
                                     </span>
                                 </div>
-                                <select name="type" class="py-2 px-4 w-full sm:w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                <select name="type" class="py-2 px-4 w-full sm:w-40 rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                     <option value="">All Type</option>
                                     <option value="import" @selected($type === 'import')>Import</option>
                                     <option value="local" @selected($type === 'local')>Local</option>
                                     <option value="tolling" @selected($type === 'tolling')>Tolling</option>
                                 </select>
-                                <select name="country" class="py-2 px-4 w-full sm:w-36 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                <select name="country" class="py-2 px-4 w-full sm:w-36 rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                     <option value="">All Country</option>
                                     @foreach(($countryOptions ?? collect()) as $countryOption)
                                         <option value="{{ $countryOption }}" @selected($country === $countryOption)>{{ $countryOption }}</option>
                                     @endforeach
                                 </select>
-                                <select name="status" class="py-2 px-4 w-full sm:w-44 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                <select name="status" class="py-2 px-4 w-full sm:w-44 rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                     <option value="">All Status</option>
                                     <option value="active" @selected($status === 'active')>Active</option>
                                     <option value="inactive" @selected($status === 'inactive')>Inactive</option>
                                 </select>
-                                <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Filter</button>
+                                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">Filter</button>
                                 <a href="{{ route('vendors.index') }}" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium transition-colors hover:bg-slate-50">Reset</a>
                             </form>
-                            <a href="{{ route('vendors.export') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
+                            <a href="{{ route('vendors.export') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors text-sm whitespace-nowrap">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0-3-3m3 3 3-3m2 8H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
                                 </svg>
                                 Export
                             </a>
-                            <button type="button" onclick="document.getElementById('import-vendor-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm whitespace-nowrap">
+                            <button type="button" onclick="document.getElementById('import-vendor-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors text-sm whitespace-nowrap">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-6m0 0 3 3m-3-3-3 3m8-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
@@ -106,7 +107,7 @@
                                         </td>
 	                                        <td class="px-4 py-4 text-right">
 	                                            <div class="flex justify-end gap-3">
-	                                                <a href="{{ route('vendors.edit', $vendor) }}" class="text-blue-600 hover:text-blue-700 font-medium">Edit</a>
+	                                                <a href="{{ route('vendors.edit', $vendor) }}" class="text-indigo-600 hover:text-indigo-700 font-medium">Edit</a>
 	                                                <form method="POST" action="{{ route('vendors.destroy', $vendor) }}" onsubmit="return confirm('Archive this vendor?')">
 	                                                    @csrf
 	                                                    @method('DELETE')
@@ -144,8 +145,8 @@
             <form action="{{ route('vendors.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Upload Excel File</label>
-                    <input type="file" name="file" accept=".xlsx,.xls" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <label for="vendor-import-file" class="block text-sm font-medium text-slate-700 mb-2">Upload Excel File</label>
+                    <input type="file" id="vendor-import-file" name="file" accept=".xlsx,.xls" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                     <p class="mt-2 text-xs text-slate-500">Accepted formats: .xlsx, .xls (Max: 2MB)</p>
                 </div>
                 
@@ -159,7 +160,7 @@
                     <button type="button" onclick="document.getElementById('import-vendor-modal').classList.add('hidden')" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
                         Cancel
                     </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                    <button type="submit" class="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors">
                         Upload & Import
                     </button>
                 </div>

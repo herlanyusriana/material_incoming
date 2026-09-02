@@ -16,13 +16,13 @@
 
 <div class="space-y-1">
     @if ($label)
-        <label for="{{ $selectId }}" class="block text-sm font-medium text-gray-700">{{ $label }}@if($required)<span class="text-red-500">*</span>@endif</label>
+        <label for="{{ $selectId }}" class="block text-sm font-medium text-slate-700">{{ $label }}@if($required)<span class="text-red-500">*</span>@endif</label>
     @endif
     <select
         id="{{ $selectId }}"
         name="{{ $name }}"
         @if($required) required @endif
-        {{ $attributes->merge(['class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm']) }}
+        {{ $attributes->merge(['class' => 'mt-1 block w-full rounded-xl border-slate-200 shadow-sm placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm transition-colors']) }}
     >
         @if ($placeholder)
             <option value="">{{ $placeholder }}</option>
@@ -34,7 +34,7 @@
         @endforeach
     </select>
     @if ($hint)
-        <p class="text-xs text-gray-500">{{ $hint }}</p>
+        <p class="text-xs text-slate-500">{{ $hint }}</p>
     @endif
     <x-input-error :messages="$errors->get($name)" class="mt-1" />
 </div>

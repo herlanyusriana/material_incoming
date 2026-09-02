@@ -10,15 +10,15 @@
         <div class="grid gap-3 sm:grid-cols-3">
             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <div class="text-xs font-bold uppercase tracking-widest text-slate-400">Total Records</div>
-                <div class="mt-1 text-2xl font-black text-slate-900">{{ number_format($prices->total()) }}</div>
+                <div class="mt-1 text-2xl font-black text-slate-900 tabular-nums">{{ number_format($prices->total()) }}</div>
             </div>
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
                 <div class="text-xs font-bold uppercase tracking-widest text-emerald-600">Active</div>
-                <div class="mt-1 text-2xl font-black text-emerald-700">{{ number_format($prices->getCollection()->where('status', 'active')->count()) }}</div>
+                <div class="mt-1 text-2xl font-black text-emerald-700 tabular-nums">{{ number_format($prices->getCollection()->where('status', 'active')->count()) }}</div>
             </div>
             <div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm">
                 <div class="text-xs font-bold uppercase tracking-widest text-indigo-600">Visible Types</div>
-                <div class="mt-1 text-2xl font-black text-indigo-700">{{ number_format($prices->getCollection()->pluck('price_type')->unique()->count()) }}</div>
+                <div class="mt-1 text-2xl font-black text-indigo-700 tabular-nums">{{ number_format($prices->getCollection()->pluck('price_type')->unique()->count()) }}</div>
             </div>
         </div>
     </div>
@@ -58,7 +58,8 @@
         <div class="rounded-3xl bg-white shadow-sm">
             <div class="border-b border-slate-100 px-6 py-4">
                 <form method="GET" class="grid gap-3 lg:grid-cols-6">
-                    <input name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="Search part, vendor, customer">
+                    <label for="search" class="sr-only">Search</label>
+                    <input id="search" name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="Search part, vendor, customer">
                     <select name="classification" class="rounded-xl border-slate-200 text-sm">
                         <option value="">All Class</option>
                         <option value="RM" @selected($filters['classification'] === 'RM')>RM</option>
@@ -114,7 +115,7 @@
                                     <div class="text-slate-700">{{ $price->vendor?->vendor_name ?: '-' }}</div>
                                     <div class="text-xs text-slate-500">{{ $price->customer?->name ?: 'General' }}</div>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 tabular-nums">
                                     <div class="font-semibold text-slate-900">{{ $price->currency }} {{ number_format((float) $price->price, 3) }}</div>
                                     <div class="text-xs text-slate-500">{{ $price->uom ?: '-' }} @if($price->min_qty) | min {{ number_format((float) $price->min_qty, 3) }} @endif</div>
                                 </td>
@@ -148,32 +149,32 @@
                                         @method('PUT')
                                         <input type="hidden" name="gci_part_id" value="{{ $price->gci_part_id }}">
                                         <div class="lg:col-span-2">
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Price Type</label>
-                                            <select name="price_type" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                                            <label for="edit_price_type_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Price Type</label>
+                                            <select id="edit_price_type_{{ $price->id }}" name="price_type" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                                 @foreach($priceTypes as $value => $label)
                                                     <option value="{{ $value }}" @selected($price->price_type === $value)>{{ $label }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Currency</label>
-                                            <input type="text" name="currency" value="{{ $price->currency }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                                            <label for="edit_currency_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Currency</label>
+                                            <input id="edit_currency_{{ $price->id }}" type="text" name="currency" value="{{ $price->currency }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Price</label>
-                                            <input type="number" name="price" step="0.001" min="0" value="{{ $price->price }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                                            <label for="edit_price_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Price</label>
+                                            <input id="edit_price_{{ $price->id }}" type="number" name="price" step="0.001" min="0" value="{{ $price->price }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm tabular-nums" required>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">UOM</label>
-                                            <input type="text" name="uom" value="{{ $price->uom }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                                            <label for="edit_uom_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">UOM</label>
+                                            <input id="edit_uom_{{ $price->id }}" type="text" name="uom" value="{{ $price->uom }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Min Qty</label>
-                                            <input type="number" name="min_qty" step="0.001" min="0" value="{{ $price->min_qty }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                                            <label for="edit_min_qty_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Min Qty</label>
+                                            <input id="edit_min_qty_{{ $price->id }}" type="number" name="min_qty" step="0.001" min="0" value="{{ $price->min_qty }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm tabular-nums">
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor</label>
-                                            <select name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                                            <label for="edit_vendor_id_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor</label>
+                                            <select id="edit_vendor_id_{{ $price->id }}" name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                                                 <option value="">General / no vendor</option>
                                                 @foreach($vendors as $vendor)
                                                     <option value="{{ $vendor->id }}" @selected($price->vendor_id === $vendor->id)>{{ $vendor->vendor_name }}</option>
@@ -181,8 +182,8 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Customer</label>
-                                            <select name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                                            <label for="edit_customer_id_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Customer</label>
+                                            <select id="edit_customer_id_{{ $price->id }}" name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                                                 <option value="">General / no customer</option>
                                                 @foreach($customers as $customer)
                                                     <option value="{{ $customer->id }}" @selected($price->customer_id === $customer->id)>{{ $customer->name }}</option>
@@ -190,23 +191,23 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From</label>
-                                            <input type="date" name="effective_from" value="{{ $price->effective_from?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                                            <label for="edit_effective_from_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From</label>
+                                            <input id="edit_effective_from_{{ $price->id }}" type="date" name="effective_from" value="{{ $price->effective_from?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective To</label>
-                                            <input type="date" name="effective_to" value="{{ $price->effective_to?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
+                                            <label for="edit_effective_to_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective To</label>
+                                            <input id="edit_effective_to_{{ $price->id }}" type="date" name="effective_to" value="{{ $price->effective_to?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
-                                            <select name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
+                                            <label for="edit_status_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
+                                            <select id="edit_status_{{ $price->id }}" name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                                 <option value="active" @selected($price->status === 'active')>Active</option>
                                                 <option value="inactive" @selected($price->status === 'inactive')>Inactive</option>
                                             </select>
                                         </div>
                                         <div class="lg:col-span-6">
-                                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Notes</label>
-                                            <textarea name="notes" rows="2" class="mt-1 w-full rounded-xl border-slate-200 text-sm">{{ $price->notes }}</textarea>
+                                            <label for="edit_notes_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Notes</label>
+                                            <textarea id="edit_notes_{{ $price->id }}" name="notes" rows="2" class="mt-1 w-full rounded-xl border-slate-200 text-sm">{{ $price->notes }}</textarea>
                                         </div>
                                         <div class="lg:col-span-6 flex items-center justify-end gap-2">
                                             <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white"

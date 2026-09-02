@@ -19,7 +19,12 @@
         <div id="where-used" class="bg-white shadow-sm border border-slate-200 rounded-2xl p-6">
             <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
-                    <h3 class="text-lg font-black text-slate-900">🔍 Where-Used (BOM)</h3>
+                    <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Where-Used (BOM)
+                    </h3>
                     <p class="text-sm text-slate-600">Cari 1 component part number → ketahuan dipakai di FG mana + customer
                         product mana.</p>
                 </div>
@@ -30,7 +35,8 @@
 
             <div class="mt-4 flex gap-3">
                 <div class="flex-1">
-                    <input type="text" x-model="searchQuery" @keyup.enter="search()"
+                    <label for="where-used-search" class="sr-only">Enter part number</label>
+                    <input type="text" x-model="searchQuery" id="where-used-search" @keyup.enter="search()"
                         class="w-full rounded-xl border-slate-200 text-base" placeholder="Enter part number (e.g., RM-001)">
                 </div>
                 <button type="button" @click="search()" :disabled="!searchQuery || isLoading"
@@ -55,7 +61,9 @@
         <div x-show="hasSearched" x-cloak class="space-y-4">
             <div x-show="results.length === 0 && !isLoading"
                 class="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 text-center">
-                <div class="text-4xl mb-3">📭</div>
+                <svg class="w-12 h-12 mb-3 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6.586a1 1 0 00-.707.293l-2.414 2.414A1 1 0 0110.586 10H7a2 2 0 00-2 2v3m-2 0h18" />
+                </svg>
                 <h4 class="text-lg font-bold text-yellow-900 mb-2">No Usage Found</h4>
                 <p class="text-yellow-700">
                     Component <span class="font-mono font-bold" x-text="lastSearchQuery"></span> tidak dipakai di BOM mana

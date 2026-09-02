@@ -11,6 +11,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
+        <a href="#main-content" class="skip-link">Skip ke konten utama</a>
         <div class="relative min-h-screen overflow-hidden bg-slate-50">
             <div class="absolute inset-0 bg-gradient-to-br from-white via-sky-50 to-indigo-50"></div>
             <div class="absolute inset-0 opacity-60 [background:radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.22),transparent_42%),radial-gradient(circle_at_85%_25%,rgba(99,102,241,0.18),transparent_40%),radial-gradient(circle_at_40%_95%,rgba(2,132,199,0.14),transparent_50%)]"></div>
@@ -72,7 +73,7 @@
                             </a>
                         </div>
 
-                        <div class="w-full">
+                        <div id="main-content" tabindex="-1" class="w-full">
                             {{ $slot }}
                         </div>
                     </div>

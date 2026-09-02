@@ -123,7 +123,7 @@
                                         </div>
                                     </td>
                                     <td class="px-5 py-4 text-right">
-                                        <span class="font-mono font-black text-slate-900">{{ number_format($order->qty_planned) }}</span>
+                                        <span class="font-mono tabular-nums font-black text-slate-900">{{ number_format($order->qty_planned) }}</span>
                                     </td>
                                 </tr>
                             @empty

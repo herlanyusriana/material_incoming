@@ -27,7 +27,7 @@
                         </div>
                         <div class="space-y-1">
                             <x-input-label for="address" value="Address" />
-                            <textarea id="address" name="address" rows="3" placeholder="Full company address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required></textarea>
+                            <textarea id="address" name="address" rows="3" placeholder="Full company address" class="mt-1 block w-full rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required></textarea>
                             <x-input-error :messages="$errors->get('address')" class="mt-1" />
                         </div>
                         <div class="space-y-1">
@@ -46,7 +46,7 @@
                             <x-input-error :messages="$errors->get('contact_person')" class="mt-1" />
                         </div>
                         <div class="flex justify-end pt-2">
-                            <button type="submit" class="w-full px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">Add Trucking Company</button>
+                            <button type="submit" class="w-full px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors shadow-sm">Add Trucking Company</button>
                         </div>
                     </form>
                 </div>
@@ -59,17 +59,17 @@
                         </div>
                         <form method="GET" class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                             <div class="relative w-full sm:w-64">
-                                <input type="text" name="q" value="{{ $search }}" placeholder="Search companies..." class="w-full pl-9 pr-3 py-2 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+                                <input type="text" name="q" value="{{ $search }}" placeholder="Search companies..." class="w-full pl-9 pr-3 py-2 rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" />
                                 <span class="absolute left-3 top-2.5 text-slate-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
                                 </span>
                             </div>
-                            <select name="status" class="py-2 px-4 w-full sm:w-44 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                            <select name="status" class="py-2 px-4 w-full sm:w-44 rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                 <option value="">All Status</option>
                                 <option value="active" @selected($status === 'active')>Active</option>
                                 <option value="inactive" @selected($status === 'inactive')>Inactive</option>
                             </select>
-                            <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Filter</button>
+                            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">Filter</button>
                         </form>
                     </div>
 
@@ -101,7 +101,7 @@
                                             </span>
                                         </td>
                                         <td class="px-4 py-3 text-right space-x-2">
-                                            <a href="{{ route('truckings.edit', $trucking) }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                            <a href="{{ route('truckings.edit', $trucking) }}" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-sm font-medium">
                                                 Edit
                                             </a>
                                             <form method="POST" action="{{ route('truckings.destroy', $trucking) }}" class="inline-block" onsubmit="return confirm('Delete this trucking company?')">

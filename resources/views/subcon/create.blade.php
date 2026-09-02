@@ -34,8 +34,8 @@
 
                 <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Vendor <span class="text-red-500">*</span></label>
-                        <select name="vendor_id" required
+                        <label for="vendor_id" class="block text-sm font-bold text-slate-700 mb-1">Vendor <span class="text-red-500">*</span></label>
+                        <select id="vendor_id" name="vendor_id" required
                             x-model="vendor_id"
                             @change="onVendorChange()"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -49,8 +49,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Nomor Kontrak <span class="text-red-500">*</span></label>
-                        <select x-model="contract_no_selected"
+                        <label for="contract_no_selected" class="block text-sm font-bold text-slate-700 mb-1">Nomor Kontrak <span class="text-red-500">*</span></label>
+                        <select id="contract_no_selected" x-model="contract_no_selected"
                             @change="applyContractSelection()"
                             :disabled="!vendor_id"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -70,21 +70,21 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Sent Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="sent_date" required value="{{ old('sent_date', now()->toDateString()) }}"
+                        <label for="sent_date" class="block text-sm font-bold text-slate-700 mb-1">Sent Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="sent_date" name="sent_date" required value="{{ old('sent_date', now()->toDateString()) }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Expected Return</label>
-                        <input type="date" name="expected_return_date" value="{{ old('expected_return_date') }}"
+                        <label for="expected_return_date" class="block text-sm font-bold text-slate-700 mb-1">Expected Return</label>
+                        <input type="date" id="expected_return_date" name="expected_return_date" value="{{ old('expected_return_date') }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
-                    <textarea name="notes" rows="3"
+                    <label for="notes" class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
+                    <textarea id="notes" name="notes" rows="3"
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Optional notes...">{{ old('notes') }}</textarea>
                 </div>
@@ -191,7 +191,7 @@
                         </a>
                         <button type="submit"
                             :disabled="rows.length === 0"
-                            class="rounded-xl bg-indigo-600 px-8 py-3 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="rounded-xl bg-indigo-600 px-8 py-3 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
                             Create WH Send
                         </button>
                     </div>

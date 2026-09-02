@@ -50,8 +50,8 @@
                         @csrf
 
                         <div>
-                            <label class="block mb-2 text-sm font-medium text-slate-700">Select File</label>
-                            <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="block w-full text-sm text-slate-500
+                            <label for="file-upload" class="block mb-2 text-sm font-medium text-slate-700">Select File</label>
+                            <input type="file" name="file" id="file-upload" accept=".xlsx,.xls,.csv" required class="block w-full text-sm text-slate-500
                                     file:mr-4 file:py-2.5 file:px-4
                                     file:rounded-full file:border-0
                                     file:text-sm file:font-semibold

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">
                 Logistics Dashboard
             </h2>
             <div class="flex flex-wrap gap-2">
@@ -27,22 +27,22 @@
                 @endphp
                 <div class="bg-white rounded-2xl border border-slate-200 p-4">
                     <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Pending Inbound</div>
-                    <div class="mt-2 text-2xl font-bold text-slate-900">{{ $pendingArrivals->count() }}</div>
+                    <div class="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{{ $pendingArrivals->count() }}</div>
                     <div class="mt-1 text-xs text-slate-500">Invoice/arrival masih ada sisa qty belum receive</div>
                 </div>
                 <div class="bg-white rounded-2xl border border-slate-200 p-4">
                     <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">QC Pass</div>
-                    <div class="mt-2 text-2xl font-bold text-emerald-700">{{ $qcPass }}</div>
+                    <div class="mt-2 text-2xl font-bold text-emerald-700 tabular-nums">{{ $qcPass }}</div>
                     <div class="mt-1 text-xs text-slate-500">Total receive rows</div>
                 </div>
                 <div class="bg-white rounded-2xl border border-slate-200 p-4">
                     <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">QC Hold</div>
-                    <div class="mt-2 text-2xl font-bold text-amber-700">{{ $qcHold }}</div>
+                    <div class="mt-2 text-2xl font-bold text-amber-700 tabular-nums">{{ $qcHold }}</div>
                     <div class="mt-1 text-xs text-slate-500">Butuh follow up</div>
                 </div>
                 <div class="bg-white rounded-2xl border border-slate-200 p-4">
                     <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">QC Reject</div>
-                    <div class="mt-2 text-2xl font-bold text-rose-700">{{ $qcReject }}</div>
+                    <div class="mt-2 text-2xl font-bold text-rose-700 tabular-nums">{{ $qcReject }}</div>
                     <div class="mt-1 text-xs text-slate-500">Reject / fail</div>
                 </div>
             </div>
@@ -68,7 +68,7 @@
                                         </div>
                                         <div class="text-right">
                                             <div class="text-xs text-slate-500">Remaining</div>
-                                            <div class="text-sm font-bold text-slate-900">{{ number_format((float) $arrival->remaining_qty, 3) }}</div>
+                                            <div class="text-sm font-bold text-slate-900 tabular-nums">{{ number_format((float) $arrival->remaining_qty, 3) }}</div>
                                         </div>
                                     </div>
                                 @endforeach
@@ -90,7 +90,7 @@
                                 @foreach($topLocations as $row)
                                     <div class="flex items-center justify-between">
                                         <div class="text-sm font-semibold text-slate-800">{{ $row->location_code }}</div>
-                                        <div class="text-sm font-bold text-slate-900">{{ number_format((float) $row->total_qty, 4) }}</div>
+                                        <div class="text-sm font-bold text-slate-900 tabular-nums">{{ number_format((float) $row->total_qty, 4) }}</div>
                                     </div>
                                 @endforeach
                             </div>
@@ -113,7 +113,7 @@
                                     <div class="text-xs text-slate-500">{{ $r->created_at?->format('Y-m-d H:i') }}</div>
                                 </div>
                                 <div class="text-xs text-slate-500">
-                                    Qty: {{ $r->qty }} • QC: {{ $r->qc_status }} • Invoice: {{ $r->arrivalItem?->arrival?->arrival_no ?? '-' }}
+                                    Qty: <span class="tabular-nums">{{ $r->qty }}</span> • QC: {{ $r->qc_status }} • Invoice: {{ $r->arrivalItem?->arrival?->arrival_no ?? '-' }}
                                 </div>
                             </div>
                         @empty
@@ -135,7 +135,7 @@
                                     <div class="text-xs text-slate-500">{{ $t->created_at?->format('Y-m-d H:i') }}</div>
                                 </div>
                                 <div class="text-xs text-slate-500">
-                                    {{ $t->from_location_code ?? '-' }} → {{ $t->to_location_code ?? '-' }} • Qty: {{ number_format((float) $t->qty, 4) }}
+                                    {{ $t->from_location_code ?? '-' }} → {{ $t->to_location_code ?? '-' }} • Qty: <span class="tabular-nums">{{ number_format((float) $t->qty, 4) }}</span>
                                 </div>
                             </div>
                         @empty

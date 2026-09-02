@@ -12,12 +12,12 @@
         <form method="GET" class="rounded-xl border bg-white p-4 shadow-sm">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Month</label>
-                    <input type="month" name="month" value="{{ $month }}" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600" for="pwh-month">Month</label>
+                    <input type="month" name="month" id="pwh-month" value="{{ $month }}" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Supply Status</label>
-                    <select name="supply_status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600" for="pwh-supply-status">Supply Status</label>
+                    <select name="supply_status" id="pwh-supply-status" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                         <option value="">All</option>
                         <option value="pending" @selected($supplyStatus === 'pending')>Pending Supply</option>
                         <option value="supplied" @selected($supplyStatus === 'supplied')>Supplied</option>
@@ -25,8 +25,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Search</label>
-                    <input type="text" name="q" value="{{ $q }}" placeholder="WO / transaction / part"
+                    <label class="block text-xs font-semibold text-slate-600" for="pwh-search">Search</label>
+                    <input type="text" name="q" id="pwh-search" value="{{ $q }}" placeholder="WO / transaction / part"
                         class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                 </div>
             </div>

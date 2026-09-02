@@ -44,7 +44,7 @@
                 <div class="mt-1 text-2xl font-bold text-amber-700">{{ $summary['missing_bom'] }}</div>
             </div>
             <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 shadow-sm">
-                <div class="text-xs font-semibold uppercase tracking-wide text-blue-600">Mismatch Mesin</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Mismatch Mesin</div>
                 <div class="mt-1 text-2xl font-bold text-blue-700">{{ $summary['machine_mismatch'] }}</div>
             </div>
         </div>
@@ -52,8 +52,8 @@
         <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600">Search</label>
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Order number / Part" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600" for="sp-search">Search</label>
+                    <input type="text" name="search" id="sp-search" value="{{ $search }}" placeholder="Order number / Part" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                 </div>
                 <div class="flex gap-2">
                     <a href="{{ route('production.start-production.index') }}" class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
@@ -147,7 +147,7 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $order->plan_date ? \Carbon\Carbon::parse($order->plan_date)->format('d M Y') : '-' }}</td>
-                                <td class="px-6 py-4 font-mono text-slate-700">{{ number_format($order->qty_planned) }}</td>
+                                <td class="px-6 py-4 font-mono tabular-nums text-slate-700">{{ number_format($order->qty_planned) }}</td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end gap-2">
                                         <a href="{{ route('production.orders.show', $order) }}" class="px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50">

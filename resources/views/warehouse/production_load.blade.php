@@ -90,7 +90,7 @@
                                         <div class="text-xs text-slate-500">{{ $o->part?->part_name ?? '' }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-slate-700">
-                                        <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold border border-slate-200 bg-slate-50">
+                                        <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold border border-slate-200 bg-slate-50">
                                             {{ (string) ($o->status ?? '-') }}
                                         </span>
                                     </td>

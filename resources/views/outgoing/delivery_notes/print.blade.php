@@ -179,7 +179,7 @@
 
     @php
         // Prepare PO refs for display
-        $poRefs = $delivery_note->items->map(fn($i) => $i->outgoing_po_item_id ? ($i->outgoingPoItem?->outgoingPo?->po_no) : ($i->customerPo?->po_no))->filter()->unique()->implode(', ');
+        $poRefs = $delivery_note->items->map(fn($i) => $i->outgoingPoItem?->outgoingPo?->po_no)->filter()->unique()->implode(', ');
     @endphp
 
     <div class="page-container">

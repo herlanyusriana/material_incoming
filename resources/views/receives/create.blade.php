@@ -53,13 +53,13 @@
                     <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
                         <div class="space-y-1">
                             <label for="receive_date" class="text-sm font-medium text-slate-700">Tanggal Receive</label>
-                            <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                            <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
                             @error('receive_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         @if ($isLocal)
                             <div class="space-y-1">
                                 <label for="truck_no" class="text-sm font-medium text-slate-700">No. Truck</label>
-                                <input type="text" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-blue-500 focus:border-blue-500 text-sm uppercase" placeholder="B 1234 CD" required>
+                                <input type="text" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="B 1234 CD" required>
                                 @error('truck_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                         @endif
@@ -88,11 +88,11 @@
                                             <td class="px-4 py-3 font-mono text-xs">{{ strtoupper($c->seal_code ?? '-') }}</td>
                                             <td class="px-4 py-3">
                                                 @if ($c->inspection)
-                                                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold border {{ $c->inspection->status === 'damage' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200' }}">
+                                                    <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold border {{ $c->inspection->status === 'damage' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200' }}">
                                                         {{ strtoupper($c->inspection->status) }}
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
+                                                    <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
                                                         NOT INSPECTED
                                                     </span>
                                                 @endif
@@ -133,7 +133,7 @@
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Part Number</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                                         Tag
-                                        <button type="button" id="add-tag-btn" class="ml-3 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
+                                        <button type="button" id="add-tag-btn" class="ml-3 px-3 py-1.5 bg-blue-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
                                             + Add TAG
                                         </button>
                                     </th>
@@ -155,18 +155,18 @@
                                         <div class="text-xs text-slate-600 mt-0.5">{{ $arrivalItem->part?->part_name_gci ?? $arrivalItem->part?->part_name_vendor ?? '-' }}</div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="text" name="tags[0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                        <input type="text" name="tags[0][tag]" placeholder="TAG-001" class="w-40 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required />
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="text" name="tags[0][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" data-qr-location-input />
+                                        <input type="text" name="tags[0][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" data-qr-location-input />
                                     </td>
                                     <td class="px-6 py-4">
                                         @php
                                             $defaultBundleUnit = strtoupper($arrivalItem->unit_bundle ?? 'PALLET');
                                         @endphp
                                         <div class="flex items-center gap-2">
-                                            <input type="number" name="tags[0][bundle_qty]" min="0" value="0" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
-                                            <select name="tags[0][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                                            <input type="number" name="tags[0][bundle_qty]" min="0" value="0" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required />
+                                            <select name="tags[0][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required>
                                                 <option value="PALLET" @selected($defaultBundleUnit === 'PALLET')>PALLET</option>
                                                 <option value="BUNDLE" @selected($defaultBundleUnit === 'BUNDLE')>BUNDLE</option>
                                                 <option value="BOX" @selected($defaultBundleUnit === 'BOX')>BOX</option>
@@ -178,7 +178,7 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2">
-                                            <input type="number" name="tags[0][qty]" min="1" placeholder="0" class="w-36 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                                            <input type="number" name="tags[0][qty]" min="1" placeholder="0" class="w-36 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required />
                                             <input type="hidden" name="tags[0][qty_unit]" value="{{ strtoupper($arrivalItem->unit_goods ?? 'KGM') }}" />
                                             <div class="text-sm py-2 text-slate-700 font-semibold">{{ strtoupper($arrivalItem->unit_goods ?? 'KGM') }}</div>
                                         </div>
@@ -189,7 +189,7 @@
                                             name="tags[0][net_weight]"
                                             step="0.01"
                                             placeholder="0.00"
-                                            class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2"
+                                            class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2"
                                         />
                                     </td>
                                     <td class="px-6 py-4">
@@ -198,11 +198,11 @@
                                             name="tags[0][gross_weight]"
                                             step="0.01"
                                             placeholder="0.00"
-                                            class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2"
+                                            class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2"
                                         />
                                     </td>
                                     <td class="px-6 py-4">
-                                        <select name="tags[0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                                        <select name="tags[0][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required>
                                             <option value="pass">Pass</option>
                                             <option value="reject">Reject</option>
                                         </select>
@@ -216,7 +216,7 @@
 
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
                     <a href="{{ route('receives.index') }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</a>
-                    <button type="submit" class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
+                    <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
                         Save Receive
                     </button>
                 </div>
@@ -276,15 +276,15 @@
                     <div class="text-xs text-slate-600 mt-0.5">${partName}</div>
                 </td>
                 <td class="px-6 py-4">
-                    <input type="text" name="tags[${tagIndex}][tag]" placeholder="TAG-00${tagIndex + 1}" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                    <input type="text" name="tags[${tagIndex}][tag]" placeholder="TAG-00${tagIndex + 1}" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required />
                 </td>
                 <td class="px-6 py-4">
-                    <input type="text" name="tags[${tagIndex}][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" data-qr-location-input />
+                    <input type="text" name="tags[${tagIndex}][location_code]" placeholder="RACK-A1" class="w-40 uppercase rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" data-qr-location-input />
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
-                        <input type="number" name="tags[${tagIndex}][bundle_qty]" min="0" value="0" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
-                        <select name="tags[${tagIndex}][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                        <input type="number" name="tags[${tagIndex}][bundle_qty]" min="0" value="0" class="w-20 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required />
+                        <select name="tags[${tagIndex}][bundle_unit]" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required>
                             <option value="PALLET" ${defaultBundleUnit === 'PALLET' ? 'selected' : ''}>PALLET</option>
                             <option value="BUNDLE" ${defaultBundleUnit === 'BUNDLE' ? 'selected' : ''}>BUNDLE</option>
                             <option value="BOX" ${defaultBundleUnit === 'BOX' ? 'selected' : ''}>BOX</option>
@@ -296,19 +296,19 @@
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
-                        <input type="number" name="tags[${tagIndex}][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required />
+                        <input type="number" name="tags[${tagIndex}][qty]" min="1" placeholder="0" class="w-28 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required />
                         <input type="hidden" name="tags[${tagIndex}][qty_unit]" value="${goodsUnit}" />
                         <div class="text-sm py-2 text-slate-700 font-semibold">${goodsUnit}</div>
                     </div>
                 </td>
                 <td class="px-6 py-4">
-                    <input type="number" name="tags[${tagIndex}][net_weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                    <input type="number" name="tags[${tagIndex}][net_weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" />
                 </td>
                 <td class="px-6 py-4">
-                    <input type="number" name="tags[${tagIndex}][gross_weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" />
+                    <input type="number" name="tags[${tagIndex}][gross_weight]" step="0.01" placeholder="0.00" class="w-32 rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" />
                 </td>
                 <td class="px-6 py-4">
-                    <select name="tags[${tagIndex}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2" required>
+                    <select name="tags[${tagIndex}][qc_status]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-2" required>
                         <option value="pass">Pass</option>
                         <option value="reject">Reject</option>
                     </select>

@@ -211,7 +211,7 @@
 							<span class="text-xs text-slate-500">{{ $selectedDate->translatedFormat('l') }}</span>
 							@if($rows->isNotEmpty())
 								<span
-									class="ml-2 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
+									class="ml-2 px-2 py-0.5 rounded-xl bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
 									{{ $rows->count() }} FG Parts
 								</span>
 							@endif
@@ -247,7 +247,7 @@
 							<thead>
 								<tr>
 									<th class="px-1 py-3 text-center min-w-[36px] s-col" style="left:0">
-										<input type="checkbox" id="selectAll" class="rounded border-slate-300 cursor-pointer"
+										<input type="checkbox" id="selectAll" aria-label="Select all parts" class="rounded border-slate-300 cursor-pointer"
 											onchange="document.querySelectorAll('input[name=\\'selected[]\\']').forEach(cb => cb.checked = this.checked)">
 									</th>
 									<th class="px-2 py-3 text-left min-w-[44px] s-col" style="left:36px">No</th>
@@ -466,11 +466,10 @@
 												<div class="trip-grid">
 													@for($t = 1; $t <= 14; $t++)
 														<div class="trip-input-box">
-															<label
-																class="text-[10px] font-bold text-green-700 block text-center mb-0.5">Trip
+															<label for="trip-{{ $rowKey }}-{{ $t }}" class="text-[10px] font-bold text-green-700 block text-center mb-0.5">Trip
 																{{ $t }}</label>
 															<input type="number" min="0" value="{{ $row->trips[$t] ?: '' }}"
-																placeholder="-" data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}"
+																placeholder="-" data-part="{{ $row->gci_part_id }}" data-trip="{{ $t }}" id="trip-{{ $rowKey }}-{{ $t }}"
 																data-source="{{ $rowSource }}" data-rowkey="{{ $rowKey }}"
 																data-po-item-id="{{ $row->outgoing_po_item_id ?? '' }}"
 																oninput="recalcRow('{{ $rowKey }}')"

@@ -341,7 +341,7 @@
                                             <td class="px-4 py-3 text-right">
                                                 <div class="flex items-center justify-end gap-2">
                                                     <button type="button"
-                                                        class="p-1 px-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-xs transition-colors"
+                                                        class="p-1 px-3 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-xs transition-colors"
                                                         @click="editComponent(c)">
                                                         EDIT
                                                     </button>

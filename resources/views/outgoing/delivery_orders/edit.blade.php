@@ -26,9 +26,9 @@
 
             <!-- DO Number -->
             <div>
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">DO
+                <label for="do_no" class="text-xs font-bold text-slate-500 uppercase tracking-widest">DO
                     Number</label>
-                <input type="text" name="do_no" value="{{ old('do_no', $deliveryOrder->do_no) }}"
+                <input type="text" name="do_no" id="do_no" value="{{ old('do_no', $deliveryOrder->do_no) }}"
                     placeholder="E.g. DO/2026/001"
                     class="mt-2 w-full rounded-xl border-slate-200 @error('do_no') border-red-500 @enderror focus:ring-indigo-500 focus:border-indigo-500">
                 @error('do_no')
@@ -38,9 +38,9 @@
 
             <!-- DO Date -->
             <div>
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">DO
+                <label for="do_date" class="text-xs font-bold text-slate-500 uppercase tracking-widest">DO
                     Date</label>
-                <input type="date" name="do_date" value="{{ old('do_date', $deliveryOrder->do_date->format('Y-m-d')) }}"
+                <input type="date" name="do_date" id="do_date" value="{{ old('do_date', $deliveryOrder->do_date->format('Y-m-d')) }}"
                     class="mt-2 w-full rounded-xl border-slate-200 @error('do_date') border-red-500 @enderror focus:ring-indigo-500 focus:border-indigo-500">
                 @error('do_date')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -49,8 +49,8 @@
 
             <!-- Customer -->
             <div>
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Customer (Optional)</label>
-                <input type="text" name="customer" value="{{ old('customer', $deliveryOrder->customer) }}"
+                <label for="customer" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Customer (Optional)</label>
+                <input type="text" name="customer" id="customer" value="{{ old('customer', $deliveryOrder->customer) }}"
                     placeholder="Enter customer name"
                     class="mt-2 w-full rounded-xl border-slate-200 @error('customer') border-red-500 @enderror focus:ring-indigo-500 focus:border-indigo-500">
                 @error('customer')
@@ -60,8 +60,8 @@
 
             <!-- Notes -->
             <div>
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Notes</label>
-                <textarea name="notes" rows="4"
+                <label for="notes" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Notes</label>
+                <textarea name="notes" id="notes" rows="4"
                     placeholder="Additional notes for this delivery order"
                     class="mt-2 w-full rounded-xl border-slate-200 @error('notes') border-red-500 @enderror focus:ring-indigo-500 focus:border-indigo-500">{{ old('notes', $deliveryOrder->notes) }}</textarea>
                 @error('notes')

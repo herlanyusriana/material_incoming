@@ -279,7 +279,7 @@
                     <div class="mt-6 flex flex-wrap gap-4 items-end border-t border-slate-100 pt-6">
                         <form method="GET" class="flex flex-wrap items-end gap-3">
                             <div>
-                                <label
+                                <label for="bom-search"
                                     class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Search</label>
                                 <div class="relative">
                                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
@@ -287,16 +287,17 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
-                                    <input name="q" value="{{ $q ?? '' }}"
+                                    <input id="bom-search" name="q" value="{{ $q ?? '' }}"
                                         class="w-full pl-9 rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="Part no / name...">
                                 </div>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Part
+                                <label for="bom-gci"
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Part
                                     GCI</label>
-                                <select name="gci_part_id"
+                                <select id="bom-gci" name="gci_part_id"
                                     class="rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">All Part GCI</option>
                                     @foreach ($fgParts as $p)
@@ -353,11 +354,13 @@
                             </form>
                             <a href="{{ route('outgoing.product-mapping') }}#where-used"
                                 class="inline-flex items-center rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
-                                🔍 Where-Used
+                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                Where-Used
                             </a>
                             <a href="{{ route('planning.boms.explosion-search') }}"
                                 class="inline-flex items-center rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">
-                                🌳 Explosion
+                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v18h18M7 14l3-3 4 4 5-6" /></svg>
+                                Explosion
                             </a>
                         </div>
                     </div>
@@ -441,7 +444,10 @@
                                                 <input type="hidden" name="status"
                                                     value="{{ $bom->status === 'active' ? 'inactive' : 'active' }}">
                                                 <button type="submit" class="action-btn hover:bg-slate-100"
-                                                    title="Toggle status ke {{ $bom->status === 'active' ? 'Inactive' : 'Active' }}">✎</button>
+                                                    title="Toggle status ke {{ $bom->status === 'active' ? 'Inactive' : 'Active' }}"
+                                                    aria-label="Toggle status ke {{ $bom->status === 'active' ? 'Inactive' : 'Active' }}">
+                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                </button>
                                             </form>
                                             <button type="button" class="action-btn hover:bg-indigo-50 text-indigo-700"
                                                 title="Change FG" @click="openChangeFg(@js([
@@ -454,7 +460,9 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="action-btn hover:bg-red-50 text-red-600"
-                                                    title="Delete">🗑</button>
+                                                    title="Delete" aria-label="Delete">
+                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
                                             </form>
                                         </div>
                                     </td>
@@ -551,7 +559,8 @@
                                                             'delete_url' => route('planning.bom-item-substitutes.destroy', $s),
                                                         ])->values(),
                                                     ]))">
-                                                    ♻ Subs
+                                                    <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                    Subs
                                                     @if ($subCount > 0)
                                                         <span
                                                             class="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-orange-600 text-white text-[9px] font-bold">
@@ -559,7 +568,7 @@
                                                         </span>
                                                     @endif
                                                 </button>
-                                                <button type="button" class="action-btn hover:bg-slate-100" title="Edit" @click="openLineModal(@js([
+                                                <button type="button" class="action-btn hover:bg-slate-100" title="Edit" aria-label="Edit" @click="openLineModal(@js([
                                                     'mode' => 'edit',
                                                     'action' => route('planning.boms.items.store', $bom),
                                                     'bom_item_id' => $item->id,
@@ -592,7 +601,7 @@
                                                     'scrap_factor' => $item->scrap_factor,
                                                     'yield_factor' => $item->yield_factor,
                                                 ]))">
-                                                    ✎
+                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                 </button>
                                                 <form action="{{ route('planning.boms.items.destroy', $item) }}" method="POST"
                                                     class="inline" onsubmit="return confirm('Delete BOM line?')">
@@ -687,8 +696,8 @@
                     <form action="{{ route('planning.boms.store') }}" method="POST" class="px-5 py-4 space-y-4">
                         @csrf
                         <div>
-                            <label class="text-sm font-semibold text-slate-700">FG Part (Part GCI)</label>
-                            <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
+                            <label for="bom-fg-part" class="text-sm font-semibold text-slate-700">FG Part (Part GCI)</label>
+                            <select id="bom-fg-part" name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
                                 <option value="" disabled selected>Select part</option>
                                 @foreach ($fgParts as $p)
                                     <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
@@ -696,8 +705,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="text-sm font-semibold text-slate-700">Status</label>
-                            <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required>
+                            <label for="bom-status" class="text-sm font-semibold text-slate-700">Status</label>
+                            <select id="bom-status" name="status" class="mt-1 w-full rounded-xl border-slate-200" required>
                                 <option value="active" selected>Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
@@ -747,8 +756,8 @@
                         </div>
 
                         <div>
-                            <label class="text-sm font-semibold text-slate-700">File</label>
-                            <input type="file" name="file" accept=".xlsx,.xls,.csv"
+                            <label for="bom-import-file" class="text-sm font-semibold text-slate-700">File</label>
+                            <input id="bom-import-file" type="file" name="file" accept=".xlsx,.xls,.csv"
                                 class="mt-1 w-full rounded-xl border-slate-200" required>
                         </div>
 
@@ -811,7 +820,7 @@
                                 <div class="flex justify-between items-center">
                                     <div>Upload Excel dengan kolom:</div>
                                     <a href="{{ route('planning.boms.substitutes.template') }}"
-                                        class="text-xs text-blue-600 hover:text-blue-800 underline font-semibold">Download
+                                        class="text-xs text-indigo-600 hover:text-indigo-800 underline font-semibold">Download
                                         Template</a>
                                 </div>
                                 <div class="font-mono text-xs bg-slate-100 p-2 rounded">fg_part_no, fg_part_name,
@@ -859,7 +868,7 @@
                                 <div class="flex justify-between items-center">
                                     <div>Upload Excel mapping:</div>
                                     <a href="{{ route('planning.boms.substitutes.template-mapping') }}"
-                                        class="text-xs text-blue-600 hover:text-blue-800 underline font-semibold">Download
+                                        class="text-xs text-indigo-600 hover:text-indigo-800 underline font-semibold">Download
                                         Template</a>
                                 </div>
                                 <div class="font-mono text-xs bg-slate-100 p-2 rounded">component_part_no,
@@ -1454,7 +1463,9 @@
                                                         @method('DELETE')
                                                         <button type="submit"
                                                             class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-slate-200 hover:bg-red-50 text-red-600"
-                                                            title="Delete">🗑</button>
+                                                            title="Delete" aria-label="Delete">
+                                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        </button>
                                                     </form>
                                                 </td>
                                             </tr>

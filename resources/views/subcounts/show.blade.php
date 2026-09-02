@@ -53,7 +53,7 @@
                         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div>
                                 <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Packaging</div>
-                                <h2 class="mt-1 text-xl font-black text-slate-900">{{ number_format((int) $record->packaging_qty) }} {{ strtoupper($record->packaging_type ?? '-') }}</h2>
+                                <h2 class="mt-1 text-xl font-black text-slate-900 tabular-nums">{{ number_format((int) $record->packaging_qty) }} {{ strtoupper($record->packaging_type ?? '-') }}</h2>
                                 <div class="mt-1 text-sm font-semibold text-slate-500">{{ $record->packaging_id }}</div>
                             </div>
                             <div class="grid grid-cols-2 gap-2 text-center text-xs">
@@ -93,13 +93,13 @@
                                 <div class="text-sm font-black text-slate-900">Input Netto Web</div>
                                 <p class="mt-1 text-xs text-slate-500">Netto harus lebih kecil dari brutto. Kalau lebih besar, barang perlu timbang ulang.</p>
                                 <div class="mt-4">
-                                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Netto (kg)</label>
-                                    <input type="number" step="0.001" min="0" max="{{ max(0, (float) $record->gross_weight_kg - 0.001) }}" name="net_item_weight_kg" value="{{ old('net_item_weight_kg', (float) $record->net_item_weight_kg > 0 ? (float) $record->net_item_weight_kg : '') }}" class="mt-1 w-full rounded-xl border-slate-300 text-sm font-bold focus:border-indigo-500 focus:ring-indigo-500" required>
+                                    <label for="net_item_weight_kg" class="text-xs font-bold uppercase tracking-wider text-slate-500">Netto (kg)</label>
+                                    <input id="net_item_weight_kg" type="number" step="0.001" min="0" max="{{ max(0, (float) $record->gross_weight_kg - 0.001) }}" name="net_item_weight_kg" value="{{ old('net_item_weight_kg', (float) $record->net_item_weight_kg > 0 ? (float) $record->net_item_weight_kg : '') }}" class="mt-1 w-full rounded-xl border-slate-300 text-sm font-bold focus:border-indigo-500 focus:ring-indigo-500" required>
                                 </div>
                                 @error('net_item_weight_kg')
                                     <div class="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{{ $message }}</div>
                                 @enderror
-                                <button class="mt-4 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Simpan Netto</button>
+                                <button class="mt-4 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed">Simpan Netto</button>
                             </form>
                         </div>
                     </div>

@@ -10,7 +10,7 @@
                     <h2 class="text-xl font-semibold text-slate-900">Smart Application System</h2>
                     <p class="text-sm text-slate-500">Central hub for departures and receiving activities</p>
                 </div>
-                <span class="px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-blue-50 text-blue-600 rounded-full">Module Overview</span>
+                <span class="px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-indigo-50 text-indigo-600 rounded-full">Module Overview</span>
             </div>
 
             <div class="mt-6 grid gap-4 sm:grid-cols-2">

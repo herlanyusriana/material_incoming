@@ -24,9 +24,9 @@
     <div class="flex items-start justify-between">
         <div class="flex-1 min-w-0">
             <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold truncate">{{ $label }}</div>
-            <div class="mt-2 text-3xl font-black text-slate-900">{{ $value }}</div>
+            <div class="mt-2 text-3xl font-black text-slate-900 tabular-nums">{{ $value }}</div>
             @if($subtitle)
-                <div class="text-xs text-slate-400 mt-1">{{ $subtitle }}</div>
+                <div class="text-xs text-slate-500 mt-1">{{ $subtitle }}</div>
             @endif
             @if($trend)
                 <div class="mt-2 inline-flex items-center gap-1 text-xs font-semibold {{ $trendUp ? 'text-emerald-600' : 'text-rose-600' }}">
