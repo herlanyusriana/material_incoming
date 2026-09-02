@@ -66,3 +66,7 @@ route_list.json
 route_list.txt
 out.txt
 generate_erd_presentation.py
+.gstack/
+
+# Claude Code local settings (may contain API keys/tokens)
+.claude/settings.local.json
