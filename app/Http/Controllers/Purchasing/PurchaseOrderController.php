@@ -21,13 +21,17 @@ class PurchaseOrderController extends Controller
 {
     use LogsActivity;
 
-    public function index()
+    public function index(Request $request)
     {
-        $orders = PurchaseOrder::with(['vendor', 'items.part'])
-            ->latest()
-            ->paginate(15);
+        $changed = $request->boolean('changed');
 
-        return view('purchasing.purchase-orders.index', compact('orders'));
+        $orders = PurchaseOrder::with(['vendor', 'items.part'])
+            ->when($changed, fn ($q) => $q->recentlyChanged())
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('purchasing.purchase-orders.index', compact('orders', 'changed'));
     }
 
     public function create(Request $request)

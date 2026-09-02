@@ -50,7 +50,7 @@
                         @endif
                     </form>
 
-                    <a href="{{ route('inventory.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">
+                    <a href="{{ route('stock-card.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">
                         Inventory Summary
                     </a>
                 </div>

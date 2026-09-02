@@ -32,6 +32,23 @@
                         <h2 class="text-xl font-bold text-slate-900 tracking-tight">Purchase Order List</h2>
                         <p class="text-sm text-slate-500 mt-1">Official purchase orders sent to vendors.</p>
                     </div>
+                    <div class="flex items-center gap-2">
+                        @if($changed)
+                            <a href="{{ route('purchasing.purchase-orders.index') }}"
+                                class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
+                                Show All POs
+                            </a>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 19h14.14a1 1 0 00.87-1.5L12.87 3.5a1 1 0 00-1.74 0L4.07 17.5a1 1 0 00.87 1.5z"/></svg>
+                                Changed (last 7 days)
+                            </span>
+                        @else
+                            <a href="{{ route('purchasing.purchase-orders.index', ['changed' => 1]) }}"
+                                class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
+                                Changed PO Queue
+                            </a>
+                        @endif
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">

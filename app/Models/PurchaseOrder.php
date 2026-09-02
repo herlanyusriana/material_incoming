@@ -53,4 +53,13 @@ class PurchaseOrder extends Model
     {
         return $this->hasOne(\App\Models\NewSchema\Incoming\IncomingArrival::class, 'po_no', 'po_number');
     }
+
+    /**
+     * PO yang berubah (status/qty/dll.) dalam N hari terakhir — dipakai badge
+     * "Changed PO" di sidebar & queue daftar.
+     */
+    public function scopeRecentlyChanged($query, int $days = 7)
+    {
+        return $query->where('updated_at', '>=', now()->subDays($days));
+    }
 }

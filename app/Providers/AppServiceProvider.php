@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Models\RolePermission;
 use App\View\Compilers\ResettingBladeCompiler;
 use Illuminate\View\DynamicComponent;
+use Illuminate\Support\Facades\View;
+use App\Models\PurchaseOrder;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -60,6 +62,12 @@ class AppServiceProvider extends ServiceProvider
         // API rate limiter (referenced by `throttle:api` groups in routes/api.php)
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Badge util: count of Purchase Orders changed (status/qty/etc.) recently.
+        // Shared only into the sidebar-links view (rendered on every page).
+        View::composer('layouts.sidebar-links', function ($view) {
+            $view->with('changedPoCount', PurchaseOrder::query()->recentlyChanged()->count());
         });
     }
 }

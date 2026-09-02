@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WarehouseQcController;
 use App\Http\Controllers\WarehousePutawayController;
 
-Route::middleware('can:manage_warehouse')->prefix('warehouse')->name('warehouse.')->group(function () {
+Route::middleware('can:manage_inventory')->prefix('warehouse')->name('warehouse.')->group(function () {
     Route::get('/qc', [WarehouseQcController::class, 'index'])->name('qc.index');
     Route::post('/qc/{receive}', [WarehouseQcController::class, 'update'])->name('qc.update');
 

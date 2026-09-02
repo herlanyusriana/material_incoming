@@ -7,7 +7,8 @@ use App\Http\Controllers\WarehouseLocationController;
 use App\Http\Controllers\StockCardController;
 
 Route::middleware('can:manage_inventory')->group(function () {
-    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    // Master Inventory di-fusion ke Stock Card — redirect agar bookmark/link lama tetap jalan.
+    Route::get('/inventory', fn() => redirect()->route('stock-card.index'))->name('inventory.index');
 
     // Stock Card — saldo stok real-time per part (RM + FG) + drill-down mutasi
     Route::get('/stock-card', [StockCardController::class, 'index'])->name('stock-card.index');
@@ -15,14 +16,11 @@ Route::middleware('can:manage_inventory')->group(function () {
     Route::get('/stock-card/mutations/{gciPartId}', [StockCardController::class, 'mutations'])->name('stock-card.mutations');
     Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
     Route::get('/inventory/receives/search', [InventoryController::class, 'searchReceives'])->name('inventory.receives.search');
-    Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/import', [InventoryController::class, 'import'])->name('inventory.import');
-    Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
-    Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
 
-    // GCI Inventory — index merged into /inventory, keep API endpoints
-    Route::get('/inventory/gci', fn() => redirect()->route('inventory.index'))->name('inventory.gci.index');
+    // GCI Inventory — index merged into Stock Card, keep API endpoints
+    Route::get('/inventory/gci', fn() => redirect()->route('stock-card.index'))->name('inventory.gci.index');
     Route::get('/inventory/gci/export', [GciInventoryController::class, 'export'])->name('inventory.gci.export');
     Route::post('/inventory/gci/update-location', [GciInventoryController::class, 'updateLocation'])->name('inventory.gci.update-location');
     Route::post('/inventory/gci/update-stock', [GciInventoryController::class, 'updateStock'])->name('inventory.gci.update-stock');

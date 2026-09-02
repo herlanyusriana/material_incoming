@@ -1,6 +1,8 @@
 @props([
     'href',
     'active' => false,
+    'badge' => null,
+    'badgeColor' => 'indigo',
 ])
 
 @php
@@ -18,4 +20,9 @@
         'bg-slate-300 group-hover:bg-indigo-400' => !$active,
     ])></span>
     <span class="flex-1 truncate">{{ $slot }}</span>
+    @if($badge !== null)
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-{{ $badgeColor }}-100 text-{{ $badgeColor }}-700">
+            {{ $badge }}
+        </span>
+    @endif
 </a>

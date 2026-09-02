@@ -37,7 +37,7 @@ return [
             'view_incoming',
             'view_logistics',
             'manage_incoming',
-            'manage_warehouse',
+            'manage_inventory',
             'manage_subcounts',
         ],
         'purchasing' => [
@@ -83,7 +83,6 @@ return [
         // Material Incoming / Warehouse
         'view_incoming',       // View incoming material dashboard
         'manage_incoming',     // Scan arrival, print QR
-        'manage_warehouse',    // Warehouse operations (QC, putaway, transfer, return, adjustment)
         'manage_subcounts',    // Manage subcounts
 
         // Logistics

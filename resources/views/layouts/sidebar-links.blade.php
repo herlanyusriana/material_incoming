@@ -61,7 +61,8 @@
 <x-sidebar.section label="Purchasing">
     <x-sidebar.group label="Purchasing" icon="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" active="{{ request()->routeIs('purchasing.*') }}">
         <x-sidebar.sub-link href="{{ route('purchasing.purchase-requests.index') }}" active="{{ request()->routeIs('purchasing.purchase-requests.*') }}">Purchase Requests</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('purchasing.purchase-orders.index') }}" active="{{ request()->routeIs('purchasing.purchase-orders.*') }}">Purchase Orders</x-sidebar.sub-link>
+        <x-sidebar.sub-link href="{{ route('purchasing.purchase-orders.index') }}" active="{{ request()->routeIs('purchasing.purchase-orders.*') && !request('changed') }}">Purchase Orders</x-sidebar.sub-link>
+        <x-sidebar.sub-link href="{{ route('purchasing.purchase-orders.index', ['changed' => 1]) }}" active="{{ request()->routeIs('purchasing.purchase-orders.index') && request('changed') }}" badge="{{ ($changedPoCount ?? 0) > 0 ? $changedPoCount : '' }}" badgeColor="rose">Changed PO</x-sidebar.sub-link>
     </x-sidebar.group>
 </x-sidebar.section>
 @endcan
@@ -142,15 +143,27 @@
 </x-sidebar.section>
 @endcan
 
-<!-- Warehouse -->
+<!-- Inventory -->
 @can('manage_inventory')
-<x-sidebar.section label="Warehouse">
-    <x-sidebar.group label="Warehouse Inventory" icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" active="{{ request()->routeIs('warehouse.*') || request()->routeIs('stock-card.*') }}">
+<x-sidebar.section label="Inventory">
+    <x-sidebar.group label="Stock Ledger" icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" active="{{ request()->routeIs('inventory.*') || request()->routeIs('warehouse.*') || request()->routeIs('stock-card.*') }}">
         <x-sidebar.sub-link href="{{ route('stock-card.index') }}" active="{{ request()->routeIs('stock-card.*') }}">Stock Card (Saldo)</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('warehouse.stock.index') }}" active="{{ request()->routeIs('warehouse.stock.index') }}">Stock by Location</x-sidebar.sub-link>
+    </x-sidebar.group>
+
+    <x-sidebar.group label="Lokasi" icon="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" active="{{ request()->routeIs('inventory.locations.*') }}">
+        <x-sidebar.sub-link href="{{ route('inventory.locations.index') }}" active="{{ request()->routeIs('inventory.locations.index') }}">Warehouse Locations</x-sidebar.sub-link>
+    </x-sidebar.group>
+
+    <x-sidebar.group label="Operasional" icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" active="{{ request()->routeIs('warehouse.bin-transfers.*') || request()->routeIs('warehouse.batch-transfers.*') || request()->routeIs('warehouse.stock-adjustments.*') || request()->routeIs('warehouse.stock-opname.*') || request()->routeIs('warehouse.stock.reconcile') || request()->routeIs('warehouse.qc.*') || request()->routeIs('warehouse.putaway.*') }}">
+        <x-sidebar.sub-link href="{{ route('warehouse.bin-transfers.index') }}" active="{{ request()->routeIs('warehouse.bin-transfers.*') || request()->routeIs('warehouse.batch-transfers.*') }}">Transfer (Bin &amp; Batch)</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('warehouse.stock-adjustments.index') }}" active="{{ request()->routeIs('warehouse.stock-adjustments.*') }}">Stock Adjustments</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('warehouse.stock-opname.index') }}" active="{{ request()->routeIs('warehouse.stock-opname.*') }}">Stock Opname</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('warehouse.stock.reconcile') }}" active="{{ request()->routeIs('warehouse.stock.reconcile') }}">Reconcile Stock</x-sidebar.sub-link>
+    </x-sidebar.group>
+
+    <x-sidebar.group label="Penerimaan" icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" active="{{ request()->routeIs('inventory.receives.*') }}">
+        <x-sidebar.sub-link href="{{ route('receives.index') }}" active="{{ request()->routeIs('inventory.receives.*') || request()->routeIs('receives.index') }}">Inventory Receives</x-sidebar.sub-link>
     </x-sidebar.group>
 </x-sidebar.section>
 @endcan
