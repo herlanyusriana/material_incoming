@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Bom;
 use App\Models\CustomerPartComponent;
 use App\Models\Forecast;
+use App\Models\GciPartVendor;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\MrpProductionPlan;
 use App\Models\MrpPurchasePlan;
 use App\Models\MrpRun;
 use App\Models\ProductionOrder;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use App\Services\MrpIncomingIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -270,7 +273,7 @@ class MrpController extends Controller
         }
 
         // Fetch plans directly (avoid eager-loading each run with all relations).
-        $purchaseSelect = ['part_id', 'plan_date'];
+        $purchaseSelect = ['id', 'part_id', 'plan_date'];
         if (Schema::hasColumn('mrp_purchase_plans', 'required_qty')) {
             $purchaseSelect[] = 'required_qty';
         }
@@ -279,6 +282,15 @@ class MrpController extends Controller
         }
         if (Schema::hasColumn('mrp_purchase_plans', 'planned_order_rec')) {
             $purchaseSelect[] = 'planned_order_rec';
+        }
+        if (Schema::hasColumn('mrp_purchase_plans', 'eta_week')) {
+            $purchaseSelect[] = 'eta_week';
+        }
+        if (Schema::hasColumn('mrp_purchase_plans', 'order_week')) {
+            $purchaseSelect[] = 'order_week';
+        }
+        if (Schema::hasColumn('mrp_purchase_plans', 'status')) {
+            $purchaseSelect[] = 'status';
         }
 
         $purchasePlans = MrpPurchasePlan::query()
@@ -309,6 +321,7 @@ class MrpController extends Controller
         $productionByPartMonth = []; // [part_id][Y-m] => [demand, planned]
         $purchaseByPartDate = [];    // [part_id][Y-m-d] => [demand, planned] (selected month only)
         $productionByPartDate = [];  // [part_id][Y-m-d] => [demand, planned] (selected month only)
+        $purchasePlanInfo = [];      // [part_id] => list of {id, eta_week, status, qty}
         $partIds = collect();
 
         $monthStartKey = $selectedMonth->format('Y-m-d');
@@ -321,6 +334,15 @@ class MrpController extends Controller
             $ppPlanned = (float) ($pp->planned_order_rec ?? $pp->net_required ?? 0);
             $purchaseByPartMonth[$pp->part_id][$ym]['demand'] = ($purchaseByPartMonth[$pp->part_id][$ym]['demand'] ?? 0) + $ppDemand;
             $purchaseByPartMonth[$pp->part_id][$ym]['planned'] = ($purchaseByPartMonth[$pp->part_id][$ym]['planned'] ?? 0) + $ppPlanned;
+
+            $purchasePlanInfo[$pp->part_id][] = [
+                'id' => (int) $pp->id,
+                'plan_date' => $dateKey,
+                'eta_week' => $pp->eta_week ?? null,
+                'order_week' => $pp->order_week ?? null,
+                'status' => $pp->status ?? 'pending',
+                'qty' => $ppPlanned,
+            ];
 
             if ($dateKey >= $monthStartKey && $dateKey <= $monthEndKey) {
                 $purchaseByPartDate[$pp->part_id][$dateKey]['demand'] = ($purchaseByPartDate[$pp->part_id][$dateKey]['demand'] ?? 0) + $ppDemand;
@@ -355,6 +377,17 @@ class MrpController extends Controller
             ->whereIn('gci_part_id', $partIds)
             ->groupBy('gci_part_id')
             ->pluck(DB::raw('SUM(qty_on_hand)'), 'gci_part_id');
+
+        // Vendor-bridge policy (MOQ / lead time) per part — local active vendor wins.
+        $vendorPolicyByPart = [];
+        if ($partIds->isNotEmpty()) {
+            $vendorPolicies = GciPartVendor::query()
+                ->whereIn('gci_part_id', $partIds->all())
+                ->where('status', 'active')
+                ->orderBy('min_order_qty', 'desc')
+                ->get(['gci_part_id', 'vendor_id', 'min_order_qty', 'lead_time_days'])
+                ->each(fn ($v) => $vendorPolicyByPart[(int) $v->gci_part_id] = $v);
+        }
 
         // Customer Part Mapping (LINE / CASE) for each GCI part.
         $mappingByPartId = [];
@@ -463,6 +496,28 @@ class MrpController extends Controller
             $mappedLines = $mapping ? implode(', ', array_keys($mapping['lines'] ?? [])) : '';
             $mappedCases = $mapping ? implode(', ', array_keys($mapping['cases'] ?? [])) : '';
 
+            // Buy-plan details for the summarize view (PO selection / approval). Keep the
+            // highest-impact (highest qty) non-rejected plan as the row's representative.
+            $buyPlans = $purchasePlanInfo[(int) $partId] ?? [];
+            $representative = null;
+            $bestQty = -1.0;
+            foreach ($buyPlans as $bp) {
+                if (($bp['status'] ?? 'pending') === 'rejected') {
+                    continue;
+                }
+                if ((float) $bp['qty'] > $bestQty) {
+                    $bestQty = (float) $bp['qty'];
+                    $representative = $bp;
+                }
+            }
+            $planIdsCsv = implode(',', array_column($buyPlans, 'id'));
+
+            $vendorPolicy = $vendorPolicyByPart[(int) $partId] ?? null;
+            $safetyStock = (float) ($part->safety_stock ?? 0);
+            $orderMultiple = (float) ($part->order_multiple ?? 0);
+            $minOrderQty = (float) ($vendorPolicy->min_order_qty ?? 0);
+            $leadTimeDays = $vendorPolicy->lead_time_days ?? null;
+
             $rowData = [
                 'part' => $part,
                 'initial_stock' => $startStock,
@@ -478,6 +533,16 @@ class MrpController extends Controller
                 'days' => $days,
                 'mapped_line' => $mappedLines,
                 'mapped_case' => $mappedCases,
+                'buy_plans' => $buyPlans,
+                'plan_ids' => $planIdsCsv,
+                'plan_id' => $representative['id'] ?? null,
+                'eta_week' => $representative['eta_week'] ?? null,
+                'order_week' => $representative['order_week'] ?? null,
+                'plan_status' => $representative['status'] ?? null,
+                'safety_stock' => $safetyStock,
+                'order_multiple' => $orderMultiple,
+                'min_order_qty' => $minOrderQty,
+                'lead_time_days' => $leadTimeDays,
             ];
 
             $mrpData[] = $rowData;
@@ -720,9 +785,8 @@ class MrpController extends Controller
 
     private function runMrpForWeek($minggu, $userId, $includeSaturday, bool $generateProductionOrders = false, ?string $targetMonth = null): ?array
     {
-        // Demand input:
-        // - Prefer Forecast period weekly (YYYY-Www) if present.
-        // - Fallback to monthly (YYYY-MM) by prorating to workdays inside this week.
+        // Demand input: monthly Forecast (period = YYYY-MM) only. The month's demand
+        // is prorated across the workdays that fall inside this ISO week.
 
         $run = MrpRun::create([
             'period' => $minggu,
@@ -753,100 +817,68 @@ class MrpController extends Controller
             return null;
         }
 
-        $forecastWeeklyRows = Forecast::query()
-            ->where('period', $minggu)
+        $mrpProductionPlanHasPlannedQty = Schema::hasColumn('mrp_production_plans', 'planned_qty');
+        $mrpProductionPlanHasNetRequired = Schema::hasColumn('mrp_production_plans', 'net_required');
+
+        // Monthly demand (period = YYYY-MM). Only months overlapping this week's workloads.
+        $demandPeriods = $targetMonth ? [$targetMonth] : array_values(array_unique(array_map(fn (string $d) => substr($d, 0, 7), $dates)));
+        $weeklyPlannedQtyByPart = []; // [part_id => qty] used for BOM explode
+
+        $forecastMonthlyRows = Forecast::query()
+            ->whereIn('period', $demandPeriods)
             ->where('qty', '>', 0)
             ->whereNotNull('part_id')
             ->select(['id', 'part_id', 'period', 'qty'])
             ->get();
 
-        $mrpProductionPlanHasPlannedQty = Schema::hasColumn('mrp_production_plans', 'planned_qty');
-        $mrpProductionPlanHasNetRequired = Schema::hasColumn('mrp_production_plans', 'net_required');
+        if ($forecastMonthlyRows->isEmpty()) {
+            $run->delete();
+            return null;
+        }
 
-        $forecastRows = $forecastWeeklyRows;
-        $weeklyPlannedQtyByPart = []; // [part_id => qty] used for BOM explode
+        $workdaysInMonthCache = [];
+        $datesByMonth = [];
+        foreach ($dates as $date) {
+            $ym = substr($date, 0, 7);
+            $datesByMonth[$ym][] = $date;
+        }
 
-        if ($forecastRows->isNotEmpty()) {
-            foreach ($forecastRows as $row) {
-                $plannedQty = (float) $row->qty;
-                if ($plannedQty <= 0) {
-                    continue;
-                }
-
-                $dailyQty = $plannedQty / count($dates);
-                $weeklyPlannedQtyByPart[(int) $row->part_id] = ($weeklyPlannedQtyByPart[(int) $row->part_id] ?? 0) + $plannedQty;
-
-                foreach ($dates as $date) {
-                    if ($dailyQty <= 0) {
-                        continue;
-                    }
-
-                    $payload = [
-                        'mrp_run_id' => $run->id,
-                        'part_id' => $row->part_id,
-                        'plan_date' => $date,
-                        'planned_order_rec' => $dailyQty,
-                    ];
-                    if ($mrpProductionPlanHasPlannedQty) {
-                        $payload['planned_qty'] = $dailyQty;
-                    }
-                    if ($mrpProductionPlanHasNetRequired) {
-                        $payload['net_required'] = 0;
-                    }
-
-                    MrpProductionPlan::create($payload);
-                }
-            }
-        } else {
-            $demandPeriods = $targetMonth ? [$targetMonth] : array_values(array_unique(array_map(fn (string $d) => substr($d, 0, 7), $dates)));
-
-            $forecastMonthlyRows = Forecast::query()
-                ->whereIn('period', $demandPeriods)
-                ->where('qty', '>', 0)
-                ->whereNotNull('part_id')
-                ->select(['id', 'part_id', 'period', 'qty'])
-                ->get();
-
-            if ($forecastMonthlyRows->isEmpty()) {
-                $run->delete();
-                return null;
+        foreach ($forecastMonthlyRows as $row) {
+            $monthKey = (string) $row->period;
+            $plannedQtyMonthly = (float) $row->qty;
+            if ($plannedQtyMonthly <= 0) {
+                continue;
             }
 
-            $workdaysInMonthCache = [];
-            $datesByMonth = [];
-            foreach ($dates as $date) {
-                $ym = substr($date, 0, 7);
-                $datesByMonth[$ym][] = $date;
+            $datesInThisWeekForMonth = $datesByMonth[$monthKey] ?? [];
+            if (empty($datesInThisWeekForMonth)) {
+                continue;
             }
 
-            foreach ($forecastMonthlyRows as $row) {
-                $monthKey = (string) $row->period;
-                $plannedQtyMonthly = (float) $row->qty;
-                if ($plannedQtyMonthly <= 0) {
-                    continue;
-                }
+            if (!array_key_exists($monthKey, $workdaysInMonthCache)) {
+                $workdaysInMonthCache[$monthKey] = $this->countWorkdaysInMonth($monthKey, (bool) $includeSaturday);
+            }
+            $workdaysInMonth = (int) ($workdaysInMonthCache[$monthKey] ?? 0);
+            if ($workdaysInMonth <= 0) {
+                continue;
+            }
 
-                $datesInThisWeekForMonth = $datesByMonth[$monthKey] ?? [];
-                if (empty($datesInThisWeekForMonth)) {
-                    continue;
-                }
+            $dailyQty = $plannedQtyMonthly / $workdaysInMonth;
+            $weeklyQty = $dailyQty * count($datesInThisWeekForMonth);
+            if ($weeklyQty <= 0) {
+                continue;
+            }
 
-                if (!array_key_exists($monthKey, $workdaysInMonthCache)) {
-                    $workdaysInMonthCache[$monthKey] = $this->countWorkdaysInMonth($monthKey, (bool) $includeSaturday);
-                }
-                $workdaysInMonth = (int) ($workdaysInMonthCache[$monthKey] ?? 0);
-                if ($workdaysInMonth <= 0) {
-                    continue;
-                }
+            $weeklyPlannedQtyByPart[(int) $row->part_id] = ($weeklyPlannedQtyByPart[(int) $row->part_id] ?? 0) + $weeklyQty;
 
-                $dailyQty = $plannedQtyMonthly / $workdaysInMonth;
-                $weeklyQty = $dailyQty * count($datesInThisWeekForMonth);
-                if ($weeklyQty <= 0) {
-                    continue;
-                }
-
-                $weeklyPlannedQtyByPart[(int) $row->part_id] = ($weeklyPlannedQtyByPart[(int) $row->part_id] ?? 0) + $weeklyQty;
-
+            // Only create a production (make) plan when this part actually has an active BOM.
+            // A top-level part with no BOM is a buy/resale item — it gets a purchase plan,
+            // NOT a production order. This avoids a no-BOM buy part getting both a production
+            // plan (here) and a purchase plan (fix #3) simultaneously.
+            if (Bom::query()
+                ->where('part_id', (int) $row->part_id)
+                ->where('status', 'active')
+                ->exists()) {
                 foreach ($datesInThisWeekForMonth as $date) {
                     $payload = [
                         'mrp_run_id' => $run->id,
@@ -864,11 +896,11 @@ class MrpController extends Controller
                     MrpProductionPlan::create($payload);
                 }
             }
+        }
 
-            if (empty($weeklyPlannedQtyByPart)) {
-                $run->delete();
-                return null;
-            }
+        if (empty($weeklyPlannedQtyByPart)) {
+            $run->delete();
+            return null;
         }
 
         // Calculate Requirements
@@ -877,9 +909,31 @@ class MrpController extends Controller
         $bomCache = [];
         $partNoCache = [];
 
+        // Pre-resolve which top-level parts have an active BOM. `explodeBomRequirements`
+        // only adds COMPONENTS to $requirements — never the parent — so a top-level part
+        // with NO active BOM would be dropped entirely. Such a part is a buy/resale item
+        // (drop-ship) or a raw-material bought directly, so route it to the buy section.
+        // Cache the Bom model itself so the explode below reuses it (not a raw bool).
+        foreach ($weeklyPlannedQtyByPart as $partId => $plannedQty) {
+            if (!array_key_exists($partId, $bomCache)) {
+                $bomCache[$partId] = Bom::query()
+                    ->with('items')
+                    ->where('part_id', (int) $partId)
+                    ->where('status', 'active')
+                    ->first() ?: false;
+            }
+        }
+
         foreach ($weeklyPlannedQtyByPart as $partId => $plannedQty) {
             // Explode BOM (multi-level) using BOM make/buy.
             $path = [];
+
+            if ($bomCache[$partId] === false) {
+                $componentMode[(int) $partId] = 'buy';
+                $requirements[(int) $partId] = ($requirements[(int) $partId] ?? 0) + $plannedQty;
+                continue;
+            }
+
             $this->explodeBomRequirements(
                 (int) $partId,
                 $plannedQty,
@@ -897,8 +951,32 @@ class MrpController extends Controller
         $incomingService = new MrpIncomingIntegrationService();
 
         foreach ($requirements as $partId => $requiredQty) {
+            // ── Phase 1: Safety stock (per-part manual column on gci_parts) ──
+            $part = GciPart::query()->find($partId);
+            $safetyStock = $part ? (float) ($part->safety_stock ?? 0) : 0;
+
+            // ── Phase 2: MOQ per vendor-part link (min_order_qty) + order_multiple round-up ──
+            $orderMultiple = $part ? (float) ($part->order_multiple ?? 0) : 0;
+            $minOrderQty = (float) GciPartVendor::query()
+                ->where('gci_part_id', $partId)
+                ->where('status', 'active')
+                ->orderBy('min_order_qty', 'desc')
+                ->value('min_order_qty') ?? 0;
+
             $onHand = (float) InventoryLocationStock::where('gci_part_id', $partId)->sum('qty_on_hand');
-            $onOrder = 0; // on_order is derived in the new schema, not stored
+
+            // Fix #1: on_order is committed quantity already on open vendor POs that has
+            // NOT yet arrived/received. `incoming_stock` (via $incomingService) already
+            // adds scheduled arrivals + receipts to available stock, so only subtract the
+            // PO balance that is still outstanding (status Pending/Approved → not Released,
+            // and qty − qty_received), excluding that which is already counted as incoming
+            // to avoid double-counting the same goods.
+            $onOrder = (float) PurchaseOrderItem::query()
+                ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_items.purchase_order_id')
+                ->where('purchase_order_items.part_id', $partId)
+                ->whereIn('purchase_orders.status', ['Pending', 'Approved'])
+                ->selectRaw('SUM(purchase_order_items.qty - purchase_order_items.qty_received) as balance')
+                ->value('balance') ?? 0;
 
             // Calculate incoming quantities for this period
             $incomingTotal = $incomingService->getTotalIncomingForPart($partId, $startDate->format('Y-m-d'), $dates[count($dates) - 1]);
@@ -906,7 +984,37 @@ class MrpController extends Controller
             // Adjust on-hand with incoming stock
             $adjustedOnHand = $onHand + $incomingTotal;
 
-            $netRequired = max(0, $requiredQty - $adjustedOnHand - $onOrder);
+            // Net requirement = demand + safety stock − available stock − on-order.
+            $netRequired = max(0, $requiredQty + $safetyStock - $adjustedOnHand - $onOrder);
+
+            // Apply MOQ: never order less than the vendor minimum, and round up to order_multiple.
+            if ($netRequired > 0) {
+                if ($minOrderQty > 0 && $netRequired < $minOrderQty) {
+                    $netRequired = $minOrderQty;
+                }
+                if ($orderMultiple > 0) {
+                    $netRequired = ceil($netRequired / $orderMultiple) * $orderMultiple;
+                }
+            }
+
+            // Weekly ETA bucket (phase 3): the planning week itself, in YYYY-Www.
+            // $minggu is already in o-WW format (e.g. "2026-W36"), so pass it through.
+            $etaWeek = $minggu;
+
+            // Fix #2: lead-time offset. Order week = ETA week − vendor lead_time_days so the
+            // PO is placed early enough to arrive by eta_week. Uses the same vendor link that
+            // supplies MOS/min_order_qty (active, highest min_order_qty) so the report matches.
+            $leadTimeDays = (int) (GciPartVendor::query()
+                ->where('gci_part_id', $partId)
+                ->where('status', 'active')
+                ->orderBy('min_order_qty', 'desc')
+                ->value('lead_time_days') ?? 0);
+            $orderWeek = $etaWeek;
+            if ($leadTimeDays > 0) {
+                $orderWeek = \Carbon\Carbon::createFromFormat('o-W', $etaWeek)
+                    ->subDays($leadTimeDays)
+                    ->format('o-W');
+            }
 
             $dailyNetRequired = $netRequired / count($dates);
             $dailyRequired = $requiredQty / count($dates);
@@ -926,6 +1034,7 @@ class MrpController extends Controller
                         if ($mrpProductionPlanHasNetRequired) {
                             $payload['net_required'] = $dailyNetRequired;
                         }
+                        $payload['status'] = 'pending'; // awaiting approval (phase 4)
                         MrpProductionPlan::create($payload);
                     }
                 } else {
@@ -934,12 +1043,15 @@ class MrpController extends Controller
                             'mrp_run_id' => $run->id,
                             'part_id' => $partId,
                             'plan_date' => $date,
+                            'eta_week' => $etaWeek,
+                            'order_week' => $orderWeek,
                             'required_qty' => $dailyRequired,
                             'on_hand' => $onHand,
                             'on_order' => $onOrder,
                             'incoming_stock' => $incomingTotal,
                             'net_required' => $dailyNetRequired,
                             'planned_order_rec' => $dailyNetRequired,
+                            'status' => 'pending', // awaiting approval (phase 4)
                         ]);
                     }
                 }
@@ -999,111 +1111,124 @@ class MrpController extends Controller
 
     public function generatePo(Request $request)
     {
-        // Expecting: items array [gci_part_id => qty]
-        $items = $request->input('items', []);
+        // Only APPROVED purchase plans may be converted into vendor POs (phase 4 → create PO).
+        // Accepted inputs: mrp_run_id (batch of approved plans) and/or plan_ids[].
+        $runId = (int) $request->input('mrp_run_id', 0);
+        $planIds = array_values(array_filter(array_map('intval', (array) $request->input('plan_ids', []))));
 
-        if (empty($items)) {
-            return back()->with('error', 'No items selected for PO.');
+        if ($runId <= 0 && empty($planIds)) {
+            return back()->with('error', 'Select a run or at least one approved plan to create a PO.');
         }
 
-        // Group by Vendor?
-        // Logic: All selected items must belong to LOCAL vendors for this feature?
-        // Or we create mixed?
-        // Constraint: We only support Local PO creation for now.
-        // We need to fetch parts to check vendors.
+        // Resolve the approved buy plans.
+        $plansQuery = MrpPurchasePlan::query()
+            ->where('status', 'approved')
+            ->with('part:id,part_no');
 
-        $gciPartIds = array_map('intval', array_keys($items));
-        $gciParts = \App\Models\GciPart::query()
-            ->whereIn('id', $gciPartIds)
-            ->get(['id', 'part_no']);
+        if ($runId > 0) {
+            $plansQuery->where('mrp_run_id', $runId);
+        }
+        if (!empty($planIds)) {
+            $plansQuery->orWhereIn('id', array_unique($planIds));
+        }
 
-        $gciById = $gciParts->keyBy('id');
-        $gciIdByNo = $gciParts
-            ->filter(fn ($p) => (string) ($p->part_no ?? '') !== '')
-            ->mapWithKeys(fn ($p) => [strtoupper(trim((string) $p->part_no)) => (int) $p->id])
-            ->all();
-        $partNos = $gciParts->pluck('part_no')->filter()->unique()->values()->all();
+        $plans = $plansQuery->get();
+        if ($plans->isEmpty()) {
+            return back()->with('error', 'No approved MRP plans found for PO generation.');
+        }
 
-        // Bridge to Incoming `parts` by part_no (we intentionally keep BOM/Planning in gci_parts only).
+        $gciPartIds = $plans->pluck('part_id')->unique()->map(fn ($id) => (int) $id)->all();
+
+        // Bridge to the Incoming `parts` view (read-only over gci_part_vendor) to get vendor_id + price.
         $parts = \App\Models\Part::with('vendor')
-            ->whereIn('part_no', $partNos)
+            ->whereIn('gci_part_id', $gciPartIds)
             ->get();
 
-        $partsByNo = $parts->keyBy(fn ($p) => strtoupper(trim((string) $p->part_no)));
+        $partsByGci = $parts->keyBy(fn ($p) => (int) $p->gci_part_id);
 
-        $missing = [];
-        foreach ($gciPartIds as $gciId) {
-            $pno = strtoupper(trim((string) ($gciById[$gciId]?->part_no ?? '')));
-            if ($pno === '' || !isset($partsByNo[$pno])) {
-                $missing[] = $pno !== '' ? $pno : ('ID:' . $gciId);
-            }
-        }
-        $missing = array_values(array_unique(array_filter($missing)));
+        $missing = $plans->pluck('part_id')
+            ->filter(fn ($gciId) => !isset($partsByGci[(int) $gciId]))
+            ->map(fn ($gciId) => (string) ($plans->firstWhere('part_id', $gciId)->part->part_no ?? ('ID:' . $gciId)))
+            ->unique()
+            ->values()
+            ->all();
+
         if (!empty($missing)) {
             $preview = implode(', ', array_slice($missing, 0, 10));
             $more = count($missing) > 10 ? (' … +' . (count($missing) - 10) . ' more') : '';
-            return back()->with('error', "Selected items are not registered in Incoming Part master (parts): {$preview}{$more}. Create Part master first (matching part_no).");
+            return back()->with('error', "Selected parts are not registered in Incoming Part master (parts): {$preview}{$more}. Create Part master first (matching part_no).");
         }
 
-        $nonLocalParts = $parts->filter(fn($p) => strtolower($p->vendor->vendor_type ?? '') !== 'local');
-
+        $nonLocalParts = $parts->filter(fn ($p) => strtolower($p->vendor->vendor_type ?? '') !== 'local');
         if ($nonLocalParts->isNotEmpty()) {
             return back()->with('error', 'Some selected parts are not from LOCAL vendors. Only Local POs are supported currently.');
         }
 
-        // Group by Vendor to create multiple POs if needed
-        // Only include selected parts, map from selected GCI ids -> incoming Part rows.
-        $selectedIncomingParts = collect($gciPartIds)
-            ->map(function (int $gciId) use ($gciById, $partsByNo) {
-                $pno = strtoupper(trim((string) ($gciById[$gciId]?->part_no ?? '')));
-                return $pno !== '' ? ($partsByNo[$pno] ?? null) : null;
-            })
-            ->filter()
-            ->unique('id')
-            ->values();
+        // Group approved plans by vendor for one PO per vendor.
+        $grouped = $plans->groupBy(fn ($plan) => (int) ($partsByGci[(int) $plan->part_id]->vendor_id ?? 0));
 
-        $grouped = $selectedIncomingParts->groupBy('vendor_id');
+        $created = 0;
+        DB::transaction(function () use ($grouped, $partsByGci, &$created) {
+            foreach ($grouped as $vendorId => $vendorPlans) {
+                if ($vendorId <= 0) {
+                    continue;
+                }
 
-        DB::transaction(function () use ($grouped, $items, $gciIdByNo) {
-            foreach ($grouped as $vendorId => $vendorParts) {
-                // Create Arrival (PO)
-                $poNo = 'PO-MRP-' . now()->format('ymdHis') . '-' . $vendorId;
+                $prevPo = \App\Models\PurchaseOrder::query()
+                    ->where('vendor_id', $vendorId)
+                    ->whereIn('status', ['Pending', 'Approved'])
+                    ->latest()
+                    ->first();
 
-                $arrival = \App\Models\Arrival::create([
-                    'invoice_no' => $poNo,
-                    'invoice_date' => now(), // PO Date
+                $po = \App\Models\PurchaseOrder::create([
+                    'po_number' => $prevPo?->po_number ?? ('PO-MRP-' . now()->format('ymdHis') . '-' . $vendorId),
                     'vendor_id' => $vendorId,
-                    'currency' => 'IDR', // Default
-                    'notes' => 'Generated from MRP',
-                    'created_by' => auth()->id(),
+                    'total_amount' => 0,
+                    'status' => 'Pending', // approval is the next step
+                    'notes' => 'Generated from MRP (approved plans)',
                 ]);
 
-                foreach ($vendorParts as $part) {
-                    $pno = strtoupper(trim((string) $part->part_no));
-                    $gciId = (int) ($gciIdByNo[$pno] ?? 0);
-                    $qty = (int) ($items[$gciId] ?? 0);
-                    if ($qty <= 0)
+                // Deduplicate plans that share a part across the group.
+                $seenParts = [];
+                $total = 0;
+                foreach ($vendorPlans as $plan) {
+                    $gciId = (int) $plan->part_id;
+                    if (isset($seenParts[$gciId])) {
                         continue;
+                    }
+                    $seenParts[$gciId] = true;
 
-                    $price = $part->price ?? 0;
+                    $partRow = $partsByGci[$gciId] ?? null;
+                    if (!$partRow) {
+                        continue;
+                    }
 
-                    $arrival->items()->create([
-                        'part_id' => $part->id,
-                        'qty_goods' => $qty,
-                        'unit_goods' => $part->uom && in_array($part->uom, ['PCS', 'COIL', 'SHEET', 'SET', 'EA', 'KGM', 'ROLL', 'UOM']) ? $part->uom : 'PCS',
-                        'price' => $price,
-                        'total_price' => $qty * $price,
-                        'qty_bundle' => 0,
-                        'unit_bundle' => 'PALLET',
-                        'unit_weight' => 'KGM',
-                        'weight_nett' => 0,
-                        'weight_gross' => 0,
+                    $qty = (float) ($plan->planned_order_rec > 0 ? $plan->planned_order_rec : $plan->net_required);
+                    if ($qty <= 0) {
+                        continue;
+                    }
+
+                    $price = (float) ($partRow->price ?? 0);
+                    $subtotal = $qty * $price;
+                    $total += $subtotal;
+
+                    $po->items()->create([
+                        'part_id' => $gciId,
+                        'vendor_part_id' => $partRow->id,
+                        'gci_part_vendor_id' => $partRow->id,
+                        'qty' => $qty,
+                        'unit_price' => $price,
+                        'subtotal' => $subtotal,
                     ]);
                 }
+
+                $po->update(['total_amount' => $total]);
+                $created++;
             }
         });
 
-        return redirect()->route('local-pos.index')->with('success', 'Local PO(s) generated successfully from MRP Selection.');
+        return redirect()->route('planning.mrp.index')
+            ->with('success', "{$created} vendor PO(s) created from approved MRP plans. Approve then release to send.");
     }
 
     /**
@@ -1130,6 +1255,119 @@ class MrpController extends Controller
         });
 
         return redirect()->route('planning.mrp.index')->with('success', 'All MRP data has been cleared.');
+    }
+
+    /**
+     * Approve MRP plans (phase 4). Batch by mrp_run_id or a set of plan_ids[].
+     */
+    public function approvePlans(Request $request)
+    {
+        $this->assertCanApprove($request);
+
+        $runId = (int) $request->input('mrp_run_id', 0);
+        $planIds = array_values(array_filter(array_map('intval', (array) $request->input('plan_ids', []))));
+
+        if ($runId <= 0 && empty($planIds)) {
+            return back()->with('error', 'Select a run or at least one plan to approve.');
+        }
+
+        $status = $request->input('status', 'approved');
+        $newStatus = $status === 'rejected' ? 'rejected' : 'approved';
+        $isApprove = $newStatus === 'approved';
+
+        $count = 0;
+        DB::transaction(function () use ($runId, $planIds, $newStatus, $isApprove, &$count) {
+            $apply = fn ($builder) => $builder->where('status', 'pending')->update([
+                'status' => $newStatus,
+                'approved_by' => auth()->id(),
+                'approved_at' => $isApprove ? now() : null,
+            ]);
+
+            if ($runId > 0) {
+                $count += $apply(MrpPurchasePlan::query()->where('mrp_run_id', $runId));
+                $count += $apply(MrpProductionPlan::query()->where('mrp_run_id', $runId));
+            }
+
+            $ids = array_values(array_unique($planIds));
+            if (!empty($ids)) {
+                $count += $apply(MrpPurchasePlan::query()->whereIn('id', $ids));
+                $count += $apply(MrpProductionPlan::query()->whereIn('id', $ids));
+            }
+        });
+
+        $verb = $isApprove ? 'approved' : 'rejected';
+        return redirect()->route('planning.mrp.index')
+            ->with('success', "{$count} plan(s) {$verb}.");
+    }
+
+    /**
+     * Reject MRP plans. Convenience wrapper around approvePlans().
+     */
+    public function rejectPlans(Request $request)
+    {
+        return $this->approvePlans($request->merge(['status' => 'rejected']));
+    }
+
+    private function assertCanApprove(Request $request): void
+    {
+        if (!auth()->user()?->can('approve_mrp')) {
+            abort(403, 'You are not authorized to approve MRP plans.');
+        }
+    }
+
+    /**
+     * Release a vendor PO (phase 5).
+     */
+    public function releasePo(Request $request, int $purchaseOrderId)
+    {
+        if (!auth()->user()?->can('release_po')) {
+            abort(403, 'You are not authorized to release purchase orders.');
+        }
+
+        $po = \App\Models\PurchaseOrder::query()->findOrFail($purchaseOrderId);
+
+        // Only a PO that has been approved may be released.
+        if (in_array($po->status, ['Released', 'Cancelled', 'Closed'])) {
+            return back()->with('error', "PO {$po->po_number} is already {$po->status}.");
+        }
+        if (!in_array($po->status, ['Approved', 'Pending'])) {
+            return back()->with('error', "PO {$po->po_number} cannot be released from '{$po->status}'.");
+        }
+
+        $po->update([
+            'status' => 'Released',
+            'released_by' => auth()->id(),
+            'released_at' => now(),
+        ]);
+
+        return back()->with('success', "PO {$po->po_number} released.");
+    }
+
+    /**
+     * Actualize a vendor PO: reconcile received qty vs ordered (phase 6).
+     */
+    public function actualizePo(Request $request, int $purchaseOrderId)
+    {
+        if (!auth()->user()?->can('manage_purchasing')) {
+            abort(403, 'You are not authorized to actualize purchase orders.');
+        }
+
+        $po = \App\Models\PurchaseOrder::query()->with('items')->findOrFail($purchaseOrderId);
+
+        $totalShort = 0;
+        foreach ($po->items as $item) {
+            $ordered = (float) ($item->qty ?? 0);
+            $received = (float) ($item->qty_received ?? 0);
+            $short = $ordered - $received;
+            $totalShort += max(0, $short);
+        }
+
+        $allFulfilled = $totalShort <= 0;
+        $po->update(['status' => $allFulfilled ? 'Closed' : 'Partially Received']);
+
+        return back()->with('success', $allFulfilled
+            ? "PO {$po->po_number} closed. All items received."
+            : "PO {$po->po_number} has {$totalShort} qty outstanding (partially received).");
     }
 
     /**

@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Planning;
 
 use App\Http\Controllers\Controller;
+use App\Imports\ForecastPlanImport;
 use App\Models\Forecast;
+use App\Models\ForecastDocument;
+use App\Models\ForecastDocumentRow;
 use App\Models\GciPart;
-use App\Services\Planning\ForecastGenerator;
+use App\Models\ForecastHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ForecastController extends Controller
 {
@@ -35,64 +40,6 @@ class ForecastController extends Controller
         return view('planning.forecasts.index', compact('parts', 'forecasts', 'period', 'partId'));
     }
 
-    public function preview(Request $request)
-    {
-        $period = $request->query('period'); // Monthly period filter
-
-        // Get all Customer POs (status open)
-        $customerPos = \App\Models\CustomerPo::query()
-            ->with(['part', 'customer'])
-            ->where('status', 'open')
-            ->whereNotNull('part_id')
-            ->when($period, fn($q) => $q->where('period', $period))
-            ->orderBy('period')
-            ->orderBy('id')
-            ->get();
-
-        // Get all Customer Planning Imports (files) that have accepted rows
-        $planningImports = \App\Models\CustomerPlanningImport::query()
-            ->with(['customer'])
-            ->withCount([
-                'rows as accepted_rows_count' => function ($q) {
-                    $q->where('row_status', 'accepted');
-                }
-            ])
-            ->withSum([
-                'rows as total_accepted_qty' => function ($q) {
-                    $q->where('row_status', 'accepted');
-                }
-            ], 'qty')
-            ->whereHas('rows', function ($q) {
-                $q->where('row_status', 'accepted');
-            })
-            ->orderBy('id', 'desc')
-            ->get();
-
-        return view('planning.forecasts.preview', compact('period', 'customerPos', 'planningImports'));
-    }
-
-    public function generate(Request $request)
-    {
-        $validated = $request->validate([
-            'selected_pos' => 'nullable|array',
-            'selected_pos.*' => 'exists:customer_pos,id',
-            'selected_imports' => 'nullable|array',
-            'selected_imports.*' => 'exists:customer_planning_imports,id',
-        ]);
-
-        $selectedPoIds = $validated['selected_pos'] ?? [];
-        $selectedImportIds = $validated['selected_imports'] ?? [];
-
-        if (empty($selectedPoIds) && empty($selectedImportIds)) {
-            return redirect()->back()->with('error', 'Please select at least one item.');
-        }
-
-        app(ForecastGenerator::class)->generateFromSelected(null, $selectedPoIds, [], $selectedImportIds);
-
-        return redirect()->route('planning.forecasts.index')
-            ->with('success', 'Forecast generated from selected sources.');
-    }
-
     /**
      * Clear all Forecast data
      */
@@ -105,7 +52,7 @@ class ForecastController extends Controller
 
             // Log the clear action
             \App\Models\ForecastHistory::create([
-                'user_id' => auth()->id(),
+                'changed_by' => auth()->user()?->name ?? auth()->user()?->username ?? 'system',
                 'action' => 'clear',
                 'parts_count' => $count,
                 'notes' => 'Cleared all forecast data',
@@ -120,10 +67,128 @@ class ForecastController extends Controller
      */
     public function history(Request $request)
     {
-        $histories = \App\Models\ForecastHistory::with('user')
+        $histories = \App\Models\ForecastHistory::query()
             ->orderBy('created_at', 'desc')
             ->paginate(50);
 
         return view('planning.forecasts.history', compact('histories'));
+    }
+
+    /**
+     * Upload a PT LG plan Excel, parse it, store as a preview document, and
+     * show the preview (mapped + unmapped rows) for confirmation.
+     */
+    public function previewPlan(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        try {
+            $import = new ForecastPlanImport();
+            Excel::import($import, $validated['file']);
+
+            if (!empty($import->failures)) {
+                return back()->with('error', implode(' ; ', $import->failures));
+            }
+
+            $periods = $import->periods;
+            $rows = $import->rows;
+
+            if (empty($rows)) {
+                return back()->with('error', 'Tidak ada baris data yang bisa diproses. Periksa format file.');
+            }
+
+            $document = DB::transaction(function () use ($import, $rows, $periods) {
+                $doc = ForecastDocument::create([
+                    'document_no'   => $this->nextDocumentNo(),
+                    'source'        => 'lG_plan',
+                    'period_start'  => $periods[0] ?? null,
+                    'period_end'    => $periods[count($periods) - 1] ?? null,
+                    'uploaded_by'   => auth()->id(),
+                    'uploaded_at'   => now(),
+                    'status'        => 'preview',
+                    'total_rows'    => count($rows),
+                    'mapped_rows'   => count($rows) - count($import->unmapped),
+                    'unmapped_rows' => count($import->unmapped),
+                ]);
+
+                foreach ($rows as $row) {
+                    ForecastDocumentRow::create([
+                        'forecast_document_id' => $doc->id,
+                        'customer_part_no'     => $row['customer_part_no'],
+                        'gci_part_id'          => $row['gci_part_id'],
+                        'mapping_status'       => $row['mapping_status'],
+                        'row_no'               => $row['row_no'],
+                        'quantities'           => $row['quantities'],
+                    ]);
+                }
+
+                return $doc->load('rows.gciPart');
+            });
+
+            return view('planning.forecasts.preview', [
+                'document' => $document,
+                'periods'  => $periods,
+            ]);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal memproses file: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Commit a preview document's rows into the Forecast table.
+     * Only successfully mapped rows are written; unmapped rows are skipped.
+     */
+    public function confirmPlan(Request $request, ForecastDocument $document)
+    {
+        if ($document->status !== 'preview') {
+            return redirect()->route('planning.forecasts.index')->with('error', 'Dokumen sudah diproses.');
+        }
+
+        $mappedRows = $document->rows()->where('mapping_status', 'mapped')->get();
+
+        if ($mappedRows->isEmpty()) {
+            return back()->with('error', 'Tidak ada baris yang ter-map. Tidak ada data di-commit.');
+        }
+
+        DB::transaction(function () use ($mappedRows, $document) {
+            foreach ($mappedRows as $row) {
+                foreach ($row->quantities ?? [] as $period => $qty) {
+                    if ($qty <= 0) {
+                        continue;
+                    }
+
+                    $forecast = Forecast::firstOrNew([
+                        'part_id' => $row->gci_part_id,
+                        'period'  => $period,
+                    ]);
+
+                    // planning_qty = qty dari PLAN; qty = max(planning_qty, po_qty)
+                    $forecast->planning_qty = (float) $qty;
+                    $currentPoQty = (float) ($forecast->po_qty ?? 0);
+                    $forecast->qty = max((float) $qty, $currentPoQty);
+                    $forecast->source = 'lG_plan';
+                    $forecast->save();
+                }
+            }
+
+            $document->update(['status' => 'committed']);
+
+            \App\Models\ForecastHistory::create([
+                'changed_by'   => auth()->user()?->name ?? auth()->user()?->username ?? 'system',
+                'action'       => 'commit_plan',
+                'parts_count'  => $mappedRows->count(),
+                'notes'        => "Commit plan {$document->document_no} ({$document->period_start} - {$document->period_end})",
+            ]);
+        });
+
+        return redirect()->route('planning.forecasts.index')
+            ->with('success', "Plan {$document->document_no} di-commit. {$mappedRows->count()} baris masuk ke Forecast.");
+    }
+
+    private function nextDocumentNo(): string
+    {
+        return 'PLAN-' . now()->format('YmdHis');
     }
 }

@@ -7,9 +7,7 @@
             Input customer purchase order. Jika PO menggunakan customer part number, wajib diterjemahkan via mapping sebelum masuk forecast.
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
-            <a href="{{ route('planning.customer-pos.index') }}" class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                Buka Customer PO
-            </a>
+            <span class="text-sm text-slate-500">Fitur Customer PO sedang dalam tahap perancangan ulang.</span>
         </div>
     </div>
 @endsection

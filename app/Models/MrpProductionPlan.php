@@ -16,6 +16,13 @@ class MrpProductionPlan extends Model
         'net_required',
         'planned_order_rec',
         'planned_qty',
+        'status',
+        'approved_by',
+        'approved_at',
+    ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
     ];
 
     public function run()

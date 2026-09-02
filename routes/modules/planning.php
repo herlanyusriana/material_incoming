@@ -4,11 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Planning\BomController as PlanningBomController;
 use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
 use App\Http\Controllers\Planning\CustomerPartController as PlanningCustomerPartController;
-use App\Http\Controllers\Planning\CustomerPlanningImportController as PlanningCustomerPlanningImportController;
-use App\Http\Controllers\Planning\CustomerPoController as PlanningCustomerPoController;
 use App\Http\Controllers\Planning\ForecastController as PlanningForecastController;
 use App\Http\Controllers\Planning\GciPartController as PlanningGciPartController;
-use App\Http\Controllers\Planning\MpsController as PlanningMpsController;
 use App\Http\Controllers\Planning\MrpController as PlanningMrpController;
 
 Route::middleware('can:manage_planning')->prefix('planning')->name('planning.')->group(function () {
@@ -59,12 +56,6 @@ Route::middleware('can:manage_planning')->prefix('planning')->name('planning.')-
     Route::post('/customer-parts/{customerPart}/components', [PlanningCustomerPartController::class, 'storeComponent'])->name('customer-parts.components.store');
     Route::delete('/customer-part-components/{component}', [PlanningCustomerPartController::class, 'destroyComponent'])->name('customer-parts.components.destroy');
 
-    Route::get('/planning-imports', [PlanningCustomerPlanningImportController::class, 'index'])->name('planning-imports.index');
-    Route::post('/planning-imports', [PlanningCustomerPlanningImportController::class, 'store'])->name('planning-imports.store');
-    Route::get('/planning-imports/template', [PlanningCustomerPlanningImportController::class, 'template'])->name('planning-imports.template');
-    Route::get('/planning-imports/template-monthly', [PlanningCustomerPlanningImportController::class, 'templateMonthly'])->name('planning-imports.template-monthly');
-    Route::get('/planning-imports/{import}/export', [PlanningCustomerPlanningImportController::class, 'export'])->name('planning-imports.export');
-
     Route::get('/gci-parts/export', [PlanningGciPartController::class, 'export'])->name('gci-parts.export');
     Route::post('/gci-parts/import', [PlanningGciPartController::class, 'import'])->name('gci-parts.import');
 
@@ -73,33 +64,20 @@ Route::middleware('can:manage_planning')->prefix('planning')->name('planning.')-
     Route::get('/wip-parts', [PlanningGciPartController::class, 'index'])->defaults('classification', 'WIP')->name('wip-parts.index');
     Route::get('/rm-parts', [PlanningGciPartController::class, 'index'])->defaults('classification', 'RM')->name('rm-parts.index');
 
-    Route::get('/customer-pos', [PlanningCustomerPoController::class, 'index'])->name('customer-pos.index');
-    Route::post('/customer-pos', [PlanningCustomerPoController::class, 'store'])->name('customer-pos.store');
-    Route::put('/customer-pos/{customerPo}', [PlanningCustomerPoController::class, 'update'])->name('customer-pos.update');
-    Route::delete('/customer-pos/{customerPo}', [PlanningCustomerPoController::class, 'destroy'])->name('customer-pos.destroy');
-
     Route::get('/forecasts', [PlanningForecastController::class, 'index'])->name('forecasts.index');
-    Route::get('/forecasts/preview', [PlanningForecastController::class, 'preview'])->name('forecasts.preview');
-    Route::post('/forecasts/generate', [PlanningForecastController::class, 'generate'])->name('forecasts.generate');
+    Route::post('/forecasts/preview-plan', [PlanningForecastController::class, 'previewPlan'])->name('forecasts.preview-plan');
+    Route::post('/forecasts/{document}/confirm', [PlanningForecastController::class, 'confirmPlan'])->name('forecasts.confirm-plan');
     Route::delete('/forecasts/clear', [PlanningForecastController::class, 'clear'])->name('forecasts.clear');
     Route::get('/forecasts/history', [PlanningForecastController::class, 'history'])->name('forecasts.history');
-
-    Route::get('/mps', [PlanningMpsController::class, 'index'])->name('mps.index');
-    Route::get('/mps/export', [PlanningMpsController::class, 'export'])->name('mps.export');
-    Route::post('/mps/generate', [PlanningMpsController::class, 'generate'])->name('mps.generate');
-    Route::post('/mps/generate-range', [PlanningMpsController::class, 'generateRange'])->name('mps.generate-range');
-    Route::post('/mps/upsert', [PlanningMpsController::class, 'upsert'])->name('mps.upsert');
-    Route::post('/mps/approve', [PlanningMpsController::class, 'approve'])->name('mps.approve');
-    Route::post('/mps/approve-monthly', [PlanningMpsController::class, 'approveMonthly'])->name('mps.approve-monthly');
-    Route::get('/mps/detail', [PlanningMpsController::class, 'detail'])->name('mps.detail');
-    Route::put('/mps/{mps}', [PlanningMpsController::class, 'update'])->name('mps.update');
-    Route::delete('/mps/clear', [PlanningMpsController::class, 'clear'])->name('mps.clear');
-    Route::get('/mps/history', [PlanningMpsController::class, 'history'])->name('mps.history');
 
     Route::get('/mrp', [PlanningMrpController::class, 'index'])->name('mrp.index');
     Route::post('/mrp/generate', [PlanningMrpController::class, 'generate'])->name('mrp.generate');
     Route::post('/mrp/generate-range', [PlanningMrpController::class, 'generateRange'])->name('mrp.generate-range');
     Route::post('/mrp/generate-po', [PlanningMrpController::class, 'generatePo'])->name('mrp.generate-po');
+    Route::post('/mrp/approve', [PlanningMrpController::class, 'approvePlans'])->name('mrp.approve');
+    Route::post('/mrp/reject', [PlanningMrpController::class, 'rejectPlans'])->name('mrp.reject');
+    Route::post('/mrp/purchase-orders/{purchaseOrderId}/release', [PlanningMrpController::class, 'releasePo'])->name('mrp.po-release');
+    Route::post('/mrp/purchase-orders/{purchaseOrderId}/actualize', [PlanningMrpController::class, 'actualizePo'])->name('mrp.po-actualize');
     Route::delete('/mrp/clear', [PlanningMrpController::class, 'clear'])->name('mrp.clear');
     Route::get('/mrp/history', [PlanningMrpController::class, 'history'])->name('mrp.history');
     Route::get('/mrp/integration', [PlanningMrpController::class, 'integrationDashboard'])->name('mrp.integration-dashboard');

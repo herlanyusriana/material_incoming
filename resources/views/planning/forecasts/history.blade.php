@@ -30,7 +30,7 @@
                                 {{ $history->created_at->format('d M Y H:i') }}
                             </td>
                             <td class="px-6 py-4 text-slate-600">
-                                {{ $history->user->name ?? 'Unknown' }}
+                                {{ $history->changed_by ?? '-' }}
                             </td>
                             <td class="px-6 py-4">
                                 @if($history->action === 'generate')

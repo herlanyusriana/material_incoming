@@ -44,11 +44,16 @@
                 </div>
             </div>
 
-            {{-- RM: destination FG + vendors --}}
+            {{-- RM: destination FG + vendors (both OPTIONAL — link can be added later) --}}
             <template x-if="form.classification === 'RM'">
                 <div class="space-y-4 rounded-xl bg-slate-50 border border-slate-200 p-3">
+                    <div class="rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] text-slate-500 leading-snug">
+                        Keduanya <span class="font-semibold text-slate-700">opsional</span> — part tetap bisa dibuat sekarang.
+                        Link ke BOM/vendor bisa dilengkapi nanti lewat tombol <span class="font-semibold text-indigo-600">Edit</span> di halaman ini atau dari Parts Master.
+                    </div>
+
                     <div x-data="{ q: '' }">
-                        <label class="text-sm font-semibold text-slate-700">FG Destination (BOM)</label>
+                        <label class="text-sm font-semibold text-slate-700">FG Destination (BOM) <span class="font-normal text-slate-400">— opsional</span></label>
                         <input type="text" x-model="q" placeholder="Cari FG..." class="mt-1 w-full rounded-lg border-slate-200 text-sm px-2 py-1.5">
                         <div class="mt-2 max-h-40 overflow-y-auto divide-y divide-slate-100 bg-white rounded-lg border border-slate-200">
                             @foreach ($fgPartsWithBom as $fg)
@@ -61,13 +66,13 @@
                                 </label>
                             @endforeach
                             @if ($fgPartsWithBom->isEmpty())
-                                <div class="px-3 py-3 text-xs text-slate-400 text-center">Tidak ada FG dengan BOM</div>
+                                <div class="px-3 py-3 text-xs text-slate-400 text-center">Belum ada FG yang punya BOM. Part tetap bisa dibuat; link nanti dari halaman BOM.</div>
                             @endif
                         </div>
                     </div>
 
                     <div x-data="{ q: '' }">
-                        <label class="text-sm font-semibold text-slate-700">Vendor</label>
+                        <label class="text-sm font-semibold text-slate-700">Vendor <span class="font-normal text-slate-400">— opsional</span></label>
                         <input type="text" x-model="q" placeholder="Cari vendor..." class="mt-1 w-full rounded-lg border-slate-200 text-sm px-2 py-1.5">
                         <div class="mt-2 max-h-40 overflow-y-auto divide-y divide-slate-100 bg-white rounded-lg border border-slate-200">
                             @foreach ($vendors as $v)
@@ -80,6 +85,11 @@
                                 </label>
                             @endforeach
                         </div>
+                        <p class="mt-1 text-[11px] text-slate-400">
+                            Part No vendor, harga, MOQ &amp; lead time dikelola di
+                            <a href="{{ route('parts.index', ['classification' => 'RM']) }}" class="font-semibold text-indigo-600 hover:underline">Parts Master</a>
+                            (per vendor). Di sini cukup pilih vendor saja.
+                        </p>
                     </div>
                 </div>
             </template>

@@ -10,7 +10,6 @@ use App\Models\GciPart;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\Customer;
-use App\Models\CustomerPo;
 use Carbon\Carbon;
 
 class PlanningTestDataSeeder extends Seeder
@@ -95,44 +94,6 @@ class PlanningTestDataSeeder extends Seeder
             ]
         );
 
-        // 7. Customer Demand for Next Month (2026-02)
-        // Since we are doing monthly periods, let's use 2026-02
-        $targetPeriod = '2026-02';
-
-        // Let's create a Customer PO as a source for Forecast
-        \Illuminate\Support\Facades\DB::table('customer_pos')->insertOrIgnore([
-            'customer_id' => $customer->id,
-            'po_date' => Carbon::now()->format('Y-m-d'),
-            'po_no' => 'PO-TEST-001',
-            'period' => $targetPeriod,
-            'status' => 'open',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $poId = \Illuminate\Support\Facades\DB::table('customer_pos')->where('po_no', 'PO-TEST-001')->value('id');
-
-        // Create Planning Import Record
-        $importId = \Illuminate\Support\Facades\DB::table('customer_planning_imports')->insertGetId([
-            'customer_id' => $customer->id,
-            'status' => 'completed',
-            'imported_by' => User::first()->id, // Admin user
-            'imported_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        \Illuminate\Support\Facades\DB::table('customer_planning_rows')->insertOrIgnore([
-            'import_id' => $importId,
-            'part_id' => $gciPart->id,
-            'customer_part_no' => 'CUST-PN-01', // Example customer part no
-            'period' => $targetPeriod,
-            'qty' => 500,
-            'row_status' => 'accepted',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        echo "Test data seeded for period: $targetPeriod\n";
+        echo "Test data seeded successfully.\n";
     }
 }

@@ -7,15 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 class ForecastHistory extends Model
 {
     protected $fillable = [
-        'user_id',
+        'forecast_id',
+        'qty_before',
+        'qty_after',
+        'changed_by',
         'action',
         'parts_count',
         'weeks_generated',
         'notes',
     ];
 
-    public function user()
+    /**
+     * Display name of whoever made the change.
+     */
+    public function getChangedByNameAttribute(): ?string
     {
-        return $this->belongsTo(User::class);
+        return $this->changed_by;
     }
 }

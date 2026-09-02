@@ -4,9 +4,15 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\GciInventoryController;
 use App\Http\Controllers\WarehouseLocationController;
+use App\Http\Controllers\StockCardController;
 
 Route::middleware('can:manage_inventory')->group(function () {
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+
+    // Stock Card — saldo stok real-time per part (RM + FG) + drill-down mutasi
+    Route::get('/stock-card', [StockCardController::class, 'index'])->name('stock-card.index');
+    Route::get('/stock-card/export', [StockCardController::class, 'export'])->name('stock-card.export');
+    Route::get('/stock-card/mutations/{gciPartId}', [StockCardController::class, 'mutations'])->name('stock-card.mutations');
     Route::get('/inventory/receives', [InventoryController::class, 'receives'])->name('inventory.receives');
     Route::get('/inventory/receives/search', [InventoryController::class, 'searchReceives'])->name('inventory.receives.search');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');

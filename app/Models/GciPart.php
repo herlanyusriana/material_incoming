@@ -29,6 +29,8 @@ class GciPart extends Model
         'subcount_enabled',
         'subcount_uom',
         'subcount_process_type',
+        'safety_stock',
+        'order_multiple',
         'policy_confirmed_at',
         'policy_confirmed_by',
         'created_by',
@@ -97,10 +99,6 @@ class GciPart extends Model
         return $this->hasMany(Forecast::class, 'part_id');
     }
 
-    public function mps()
-    {
-        return $this->hasMany(Mps::class, 'part_id');
-    }
 
     public function bom()
     {

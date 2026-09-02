@@ -27,6 +27,8 @@ class GciPart extends BaseModel
         'subcount_enabled',
         'subcount_uom',
         'subcount_process_type',
+        'safety_stock',
+        'order_multiple',
         'created_by',
         'updated_by',
     ];
@@ -56,6 +58,14 @@ class GciPart extends BaseModel
     public function vendorLinks(): HasMany
     {
         return $this->hasMany(VendorPart::class);
+    }
+
+    /**
+     * Writable vendor-part bridge for MRP (MOQ / lead time).
+     */
+    public function gciPartVendors(): HasMany
+    {
+        return $this->hasMany(\App\Models\GciPartVendor::class, 'gci_part_id');
     }
 
     public function customers(): BelongsToMany
@@ -111,11 +121,6 @@ class GciPart extends BaseModel
     public function forecasts(): HasMany
     {
         return $this->hasMany(\App\Models\Forecast::class, 'part_id');
-    }
-
-    public function mps(): HasMany
-    {
-        return $this->hasMany(\App\Models\Mps::class, 'part_id');
     }
 
     public function standardPacking(): HasOne

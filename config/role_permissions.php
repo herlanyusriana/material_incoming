@@ -27,6 +27,7 @@ return [
         'ppic' => [
             'view_dashboard',
             'manage_planning',
+            'approve_mrp',
             'view_production',
             'view_logistics',
             'manage_subcon',
@@ -42,6 +43,7 @@ return [
         'purchasing' => [
             'view_dashboard',
             'manage_purchasing',
+            'release_po',
         ],
         'quality' => [
             'view_dashboard',
@@ -67,6 +69,7 @@ return [
         // Planning Module
         'view_planning',
         'manage_planning',     // Create forecasts, run MRP, import data
+        'approve_mrp',         // Approve/reject MRP plans
         'delete_planning',     // Clear data
 
         // Production Module
@@ -88,6 +91,7 @@ return [
 
         // Purchasing
         'manage_purchasing',
+        'release_po',          // Release PO after approval
 
         // Master Data
         'manage_users',

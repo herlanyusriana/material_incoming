@@ -383,9 +383,11 @@ class GciPartController extends Controller
         $gciPart->update($validated);
         $gciPart->customers()->sync($customerIds);
 
-        // Sync vendors for RM
+        // Sync vendors for RM — only ADD, never remove. Vendor-part detail (price/MOQ/lead time)
+        // is managed in Parts Master bridge (gci_part_vendor), so editing the part must not
+        // silently drop existing vendor links.
         if ($validated['classification'] === 'RM') {
-            $gciPart->vendors()->sync($vendorIds);
+            $gciPart->vendors()->syncWithoutDetaching($vendorIds);
         }
 
         // Auto-link RM to new FG BOMs (skip already linked)

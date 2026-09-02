@@ -17,6 +17,14 @@
         Parts Master
     </x-sidebar.link>
 
+    <x-sidebar.link href="{{ route('planning.customers.index') }}" icon="M17 20h5v-2a4 4 0 0 0-3-3.87M9 20v-2a4 4 0 0 1 3-3.87m0 0a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-4 6a4 4 0 1 1 8 0" active="{{ request()->routeIs('planning.customers.*') }}">
+        Customers
+    </x-sidebar.link>
+
+    <x-sidebar.link href="{{ route('planning.customer-parts.index') }}" icon="M9 12h6m-6 4h6m-6-8h6M5 21h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" active="{{ request()->routeIs('planning.customer-parts.*') }}">
+        Customer Part Mapping
+    </x-sidebar.link>
+
     <x-sidebar.group label="Pricing Master" icon="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" active="{{ request()->routeIs('pricing.*') || request()->routeIs('contract-numbers.*') }}">
         <x-sidebar.sub-link href="{{ route('pricing.create') }}" active="{{ request()->routeIs('pricing.create') }}">Add New Price</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('pricing.index') }}" active="{{ request()->routeIs('pricing.index') }}">Price List</x-sidebar.sub-link>
@@ -40,13 +48,8 @@
 <!-- Planning -->
 @can('view_planning')
 <x-sidebar.section label="Planning">
-    <x-sidebar.group label="Planning Module" icon="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" active="{{ request()->routeIs('planning.*') && !request()->routeIs('planning.boms.*') }}">
-        <x-sidebar.sub-link href="{{ route('planning.customers.index') }}" active="{{ request()->routeIs('planning.customers.*') }}">Customers</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('planning.customer-parts.index') }}" active="{{ request()->routeIs('planning.customer-parts.*') }}">Customer Part Mapping</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('planning.planning-imports.index') }}" active="{{ request()->routeIs('planning.planning-imports.*') }}">Customer Planning</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('planning.customer-pos.index') }}" active="{{ request()->routeIs('planning.customer-pos.*') }}">Customer PO</x-sidebar.sub-link>
+    <x-sidebar.group label="Planning Module" icon="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" active="{{ request()->routeIs('planning.*') && !request()->routeIs('planning.boms.*') && !request()->routeIs('planning.customers.*') && !request()->routeIs('planning.customer-parts.*') }}">
         <x-sidebar.sub-link href="{{ route('planning.forecasts.index') }}" active="{{ request()->routeIs('planning.forecasts.*') }}">Forecasts</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('planning.mps.index') }}" active="{{ request()->routeIs('planning.mps.*') }}">Master Production Schedule (MPS)</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('planning.mrp.index') }}" active="{{ request()->routeIs('planning.mrp.*') && !request()->routeIs('planning.mrp.integration-dashboard') }}">Material Requirement Planning (MRP)</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('planning.mrp.integration-dashboard') }}" active="{{ request()->routeIs('planning.mrp.integration-dashboard') }}">MRP vs ERP GCI Integration</x-sidebar.sub-link>
     </x-sidebar.group>
@@ -142,7 +145,8 @@
 <!-- Warehouse -->
 @can('manage_inventory')
 <x-sidebar.section label="Warehouse">
-    <x-sidebar.group label="Warehouse Inventory" icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" active="{{ request()->routeIs('warehouse.*') }}">
+    <x-sidebar.group label="Warehouse Inventory" icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" active="{{ request()->routeIs('warehouse.*') || request()->routeIs('stock-card.*') }}">
+        <x-sidebar.sub-link href="{{ route('stock-card.index') }}" active="{{ request()->routeIs('stock-card.*') }}">Stock Card (Saldo)</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('warehouse.stock.index') }}" active="{{ request()->routeIs('warehouse.stock.index') }}">Stock by Location</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('warehouse.stock-adjustments.index') }}" active="{{ request()->routeIs('warehouse.stock-adjustments.*') }}">Stock Adjustments</x-sidebar.sub-link>
         <x-sidebar.sub-link href="{{ route('warehouse.stock-opname.index') }}" active="{{ request()->routeIs('warehouse.stock-opname.*') }}">Stock Opname</x-sidebar.sub-link>

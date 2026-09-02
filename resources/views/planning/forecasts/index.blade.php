@@ -42,10 +42,18 @@
                             class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
 
-                    <a href="{{ route('planning.forecasts.preview') }}"
-                        class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center">
-                        Select & Generate
-                    </a>
+                    <form method="POST" action="{{ route('planning.forecasts.preview-plan') }}"
+                        enctype="multipart/form-data" id="upload-plan-form"
+                        class="flex items-center gap-2">
+                        @csrf
+                        <input type="file" name="file" accept=".xlsx,.xls,.csv" required
+                            onchange="this.form.submit()"
+                            class="hidden" id="plan-file-input">
+                        <label for="plan-file-input"
+                            class="cursor-pointer px-4 py-2 rounded-xl font-semibold bg-slate-900 text-white hover:bg-slate-800">
+                            ⬆️ Upload PLAN (Excel)
+                        </label>
+                    </form>
 
                     <a href="{{ route('planning.forecasts.history') }}"
                         class="px-4 py-2 rounded-xl font-semibold border bg-white border-slate-200 text-slate-700 hover:bg-slate-50">

@@ -28,10 +28,7 @@ use App\Http\Controllers\Planning\CustomerController as PlanningCustomerControll
 use App\Http\Controllers\Planning\BomController as PlanningBomController;
 use App\Http\Controllers\Planning\GciPartController as PlanningGciPartController;
 use App\Http\Controllers\Planning\CustomerPartController as PlanningCustomerPartController;
-use App\Http\Controllers\Planning\CustomerPlanningImportController as PlanningCustomerPlanningImportController;
-use App\Http\Controllers\Planning\CustomerPoController as PlanningCustomerPoController;
 use App\Http\Controllers\Planning\ForecastController as PlanningForecastController;
-use App\Http\Controllers\Planning\MpsController as PlanningMpsController;
 use App\Http\Controllers\Planning\MrpController as PlanningMrpController;
 use App\Http\Controllers\Purchasing\PurchaseRequestController;
 use App\Http\Controllers\Purchasing\PurchaseOrderController;

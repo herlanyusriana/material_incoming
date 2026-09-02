@@ -16,6 +16,7 @@ class PurchaseOrderItem extends Model
         'vendor_part_id',
         'gci_part_vendor_id',
         'qty',
+        'qty_received',
         'unit_price',
         'subtotal',
     ];

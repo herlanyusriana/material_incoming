@@ -23,11 +23,15 @@ class GciPartVendor extends Model
         'hs_code',
         'quality_inspection',
         'status',
+        'min_order_qty',
+        'lead_time_days',
     ];
 
     protected $casts = [
         'price' => 'decimal:3',
         'quality_inspection' => 'boolean',
+        'min_order_qty' => 'decimal:4',
+        'lead_time_days' => 'integer',
     ];
 
     private static function upperOrNull(mixed $value): mixed

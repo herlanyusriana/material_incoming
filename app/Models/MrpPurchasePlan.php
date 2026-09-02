@@ -13,12 +13,24 @@ class MrpPurchasePlan extends Model
         'mrp_run_id',
         'part_id',
         'plan_date',
+        'eta_week',
+        'order_week',
         'required_qty',
         'on_hand',
         'on_order',
         'incoming_stock',
         'net_required',
         'planned_order_rec',
+        'status',
+        'approved_by',
+        'approved_at',
+    ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
+        'net_required' => 'decimal:4',
+        'required_qty' => 'decimal:4',
+        'planned_order_rec' => 'decimal:4',
     ];
 
     public function run()

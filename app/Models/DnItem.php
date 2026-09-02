@@ -36,11 +36,6 @@ class DnItem extends Model
         return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
 
-    public function customerPo()
-    {
-        return $this->belongsTo(CustomerPo::class, 'customer_po_id');
-    }
-
     public function picker()
     {
         return $this->belongsTo(User::class, 'picked_by');

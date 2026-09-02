@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Outgoing;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\CustomerPo;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\NewSchema\Core\GciPart;
@@ -192,7 +191,7 @@ class DeliveryNoteController extends Controller
 
     public function show(DeliveryNote $deliveryNote)
     {
-        $deliveryNote->load(['customer', 'items.part', 'items.customerPo', 'items.picker', 'driver', 'truck']);
+        $deliveryNote->load(['customer', 'items.part', 'items.picker', 'driver', 'truck']);
 
         $kittingLocationsByItem = [];
         if (Schema::hasTable('warehouse_locations') && Schema::hasTable('location_inventory')) {
@@ -522,7 +521,6 @@ class DeliveryNoteController extends Controller
         $delivery_note->load([
             'customer',
             'items.part.standardPacking',
-            'items.customerPo',
             'items.outgoingPoItem.outgoingPo'
         ]);
 
@@ -534,7 +532,6 @@ class DeliveryNoteController extends Controller
         $delivery_note->load([
             'customer',
             'items.part.standardPacking',
-            'items.customerPo',
             'items.outgoingPoItem.outgoingPo'
         ]);
 
@@ -554,7 +551,7 @@ class DeliveryNoteController extends Controller
                 $delivery_note->delivery_date
             );
 
-            $resolvedUnitPrices[$item->id] = (float) ($pricing?->price ?? $item->outgoingPoItem?->price ?? $item->customerPo?->price ?? 0);
+            $resolvedUnitPrices[$item->id] = (float) ($pricing?->price ?? $item->outgoingPoItem?->price ?? 0);
         }
 
         return view('outgoing.delivery_notes.invoice', compact('delivery_note', 'invoiceNo', 'resolvedUnitPrices'));

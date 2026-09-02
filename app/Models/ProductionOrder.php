@@ -57,11 +57,6 @@ class ProductionOrder extends Model
         return $this->belongsTo(GciPart::class, 'gci_part_id');
     }
 
-    public function mps()
-    {
-        return $this->belongsTo(Mps::class, 'mps_id');
-    }
-
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
