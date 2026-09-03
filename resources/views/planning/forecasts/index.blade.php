@@ -149,45 +149,60 @@
             </form>
         </div>
 
+        @php
+            // Pivot: satu baris per part GCI, kolom = bulan yang punya data (urut), sel = qty (max planning/PO).
+            $pivotRows = $forecasts->getCollection();
+            $months = $pivotRows->pluck('period')->unique()->sort()->values();
+            $grouped = $pivotRows->groupBy('part_id');
+        @endphp
+
         {{-- Table --}}
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                            <th class="px-4 py-3 text-left font-semibold">Period</th>
                             <th class="px-4 py-3 text-left font-semibold">Part GCI</th>
                             <th class="px-4 py-3 text-left font-semibold">Family</th>
-                            <th class="px-4 py-3 text-right font-semibold">Planning Qty</th>
-                            <th class="px-4 py-3 text-right font-semibold">Open PO Qty</th>
-                            <th class="px-4 py-3 text-right font-semibold">Forecast Qty</th>
-                            <th class="px-4 py-3 text-left font-semibold">Source</th>
+                            @foreach ($months as $month)
+                                <th class="px-3 py-3 text-right font-semibold whitespace-nowrap">
+                                    {{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('M') }}
+                                    <div class="text-[10px] font-normal text-slate-400">{{ substr($month, 0, 4) }}</div>
+                                </th>
+                            @endforeach
+                            <th class="px-4 py-3 text-right font-semibold">Total</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
-                        @forelse ($forecasts as $f)
+                        @forelse ($grouped as $partId => $rows)
+                            @php
+                                $first = $rows->first();
+                                $monthly = $rows->keyBy('period')->map(fn($r) => (float) $r->qty);
+                                $total = (float) $rows->sum('qty');
+                            @endphp
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-4 py-3">
-                                    <div class="font-semibold text-slate-800 whitespace-nowrap">{{ \Carbon\Carbon::createFromFormat('Y-m', $f->period)->format('M Y') }}</div>
-                                    <div class="text-[11px] text-slate-400 font-mono">{{ $f->period }}</div>
+                                    <div class="font-semibold">{{ $first->part->part_no ?? '-' }}</div>
+                                    <div class="text-xs text-slate-500">{{ $first->part->part_name ?? '-' }}</div>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <div class="font-semibold">{{ $f->part->part_no ?? '-' }}</div>
-                                    <div class="text-xs text-slate-500">{{ $f->part->part_name ?? '-' }}</div>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ $familyColors[$f->family] ?? 'bg-slate-100 text-slate-600' }}">
-                                        {{ $f->family }}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ $familyColors[$first->family] ?? 'bg-slate-100 text-slate-600' }}">
+                                        {{ $first->family }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->planning_qty) }}</td>
-                                <td class="px-4 py-3 text-right font-mono text-xs">{{ formatNumber($f->po_qty) }}</td>
-                                <td class="px-4 py-3 text-right font-mono text-xs font-semibold">{{ formatNumber($f->qty) }}</td>
-                                <td class="px-4 py-3 text-xs uppercase tracking-wide text-slate-600">{{ $f->source }}</td>
+                                @foreach ($months as $month)
+                                    @php($value = $monthly[$month] ?? 0)
+                                    <td class="px-3 py-3 text-right font-mono text-xs {{ $value > 0 ? 'font-semibold text-slate-800' : 'text-slate-300' }}">
+                                        {{ $value > 0 ? formatNumber($value) : '-' }}
+                                    </td>
+                                @endforeach
+                                <td class="px-4 py-3 text-right font-mono text-xs font-bold text-slate-900">
+                                    {{ $total > 0 ? formatNumber($total) : '-' }}
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-12 text-center text-slate-400">
+                                <td colspan="{{ 2 + $months->count() + 1 }}" class="px-4 py-12 text-center text-slate-400">
                                     <div class="flex flex-col items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5m16 0h-2.586a1 1 0 0 0-.707.293l-2.414 2.414a1 1 0 0 1-.707.293h-3.172a1 1 0 0 1-.707-.293l-2.414-2.414A1 1 0 0 0 6.586 13H4" />
