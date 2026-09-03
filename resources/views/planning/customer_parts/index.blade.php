@@ -6,17 +6,17 @@
     <div class="py-3" x-data="planningCustomerParts()" x-init="init()">
         <div class="px-4 sm:px-6 lg:px-8 space-y-6">
             @if (session('success'))
-                <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
                     {{ session('success') }}
                 </div>
             @endif
             @if (session('error'))
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {{ session('error') }}
                 </div>
             @endif
             @if ($errors->any())
-                <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     <div class="font-semibold">Validation error</div>
                     <ul class="mt-1 list-disc pl-5 space-y-0.5">
                         @foreach ($errors->all() as $message)
@@ -25,6 +25,50 @@
                     </ul>
                 </div>
             @endif
+
+            <x-page-header
+                title="Customer Part Mapping"
+                subtitle="Pemetaan part part customer (LG) ke part GCI untuk diterjemahkan saat upload PLAN."
+                :breadcrumbs="[
+                    ['label' => 'Planning', 'url' => null],
+                    ['label' => 'Customer Part Mapping']
+                ]"
+            >
+                <x-slot name="actions">
+                    <a href="{{ route('planning.customer-parts.export', request()->query()) }}"
+                        class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold">
+                        Export
+                    </a>
+                    <button type="button"
+                        class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
+                        @click="openImport()">
+                        Import
+                    </button>
+                    <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+                        @click="openCreate()">
+                        Add Customer Part
+                    </button>
+                </x-slot>
+            </x-page-header>
+
+            {{-- KPI cards --}}
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Total Mapping</div>
+                    <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((int) ($kpi->total ?? 0)) }}</div>
+                    <div class="text-xs text-slate-400 mt-1">Customer parts terdaftar</div>
+                </div>
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                    <div class="text-xs uppercase tracking-wider text-emerald-700 font-semibold">Active</div>
+                    <div class="mt-2 text-3xl font-black text-emerald-900">{{ number_format((int) ($kpi->active ?? 0)) }}</div>
+                    <div class="text-xs text-emerald-600/70 mt-1">Mapping aktif</div>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Inactive</div>
+                    <div class="mt-2 text-3xl font-black text-slate-700">{{ number_format((int) ($kpi->inactive ?? 0)) }}</div>
+                    <div class="text-xs text-slate-400 mt-1">Mapping nonaktif</div>
+                </div>
+            </div>
 
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-4 space-y-4">
                 <div class="flex flex-wrap items-end justify-between gap-3">
@@ -46,22 +90,6 @@
                         </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
                     </form>
-
-                    <div class="flex items-center gap-2">
-                        <a href="{{ route('planning.customer-parts.export', request()->query()) }}"
-                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold">
-                            Export
-                        </a>
-                        <button type="button"
-                            class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
-                            @click="openImport()">
-                            Import
-                        </button>
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
-                            @click="openCreate()">
-                            Add Customer Part
-                        </button>
-                    </div>
                 </div>
 
                 <div class="space-y-4">
@@ -168,8 +196,15 @@
                     @endforelse
                 </div>
 
-                <div class="mt-4">
-                    {{ $customerParts->links() }}
+                <div class="border-t border-slate-200 px-4 py-3 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs text-slate-500">
+                        Menampilkan <span class="font-semibold text-slate-700">{{ $customerParts->firstItem() ?? 0 }}</span> -
+                        <span class="font-semibold text-slate-700">{{ $customerParts->lastItem() ?? 0 }}</span>
+                        dari <span class="font-semibold text-slate-700">{{ $customerParts->total() }}</span> mapping
+                    </div>
+                    <div class="flex gap-1">
+                        {{ $customerParts->appends(request()->query())->links() }}
+                    </div>
                 </div>
             </div>
         </div>

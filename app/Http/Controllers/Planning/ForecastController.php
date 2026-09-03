@@ -9,6 +9,7 @@ use App\Models\ForecastDocument;
 use App\Models\ForecastDocumentRow;
 use App\Models\GciPart;
 use App\Models\ForecastHistory;
+use App\Support\PartFamily;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -24,20 +25,53 @@ class ForecastController extends Controller
     {
         $period = $request->query('period');
         $partId = $request->query('part_id');
+        $family = $request->query('family');
 
         $parts = GciPart::query()->orderBy('part_no')->get();
 
-        $forecasts = Forecast::query()
+        // Base query unifies period, part, and family filters AGNOSTIC of pagination so the
+        // family filter is applied in SQL (via a resolved set of gci_parts.id) and rows stay
+        // correct across pages. A family is a PHP-derived attribute from part_name, so we map
+        // the selected family down to the matching part ids first, then filter with whereIn.
+        $base = Forecast::query()
             ->with('part')
-            ->when($period, fn($q) => $q->where('period', $period))
             ->whereHas('part')
+            ->when($period, fn($q) => $q->where('period', $period))
             ->when($partId, fn($q) => $q->where('part_id', $partId))
+            ->when($family, function ($q) use ($family) {
+                $ids = GciPart::query()->get()
+                    ->filter(fn($p) => PartFamily::from($p->part_name ?? null) === $family)
+                    ->pluck('id');
+                $q->whereIn('part_id', $ids);
+            });
+
+        // KPI totals reflect the filtered set (before pagination).
+        $kpi = (clone $base)
+            ->selectRaw(
+                'count(*) as total_rows,
+                 coalesce(sum(planning_qty),0) as total_planning,
+                 coalesce(sum(po_qty),0) as total_po,
+                 coalesce(sum(qty),0) as total_qty'
+            )
+            ->first();
+
+        $forecasts = $base
             ->orderBy('period')
             ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'forecasts.part_id'))
-            ->paginate(100)
+            ->paginate(50)
             ->withQueryString();
 
-        return view('planning.forecasts.index', compact('parts', 'forecasts', 'period', 'partId'));
+        // Family is still a derived attribute, so attach it here for display only — the
+        // filtering already happened in SQL, so this no longer affects pagination.
+        $forecasts->getCollection()->transform(fn($f) => $f->setAttribute('family', PartFamily::from($f->part->part_name ?? null)));
+
+        // NON LG is never produced by PartFamily (it falls back to Small Part), so drop it
+        // from the forecast dropdown. Leave PartFamily::labels() untouched — MRP uses it too.
+        $families = collect(PartFamily::labels())
+            ->reject(fn($f) => $f === 'NON LG')
+            ->values();
+
+        return view('planning.forecasts.index', compact('parts', 'forecasts', 'kpi', 'period', 'partId', 'family', 'families'));
     }
 
     /**

@@ -27,21 +27,27 @@ class CustomerPartController extends Controller
         $customers = Customer::query()->orderBy('code')->get();
         $parts = GciPart::query()->where('classification', 'FG')->orderBy('part_no')->get();
 
-        $customerParts = CustomerPart::query()
-            ->with(['customer', 'components.part'])
+        $base = CustomerPart::query()
             ->when($customerId, fn($q) => $q->where('customer_id', $customerId))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('customer_part_no', 'like', "%{$search}%")
                         ->orWhere('customer_part_name', 'like', "%{$search}%");
                 });
-            })
+            });
+
+        $kpi = (clone $base)
+            ->selectRaw('count(*) as total, coalesce(sum(status = \'active\'),0) as active, coalesce(sum(status = \'inactive\'),0) as inactive')
+            ->first();
+
+        $customerParts = $base
+            ->with(['customer', 'components.part'])
             ->orderBy(Customer::select('code')->whereColumn('customers.id', 'customer_parts.customer_id'))
             ->orderBy('customer_part_no')
             ->paginate(100)
             ->withQueryString();
 
-        return view('planning.customer_parts.index', compact('customers', 'parts', 'customerParts', 'customerId', 'search'));
+        return view('planning.customer_parts.index', compact('customers', 'parts', 'customerParts', 'kpi', 'customerId', 'search'));
     }
 
     public function export(Request $request)
