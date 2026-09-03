@@ -7,6 +7,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
 use App\Models\NewSchema\Incoming\IncomingArrivalItem as ArrivalItem;
@@ -110,7 +111,9 @@ class ReceiveController extends Controller
         $flow = strtolower(trim((string) request()->query('flow', '')));
 
         // Show completed receives grouped by invoice/departure
-        $arrivals = Arrival::query()->from('incoming_arrivals as arrivals')
+        $arrivals = Arrival::query()
+            ->withoutGlobalScope(SoftDeletingScope::class)
+            ->from('incoming_arrivals as arrivals')
             ->select([
                 'arrivals.id',
                 'arrivals.arrival_no',
@@ -136,6 +139,7 @@ class ReceiveController extends Controller
             })
             ->when($flow === 'import', fn($query) => $query->whereRaw("LOWER(COALESCE(vendors.vendor_type, '')) <> 'local'"))
             ->when($flow === 'local', fn($query) => $query->whereRaw("LOWER(COALESCE(vendors.vendor_type, '')) = 'local'"))
+            ->whereNull('arrivals.deleted_at')
             ->with('vendor')
             ->groupBy('arrivals.id', 'arrivals.arrival_no', 'arrivals.transaction_no', 'arrivals.invoice_no', 'arrivals.invoice_date', 'arrivals.vendor_id', 'vendors.vendor_type')
             ->orderByDesc('arrivals.created_at')
@@ -242,7 +246,9 @@ class ReceiveController extends Controller
 
     private function buildImportDocumentsQuery(string $q = '', string $dateFrom = '', string $dateTo = '')
     {
-        return Arrival::query()->from('incoming_arrivals as arrivals')
+        return Arrival::query()
+            ->withoutGlobalScope(SoftDeletingScope::class)
+            ->from('incoming_arrivals as arrivals')
             ->select([
                 'arrivals.id',
                 'arrivals.transaction_no',
@@ -256,6 +262,7 @@ class ReceiveController extends Controller
             ])
             ->join('vendors', 'vendors.id', '=', 'arrivals.vendor_id')
             ->whereRaw("LOWER(COALESCE(vendors.vendor_type, '')) <> 'local'")
+            ->whereNull('arrivals.deleted_at')
             ->with('vendor')
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($builder) use ($q) {
@@ -277,12 +284,15 @@ class ReceiveController extends Controller
         $arrival->load(['vendor', 'items.receives', 'containers.inspection']);
         $this->ensureCompletedArrivalTransactionNo($arrival);
 
-        $receives = Receive::query()->from('incoming_receives as receives')
+        $receives = Receive::query()
+            ->withoutGlobalScope(SoftDeletingScope::class)
+            ->from('incoming_receives as receives')
             ->select('receives.*')
             ->join('incoming_arrival_items as arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
             ->leftJoin('vendor_parts as gpv', 'gpv.id', '=', 'arrival_items.vendor_part_id')
             ->with(['arrivalItem.vendorPart', 'arrivalItem.gciPart', 'arrivalItem.arrival.vendor'])
             ->where('arrival_items.arrival_id', $arrival->id)
+            ->whereNull('receives.deleted_at')
             ->orderBy('gpv.vendor_part_no', 'asc')
             ->orderByRaw('LENGTH(receives.tag) ASC')
             ->orderBy('receives.tag', 'asc')

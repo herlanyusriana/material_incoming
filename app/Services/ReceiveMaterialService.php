@@ -7,6 +7,7 @@ use App\Models\NewSchema\Incoming\IncomingArrivalItem as ArrivalItem;
 use App\Models\NewSchema\Incoming\IncomingArrival as Arrival;
 use App\Models\NewSchema\Core\VendorPart;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -152,9 +153,11 @@ class ReceiveMaterialService
         }
 
         $receiveDate = Receive::query()
+            ->withoutGlobalScope(SoftDeletingScope::class)
             ->from('incoming_receives as receives')
             ->join('incoming_arrival_items as arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
             ->where('arrival_items.arrival_id', $arrival->id)
+            ->whereNull('receives.deleted_at')
             ->selectRaw('MAX(COALESCE(receives.ata_date, receives.created_at)) as receive_at')
             ->value('receive_at');
 
