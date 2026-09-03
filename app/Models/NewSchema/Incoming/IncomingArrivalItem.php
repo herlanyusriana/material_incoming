@@ -74,4 +74,31 @@ class IncomingArrivalItem extends BaseModel
     {
         return $this->hasMany(IncomingReceive::class, 'arrival_item_id');
     }
+
+    /**
+     * Best-available part number for display, since several views use the
+     * legacy `display_part_no` accessor that was lost in the NewSchema
+     * refactor. Prefer the GCI (master) number, then the vendor part number.
+     */
+    public function getDisplayPartNoAttribute(): string
+    {
+        return (string) (
+            $this->gciPart?->part_no
+            ?: $this->vendorPart?->vendor_part_no
+            ?: '-'
+        );
+    }
+
+    /**
+     * Best-available part name for display (legacy `display_part_name`
+     * accessor, lost in the NewSchema refactor).
+     */
+    public function getDisplayPartNameAttribute(): string
+    {
+        return (string) (
+            $this->gciPart?->part_name
+            ?: $this->vendorPart?->vendor_part_name
+            ?: '-'
+        );
+    }
 }
