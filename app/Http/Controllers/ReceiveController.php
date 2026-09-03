@@ -159,11 +159,11 @@ class ReceiveController extends Controller
 
         $topVendors = Receive::select(
             'vendors.vendor_name',
-            DB::raw('COUNT(receives.id) as total_receives'),
-            DB::raw('SUM(receives.qty) as total_qty')
+            DB::raw('COUNT(incoming_receives.id) as total_receives'),
+            DB::raw('SUM(incoming_receives.qty) as total_qty')
         )
-            ->join('incoming_arrival_items', 'receives.arrival_item_id', '=', 'arrival_items.id')
-            ->join('incoming_arrivals as arrivals', 'arrival_items.arrival_id', '=', 'arrivals.id')
+            ->join('incoming_arrival_items', 'incoming_receives.arrival_item_id', '=', 'incoming_arrival_items.id')
+            ->join('incoming_arrivals as arrivals', 'incoming_arrival_items.arrival_id', '=', 'arrivals.id')
             ->join('vendors', 'arrivals.vendor_id', '=', 'vendors.id')
             ->groupBy('vendors.vendor_name')
             ->orderByDesc('total_receives')
