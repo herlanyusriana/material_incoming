@@ -44,6 +44,13 @@ php_path.txt
 qa_result.txt
 seeder_error.txt
 
+# Database dumps & local reports (never commit large binaries / backups)
+sqldump/
+reports/
+
+# Office temp files
+~$*
+
 # Binaries
 composer.phar
 composer-setup.php
