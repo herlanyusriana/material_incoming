@@ -5,6 +5,14 @@
     $showPoAction = (bool) ($showPoAction ?? false);
     $showIncoming = (bool) ($showIncoming ?? true);
     $month = $month ?? null;
+    $familyColors = [
+        'Comp Base' => 'bg-indigo-100 text-indigo-700',
+        'Back Plate' => 'bg-sky-100 text-sky-700',
+        'Reinforce' => 'bg-emerald-100 text-emerald-700',
+        'Tray Drip' => 'bg-amber-100 text-amber-700',
+        'Small Part' => 'bg-slate-100 text-slate-600',
+        'NON LG' => 'bg-rose-100 text-rose-700',
+    ];
 @endphp
 
 <div class="flex items-center justify-between gap-3">
@@ -83,7 +91,10 @@
                                     </div>
                                 </td>
                                 <td rowspan="4" class="sticky left-40 z-10 {{ $bgClass }} px-2 py-1 text-[11px] border-r border-slate-200 text-slate-700">
-                                    <div class="font-semibold">{{ $part->part_name ?? '-' }}</div>
+                                    <div class="font-semibold flex items-center gap-2 flex-wrap">
+                                        {{ $part->part_name ?? '-' }}
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold {{ $familyColors[$row['family'] ?? ''] ?? 'bg-slate-100 text-slate-600' }}">{{ $row['family'] ?? 'Small Part' }}</span>
+                                    </div>
                                     <div class="text-[10px] text-slate-500">{{ $part->model ?? '-' }}</div>
                                     @php
                                         $mappedLine = trim((string) ($row['mapped_line'] ?? ''));

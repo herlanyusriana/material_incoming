@@ -15,6 +15,7 @@ use App\Models\MrpRun;
 use App\Models\ProductionOrder;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Support\PartFamily;
 use App\Services\MrpIncomingIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -225,6 +226,7 @@ class MrpController extends Controller
     public function index(Request $request)
     {
         $period = $request->query('month') ?: $request->query('period') ?: now()->format('Y-m');
+        $family = $request->query('family');
         $year = (int) substr($period, 0, 4);
         $selectedMonth = \Carbon\Carbon::createFromFormat('Y-m', $period)->startOfMonth();
         $selectedMonthEnd = $selectedMonth->copy()->endOfMonth();
@@ -269,6 +271,8 @@ class MrpController extends Controller
                 'dates' => $dates,
                 'months' => $months,
                 'monthLabels' => $monthLabels,
+                'family' => $family,
+                'families' => PartFamily::labels(),
             ]);
         }
 
@@ -520,6 +524,7 @@ class MrpController extends Controller
 
             $rowData = [
                 'part' => $part,
+                'family' => PartFamily::from($part->part_name ?? null),
                 'initial_stock' => $startStock,
                 'has_purchase' => $hasPurchase,
                 'has_production' => $hasProduction,
@@ -548,10 +553,22 @@ class MrpController extends Controller
             $mrpData[] = $rowData;
         }
 
+        // Family is a derived attribute (parsed from part_name). Filter the assembled rows
+        // in memory when a family is selected, then sort by family grouping for display.
+        if ($family) {
+            $mrpData = array_values(array_filter($mrpData, fn ($r) => ($r['family'] ?? null) === $family));
+        }
+
         $mrpDataBuy = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_purchase'] ?? false)));
         $mrpDataMake = array_values(array_filter($mrpData, fn ($r) => (bool) ($r['has_production'] ?? false)));
 
-        return view('planning.mrp.index', compact('period', 'dates', 'months', 'monthLabels', 'mrpData', 'mrpDataBuy', 'mrpDataMake'));
+        $byFamily = fn ($a, $b) => [PartFamily::order($a['family'] ?? ''), $a['part']->part_no] <=> [PartFamily::order($b['family'] ?? ''), $b['part']->part_no];
+        usort($mrpDataBuy, $byFamily);
+        usort($mrpDataMake, $byFamily);
+
+        $families = PartFamily::labels();
+
+        return view('planning.mrp.index', compact('period', 'dates', 'months', 'monthLabels', 'mrpData', 'mrpDataBuy', 'mrpDataMake', 'family', 'families'));
     }
 
     private function getWeeksForRange(\Carbon\Carbon $start, \Carbon\Carbon $end): array
