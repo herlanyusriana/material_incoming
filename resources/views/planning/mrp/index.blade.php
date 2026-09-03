@@ -20,6 +20,14 @@
     <div class="py-6">
         <div class="max-w-[98%] mx-auto px-2 space-y-6">
             @php
+                $familyColors = [
+                    'Comp Base' => 'bg-indigo-100 text-indigo-700',
+                    'Back Plate' => 'bg-sky-100 text-sky-700',
+                    'Reinforce' => 'bg-emerald-100 text-emerald-700',
+                    'Tray Drip' => 'bg-amber-100 text-amber-700',
+                    'Small Part' => 'bg-slate-100 text-slate-600',
+                    'NON LG' => 'bg-rose-100 text-rose-700',
+                ];
                 $month = $period ?? request('month') ?? now()->format('Y-m');
                 $startOfMonth = \Carbon\Carbon::parse($month . '-01')->startOfDay();
                 $endOfMonth = $startOfMonth->copy()->endOfMonth();
@@ -56,12 +64,22 @@
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Month</label>
-                            <input type="month" name="month" value="{{ $month }}"
+                            <label for="month-filter" class="text-xs font-semibold text-slate-600">Bulan</label>
+                            <input id="month-filter" type="month" name="month" value="{{ $month }}"
+                                max="{{ now()->format('Y-m') }}"
                                 class="mt-1 rounded-xl border-slate-200">
                             <div class="text-[11px] text-slate-500 mt-1" x-show="viewMode === 'month'" x-cloak>
-                                Demand Jan–Dec untuk tahun {{ substr($month, 0, 4) }}
+                                Demand Jan–Des untuk tahun {{ substr($month, 0, 4) }}
                             </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">Family</label>
+                            <select name="family" class="mt-1 rounded-xl border-slate-200">
+                                <option value="">All</option>
+                                @foreach ($families ?? [] as $f)
+                                    <option value="{{ $f }}" @selected(($family ?? '') === $f)>{{ $f }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Load View</button>
                     </form>

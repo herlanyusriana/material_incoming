@@ -7,6 +7,14 @@
     $months = $months ?? [];
     /** @var array<string,string> $monthLabels */
     $monthLabels = $monthLabels ?? [];
+    $familyColors = [
+        'Comp Base' => 'bg-indigo-100 text-indigo-700',
+        'Back Plate' => 'bg-sky-100 text-sky-700',
+        'Reinforce' => 'bg-emerald-100 text-emerald-700',
+        'Tray Drip' => 'bg-amber-100 text-amber-700',
+        'Small Part' => 'bg-slate-100 text-slate-600',
+        'NON LG' => 'bg-rose-100 text-rose-700',
+    ];
 @endphp
 
 <div class="flex items-center justify-between gap-3">
@@ -49,8 +57,9 @@
                             <th scope="col" class="sticky left-46 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-64 border-l border-indigo-700">Name / Spec</th>
                             <th scope="col" class="sticky left-[26rem] z-20 bg-indigo-900 px-3 py-2 text-right text-xs font-bold uppercase w-24 border-l border-indigo-700 border-r-2 border-r-indigo-400">Stock</th>
                             @foreach ($months as $ym)
-                                <th scope="col" class="px-2 py-2 text-center text-xs font-bold uppercase w-20 border-l border-indigo-800">
-                                    {{ $monthLabels[$ym] ?? $ym }}
+                                <th scope="col" class="px-2 py-2 text-center text-xs font-bold uppercase w-24 border-l border-indigo-800">
+                                    <div class="whitespace-nowrap">{{ $monthLabels[$ym] ?? $ym }}</div>
+                                    <div class="text-[10px] font-normal opacity-70">{{ substr($ym, 0, 4) }}</div>
                                 </th>
                             @endforeach
                             <th scope="col" class="px-2 py-2 text-right text-xs font-bold uppercase w-28 border-l border-indigo-700">Total</th>
@@ -84,7 +93,10 @@
                                     </div>
                                 </td>
                                 <td class="sticky left-46 z-10 {{ $bgClass }} px-3 py-2 text-[11px] border-l border-slate-200 text-slate-700">
-                                    <div class="font-semibold">{{ $part->part_name ?? '-' }}</div>
+                                    <div class="font-semibold flex items-center gap-2 flex-wrap">
+                                        {{ $part->part_name ?? '-' }}
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold {{ $familyColors[$row['family'] ?? ''] ?? 'bg-slate-100 text-slate-600' }}">{{ $row['family'] ?? 'Small Part' }}</span>
+                                    </div>
                                     <div class="text-[10px] text-slate-500">{{ $part->model ?? '-' }}</div>
                                 </td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-3 py-2 text-right text-xs font-bold text-slate-800 border-l border-slate-200 bg-yellow-50 border-r-2 border-slate-300">

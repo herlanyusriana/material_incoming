@@ -111,10 +111,10 @@
         <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
             <form method="GET" class="flex flex-wrap items-end gap-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Period (YYYY-MM)</label>
-                    <input name="period" value="{{ $period }}"
-                        class="mt-1 rounded-xl border-slate-200 @error('period') border-red-500 @enderror"
-                        placeholder="All periods">
+                    <label for="period-filter" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Bulan</label>
+                    <input id="period-filter" type="month" name="period" value="{{ $period }}"
+                        max="{{ now()->format('Y-m') }}"
+                        class="mt-1 rounded-xl border-slate-200 @error('period') border-red-500 @enderror">
                     @error('period')
                         <div class="text-[10px] text-red-500 mt-1 font-semibold">{{ $message }}</div>
                     @enderror
@@ -167,7 +167,10 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($forecasts as $f)
                             <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-4 py-3 font-mono text-xs">{{ $f->period }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="font-semibold text-slate-800 whitespace-nowrap">{{ \Carbon\Carbon::createFromFormat('Y-m', $f->period)->format('M Y') }}</div>
+                                    <div class="text-[11px] text-slate-400 font-mono">{{ $f->period }}</div>
+                                </td>
                                 <td class="px-4 py-3">
                                     <div class="font-semibold">{{ $f->part->part_no ?? '-' }}</div>
                                     <div class="text-xs text-slate-500">{{ $f->part->part_name ?? '-' }}</div>
