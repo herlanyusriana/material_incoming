@@ -75,7 +75,6 @@
                         <tbody class="divide-y divide-slate-100">
                                 @forelse ($receives as $idx => $r)
                                     @php
-                                        $part = $r->arrivalItem?->part;
                                         $arrivalItem = $r->arrivalItem;
                                         $arrival = $arrivalItem?->arrival;
                                         $classification = strtoupper(trim((string) ($arrivalItem?->material_group ?? 'INCOMING')));
@@ -92,10 +91,10 @@
                                         <td class="px-4 py-3 text-slate-600">{{ $receives->firstItem() + $idx }}</td>
                                         <td class="px-4 py-3">{{ $classification !== '' ? $classification : 'INCOMING' }}</td>
                                     <td class="px-4 py-3">
-                                        <div class="font-semibold text-slate-900">{{ $part?->part_no ?? '-' }}</div>
+                                        <div class="font-semibold text-slate-900">{{ $arrivalItem?->display_part_no ?? '-' }}</div>
                                         <div class="text-xs text-slate-500">{{ $arrival?->invoice_no ?? '-' }}</div>
                                     </td>
-                                    <td class="px-4 py-3">{{ $part?->part_name_gci ?? ($part?->part_name_vendor ?? '-') }}</td>
+                                    <td class="px-4 py-3">{{ $arrivalItem?->display_part_name ?? '-' }}</td>
                                     <td class="px-4 py-3">{{ $arrivalItem?->size ?? '-' }}</td>
                                     <td class="px-4 py-3 font-mono text-xs">{{ $displayUom }}</td>
                                     <td class="px-4 py-3">
