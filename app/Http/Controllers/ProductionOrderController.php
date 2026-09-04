@@ -1021,10 +1021,11 @@ class ProductionOrderController extends Controller
                                     Auth::id()
                                 );
 
-                                // Find source receive/arrival for traceability
-                                $receive = Receive::where('tag', $stock->batch_no)
-                                    ->orWhere('batch_no', $stock->batch_no)
-                                    ->first();
+                                // Find source receive/arrival for traceability.
+                                // incoming_receives has no batch_no column; the tag
+                                // is both the QR identity and the stock batch_no, so
+                                // match on tag only.
+                                $receive = Receive::where('tag', $stock->batch_no)->first();
 
                                 $arrivalId = null;
                                 $invoiceNo = null;
