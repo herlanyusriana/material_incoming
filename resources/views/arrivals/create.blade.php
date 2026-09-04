@@ -794,16 +794,21 @@
             return partsCache[cacheKey] || [];
         }
 
+        // A part's "size" is its register_no when present. When it's blank (e.g. a
+        // BACK PLATE with no size spec), fall back to part_no then name so the part
+        // is still selectable in the size dropdown instead of silently dropping it.
+        function getSizeCandidate(p) {
+            const partNo = String(p.part_no || '').trim();
+            let candidate = String(p.size || p.register_no || '').trim();
+            if (!candidate) {
+                candidate = partNo || String(p.vendor_part_name || p.part_name_gci || '').trim();
+            }
+            return candidate;
+        }
+
         function buildSizeOptionsHtml(vendorId, groupTitle = '') {
             const list = getPartsForGroup(vendorId, groupTitle);
             if (!list.length) return '';
-            const getSizeCandidate = (p) => {
-                const candidate = String(p.size || p.register_no || '').trim();
-                const partNo = String(p.part_no || '').trim();
-                if (!candidate) return '';
-                if (partNo && candidate.toLowerCase() === partNo.toLowerCase()) return '';
-                return candidate;
-            };
             return list
                 .map((p) => {
                     const size = getSizeCandidate(p);
@@ -822,10 +827,8 @@
             if (!normalizedSize) return null;
             const list = getPartsForGroup(vendorId, groupTitle);
             return list.find((p) => {
-                const candidate = String(p.size || p.register_no || '').trim();
-                const partNo = String(p.part_no || '').trim();
+                const candidate = getSizeCandidate(p);
                 if (!candidate) return false;
-                if (partNo && candidate.toLowerCase() === partNo.toLowerCase()) return false;
                 return candidate.toLowerCase() === normalizedSize;
             }) ?? null;
         }
@@ -835,10 +838,9 @@
             const items = [];
             const seen = new Set();
             list.forEach(p => {
-                const size = String(p.size || p.register_no || '').trim();
+                const size = getSizeCandidate(p);
                 const partNo = String(p.part_no || '').trim();
                 if (!size) return;
-                if (partNo && size.toLowerCase() === partNo.toLowerCase()) return;
                 const key = size.toLowerCase();
                 if (seen.has(key)) return;
                 seen.add(key);
@@ -1217,7 +1219,17 @@
                 return;
             }
             const sizeInput = row.querySelector('.input-size');
-            if (sizeInput) sizeInput.value = partData.size || partData.register_no || '';
+            if (sizeInput) {
+                // Only overwrite the size field with the part's size/register_no when it
+                // actually has one (or the field is blank). Some parts (e.g. a BACK PLATE
+                // with no size spec) carry an empty register_no; clobbering the size the
+                // user just typed with '' would otherwise make the follow-up blur handler
+                // clear the part and drop it from the line.
+                const partSize = String(partData.size || partData.register_no || '').trim();
+                if (partSize || !sizeInput.value.trim()) {
+                    sizeInput.value = partSize;
+                }
+            }
             const partNoInput = row.querySelector('.input-part-no-gci');
             if (partNoInput) partNoInput.value = partData.part_no || '';
             const partNameInput = row.querySelector('.input-part-name-gci');
