@@ -1036,7 +1036,7 @@ class ProductionOrderController extends Controller
                                 // Get movement ID for this consumption
                                 $movementId = DB::table('inventory_stock_movements')
                                     ->where('gci_part_id', $partId)
-                                    ->where('location_code', $locationCode)
+                                    ->where('from_location_code', $locationCode)
                                     ->where('batch_no', $stock->batch_no)
                                     ->where('transaction_type', 'PRODUCTION_BACKFLUSH')
                                     ->where('source_reference', 'PROD#' . ($order->production_order_number ?: $order->id))
