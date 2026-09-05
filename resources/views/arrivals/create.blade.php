@@ -799,9 +799,13 @@
         // is still selectable in the size dropdown instead of silently dropping it.
         function getSizeCandidate(p) {
             const partNo = String(p.part_no || '').trim();
-            let candidate = String(p.size || p.register_no || '').trim();
+            // Prioritaskan register_no (biasanya berisi ukuran), lalu vendor_part_name, lalu part_no
+            let candidate = String(p.register_no || '').trim();
             if (!candidate) {
-                candidate = partNo || String(p.vendor_part_name || p.part_name_gci || '').trim();
+                candidate = String(p.vendor_part_name || p.part_name_gci || '').trim();
+            }
+            if (!candidate) {
+                candidate = partNo;
             }
             return candidate;
         }
