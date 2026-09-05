@@ -960,6 +960,7 @@ class PartController extends Controller
             ->select([
                 'vendor_parts.id as id',
                 'gci_parts.part_no',
+                'gci_parts.size as size',
                 'vendor_parts.register_no',
                 'vendor_parts.vendor_part_name',
                 'gci_parts.part_name as part_name_gci',
