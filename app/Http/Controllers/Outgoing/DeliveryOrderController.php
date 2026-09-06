@@ -32,14 +32,14 @@ class DeliveryOrderController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $customers = Customer::orderBy('customer_name')->get();
+        $customers = Customer::orderBy('name')->get();
 
         return view('outgoing.delivery_orders.index', compact('orders', 'customers', 'q', 'customerId'));
     }
 
     public function create()
     {
-        $customers = Customer::orderBy('customer_name')->get();
+        $customers = Customer::orderBy('name')->get();
         $parts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
 
         return view('outgoing.delivery_orders.create', compact('customers', 'parts'));
@@ -101,7 +101,7 @@ class DeliveryOrderController extends Controller
         }
 
         $deliveryOrder->load('items');
-        $customers = Customer::orderBy('customer_name')->get();
+        $customers = Customer::orderBy('name')->get();
         $parts = GciPart::where('classification', 'FG')->orderBy('part_no')->get();
 
         return view('outgoing.delivery_orders.edit', compact('deliveryOrder', 'customers', 'parts'));

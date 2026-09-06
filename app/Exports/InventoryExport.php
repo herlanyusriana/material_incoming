@@ -22,7 +22,7 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
             ->addSelect(['inventory_location_stock.*'])
             ->addSelect(['latest_batch' => IncomingReceive::query()
                 ->select('incoming_receives.tag')
-                ->join('incoming_arrival_items', 'incoming_arrival_items.id', '=', 'incoming_receives.incoming_arrival_item_id')
+                ->join('incoming_arrival_items', 'incoming_arrival_items.id', '=', 'incoming_receives.arrival_item_id')
                 ->whereColumn('incoming_arrival_items.gci_part_id', 'inventory_location_stock.gci_part_id')
                 ->whereNotNull('incoming_receives.tag')
                 ->orderByDesc('incoming_receives.created_at')

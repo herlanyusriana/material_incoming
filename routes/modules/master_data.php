@@ -43,7 +43,7 @@ Route::middleware('can:manage_parts')->group(function () {
     Route::put('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'update'])->name('contract-numbers.update');
     Route::delete('/contract-numbers/{contractNumber}', [ContractNumberController::class, 'destroy'])->name('contract-numbers.destroy');
 
-    Route::resource('truckings', TruckingController::class)->except(['show']);
+    Route::resource('truckings', TruckingController::class)->except(['show', 'create']);
 
     Route::get('/machines/export', [MachineController::class, 'export'])->name('machines.export');
     Route::post('/machines/import', [MachineController::class, 'import'])->name('machines.import');

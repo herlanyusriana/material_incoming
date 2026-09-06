@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LocationInventoryAdjustment;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\NewSchema\Inventory\InventoryStockMovement;
-use App\Models\LocationInventory;
 use App\Models\WarehouseLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -135,6 +135,7 @@ class WarehouseStockAdjustmentController extends Controller
             ? strtoupper(trim((string) $validated['batch_no']))
             : null;
         $qtyAfter = (float) $validated['qty_after'];
+        $sourceRef = 'ADJ: ' . $validated['event_type'] . ' — ' . \Illuminate\Support\Str::limit($validated['reason'], 180);
 
         DB::transaction(function () use ($partId, $locationCode, $batchNo, $qtyAfter, $adjustedAt, $validated, $hasMoveFields, $hasActionType, $hasEventType) {
             // Resolve gci_part_id
@@ -151,32 +152,35 @@ class WarehouseStockAdjustmentController extends Controller
 
             // If batch specified, adjust only that batch
             if ($batchNo !== null) {
-                $locInv = LocationInventory::query()
+                $row = InventoryLocationStock::query()
                     ->where('gci_part_id', $gciPartId)
                     ->where('location_code', $locationCode)
                     ->where('batch_no', $batchNo)
                     ->lockForUpdate()
                     ->first();
 
-                $qtyBefore = $locInv ? (float) $locInv->qty_on_hand : 0.0;
+                $qtyBefore = $row ? (float) $row->qty_on_hand : 0.0;
                 $qtyChange = $qtyAfter - $qtyBefore;
 
-                if (!$locInv) {
-                    $locInv = LocationInventory::query()->create([
-                        'gci_part_id' => $gciPartId,
-                        'part_id' => $p ? $partId : null,
-                        'location_code' => $locationCode,
-                        'batch_no' => $batchNo,
-                        'qty_on_hand' => 0,
-                    ]);
+                if (abs($qtyChange) > 0.0000001) {
+                    InventoryLocationStock::updateStock(
+                        (int) $gciPartId,
+                        $locationCode,
+                        $qtyChange,
+                        $batchNo,
+                        null,
+                        'ADJUSTMENT',
+                        $sourceRef,
+                        null, null, null, null, null,
+                        auth()->id()
+                    );
                 }
 
-                $locInv->update([
-                    'qty_on_hand' => $qtyAfter,
-                    'last_counted_at' => $adjustedAt,
-                ]);
-
-                // Global inventory summary is auto-synced by LocationInventory model.
+                InventoryLocationStock::query()
+                    ->where('gci_part_id', $gciPartId)
+                    ->where('location_code', $locationCode)
+                    ->where('batch_no', $batchNo)
+                    ->update(['last_counted_at' => $adjustedAt]);
 
                 $adj = LocationInventoryAdjustment::query()->create([
                     'part_id' => $p ? $partId : null,
@@ -213,51 +217,51 @@ class WarehouseStockAdjustmentController extends Controller
                 }
             } else {
                 // No batch specified: adjust total qty at location (all batches combined)
-                $rows = LocationInventory::query()
+                $rows = InventoryLocationStock::query()
+                    ->where('gci_part_id', $gciPartId)
                     ->where('location_code', $locationCode)
-                    ->when($gciPartId, fn ($q) => $q->where('gci_part_id', $gciPartId))
-                    ->when(!$gciPartId && $p, fn ($q) => $q->where('part_id', $partId))
                     ->lockForUpdate()
                     ->get();
 
                 $qtyBefore = (float) $rows->sum('qty_on_hand');
-                $qtyChange = $qtyAfter - $qtyBefore;
-
-                if ($rows->isEmpty()) {
-                    $locInv = LocationInventory::query()->create([
-                        'gci_part_id' => $gciPartId,
-                        'part_id' => $p ? $partId : null,
-                        'location_code' => $locationCode,
-                        'qty_on_hand' => 0,
-                    ]);
-                    $rows = collect([$locInv]);
-                }
 
                 $remainingQty = $qtyAfter;
                 foreach ($rows->sortBy(fn ($row) => [$row->production_date ?? '9999-12-31', $row->batch_no ?? '']) as $row) {
                     $nextQty = max(min($remainingQty, (float) $row->qty_on_hand), 0);
-                    if ($remainingQty > (float) $row->qty_on_hand) {
-                        $nextQty = (float) $row->qty_on_hand;
+                    $delta = $nextQty - (float) $row->qty_on_hand;
+                    if (abs($delta) > 0.0000001) {
+                        InventoryLocationStock::updateStock(
+                            (int) $gciPartId,
+                            $locationCode,
+                            $delta,
+                            $row->batch_no ?: null,
+                            null,
+                            'ADJUSTMENT',
+                            $sourceRef,
+                            null, null, null, null, null,
+                            auth()->id()
+                        );
                     }
-                    $row->update([
-                        'qty_on_hand' => $nextQty,
-                        'last_counted_at' => $adjustedAt,
-                    ]);
                     $remainingQty -= $nextQty;
                 }
-                if ($remainingQty > 0 && $rows->isNotEmpty()) {
-                    $seed = $rows->first();
-                    LocationInventory::query()->create([
-                        'gci_part_id' => $gciPartId ?: $seed->gci_part_id,
-                        'part_id' => $p ? $partId : $seed->part_id,
-                        'location_code' => $locationCode,
-                        'batch_no' => null,
-                        'qty_on_hand' => $remainingQty,
-                        'last_counted_at' => $adjustedAt,
-                    ]);
+                if ($remainingQty > 0.0000001) {
+                    InventoryLocationStock::updateStock(
+                        (int) $gciPartId,
+                        $locationCode,
+                        $remainingQty,
+                        null,
+                        null,
+                        'ADJUSTMENT',
+                        $sourceRef,
+                        null, null, null, null, null,
+                        auth()->id()
+                    );
                 }
 
-                // Summary is auto-synced by model.
+                InventoryLocationStock::query()
+                    ->where('gci_part_id', $gciPartId)
+                    ->where('location_code', $locationCode)
+                    ->update(['last_counted_at' => $adjustedAt]);
 
                 $adj = LocationInventoryAdjustment::query()->create([
                     'part_id' => $p ? $partId : null,
@@ -316,11 +320,15 @@ class WarehouseStockAdjustmentController extends Controller
             return response()->json([]);
         }
 
-        $base = LocationInventory::query()
-            ->where(function($q) use ($partId) {
-                $q->where('part_id', $partId)
-                  ->orWhere('gci_part_id', $partId);
-            })
+        // part_id bisa parts.id (vendor) atau gci_parts.id (master)
+        $gciPartId = Part::find($partId)?->gci_part_id
+            ?: (GciPart::where('id', $partId)->exists() ? (int) $partId : null);
+        if (!$gciPartId) {
+            return response()->json([]);
+        }
+
+        $base = InventoryLocationStock::query()
+            ->where('gci_part_id', $gciPartId)
             ->where('location_code', strtoupper(trim((string) $locationCode)))
             ->where('qty_on_hand', '>', 0)
             ->orderBy('production_date')

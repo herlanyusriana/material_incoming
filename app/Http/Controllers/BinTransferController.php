@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\BinTransfer;
-use App\Models\LocationInventory;
 use App\Models\LocationInventoryAdjustment;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
@@ -143,19 +142,22 @@ class BinTransferController extends Controller
                 if (!$resolvedPartId && !$resolvedGciPartId) {
                     throw new \Exception("Part ID {$partId} not found in master list.");
                 }
+                if (!$resolvedGciPartId) {
+                    throw new \Exception("Part belum terhubung ke master GCI (gci_part_id).");
+                }
 
                 if ($mode === 'batch_to_batch') {
                     $locationCode = strtoupper(trim((string) $validated['location_code']));
                     $fromBatch = strtoupper(trim((string) $validated['from_batch_no']));
                     $toBatch = strtoupper(trim((string) $validated['to_batch_no']));
 
-                    $sourceStock = LocationInventory::getStockByLocation($partId, $locationCode, $fromBatch, $resolvedGciPartId);
+                    $sourceStock = InventoryLocationStock::getStockByLocation((int) $resolvedGciPartId, $locationCode, $fromBatch);
                     if ($sourceStock < $qty) {
                         throw new \Exception("Insufficient stock at {$locationCode} batch {$fromBatch}. Available: {$sourceStock}, Requested: {$qty}");
                     }
 
-                    LocationInventory::updateStock($resolvedPartId, $locationCode, -$qty, $fromBatch, null, $resolvedGciPartId, 'TRANSFER', "BATCH:{$fromBatch}->{$toBatch}");
-                    LocationInventory::updateStock($resolvedPartId, $locationCode, $qty, $toBatch, null, $resolvedGciPartId, 'TRANSFER', "BATCH:{$fromBatch}->{$toBatch}");
+                    InventoryLocationStock::updateStock((int) $resolvedGciPartId, $locationCode, -$qty, $fromBatch, null, 'TRANSFER', "BATCH:{$fromBatch}->{$toBatch}", null, null, null, null, null, Auth::id());
+                    InventoryLocationStock::updateStock((int) $resolvedGciPartId, $locationCode, $qty, $toBatch, null, 'TRANSFER', "BATCH:{$fromBatch}->{$toBatch}", null, null, null, null, null, Auth::id());
 
                     $transfer = BinTransfer::create([
                         'part_id' => $resolvedPartId,
@@ -207,14 +209,14 @@ class BinTransferController extends Controller
 
                 $fromLocation = strtoupper(trim((string) $validated['from_location_code']));
                 $toLocation = strtoupper(trim((string) $validated['to_location_code']));
-                $sourceStock = LocationInventory::getStockByLocation($partId, $fromLocation, null, $resolvedGciPartId);
+                $sourceStock = InventoryLocationStock::getStockByLocation((int) $resolvedGciPartId, $fromLocation);
 
                 if ($sourceStock < $qty) {
                     throw new \Exception("Insufficient stock at {$fromLocation}. Available: {$sourceStock}, Requested: {$qty}");
                 }
 
-                LocationInventory::updateStock($resolvedPartId, $fromLocation, -$qty, null, null, $resolvedGciPartId, 'TRANSFER', "BIN:{$fromLocation}->{$toLocation}");
-                LocationInventory::updateStock($resolvedPartId, $toLocation, $qty, null, null, $resolvedGciPartId, 'TRANSFER', "BIN:{$fromLocation}->{$toLocation}");
+                InventoryLocationStock::updateStock((int) $resolvedGciPartId, $fromLocation, -$qty, null, null, 'TRANSFER', "BIN:{$fromLocation}->{$toLocation}", null, null, null, null, null, Auth::id());
+                InventoryLocationStock::updateStock((int) $resolvedGciPartId, $toLocation, $qty, null, null, 'TRANSFER', "BIN:{$fromLocation}->{$toLocation}", null, null, null, null, null, Auth::id());
 
                 $transfer = BinTransfer::create([
                     'part_id' => $resolvedPartId,
@@ -276,19 +278,13 @@ class BinTransferController extends Controller
     {
         $binTransfer->load(['part', 'gciPart', 'fromLocation', 'toLocation', 'creator']);
 
-        $currentFromStock = LocationInventory::getStockByLocation(
-            $binTransfer->part_id ?: $binTransfer->gci_part_id,
-            $binTransfer->from_location_code,
-            $binTransfer->from_batch_no,
-            $binTransfer->gci_part_id
-        );
+        $currentFromStock = $binTransfer->gci_part_id
+            ? InventoryLocationStock::getStockByLocation((int) $binTransfer->gci_part_id, $binTransfer->from_location_code, $binTransfer->from_batch_no)
+            : 0.0;
 
-        $currentToStock = LocationInventory::getStockByLocation(
-            $binTransfer->part_id ?: $binTransfer->gci_part_id,
-            $binTransfer->to_location_code,
-            $binTransfer->to_batch_no,
-            $binTransfer->gci_part_id
-        );
+        $currentToStock = $binTransfer->gci_part_id
+            ? InventoryLocationStock::getStockByLocation((int) $binTransfer->gci_part_id, $binTransfer->to_location_code, $binTransfer->to_batch_no)
+            : 0.0;
 
         $mode = $binTransfer->transfer_type === 'batch_to_batch' ? 'batch_to_batch' : 'bin_to_bin';
         $meta = $this->modeMeta($mode);
@@ -304,8 +300,14 @@ class BinTransferController extends Controller
             'batch_no' => ['nullable', 'string'],
         ]);
 
-        $stock = LocationInventory::getStockByLocation(
-            (int) $request->part_id,
+        $partId = (int) $request->part_id;
+        $gciPartId = Part::find($partId)?->gci_part_id ?: (GciPart::where('id', $partId)->exists() ? $partId : null);
+        if (!$gciPartId) {
+            return response()->json(['success' => true, 'stock' => 0, 'formatted' => formatNumber(0)]);
+        }
+
+        $stock = InventoryLocationStock::getStockByLocation(
+            (int) $gciPartId,
             (string) $request->location_code,
             $request->query('batch_no')
         );
@@ -323,7 +325,13 @@ class BinTransferController extends Controller
             'part_id' => ['required'],
         ]);
 
-        $locations = LocationInventory::getLocationsForPart((int) $request->part_id);
+        $partId = (int) $request->part_id;
+        $gciPartId = Part::find($partId)?->gci_part_id ?: (GciPart::where('id', $partId)->exists() ? $partId : null);
+        if (!$gciPartId) {
+            return response()->json(['success' => true, 'locations' => []]);
+        }
+
+        $locations = InventoryLocationStock::getLocationsForPart((int) $gciPartId);
 
         return response()->json([
             'success' => true,
@@ -346,14 +354,15 @@ class BinTransferController extends Controller
 
         $partId = (int) $request->part_id;
         $locationCode = strtoupper(trim((string) $request->location_code));
-        $part = Part::find($partId);
-        $gciPartId = $part?->gci_part_id ?: GciPart::where('id', $partId)->value('id');
+        $gciPartId = Part::find($partId)?->gci_part_id ?: (GciPart::where('id', $partId)->exists() ? $partId : null);
+        if (!$gciPartId) {
+            return response()->json(['success' => true, 'batches' => []]);
+        }
 
-        $rows = LocationInventory::query()
+        $rows = InventoryLocationStock::query()
+            ->where('gci_part_id', $gciPartId)
             ->where('location_code', $locationCode)
             ->where('qty_on_hand', '>', 0)
-            ->when($gciPartId, fn ($q) => $q->where('gci_part_id', $gciPartId))
-            ->when(!$gciPartId && $part, fn ($q) => $q->where('part_id', $partId))
             ->orderBy('production_date')
             ->orderBy('batch_no')
             ->get(['batch_no', 'qty_on_hand', 'production_date']);

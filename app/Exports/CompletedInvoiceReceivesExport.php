@@ -59,10 +59,10 @@ class CompletedInvoiceReceivesExport implements FromCollection, WithHeadings, Wi
     {
         return IncomingReceive::query()
             ->select('incoming_receives.*')
-            ->join('incoming_arrival_items', 'incoming_receives.incoming_arrival_item_id', '=', 'incoming_arrival_items.id')
+            ->join('incoming_arrival_items', 'incoming_receives.arrival_item_id', '=', 'incoming_arrival_items.id')
             ->join('gci_parts', 'incoming_arrival_items.gci_part_id', '=', 'gci_parts.id')
             ->with(['incomingArrivalItem.gciPart', 'incomingArrivalItem.incomingArrival.vendor'])
-            ->where('incoming_arrival_items.incoming_arrival_id', $this->arrival->id)
+            ->where('incoming_arrival_items.arrival_id', $this->arrival->id)
             ->orderBy('gci_parts.part_no', 'asc')
             ->orderByRaw('LENGTH(incoming_receives.tag) ASC')
             ->orderBy('incoming_receives.tag', 'asc')

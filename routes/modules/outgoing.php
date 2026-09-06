@@ -77,7 +77,7 @@ Route::middleware('can:manage_outgoing')->prefix('outgoing')->name('outgoing.')-
     Route::resource('delivery-orders', DeliveryOrderController::class);
     Route::post('delivery-orders/{delivery_order}/ship', [DeliveryOrderController::class, 'ship'])->name('delivery-orders.ship');
 
-    Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class);
+    Route::resource('delivery-notes', \App\Http\Controllers\Outgoing\DeliveryNoteController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
     Route::post('delivery-notes/{delivery_note}/start-kitting', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startKitting'])->name('delivery-notes.start-kitting');
     Route::post('delivery-notes/{delivery_note}/complete-kitting', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'completeKitting'])->name('delivery-notes.complete-kitting');
     Route::post('delivery-notes/{delivery_note}/start-picking', [\App\Http\Controllers\Outgoing\DeliveryNoteController::class, 'startPicking'])->name('delivery-notes.start-picking');

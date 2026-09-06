@@ -58,8 +58,7 @@
                 
                 <div>
                     <p class="text-sm text-slate-500">Truck</p>
-                    <p class="font-medium text-slate-900">{{ $deliveryNote->truck->name ?? 'Unassigned' }}</p>
-                    <p class="text-sm text-slate-500">{{ $deliveryNote->truck->vehicle_number ?? '' }}</p>
+                    <p class="font-medium text-slate-900">{{ $deliveryNote->truck->plate_no ?? 'Unassigned' }}</p>
                 </div>
                 
                 <div>
@@ -121,7 +120,7 @@
                             <option value="">Select a truck</option>
                             @foreach(\App\Models\Trucking::all() as $truck)
                                 <option value="{{ $truck->id }}" {{ $deliveryNote->truck_id == $truck->id ? 'selected' : '' }}>
-                                    {{ $truck->name }} - {{ $truck->vehicle_number }}
+                                    {{ $truck->company_name }}
                                 </option>
                             @endforeach
                         </select>

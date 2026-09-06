@@ -3,6 +3,7 @@
 namespace App\Models\NewSchema\Core;
 
 use App\Models\NewSchema\BaseModel;
+use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;

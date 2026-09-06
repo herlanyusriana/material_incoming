@@ -77,11 +77,10 @@
                         <div class="mt-2 max-h-40 overflow-y-auto divide-y divide-slate-100 bg-white rounded-lg border border-slate-200">
                             @foreach ($vendors as $v)
                                 <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm"
-                                    x-show="!q || '{{ strtolower($v->code . ' ' . $v->name) }}'.includes(q.toLowerCase())">
+                                    x-show="!q || '{{ strtolower($v->vendor_name) }}'.includes(q.toLowerCase())">
                                     <input type="checkbox" name="vendor_ids[]" value="{{ $v->id }}" class="rounded border-slate-300 text-indigo-600"
                                         :checked="form.vendor_ids.includes({{ $v->id }})">
-                                    <span class="font-mono font-semibold text-indigo-700">{{ $v->code }}</span>
-                                    <span class="text-slate-500 truncate">{{ $v->name }}</span>
+                                    <span class="font-semibold text-indigo-700 truncate">{{ $v->vendor_name }}</span>
                                 </label>
                             @endforeach
                         </div>

@@ -21,6 +21,7 @@ class ProductionOrder extends Model
         'material_issue_lines' => 'array',
         'material_issued_at' => 'datetime',
         'material_handed_over_at' => 'datetime',
+        'kanban_updated_at' => 'datetime',
         'fg_supplied_to_wh_at' => 'datetime',
         'fg_handed_over_to_wh_at' => 'datetime',
         'last_handover_at' => 'datetime',

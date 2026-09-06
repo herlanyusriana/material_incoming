@@ -6,7 +6,6 @@ use App\Exports\StockCardExport;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Core\WarehouseLocation;
 use App\Models\NewSchema\Incoming\IncomingReceive as Receive;
-use App\Models\NewSchema\Inventory\InventoryFgStock;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\NewSchema\Inventory\InventoryStockMovement;
 use Illuminate\Http\Request;
@@ -26,7 +25,8 @@ class StockCardController extends Controller
         $classification = strtoupper(trim((string) $request->query('classification', '')));
         $perPage = max(10, min(200, (int) $request->query('per_page', 50)));
 
-        // RM + WIP dari inventory_location_stock, FG dari inventory_fg_stock.
+        // RM + WIP + FG semuanya dari inventory_location_stock (single source of truth),
+        // disaring gci_parts.classification.
         if (!in_array($classification, ['RM', 'WIP', 'FG'], true)) {
             $classification = '';
         }
@@ -38,18 +38,16 @@ class StockCardController extends Controller
                 ->orWhere('model', 'like', '%' . $s . '%');
         };
 
-        // ── RM + WIP: aggregated on-hand per part dari inventory_location_stock ──
-        // WIP lives in the SAME table as RM, disaring gci_parts.classification = 'WIP'.
         // Kolom Receipt (batch/invoice) dihitung SETELAH pagination, bukan sebagai
-        // subquery di SELECT — biar `only_full_group_by` & binding union tidak jebol.
-        $rmQuery = InventoryLocationStock::query()
+        // subquery di SELECT — biar `only_full_group_by` tidak jebol.
+        $baseQuery = InventoryLocationStock::query()
             ->whereNotNull('inventory_location_stock.gci_part_id')
             ->join('gci_parts as gp', 'gp.id', '=', 'inventory_location_stock.gci_part_id')
             ->leftJoin('customer_gci_part as cgp', 'cgp.gci_part_id', '=', 'gp.id')
-            ->when($classification === '', fn ($q) => $q->whereIn('gp.classification', ['RM', 'WIP']))
+            ->when($classification === '', fn ($q) => $q->whereIn('gp.classification', ['RM', 'WIP', 'FG']))
             ->when($classification === 'RM', fn ($q) => $q->where('gp.classification', 'RM'))
             ->when($classification === 'WIP', fn ($q) => $q->where('gp.classification', 'WIP'))
-            ->when($classification === 'FG', fn ($q) => $q->whereRaw('1 = 0'))
+            ->when($classification === 'FG', fn ($q) => $q->where('gp.classification', 'FG'))
             ->when($search !== '', fn ($q) => $q->where($searchClause))
             ->addSelect([
                 'inventory_location_stock.gci_part_id',
@@ -64,37 +62,11 @@ class StockCardController extends Controller
                 DB::raw('GROUP_CONCAT(DISTINCT customers.name ORDER BY customers.name SEPARATOR ", ") as customer_names'),
             ])
             ->leftJoin('customers', 'customers.id', '=', 'cgp.customer_id')
-            ->groupBy('inventory_location_stock.gci_part_id', 'gp.part_no', 'gp.part_name', 'gp.model', 'gp.subcount_uom', 'gp.default_location', 'gp.status');
-
-        // ── FG: on-hand dari inventory_fg_stock ──
-        $fgQuery = InventoryFgStock::query()
-            ->whereNotNull('inventory_fg_stock.gci_part_id')
-            ->join('gci_parts as gp', 'gp.id', '=', 'inventory_fg_stock.gci_part_id')
-            ->leftJoin('customer_gci_part as cgp', 'cgp.gci_part_id', '=', 'gp.id')
-            ->when(in_array($classification, ['RM', 'WIP'], true), fn ($q) => $q->whereRaw('1 = 0'))
-            ->when($search !== '', fn ($q) => $q->where($searchClause))
-            ->addSelect([
-                'inventory_fg_stock.gci_part_id',
-                'gp.part_no',
-                'gp.part_name',
-                'gp.model',
-                'gp.subcount_uom as uom',
-                'gp.default_location',
-                'gp.status as part_status',
-                DB::raw('SUM(inventory_fg_stock.qty_on_hand) as total_qty'),
-                DB::raw('COUNT(DISTINCT inventory_fg_stock.location_code) as location_count'),
-                DB::raw('GROUP_CONCAT(DISTINCT customers.name ORDER BY customers.name SEPARATOR ", ") as customer_names'),
-            ])
-            ->leftJoin('customers', 'customers.id', '=', 'cgp.customer_id')
-            ->groupBy('inventory_fg_stock.gci_part_id', 'gp.part_no', 'gp.part_name', 'gp.model', 'gp.subcount_uom', 'gp.default_location', 'gp.status');
-
-        $union = $rmQuery->union($fgQuery);
-        $rows = DB::table(DB::raw("({$union->toSql()}) as stock_union"))
-            ->mergeBindings($union->getQuery())
+            ->groupBy('inventory_location_stock.gci_part_id', 'gp.part_no', 'gp.part_name', 'gp.model', 'gp.subcount_uom', 'gp.default_location', 'gp.status')
             ->orderByDesc('total_qty')
-            ->orderBy('part_no')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->orderBy('part_no');
+
+        $rows = (clone $baseQuery)->paginate($perPage)->withQueryString();
 
         // Augment each row: classification + lokasi ringkas + receipt terakhir per part.
         $items = $rows->items();
@@ -131,11 +103,17 @@ class StockCardController extends Controller
         ];
 
         // ── KPI cards (Items / On Hand / On Order / Available) ──
-        // Dihitung dari seluruh hasil union (bukan satu halaman). On Order belum
+        // Dihitung dari seluruh hasil query (bukan satu halaman). On Order belum
         // dihitung (0) sehingga Available = On Hand, konsisten dengan Master Inventory.
-        $kpiRows = DB::table(DB::raw("({$union->toSql()}) as stock_union"))
-            ->mergeBindings($union->getQuery())
-            ->selectRaw('COUNT(*) as item_count, COALESCE(SUM(total_qty), 0) as on_hand')
+        $kpiRows = InventoryLocationStock::query()
+            ->whereNotNull('inventory_location_stock.gci_part_id')
+            ->join('gci_parts as gp', 'gp.id', '=', 'inventory_location_stock.gci_part_id')
+            ->when($classification === '', fn ($q) => $q->whereIn('gp.classification', ['RM', 'WIP', 'FG']))
+            ->when($classification === 'RM', fn ($q) => $q->where('gp.classification', 'RM'))
+            ->when($classification === 'WIP', fn ($q) => $q->where('gp.classification', 'WIP'))
+            ->when($classification === 'FG', fn ($q) => $q->where('gp.classification', 'FG'))
+            ->when($search !== '', fn ($q) => $q->where($searchClause))
+            ->selectRaw('COUNT(DISTINCT inventory_location_stock.gci_part_id) as item_count, COALESCE(SUM(inventory_location_stock.qty_on_hand), 0) as on_hand')
             ->first();
 
         $kpi = [

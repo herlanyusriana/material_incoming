@@ -39,14 +39,14 @@ class OspController extends Controller
             sum(case when status = 'shipped' then 1 else 0 end) as shipped
         ")->first();
 
-        $customers = Customer::orderBy('customer_name')->get(['id', 'customer_name']);
+        $customers = Customer::orderBy('name')->get(['id', 'name']);
 
         return view('outgoing.osp.index', compact('orders', 'stats', 'customers'));
     }
 
     public function create()
     {
-        $customers = Customer::orderBy('customer_name')->get(['id', 'customer_name']);
+        $customers = Customer::orderBy('name')->get(['id', 'name']);
 
         // OSP parts must use a dedicated outgoing document flow, separate from normal FG outgoing.
         $ospParts = BomItem::query()

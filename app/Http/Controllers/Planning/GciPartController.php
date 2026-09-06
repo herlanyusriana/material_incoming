@@ -126,7 +126,7 @@ class GciPartController extends Controller
             }
         }
 
-        $vendors = Vendor::where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
+        $vendors = Vendor::where('status', 'active')->orderBy('vendor_name')->get(['id', 'vendor_name']);
 
         // Part → linked Vendor IDs mapping (for edit pre-populate)
         $partVendorMap = [];

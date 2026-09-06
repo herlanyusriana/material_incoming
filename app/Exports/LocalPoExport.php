@@ -18,7 +18,7 @@ class LocalPoExport implements FromCollection, WithHeadings, WithMapping, WithSt
         return IncomingArrivalItem::query()
             ->with(['incomingArrival.vendor', 'gciPart', 'incomingReceives'])
             ->whereHas('incomingArrival.vendor', fn($q) => $q->where('vendor_type', 'local'))
-            ->join('incoming_arrivals', 'incoming_arrivals.id', '=', 'incoming_arrival_items.incoming_arrival_id')
+            ->join('incoming_arrivals', 'incoming_arrivals.id', '=', 'incoming_arrival_items.arrival_id')
             ->orderByDesc('incoming_arrivals.invoice_date')
             ->orderBy('incoming_arrivals.invoice_no')
             ->select('incoming_arrival_items.*')

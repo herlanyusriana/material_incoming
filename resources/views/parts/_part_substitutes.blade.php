@@ -50,7 +50,7 @@
             <form x-show="partForm.id" :action="subFormAction" method="POST" class="space-y-2 rounded-lg border border-orange-200 bg-white p-3">
                 @csrf
                 <template x-if="subEditId"><input type="hidden" name="_method" value="PUT"></template>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                         <label class="text-xs font-semibold text-slate-600">FG (BOM) <span class="text-red-600">*</span></label>
                         <select name="fg_part_id" required class="mt-0.5 w-full rounded-lg border-slate-200 text-sm" x-model="subForm.fg_part_id" :disabled="!!subEditId">
@@ -70,7 +70,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-4 gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <input type="number" name="ratio" step="0.0001" min="0.0001" placeholder="Ratio" class="w-full rounded-lg border-slate-200 text-sm" x-model="subForm.ratio">
                     <input type="number" name="priority" min="1" placeholder="Priority" class="w-full rounded-lg border-slate-200 text-sm" x-model="subForm.priority">
                     <select name="status" class="w-full rounded-lg border-slate-200 text-sm" x-model="subForm.status">

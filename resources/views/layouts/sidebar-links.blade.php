@@ -146,25 +146,33 @@
 <!-- Inventory -->
 @can('manage_inventory')
 <x-sidebar.section label="Inventory">
-    <x-sidebar.group label="Stock Ledger" icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" active="{{ request()->routeIs('inventory.*') || request()->routeIs('warehouse.*') || request()->routeIs('stock-card.*') }}">
-        <x-sidebar.sub-link href="{{ route('stock-card.index') }}" active="{{ request()->routeIs('stock-card.*') }}">Stock Card (Saldo)</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('warehouse.stock.index') }}" active="{{ request()->routeIs('warehouse.stock.index') }}">Stock by Location</x-sidebar.sub-link>
-    </x-sidebar.group>
+    <x-sidebar.link href="{{ route('stock-card.index') }}" icon="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" active="{{ request()->routeIs('stock-card.*') }}">
+        Stock Card (Saldo)
+    </x-sidebar.link>
 
-    <x-sidebar.group label="Lokasi" icon="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" active="{{ request()->routeIs('inventory.locations.*') }}">
-        <x-sidebar.sub-link href="{{ route('inventory.locations.index') }}" active="{{ request()->routeIs('inventory.locations.index') }}">Warehouse Locations</x-sidebar.sub-link>
-    </x-sidebar.group>
+    <x-sidebar.link href="{{ route('warehouse.stock.index') }}" icon="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" active="{{ request()->routeIs('warehouse.stock.index') || request()->routeIs('warehouse.stock.reconcile') }}">
+        Stock by Location
+    </x-sidebar.link>
 
-    <x-sidebar.group label="Operasional" icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" active="{{ request()->routeIs('warehouse.bin-transfers.*') || request()->routeIs('warehouse.batch-transfers.*') || request()->routeIs('warehouse.stock-adjustments.*') || request()->routeIs('warehouse.stock-opname.*') || request()->routeIs('warehouse.stock.reconcile') || request()->routeIs('warehouse.qc.*') || request()->routeIs('warehouse.putaway.*') }}">
-        <x-sidebar.sub-link href="{{ route('warehouse.bin-transfers.index') }}" active="{{ request()->routeIs('warehouse.bin-transfers.*') || request()->routeIs('warehouse.batch-transfers.*') }}">Transfer (Bin &amp; Batch)</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('warehouse.stock-adjustments.index') }}" active="{{ request()->routeIs('warehouse.stock-adjustments.*') }}">Stock Adjustments</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('warehouse.stock-opname.index') }}" active="{{ request()->routeIs('warehouse.stock-opname.*') }}">Stock Opname</x-sidebar.sub-link>
-        <x-sidebar.sub-link href="{{ route('warehouse.stock.reconcile') }}" active="{{ request()->routeIs('warehouse.stock.reconcile') }}">Reconcile Stock</x-sidebar.sub-link>
-    </x-sidebar.group>
+    <x-sidebar.link href="{{ route('inventory.locations.index') }}" icon="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" active="{{ request()->routeIs('inventory.locations.*') }}">
+        Warehouse Locations
+    </x-sidebar.link>
 
-    <x-sidebar.group label="Penerimaan" icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" active="{{ request()->routeIs('inventory.receives.*') }}">
-        <x-sidebar.sub-link href="{{ route('receives.index') }}" active="{{ request()->routeIs('inventory.receives.*') || request()->routeIs('receives.index') }}">Inventory Receives</x-sidebar.sub-link>
-    </x-sidebar.group>
+    <x-sidebar.link href="{{ route('warehouse.bin-transfers.index') }}" icon="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" active="{{ request()->routeIs('warehouse.bin-transfers.*') || request()->routeIs('warehouse.batch-transfers.*') }}">
+        Transfer (Bin &amp; Batch)
+    </x-sidebar.link>
+
+    <x-sidebar.link href="{{ route('warehouse.stock-adjustments.index') }}" icon="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" active="{{ request()->routeIs('warehouse.stock-adjustments.*') }}">
+        Stock Adjustments
+    </x-sidebar.link>
+
+    <x-sidebar.link href="{{ route('warehouse.stock-opname.index') }}" icon="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" active="{{ request()->routeIs('warehouse.stock-opname.*') }}">
+        Stock Opname
+    </x-sidebar.link>
+
+    <x-sidebar.link href="{{ route('receives.index') }}" icon="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" active="{{ request()->routeIs('receives.index') || request()->routeIs('receives.create') || request()->routeIs('receives.edit') }}">
+        Receive Material
+    </x-sidebar.link>
 </x-sidebar.section>
 @endcan
 

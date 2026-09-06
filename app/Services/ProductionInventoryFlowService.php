@@ -223,7 +223,7 @@ class ProductionInventoryFlowService
         return $return->fresh();
     }
 
-    public function summarizeOrderFlow(ProductionOrder $order): array
+    public function summarizeOrderFlow(\Illuminate\Database\Eloquent\Model $order): array
     {
         $supplies = InventorySupply::query()
             ->where('production_order_id', $order->id)

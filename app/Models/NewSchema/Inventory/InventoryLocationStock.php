@@ -19,6 +19,9 @@ class InventoryLocationStock extends BaseModel
         'batch_no',
         'production_date',
         'qty_on_hand',
+        'uom',
+        'source_type',
+        'source_ref',
         'last_counted_at',
         'last_movement_at',
         'created_by',
@@ -56,51 +59,65 @@ class InventoryLocationStock extends BaseModel
         ?float $weightKgm = null,
         ?int $createdBy = null
     ): void {
-        $record = self::where('gci_part_id', $gciPartId)
-            ->where('location_code', $locationCode)
-            ->where('batch_no', $batchNo ?? '')
-            ->first();
+        DB::transaction(function () use (
+            $gciPartId, $locationCode, $qtyChange, $batchNo, $tag, $transactionType,
+            $sourceReference, $createdBy
+        ) {
+            $record = self::where('gci_part_id', $gciPartId)
+                ->where('location_code', $locationCode)
+                ->where('batch_no', $batchNo ?? '')
+                ->lockForUpdate()
+                ->first();
 
-        $before = $record ? (float) $record->qty_on_hand : 0.0;
-        $after = max(0, $before + $qtyChange);
+            $before = $record ? (float) $record->qty_on_hand : 0.0;
+            $after = max(0, $before + $qtyChange);
 
-        if ($record) {
-            $record->update([
-                'qty_on_hand' => $after,
-                'last_movement_at' => now(),
-            ]);
-        } else {
-            self::create([
+            $gciPart = GciPart::find($gciPartId);
+            $uom = $gciPart?->subcount_uom;
+
+            if ($record) {
+                $record->update([
+                    'qty_on_hand' => $after,
+                    'last_movement_at' => now(),
+                    'uom' => $uom ?: $record->uom,
+                    'source_type' => $transactionType,
+                    'source_ref' => $sourceReference,
+                ]);
+            } else {
+                self::create([
+                    'gci_part_id' => $gciPartId,
+                    'location_code' => $locationCode,
+                    'batch_no' => $batchNo ?? '',
+                    'qty_on_hand' => $after,
+                    'uom' => $uom,
+                    'source_type' => $transactionType,
+                    'source_ref' => $sourceReference,
+                    'last_movement_at' => now(),
+                    'created_by' => $createdBy,
+                ]);
+            }
+
+            // Log movement
+            $isInbound = $qtyChange >= 0;
+            InventoryStockMovement::create([
                 'gci_part_id' => $gciPartId,
-                'location_code' => $locationCode,
-                'batch_no' => $batchNo ?? '',
-                'qty_on_hand' => $after,
-                'last_movement_at' => now(),
+                'part_id' => null,
+                'tag_number' => $tag,
+                'batch_no' => $batchNo ?? $tag,
+                'part_no' => $gciPart?->part_no,
+                'part_name' => $gciPart?->part_name,
+                'movement_type' => $transactionType,
+                'transaction_type' => $transactionType,
+                'source_reference' => $sourceReference,
+                'uom' => $uom,
+                'from_location_code' => $isInbound ? null : $locationCode,
+                'to_location_code' => $isInbound ? $locationCode : null,
+                'qty' => abs($qtyChange),
+                'notes' => $sourceReference ? json_encode(['reference' => $sourceReference]) : null,
+                'moved_at' => now(),
                 'created_by' => $createdBy,
             ]);
-        }
-
-        // Log movement
-        $isInbound = $qtyChange >= 0;
-        $gciPart = GciPart::find($gciPartId);
-        InventoryStockMovement::create([
-            'gci_part_id' => $gciPartId,
-            'part_id' => null,
-            'tag_number' => $tag,
-            'batch_no' => $batchNo ?? $tag,
-            'part_no' => $gciPart?->part_no,
-            'part_name' => $gciPart?->part_name,
-            'movement_type' => $transactionType,
-            'transaction_type' => $transactionType,
-            'source_reference' => $sourceReference,
-            'uom' => null,
-            'from_location_code' => $isInbound ? null : $locationCode,
-            'to_location_code' => $isInbound ? $locationCode : null,
-            'qty' => abs($qtyChange),
-            'notes' => $sourceReference ? json_encode(['reference' => $sourceReference]) : null,
-            'moved_at' => now(),
-            'created_by' => $createdBy,
-        ]);
+        });
     }
 
     /**

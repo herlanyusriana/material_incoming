@@ -8,7 +8,6 @@ use App\Models\DeliveryNote;
 use App\Models\DnItem;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
-use App\Models\LocationInventory;
 use App\Models\PricingMaster;
 use App\Models\Driver;
 use App\Models\OutgoingPickingFg;
@@ -117,7 +116,7 @@ class DeliveryNoteController extends Controller
             $qtyByPart[$partId] = ($qtyByPart[$partId] ?? 0) + (float) $item['qty'];
         }
         foreach ($qtyByPart as $gciPartId => $requiredQty) {
-            $totalStock = (float) LocationInventory::where('gci_part_id', $gciPartId)
+            $totalStock = (float) InventoryLocationStock::where('gci_part_id', $gciPartId)
                 ->where('qty_on_hand', '>', 0)
                 ->sum('qty_on_hand');
             if ($totalStock + 1e-9 < $requiredQty) {
@@ -194,36 +193,29 @@ class DeliveryNoteController extends Controller
         $deliveryNote->load(['customer', 'items.part', 'items.picker', 'driver', 'truck']);
 
         $kittingLocationsByItem = [];
-        if (Schema::hasTable('warehouse_locations') && Schema::hasTable('location_inventory')) {
+        if (Schema::hasTable('warehouse_locations') && Schema::hasTable('inventory_location_stock')) {
             $locationCodes = WarehouseLocation::query()
                 ->where('status', 'ACTIVE')
                 ->orderBy('location_code')
                 ->pluck('location_code')
                 ->all();
 
-            $partsByNo = Part::query()
-                ->whereIn('part_no', $deliveryNote->items->map(fn($i) => $i->part?->part_no)->filter()->unique()->values())
-                ->get()
-                ->keyBy('part_no');
+            $gciPartIds = $deliveryNote->items->pluck('gci_part_id')->filter()->unique()->values();
 
-            $partIds = $partsByNo->pluck('id')->values();
-
-            $stocks = LocationInventory::query()
-                ->whereIn('part_id', $partIds)
+            $stocks = InventoryLocationStock::query()
+                ->whereIn('gci_part_id', $gciPartIds)
                 ->whereIn('location_code', $locationCodes)
                 ->where('qty_on_hand', '>', 0)
                 ->get()
-                ->groupBy('part_id');
+                ->groupBy('gci_part_id');
 
             foreach ($deliveryNote->items as $item) {
-                $gciPartNo = (string) ($item->part?->part_no ?? '');
-                $part = $partsByNo[$gciPartNo] ?? null;
-                if (!$part) {
+                if (!$item->gci_part_id) {
                     $kittingLocationsByItem[$item->id] = [];
                     continue;
                 }
 
-                $kittingLocationsByItem[$item->id] = ($stocks[$part->id] ?? collect())
+                $kittingLocationsByItem[$item->id] = ($stocks[$item->gci_part_id] ?? collect())
                     ->sortBy('location_code')
                     ->map(fn($s) => ['code' => $s->location_code, 'qty' => (float) $s->qty_on_hand])
                     ->values()
@@ -360,13 +352,12 @@ class DeliveryNoteController extends Controller
 
         $deliveryNote->loadMissing(['items.part']);
 
-        if (Schema::hasTable('warehouse_locations') && Schema::hasTable('location_inventory')) {
+        if (Schema::hasTable('warehouse_locations') && Schema::hasTable('inventory_location_stock')) {
             $activeLocations = WarehouseLocation::query()
                 ->where('status', 'ACTIVE')
                 ->pluck('location_code')
                 ->flip();
 
-            $mappedPartByNo = [];
             $requiredByLocationPart = [];
 
             foreach ($deliveryNote->items as $item) {
@@ -375,22 +366,17 @@ class DeliveryNoteController extends Controller
                     return back()->with('error', "Kitting location wajib diisi & ACTIVE untuk part {$item->part?->part_no}.");
                 }
 
-                $gciPartNo = (string) ($item->part?->part_no ?? '');
-                if (!array_key_exists($gciPartNo, $mappedPartByNo)) {
-                    $mappedPartByNo[$gciPartNo] = Part::query()->where('part_no', $gciPartNo)->first();
-                }
-                $mappedPart = $mappedPartByNo[$gciPartNo] ?? null;
-                if (!$mappedPart) {
-                    return back()->with('error', "Part master (parts) tidak ditemukan untuk FG {$gciPartNo}. Buat dulu di master Part agar bisa cek stok per lokasi.");
+                if (!$item->gci_part_id) {
+                    return back()->with('error', "Part {$item->part?->part_no} belum terhubung ke master GCI (gci_part_id).");
                 }
 
-                $key = $loc . '|' . (int) $mappedPart->id;
+                $key = $loc . '|' . (int) $item->gci_part_id;
                 $requiredByLocationPart[$key] = ($requiredByLocationPart[$key] ?? 0.0) + (float) $item->qty;
             }
 
             foreach ($requiredByLocationPart as $key => $requiredQty) {
-                [$loc, $partId] = explode('|', $key, 2);
-                $available = LocationInventory::getStockByLocation((int) $partId, (string) $loc);
+                [$loc, $gciPartId] = explode('|', $key, 2);
+                $available = InventoryLocationStock::getStockByLocation((int) $gciPartId, (string) $loc);
                 if ($available + 1e-9 < (float) $requiredQty) {
                     return back()->with('error', "Stok lokasi {$loc} kurang. Available {$available}, need {$requiredQty}.");
                 }
@@ -442,7 +428,7 @@ class DeliveryNoteController extends Controller
             if (!$item->gci_part_id) {
                 continue;
             }
-            $available = LocationInventory::getStockByLocation(0, $loc, null, $item->gci_part_id);
+            $available = InventoryLocationStock::getStockByLocation((int) $item->gci_part_id, $loc);
             if ($available + 1e-9 < (float) $item->qty) {
                 $partNo = $item->part?->part_no ?? "ID:{$item->gci_part_id}";
                 $errors[] = "{$partNo} di {$loc} — need {$item->qty}, available {$available}";
@@ -461,17 +447,17 @@ class DeliveryNoteController extends Controller
             ]);
 
             foreach ($deliveryNote->items as $item) {
-                // Deduct dari LocationInventory (source of truth) → auto-sync ke gci_inventories
+                // Deduct dari inventory_location_stock (single source of truth)
                 $loc = strtoupper(trim((string) ($item->kitting_location_code ?? '')));
                 if ($loc !== '' && $item->gci_part_id) {
-                    LocationInventory::consumeStock(
-                        null,
+                    InventoryLocationStock::consumeStock(
+                        (int) $item->gci_part_id,
                         $loc,
                         (float) $item->qty,
                         null,
-                        $item->gci_part_id,
                         'DELIVERY',
-                        'DN#' . $deliveryNote->dn_no
+                        'DN#' . $deliveryNote->dn_no,
+                        auth()->id()
                     );
                 }
 

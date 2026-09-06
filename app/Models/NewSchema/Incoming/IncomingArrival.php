@@ -67,19 +67,23 @@ class IncomingArrival extends BaseModel
     public static function generateArrivalNo(): string
     {
         $year = Carbon::now()->year;
-        $lastArrival = self::whereYear('created_at', $year)
-            ->orderByDesc('id')
-            ->first();
+        $prefix = 'ARR-' . $year . '-';
 
-        $lastSequence = 0;
-        if ($lastArrival) {
-            $parts = explode('-', $lastArrival->arrival_no);
-            $lastSequence = (int) ($parts[2] ?? 0);
-        }
+        // Include soft-deleted rows: the unique constraint on arrival_no is
+        // enforced at the DB level and does not ignore trashed records, so the
+        // sequence must account for them to avoid duplicate-key collisions.
+        $lastSequence = (int) self::withTrashed()
+            ->where('arrival_no', 'like', $prefix . '%')
+            ->pluck('arrival_no')
+            ->map(function ($no) {
+                $parts = explode('-', (string) $no);
+                return (int) ($parts[2] ?? 0);
+            })
+            ->max() ?? 0;
 
         $next = str_pad((string) ($lastSequence + 1), 4, '0', STR_PAD_LEFT);
 
-        return 'ARR-' . $year . '-' . $next;
+        return $prefix . $next;
     }
 
     /**

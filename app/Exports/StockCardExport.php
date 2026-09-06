@@ -3,7 +3,6 @@
 namespace App\Exports;
 
 use App\Models\NewSchema\Core\GciPart;
-use App\Models\NewSchema\Inventory\InventoryFgStock;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -37,49 +36,26 @@ class StockCardExport implements FromCollection, WithHeadings, WithStyles, WithC
 
         $rows = [];
 
-        if ($classification === '' || $classification === 'RM' || $classification === 'WIP') {
-            $rmRows = InventoryLocationStock::query()
-                ->whereNotNull('gci_part_id')
-                ->join('gci_parts as gp', 'gp.id', '=', 'inventory_location_stock.gci_part_id')
-                ->when($classification === '', fn ($q) => $q->whereIn('gp.classification', ['RM', 'WIP']))
-                ->when($classification === 'RM', fn ($q) => $q->where('gp.classification', 'RM'))
-                ->when($classification === 'WIP', fn ($q) => $q->where('gp.classification', 'WIP'))
-                ->when($search !== '', fn ($q) => $q->where($searchClause))
-                ->selectRaw('inventory_location_stock.gci_part_id, gp.classification, gp.part_no, gp.part_name, gp.model, gp.subcount_uom as uom, SUM(inventory_location_stock.qty_on_hand) as total_qty')
-                ->groupBy('inventory_location_stock.gci_part_id', 'gp.classification', 'gp.part_no', 'gp.part_name', 'gp.model', 'gp.subcount_uom')
-                ->get();
+        // RM + WIP + FG semuanya dari inventory_location_stock (single source of truth)
+        $query = InventoryLocationStock::query()
+            ->whereNotNull('gci_part_id')
+            ->join('gci_parts as gp', 'gp.id', '=', 'inventory_location_stock.gci_part_id')
+            ->when($classification === '', fn ($q) => $q->whereIn('gp.classification', ['RM', 'WIP', 'FG']))
+            ->when($classification !== '', fn ($q) => $q->where('gp.classification', $classification))
+            ->when($search !== '', fn ($q) => $q->where($searchClause))
+            ->selectRaw('inventory_location_stock.gci_part_id, gp.classification, gp.part_no, gp.part_name, gp.model, gp.subcount_uom as uom, SUM(inventory_location_stock.qty_on_hand) as total_qty')
+            ->groupBy('inventory_location_stock.gci_part_id', 'gp.classification', 'gp.part_no', 'gp.part_name', 'gp.model', 'gp.subcount_uom')
+            ->get();
 
-            foreach ($rmRows as $row) {
-                $rows[] = [
-                    'part_no' => $row->part_no,
-                    'part_name' => $row->part_name,
-                    'model' => $row->model,
-                    'classification' => $row->classification,
-                    'uom' => $row->uom,
-                    'qty' => (float) $row->total_qty,
-                ];
-            }
-        }
-
-        if ($classification === '' || $classification === 'FG') {
-            $fgRows = InventoryFgStock::query()
-                ->whereNotNull('gci_part_id')
-                ->join('gci_parts as gp', 'gp.id', '=', 'inventory_fg_stock.gci_part_id')
-                ->when($search !== '', fn ($q) => $q->where($searchClause))
-                ->selectRaw('inventory_fg_stock.gci_part_id, gp.classification, gp.part_no, gp.part_name, gp.model, gp.subcount_uom as uom, SUM(inventory_fg_stock.qty_on_hand) as total_qty')
-                ->groupBy('inventory_fg_stock.gci_part_id', 'gp.classification', 'gp.part_no', 'gp.part_name', 'gp.model', 'gp.subcount_uom')
-                ->get();
-
-            foreach ($fgRows as $row) {
-                $rows[] = [
-                    'part_no' => $row->part_no,
-                    'part_name' => $row->part_name,
-                    'model' => $row->model,
-                    'classification' => 'FG',
-                    'uom' => $row->uom,
-                    'qty' => (float) $row->total_qty,
-                ];
-            }
+        foreach ($query as $row) {
+            $rows[] = [
+                'part_no' => $row->part_no,
+                'part_name' => $row->part_name,
+                'model' => $row->model,
+                'classification' => $row->classification,
+                'uom' => $row->uom,
+                'qty' => (float) $row->total_qty,
+            ];
         }
 
         usort($rows, function ($a, $b) {

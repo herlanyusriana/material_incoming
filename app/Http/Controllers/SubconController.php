@@ -412,7 +412,7 @@ class SubconController extends Controller
             ->values();
         $traceability = InventoryStockMovement::with(['creator'])
             ->where('source_reference', $subconOrder->order_no)
-            ->orderBy('movement_at')
+            ->orderBy('moved_at')
             ->orderBy('id')
             ->get();
 
@@ -1054,7 +1054,7 @@ class SubconController extends Controller
         return (int) ceil($qty / $packingQty);
     }
 
-    private function resolveSubconUom(?BomItem $bomItem, ?GciPart $rmPart = null, ?GciPart $wipPart = null): string
+    private function resolveSubconUom(?BomItem $bomItem, ?\App\Models\GciPart $rmPart = null, ?\App\Models\GciPart $wipPart = null): string
     {
         $uom = $bomItem?->consumptionUom?->code
             ?? $bomItem?->consumption_uom

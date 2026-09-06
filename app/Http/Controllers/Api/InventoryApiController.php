@@ -89,7 +89,7 @@ class InventoryApiController extends Controller
             InventoryLocationStock::updateStock(
                 gciPartId: (int) $request->gci_part_id,
                 locationCode: $to,
-                qty: (float) $request->qty,
+                qtyChange: (float) $request->qty,
                 batchNo: $request->batch_no,
                 transactionType: 'TRANSFER',
                 sourceReference: "API BIN:{$from}->{$to}"

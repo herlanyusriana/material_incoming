@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GciInventory;
+use App\Models\LocationInventory;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Core\WarehouseLocation;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
@@ -93,9 +93,11 @@ class WarehouseStockController extends Controller
             ->map(fn ($qty) => (float) $qty)
             ->all();
 
-        // Aggregate on_hand from GciInventory per gci_part_id
-        $gciInventorySums = GciInventory::query()
-            ->selectRaw('gci_part_id, SUM(on_hand) as total_on_hand')
+        // Aggregate saldo legacy (location_inventory) per gci_part_id.
+        // Dipakai untuk melihat gap migrasi: stok yang masih "nyangkut" di tabel lama.
+        $legacySums = LocationInventory::query()
+            ->whereNotNull('gci_part_id')
+            ->selectRaw('gci_part_id, SUM(qty_on_hand) as total_on_hand')
             ->groupBy('gci_part_id')
             ->pluck('total_on_hand', 'gci_part_id')
             ->map(fn ($qty) => (float) $qty)
@@ -105,12 +107,12 @@ class WarehouseStockController extends Controller
 
         foreach (GciPart::with(['customers'])->cursor() as $gciPart) {
             $locQty = (float) ($locationSums[$gciPart->id] ?? 0);
-            $onHand = (float) ($gciInventorySums[$gciPart->id] ?? 0);
+            $onHand = (float) ($legacySums[$gciPart->id] ?? 0);
             $diffQty = $onHand - $locQty;
 
             $rows->push((object) [
                 'reconcile_key' => 'gci:' . $gciPart->id,
-                'summary_type' => 'gci_inventory',
+                'summary_type' => 'legacy_location_inventory',
                 'gciPart' => $gciPart,
                 'on_hand' => $onHand,
                 'loc_qty' => $locQty,

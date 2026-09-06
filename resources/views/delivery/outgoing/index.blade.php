@@ -113,8 +113,7 @@
                                 <div class="text-sm text-slate-500">{{ $dn->customer->address ?? '' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-slate-900">{{ $dn->truck->name ?? 'Unassigned' }}</div>
-                                <div class="text-sm text-slate-500">{{ $dn->truck->vehicle_number ?? '' }}</div>
+                                <div class="text-sm text-slate-900">{{ $dn->truck->plate_no ?? 'Unassigned' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 {{ $dn->delivery_date ? $dn->delivery_date->format('d M Y') : 'Not set' }}

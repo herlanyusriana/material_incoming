@@ -7,7 +7,6 @@ use App\Models\OutgoingPickingFg;
 use App\Models\DeliveryOrder;
 use App\Models\DeliveryNote;
 use App\Models\DnItem;
-use App\Models\LocationInventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -99,7 +98,7 @@ class PickingFgController extends Controller
                 'rows' => $items->map(function ($p) {
                     // Build expected location info
                     $expectedLocation = $p->part->default_location ?? null;
-                    $stockLocations = \App\Models\LocationInventory::where('gci_part_id', $p->gci_part_id)
+                    $stockLocations = \App\Models\NewSchema\Inventory\InventoryLocationStock::where('gci_part_id', $p->gci_part_id)
                         ->where('qty_on_hand', '>', 0)
                         ->orderByDesc('qty_on_hand')
                         ->limit(3)
@@ -369,26 +368,27 @@ class PickingFgController extends Controller
 
                 if ($delta > 0) {
                     // Picking more → consume stock (FIFO across batches)
-                    \App\Models\LocationInventory::consumeStock(
-                        null,
+                    \App\Models\NewSchema\Inventory\InventoryLocationStock::consumeStock(
+                        (int) $pick->gci_part_id,
                         $locationCode,
                         $delta,
                         null,
-                        $pick->gci_part_id,
                         'PICKING',
-                        $ref
+                        $ref,
+                        Auth::id()
                     );
                 } else {
                     // Reducing picked qty → return stock back (use updateStock with null batch)
-                    \App\Models\LocationInventory::updateStock(
-                        null,
+                    \App\Models\NewSchema\Inventory\InventoryLocationStock::updateStock(
+                        (int) $pick->gci_part_id,
                         $locationCode,
                         -$delta, // positive value to add back
                         null,
                         null,
-                        $pick->gci_part_id,
                         'PICKING_REVERSAL',
-                        $ref
+                        $ref,
+                        null, null, null, null, null,
+                        Auth::id()
                     );
                 }
             }

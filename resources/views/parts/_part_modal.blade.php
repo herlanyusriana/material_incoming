@@ -13,7 +13,7 @@
             {{-- Identitas (selalu tampil) --}}
             <section>
                 <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Identitas Part</h3>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="part_no" class="text-sm font-semibold text-slate-700">Part No <span class="text-red-600">*</span></label>
                         <input id="part_no" name="part_no" required class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.part_no">
@@ -31,7 +31,7 @@
                     <label for="part_name" class="text-sm font-semibold text-slate-700">Part Name</label>
                     <input id="part_name" name="part_name" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.part_name">
                 </div>
-                <div class="grid grid-cols-2 gap-3 mt-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                     <div>
                         <label for="size" class="text-sm font-semibold text-slate-700">Size</label>
                         <input id="size" name="size" class="mt-1 w-full rounded-lg border-slate-300" placeholder="e.g. 100x50x2mm" x-model="partForm.size">
@@ -46,7 +46,7 @@
             {{-- Kebijakan & status (selalu tampil, ringkas) --}}
             <section>
                 <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Material &amp; Status</h3>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="consumption_policy" class="text-sm font-semibold text-slate-700">Material Policy</label>
                         <select id="consumption_policy" name="consumption_policy" class="mt-1 w-full rounded-lg border-slate-300" x-model="partForm.consumption_policy">
@@ -84,8 +84,8 @@
                                     <button type="button" @click="removeVendorRow(idx)" class="text-xs font-semibold text-red-600 hover:text-red-800">Hapus</button>
                                 </div>
                                 <input type="hidden" :name="'vendor_parts[' + idx + '][id]'" :value="vp.id">
-                                <div class="grid grid-cols-3 gap-2.5">
-                                    <div class="col-span-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                    <div class="col-span-1 sm:col-span-2">
                                         <label class="text-xs font-semibold text-slate-600">Vendor <span class="text-red-600">*</span></label>
                                         <select :name="'vendor_parts[' + idx + '][vendor_id]'" required class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" x-model="vp.vendor_id" @change="ensureVpNames(vp.vendor_id)">
                                             <option value="">Pilih vendor...</option>
@@ -102,7 +102,7 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-2.5">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                     <div>
                                         <label class="text-xs font-semibold text-slate-600">Vendor Part No</label>
                                         <input type="text" :name="'vendor_parts[' + idx + '][vendor_part_no]'" class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" x-model="vp.vendor_part_no">
@@ -123,7 +123,7 @@
                                         </template>
                                     </datalist>
                                 </div>
-                                <div class="grid grid-cols-3 gap-2.5 items-end">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
                                     <div>
                                         <label class="text-xs font-semibold text-slate-600">UOM</label>
                                         <input type="text" :name="'vendor_parts[' + idx + '][uom]'" class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" placeholder="PCS" x-model="vp.uom">
@@ -191,7 +191,7 @@
                                 Aktif
                             </span>
                         </label>
-                        <div class="grid grid-cols-2 gap-3" x-show="partForm.subcount_enabled" x-cloak>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="partForm.subcount_enabled" x-cloak>
                             <div>
                                 <label class="text-xs font-semibold text-slate-600">FG / Parent</label>
                                 <select name="subcount_fg_part_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm" x-model="partForm.subcount_fg_part_id">

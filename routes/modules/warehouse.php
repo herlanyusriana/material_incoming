@@ -49,7 +49,7 @@ Route::middleware('can:manage_inventory')->prefix('warehouse')->name('warehouse.
     Route::post('/labels/bulk', [App\Http\Controllers\BarcodeLabelController::class, 'printBulkLabels'])->name('labels.bulk');
 
     // Stock Opname
-    Route::resource('stock-opname', \App\Http\Controllers\StockOpnameController::class);
+    Route::resource('stock-opname', \App\Http\Controllers\StockOpnameController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::post('stock-opname/{session}/close', [\App\Http\Controllers\StockOpnameController::class, 'close'])->name('stock-opname.close');
     Route::post('stock-opname/{session}/adjust', [\App\Http\Controllers\StockOpnameController::class, 'adjust'])->name('stock-opname.adjust');
 
@@ -57,6 +57,6 @@ Route::middleware('can:manage_inventory')->prefix('warehouse')->name('warehouse.
     Route::get('trollies/export', [\App\Http\Controllers\TrollyController::class, 'export'])->name('trollies.export');
     Route::post('trollies/import', [\App\Http\Controllers\TrollyController::class, 'import'])->name('trollies.import');
     Route::get('trollies/print-range', [\App\Http\Controllers\TrollyController::class, 'printRange'])->name('trollies.print-range');
-    Route::resource('trollies', \App\Http\Controllers\TrollyController::class);
+    Route::resource('trollies', \App\Http\Controllers\TrollyController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('trollies/{trolly}/print', [\App\Http\Controllers\TrollyController::class, 'printQr'])->name('trollies.print');
 });

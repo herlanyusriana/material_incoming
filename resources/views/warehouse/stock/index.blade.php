@@ -20,7 +20,7 @@
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap gap-3 items-center justify-between">
                     <div>
                         <div class="text-xl font-bold text-slate-900">Stock per Location</div>
-                        <div class="text-sm text-slate-500">Source: <span class="font-mono">location_inventory</span></div>
+                        <div class="text-sm text-slate-500">Source: <span class="font-mono">inventory_location_stock</span></div>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('warehouse.stock.export', request()->query()) }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 text-sm">
@@ -112,6 +112,8 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Prod Date</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Qty</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">UOM</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Source</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Updated</th>
                             </tr>
                         </thead>
@@ -154,12 +156,25 @@
                                         <span class="font-mono font-bold text-indigo-700">{{ formatNumber((float) $rec->qty_on_hand) }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-slate-600">
+                                        {{ $rec->uom ?? ($rec->gciPart?->uom ?? '-') }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if($rec->source_type)
+                                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">{{ $rec->source_type }}</span>
+                                            @if($rec->source_ref)
+                                                <div class="text-xs text-slate-500 mt-0.5 max-w-[220px] truncate" title="{{ $rec->source_ref }}">{{ $rec->source_ref }}</div>
+                                            @endif
+                                        @else
+                                            <span class="text-slate-400 text-sm">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">
                                         {{ $rec->updated_at?->format('Y-m-d H:i') ?? '-' }}
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-12 text-center text-slate-500">No records.</td>
+                                    <td colspan="10" class="px-6 py-12 text-center text-slate-500">No records.</td>
                                 </tr>
                             @endforelse
                         </tbody>

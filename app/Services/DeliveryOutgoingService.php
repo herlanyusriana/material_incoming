@@ -17,10 +17,8 @@ class DeliveryOutgoingService
     {
         $query = OutgoingDeliveryOrder::with(['customer', 'items.gciPart'])
             ->where('status', 'confirmed')
-            ->whereDoesntHave('deliveryNoteItems', function ($q) {
-                $q->whereHas('deliveryNote', function ($dnQuery) {
-                    $dnQuery->where('status', '!=', 'cancelled');
-                });
+            ->whereDoesntHave('deliveryNote', function ($q) {
+                $q->where('status', '!=', 'cancelled');
             });
 
         if ($customerId) {
@@ -127,8 +125,8 @@ class DeliveryOutgoingService
             $query->where('outgoing_delivery_notes.delivery_date', '<=', $dateTo);
         }
 
-        $deliveries = $query->select('outgoing_delivery_notes.*', 'customers.customer_name as customer_name')
-            ->orderBy('customers.customer_name')
+        $deliveries = $query->select('outgoing_delivery_notes.*', 'customers.name as customer_name')
+            ->orderBy('customers.name')
             ->orderBy('outgoing_delivery_notes.delivery_date', 'desc')
             ->get();
 
