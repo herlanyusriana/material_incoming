@@ -13,6 +13,7 @@ function partsMaster() {
         consumption_policy: 'backflush_return',
         customer_ids: [],
         vendor_ids: [],
+        vendor_parts: [],
         subcount_enabled: false,
         subcount_fg_part_id: '',
         subcount_rm_part_id: '',
@@ -22,10 +23,6 @@ function partsMaster() {
         as_substitute: [],
     });
     const emptySubForm = () => ({ fg_part_id: '', substitute_part_id: '', ratio: 1, priority: 1, status: 'active', notes: '' });
-    const emptyVpForm = () => ({
-        vendor_id: '', vendor_part_no: '', vendor_part_name: '', vendor_part_name_selected: '',
-        register_no: '', uom: '', hs_code: '', quality_inspection: '', status: 'active',
-    });
 
     return {
         expanded: {},
@@ -44,13 +41,9 @@ function partsMaster() {
         subForm: emptySubForm(),
         subFgOptions: [],
 
-        // Vendor part modal
-        vpModal: false,
-        vpMode: 'create',
-        vpAction: '',
-        vpNameLoading: false,
-        vpNameOptions: [],
-        vpForm: emptyVpForm(),
+        // Vendor part rows (inline editor di part modal)
+        vpRowSeq: 0,
+        vpNamesCache: {},
 
         // Substitute modal (SUB tab)
         subListEditOpen: false,
@@ -114,12 +107,70 @@ function partsMaster() {
                 subcount_uom: p.subcount_uom || 'PCE',
                 subcount_process_type: p.subcount_process_type || 'PG',
                 vendor_ids: maps.partVendor[p.id] || [],
+                vendor_parts: (p.vendor_links || []).map((vl) => this.emptyVendorRow(vl)),
                 substitutes_for: maps.substitutesFor[p.id] || [],
                 as_substitute: maps.asSubstitute[p.id] || [],
             };
+            // Prefetch material group name options untuk tiap vendor yang sudah ter-link
+            this.partForm.vendor_parts.forEach((vp) => {
+                if (vp.vendor_id) this.ensureVpNames(vp.vendor_id);
+            });
             this.subFormAction = cfg().routes.parts + '/' + p.id + '/substitutes';
             this.cancelSubEdit();
             this.partModal = true;
+        },
+
+        // --- Vendor part rows (inline di part modal) ---
+        emptyVendorRow(vl = null) {
+            return {
+                _key: ++this.vpRowSeq,
+                id: vl?.id || '',
+                vendor_id: vl?.vendor_id ? String(vl.vendor_id) : '',
+                vendor_part_no: vl?.vendor_part_no || '',
+                vendor_part_name: vl?.vendor_part_name || '',
+                register_no: vl?.register_no || '',
+                uom: vl?.uom || '',
+                hs_code: vl?.hs_code || '',
+                quality_inspection: !!(vl?.quality_inspection),
+                status: vl?.status || 'active',
+            };
+        },
+
+        addVendorRow() {
+            this.partForm.vendor_parts.push(this.emptyVendorRow());
+        },
+
+        removeVendorRow(idx) {
+            this.partForm.vendor_parts.splice(idx, 1);
+        },
+
+        vendorUsedByOthers(vendorId, idx) {
+            if (!vendorId) return false;
+            return this.partForm.vendor_parts.some(
+                (vp, i) => i !== idx && String(vp.vendor_id) === String(vendorId),
+            );
+        },
+
+        vendorOptionLabel(vendorId, name, idx) {
+            return this.vendorUsedByOthers(vendorId, idx) ? name + ' (sudah dipakai)' : name;
+        },
+
+        async ensureVpNames(vendorId) {
+            const key = String(vendorId || '');
+            if (!key || this.vpNamesCache[key]) return;
+            this.vpNamesCache = { ...this.vpNamesCache, [key]: [] };
+            try {
+                const res = await fetch(cfg().routes.vendors + '/' + key + '/vendor-part-names', {
+                    headers: { Accept: 'application/json' },
+                });
+                const payload = await res.json();
+                this.vpNamesCache = {
+                    ...this.vpNamesCache,
+                    [key]: Array.isArray(payload.names) ? payload.names : [],
+                };
+            } catch (e) {
+                // biarkan kosong — input tetap bisa diisi manual
+            }
         },
 
         // Subcount dropdowns: only show parts related to the part_no being edited
@@ -216,77 +267,6 @@ function partsMaster() {
                 notes: s.notes || '',
             };
             this.subListEditOpen = true;
-        },
-
-        // --- Vendor part modal ---
-        openCreateVendorPart(partId) {
-            this.vpMode = 'create';
-            this.vpAction = cfg().routes.parts + '/' + partId + '/vendor-parts';
-            this.vpNameOptions = [];
-            this.vpForm = emptyVpForm();
-            this.vpModal = true;
-        },
-
-        openEditVendorPart(vl) {
-            this.vpMode = 'edit';
-            this.vpAction = cfg().routes.vendorParts + '/' + vl.id;
-            this.vpNameOptions = [];
-            this.vpForm = {
-                ...emptyVpForm(),
-                vendor_id: vl.vendor_id,
-                vendor_part_no: vl.vendor_part_no || '',
-                vendor_part_name: vl.vendor_part_name || '',
-                register_no: vl.register_no || '',
-                uom: vl.uom || '',
-                hs_code: vl.hs_code || '',
-                quality_inspection: vl.quality_inspection ? 'YES' : '',
-                status: vl.status || 'active',
-            };
-            this.loadVendorPartNames(vl.vendor_id, vl.vendor_part_name || '');
-            this.vpModal = true;
-        },
-
-        async loadVendorPartNames(vendorId, preferredName = '') {
-            this.vpNameOptions = [];
-            this.vpNameLoading = false;
-            if (!vendorId) {
-                this.vpForm.vendor_part_name_selected = preferredName ? '__other__' : '';
-                return;
-            }
-            this.vpNameLoading = true;
-            try {
-                const res = await fetch(cfg().routes.vendors + '/' + vendorId + '/vendor-part-names', {
-                    headers: { Accept: 'application/json' },
-                });
-                const payload = await res.json();
-                this.vpNameOptions = Array.isArray(payload.names) ? payload.names : [];
-                if (preferredName && this.vpNameOptions.includes(preferredName)) {
-                    this.vpForm.vendor_part_name_selected = preferredName;
-                    this.vpForm.vendor_part_name = preferredName;
-                } else if (preferredName) {
-                    this.vpForm.vendor_part_name_selected = '__other__';
-                    this.vpForm.vendor_part_name = preferredName;
-                } else {
-                    this.vpForm.vendor_part_name_selected = '';
-                    this.vpForm.vendor_part_name = '';
-                }
-            } catch (e) {
-                this.vpNameOptions = [];
-                this.vpForm.vendor_part_name_selected = preferredName ? '__other__' : '';
-                this.vpForm.vendor_part_name = preferredName || '';
-            } finally {
-                this.vpNameLoading = false;
-            }
-        },
-
-        applyVendorPartNameSelection() {
-            if (this.vpForm.vendor_part_name_selected === '__other__') {
-                if (!this.vpForm.vendor_part_name || this.vpNameOptions.includes(this.vpForm.vendor_part_name)) {
-                    this.vpForm.vendor_part_name = '';
-                }
-                return;
-            }
-            this.vpForm.vendor_part_name = this.vpForm.vendor_part_name_selected || '';
         },
     };
 }

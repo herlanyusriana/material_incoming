@@ -202,7 +202,7 @@ class PartController extends Controller
         // Classification-specific eager loading
         $eagerLoads = ['customers'];
         if ($classification === 'RM') {
-            $eagerLoads[] = 'vendorParts.vendor';
+            $eagerLoads[] = 'vendorLinks.vendor';
         } elseif ($classification === 'FG') {
             $eagerLoads[] = 'customerPartUsages.customerPart.customer';
         }
@@ -479,6 +479,16 @@ class PartController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
+            'vendor_parts' => ['nullable', 'array'],
+            'vendor_parts.*.id' => ['nullable', 'integer'],
+            'vendor_parts.*.vendor_id' => ['nullable', 'integer', 'exists:vendors,id'],
+            'vendor_parts.*.vendor_part_no' => ['nullable', 'string', 'max:255'],
+            'vendor_parts.*.vendor_part_name' => ['nullable', 'string', 'max:255'],
+            'vendor_parts.*.register_no' => ['nullable', 'string', 'max:255'],
+            'vendor_parts.*.uom' => ['nullable', 'string', 'max:20'],
+            'vendor_parts.*.hs_code' => ['nullable', 'string', 'max:50'],
+            'vendor_parts.*.quality_inspection' => ['nullable'],
+            'vendor_parts.*.status' => ['nullable', 'in:active,inactive'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
             'subcount_fg_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
@@ -506,8 +516,12 @@ class PartController extends Controller
                 $gciPart->customers()->syncWithoutDetaching($customerIds);
             }
 
-            if ($data['classification'] === 'RM' && !empty($vendorIds)) {
-                $this->syncVendorParts($gciPart, $vendorIds);
+            if ($data['classification'] === 'RM') {
+                if ($request->boolean('vendor_parts_present')) {
+                    $this->syncVendorPartRows($gciPart, $request->input('vendor_parts', []));
+                } elseif (!empty($vendorIds)) {
+                    $this->syncVendorParts($gciPart, $vendorIds);
+                }
             }
 
             $this->syncSubcountBomMapping($gciPart, $request);
@@ -539,6 +553,16 @@ class PartController extends Controller
             'status' => ['required', 'in:active,inactive'],
             'vendor_ids' => ['nullable', 'array'],
             'vendor_ids.*' => ['exists:vendors,id'],
+            'vendor_parts' => ['nullable', 'array'],
+            'vendor_parts.*.id' => ['nullable', 'integer'],
+            'vendor_parts.*.vendor_id' => ['nullable', 'integer', 'exists:vendors,id'],
+            'vendor_parts.*.vendor_part_no' => ['nullable', 'string', 'max:255'],
+            'vendor_parts.*.vendor_part_name' => ['nullable', 'string', 'max:255'],
+            'vendor_parts.*.register_no' => ['nullable', 'string', 'max:255'],
+            'vendor_parts.*.uom' => ['nullable', 'string', 'max:20'],
+            'vendor_parts.*.hs_code' => ['nullable', 'string', 'max:50'],
+            'vendor_parts.*.quality_inspection' => ['nullable'],
+            'vendor_parts.*.status' => ['nullable', 'in:active,inactive'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
             'subcount_fg_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
@@ -567,7 +591,11 @@ class PartController extends Controller
             }
 
             if ($data['classification'] === 'RM') {
-                $this->syncVendorParts($part->fresh(), $vendorIds);
+                if ($request->boolean('vendor_parts_present')) {
+                    $this->syncVendorPartRows($part->fresh(), $request->input('vendor_parts', []));
+                } else {
+                    $this->syncVendorParts($part->fresh(), $vendorIds);
+                }
             }
 
             $this->syncSubcountBomMapping($part->fresh(), $request);
@@ -619,6 +647,67 @@ class PartController extends Controller
                 'created_by' => auth()->id(),
             ]);
         }
+    }
+
+    /**
+     * Sync vendor parts dari editor inline di part modal.
+     * Row dengan id = update, tanpa id = create (auto-link BOM aktif),
+     * row existing yang tidak dikirim = delete.
+     */
+    private function syncVendorPartRows(GciPart $part, array $rows): void
+    {
+        // Unique constraint (gci_part_id, vendor_id): satu vendor hanya boleh
+        // sekali per part. Kalau user mengirim duplikat, prioritaskan row existing
+        // (punya id), kalau tidak ada ambil input terakhir.
+        $rows = collect($rows)
+            ->filter(fn ($row) => is_array($row) && !empty($row['vendor_id']))
+            ->groupBy(fn ($row) => (int) $row['vendor_id'])
+            ->map(fn ($group) => $group->first(fn ($row) => !empty($row['id'])) ?? $group->last())
+            ->values();
+
+        DB::transaction(function () use ($part, $rows) {
+            $keepIds = [];
+
+            foreach ($rows as $row) {
+                $payload = [
+                    'vendor_id' => (int) $row['vendor_id'],
+                    // vendor_part_no NOT NULL di DB — fallback ke part_no part
+                    'vendor_part_no' => trim((string) ($row['vendor_part_no'] ?? '')) ?: $part->part_no,
+                    'vendor_part_name' => trim((string) ($row['vendor_part_name'] ?? '')) ?: null,
+                    'register_no' => trim((string) ($row['register_no'] ?? '')) ?: null,
+                    'uom' => trim((string) ($row['uom'] ?? '')) ?: null,
+                    'hs_code' => trim((string) ($row['hs_code'] ?? '')) ?: null,
+                    'quality_inspection' => !empty($row['quality_inspection']),
+                    'status' => (($row['status'] ?? 'active') === 'inactive') ? 'inactive' : 'active',
+                ];
+
+                $existing = !empty($row['id'])
+                    ? VendorPart::query()->where('gci_part_id', $part->id)->find((int) $row['id'])
+                    : null;
+
+                if ($existing) {
+                    $existing->update($payload);
+                    $keepIds[] = $existing->id;
+                    continue;
+                }
+
+                $vendorPart = VendorPart::create([
+                    ...$payload,
+                    'gci_part_id' => $part->id,
+                    'price' => 0,
+                    'created_by' => auth()->id(),
+                ]);
+                $keepIds[] = $vendorPart->id;
+
+                $this->autoLinkVendorPartToActiveBoms($part, $vendorPart);
+            }
+
+            $removalQuery = VendorPart::query()->where('gci_part_id', $part->id);
+            if (!empty($keepIds)) {
+                $removalQuery->whereNotIn('id', $keepIds);
+            }
+            $removalQuery->delete();
+        });
     }
 
     private function normalizeSubcountData(array &$data, Request $request): void

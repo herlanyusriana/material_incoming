@@ -50,7 +50,6 @@
                         <td class="px-3 py-2.5 text-right whitespace-nowrap" @click.stop>
                             <div class="inline-flex items-center gap-1">
                                 <button type="button" class="px-2 py-1.5 rounded-md text-sm font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800" @click="openEditPart(@js($p))">Edit</button>
-                                <button type="button" class="px-2 py-1.5 rounded-md text-sm font-semibold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-800" @click="openCreateVendorPart({{ $p->id }})">+ Vendor</button>
                                 <form action="{{ route('parts.destroy', $p) }}" method="POST" class="inline" onsubmit="return confirm('Hapus part {{ $p->part_no }}?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="px-2 py-1.5 rounded-md text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-800">Hapus</button>
@@ -72,7 +71,6 @@
                                                     <th class="px-3 py-2 text-left font-semibold">Register</th>
                                                     <th class="px-3 py-2 text-left font-semibold">UOM</th>
                                                     <th class="px-3 py-2 text-left font-semibold">Status</th>
-                                                    <th class="px-3 py-2"></th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-100">
@@ -86,13 +84,6 @@
                                                         <td class="px-3 py-2">
                                                             <span class="inline-flex items-center w-1.5 h-1.5 rounded-full {{ $vl->status === 'active' ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
                                                             <span class="ml-1 text-slate-500">{{ $vl->status }}</span>
-                                                        </td>
-                                                        <td class="px-3 py-2 text-right whitespace-nowrap">
-                                                            <button type="button" class="font-semibold text-indigo-600 hover:text-indigo-800" @click="openEditVendorPart(@js($vl))">Edit</button>
-                                                            <form action="{{ route('parts.vendor-parts.destroy', $vl) }}" method="POST" class="inline ml-2" onsubmit="return confirm('Hapus vendor part ini?')">
-                                                                @csrf @method('DELETE')
-                                                                <button type="submit" class="font-semibold text-red-600 hover:text-red-800">Hapus</button>
-                                                            </form>
                                                         </td>
                                                     </tr>
                                                 @endforeach

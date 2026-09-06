@@ -159,7 +159,6 @@
         @endif
 
         @include('parts._part_modal')
-        @include('parts._vendor_part_modal')
         @include('parts._substitute_modal')
         @include('parts._import_modals')
     </div>
@@ -172,7 +171,6 @@
                 routes: {
                     store: @js(route('parts.store')),
                     parts: @js(url('/parts')),
-                    vendorParts: @js(url('/vendor-parts')),
                     substitutes: @js(url('/planning/gci-part-substitutes')),
                     vendors: @js(url('/vendors')),
                 },

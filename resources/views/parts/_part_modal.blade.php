@@ -1,6 +1,6 @@
-{{-- Part create/edit modal (termasuk substitutes RM & subcount FG/WIP) --}}
+{{-- Part create/edit modal (semua dalam satu modal: identitas, policy, vendor+material group, customer, subcount, substitutes) --}}
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="partModal" x-cloak @keydown.escape.window="partModal = false">
-    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-xl border border-slate-200 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 sticky top-0 bg-white z-10">
             <div class="text-sm font-semibold text-slate-900" x-text="partMode === 'create' ? 'Add Part' : 'Edit Part'"></div>
             <button type="button" class="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50" @click="partModal = false">&#10005;</button>
@@ -45,7 +45,7 @@
 
             {{-- Kebijakan & status (selalu tampil, ringkas) --}}
             <section>
-                <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Material & Status</h3>
+                <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Material &amp; Status</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="consumption_policy" class="text-sm font-semibold text-slate-700">Material Policy</label>
@@ -65,28 +65,84 @@
                 </div>
             </section>
 
-            {{-- RM: Vendor (collapsible, progressive disclosure) --}}
+            {{-- RM: Vendor + Material Group (editor inline, semua dalam modal ini) --}}
             <template x-if="partForm.classification === 'RM'">
-                <section x-data="{ open: false, q: '' }" class="rounded-xl border border-slate-200 overflow-hidden">
-                    <button type="button" @click="open = !open" class="w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                        <span>Vendor</span>
-                        <span class="inline-flex items-center gap-2">
-                            <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold" x-text="(partForm.vendor_ids || []).length"></span>
-                            <svg :class="open && 'rotate-180'" class="h-4 w-4 text-slate-400 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
-                        </span>
-                    </button>
-                    <div x-show="open" x-cloak class="px-3.5 pb-3 space-y-2">
-                        <label class="sr-only">Cari vendor</label>
-                        <input type="text" x-model="q" placeholder="Cari vendor..." class="w-full rounded-lg border-slate-300 text-sm px-2.5 py-1.5">
-                        <div class="max-h-40 overflow-y-auto divide-y divide-slate-100 rounded-lg border border-slate-200">
-                            @foreach ($vendors as $v)
-                                <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm" x-show="!q || vendorMatches(@js($v->vendor_name), q)">
-                                    <input type="checkbox" name="vendor_ids[]" value="{{ $v->id }}" class="rounded border-slate-300 text-indigo-600" :checked="partForm.vendor_ids.includes({{ $v->id }})">
-                                    <span class="text-slate-700">{{ $v->vendor_name }}</span>
-                                </label>
-                            @endforeach
+                <section class="rounded-xl border border-slate-200 overflow-hidden">
+                    <input type="hidden" name="vendor_parts_present" value="1">
+                    <div class="flex items-center justify-between px-3.5 py-2.5 bg-slate-50 border-b border-slate-200">
+                        <div>
+                            <span class="text-sm font-semibold text-slate-700">Vendor &amp; Material Group</span>
+                            <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 ml-2 rounded-full bg-slate-200 text-slate-600 text-[10px] font-bold" x-text="partForm.vendor_parts.length"></span>
                         </div>
-                        <p class="text-[11px] text-slate-400">Tandai vendor yang memasok part ini.</p>
+                        <button type="button" @click="addVendorRow()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">+ Add Vendor</button>
+                    </div>
+                    <div class="p-3 space-y-3">
+                        <template x-for="(vp, idx) in partForm.vendor_parts" :key="vp._key">
+                            <div class="rounded-lg border border-slate-200 p-3 space-y-2.5 bg-white">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400" x-text="'Vendor ' + (idx + 1)"></span>
+                                    <button type="button" @click="removeVendorRow(idx)" class="text-xs font-semibold text-red-600 hover:text-red-800">Hapus</button>
+                                </div>
+                                <input type="hidden" :name="'vendor_parts[' + idx + '][id]'" :value="vp.id">
+                                <div class="grid grid-cols-3 gap-2.5">
+                                    <div class="col-span-2">
+                                        <label class="text-xs font-semibold text-slate-600">Vendor <span class="text-red-600">*</span></label>
+                                        <select :name="'vendor_parts[' + idx + '][vendor_id]'" required class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" x-model="vp.vendor_id" @change="ensureVpNames(vp.vendor_id)">
+                                            <option value="">Pilih vendor...</option>
+                                            @foreach ($vendors as $v)
+                                                <option value="{{ $v->id }}" :disabled="vendorUsedByOthers({{ $v->id }}, idx)" x-text="vendorOptionLabel({{ $v->id }}, @js($v->vendor_name), idx)">{{ $v->vendor_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-600">Status</label>
+                                        <select :name="'vendor_parts[' + idx + '][status]'" class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" x-model="vp.status">
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-600">Vendor Part No</label>
+                                        <input type="text" :name="'vendor_parts[' + idx + '][vendor_part_no]'" class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" x-model="vp.vendor_part_no">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-600">Register No</label>
+                                        <input type="text" :name="'vendor_parts[' + idx + '][register_no]'" class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" x-model="vp.register_no">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-600">Material Group Name <span class="font-normal text-slate-400">(vendor part name)</span></label>
+                                    <input type="text" :name="'vendor_parts[' + idx + '][vendor_part_name]'" :list="'vp-names-' + vp._key"
+                                        class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" placeholder="e.g. STEEL IN COILS"
+                                        x-model="vp.vendor_part_name" :disabled="!vp.vendor_id">
+                                    <datalist :id="'vp-names-' + vp._key">
+                                        <template x-for="n in (vpNamesCache[String(vp.vendor_id)] || [])" :key="n">
+                                            <option :value="n" x-text="n"></option>
+                                        </template>
+                                    </datalist>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2.5 items-end">
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-600">UOM</label>
+                                        <input type="text" :name="'vendor_parts[' + idx + '][uom]'" class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" placeholder="PCS" x-model="vp.uom">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-600">HS Code</label>
+                                        <input type="text" :name="'vendor_parts[' + idx + '][hs_code]'" class="mt-0.5 w-full rounded-lg border-slate-300 text-sm" x-model="vp.hs_code">
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-slate-700 pb-1.5">
+                                        <input type="checkbox" :name="'vendor_parts[' + idx + '][quality_inspection]'" value="1" class="rounded border-slate-300 text-indigo-600" x-model="vp.quality_inspection">
+                                        <span class="text-xs font-semibold">QC Inspection</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="!partForm.vendor_parts.length" class="text-xs text-slate-400 text-center py-3">
+                            Belum ada vendor. Klik <span class="font-semibold">+ Add Vendor</span> untuk menambahkan.
+                        </p>
+                        <p class="text-[11px] text-slate-400">Harga diatur di <a href="{{ route('pricing.index') }}" class="font-semibold text-indigo-600 hover:underline">Pricing Master</a>. Vendor yang dihapus dari daftar akan terhapus saat disimpan.</p>
                     </div>
                 </section>
             </template>
