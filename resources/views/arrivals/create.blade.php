@@ -26,7 +26,7 @@
             </div>
 
             <form method="POST" action="{{ route('departures.store') }}" class="space-y-6" id="arrival-form"
-                enctype="multipart/form-data">
+                enctype="multipart/form-data" onsubmit="return ensureVendorSelected();">
                 @csrf
 
                 <!-- Section 1: Vendor & Invoice -->
@@ -538,7 +538,18 @@
             const typed = normalizeSearchText(vendorInput?.value);
             if (!typed) return '';
             const exact = vendorsData.find(v => normalizeSearchText(v.name) === typed);
-            if (!exact) return '';
+            if (!exact) {
+                // Try partial match
+                const partial = vendorsData.find(v =>
+                    normalizeSearchText(v.name).includes(typed) ||
+                    typed.includes(normalizeSearchText(v.name))
+                );
+                if (partial) {
+                    vendorIdInput.value = String(partial.id);
+                    return vendorIdInput.value;
+                }
+                return '';
+            }
             vendorIdInput.value = String(exact.id);
             return vendorIdInput.value;
         }
@@ -773,7 +784,7 @@
             const options = filteredList
                 .map(p => {
                     const displaySize = (p.size || p.register_no || '').trim();
-                    const label = displaySize !== '' ? displaySize : (p.part_name_vendor || p.part_name_gci || p.part_no || '');
+                    const label = displaySize !== '' ? displaySize : (p.vendor_part_name || p.part_name_gci || p.part_no || '');
                     return `<option value="${escapeHtml(p.id)}" ${String(p.id) === String(partId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
                 })
                 .join('');
@@ -1183,14 +1194,14 @@
         }
 
         function guessUnitBundle(partData) {
-            const name = (partData?.part_name_vendor || '').toLowerCase();
+            const name = (partData?.vendor_part_name || '').toLowerCase();
             if (name.includes('coil')) return 'Coil';
             if (name.includes('sheet')) return 'Sheet';
             return 'Pallet';
         }
 
         function guessUnitGoods(partData) {
-            const name = (partData?.part_name_vendor || '').toLowerCase();
+            const name = (partData?.vendor_part_name || '').toLowerCase();
             const sizeText = String(partData?.size || partData?.register_no || '').toLowerCase();
             if (name.includes('coil') || sizeText.includes(' x c') || sizeText.endsWith('c')) return 'Coil';
             if (name.includes('sheet')) return 'Sheet';
@@ -1240,7 +1251,7 @@
             const partNoInput = row.querySelector('.input-part-no-gci');
             if (partNoInput) partNoInput.value = partData.part_no || '';
             const partNameInput = row.querySelector('.input-part-name-gci');
-            if (partNameInput) partNameInput.value = partData.part_name_gci || partData.part_name_vendor || '';
+            if (partNameInput) partNameInput.value = partData.part_name_gci || partData.vendor_part_name || '';
             const unitBundleSelect = row.querySelector('.input-unit-bundle');
             if (unitBundleSelect && !unitBundleSelect.value) unitBundleSelect.value = guessUnitBundle(partData);
             const unitGoodsSelect = row.querySelector('.input-unit-goods');
@@ -1250,8 +1261,8 @@
 
             const groupEl = row.closest('.material-group');
             if (groupEl) {
-                if (!getGroupTitle(groupEl) && partData.part_name_vendor) {
-                    setGroupTitle(groupEl, partData.part_name_vendor);
+                if (!getGroupTitle(groupEl) && partData.vendor_part_name) {
+                    setGroupTitle(groupEl, partData.vendor_part_name);
                     syncGroupTitle(groupEl);
                 }
             }
@@ -1720,6 +1731,34 @@
             updateRefreshButtonState();
             requestSaveDraft();
         });
+
+        function ensureVendorSelected() {
+            const vendorInput = document.getElementById('vendor_name');
+            const vendorIdInput = document.getElementById('vendor_id');
+            const vendorName = vendorInput?.value?.trim() || '';
+
+            if (!vendorIdInput?.value && vendorName) {
+                const matchedVendor = vendorsData.find(v =>
+                    v.name.toLowerCase() === vendorName.toLowerCase() ||
+                    vendorName.toLowerCase().includes(v.name.toLowerCase())
+                );
+                if (matchedVendor) {
+                    vendorIdInput.value = matchedVendor.id;
+                    return true;
+                }
+                alert('Silakan pilih vendor dari daftar saran (klik nama vendor) sebelum submit.');
+                vendorInput.focus();
+                return false;
+            }
+
+            if (!vendorIdInput?.value) {
+                alert('Silakan pilih vendor terlebih dahulu.');
+                vendorInput?.focus();
+                return false;
+            }
+
+            return true;
+        }
 
         const form = document.getElementById('arrival-form');
         form.addEventListener('submit', () => {
