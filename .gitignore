@@ -94,3 +94,6 @@ docs/screenshot/
 *.sqlite
 *.sqlite3
 *.db
+
+# Flutter mobile app (tracked separately)
+flutter_app/
