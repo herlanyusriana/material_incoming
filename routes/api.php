@@ -9,6 +9,22 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+// Flutter "Material Tracker" — WO tracking (JSON)
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    Route::get('/wo-tracking', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'index']);
+    Route::get('/wo-tracking/{woTracking}', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'show']);
+    Route::post('/wo-tracking/{woTracking}/locate-tag', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'locateTag']);
+    Route::post('/wo-tracking/{woTracking}/allocate', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'allocate']);
+    Route::post('/wo-tracking/{woTracking}/deallocate', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'deallocate']);
+    Route::post('/wo-tracking/{woTracking}/release', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'release']);
+    Route::post('/wo-tracking/{woTracking}/result', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'postResult']);
+    Route::post('/wo-tracking/{woTracking}/close', [\App\Http\Controllers\Api\WoTrackingApiController::class, 'close']);
+
+    // Flutter "Material Tracker" — incoming receiving (JSON)
+    Route::get('/incoming/departures', [\App\Http\Controllers\Api\IncomingApiController::class, 'departures']);
+    Route::post('/incoming/arrival-items/{arrivalItem}/receive', [\App\Http\Controllers\Api\IncomingApiController::class, 'receive']);
+});
+
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Production & Subcount API — moved inside auth for security
     Route::post('/production-gci/sync', [\App\Http\Controllers\Api\ProductionGciApiController::class, 'sync']);
