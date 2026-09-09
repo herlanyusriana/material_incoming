@@ -116,12 +116,23 @@ class WoTrackingApiController extends Controller
             abort(422, 'Requirement bukan milik WO ini.');
         }
 
+        // Mobile flow tanpa input lokasi: resolve dari stok tag (lokasi dengan qty terbanyak).
+        $locationCode = $validated['location_code'] ?? null;
+        if (empty($locationCode)) {
+            $locationCode = \App\Models\NewSchema\Inventory\InventoryLocationStock::query()
+                ->where('gci_part_id', $requirement->gci_part_id)
+                ->where('batch_no', trim($validated['tag']))
+                ->where('qty_on_hand', '>', 0)
+                ->orderByDesc('qty_on_hand')
+                ->value('location_code');
+        }
+
         $this->tracking->allocate(
             $woTracking,
             $requirement,
             trim($validated['tag']),
             (float) $validated['qty'],
-            $validated['location_code'] ?? null
+            $locationCode
         );
 
         return response()->json(['ok' => true, 'message' => "Tag {$validated['tag']} dialokasikan."]);

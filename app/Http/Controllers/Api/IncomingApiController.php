@@ -77,6 +77,8 @@ class IncomingApiController extends Controller
             $this->receiveService->ensureTagsUniqueForArrivalItem($arrivalItem, $tagData, 'tags');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['ok' => false, 'message' => 'Tag sudah pernah dipakai pada item ini.'], 422);
+        } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            return response()->json(['ok' => false, 'message' => 'Tag sudah pernah dipakai pada item ini.'], 422);
         }
 
         $totalRequested = (float) $validated['qty'];
