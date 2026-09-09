@@ -191,6 +191,76 @@ class DashboardController extends Controller
             'stock_opname_lines' => $inventoryCounts->count(),
         ];
 
+        // ── Chart.js graphics: receiving trend + QC composition ──
+        $trendLabels = [];
+        $trendData = [];
+        try {
+            $receiveTable = 'incoming_receives';
+            $dateCol = 'created_at';
+            if (! DB::getSchemaBuilder()->hasTable($receiveTable)) {
+                $receiveTable = 'receives';
+            }
+            if (DB::getSchemaBuilder()->hasTable($receiveTable)) {
+                for ($i = 13; $i >= 0; $i--) {
+                    $d = today()->subDays($i);
+                    $trendLabels[] = $d->isoFormat('D MMM');
+                    $trendData[] = (int) DB::table($receiveTable)->whereDate($dateCol, $d)->count();
+                }
+            }
+        } catch (\Throwable) {
+            $trendLabels = [];
+            $trendData = [];
+        }
+
+        $receiveTrendChart = ($trendLabels !== [] && array_sum($trendData) > 0) ? [
+            'title' => __('dashboard.receiving_trend'),
+            'subtitle' => __('dashboard.last_14_days'),
+            'switchable' => true,
+            'height' => 'h-64',
+            'config' => [
+                'type' => 'bar',
+                'data' => [
+                    'labels' => $trendLabels,
+                    'datasets' => [[
+                        'label' => __('dashboard.receives'),
+                        'data' => $trendData,
+                        'backgroundColor' => '#4F46E5',
+                        'borderColor' => '#4F46E5',
+                        'borderRadius' => 8,
+                        'maxBarThickness' => 26,
+                    ]],
+                ],
+                'options' => ['plugins' => ['legend' => ['display' => false]]],
+            ],
+        ] : null;
+
+        $qcLabels = [];
+        $qcData = [];
+        foreach (['pass' => 0, 'fail' => 1, 'hold' => 2] as $k => $_) {
+            if (isset($statusCounts[$k])) {
+                $qcLabels[] = ucfirst($k);
+                $qcData[] = (int) $statusCounts[$k];
+            }
+        }
+        $qcChart = ($qcData !== [] && array_sum($qcData) > 0) ? [
+            'title' => __('dashboard.qc_composition'),
+            'subtitle' => __('dashboard.qc_hint'),
+            'height' => 'h-64',
+            'config' => [
+                'type' => 'doughnut',
+                'data' => [
+                    'labels' => $qcLabels,
+                    'datasets' => [[
+                        'data' => $qcData,
+                        'backgroundColor' => ['#4F46E5', '#64748B', '#F59E0B'],
+                        'borderWidth' => 2,
+                        'borderColor' => '#FFFFFF',
+                    ]],
+                ],
+                'options' => ['cutout' => '62%', 'plugins' => ['legend' => ['display' => true, 'position' => 'bottom']]],
+            ],
+        ] : null;
+
         return view('dashboard', compact(
             'departures',
             'incomingSummary',
@@ -205,6 +275,8 @@ class DashboardController extends Controller
             'quality',
             'oee',
             'productionAchievement',
+            'receiveTrendChart',
+            'qcChart',
         ));
     }
 

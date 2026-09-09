@@ -71,6 +71,34 @@
         </div>
 
         {{-- ══════════════════════════════════════════════════════
+             ANALYTICS — TREND & COMPOSITION (Chart.js)
+             ══════════════════════════════════════════════════════ --}}
+        @if (! empty($receiveTrendChart) || ! empty($qcChart))
+            <div>
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{{ __('dashboard.analytics') }}</h2>
+                <div class="grid gap-4 {{ ! empty($receiveTrendChart) && ! empty($qcChart) ? 'lg:grid-cols-3' : '' }}">
+                    @if (! empty($receiveTrendChart))
+                        <div class="{{ ! empty($qcChart) ? 'lg:col-span-2' : '' }}">
+                            <x-chart
+                                :title="$receiveTrendChart['title']"
+                                :subtitle="$receiveTrendChart['subtitle']"
+                                :config="$receiveTrendChart['config']"
+                                :switchable="$receiveTrendChart['switchable'] ?? false"
+                                :height="$receiveTrendChart['height'] ?? 'h-64'" />
+                        </div>
+                    @endif
+                    @if (! empty($qcChart))
+                        <x-chart
+                            :title="$qcChart['title']"
+                            :subtitle="$qcChart['subtitle']"
+                            :config="$qcChart['config']"
+                            :height="$qcChart['height'] ?? 'h-64'" />
+                    @endif
+                </div>
+            </div>
+        @endif
+
+        {{-- ══════════════════════════════════════════════════════
              PLANT PERFORMANCE — OEE & PRODUCTION SUMMARY
              ══════════════════════════════════════════════════════ --}}
         <div class="grid gap-4 lg:grid-cols-3">
