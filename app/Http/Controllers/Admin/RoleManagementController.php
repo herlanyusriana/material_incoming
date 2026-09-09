@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\RolePermission;
 use App\Models\User;
+use App\Support\Menu;
 use Illuminate\Http\Request;
 
 class RoleManagementController extends Controller
@@ -16,6 +17,7 @@ class RoleManagementController extends Controller
         $roles = collect(RolePermission::effectiveRoles())
             ->map(function (array $permissions, string $role) use ($roleMasters) {
                 $meta = $roleMasters[$role] ?? ['display_name' => strtoupper($role), 'description' => null, 'is_system' => false];
+
                 return [
                     'name' => $role,
                     'display_name' => $meta['display_name'] ?? strtoupper($role),
@@ -29,7 +31,35 @@ class RoleManagementController extends Controller
 
         $definedPermissions = config('role_permissions.defined_permissions', []);
 
-        return view('admin.roles.index', compact('roles', 'definedPermissions'));
+        // K2: build the permission checklist from config/modules.php so it
+        // stays in sync with the launcher; leftovers go into an "Other" group.
+        $permissionGroups = collect(Menu::permissionsByModule())
+            ->map(function (array $permissions, string $key) {
+                return [
+                    'title' => __((Menu::get($key)['label'] ?? ucfirst($key))),
+                    'permissions' => $permissions,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $covered = array_merge(...array_map(fn ($g) => $g['permissions'], $permissionGroups ?: [['permissions' => []]]));
+        $otherPermissions = array_values(array_diff($definedPermissions, $covered));
+
+        if ($otherPermissions !== []) {
+            $permissionGroups[] = [
+                'title' => __('modules.other_permissions'),
+                'permissions' => $otherPermissions,
+            ];
+        }
+
+        $permissionLabels = collect(Menu::permissionLabels())
+            ->map(fn (array $keys) => implode(' / ', array_map(fn ($k) => __($k), $keys)))
+            ->all();
+
+        return view('admin.roles.index', compact(
+            'roles', 'definedPermissions', 'permissionGroups', 'permissionLabels'
+        ));
     }
 
     public function store(Request $request)
@@ -63,7 +93,7 @@ class RoleManagementController extends Controller
 
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'in:' . implode(',', $definedPermissions)],
+            'permissions.*' => ['string', 'in:'.implode(',', $definedPermissions)],
         ]);
 
         $permissions = collect($validated['permissions'] ?? [])

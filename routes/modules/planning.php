@@ -1,12 +1,18 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Planning\BomController as PlanningBomController;
 use App\Http\Controllers\Planning\CustomerController as PlanningCustomerController;
 use App\Http\Controllers\Planning\CustomerPartController as PlanningCustomerPartController;
+use App\Http\Controllers\Planning\DailyDemandController as PlanningDailyDemandController;
 use App\Http\Controllers\Planning\ForecastController as PlanningForecastController;
 use App\Http\Controllers\Planning\GciPartController as PlanningGciPartController;
 use App\Http\Controllers\Planning\MrpController as PlanningMrpController;
+use Illuminate\Support\Facades\Route;
+
+// Read-only planning reports (view_planning)
+Route::middleware('can:view_planning')->prefix('planning')->name('planning.')->group(function () {
+    Route::get('/daily-demand', [PlanningDailyDemandController::class, 'index'])->name('daily-demand.index');
+});
 
 Route::middleware('can:manage_planning')->prefix('planning')->name('planning.')->group(function () {
     Route::get('/gci-parts', [PlanningGciPartController::class, 'index'])->name('gci-parts.index');

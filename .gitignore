@@ -77,3 +77,20 @@ generate_erd_presentation.py
 
 # Claude Code local settings (may contain API keys/tokens)
 .claude/settings.local.json
+
+# --- Tightened: binaries & generated artifacts (never commit) ---
+
+# Sample data / office spreadsheets
+excel/
+*.xlsx
+*.xls
+*.xlsm
+
+# Generated reports & screenshots
+docs/*.pdf
+docs/screenshot/
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db

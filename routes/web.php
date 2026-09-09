@@ -36,8 +36,12 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\RoleManagementController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\LauncherController;
+use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ModuleDashboardController;
+
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    return redirect()->route('home');
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'can:view_dashboard'])->name('dashboard');
@@ -90,6 +94,11 @@ Route::middleware('auth')->group(function () {
 
     // Subcon Module
     require __DIR__ . '/modules/subcon.php';
+
+    // Launcher navigation (full-launcher redesign)
+    Route::get('/home', [LauncherController::class, 'index'])->name('home');
+    Route::get('/module/{module}', [ModuleDashboardController::class, 'show'])->name('module.dashboard');
+    Route::get('/locale/{locale}', LocaleController::class)->name('locale.set');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

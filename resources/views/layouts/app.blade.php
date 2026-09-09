@@ -64,108 +64,61 @@
 	    </head>
     <body class="bg-slate-50 text-slate-800 antialiased">
         <a href="#main-content" class="skip-link">Skip ke konten utama</a>
-	        <div
-	            class="min-h-screen flex"
-	            x-data="{
-	                sidebarCollapsed: false,
-	                mobileSidebarOpen: false,
-	                init() {
-	                    try {
-	                        this.sidebarCollapsed = JSON.parse(localStorage.getItem('sidebarCollapsed') ?? 'false');
-	                    } catch (e) {
-	                        this.sidebarCollapsed = false;
-	                    }
-	                },
-	                persistSidebar() {
-                        const val = JSON.stringify(this.sidebarCollapsed);
-                        if (localStorage.getItem('sidebarCollapsed') !== val) {
-	                        localStorage.setItem('sidebarCollapsed', val);
-                        }
-	                },
-	                toggleSidebar() {
-	                    this.sidebarCollapsed = !this.sidebarCollapsed;
-	                    this.persistSidebar();
-	                },
-	                collapseSidebar() {
-                        if (this.sidebarCollapsed === true) return;
-	                    this.sidebarCollapsed = true;
-	                    this.persistSidebar();
-	                },
-	                expandSidebar() {
-                        if (this.sidebarCollapsed === false) return;
-	                    this.sidebarCollapsed = false;
-	                    this.persistSidebar();
-	                },
-	            }"
-	            x-init="init()"
-	            @keydown.escape.window="mobileSidebarOpen = false"
-	        >
-	            @auth
-	                @include('layouts.sidebar')
-	            @endauth
-
-            <div class="flex-1 flex flex-col min-h-screen">
-                <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
-                    <div class="w-full max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-2">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-4">
-                                @auth
-                                    <button
-                                        type="button"
-                                        class="inline-flex md:hidden items-center justify-center w-10 h-10 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
-                                        @click="mobileSidebarOpen = true"
-                                        aria-label="Open sidebar"
-                                        title="Open sidebar"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="hidden md:inline-flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
-                                        @click="toggleSidebar()"
-                                        :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-                                        :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-                                    >
-                                        <svg x-show="!sidebarCollapsed" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                                        </svg>
-                                        <svg x-show="sidebarCollapsed" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
-                                        </svg>
-                                    </button>
-                                @endauth
-                                <h1 class="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                                    @isset($header)
-                                        {{ $header }}
-                                    @else
-                                        {{ config('app.name', 'Laravel') }}
-                                    @endisset
-                                </h1>
+	        <div class="flex min-h-screen flex-col">
+                <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+                    <div class="mx-auto w-full max-w-[1440px] px-4 py-2 sm:px-6 lg:px-8">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="{{ __('nav.home') }}">
+                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-sm">
+                                        <x-icon name="sparkles" class="h-4 w-4" />
+                                    </span>
+                                    <span class="hidden text-sm font-bold tracking-tight text-slate-900 sm:block">
+                                        Smart Application <span class="text-indigo-600">System</span>
+                                    </span>
+                                </a>
+                                @isset($header)
+                                    <span class="hidden h-5 w-px bg-slate-200 md:block"></span>
+                                    <h1 class="truncate text-base font-semibold text-slate-800">{{ $header }}</h1>
+                                @endisset
                             </div>
-                            @auth
-                                <div class="flex items-center gap-4">
-                                    <div class="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                                            {{ substr(Auth::user()->name, 0, 1) }}
-                                        </div>
-                                        <div class="text-sm font-medium text-slate-700">{{ Auth::user()->name }}</div>
-                                    </div>
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <button class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
-                                            Logout
+                            <div class="flex shrink-0 items-center gap-2">
+                                <x-lang-switcher />
+                                @auth
+                                    <div x-data="{ open: false }" @click.outside="open = false" class="relative">
+                                        <button type="button" @click="open = !open"
+                                            class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1 pl-1 pr-2 shadow-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                                            <span class="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold uppercase text-white">
+                                                {{ substr(Auth::user()->name, 0, 1) }}
+                                            </span>
+                                            <span class="hidden max-w-[10rem] truncate text-sm font-medium text-slate-700 sm:block">{{ Auth::user()->name }}</span>
+                                            <x-icon name="chevron-down" class="h-3.5 w-3.5 text-slate-400" />
                                         </button>
-                                    </form>
-                                </div>
-                            @endauth
+                                        <div x-show="open" x-transition.origin.top.right x-cloak
+                                            class="absolute right-0 z-40 mt-1.5 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                                            <div class="border-b border-slate-100 px-3 py-2">
+                                                <p class="truncate text-sm font-semibold text-slate-800">{{ Auth::user()->name }}</p>
+                                                <p class="truncate text-xs text-slate-400">{{ Auth::user()->email }}</p>
+                                            </div>
+                                            <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50">
+                                                <x-icon name="user" class="h-4 w-4 text-slate-400" /> {{ __('nav.profile') }}
+                                            </a>
+                                            <form method="POST" action="{{ route('logout') }}">
+                                                @csrf
+                                                <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50">
+                                                    <x-icon name="logout" class="h-4 w-4" /> {{ __('nav.logout') }}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                @endauth
+                            </div>
                         </div>
                     </div>
                 </header>
 
                 <main id="main-content" tabindex="-1" class="flex-1 bg-slate-50/50">
-                    <div class="w-full max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div class="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
                         @isset($slot)
                             {{ $slot }}
                         @else
@@ -173,7 +126,6 @@
                         @endisset
                     </div>
                 </main>
-            </div>
 	        </div>
 	        <script>
 	            (function () {
@@ -459,35 +411,7 @@
                         });
                     @endif
 
-                    const sidebarScrollConfigs = [
-                        { key: 'desktopSidebarScrollTop', el: document.getElementById('desktop-sidebar-nav') },
-                        { key: 'mobileSidebarScrollTop', el: document.getElementById('mobile-sidebar-nav') },
-                    ];
-
-                    sidebarScrollConfigs.forEach(({ key, el }) => {
-                        if (!el) return;
-
-                        const saved = localStorage.getItem(key);
-                        if (saved !== null) {
-                            const parsed = parseInt(saved, 10);
-                            if (!Number.isNaN(parsed)) {
-                                el.scrollTop = parsed;
-                            }
-                        }
-
-                        let saveTimer;
-                        const persist = () => {
-                            localStorage.setItem(key, String(el.scrollTop || 0));
-                        };
-
-                        el.addEventListener('scroll', () => {
-                            window.clearTimeout(saveTimer);
-                            saveTimer = window.setTimeout(persist, 50);
-                        }, { passive: true });
-
-                        window.addEventListener('beforeunload', persist);
-                    });
-	            });
+            });
 	        </script>
             @stack('scripts')
 	    </body>

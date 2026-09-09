@@ -1,28 +1,18 @@
 @props(['items' => []])
 
-@if(count($items) > 0)
-<nav aria-label="Breadcrumb" class="mb-4">
-    <ol class="flex items-center gap-1.5 text-sm text-slate-500">
-        <li>
-            <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5V21h6v-6h6v6h6v-7.5L12 3 3 10.5" />
-                </svg>
-                <span class="sr-only">Dashboard</span>
-            </a>
-        </li>
-        @foreach($items as $item)
-            <li class="flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
-                </svg>
-                @if(!$loop->last && isset($item['url']))
-                    <a href="{{ $item['url'] }}" class="hover:text-indigo-600 transition-colors font-medium">{{ $item['label'] }}</a>
-                @else
-                    <span class="text-slate-900 font-semibold">{{ $item['label'] }}</span>
-                @endif
-            </li>
+@if (count($items))
+    <nav aria-label="breadcrumb" class="flex items-center gap-1.5 text-xs text-slate-500">
+        <a href="{{ route('home') }}" class="inline-flex items-center gap-1 rounded px-1 font-medium text-slate-500 transition hover:text-indigo-600">
+            <x-icon name="home" class="h-3.5 w-3.5" />
+            {{ __('nav.home') }}
+        </a>
+        @foreach ($items as $item)
+            <x-icon name="chevron-right" class="h-3 w-3 shrink-0 text-slate-300" />
+            @if (!empty($item['url']))
+                <a href="{{ $item['url'] }}" class="truncate rounded px-1 font-medium text-slate-500 transition hover:text-indigo-600">{{ $item['label'] }}</a>
+            @else
+                <span class="truncate font-semibold text-slate-700">{{ $item['label'] }}</span>
+            @endif
         @endforeach
-    </ol>
-</nav>
+    </nav>
 @endif

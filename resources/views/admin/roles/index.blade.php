@@ -1,34 +1,32 @@
 <x-app-layout>
     @php
-        $permissionGroups = [
-            'Dashboard' => ['view_dashboard'],
-            'Planning' => ['view_planning', 'manage_planning', 'delete_planning'],
-            'Production' => ['view_production', 'manage_production', 'manage_qc_inspection', 'manage_in_process_inspection', 'manage_final_inspection', 'manage_kanban_update'],
-            'Material & Warehouse' => ['manage_incoming', 'manage_inventory'],
-            'Purchasing' => ['manage_purchasing'],
-            'Master Data' => ['manage_users', 'manage_parts', 'manage_customers'],
-            'Outgoing & Subcon' => ['manage_outgoing', 'manage_subcon'],
-        ];
-        $permissionLabels = [
+        // Fallback labels for permissions not referenced by config/modules.php.
+        $legacyLabels = [
             'view_dashboard' => 'Lihat Dashboard',
             'view_planning' => 'Lihat Planning',
             'manage_planning' => 'Kelola Planning',
             'delete_planning' => 'Hapus Planning',
+            'approve_mrp' => 'Approve MRP',
             'view_production' => 'Lihat Production',
             'manage_production' => 'Kelola Production',
             'manage_qc_inspection' => 'QC Inspection',
             'manage_in_process_inspection' => 'In Process Inspection',
             'manage_final_inspection' => 'Final Inspection',
             'manage_kanban_update' => 'Kanban Update',
+            'view_incoming' => 'Lihat Incoming',
             'manage_incoming' => 'Incoming Material',
+            'manage_subcounts' => 'Subcounts',
+            'view_logistics' => 'Lihat Logistics',
             'manage_inventory' => 'Inventory',
             'manage_purchasing' => 'Purchasing',
+            'release_po' => 'Release PO',
             'manage_users' => 'Users & Roles',
             'manage_parts' => 'Parts Master',
             'manage_customers' => 'Customers',
             'manage_outgoing' => 'Outgoing',
             'manage_subcon' => 'Subcon',
         ];
+        $labelOf = fn (string $permission) => $permissionLabels[$permission] ?? $legacyLabels[$permission] ?? $permission;
     @endphp
 
     <x-page-header
@@ -248,11 +246,11 @@
                     <div class="px-6 pb-6">
                         @php($isFullAccess = in_array('*', $role['permissions'], true))
                         <div class="grid gap-4 lg:grid-cols-2 max-h-[50vh] overflow-y-auto pr-1">
-                            @foreach ($permissionGroups as $groupName => $permissions)
+                            @foreach ($permissionGroups as $group)
                                 <div class="rounded-xl border border-slate-200 p-4">
-                                    <div class="mb-3 text-xs font-black uppercase tracking-wider text-slate-500">{{ $groupName }}</div>
+                                    <div class="mb-3 text-xs font-black uppercase tracking-wider text-slate-500">{{ $group['title'] }}</div>
                                     <div class="grid gap-2">
-                                        @foreach ($permissions as $permission)
+                                        @foreach ($group['permissions'] as $permission)
                                             @php($checked = in_array($permission, $role['permissions'], true) || $isFullAccess)
                                             <label @class([
                                                 'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm',
@@ -260,7 +258,7 @@
                                                 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' => !$checked,
                                             ])>
                                                 <input type="checkbox" name="permissions[]" value="{{ $permission }}" @checked($checked) class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                                <span class="font-semibold">{{ $permissionLabels[$permission] ?? $permission }}</span>
+                                                <span class="font-semibold">{{ $labelOf($permission) }}</span>
                                             </label>
                                         @endforeach
                                     </div>

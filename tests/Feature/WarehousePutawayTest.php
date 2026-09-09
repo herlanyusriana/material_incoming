@@ -67,12 +67,14 @@ class WarehousePutawayTest extends TestCase
         $this->assertSame('A-02', $r1->fresh()->location_code);
         $this->assertSame('A-02', $r2->fresh()->location_code);
 
-        $loc = InventoryLocationStock::query()
+        // Location stock is keyed per (part, location, batch/tag): TAG-A (10)
+        // and TAG-B (20) are separate rows, so the location total must be summed.
+        $rows = InventoryLocationStock::query()
             ->where('gci_part_id', $gciPart->id)
             ->where('location_code', 'A-02')
-            ->first();
+            ->get();
 
-        $this->assertNotNull($loc);
-        $this->assertSame(30.0, (float) $loc->qty_on_hand);
+        $this->assertCount(2, $rows);
+        $this->assertSame(30.0, (float) $rows->sum('qty_on_hand'));
     }
 }

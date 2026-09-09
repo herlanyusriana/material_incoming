@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductionOrderController;
-use App\Http\Controllers\ProductionInspectionController;
 
 Route::middleware('can:view_production')->prefix('production')->name('production.')->group(function () {
     // Production Planning (GCI Planning Produksi)
@@ -57,7 +55,7 @@ Route::middleware('can:view_production')->prefix('production')->name('production
     Route::get('/board', [\App\Http\Controllers\Production\ProductionBoardController::class, 'index'])->name('board.index');
 
     // Plant Performance Dashboard
-    Route::get('/plant-performance', fn() => redirect()->route('dashboard', request()->only('date_from', 'date_to')))->name('plant-performance.index');
+    Route::get('/plant-performance', fn () => redirect()->route('dashboard', request()->only('date_from', 'date_to')))->name('plant-performance.index');
 
     // Operator KPI Dashboard
     Route::get('/operator-kpi', [\App\Http\Controllers\Production\ProductionGciWebController::class, 'operatorKpi'])->name('operator-kpi.index');
@@ -99,6 +97,9 @@ Route::middleware('can:view_production')->prefix('production')->name('production
     Route::get('/mass-production/{order}', [\App\Http\Controllers\Production\MassProductionController::class, 'show'])->name('mass-production.show');
     Route::post('/mass-production/{order}/update-progress', [\App\Http\Controllers\Production\MassProductionController::class, 'updateProgress'])->name('mass-production.update-progress');
     Route::post('/mass-production/{order}/request-inspection', [\App\Http\Controllers\Production\MassProductionController::class, 'requestInProcessInspection'])->name('mass-production.request-inspection');
+
+    // Cycle Time by Machine (actual vs standard)
+    Route::get('/cycle-time', [\App\Http\Controllers\Production\CycleTimeController::class, 'index'])->name('cycle-time.index');
 
     // In-Process Inspection
     Route::middleware('can:manage_in_process_inspection')->group(function () {
