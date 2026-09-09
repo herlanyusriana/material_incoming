@@ -144,7 +144,7 @@ class ModuleDashboardController extends Controller
             : 0;
 
         $poOpen = $this->table('purchase_orders')
-            ? (int) DB::table('purchase_orders')->whereNull('closed_at')->where('status', '!=', 'closed')->count()
+            ? (int) DB::table('purchase_orders')->where('status', '!=', 'closed')->count()
             : 0;
 
         return [
