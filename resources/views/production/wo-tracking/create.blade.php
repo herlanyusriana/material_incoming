@@ -79,7 +79,7 @@
                 body.appendChild(tr);
             });
             emptyMsg.classList.toggle('hidden', (data.lines || []).length > 0);
-            if (!data.bom_found) { emptyMsg.textContent = {{ __('wo_tracking.explosion_no_bom') | json_encode }}; emptyMsg.classList.remove('hidden'); }
+            if (!data.bom_found) { emptyMsg.textContent = @json(__('wo_tracking.explosion_no_bom')); emptyMsg.classList.remove('hidden'); }
             box.classList.remove('hidden');
         }
 
