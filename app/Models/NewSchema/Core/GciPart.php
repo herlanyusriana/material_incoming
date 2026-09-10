@@ -19,6 +19,8 @@ class GciPart extends BaseModel
         'status',
         'size',
         'model',
+        'net_weight',
+        'gross_weight',
         'customer_id',
         'default_location',
         'consumption_policy',
@@ -37,6 +39,8 @@ class GciPart extends BaseModel
 
     protected $casts = [
         'classification' => 'string',
+        'net_weight' => 'decimal:4',
+        'gross_weight' => 'decimal:4',
         'is_backflush' => 'boolean',
         'subcount_enabled' => 'boolean',
         'policy_confirmed_at' => 'datetime',

@@ -80,6 +80,7 @@ return [
             ],
             'items' => [
                 ['key' => 'in-material', 'label' => 'modules.incoming_material', 'icon' => 'arrow-down-tray', 'route' => 'incoming-material.dashboard', 'permission' => 'view_incoming', 'categories' => ['fg', 'rm', 'wip']],
+                ['key' => 'receiving-material', 'label' => 'modules.receiving_material', 'icon' => 'clipboard-check', 'route' => 'receives.index', 'permission' => 'view_incoming', 'categories' => ['fg', 'rm', 'wip']],
                 ['key' => 'out-material', 'label' => 'modules.outgoing_material', 'icon' => 'arrow-up-tray', 'route' => 'outgoing.delivery-orders.index', 'permission' => 'manage_outgoing', 'categories' => ['fg']],
                 ['key' => 'stock', 'label' => 'modules.stock', 'icon' => 'squares', 'route' => 'stock-card.index', 'permission' => 'manage_inventory', 'categories' => ['fg', 'rm', 'wip'], 'category_param' => 'classification'],
                 ['key' => 'opname', 'label' => 'modules.stock_opname', 'icon' => 'clipboard-check', 'route' => 'warehouse.stock-opname.index', 'permission' => 'manage_inventory', 'categories' => ['fg', 'rm', 'wip']],

@@ -60,6 +60,17 @@ class LauncherTest extends TestCase
             ->assertDontSee(__('modules.outgoing_material'));
     }
 
+    public function test_inventory_module_exposes_web_receiving_tile(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/module/inventory?cat=rm')
+            ->assertOk()
+            ->assertSee('Receiving Material')
+            ->assertSee(route('receives.index'), false);
+    }
+
     public function test_legacy_warehouse_module_redirects_to_inventory(): void
     {
         $user = User::factory()->create();

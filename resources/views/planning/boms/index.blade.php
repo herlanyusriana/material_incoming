@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="py-6" x-data="planningBoms()">
-        <div class="max-w-screen-2xl mx-auto px-2 sm:px-4 lg:px-6 space-y-5">
+        <div class="w-full px-2 sm:px-4 lg:px-6 space-y-5">
             @if (session('success'))
                 <div
                     class="rounded-xl bg-emerald-50 border border-emerald-200/60 px-5 py-3.5 text-sm text-emerald-800 flex items-center gap-3 shadow-sm animate-fade-in">
@@ -80,7 +80,7 @@
                     z-index: 20;
                     border-bottom: 2px solid #e2e8f0;
                 }
-                /* Sticky columns — only 2 left + 1 right */
+                /* Sticky columns: row number and actions */
                 .sticky-col-no {
                     position: sticky;
                     left: 0;
@@ -140,6 +140,10 @@
                 .child-row td {
                     padding-top: 5px;
                     padding-bottom: 5px;
+                }
+                .bom-table-comfortable .child-row td {
+                    padding-top: 10px;
+                    padding-bottom: 10px;
                 }
 
                 .action-btn {
@@ -245,7 +249,7 @@
                 }
             </style>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
+            <div class="bg-white border-y border-slate-200">
                 {{-- Header --}}
                 <div class="p-6 border-b border-slate-100">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -267,6 +271,18 @@
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2">
+                            <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1" aria-label="Table density">
+                                <button type="button" @click="density = 'compact'"
+                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors active:translate-y-px"
+                                    :class="density === 'compact' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-white'">
+                                    {{ __('planning.boms.index.compact') }}
+                                </button>
+                                <button type="button" @click="density = 'comfortable'"
+                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors active:translate-y-px"
+                                    :class="density === 'comfortable' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-white'">
+                                    {{ __('planning.boms.index.comfortable') }}
+                                </button>
+                            </div>
                             <button
                                 class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm"
                                 @click="openCreate()">
@@ -301,7 +317,7 @@
                                     <option value="">{{ __('planning.boms.index.all_gci') }}</option>
                                     @foreach ($fgParts as $p)
                                         <option value="{{ $p->id }}" @selected((string) ($gciPartId ?? '') === (string) $p->id)>
-                                            {{ $p->part_no }} — {{ $p->part_name ?? '-' }}
+                                            {{ $p->part_no }} - {{ $p->part_name ?? '-' }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -366,21 +382,25 @@
                 </div>
 
                 {{-- Table --}}
-                <div class="max-w-full overflow-x-auto max-h-[700px]">
-                    <table class="bom-table min-w-[2000px] w-full text-sm">
+                <div class="max-w-full overflow-auto max-h-[calc(100dvh-250px)] border-t border-slate-200">
+                    <table class="bom-table min-w-[2300px] w-full text-sm"
+                        :class="density === 'comfortable' ? 'bom-table-comfortable' : 'bom-table-compact'">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                <th class="px-2 py-2 text-center font-bold sticky-col-no th-sticky w-10">#</th>
-                                <th class="px-2 py-2 text-left font-bold sticky-col-fg th-sticky min-w-[200px]">{{ __('planning.boms.index.th_fg') }}</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_process') }}</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_machine') }}</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_wip') }}</th>
-                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_wip_qty') }}</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_wip_uom') }}</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_rm') }}</th>
-                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap">{{ __('planning.boms.index.th_qty') }}</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_uom') }}</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_policy') }}</th>
+                                <th class="px-2 py-2 text-center sticky-col-no th-sticky w-12">{{ __('planning.boms.index.th_no') }}</th>
+                                <th class="px-2 py-2 text-center whitespace-nowrap">{{ __('planning.boms.index.th_seq') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[220px]">{{ __('planning.boms.index.th_fg_name') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[130px]">{{ __('planning.boms.index.th_fg_model') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[150px]">{{ __('planning.boms.index.th_fg_part_no') }}</th>
+                                <th class="px-2 py-2 text-right min-w-[130px]">{{ __('planning.boms.index.th_fg_net_weight') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[140px]">{{ __('planning.boms.index.th_process_name') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[170px]">{{ __('planning.boms.index.th_machine_name') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[160px]">{{ __('planning.boms.index.th_parent_part_no') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[190px]">{{ __('planning.boms.index.th_parent_part_name') }}</th>
+                                <th class="px-2 py-2 text-right min-w-[120px]">{{ __('planning.boms.index.th_parent_part_qty') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[120px]">{{ __('planning.boms.index.th_parent_part_uom') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[160px]">{{ __('planning.boms.index.th_child_part_no') }}</th>
+                                <th class="px-2 py-2 text-left min-w-[210px]">{{ __('planning.boms.index.th_child_part_name') }}</th>
                                 <th class="px-2 py-2 text-center font-bold sticky-col-actions th-sticky-actions min-w-[100px]">{{ __('planning.boms.index.th_actions') }}</th>
                             </tr>
                         </thead>
@@ -391,44 +411,29 @@
                                     $fgNo = $bom->part->part_no ?? '-';
                                     $fgName = $bom->part->part_name ?? '-';
                                     $fgModel = $bom->part->model ?? '';
+                                    $fgNetWeight = $bom->part->net_weight;
+                                    $groupNo = ($boms->firstItem() ?? 1) + $loop->index;
                                     $items = ($bom->items ?? collect())->sortBy(fn($i) => $i->line_no ?? 0)->values();
                                 @endphp
 
-                                {{-- Parent / header row --}}
                                 <tr class="parent-row">
-                                    <td class="px-2 py-3 text-center text-slate-400 sticky-col-no">—</td>
-                                    <td class="px-2 py-3 sticky-col-fg">
-                                        <div class="flex items-center gap-2">
+                                    <td colspan="14" class="px-3 py-2.5">
+                                        <div class="flex min-w-max items-center gap-3">
                                             <button type="button"
-                                                class="inline-flex items-center justify-center w-5 h-5 rounded border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-                                                @click="toggle({{ $bomId }})">
-                                                <span x-text="expanded[{{ $bomId }}] ? '▾' : '▸'"
-                                                    class="text-[10px] font-bold"></span>
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:translate-y-px"
+                                                @click="toggle({{ $bomId }})" aria-label="Toggle BOM lines">
+                                                <span x-text="expanded[{{ $bomId }}] ? '−' : '+'" class="text-sm font-bold"></span>
                                             </button>
-                                            <span class="font-mono text-[12px] font-black text-indigo-700">{{ $fgNo }}</span>
-                                            @if(isset($bom->revision))
-                                                <span
-                                                    class="px-1.5 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white uppercase">REV
-                                                    {{ $bom->revision }}</span>
-                                            @endif
-                                            <span class="text-xs text-slate-500 font-medium">{{ $fgName }}</span>
+                                            <span class="font-mono text-xs font-black text-blue-700">{{ $fgNo }}</span>
+                                            <span class="text-xs font-semibold text-slate-800">{{ $fgName }}</span>
                                             @if($fgModel)
-                                                <span class="text-[10px] text-slate-400 font-mono">({{ $fgModel }})</span>
+                                                <span class="text-[10px] font-mono text-slate-500">{{ $fgModel }}</span>
                                             @endif
-                                        </div>
-                                    </td>
-                                    <td class="px-2 py-3" colspan="9">
-                                        <div class="flex items-center gap-3">
-                                            <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold {{ $bom->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700' }}">
+                                            <span class="text-[10px] font-bold text-slate-500">REV {{ $bom->revision ?? '-' }}</span>
+                                            <span class="text-[10px] font-bold {{ $bom->status === 'active' ? 'text-emerald-700' : 'text-slate-500' }}">
                                                 {{ strtoupper($bom->status) }}
                                             </span>
-                                            <span
-                                                class="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">{{ __('planning.boms.index.fg_header') }}</span>
-                                            <span class="text-[10px] text-slate-300">·</span>
-                                            <span class="text-[10px] text-slate-500">
-                                                {{ __('planning.boms.index.lines', ['count' => $items->count()]) }}
-                                            </span>
+                                            <span class="text-[10px] text-slate-500">{{ __('planning.boms.index.lines', ['count' => $items->count()]) }}</span>
                                         </div>
                                     </td>
                                     <td
@@ -448,10 +453,11 @@
                                                 </button>
                                             </form>
                                             <button type="button" class="action-btn hover:bg-indigo-50 text-indigo-700"
-                                                title="{{ __('planning.boms.index.change_fg_title') }}" @click="openChangeFg(@js([
+                                                    title="{{ __('planning.boms.index.change_fg_title') }}" @click="openChangeFg(@js([
                                                     'action' => route('planning.boms.update', $bom),
                                                     'part_id' => $bom->part_id,
-                                                    'current_label' => ($bom->part?->part_no ?? '-') . ' — ' . ($bom->part?->part_name ?? '-'),
+                                                    'current_label' => ($bom->part?->part_no ?? '-') . ' - ' . ($bom->part?->part_name ?? '-'),
+                                                    'net_weight' => $fgNetWeight,
                                                 ]))">FG</button>
                                             <form action="{{ route('planning.boms.destroy', $bom) }}" method="POST"
                                                 class="inline" onsubmit='return confirm(@js(__("planning.boms.index.confirm_delete_bom")));'>
@@ -477,39 +483,46 @@
                                         $subCount = $substitutes->count();
                                     @endphp
                                     <tr class="child-row group" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td class="px-2 py-1.5 text-slate-500 font-bold text-center text-xs sticky-col-no">
+                                        <td class="sticky-col-no px-2 py-2 text-center font-mono text-xs font-black text-slate-700">
+                                            {{ $groupNo }}
+                                        </td>
+                                        <td class="px-2 py-2 text-center font-mono text-xs font-black text-blue-700">
                                             {{ $lineNo }}
                                         </td>
-                                        <td class="px-2 py-1.5 text-slate-300 sticky-col-fg"></td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600 font-medium">
+                                        <td class="px-2 py-2 text-xs font-semibold text-slate-800">
+                                            <span class="block max-w-[220px] truncate" title="{{ $fgName }}">{{ $fgName }}</span>
+                                        </td>
+                                        <td class="px-2 py-2 whitespace-nowrap font-mono text-xs text-slate-600">
+                                            {{ $fgModel ?: '-' }}
+                                        </td>
+                                        <td class="px-2 py-2 whitespace-nowrap font-mono text-xs font-bold text-slate-900">
+                                            {{ $fgNo }}
+                                        </td>
+                                        <td class="px-2 py-2 text-right whitespace-nowrap font-mono text-xs font-bold text-slate-700">
+                                            {{ $fgNetWeight !== null ? number_format((float) $fgNetWeight, 4, '.', '') . ' kg/pcs' : '-' }}
+                                        </td>
+                                        <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-slate-700">
                                             {{ $item->process_name ?? '' }}
                                         </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-xs text-slate-600 hide-tablet">
-                                            {{ $item->machine->name ?? '' }}
+                                        <td class="px-2 py-2 whitespace-nowrap text-xs text-slate-600">
+                                            {{ $item->machine->name ?? '-' }}
                                         </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">
-                                            {{ $wipNo }}
+                                        <td class="px-2 py-2 whitespace-nowrap bg-blue-50/50 font-mono text-xs font-bold text-blue-800">
+                                            {{ $wipNo ?: '-' }}
                                         </td>
-                                        <td
-                                            class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-indigo-700 bg-indigo-50/20 hide-tablet">
-                                            {{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 3, '.', ''), '0'), '.') : '' }}
+                                        <td class="px-2 py-2 bg-blue-50/50 text-xs font-medium text-slate-700">
+                                            <span class="block max-w-[190px] truncate" title="{{ $wipName }}">{{ $wipName ?: '-' }}</span>
                                         </td>
-                                        <td
-                                            class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase hide-tablet">
+                                        <td class="px-2 py-2 text-right whitespace-nowrap bg-blue-50/50 font-mono text-xs font-bold text-blue-800">
+                                            {{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 4, '.', ''), '0'), '.') : '-' }}
+                                        </td>
+                                        <td class="px-2 py-2 whitespace-nowrap bg-blue-50/50 text-[10px] font-bold uppercase text-slate-600">
                                             {{ $item->wipUom?->code ?? ($item->wip_uom ?? '') }}
                                         </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap font-mono-compact font-bold text-slate-800">
-                                            {{ $rmNo }}
+                                        <td class="px-2 py-2 whitespace-nowrap font-mono text-xs font-bold text-slate-900">
+                                            {{ $rmNo ?: '-' }}
                                         </td>
-                                        <td
-                                            class="px-2 py-1.5 text-right whitespace-nowrap font-mono-compact font-bold text-emerald-700 bg-emerald-50/20">
-                                            {{ rtrim(rtrim(number_format((float) $item->usage_qty, 3, '.', ''), '0'), '.') }}
-                                        </td>
-                                        <td
-                                            class="px-2 py-1.5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">
-                                            {{ $item->consumptionUom?->code ?? ($item->consumption_uom ?? '') }}
-                                        </td>
-                                        <td class="px-2 py-1.5 whitespace-nowrap text-[10px] hide-tablet">
+                                        <td class="px-2 py-2 text-xs text-slate-700">
                                             @php
                                                 $policy = $item->consumption_policy_override ?: ($item->componentPart?->consumption_policy ?: (($item->componentPart?->is_backflush ?? true) ? 'backflush_return' : 'direct_issue'));
                                                 $policyLabels = [
@@ -519,8 +532,13 @@
                                                 ];
                                                 [$policyLabel, $policyClass] = $policyLabels[$policy] ?? ['-', 'bg-slate-100 text-slate-500 border-slate-200'];
                                             @endphp
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black border {{ $policyClass }}">
-                                                {{ $policyLabel }}
+                                            <span class="block max-w-[210px] truncate font-medium" title="{{ $item->componentPart?->part_name ?? $item->material_name }}">
+                                                {{ $item->componentPart?->part_name ?? ($item->material_name ?: '-') }}
+                                            </span>
+                                            <span class="mt-0.5 block font-mono text-[10px] text-slate-500">
+                                                {{ rtrim(rtrim(number_format((float) $item->usage_qty, 4, '.', ''), '0'), '.') }}
+                                                {{ $item->consumptionUom?->code ?? ($item->consumption_uom ?? '') }}
+                                                <span class="ml-1 font-sans {{ str_contains($policyClass, 'orange') ? 'text-orange-700' : 'text-slate-500' }}">{{ $policyLabel }}</span>
                                             </span>
                                         </td>
                                         <td
@@ -532,7 +550,7 @@
                                                         'bom_item_id' => $item->id,
                                                         'action' => route('planning.bom-items.substitutes.store', $item),
                                                         'store_action' => route('planning.bom-items.substitutes.store', $item),
-                                                        'fg_label' => $fgNo . ' — ' . $fgName,
+                                                        'fg_label' => $fgNo . ' - ' . $fgName,
                                                         'line_no' => $lineNo,
                                                         'process_name' => $item->process_name,
                                                         'wip_part_no' => $wipNo,
@@ -570,7 +588,7 @@
                                                     'mode' => 'edit',
                                                     'action' => route('planning.boms.items.store', $bom),
                                                     'bom_item_id' => $item->id,
-                                                    'fg_label' => $fgNo . ' — ' . $fgName,
+                                                    'fg_label' => $fgNo . ' - ' . $fgName,
                                                     'classification' => $item->componentPart?->classification ?? '',
                                                     'line_no' => $lineNo,
                                                     'process_name' => $item->process_name,
@@ -613,20 +631,20 @@
                                     </tr>
                                 @empty
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="20" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
+                                        <td colspan="15" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
                                     </tr>
                                 @endforelse
 
                                 {{-- Add line row --}}
                                 <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                    <td colspan="20" class="px-3 py-3">
+                                    <td colspan="15" class="px-3 py-3">
                                         <button type="button"
                                             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
                                             @click="openLineModal(@js([
                                                 'mode' => 'create',
                                                 'action' => route('planning.boms.items.store', $bom),
                                                 'bom_item_id' => null,
-                                                'fg_label' => $fgNo . ' — ' . $fgName,
+                                                'fg_label' => $fgNo . ' - ' . $fgName,
                                                 'line_no' => null,
                                                 'process_name' => null,
                                                 'machine_id' => null,
@@ -652,7 +670,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="20" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
+                                    <td colspan="15" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -697,7 +715,7 @@
                             <select id="bom-fg-part" name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
                                 <option value="" disabled selected>{{ __('planning.boms.index.select_part') }}</option>
                                 @foreach ($fgParts as $p)
-                                    <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
+                                    <option value="{{ $p->id }}">{{ $p->part_no }} - {{ $p->part_name ?? '-' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -940,7 +958,7 @@
                                         x-model="lineForm.component_part_id" required>
                                         <option value="">{{ __('planning.boms.index.select_rm') }}</option>
                                         @foreach (($rmParts ?? []) as $c)
-                                            <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
+                                            <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} - {{ optional($c)->part_name ?? '-' }}</option>
                                         @endforeach
                                     </select>
                                 </template>
@@ -1068,7 +1086,7 @@
                                                 x-model="lineForm.wip_part_id">
                                                 <option value="">-</option>
                                                 @foreach(($wipParts ?? []) as $p)
-                                                    <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} — {{ optional($p)->part_name ?? '-' }}</option>
+                                                    <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} - {{ optional($p)->part_name ?? '-' }}</option>
                                                 @endforeach
                                             </select>
                                         </template>
@@ -1123,6 +1141,7 @@
             <script>
                 function planningBoms() {
                     return {
+                        density: 'compact',
                         modalOpen: false,
                         importOpen: false,
                         importSubstituteOpen: false,
@@ -1132,6 +1151,7 @@
                             action: '',
                             current_label: '',
                             part_id: '',
+                            net_weight: '',
                         },
                         lineModalOpen: false,
                         substituteOpen: false,
@@ -1157,7 +1177,7 @@
                             status: 'active',
                             notes: '',
                         },
-                        expanded: {},
+                        expanded: @js(($boms ?? collect())->getCollection()->pluck('id')->mapWithKeys(fn ($id) => [(string) $id => true])->all()),
                         lineForm: {
                             mode: 'create',
                             action: '',
@@ -1199,6 +1219,7 @@
                                 action: payload.action,
                                 current_label: payload.current_label ?? '',
                                 part_id: payload.part_id ?? '',
+                                net_weight: payload.net_weight ?? '',
                             };
                             this.changeFgOpen = true;
                         },
@@ -1317,10 +1338,11 @@
                         <div>
                             <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.new_fg') }}</label>
                             <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required
-                                x-model="changeFgForm.part_id">
+                                x-model="changeFgForm.part_id"
+                                @change="changeFgForm.net_weight = $event.target.selectedOptions[0]?.dataset.netWeight ?? ''">
                                 <option value="" disabled>{{ __('planning.boms.index.select_fg') }}</option>
                                 @foreach(($fgParts ?? []) as $p)
-                                    <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} —
+                                    <option value="{{ optional($p)->id }}" data-net-weight="{{ optional($p)->net_weight }}">{{ optional($p)->part_no }} -
                                         {{ optional($p)->part_name ?? '-' }}
                                     </option>
                                 @endforeach
@@ -1329,6 +1351,17 @@
                                 {{ __('planning.boms.index.change_note_before') }} <span
                                     class="font-semibold">FG</span>
                                 {{ __('planning.boms.index.change_note_after') }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.net_weight_kg_pcs') }}</label>
+                            <div class="relative mt-1">
+                                <input type="number" name="net_weight" min="0" step="0.0001"
+                                    x-model="changeFgForm.net_weight"
+                                    class="w-full rounded-xl border-slate-200 pr-20 font-mono text-sm focus:border-blue-500 focus:ring-blue-500"
+                                    placeholder="0.0000">
+                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-slate-400">kg/pcs</span>
                             </div>
                         </div>
 
@@ -1426,7 +1459,7 @@
                                                         </div>
                                                     </template>
                                                     <template x-if="!s.incoming_part_no">
-                                                        <span class="text-slate-300">—</span>
+                                                        <span class="text-slate-300">-</span>
                                                     </template>
                                                 </td>
                                                 <td class="px-3 py-2 text-right font-mono" x-text="s.ratio"></td>
@@ -1479,7 +1512,7 @@
                                         required x-model="substituteForm.substitute_part_id">
                                         <option value="" disabled>{{ __('planning.boms.index.select_part') }}</option>
                                         @foreach(($rmParts ?? []) as $p)
-                                            <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} —
+                                            <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} -
                                                 {{ optional($p)->part_name ?? '-' }}
                                             </option>
                                         @endforeach
@@ -1492,7 +1525,7 @@
                                         <option value="">{{ __('planning.boms.index.drawer_no_incoming') }}</option>
                                         @foreach(($incomingParts ?? []) as $ip)
                                             <option value="{{ $ip->id }}">
-                                                {{ $ip->part_no }} —
+                                                {{ $ip->part_no }} -
                                                 {{ $ip->part_name_gci ?: ($ip->part_name_vendor ?? '-') }}
                                                 @if($ip->vendor) [{{ $ip->vendor->name }}] @endif
                                             </option>

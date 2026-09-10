@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Bom;
+use App\Models\BomItem;
+use App\Models\BomItemSubstitute;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Core\Vendor;
 use App\Models\NewSchema\Incoming\IncomingArrival;
@@ -147,8 +150,36 @@ class MaterialTrackerApiTest extends TestCase
 
     private function makeRequirement(ProductionWorkOrder $wo, int $gciPartId, float $qty): void
     {
+        $component = GciPart::create([
+            'part_no' => 'RM-MAIN-' . uniqid(),
+            'part_name' => 'Main RM Part',
+            'uom' => 'PCE',
+            'classification' => 'RM',
+            'status' => 'active',
+        ]);
+        $bom = Bom::create([
+            'part_id' => $wo->gci_part_id,
+            'status' => 'active',
+        ]);
+        $bomItem = BomItem::create([
+            'bom_id' => $bom->id,
+            'component_part_id' => $component->id,
+            'component_part_no' => $component->part_no,
+            'usage_qty' => 1,
+            'consumption_uom' => 'PCE',
+            'make_or_buy' => 'make',
+        ]);
+        BomItemSubstitute::create([
+            'bom_item_id' => $bomItem->id,
+            'substitute_part_id' => $gciPartId,
+            'ratio' => 1,
+            'priority' => 1,
+            'status' => 'active',
+        ]);
+
         $wo->requirements()->create([
-            'gci_part_id' => $gciPartId,
+            'gci_part_id' => $component->id,
+            'bom_item_id' => $bomItem->id,
             'required_qty' => $qty,
             'uom' => 'PCE',
             'consumption_policy' => 'direct_issue',

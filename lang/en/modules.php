@@ -33,6 +33,7 @@ return [
     'material_price' => 'Material Price',
     'in_transit_import' => 'In Transit Import',
     'incoming_material' => 'Incoming Material',
+    'receiving_material' => 'Receiving Material',
     'outgoing_material' => 'Outgoing Material',
     'stock' => 'Stock',
     'stock_by_location' => 'Stock by Location',

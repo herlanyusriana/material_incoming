@@ -130,7 +130,7 @@ class WoTrackingService
             ->whereIn('gci_part_id', $substituteIds)
             ->where('qty_on_hand', '>', 0)
             ->whereRaw("TRIM(COALESCE(batch_no,'')) <> ''")
-            ->get(['id', 'location_code', 'batch_no', 'qty_on_hand']);
+            ->get(['id', 'gci_part_id', 'location_code', 'batch_no', 'qty_on_hand']);
 
         $tags = $tagStock->map(function ($row) {
             $part = GciPart::find((int) $row->gci_part_id);

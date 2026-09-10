@@ -30,8 +30,8 @@
                     </h2>
                     <p class="text-sm text-slate-500">
                         {{ ($customsOnly ?? false)
-                            ? '{{ __('incoming.arrivals.edit.desc_customs') }}'
-                            : '{{ __('incoming.arrivals.edit.desc_departure') }}' }}
+                            ? __('incoming.arrivals.edit.desc_customs')
+                            : __('incoming.arrivals.edit.desc_departure') }}
                     </p>
                 </div>
 

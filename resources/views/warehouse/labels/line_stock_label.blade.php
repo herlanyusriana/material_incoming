@@ -111,7 +111,7 @@
             </section>
             <section class="qr-area">
                 <div class="qr">{!! $qrSvg !!}</div>
-                <div class="scan-text">{!! nl2br(e(__('warehouse.labels.line_stock.scan_text')))) !!}</div>
+                <div class="scan-text">{!! nl2br(e(__('warehouse.labels.line_stock.scan_text'))) !!}</div>
             </section>
         </div>
     </div>

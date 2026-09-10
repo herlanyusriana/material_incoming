@@ -33,6 +33,7 @@ return [
     'material_price' => '자재 가격',
     'in_transit_import' => '수입 운송 중',
     'incoming_material' => '입고',
+    'receiving_material' => '자재 입고',
     'outgoing_material' => '출고',
     'stock' => '재고',
     'stock_by_location' => '위치별 재고',

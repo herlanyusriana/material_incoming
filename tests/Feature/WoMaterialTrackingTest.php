@@ -37,7 +37,7 @@ class WoMaterialTrackingTest extends TestCase
         $this->actingAs(User::where('role', 'admin')->first());
     }
 
-    private function makeScenario(): array
+    private function makeScenario(bool $mapStockAsSubstitute = true): array
     {
         // FG: 14.000 PCE, RM: 0,1 KGM/PCE -> 1.400 KGM
         $fg = $this->makeNewGciPart('QA-WO-FG', 'FG');
@@ -47,7 +47,7 @@ class WoMaterialTrackingTest extends TestCase
         $rm->update(['uom' => 'KGM']);
 
         $bom = Bom::create(['part_id' => $fg->id, 'status' => 'active']);
-        BomItem::create([
+        $bomItem = BomItem::create([
             'bom_id' => $bom->id,
             'component_part_id' => $rm->id,
             'component_part_no' => $rm->part_no,
@@ -57,6 +57,17 @@ class WoMaterialTrackingTest extends TestCase
             'yield_factor' => 1,
             'scrap_factor' => 0,
         ]);
+
+        if ($mapStockAsSubstitute) {
+            BomItemSubstitute::create([
+                'bom_item_id' => $bomItem->id,
+                'substitute_part_id' => $rm->id,
+                'substitute_part_no' => $rm->part_no,
+                'ratio' => 1,
+                'priority' => 1,
+                'status' => 'active',
+            ]);
+        }
 
         // Tag coil di 3 lokasi seperti contoh: WH1=2000/4, WH2=500/1, WH3=1500/3
         WarehouseLocation::create(['location_code' => 'WH1', 'status' => 'active']);
@@ -140,7 +151,7 @@ class WoMaterialTrackingTest extends TestCase
 
     public function test_suggestion_uses_only_stocked_substitutes_in_fifo_order(): void
     {
-        [$fg, $rm, $bom] = $this->makeScenario();
+        [$fg, $rm, $bom] = $this->makeScenario(false);
         $sub = $this->makeNewGciPart('QA-WO-SUB', 'RM');
         $sub->update(['uom' => 'KGM']);
         $bomItem = $bom->items()->first();
@@ -175,7 +186,7 @@ class WoMaterialTrackingTest extends TestCase
 
         $this->assertSame('TAG-SUB-OLD', $suggestion['picks']->first()['tag']);
         $this->assertSame($sub->id, $suggestion['picks']->first()['gci_part_id']);
-        $this->assertSame(0.0, $suggestion['shortfall']);
+        $this->assertSame(400.0, $suggestion['shortfall']);
     }
 
     public function test_allocate_locks_tag_and_releases_wo(): void
