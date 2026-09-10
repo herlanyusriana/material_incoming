@@ -406,7 +406,8 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($boms as $bom)
+                            @if ($boms->isNotEmpty())
+                            @foreach ($boms as $bom)
                                 @php
                                     $bomId = (int) $bom->id;
                                     $fgNo = $bom->part->part_no ?? '-';
@@ -472,7 +473,8 @@
                                 </tr>
 
                                 {{-- Lines --}}
-                                @forelse($items as $idx => $item)
+                                @if ($items->isNotEmpty())
+                                @foreach ($items as $idx => $item)
                                     @php
                                         $lineNo = $item->line_no ?? ($idx + 1);
                                         $wipNo = $item->wip_part_no ?: ($item->wipPart?->part_no ?? '');
@@ -625,11 +627,12 @@
                                             </div>
                                         </td>
                                     </tr>
-                                @empty
+                                @endforeach
+                                @else
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
                                         <td colspan="14" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
                                     </tr>
-                                @endforelse
+                                @endif
 
                                 {{-- Add line row --}}
                                 <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
@@ -664,11 +667,12 @@
                                         </button>
                                     </td>
                                 </tr>
-                            @empty
+                            @endforeach
+                            @else
                                 <tr>
                                     <td colspan="14" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
                                 </tr>
-                            @endforelse
+                            @endif
                         </tbody>
                     </table>
                 </div>
