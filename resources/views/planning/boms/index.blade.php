@@ -405,13 +405,13 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             <?php if ($boms->isNotEmpty()): ?>
-                            <?php foreach ($boms as $bom): ?>
+                            <?php foreach ($boms as $bomIndex => $bom): ?>
                                 @php
                                     $bomId = (int) $bom->id;
                                     $fgNo = $bom->part->part_no ?? '-';
                                     $fgName = $bom->part->part_name ?? '-';
                                     $fgModel = $bom->part->model ?? '';
-                                    $groupNo = ($boms->firstItem() ?? 1) + $loop->index;
+                                    $groupNo = ($boms->firstItem() ?? 1) + $bomIndex;
                                     $items = ($bom->items ?? collect())->sortBy(fn($i) => $i->line_no ?? 0)->values();
                                 @endphp
 
