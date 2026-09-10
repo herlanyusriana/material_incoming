@@ -1,5 +1,3 @@
-@php($fullWidth = true)
-
 <x-app-layout>
     <x-slot name="header">
         {{ __('planning.mrp.index.header') }}
