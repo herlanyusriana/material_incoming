@@ -406,8 +406,8 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                            @if ($boms->isNotEmpty())
-                            @foreach ($boms as $bom)
+                            <?php if ($boms->isNotEmpty()): ?>
+                            <?php foreach ($boms as $bom): ?>
                                 @php
                                     $bomId = (int) $bom->id;
                                     $fgNo = $bom->part->part_no ?? '-';
@@ -473,8 +473,8 @@
                                 </tr>
 
                                 {{-- Lines --}}
-                                @if ($items->isNotEmpty())
-                                @foreach ($items as $idx => $item)
+                                <?php if ($items->isNotEmpty()): ?>
+                                <?php foreach ($items as $idx => $item): ?>
                                     @php
                                         $lineNo = $item->line_no ?? ($idx + 1);
                                         $wipNo = $item->wip_part_no ?: ($item->wipPart?->part_no ?? '');
@@ -627,12 +627,11 @@
                                             </div>
                                         </td>
                                     </tr>
-                                @endforeach
-                                @else
+                                <?php endforeach; else: ?>
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
                                         <td colspan="14" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
                                     </tr>
-                                @endif
+                                <?php endif; ?>
 
                                 {{-- Add line row --}}
                                 <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
@@ -667,12 +666,11 @@
                                         </button>
                                     </td>
                                 </tr>
-                            @endforeach
-                            @else
+                            <?php endforeach; else: ?>
                                 <tr>
                                     <td colspan="14" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
                                 </tr>
-                            @endif
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
