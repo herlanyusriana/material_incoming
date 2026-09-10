@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BomItemSubstitute;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\NewSchema\Production\ProductionWorkOrder;
 use App\Models\NewSchema\Production\WoMaterialAllocation;
@@ -92,7 +93,13 @@ class WoTrackingApiController extends Controller
 
         $requirement = null;
         if (($info['gci_part_id'] ?? 0) > 0) {
-            $requirement = $woTracking->requirements->firstWhere('gci_part_id', $info['gci_part_id']);
+            $requirement = $woTracking->requirements->first(function ($candidate) use ($info) {
+                return BomItemSubstitute::query()
+                    ->where('bom_item_id', $candidate->bom_item_id)
+                    ->where('substitute_part_id', $info['gci_part_id'])
+                    ->where('status', 'active')
+                    ->exists();
+            });
             if ($requirement) {
                 $info['suggestion'] = $this->tracking->suggestPicks($woTracking, $requirement);
             }
@@ -120,7 +127,6 @@ class WoTrackingApiController extends Controller
         $locationCode = $validated['location_code'] ?? null;
         if (empty($locationCode)) {
             $locationCode = \App\Models\NewSchema\Inventory\InventoryLocationStock::query()
-                ->where('gci_part_id', $requirement->gci_part_id)
                 ->where('batch_no', trim($validated['tag']))
                 ->where('qty_on_hand', '>', 0)
                 ->orderByDesc('qty_on_hand')
@@ -163,7 +169,7 @@ class WoTrackingApiController extends Controller
 
         $short = $woTracking->requirements->filter(function ($requirement) use ($woTracking) {
             $covered = (float) $woTracking->allocations()
-                ->where('gci_part_id', $requirement->gci_part_id)
+                ->where('requirement_id', $requirement->id)
                 ->whereIn('status', [WoMaterialAllocation::STATUS_RESERVED, WoMaterialAllocation::STATUS_CONSUMED])
                 ->sum('qty_reserved');
 
@@ -205,7 +211,7 @@ class WoTrackingApiController extends Controller
                     continue;
                 }
                 $consumption = round((float) $requirement->required_qty * ($qtyGood / max((float) $wo->qty_target, 0.0001)), 4);
-                $this->tracking->consumeForWo($wo, (int) $requirement->gci_part_id, $consumption);
+                $this->tracking->consumeForWo($wo, $requirement, $consumption);
             }
 
             $fgPart = $wo->gciPart;
